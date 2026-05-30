@@ -42,7 +42,7 @@ export function BitstreamLandingBackground2D({
   return (
     <div
       className={[
-        "t3d-flow-canvas-bg webview-launcher-bg-2d pointer-events-none absolute inset-0 z-1 overflow-hidden",
+        "t3d-flow-canvas-bg webview-launcher-bg-2d pointer-events-none absolute inset-0 z-0 overflow-hidden",
         className ?? "",
       ].join(" ")}
       aria-hidden
@@ -63,6 +63,7 @@ export function BitstreamLandingBackground2D({
         >
           <FlowCanvasBackground
             interactionRootClass="webview-launcher"
+            particleDensity={1.85}
             className="t3d-flow-canvas-bg__canvas pointer-events-none absolute inset-0 z-2 h-full w-full"
           />
         </div>

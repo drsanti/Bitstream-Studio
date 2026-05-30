@@ -10,6 +10,8 @@
  *
  *******************************************************************************/
 
+"use no memo";
+
 import { Center, useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { gsap } from "gsap";

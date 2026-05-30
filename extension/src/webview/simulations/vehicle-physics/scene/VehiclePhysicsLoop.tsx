@@ -10,6 +10,8 @@
  *
  *******************************************************************************/
 
+"use no memo";
+
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect } from "react";
 import { useVehiclePhysics } from "../context/VehiclePhysicsContext.js";

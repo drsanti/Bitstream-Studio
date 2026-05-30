@@ -11,6 +11,8 @@
  *
  *******************************************************************************/
 
+"use no memo";
+
 import { Environment } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
@@ -31,6 +33,8 @@ import {
 export type WelcomeBackground3DSceneProps = {
   /** When false, camera is fixed and cube wave animation is skipped. */
   animate?: boolean;
+  /** Omit scene fill so the 2D landing backdrop shows through empty sky. */
+  transparentBackground?: boolean;
 };
 
 type CubeAnimState = {
@@ -39,6 +43,28 @@ type CubeAnimState = {
   speed: number;
   col: number;
 };
+
+/** Rest position + sin/cos orbit amplitudes for a floating glass shape. */
+type FloatShapeOrbit = {
+  mesh: THREE.Mesh;
+  base: THREE.Vector3;
+  amp: THREE.Vector3;
+  freq: THREE.Vector3;
+  phase: THREE.Vector3;
+};
+
+/**
+ * Applies independent sin/cos motion on X, Y, and Z around a rest position.
+ */
+function applyFloatShapeOrbit(orbit: FloatShapeOrbit, time: number): void
+{
+  const { mesh, base, amp, freq, phase } = orbit;
+  mesh.position.set(
+    base.x + Math.cos(time * freq.x + phase.x) * amp.x,
+    base.y + Math.sin(time * freq.y + phase.y) * amp.y,
+    base.z + Math.sin(time * freq.z + phase.z) * amp.z,
+  );
+}
 
 /**
  * GSAP camera intro on first mount (matches v1 welcome framing).
@@ -93,13 +119,17 @@ function WelcomeBackground3DCamera({ animate }: { animate: boolean })
 /**
  * Builds the welcome cube floor, floating shapes, and lights under one group ref.
  */
-export function WelcomeBackground3DScene({ animate = true }: WelcomeBackground3DSceneProps)
+export function WelcomeBackground3DScene({
+  animate = true,
+  transparentBackground = false,
+}: WelcomeBackground3DSceneProps)
 {
   const rootRef = useRef<THREE.Group>(null);
   const animRef = useRef<{
     mesh1: THREE.Mesh;
     mesh2: THREE.Mesh;
     mesh3: THREE.Mesh;
+    floatOrbits: FloatShapeOrbit[];
     group: THREE.Group;
     p1: THREE.PointLight;
     p2: THREE.PointLight;
@@ -144,9 +174,37 @@ export function WelcomeBackground3DScene({ animate = true }: WelcomeBackground3D
     const mesh1 = new THREE.Mesh(g1, mkMat(0x7c3aed));
     const mesh2 = new THREE.Mesh(g2, mkMat(0x22c55e));
     const mesh3 = new THREE.Mesh(g3, mkMat(0x06b6d4));
-    mesh1.position.set(-1.6, 1.0, -2.5);
-    mesh2.position.set(1.7, -0.4, -3.2);
-    mesh3.position.set(0.2, -1.2, -2.0);
+
+    const mesh1Base = new THREE.Vector3(-1.6, 1.0, -2.5);
+    const mesh2Base = new THREE.Vector3(1.7, -0.4, -3.2);
+    const mesh3Base = new THREE.Vector3(0.2, -1.2, -2.0);
+    mesh1.position.copy(mesh1Base);
+    mesh2.position.copy(mesh2Base);
+    mesh3.position.copy(mesh3Base);
+
+    const floatOrbits: FloatShapeOrbit[] = [
+      {
+        mesh: mesh1,
+        base: mesh1Base,
+        amp: new THREE.Vector3(0.65, 0.5, 0.45),
+        freq: new THREE.Vector3(0.42, 0.38, 0.31),
+        phase: new THREE.Vector3(0.0, 0.5, 1.2),
+      },
+      {
+        mesh: mesh2,
+        base: mesh2Base,
+        amp: new THREE.Vector3(0.55, 0.62, 0.5),
+        freq: new THREE.Vector3(0.36, 0.44, 0.29),
+        phase: new THREE.Vector3(2.0, 0.8, 1.6),
+      },
+      {
+        mesh: mesh3,
+        base: mesh3Base,
+        amp: new THREE.Vector3(0.7, 0.48, 0.58),
+        freq: new THREE.Vector3(0.33, 0.4, 0.35),
+        phase: new THREE.Vector3(1.1, 2.4, 0.3),
+      },
+    ];
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.55);
     const p1 = new THREE.PointLight(0xff3ea5, 2.2, 30);
@@ -228,7 +286,18 @@ export function WelcomeBackground3DScene({ animate = true }: WelcomeBackground3D
     }
 
     root.add(mesh1, mesh2, mesh3, ambient, p1, p2, p3, floorGroup);
-    animRef.current = { mesh1, mesh2, mesh3, group: root, p1, p2, p3, cubes, cols };
+    animRef.current = {
+      mesh1,
+      mesh2,
+      mesh3,
+      floatOrbits,
+      group: root,
+      p1,
+      p2,
+      p3,
+      cubes,
+      cols,
+    };
 
     return () =>
     {
@@ -254,12 +323,20 @@ export function WelcomeBackground3DScene({ animate = true }: WelcomeBackground3D
     }
 
     const t = clock.getElapsedTime();
+
+    /* --- Block: floating shapes — rotation + sin/cos orbit in X/Y/Z --- */
     anim.mesh1.rotation.x = t * 0.35;
     anim.mesh1.rotation.y = t * 0.55;
     anim.mesh2.rotation.x = t * 0.45;
     anim.mesh2.rotation.y = -t * 0.35;
     anim.mesh3.rotation.x = -t * 0.25;
     anim.mesh3.rotation.y = t * 0.4;
+
+    for (const orbit of anim.floatOrbits)
+    {
+      applyFloatShapeOrbit(orbit, t);
+    }
+
     anim.group.position.y = Math.sin(t * 0.6) * 0.1;
     anim.p1.intensity = 1.8 + Math.sin(t * 1.2) * 0.4;
     anim.p2.intensity = 1.7 + Math.sin(t * 0.9 + 1.0) * 0.4;
@@ -278,7 +355,9 @@ export function WelcomeBackground3DScene({ animate = true }: WelcomeBackground3D
 
   return (
     <>
-      <color attach="background" args={[WELCOME_BG3D_SCENE_BACKGROUND]} />
+      {transparentBackground ? null : (
+        <color attach="background" args={[WELCOME_BG3D_SCENE_BACKGROUND]} />
+      )}
       <Environment preset="city" />
       <WelcomeBackground3DCamera animate={animate} />
       <group ref={rootRef} name="welcome-background" />

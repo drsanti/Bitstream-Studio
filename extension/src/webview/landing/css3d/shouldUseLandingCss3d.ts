@@ -1,7 +1,7 @@
 /*******************************************************************************
  * File Name : shouldUseLandingCss3d.ts
  *
- * Description : When landing cards render via CSS3DRenderer vs flat HTML.
+ * Description : When landing card grids use CSS perspective parallax (3D/blend backdrop).
  *
  * Author : Asst.Prof.Santi Nuratch, Ph.D
  * Thailand Embedded Systems Association (TESA)
@@ -14,7 +14,7 @@ import type { LandingBackgroundMode } from "../bitstreamLandingBackgroundMode.st
 import { landingModeShows3d } from "../bitstreamLandingBackgroundMode.store.js";
 
 /**
- * CSS3D parallax requires the WebGL cube backdrop (3D or blend), not reduced motion.
+ * Card parallax requires the WebGL cube backdrop (3D or blend), not reduced motion.
  */
 export function shouldUseLandingCss3d(
   mode: LandingBackgroundMode,

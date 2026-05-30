@@ -97,9 +97,13 @@ Dev URL: **http://localhost:5173/** — browser dev shows a **landing page** fir
 
 **Backdrop gestures** (empty area, not on buttons): **double-click** cycles **2D only → 3D only → blend**; **Shift+double-click** cycles overlay (**nebula+flow → nebula → flow → none**). Badge bottom-right shows current mode. See **`src/webview/landing/README.md`**.
 
-**Stale COI service worker:** If the page fails to load with `t3d-coi-serviceworker.js` / `Failed to fetch`, unregister service workers for `localhost:5173` in DevTools → **Application** → **Service Workers** (leftover from vehicle physics / T3D on the same port), then hard-reload.
+**Stale COI service worker:** A leftover `t3d-coi-serviceworker.js` from T3D / vehicle physics on the same port can break Vite with `Failed to fetch`. **Auto-fix:** `index.html` + `unregisterStaleCoiServiceWorker.ts` unregister it on localhost dev (one reload if needed). Manual fallback: DevTools → **Application** → **Service Workers** → unregister, then hard-reload.
 
-Implementation: **`src/webview/landing/`**, **`src/webview/simulations/`**, **`src/webview/ui/flow-canvas-background/`**.
+Implementation: **`src/webview/landing/`**, **`src/webview/simulations/`**, **`src/webview/shared/webgl/`**, **`src/webview/ui/flow-canvas-background/`**.
+
+**WebGL route changes:** Landing and simulations each mount an R3F `Canvas`. Switching routes (landing card → sim, **Ctrl+/** back to landing) uses a short transition splash while the prior Canvas tears down (~80 ms). Do not remove **`useWebGLSurfaceReady`** without retesting. Details: **`src/webview/shared/webgl/README.md`**.
+
+**Ctrl+/** in VSIX: **Open workspace landing** reopens the picker from Sensor Telemetry / Studio or from a simulation.
 
 After entering the app, switch tabs with the toolbar (last tab persisted in `localStorage`). Browser shortcuts: **Ctrl+Shift+1** / **Ctrl+Shift+2**, **Ctrl+/** quick commands.
 

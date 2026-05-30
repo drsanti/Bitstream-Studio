@@ -10,28 +10,13 @@
  *
  *******************************************************************************/
 
-import { lazy, Suspense } from "react";
-
-const LazySimulationHost = lazy(async () =>
-{
-  const { SimulationHost } = await import("./SimulationHost.js");
-  return { default: SimulationHost };
-});
+import { SimulationHost } from "./SimulationHost.js";
 
 /**
  * Root host when a simulation id is active in {@link useSimulationHubStore}.
+ * Eager import — lazy chunks duplicated React and broke R3F hooks (#321).
  */
 export function SimulationHub()
 {
-  return (
-    <Suspense
-      fallback={
-        <div className="fixed inset-0 z-400 flex items-center justify-center bg-zinc-950 text-sm text-zinc-400">
-          Loading simulation…
-        </div>
-      }
-    >
-      <LazySimulationHost />
-    </Suspense>
-  );
+  return <SimulationHost />;
 }

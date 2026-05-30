@@ -52,6 +52,8 @@ export type FlowCanvasBackgroundProps = {
   /** Closest ancestor with this class receives pointer events for particle repulsion. */
   interactionRootClass?: string;
   className?: string;
+  /** Multiplier for bubble count (default 1). Landing uses a higher value for denser flow. */
+  particleDensity?: number;
 };
 
 function prefersReducedMotion(): boolean
@@ -62,9 +64,10 @@ function prefersReducedMotion(): boolean
   );
 }
 
-function particleCount(width: number, height: number): number
+function particleCount(width: number, height: number, density = 1): number
 {
-  return Math.min(72, Math.max(40, Math.floor((width * height) / 16000)));
+  const scaled = Math.floor((width * height) / 8500) * density;
+  return Math.min(160, Math.max(70, Math.round(scaled)));
 }
 
 function randomRadius(): number
@@ -94,9 +97,9 @@ function maxSpeedForRadius(radius: number): number
   return 1.6;
 }
 
-function createParticles(width: number, height: number): Particle[]
+function createParticles(width: number, height: number, density = 1): Particle[]
 {
-  const count = particleCount(width, height);
+  const count = particleCount(width, height, density);
   const particles: Particle[] = [];
   for (let i = 0; i < count; i += 1)
   {
@@ -378,10 +381,17 @@ function stepParticles(
 export function FlowCanvasBackground({
   interactionRootClass = "t3d-flow-canvas-bg",
   className = "t3d-flow-canvas-bg__canvas pointer-events-none absolute inset-0 h-full w-full",
+  particleDensity = 1,
 }: FlowCanvasBackgroundProps)
 {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const reducedMotionRef = useRef(prefersReducedMotion());
+  const particleDensityRef = useRef(particleDensity);
+
+  useEffect(() =>
+  {
+    particleDensityRef.current = particleDensity;
+  }, [particleDensity]);
 
   useEffect(() =>
   {
@@ -432,7 +442,7 @@ export function FlowCanvasBackground({
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      particles = createParticles(width, height);
+      particles = createParticles(width, height, particleDensityRef.current);
     };
 
     const drawFrame = (nowMs: number) =>

@@ -10,6 +10,8 @@
  *
  *******************************************************************************/
 
+"use no memo";
+
 import { Canvas } from "@react-three/fiber";
 import { Suspense, type ReactNode } from "react";
 import * as THREE from "three";
@@ -18,6 +20,7 @@ import {
   SIMULATION_CAMERA_POSITION,
   SIMULATION_TONE_MAPPING_EXPOSURE,
 } from "./simulationCanvasConstants.js";
+import { WebGLSurfaceLifecycle } from "../../../shared/webgl/WebGLSurfaceLifecycle.js";
 
 export type SimulationCanvasProps = {
   className?: string;
@@ -45,6 +48,7 @@ export function SimulationCanvas({ className, children }: SimulationCanvasProps)
         gl.outputColorSpace = THREE.SRGBColorSpace;
       }}
     >
+      <WebGLSurfaceLifecycle />
       <Suspense fallback={null}>{children}</Suspense>
     </Canvas>
   );

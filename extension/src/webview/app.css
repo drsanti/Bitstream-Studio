@@ -444,15 +444,28 @@ body.webview-digital-twin-shell::after {
   }
 }
 
-@keyframes webview-launcher-icon-pulse {
-  0%,
+@keyframes webview-launcher-icon-pop {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
   100% {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+@keyframes webview-launcher-icon-ring-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--launcher-icon-ring, rgba(52, 211, 153, 0.35));
+  }
   50% {
-    transform: scale(1.04);
-    opacity: 0.92;
+    box-shadow: 0 0 0 10px transparent;
   }
 }
 
@@ -507,6 +520,11 @@ body.webview-digital-twin-shell::after {
   display: block;
   width: 100% !important;
   height: 100% !important;
+  pointer-events: none;
+}
+
+.webview-launcher__content {
+  isolation: isolate;
 }
 
 .webview-launcher-bg-2d.webview-launcher-bg-2d {
@@ -536,6 +554,7 @@ body.webview-digital-twin-shell::after {
 
 .webview-launcher-card {
   animation: webview-launcher-fade-up 0.65s ease-out both;
+  pointer-events: auto;
 }
 
 .webview-launcher-card--delay-0 {
@@ -546,8 +565,18 @@ body.webview-digital-twin-shell::after {
   animation-delay: 0.22s;
 }
 
-.webview-launcher-card__icon {
-  animation: webview-launcher-icon-pulse 5s ease-in-out infinite;
+.webview-launcher-card__icon-shell {
+  transition: border-color 0.2s ease-out, background-color 0.2s ease-out;
+}
+
+.webview-launcher-card:hover .webview-launcher-card__icon-inner,
+.webview-launcher-card:focus-visible .webview-launcher-card__icon-inner {
+  animation: webview-launcher-icon-pop 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.webview-launcher-card:hover .webview-launcher-card__icon-shell,
+.webview-launcher-card:focus-visible .webview-launcher-card__icon-shell {
+  animation: webview-launcher-icon-ring-pulse 1.4s ease-out 0s 2;
 }
 
 .webview-launcher-card__shine {
@@ -566,23 +595,9 @@ body.webview-digital-twin-shell::after {
   animation-play-state: running;
 }
 
-/* CSS3D card slots — reserve grid height when DOM nodes move to CSS3DRenderer */
-.landing-css3d-slot {
-  min-height: 13.5rem;
-}
-
-.landing-css3d-content .landing-css3d-slot {
-  visibility: hidden;
-  pointer-events: none;
-}
-
-.landing-css3d-host {
-  overflow: hidden;
-}
-
-.landing-css3d-renderer .landing-css3d-card,
-.landing-css3d-renderer .webview-launcher-card {
-  box-sizing: border-box;
+/* Landing card grids — spacing hook when cube backdrop is active */
+.landing-cards-parallax {
+  position: relative;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -599,7 +614,8 @@ body.webview-digital-twin-shell::after {
   .webview-launcher-hero,
   .webview-launcher-hero__subtitle,
   .webview-launcher-card,
-  .webview-launcher-card__icon,
+  .webview-launcher-card__icon-inner,
+  .webview-launcher-card__icon-shell,
   .webview-launcher-card__shine {
     animation: none !important;
   }

@@ -12,6 +12,7 @@
 
 import { ArrowRight } from "lucide-react";
 import type { SimulationMeta } from "../simulations/catalog/types.js";
+import { LandingCardIcon } from "./LandingCardIcon.js";
 
 type SimulationLandingOptionCardProps = {
   option: SimulationMeta;
@@ -31,14 +32,6 @@ const ACCENT_GLOW: Record<SimulationMeta["accent"], string> = {
     "group-hover:shadow-[0_0_40px_rgba(52,211,153,0.22)] group-hover:border-emerald-400/45",
   violet:
     "group-hover:shadow-[0_0_40px_rgba(167,139,250,0.22)] group-hover:border-violet-400/45",
-};
-
-const ACCENT_ICON: Record<SimulationMeta["accent"], string> = {
-  sky: "border-sky-400/35 bg-sky-500/10 text-sky-200 shadow-[0_0_24px_rgba(56,189,248,0.25)]",
-  emerald:
-    "border-emerald-400/35 bg-emerald-500/10 text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.25)]",
-  violet:
-    "border-violet-400/35 bg-violet-500/10 text-violet-200 shadow-[0_0_24px_rgba(167,139,250,0.25)]",
 };
 
 const ACCENT_TAG: Record<SimulationMeta["accent"], string> = {
@@ -79,14 +72,12 @@ export function SimulationLandingOptionCard({
         aria-hidden
       />
       <div className="relative flex flex-1 flex-col p-5 sm:p-6">
-        <div
-          className={[
-            "mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl border",
-            ACCENT_ICON[option.accent],
-          ].join(" ")}
-        >
-          <Icon className="h-6 w-6" strokeWidth={1.75} aria-hidden />
-        </div>
+        <LandingCardIcon
+          icon={Icon}
+          accent={option.accent}
+          shellClassName="mb-4 h-12 w-12"
+          iconClassName="h-6 w-6"
+        />
         <h2 className="text-lg font-semibold tracking-tight text-zinc-50">{option.title}</h2>
         <p className="mt-1 text-sm font-medium text-zinc-400">{option.subtitle}</p>
         <p className="mt-3 flex-1 text-sm leading-relaxed text-zinc-500">{option.description}</p>

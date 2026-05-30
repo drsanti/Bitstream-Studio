@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-05-30 (landing 3D backdrop + sim hub; CSS3D cards in progress)  
+**Last updated:** 2026-05-30 (landing + sim WebGL fixes; handoff docs pass)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -22,7 +22,9 @@
 7. **Tests:** `npm run test:bitstream2` (50 tests; `--test-force-exit` in script).
 8. **External repos** (not in tree): **bitstream-simulator** (Simulator mode), **TESAIoT_Firmware** (MCU BS2 truth).
 
-**Landing (dev):** `http://localhost:5173/` — workspace + simulation picker; 2D/3D backdrop (see `extension/src/webview/landing/README.md`). Ctrl+/ **Open workspace landing** from sims.
+**Landing (dev):** `http://localhost:5173/` — workspace + simulation picker; 2D/3D/blend backdrop; flat HTML cards (see `extension/src/webview/landing/README.md`). **Ctrl+/** → **Open workspace landing** (dev + VSIX).
+
+**WebGL transitions:** Landing backdrop and sim viewports each use R3F `Canvas`. Route changes go through **`shared/webgl/`** (`useWebGLSurfaceReady`) — read that README before re-adding `lazy()` on 3D routes.
 
 ---
 
@@ -56,6 +58,9 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 |------|------|
 | **`extension/`** | VS Code extension + webview + `src/bitstream2/` |
 | **`extension/docs/DEVELOPMENT_TRACKER.md`** | Backlog, VSIX gates, recently completed |
+| **`extension/src/webview/landing/README.md`** | Landing backdrop, cards, routing |
+| **`extension/src/webview/simulations/README.md`** | Digital Twin hub + sim apps |
+| **`extension/src/webview/shared/webgl/README.md`** | WebGL Canvas transition gate + Vite chunks |
 | **`extension/docs/APPLICATION_MIGRATION_PLAN.md`** | E84 / ABB / vehicle sim port from `ternion-t3d` (R3F, phased) |
 | **`extension/docs/README.md`** | Docs index (BS2, bridge, assets, Sensor Studio) |
 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** | Bitstream vs Simulator exclusivity (A+B) |
@@ -80,7 +85,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | Rapier deps reserved for future Sensor Studio physics | Jolt Physics (removed 2026-05-30) |
 
 - **Extension id:** `bitstream-studio` (display **Bitstream Studio**)
-- **Entry:** `main.tsx` → `BitstreamApp` only (no Digital Twin / Project4 / quick-scene)
+- **Entry:** `main.tsx` → **`BitstreamWebviewRoot`** (landing / sim hub / `BitstreamApp` shell)
 
 ---
 
@@ -107,11 +112,14 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 1 | **`AGENT_HANDOFF.md`** (this file) |
 | 2 | **`extension/docs/DEVELOPMENT_TRACKER.md`** |
 | 3 | **`extension/HOW_TO_RUN.md`** (dev, VSIX smoke, CLI probes) |
-| 4 | **`extension/docs/BS2_PROTOCOL_INDEX.md`** |
-| 5 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** |
-| 6 | **`extension/docs/BITSTREAM_TELEMETRY_OPERATIONS.md`** |
-| 7 | **`TESAIoT_Firmware/AGENT_HANDOFF.md`** (MCU BS2 — firmware wire in **`TESAIoT_Library/CM55/modules/bitstream`**) |
-| 8 | **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`** |
+| 4 | **`extension/src/webview/landing/README.md`** |
+| 5 | **`extension/src/webview/simulations/README.md`** |
+| 6 | **`extension/src/webview/shared/webgl/README.md`** |
+| 7 | **`extension/docs/BS2_PROTOCOL_INDEX.md`** |
+| 8 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** |
+| 9 | **`extension/docs/BITSTREAM_TELEMETRY_OPERATIONS.md`** |
+| 10 | **`TESAIoT_Firmware/AGENT_HANDOFF.md`** (MCU BS2) |
+| 11 | **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`** |
 
 ---
 
@@ -129,6 +137,22 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | WS bridge hook | `extension/src/webview/bitstream-app/hooks/useBitstream2TelemetryBridge.ts` |
 | Serial bridge | `extension/src/serialport-bridge/SerialPortWebSocketBridge.ts` |
 | Protocol | `extension/src/bitstream2/bridge/protocol.ts` (`TELEMETRY_ROUTE`, `origin` on samples) |
+
+### Landing + Digital Twin simulations
+
+| Layer | Path |
+|-------|------|
+| Webview root / routing | `extension/src/webview/landing/BitstreamWebviewRoot.tsx` |
+| Landing UI | `extension/src/webview/landing/BitstreamLanding.tsx` |
+| 3D backdrop (eager R3F) | `extension/src/webview/landing/BitstreamLandingBackground3D.tsx` |
+| Sim hub | `extension/src/webview/simulations/SimulationHub.tsx` → `SimulationHost.tsx` |
+| Sim catalog + `import()` | `extension/src/webview/simulations/catalog/simulationCatalog.ts` |
+| Shared sim Canvas | `extension/src/webview/simulations/shared/canvas/SimulationCanvas.tsx` |
+| WebGL route gap | `extension/src/webview/shared/webgl/` |
+| Vite vendor chunks | `extension/vite.config.ts` → `manualChunks` (`vendor-react`, `vendor-r3f`) |
+| Quick command landing | `extension/src/webview/landing/useBitstreamLandingQuickCommands.ts` |
+
+**Do not:** `lazy()`-load `SimulationHost` or `BitstreamLandingBackground3D` without shared React chunks (React **#321**). **Do not** mount landing + sim Canvases in one commit without `useWebGLSurfaceReady`.
 
 ### Build / test
 
@@ -159,6 +183,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 2026-05-30 | **Simulator orchestration** — host `bitstreamSimulator.start/stop` commands; Connect auto-starts external sim; toolbar **Start simulator** button; `loopbackAvailable` no longer optimistic on Source switch |
 | 2026-05-30 | **`extension/docs` cleanup** — removed TESAIoT firmware/MQTT/credential copies; added `docs/README.md` index |
 | 2026-05-30 | **Removed `BITSTREAM_T3D_DECOUPLING_PLAN.md`** — migration complete; history in session log + `docs/README.md` |
+| 2026-05-30 | **Landing polish** — flat HTML cards (clickable over WebGL); blend layer order; icon hover (`LandingCardIcon`); floating shape sin/cos orbit; more flow bubbles |
+| 2026-05-30 | **React #321 + WebGL fixes** — removed lazy 3D/sim host; `vite` `manualChunks` (`vendor-react`, `vendor-r3f`); `"use no memo"` on R3F files; `shared/webgl/` route transition gate; docs updated |
 
 ---
 
@@ -166,11 +192,12 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Priority | Work | Notes |
 |----------|------|--------|
-| 1 | **Commit / push** | Ensure doc + code from this session are on `origin/main` |
+| 1 | **Verify landing ↔ sim on VSIX** | Click E84 / ABB / Vehicle from landing; Ctrl+/ back to landing |
 | 2 | **UART + MCU** | `npm run bitstream2:uart-probe -- --path COMx --baud 921600` when board connected |
 | 3 | **MCU soak** | 5–10 min EVT — see DEVELOPMENT_TRACKER BS2 post-HELLO row |
-| 4 | **Release cut** | Bump version + `changelog.md` when ready for **v0.1.x** tag |
-| 5 | **Backlog** | Restore BS2 `SENSOR_CFG_SET` from webview Apply; strip AI-bridge Project4 stubs |
+| 4 | **Cleanup** | Remove unused `landing/css3d/` reparenting code (optional) |
+| 5 | **Release cut** | Bump version + `changelog.md` when ready for **v0.1.x** tag |
+| 6 | **Backlog** | Restore BS2 `SENSOR_CFG_SET` from webview Apply; strip AI-bridge Project4 stubs |
 
 ---
 

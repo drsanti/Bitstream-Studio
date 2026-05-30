@@ -56,7 +56,7 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 ### Optional polish before wide distribution
 
-- [ ] **Bundle size** — Vite may warn on **> 2 MB** chunks; acceptable for now; consider **`manualChunks`** or lazy routes later if install/unpack time matters.
+- [x] **Bundle size** — Vite may warn on **> 2 MB** chunks; **`manualChunks`** splits `vendor-react` + `vendor-r3f` (2026-05-30) for R3F route code-splitting without duplicate React.
 - [ ] **Version + changelog** — On release, bump **`package.json`** version and update **`changelog.md`** only when the team cuts that release (project convention: do not churn changelog for every dev commit).
 
 ---
@@ -78,8 +78,8 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-30** — **Removed `dev:bitstream2-loopback`**: canonical browser dev is **`start:bridge`** + **`dev:webview`** (two terminals); deleted `scripts/dev-bitstream2-loopback.mjs`.
 - **2026-05-30** — **package.json scripts cleanup**: removed T3D-era aliases (`dev:linked`, `dev:with-copy`, `dev:with-supervisor`, `dev:browser`); refreshed `description:scripts`; settings panel titles → Bitstream Studio.
 - **2026-05-30** — **Docs — `APPLICATION_MIGRATION_PLAN.md`**: Phased plan to port **E84 rotation**, **ABB robot**, and **vehicle physics** from `ternion-t3d` into Bitstream Studio using **R3F** (vehicle: **`jolt-physics`** recommended); checklists for phases 0–3.
-- **2026-05-30** — **Landing CSS3D cards (MVP):** `landing/css3d/` — CSS3DRenderer overlay, R3F camera sync, card slots for workspace + sim cards when backdrop is 3D/blend.
-- **2026-05-30** — **Landing 3D backdrop:** R3F welcome cube floor + 2D nebula/flow compositor; double-click / Shift+double-click mode cycling; lazy 3D; `landing/README.md`.
+- **2026-05-30** — **Landing CSS3D cards (MVP, superseded):** `landing/css3d/` — CSS3DRenderer experiment; **product uses flat HTML cards** at `z-[15]` (see `landing/README.md`).
+- **2026-05-30** — **Landing 3D backdrop:** R3F welcome cube floor + 2D nebula/flow compositor; double-click / Shift+double-click mode cycling; **eager** 3D import (not lazy); `landing/README.md`.
 - **2026-05-30** — **Landing nav fix:** broke `bitstreamLandingNav` ↔ store circular import; `isViteDevMode()` + `bitstreamLandingActions.ts` (fixes `import.meta.env.DEV` crash on `/`).
 - **2026-05-30** — **Digital Twin simulations (Phase 0 + E84 MVP):** `webview/simulations/` (`catalog`, `shared`, `e84-rotation`, `abb-robot`/`vehicle-physics` stubs), `SimulationHub`, landing **Digital Twin simulations** section; E84 sine rotation on `E84_1`; dev `?sim=e84-rotation`.
 - **2026-05-30** — **Vehicle physics (Phase 3 partial):** Jolt restored under `simulations/vehicle-physics/`; driving, config panel, engine sound; Y-axis alignment fix.
@@ -89,6 +89,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-30** — **URL routing removed (A+C):** no `?app=`; toolbar tabs + `localStorage` (`bitstream-studio.workspace.v1`); VS Code **`bitstream-studio.open`** (last tab); tab shortcut commands retained; host inject only on tab-specific open.
 - **2026-05-30** — **Cursor rules + skills:** `bs2-protocol-change.mdc`, `bitstream-simulator-app-path.mdc`; skills dev/protocol/UART/sim; stale `t3d-extension` references removed from rules.
 - **2026-05-30** — **Dev stack verified**: `start:bridge` + `dev:webview` green; fresh VSIX **40.48 MB** after Jolt removal.
+- **2026-05-30** — **Landing + sim WebGL stability:** React **#321** fix (no lazy `SimulationHost` / landing 3D; `vendor-react` / `vendor-r3f` chunks); `shared/webgl/` teardown gap; flat card clicks; `LandingCardIcon` hover; blend backdrop layering. Docs: `landing/README.md`, `simulations/README.md`, `shared/webgl/README.md`, `AGENT_HANDOFF.md`.
 - **2026-05-29** — **External bitstream-simulator:** removed in-bridge `BsFirmwareSimulator` and `BITSTREAM2_DEV_LOOPBACK`; bridge auto-detects **`bitstream-simulator/`** via `bitstream2/sim/status`; skill **`bitstream-simulator-app`**, rules **`bitstream-simulator-app-path.mdc`**.
 - **2026-05-29** — **Floating notice UX:** Simulator **3 s** grace / **10 s** visible; **`TRNFloatingNotice`** `pauseDismissOnHover` freezes progress bar + timer on hover (Bitstream alerts default on).
 - **2026-05-29** — **Floating alert notices:** shared **`BitstreamFloatingAlertNotice`** + presets; Simulator (no EVT_SENSOR) and UART (no handshake) warnings; doc **`bitstream-shell/docs/FLOATING_ALERT_NOTICES.md`**.

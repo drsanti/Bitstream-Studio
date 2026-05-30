@@ -63,8 +63,24 @@ export async function initializeCOI(options?: COIInitOptions): Promise<boolean> 
     return false;
   }
 
-  // Step 3b: VehiclePhysicsHost Vite dev skips COI via VehiclePhysicsHost/src/main.tsx (import.meta.env.DEV) so any dev port
-  // can load cross-origin thumbnails; production / preview builds still use this function as usual.
+  // Step 3b: Vite dev — Bitstream landing + single-thread Jolt do not register COI here.
+  try
+  {
+    if (import.meta.env?.DEV === true)
+    {
+      if (!quiet)
+      {
+        console.log(
+          "ℹ️ COI initialization skipped in Vite dev (no COI service worker on this app)",
+        );
+      }
+      return false;
+    }
+  }
+  catch
+  {
+    // ignore — non-Vite bundle
+  }
 
   // Step 4: Check if in secure context (required for service workers)
   if (typeof window === 'undefined' || !window.isSecureContext) {

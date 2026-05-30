@@ -12,6 +12,7 @@
 
 import { ArrowRight } from "lucide-react";
 import type { LandingOption } from "./landingOptions.js";
+import { LandingCardIcon } from "./LandingCardIcon.js";
 
 type BitstreamLandingOptionCardProps = {
   option: LandingOption;
@@ -28,12 +29,6 @@ const ACCENT_GLOW: Record<LandingOption["accent"], string> = {
   sky: "group-hover:shadow-[0_0_40px_rgba(56,189,248,0.22)] group-hover:border-sky-400/45",
   emerald:
     "group-hover:shadow-[0_0_40px_rgba(52,211,153,0.22)] group-hover:border-emerald-400/45",
-};
-
-const ACCENT_ICON: Record<LandingOption["accent"], string> = {
-  sky: "border-sky-400/35 bg-sky-500/10 text-sky-200 shadow-[0_0_24px_rgba(56,189,248,0.25)]",
-  emerald:
-    "border-emerald-400/35 bg-emerald-500/10 text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.25)]",
 };
 
 const ACCENT_TAG: Record<LandingOption["accent"], string> = {
@@ -81,14 +76,7 @@ export function BitstreamLandingOptionCard({
 
       <span className="relative z-10 flex flex-1 flex-col gap-4">
         <span className="flex items-start justify-between gap-3">
-          <span
-            className={[
-              "webview-launcher-card__icon flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border",
-              ACCENT_ICON[option.accent],
-            ].join(" ")}
-          >
-            <Icon className="h-7 w-7" strokeWidth={1.75} aria-hidden />
-          </span>
+          <LandingCardIcon icon={Icon} accent={option.accent} />
           <span
             className={[
               "mt-1 flex items-center gap-1 text-xs font-medium tracking-wide uppercase transition-transform duration-300 group-hover:translate-x-0.5",

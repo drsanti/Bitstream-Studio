@@ -6,6 +6,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TESAIoT Digital Twin</title>
+  <!-- Dev: drop stale t3d-coi SW (T3D / vehicle physics) before Vite loads modules -->
+  <script>
+    (function () {
+      if (!("serviceWorker" in navigator)) return;
+      var host = location.hostname;
+      if (host !== "localhost" && host !== "127.0.0.1" && host !== "[::1]") return;
+      var marker = "t3d-coi-serviceworker";
+      var reloadKey = "bitstream-studio.coi-sw-cleanup-reload";
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        var coiRegs = regs.filter(function (r) {
+          var url =
+            (r.active && r.active.scriptURL) ||
+            (r.waiting && r.waiting.scriptURL) ||
+            (r.installing && r.installing.scriptURL) ||
+            "";
+          return url.indexOf(marker) !== -1;
+        });
+        var ctrl = navigator.serviceWorker.controller;
+        var ctrlIsCoi = ctrl && ctrl.scriptURL.indexOf(marker) !== -1;
+        if (!coiRegs.length && !ctrlIsCoi) return;
+        Promise.all(coiRegs.map(function (r) { return r.unregister(); })).then(function () {
+          if (ctrlIsCoi && !sessionStorage.getItem(reloadKey)) {
+            sessionStorage.setItem(reloadKey, "1");
+            location.reload();
+          } else {
+            try { sessionStorage.removeItem(reloadKey); } catch (e) { /* ignore */ }
+          }
+        });
+      });
+    })();
+  </script>
 </head>
 
 <body>

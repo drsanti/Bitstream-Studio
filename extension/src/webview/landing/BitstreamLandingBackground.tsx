@@ -10,8 +10,8 @@
  *
  *******************************************************************************/
 
-import { Suspense, lazy } from "react";
 import { BitstreamLandingBackground2D } from "./BitstreamLandingBackground2D.js";
+import { BitstreamLandingBackground3D } from "./BitstreamLandingBackground3D.js";
 import {
   landingModeShows3d,
   landingOverlayShowsFlow,
@@ -20,22 +20,8 @@ import {
 } from "./bitstreamLandingBackgroundMode.store.js";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 
-const LazyBitstreamLandingBackground3D = lazy(async () =>
-{
-  const mod = await import("./BitstreamLandingBackground3D.js");
-  return { default: mod.BitstreamLandingBackground3D };
-});
-
-/** Nebula / flow opacity when composited over the 3D cube floor (blend mode). */
-const BLEND_NEBULA_OPACITY = 0.65;
-const BLEND_FLOW_OPACITY = 0.35;
-
-/** Lighter overlays when stacked on 3D-only (Shift+double-click presets). */
-const OVERLAY_ON_3D_NEBULA_OPACITY = 0.55;
-const OVERLAY_ON_3D_FLOW_OPACITY = 0.3;
-
 /**
- * Animated shell backdrop: optional 3D cube floor + optional 2D nebula/flow + vignette.
+ * Animated shell backdrop: 2D canvas base, 3D cube floor on top, vignette.
  */
 export function BitstreamLandingBackground()
 {
@@ -51,36 +37,25 @@ export function BitstreamLandingBackground()
   const showNebula = landingOverlayShowsNebula(overlay);
   const showFlow = landingOverlayShowsFlow(overlay);
   const showAny2dLayer = showGradientBase || showNebula || showFlow;
-
-  const nebulaOpacity =
-    mode === "blend" && show3d
-      ? BLEND_NEBULA_OPACITY
-      : mode === "3d"
-        ? OVERLAY_ON_3D_NEBULA_OPACITY
-        : 1;
-
-  const flowOpacity =
-    mode === "blend" && show3d
-      ? BLEND_FLOW_OPACITY
-      : mode === "3d"
-        ? OVERLAY_ON_3D_FLOW_OPACITY
-        : 1;
+  /** Let the 2D backdrop show through when cubes float over nebula / blend. */
+  const transparent3dCanvas = show3d && showAny2dLayer;
 
   return (
     <>
-      {show3d ? (
-        <Suspense fallback={null}>
-          <LazyBitstreamLandingBackground3D animate={!prefersReducedMotion} />
-        </Suspense>
-      ) : null}
-
       {showAny2dLayer ? (
         <BitstreamLandingBackground2D
           showBase={showGradientBase}
           showNebula={showNebula}
           showFlow={showFlow}
-          nebulaOpacity={showNebula ? nebulaOpacity : 1}
-          flowOpacity={showFlow ? flowOpacity : 1}
+          nebulaOpacity={1}
+          flowOpacity={1}
+        />
+      ) : null}
+
+      {show3d ? (
+        <BitstreamLandingBackground3D
+          animate={!prefersReducedMotion}
+          transparentCanvas={transparent3dCanvas}
         />
       ) : null}
 

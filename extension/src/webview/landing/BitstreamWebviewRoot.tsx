@@ -10,8 +10,10 @@
  *
  *******************************************************************************/
 
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { BitstreamApp } from "../bitstream-shell/BitstreamApp.js";
+import { WebGLRouteTransitionSplash } from "../shared/webgl/WebGLRouteTransitionSplash.js";
+import { useWebGLSurfaceReady } from "../shared/webgl/webglSurfaceTransition.js";
 import { WebviewRuntimeInstaller } from "../runtime/WebviewRuntimeInstaller";
 import { QuickActionDialog } from "../ui/quick-action/QuickActionDialog";
 import { SimulationHub } from "../simulations/SimulationHub.js";
@@ -33,6 +35,11 @@ export function BitstreamWebviewRoot()
 
   useBitstreamLandingQuickCommands();
 
+  const landingRequested = landingVisible && activeSimulationId == null;
+  const simulationRequested = activeSimulationId != null;
+  const landingReady = useWebGLSurfaceReady(landingRequested);
+  const simulationReady = useWebGLSurfaceReady(simulationRequested);
+
   const handleEnterWorkspace = useCallback(() =>
   {
     closeLanding();
@@ -41,26 +48,44 @@ export function BitstreamWebviewRoot()
   const handleOpenSimulation = useCallback(
     (id: SimulationId) =>
     {
-      openSimulation(id);
       closeLanding();
+      openSimulation(id);
     },
     [closeLanding, openSimulation],
   );
+
+  let routeBody: ReactNode;
+
+  if (simulationRequested)
+  {
+    routeBody = simulationReady ? (
+      <SimulationHub key={activeSimulationId} />
+    ) : (
+      <WebGLRouteTransitionSplash label="Starting simulation…" />
+    );
+  }
+  else if (landingRequested)
+  {
+    routeBody = landingReady ? (
+      <BitstreamLanding
+        key="bitstream-workspace-landing"
+        onEnter={handleEnterWorkspace}
+        onOpenSimulation={handleOpenSimulation}
+      />
+    ) : (
+      <WebGLRouteTransitionSplash label="Loading workspace…" />
+    );
+  }
+  else
+  {
+    routeBody = <BitstreamApp />;
+  }
 
   return (
     <>
       <WebviewRuntimeInstaller />
       <QuickActionDialog />
-      {activeSimulationId != null ? (
-        <SimulationHub />
-      ) : landingVisible ? (
-        <BitstreamLanding
-          onEnter={handleEnterWorkspace}
-          onOpenSimulation={handleOpenSimulation}
-        />
-      ) : (
-        <BitstreamApp />
-      )}
+      {routeBody}
     </>
   );
 }

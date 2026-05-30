@@ -10,12 +10,15 @@
  *
  *******************************************************************************/
 
+"use no memo";
+
 import { Suspense, useEffect, useMemo, useState } from "react";
 import type { ComponentType } from "react";
 import { getSimulationMeta, loadSimulationApp } from "./catalog/simulationCatalog.js";
 import type { SimulationAppProps } from "./catalog/types.js";
 import { useSimulationHubStore } from "./simulationHub.store.js";
 import { returnToWorkspaceLanding } from "../landing/bitstreamLandingActions.js";
+import { useWebGLSurfaceReady } from "../shared/webgl/webglSurfaceTransition.js";
 
 /**
  * Loads the active simulation app component once per id change.
@@ -70,6 +73,8 @@ export function SimulationHost()
     };
   }, [activeId]);
 
+  const sceneMountReady = useWebGLSurfaceReady(AppComponent != null);
+
   const handleBack = () =>
   {
     returnToWorkspaceLanding();
@@ -97,7 +102,7 @@ export function SimulationHost()
     );
   }
 
-  if (AppComponent == null)
+  if (AppComponent == null || !sceneMountReady)
   {
     return (
       <div className="fixed inset-0 z-400 flex items-center justify-center bg-zinc-950 text-sm text-zinc-400">
@@ -114,7 +119,7 @@ export function SimulationHost()
         </div>
       }
     >
-      <AppComponent onBack={handleBack} />
+      <AppComponent key={activeId} onBack={handleBack} />
     </Suspense>
   );
 }

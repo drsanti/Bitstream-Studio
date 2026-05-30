@@ -576,6 +576,23 @@ export default defineConfig({
         // Use ES module format to support top-level await
         // This matches the type="module" in index.html
         format: "es",
+        manualChunks(id) {
+          if (
+            id.includes("node_modules/react-dom") ||
+            id.includes("node_modules/react/") ||
+            id.endsWith("node_modules/react/index.js") ||
+            id.includes("node_modules/scheduler/")
+          ) {
+            return "vendor-react";
+          }
+          if (
+            id.includes("node_modules/@react-three/fiber") ||
+            id.includes("node_modules/@react-three/drei") ||
+            id.includes("node_modules/three/")
+          ) {
+            return "vendor-r3f";
+          }
+        },
         // Custom asset naming: CSS at root, other assets in subfolder
         // This ensures VS Code webview can load index.css from expected path
         assetFileNames: (assetInfo) => {
