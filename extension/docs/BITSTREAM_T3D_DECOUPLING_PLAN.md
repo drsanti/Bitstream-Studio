@@ -332,7 +332,7 @@ Update this table as phases complete. Mirror major milestones in `docs/DEVELOPME
 | Phase 2 — Thin bridge replacement | Done | 2026-05-30 | Local extension-bridge, quick-action store, cubemap presets |
 | Phase 3 — UI decoupling | Done | 2026-05-30 | `ui/catalog/` local widgets; model-catalog/model-loader off `@ternion/t3d/ui` |
 | Phase 4 — Delete @ternion/t3d dep | Done | 2026-05-30 | Removed from `package.json`; prebuild = `sync-jolt-assets` only; Vite T3D plugins removed |
-| VSIX + dual-runtime verify | In progress | 2026-05-30 | `bitstream-studio-0.1.0.vsix` builds; install + UART/Sim smoke pending |
+| VSIX + dual-runtime verify | In progress | 2026-05-30 | VSIX CLI install OK; offline BS2 smoke OK; UI reload + UART/Sim pending |
 
 ---
 

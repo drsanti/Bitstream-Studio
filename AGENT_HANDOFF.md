@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI on **Bitstream-Studio**. Read this first.
 
-**Last updated:** 2026-05-30 (Vite T3D cleanup + VSIX package)  
+**Last updated:** 2026-05-30 (Phase 3–4 pushed to `main`; post-decoupling verify)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Migration source:** `ternion-t3d` @ **`BS2`** (legacy; Digital Twin stays there)
 
@@ -74,3 +74,15 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 2026-05-30 | **Phase 3–4:** `extension/src/webview/ui/catalog/` (LabeledSlider, SortableCardList, CollapsiblePanelCard, …); removed `@ternion/t3d` from `package.json`; `npm run compile` OK |
 | 2026-05-30 | **Vite + VSIX:** stripped T3D resolver/alias/COI plugins from `vite.config.ts`; dev default `/?app=bitstream`; `npm run package` → `bitstream-studio-0.1.0.vsix` (66.5 MB); install smoke pending |
 | 2026-05-30 | **Cleanup:** removed `ensure-t3d-linked-build-fresh.js` / `sync-t3d-css.js`; fixed `npm run dev` → `dev:all`; updated HOW_TO_RUN + decoupling plan current state |
+| 2026-05-30 | **Ship:** `3441cb5` pushed to `origin/main`; CLI VSIX install OK; `bitstream2:mock-probe` + `sim-scenario --offline boot` OK |
+
+---
+
+## 6. What's next (after T3D decoupling)
+
+| Priority | Work | Notes |
+|----------|------|--------|
+| 1 | **VSIX UI smoke** | Reload window → **Open Sensor Telemetry** / **Open Sensor Studio**; Model Catalog preview |
+| 2 | **Dual-runtime** | `npm run dev:bitstream2-loopback` + external **bitstream-simulator**; UART `bitstream2:uart-probe` when COM available |
+| 3 | **Bitstream Lab 4–8** | Loopback/Publish panels → broker/protocol/bridge observability — `src/webview/bitstream-lab/docs/RUNBOOK.md` §5 |
+| 4 | **MCU soak** | 5–10 min EVT without `--` flicker — `DEVELOPMENT_TRACKER.md` BS2 post-HELLO row |
