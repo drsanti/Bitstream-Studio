@@ -33,8 +33,36 @@ function stripT3DBodyBackgroundImage(cssText) {
 async function main() {
   const extensionRoot = path.resolve(__dirname, "..");
   const repoRoot = path.resolve(extensionRoot, "..");
-  const t3dSrcCss = path.join(repoRoot, "T3D", "src", "index.css");
+  const candidates = [
+    path.join(extensionRoot, "node_modules", "@ternion", "t3d", "src", "index.css"),
+    path.join(repoRoot, "T3D", "src", "index.css"),
+  ];
   const outCss = path.join(extensionRoot, "src", "webview", "t3d-shared.css");
+
+  let t3dSrcCss = null;
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      t3dSrcCss = candidate;
+      break;
+    } catch {
+      // try next
+    }
+  }
+
+  if (t3dSrcCss == null) {
+    try {
+      await fs.access(outCss);
+      console.warn(
+        "[sync-t3d-css] No T3D index.css found; keeping existing t3d-shared.css",
+      );
+      return;
+    } catch {
+      throw new Error(
+        "T3D index.css not found and t3d-shared.css is missing — install @ternion/t3d or add T3D sibling",
+      );
+    }
+  }
 
   const src = await fs.readFile(t3dSrcCss, "utf8");
   let next = stripTailwindImport(src);

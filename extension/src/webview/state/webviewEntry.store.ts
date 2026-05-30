@@ -1,4 +1,3 @@
-import { useQuickSceneStore } from "@ternion/t3d";
 import { create } from "zustand";
 import type { TernionWebviewEntry } from "../ternion-webview-entry.js";
 import {
@@ -26,8 +25,10 @@ function syncShellUrlFromStore(
   entry: WebviewShellEntry,
   showLauncher: boolean,
   usePushState = false,
-): void {
-  if (!isBrowserShellEnvironment()) {
+): void
+{
+  if (!isBrowserShellEnvironment())
+  {
     return;
   }
   writeShellUrl({
@@ -35,11 +36,6 @@ function syncShellUrlFromStore(
     entry,
     usePushState,
   });
-}
-
-function shouldConfirmLeaveDigitalTwin(): boolean {
-  const qs = useQuickSceneStore.getState();
-  return qs.currentApplicationComponent != null || qs.currentModel != null;
 }
 
 type WebviewEntryState = {
@@ -51,13 +47,15 @@ type WebviewEntryState = {
   dismissLauncher: () => void;
 };
 
-export function createWebviewEntryStore(initialEntry: WebviewShellEntry, showLauncher: boolean) {
+export function createWebviewEntryStore(initialEntry: WebviewShellEntry, showLauncher: boolean)
+{
   return create<WebviewEntryState>((set, get) => ({
     entry: initialEntry,
     showLauncher,
     setEntry: (next) => {
       const state = get();
-      if (state.entry === next && !state.showLauncher) {
+      if (state.entry === next && !state.showLauncher)
+      {
         syncShellUrlFromStore(next, false);
         return;
       }
@@ -71,7 +69,8 @@ export function createWebviewEntryStore(initialEntry: WebviewShellEntry, showLau
     },
     requestEntrySwitch: (next) => {
       const state = get();
-      if (state.showLauncher) {
+      if (state.showLauncher)
+      {
         teardownBeforeShellSwitch({
           fromEntry: state.entry,
           fromLauncher: true,
@@ -81,43 +80,20 @@ export function createWebviewEntryStore(initialEntry: WebviewShellEntry, showLau
         syncShellUrlFromStore(next, false);
         return true;
       }
-      if (state.entry === next) {
+      if (state.entry === next)
+      {
         syncShellUrlFromStore(next, false);
         return true;
-      }
-      if (
-        state.entry === "digitalTwin" &&
-        next !== "digitalTwin" &&
-        shouldConfirmLeaveDigitalTwin()
-      ) {
-        const skipConfirm =
-          typeof import.meta !== "undefined" && import.meta.env?.DEV === true;
-        if (!skipConfirm) {
-          const ok = window.confirm(
-            "Leave Digital Twin (3D World)? The active quick scene will unload and the 3D engine will stop.",
-          );
-          if (!ok) {
-            return false;
-          }
-        }
       }
       get().setEntry(next);
       return true;
     },
-    requestBitstreamEntrySwitch: (workspace) => {
-      const state = get();
-      if (state.showLauncher) {
-        return get().requestEntrySwitch("bitstream");
-      }
-      if (state.entry === "bitstream") {
-        persistWebviewEntry("bitstream");
-        syncShellUrlFromStore("bitstream", false);
-        return true;
-      }
+    requestBitstreamEntrySwitch: () => {
       return get().requestEntrySwitch("bitstream");
     },
     dismissLauncher: () => {
-      if (!get().showLauncher) {
+      if (!get().showLauncher)
+      {
         return;
       }
       set({ showLauncher: false });
@@ -127,8 +103,10 @@ export function createWebviewEntryStore(initialEntry: WebviewShellEntry, showLau
 
 let webviewEntryStore: ReturnType<typeof createWebviewEntryStore> | null = null;
 
-export function getWebviewEntryStore() {
-  if (webviewEntryStore == null) {
+export function getWebviewEntryStore()
+{
+  if (webviewEntryStore == null)
+  {
     throw new Error("Webview entry store not initialized — call initWebviewEntryStore first");
   }
   return webviewEntryStore;
@@ -137,11 +115,13 @@ export function getWebviewEntryStore() {
 export function initWebviewEntryStore(
   initialEntry: WebviewShellEntry,
   options?: { showLauncher?: boolean },
-) {
+)
+{
   webviewEntryStore = createWebviewEntryStore(initialEntry, options?.showLauncher ?? false);
   return webviewEntryStore;
 }
 
-export function useWebviewEntryStore<T>(selector: (state: WebviewEntryState) => T): T {
+export function useWebviewEntryStore<T>(selector: (state: WebviewEntryState) => T): T
+{
   return getWebviewEntryStore()(selector);
 }

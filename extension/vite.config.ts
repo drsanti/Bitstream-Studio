@@ -26,15 +26,20 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 // vite-static-copy resolves paths relative to root (src/webview)
 // IMPORTANT: `vite.config.ts` lives in `t3d-extension/`, so node_modules is `./node_modules`
 const packagePath = resolve(__dirname, "./node_modules/@ternion/t3d");
-const t3dLocalPath = resolve(__dirname, "../T3D");
+const t3dLocalCandidates = [
+  resolve(__dirname, "../T3D"),
+  resolve(__dirname, "../../ternion-t3d/T3D"),
+];
 const t3dDistIndex = "dist/index.es.js";
 
 const normalizePathForCompare = (p: string) => p.replace(/\\/g, "/").toLowerCase();
 
 const pathPointsAtLocalT3d = (resolvedPath: string) => {
   const normalized = normalizePathForCompare(resolvedPath);
-  const local = normalizePathForCompare(t3dLocalPath);
-  return normalized === local || normalized.startsWith(`${local}/`);
+  return t3dLocalCandidates.some((local) => {
+    const localNorm = normalizePathForCompare(local);
+    return normalized === localNorm || normalized.startsWith(`${localNorm}/`);
+  });
 };
 
 const t3dDistIsReady = (root: string) =>
@@ -56,13 +61,18 @@ const resolveActualT3dPackageRoot = (): string => {
     }
   }
 
-  if (t3dDistIsReady(t3dLocalPath)) {
-    if (process.env.NODE_ENV !== "production") {
-      console.warn(
-        `[vite] @ternion/t3d is missing or not built in node_modules; using ${t3dLocalPath}. Run "npm install" in t3d-extension and "npm run build:lib:dev" in T3D.`,
-      );
+  for (const t3dLocalPath of t3dLocalCandidates)
+  {
+    if (t3dDistIsReady(t3dLocalPath))
+    {
+      if (process.env.NODE_ENV !== "production")
+      {
+        console.warn(
+          `[vite] @ternion/t3d dist not ready in node_modules; using ${t3dLocalPath}. Run "npm run build:lib:dev" in T3D or npm link @ternion/t3d.`,
+        );
+      }
+      return t3dLocalPath;
     }
-    return t3dLocalPath;
   }
 
   return packagePath;
@@ -825,10 +835,10 @@ export default defineConfig({
         ...(existsSync(coiWorkerPath)
           ? [
               {
-                // Use relative path from vite root (src/webview) to node_modules or linked T3D
-                src: isPackageLinked()
-                  ? "../../../T3D/dist/t3d-coi-serviceworker.js"
-                  : "../../node_modules/@ternion/t3d/dist/t3d-coi-serviceworker.js",
+                src: relative(
+                  resolve(__dirname, "src/webview"),
+                  coiWorkerPath,
+                ).replace(/\\/g, "/"),
                 dest: "./",
                 rename: "t3d-coi-serviceworker.js",
               },

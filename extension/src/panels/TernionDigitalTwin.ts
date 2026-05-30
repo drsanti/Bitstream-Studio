@@ -44,9 +44,7 @@ export interface StatusBarItemsFor3DPanel {
 
 export interface TernionDigitalTwinCreateOptions {
   statusBar?: StatusBarItemsFor3DPanel;
-  /** Default `digitalTwin` — main **`MyApp`** bundle entry. Use **`project4`** for the robot sandbox. */
-  webviewApp?: TernionWebviewEntry;
-  /** When `webviewApp` is `bitstream`, initial workspace (default `telemetry`). */
+  /** Initial workspace when opening the panel (default `telemetry`). */
   bitstreamWorkspace?: BitstreamWorkspaceHostId;
 }
 
@@ -56,22 +54,20 @@ export class TernionDigitalTwin {
   private readonly _extensionUri: vscode.Uri;
   private readonly _context: vscode.ExtensionContext;
   private readonly _statusBar?: StatusBarItemsFor3DPanel;
-  private readonly _webviewApp: TernionWebviewEntry;
   private readonly _bitstreamWorkspace: BitstreamWorkspaceHostId;
   private _disposables: vscode.Disposable[] = [];
 
-  public get webviewApp(): TernionWebviewEntry {
-    return this._webviewApp;
+  public get webviewApp(): TernionWebviewEntry
+  {
+    return "bitstream";
   }
 
   public reveal(column?: vscode.ViewColumn): void {
     this._panel.reveal(column);
   }
 
-  public navigateBitstreamWorkspace(workspace: BitstreamWorkspaceHostId): void {
-    if (this._webviewApp !== "bitstream") {
-      return;
-    }
+  public navigateBitstreamWorkspace(workspace: BitstreamWorkspaceHostId): void
+  {
     const msg: TernionShellHostToWebviewMessage = {
       type: "ternion-shell-navigate",
       workspace,
@@ -83,10 +79,8 @@ export class TernionDigitalTwin {
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext,
     options?: TernionDigitalTwinCreateOptions,
-  ): void {
-    const requestedApp: TernionWebviewEntry =
-      options?.webviewApp ?? "digitalTwin";
-
+  ): void
+  {
     const column = vscode.window.activeTextEditor
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
@@ -94,26 +88,19 @@ export class TernionDigitalTwin {
     const requestedWorkspace: BitstreamWorkspaceHostId =
       options?.bitstreamWorkspace ?? "telemetry";
 
-    if (TernionDigitalTwin.currentPanel) {
-      if (TernionDigitalTwin.currentPanel._webviewApp !== requestedApp) {
-        TernionDigitalTwin.currentPanel.dispose();
-      } else {
-        if (requestedApp === "bitstream") {
-          TernionDigitalTwin.currentPanel.navigateBitstreamWorkspace(
-            requestedWorkspace,
-          );
-        }
-        TernionDigitalTwin.currentPanel.reveal(column);
-        return;
-      }
+    if (TernionDigitalTwin.currentPanel)
+    {
+      TernionDigitalTwin.currentPanel.navigateBitstreamWorkspace(
+        requestedWorkspace,
+      );
+      TernionDigitalTwin.currentPanel.reveal(column);
+      return;
     }
 
     const panelTitle =
-      requestedApp === "bitstream"
-        ? "TERNION Sensor Studio"
-        : requestedApp === "project4"
-          ? "Project 4 — Robot Twin"
-          : "TERNION Digital Twin";
+      requestedWorkspace === "sensor-studio"
+        ? "Bitstream Studio — Sensor Studio"
+        : "Bitstream Studio — Sensor Telemetry";
 
     const panel = vscode.window.createWebviewPanel(
       "ternionDigitalTwinPanel",
@@ -141,7 +128,6 @@ export class TernionDigitalTwin {
       extensionUri,
       context,
       options?.statusBar,
-      requestedApp,
       requestedWorkspace,
     );
   }
@@ -151,16 +137,14 @@ export class TernionDigitalTwin {
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext,
     statusBar: StatusBarItemsFor3DPanel | undefined,
-    webviewApp: TernionWebviewEntry,
     bitstreamWorkspace: BitstreamWorkspaceHostId,
-  ) {
+  )
+  {
     this._panel = panel;
     this._extensionUri = extensionUri;
     this._context = context;
     this._statusBar = statusBar;
-    this._webviewApp = webviewApp;
-    this._bitstreamWorkspace =
-      webviewApp === "bitstream" ? bitstreamWorkspace : "telemetry";
+    this._bitstreamWorkspace = bitstreamWorkspace;
 
     // Hide launch menu and show reload buttons when panel opens
     if (this._statusBar?.launchMenu) this._statusBar.launchMenu.hide();
@@ -209,7 +193,7 @@ export class TernionDigitalTwin {
     // Handle non-MQTT messages
     switch (message.type) {
       case "open-panel":
-        vscode.commands.executeCommand("bitstream-studio.open3DWorld");
+        vscode.commands.executeCommand("bitstream-studio.openBitstream");
         break;
 
       case "reload-webview":
@@ -755,7 +739,7 @@ export class TernionDigitalTwin {
     return `<!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
-<title>${this._webviewApp === "bitstream" ? "TERNION Sensor Studio" : this._webviewApp === "project4" ? "Project 4 — Robot Twin" : "TERNION Digital Twin"}</title>
+<title>Bitstream Studio</title>
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' ${cspSource} https: data: blob:;
@@ -792,10 +776,8 @@ export class TernionDigitalTwin {
   <script nonce="${nonce}">
 
     window.WEBVIEW_READY = true;
-    window.TERNION_WEBVIEW_APP = ${JSON.stringify(this._webviewApp)};
-    window.TERNION_BITSTREAM_WORKSPACE = ${JSON.stringify(
-      this._webviewApp === "bitstream" ? this._bitstreamWorkspace : null,
-    )};
+    window.TERNION_WEBVIEW_APP = "bitstream";
+    window.TERNION_BITSTREAM_WORKSPACE = ${JSON.stringify(this._bitstreamWorkspace)};
     window.T3D_BITSTREAM_WS_URL = ${JSON.stringify(bitstreamWsUrl)};
     window.T3D_MODEL_LOADER_WS_URL = ${JSON.stringify(modelLoaderWsUrl)};
     window.T3D_AI_BRIDGE_WS_URL = ${JSON.stringify(aiBridgeWsUrl)};

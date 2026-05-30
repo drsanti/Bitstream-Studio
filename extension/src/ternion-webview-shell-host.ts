@@ -3,18 +3,15 @@ import {
   TernionDigitalTwin,
   type StatusBarItemsFor3DPanel,
 } from "./panels/TernionDigitalTwin";
-import type { TernionWebviewEntry } from "./webview/ternion-webview-entry";
-import type {
-  BitstreamWorkspaceHostId,
-  TernionShellHostToWebviewMessage,
-} from "./ternion-shell-host-message";
+import type { BitstreamWorkspaceHostId, TernionShellHostToWebviewMessage } from "./ternion-shell-host-message";
 
 export type { BitstreamWorkspaceHostId, TernionShellHostToWebviewMessage };
 
 export function postShellNavigateToWebview(
   panel: vscode.WebviewPanel,
   workspace: BitstreamWorkspaceHostId,
-): void {
+): void
+{
   const msg: TernionShellHostToWebviewMessage = {
     type: "ternion-shell-navigate",
     workspace,
@@ -23,7 +20,6 @@ export function postShellNavigateToWebview(
 }
 
 export type OpenTernionPanelOptions = {
-  webviewApp?: TernionWebviewEntry;
   bitstreamWorkspace?: BitstreamWorkspaceHostId;
 };
 
@@ -32,28 +28,21 @@ export function openTernionPanel(
   context: vscode.ExtensionContext,
   statusBar: StatusBarItemsFor3DPanel | undefined,
   options?: OpenTernionPanelOptions,
-): void {
-  const requestedApp: TernionWebviewEntry = options?.webviewApp ?? "digitalTwin";
+): void
+{
   const workspace = options?.bitstreamWorkspace ?? "telemetry";
 
   const current = TernionDigitalTwin.currentPanel;
-  if (current) {
-    if (current.webviewApp !== requestedApp) {
-      current.dispose();
-    } else {
-      if (requestedApp === "bitstream" && workspace) {
-        current.navigateBitstreamWorkspace(workspace);
-      }
-      current.reveal();
-      return;
-    }
+  if (current)
+  {
+    current.navigateBitstreamWorkspace(workspace);
+    current.reveal();
+    return;
   }
 
   TernionDigitalTwin.createOrShow(extensionUri, context, {
     statusBar,
-    webviewApp: requestedApp,
-    bitstreamWorkspace:
-      requestedApp === "bitstream" ? workspace : undefined,
+    bitstreamWorkspace: workspace,
   });
 }
 
@@ -61,10 +50,10 @@ export async function pickTernionApplication(
   extensionUri: vscode.Uri,
   context: vscode.ExtensionContext,
   statusBar: StatusBarItemsFor3DPanel | undefined,
-): Promise<void> {
+): Promise<void>
+{
   const panelOpen = TernionDigitalTwin.currentPanel != null;
   type PickId =
-    | "digitalTwin"
     | "bitstreamTelemetry"
     | "bitstreamFlow"
     | "browser"
@@ -77,31 +66,27 @@ export async function pickTernionApplication(
     id: PickId;
   }> = [
     {
-      label: "$(preview) TERNION Digital Twin",
-      description: "3D engine, quick scenes, simulation",
-      id: "digitalTwin",
-    },
-    {
-      label: "$(pulse) Sensor Studio — Configure & Diagnostics",
-      description: "Live telemetry and per-sensor setup",
+      label: "$(pulse) Sensor Telemetry",
+      description: "Live BS2 telemetry and sensor configuration",
       id: "bitstreamTelemetry",
     },
     {
-      label: "$(sparkle) Sensor Studio — Flow editor",
+      label: "$(sparkle) Sensor Studio",
       description: "Flow-based 2D/3D sensor visualization",
       id: "bitstreamFlow",
     },
     {
       label: "$(globe) Open in browser",
-      description: "Unified web app with launcher (dev server)",
+      description: "Local dev server (Vite)",
       id: "browser",
     },
   ];
 
-  if (panelOpen) {
+  if (panelOpen)
+  {
     items.push({
       label: "$(refresh) Reload webview",
-      description: "Reload the active TERNION panel",
+      description: "Reload the active Bitstream Studio panel",
       id: "reloadWebview",
     });
   }
@@ -113,28 +98,23 @@ export async function pickTernionApplication(
   });
 
   const pick = await vscode.window.showQuickPick(items, {
-    placeHolder: "Open a TERNION application",
+    placeHolder: "Open Bitstream Studio",
     matchOnDescription: true,
   });
-  if (!pick) {
+  if (!pick)
+  {
     return;
   }
 
-  switch (pick.id) {
-    case "digitalTwin":
-      openTernionPanel(extensionUri, context, statusBar, {
-        webviewApp: "digitalTwin",
-      });
-      break;
+  switch (pick.id)
+  {
     case "bitstreamTelemetry":
       openTernionPanel(extensionUri, context, statusBar, {
-        webviewApp: "bitstream",
         bitstreamWorkspace: "telemetry",
       });
       break;
     case "bitstreamFlow":
       openTernionPanel(extensionUri, context, statusBar, {
-        webviewApp: "bitstream",
         bitstreamWorkspace: "sensor-studio",
       });
       break;

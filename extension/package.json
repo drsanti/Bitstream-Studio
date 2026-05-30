@@ -35,109 +35,79 @@
   "contributes": {
     "commands": [
       {
-        "command": "bitstream-studio.open3DWorld",
-        "title": "Open 3D World",
-        "category": "TERNION"
-      },
-      {
         "command": "bitstream-studio.pickApplication",
-        "title": "TERNION: Choose Application",
-        "category": "TERNION"
+        "title": "Bitstream Studio: Choose Application",
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.openBitstream",
-        "title": "Open Sensor Studio",
-        "category": "TERNION"
+        "title": "Open Sensor Telemetry",
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.openBitstreamSensorStudio",
-        "title": "Open Sensor Studio — Flow Editor",
-        "category": "TERNION"
-      },
-      {
-        "command": "bitstream-studio.openProject4Twin",
-        "title": "Open Project 4 — Robot Twin",
-        "category": "TERNION"
+        "title": "Open Sensor Studio",
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.configBaseUrl",
         "title": "Configure Base URL",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.reloadWebview",
-        "title": "Reload TERNION Digital Twin",
-        "category": "TERNION"
+        "title": "Reload Bitstream Studio Panel",
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.reloadWindow",
         "title": "Reload VSCode Window",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.toggleDevTools",
         "title": "Toggle Developer Tools",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.startMqttBroker",
         "title": "Start MQTT Broker",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.stopMqttBroker",
         "title": "Stop MQTT Broker",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.startSerialBridge",
         "title": "Start Serial Bridge",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.stopSerialBridge",
         "title": "Stop Serial Bridge",
-        "category": "TERNION"
-      },
-      {
-        "command": "bitstream-studio.startAiBridge",
-        "title": "Start AI Bridge",
-        "category": "TERNION"
-      },
-      {
-        "command": "bitstream-studio.stopAiBridge",
-        "title": "Stop AI Bridge",
-        "category": "TERNION"
-      },
-      {
-        "command": "bitstream-studio.startProject4MockMcu",
-        "title": "Start Project 4 Mock MCU (HTTP)",
-        "category": "TERNION"
-      },
-      {
-        "command": "bitstream-studio.stopProject4MockMcu",
-        "title": "Stop Project 4 Mock MCU",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.openToolsPanel",
-        "title": "Open TERNION Tools",
-        "category": "TERNION"
+        "title": "Open Tools Panel",
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.openInBrowser",
-        "title": "Open TERNION Web App in Browser",
-        "category": "TERNION"
+        "title": "Open in Browser (Dev Server)",
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.setBrowserAppPort",
         "title": "Set Local Web App Port (Browser)",
-        "category": "TERNION"
+        "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.toggleQuickAction",
-        "title": "TERNION: Toggle Quick Actions",
-        "category": "TERNION"
+        "title": "Bitstream Studio: Toggle Quick Actions",
+        "category": "Bitstream Studio"
       }
     ],
     "menus": {
@@ -147,15 +117,7 @@
           "when": "true"
         },
         {
-          "command": "bitstream-studio.openProject4Twin",
-          "when": "true"
-        },
-        {
-          "command": "bitstream-studio.startProject4MockMcu",
-          "when": "true"
-        },
-        {
-          "command": "bitstream-studio.stopProject4MockMcu",
+          "command": "bitstream-studio.openBitstreamSensorStudio",
           "when": "true"
         }
       ]
@@ -205,33 +167,20 @@
         }
       },
       {
-        "title": "TERNION: Browser",
+        "title": "Bitstream Studio: Browser",
         "properties": {
           "ternion.browserApp.port": {
             "type": "number",
             "default": 0,
             "minimum": 0,
             "maximum": 65535,
-            "description": "TCP port for the local static server used by \"Open Digital Twin in Browser\". Use 0 for an ephemeral (OS-assigned) port.",
+            "description": "TCP port for the local static server used by \"Open in Browser\". Use 0 for an ephemeral (OS-assigned) port.",
             "scope": "application"
           }
         }
       },
       {
-        "title": "TERNION: Project 4",
-        "properties": {
-          "ternion.project4.mockMcuPort": {
-            "type": "number",
-            "default": 8787,
-            "minimum": 1,
-            "maximum": 65535,
-            "description": "TCP port for the bundled HTTP mock MCU (/data, /move, /setSpeed). Match Project 4 connection MCU base URL (e.g. http://127.0.0.1:<port>).",
-            "scope": "application"
-          }
-        }
-      },
-      {
-        "title": "TERNION: MQTT",
+        "title": "Bitstream Studio: MQTT",
         "properties": {
           "ternion.mqtt.configuration": {
             "type": "object",
@@ -298,7 +247,6 @@
     "bitstream:assistant": "npx tsx src/ai/run.ai.bridge.ts",
     "dev:model-loader-browser": "concurrently --prefix-colors \"cyan,blue\" --prefix \"name\" --names \"model-bridge,browser\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev:browser\"",
     "dev:with-model-loader": "concurrently --prefix-colors \"cyan,blue,green\" --prefix \"name\" --names \"model-bridge,dev\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev\"",
-    "dev:with-mock-mcu": "concurrently --prefix-colors \"yellow,green\" --prefix \"name\" --names \"mock-mcu,dev\" --kill-others-on-fail false \"npm run project4:mock-mcu\" \"npm run dev\"",
     "dev:with-t3d-watch": "concurrently --prefix-colors \"magenta,blue,green\" --prefix \"name\" --names \"t3d,watch,webview\" --kill-others-on-fail false --group \"npm --prefix ../T3D run watch:lib\" \"npm run watch:all\" \"npm run dev:webview\"",
     "vscode:prepublish": "npm run compile",
     "compile": "node scripts/build-extension.js && npm run build:webview",
@@ -350,15 +298,12 @@
     "bitstream:sync:check": "node scripts/check-streamsight-bitstream-sync.js",
     "bitstream:sync:update": "node scripts/check-streamsight-bitstream-sync.js --update",
     "verify:ai-mcp-tools": "npx tsx src/ai/bridge/verify-ai-mcp-tools.ts",
-    "project4:analyze-glb": "npx tsx src/webview/project4/scripts/analyze-glb.ts",
-    "project4:mock-mcu": "npx tsx src/webview/project4/scripts/mock-mcu-server.ts",
     "publish:studio-asset-manifest": "node scripts/publish-studio-asset-manifest.mjs",
     "sync:studio-cubemap-assets": "node scripts/sync-studio-cubemap-assets.mjs"
   },
   "description:scripts": {
     "dev": "Extension watch + Vite only — no Model Downloader WebSocket (ws://localhost:9998). Browser Model Loader needs a bridge; use dev:with-model-loader or dev:model-loader-browser.",
     "dev:with-model-loader": "Same as dev plus start:model-downloader-bridge (WS + bridge) so browser Model Loader can connect.",
-    "dev:with-mock-mcu": "Same as npm run dev plus project4:mock-mcu (HTTP mock at 127.0.0.1:8787) for Project 4 without hardware.",
     "dev:with-t3d-watch": "Run T3D watch:lib + extension/webview dev together so T3D dist updates automatically during coding.",
     "dev:model-loader-browser": "Lightweight browser dev: Vite + model-downloader bridge only (no extension TS watch).",
     "dev:clean": "Try to free dev TCP ports (default 9998 broker; set DEV_CLEAN_PORTS=9998,5173). Use --dry-run to only check. Cross-platform.",

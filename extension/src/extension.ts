@@ -14,14 +14,7 @@ import {
 } from "./bridge-handle";
 import {
   setGetCurrentPanelCallback as setAiBridgeGetCurrentPanelCallback,
-  startAiBridge,
-  stopAiBridge,
 } from "./ai-bridge-handle";
-import { ensureAiBridgePairingToken, getAiBridgePairingToken } from "./ai-bridge-pairing";
-import {
-  startProject4MockMcu,
-  stopProject4MockMcu,
-} from "./project4-mock-mcu-handle";
 
 // Module-level status bar items for conditional visibility
 let launchMenuStatusBarItem: vscode.StatusBarItem | undefined;
@@ -69,9 +62,7 @@ import {
  * Activate the extension
  */
 export function activate(context: vscode.ExtensionContext) {
-  console.log("TERNION Digital Twin Extension is now active");
-  // Stable per-session pairing token for AI bridge browser clients.
-  ensureAiBridgePairingToken();
+  console.log("Bitstream Studio extension is now active");
   const modelDownloadsFs = getModelDownloadsRootUri(context).fsPath;
   setBridgeModelDownloadsRoot(modelDownloadsFs);
   setBridgeUserAssetsRoot(getUserAssetsRootUri(context).fsPath);
@@ -81,14 +72,14 @@ export function activate(context: vscode.ExtensionContext) {
     getTesaiotTexturesRootUri(context).fsPath,
   );
 
-  // Single launcher: Quick Pick lists Digital Twin, Sensor Studio, browser, etc.
+  // Bitstream Studio panel host (legacy class name retained).
   launchMenuStatusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left,
     2,
   );
-  launchMenuStatusBarItem.text = "$(list-selection) TERNION";
+  launchMenuStatusBarItem.text = "$(list-selection) Bitstream";
   launchMenuStatusBarItem.tooltip =
-    "Open TERNION applications (Digital Twin, Sensor Studio, browser…)";
+    "Open Bitstream Studio (Sensor Telemetry, Sensor Studio, browser…)";
   launchMenuStatusBarItem.command = "bitstream-studio.pickApplication";
   launchMenuStatusBarItem.show();
 
@@ -98,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
     0,
   );
   reloadWebviewStatusBarItem.text = "$(refresh) Refresh";
-  reloadWebviewStatusBarItem.tooltip = "Reload TERNION Digital Twin";
+  reloadWebviewStatusBarItem.tooltip = "Reload Bitstream Studio panel";
   reloadWebviewStatusBarItem.command = "bitstream-studio.reloadWebview";
   // Don't show initially
 
@@ -172,30 +163,6 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
-  const open3DWorldDisposable = vscode.commands.registerCommand(
-    "bitstream-studio.open3DWorld",
-    () => {
-      openTernionPanel(
-        context.extensionUri,
-        context,
-        getPanelStatusBar(),
-        { webviewApp: "digitalTwin" },
-      );
-    },
-  );
-
-  const openProject4TwinDisposable = vscode.commands.registerCommand(
-    "bitstream-studio.openProject4Twin",
-    () => {
-      openTernionPanel(
-        context.extensionUri,
-        context,
-        getPanelStatusBar(),
-        { webviewApp: "project4" },
-      );
-    },
-  );
-
   const openBitstreamDisposable = vscode.commands.registerCommand(
     "bitstream-studio.openBitstream",
     () => {
@@ -203,7 +170,7 @@ export function activate(context: vscode.ExtensionContext) {
         context.extensionUri,
         context,
         getPanelStatusBar(),
-        { webviewApp: "bitstream", bitstreamWorkspace: "telemetry" },
+        { bitstreamWorkspace: "telemetry" },
       );
     },
   );
@@ -216,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
           context.extensionUri,
           context,
           getPanelStatusBar(),
-          { webviewApp: "bitstream", bitstreamWorkspace: "sensor-studio" },
+          { bitstreamWorkspace: "sensor-studio" },
         );
       },
     );
@@ -227,7 +194,7 @@ export function activate(context: vscode.ExtensionContext) {
       const current = TernionDigitalTwin.currentPanel;
       if (!current) {
         void vscode.window.showInformationMessage(
-          "Open a TERNION panel first (status bar → TERNION).",
+          "Open a Bitstream Studio panel first (status bar → Bitstream).",
         );
         return;
       }
@@ -289,10 +256,10 @@ export function activate(context: vscode.ExtensionContext) {
         // Reload the webview by regenerating the HTML content
         TernionDigitalTwin.currentPanel._panel.webview.html =
           TernionDigitalTwin.currentPanel._getHtmlForWebview();
-        vscode.window.showInformationMessage("TERNION Digital Twin Refreshed");
+        vscode.window.showInformationMessage("Bitstream Studio panel refreshed");
       } else {
         vscode.window.showWarningMessage(
-          "No TERNION Digital Twin panel is currently open",
+          "No Bitstream Studio panel is currently open",
         );
       }
     },
@@ -350,54 +317,6 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
-  const startAiBridgeDisposable = vscode.commands.registerCommand(
-    "bitstream-studio.startAiBridge",
-    () => {
-      startAiBridge(context.extensionPath).catch((error) => {
-        console.error("Failed to start AI Bridge:", error);
-        vscode.window.showErrorMessage(
-          `Failed to start AI Bridge: ${error?.message || error}`,
-        );
-      });
-    },
-  );
-
-  const stopAiBridgeDisposable = vscode.commands.registerCommand(
-    "bitstream-studio.stopAiBridge",
-    () => {
-      stopAiBridge().catch((error) => {
-        console.error("Failed to stop AI Bridge:", error);
-        vscode.window.showErrorMessage(
-          `Failed to stop AI Bridge: ${error?.message || error}`,
-        );
-      });
-    },
-  );
-
-  const startProject4MockMcuDisposable = vscode.commands.registerCommand(
-    "bitstream-studio.startProject4MockMcu",
-    () => {
-      void startProject4MockMcu(context.extensionPath).catch((error) => {
-        console.error("Failed to start Project 4 Mock MCU:", error);
-        vscode.window.showErrorMessage(
-          `Failed to start Project 4 Mock MCU: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
-    },
-  );
-
-  const stopProject4MockMcuDisposable = vscode.commands.registerCommand(
-    "bitstream-studio.stopProject4MockMcu",
-    () => {
-      void stopProject4MockMcu().catch((error) => {
-        console.error("Failed to stop Project 4 Mock MCU:", error);
-        vscode.window.showErrorMessage(
-          `Failed to stop Project 4 Mock MCU: ${error instanceof Error ? error.message : String(error)}`,
-        );
-      });
-    },
-  );
-
   const openToolsPanelDisposable = vscode.commands.registerCommand(
     "bitstream-studio.openToolsPanel",
     () => {
@@ -411,29 +330,19 @@ export function activate(context: vscode.ExtensionContext) {
       try {
         await initializeSerialBridge(context.extensionPath);
         await ensureEmbeddedModelLoaderBroker();
-        // Ensure AI bridge is running so browser can access the AI dev tools.
-        await startAiBridge(context.extensionPath);
         const url = await ensureLocalWebappServer(context.extensionPath);
         const assetSourceStrategy = vscode.workspace
           .getConfiguration("ternion.assets")
           .get<string>("sourceStrategy", "local-first");
-        const wsSection = vscode.workspace.getConfiguration("ternion.ws");
-        const aiBrokerPort = Math.min(
-          65535,
-          Math.max(1, Math.trunc(wsSection.get<number>("aiBrokerPort", 9987))),
-        );
-        const aiBridgeWsUrl = `ws://127.0.0.1:${aiBrokerPort}`;
-        const aiPairingToken = getAiBridgePairingToken();
         const browserUrl = vscode.Uri.parse(url).with({
           query: [
             `assetSourceStrategy=${encodeURIComponent(assetSourceStrategy)}`,
-            `aiBridgeWsUrl=${encodeURIComponent(aiBridgeWsUrl)}`,
-            `aiPairingToken=${encodeURIComponent(aiPairingToken)}`,
+            "app=bitstream",
           ].join("&"),
         });
         await vscode.env.openExternal(browserUrl);
         void vscode.window.showInformationMessage(
-          `TERNION web app opened at ${url} (browser mode — use the panel for full VS Code integration).`,
+          `Bitstream Studio dev server opened at ${url} (browser mode).`,
         );
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -478,8 +387,8 @@ export function activate(context: vscode.ExtensionContext) {
       await stopLocalWebappServer();
       void vscode.window.showInformationMessage(
         port === 0
-          ? "Browser app port: 0 (ephemeral). Run Open Digital Twin in Browser to get the URL."
-          : `Browser app port set to ${port}. Run Open Digital Twin in Browser to use http://127.0.0.1:${port}/`,
+          ? "Browser app port: 0 (ephemeral). Run Open in browser to get the URL."
+          : `Browser app port set to ${port}. Run Open in browser to use http://127.0.0.1:${port}/?app=bitstream`,
       );
     },
   );
@@ -487,10 +396,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     pickApplicationDisposable,
     toggleQuickActionDisposable,
-    open3DWorldDisposable,
     openBitstreamDisposable,
     openBitstreamSensorStudioDisposable,
-    openProject4TwinDisposable,
     configBaseUrlDisposable,
     reloadWebviewDisposable,
     reloadWindowDisposable,
@@ -499,10 +406,6 @@ export function activate(context: vscode.ExtensionContext) {
     stopMqttBrokerDisposable,
     startSerialBridgeDisposable,
     stopSerialBridgeDisposable,
-    startAiBridgeDisposable,
-    stopAiBridgeDisposable,
-    startProject4MockMcuDisposable,
-    stopProject4MockMcuDisposable,
     openToolsPanelDisposable,
     openInBrowserDisposable,
     setBrowserAppPortDisposable,
@@ -528,5 +431,4 @@ export function deactivate() {
   stopMqttBroker();
   // Stop Serial Bridge
   stopSerialBridge();
-  void stopProject4MockMcu({ silent: true });
 }

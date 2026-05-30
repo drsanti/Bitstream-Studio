@@ -1,56 +1,57 @@
-export type WebviewShellEntry = "digitalTwin" | "bitstream" | "bitstream2Sim";
+export type WebviewShellEntry = "bitstream";
 
-type TernionWebviewEntry = "digitalTwin" | "project4" | "bitstream";
+type TernionWebviewEntry = "bitstream";
 
 const STORAGE_KEY = "ternion.webview.entry";
 
-export function isTernionWebviewEntry(value: string | null | undefined): value is TernionWebviewEntry {
-  return value === "digitalTwin" || value === "project4" || value === "bitstream";
+export function isTernionWebviewEntry(value: string | null | undefined): value is TernionWebviewEntry
+{
+  return value === "bitstream";
 }
 
-export function isWebviewShellEntry(value: string | null | undefined): value is WebviewShellEntry {
-  return (
-    value === "digitalTwin" ||
-    value === "bitstream" ||
-    value === "bitstream2Sim"
-  );
+export function isWebviewShellEntry(value: string | null | undefined): value is WebviewShellEntry
+{
+  return value === "bitstream";
 }
 
-export function normalizeShellEntry(entry: TernionWebviewEntry | WebviewShellEntry): WebviewShellEntry {
-  if (entry === "bitstream") {
-    return "bitstream";
-  }
-  if (entry === "bitstream2Sim") {
-    return "bitstream2Sim";
-  }
-  return "digitalTwin";
+export function normalizeShellEntry(_entry: TernionWebviewEntry | WebviewShellEntry): WebviewShellEntry
+{
+  return "bitstream";
 }
 
-export function readPersistedWebviewEntry(): WebviewShellEntry | null {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
+export function readPersistedWebviewEntry(): WebviewShellEntry | null
+{
+  if (typeof window === "undefined" || typeof window.localStorage === "undefined")
+  {
     return null;
   }
-  try {
+  try
+  {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (isWebviewShellEntry(raw)) {
-      return raw;
+    if (raw === "bitstream" || raw === "bitstream2Sim" || raw === "digitalTwin")
+    {
+      return "bitstream";
     }
-    if (!isTernionWebviewEntry(raw)) {
-      return null;
-    }
-    return normalizeShellEntry(raw);
-  } catch {
+    return null;
+  }
+  catch
+  {
     return null;
   }
 }
 
-export function persistWebviewEntry(entry: WebviewShellEntry): void {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
+export function persistWebviewEntry(_entry: WebviewShellEntry): void
+{
+  if (typeof window === "undefined" || typeof window.localStorage === "undefined")
+  {
     return;
   }
-  try {
-    window.localStorage.setItem(STORAGE_KEY, entry);
-  } catch {
+  try
+  {
+    window.localStorage.setItem(STORAGE_KEY, "bitstream");
+  }
+  catch
+  {
     // ignore quota / private mode
   }
 }

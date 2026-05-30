@@ -15,10 +15,6 @@ const buildOptions = {
       in: "./src/ai/run.ai.bridge.ts",
       out: "ai/run.ai.bridge",
     },
-    {
-      in: "./src/webview/project4/scripts/mock-mcu-server.ts",
-      out: "project4-mock-mcu",
-    },
   ],
   bundle: true,
   outdir: "out",
