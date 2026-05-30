@@ -1,7 +1,7 @@
 # Bitstream isolation plan — remove `T3D/` dependency
 
 **Date:** 2026-05-29  
-**Status:** Phase 0 in progress  
+**Status:** Phase 3–4 complete (2026-05-30); Vite cleanup + VSIX build OK; install smoke pending  
 **Target repo:** [Bitstream-Studio](https://github.com/drsanti/Bitstream-Studio) (`https://github.com/drsanti/Bitstream-Studio`) — empty; bootstrap from `ternion-t3d` branch **`BS2`**.  
 **Source (migration):** `D:/CODE/2026/ternion-t3d` — copy **`t3d-extension/`** only; **do not** copy `T3D/` or `bitstream-simulator/`.  
 **External sim:** `bitstream-simulator` stays in its **own repo** (today under `ternion-t3d/bitstream-simulator/` until moved); install separately for Simulator telemetry mode.  
@@ -9,68 +9,51 @@
 
 ---
 
-## Current state
+## Current state (2026-05-30 — decoupling complete)
 
 ```mermaid
 flowchart TB
-  subgraph monorepo [ternion-t3d monorepo]
-    T3D[T3D/ @ternion/t3d]
-    EXT[t3d-extension/]
-    SIM[bitstream-simulator/]
-    DEV[dev-tool/]
+  subgraph repo [Bitstream-Studio]
+    EXT[extension/]
+    CAT[ui/catalog/]
+    BR[extension-bridge/]
   end
 
-  subgraph entry [main.tsx default]
-    BA[BitstreamApp]
-  end
-
-  subgraph apps [Bitstream shell]
+  subgraph apps [BitstreamApp entry]
     TEL[Sensor Telemetry ?app=bitstream]
     SS[Sensor Studio ?app=sensor-studio]
   end
 
-  EXT -->|file:../T3D npm link| T3D
-  BA --> TEL
-  BA --> SS
-
-  subgraph dead [Not on default path but still in repo]
-    WR[WebviewRoot + Digital Twin MyApp/App]
-    P4[project4]
-    QS[quick-scene]
+  subgraph external [Separate repos]
+    SIM[bitstream-simulator]
+    FW[TESAIoT firmware BS2]
   end
+
+  EXT --> CAT
+  EXT --> BR
+  EXT --> TEL
+  EXT --> SS
+  EXT -->|WS| SIM
+  EXT -->|UART| FW
 ```
 
-### What is already isolated
+### Isolated (no `@ternion/t3d`)
 
-- `bitstream-app/` and `sensor-studio/` have **no** direct `@ternion/t3d` imports.
-- Default webview entry mounts `<BitstreamApp />` (not Digital Twin).
-- Bitstream protocol core lives in `t3d-extension/src/bitstream2/` and extension webview trees.
-
-### What still pulls `@ternion/t3d`
-
-| Shared module | Used by Bitstream/Studio? | T3D dependency |
-|---------------|---------------------------|----------------|
-| `assets-manager/` | Yes (header menu, Alt+M) | `T3DAssetManager`, `T3DVSCodeUtils.getVsCodeApi()` |
-| `model-catalog/` | Yes (floating window) | `@ternion/t3d/ui` (CollapsibleCard, LabeledSlider, …) |
-| `model-loader/` | Yes | `@ternion/t3d/ui`, `T3DVSCodeUtils` |
-| `free-assets-loader/` | Via asset flows | `T3DVSCodeUtils` |
-| `engine-environment/` | Model preview cubemaps | `T3DEngineConfig` |
-| `ui/quick-action/` | Ctrl+/ palette | re-exports `@ternion/t3d/ui` |
-| `ai-bridge/` | Optional settings window | `T3DVSCodeUtils` |
-
-**Heavy T3D** (engine, Jolt, quick scenes, simulations) is only used by **Digital Twin** (`MyApp`, `App`, `WebviewRoot`).
-
-**Import scope:** ~32 webview files import `@ternion/t3d`; ~595 files under `T3D/src/T3D` — most is unused dead weight for Bitstream-only.
+- **`bitstream-app/`**, **`sensor-studio/`**, **`model-catalog/`**, **`model-loader/`** — local TRN + **`ui/catalog/`** widgets.
+- **`extension-bridge/getVsCodeApi`** replaces `T3DVSCodeUtils`.
+- **`engine-environment/cubemapPresets`** replaces `T3DEngineConfig` for preview.
+- Default entry: **`main.tsx` → `<BitstreamApp />`** only (no Digital Twin / launcher).
 
 ### Wiring today
 
 | Mechanism | Location |
 |-----------|----------|
-| npm dependency | `t3d-extension/package.json` → `"@ternion/t3d": "file:../T3D"` |
-| Vite aliases | `@ternion/t3d`, `/ui`, `/vscode-webview` → `T3D/dist/*.es.js` |
-| Build script | `scripts/ensure-t3d-linked-build-fresh.js` |
-| Tailwind scan | `node_modules/@ternion/t3d/src/**` |
-| COI / Jolt assets | Copied from `T3D/dist/` (Digital Twin path; not Bitstream 3D preview) |
+| npm | **No** `@ternion/t3d` in `package.json` |
+| Vite | Extension-only aliases; Jolt from `src/assets/jolt` |
+| Prebuild | `scripts/sync-jolt-assets.js` only |
+| CSS | Vendored `src/webview/t3d-shared.css` (name legacy; no npm dep) |
+
+*(Historical migration diagram and pre-decoupling tables are in git history / `ternion-t3d` BS2.)*
 
 ---
 
@@ -347,9 +330,9 @@ Update this table as phases complete. Mirror major milestones in `docs/DEVELOPME
 | Phase 0 — Bootstrap Bitstream-Studio | Done | 2026-05-29 | Initial push; npm install OK |
 | Phase 1 — Product isolation | Done | 2026-05-30 | BitstreamApp-only entry; removed Digital Twin / Project4 / launcher |
 | Phase 2 — Thin bridge replacement | Done | 2026-05-30 | Local extension-bridge, quick-action store, cubemap presets |
-| Phase 3 — UI decoupling | Pending | — | TRN vs vendor TBD |
-| Phase 4 — Delete @ternion/t3d dep | Pending | — | No T3D/ in Bitstream-Studio |
-| VSIX + dual-runtime verify | Pending | — | UART + Simulator |
+| Phase 3 — UI decoupling | Done | 2026-05-30 | `ui/catalog/` local widgets; model-catalog/model-loader off `@ternion/t3d/ui` |
+| Phase 4 — Delete @ternion/t3d dep | Done | 2026-05-30 | Removed from `package.json`; prebuild = `sync-jolt-assets` only; Vite T3D plugins removed |
+| VSIX + dual-runtime verify | In progress | 2026-05-30 | `bitstream-studio-0.1.0.vsix` builds; install + UART/Sim smoke pending |
 
 ---
 

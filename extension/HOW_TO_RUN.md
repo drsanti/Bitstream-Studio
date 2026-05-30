@@ -3,7 +3,7 @@
 Reference for **host-only** development (no MCU) and optional real UART. All commands assume you are in the extension package:
 
 ```bash
-cd t3d-extension
+cd extension
 ```
 
 Related docs:
@@ -51,19 +51,15 @@ The webview **never** parses raw UART bytes; it only consumes JSON on `bitstream
 1. **Node.js** and dependencies:
 
    ```bash
-   cd t3d-extension
+   cd extension
    npm install
    ```
 
-2. **T3D library** (for `@ternion/t3d` in the webview): from repo root, link and build if needed:
+2. **Jolt WASM assets** (Model Catalog preview): `predev:webview` runs `scripts/sync-jolt-assets.js` automatically. If `/jolt` 404s in the browser, run:
 
    ```bash
-   cd T3D
-   npm run build:lib
-   npm run link:lib:extension   # from T3D, then npm link @ternion/t3d in t3d-extension
+   node scripts/sync-jolt-assets.js
    ```
-
-   `predev:webview` tries to keep the link fresh; if Vite fails on `@ternion/t3d`, rebuild `T3D/dist`.
 
 3. **Ports free**: broker **9998**, Vite **5173**. If something is stuck:
 
@@ -223,13 +219,13 @@ Optional env:
 
 **Telemetry source:** **Simulator** requires external Bitstream Simulator streaming. **Bitstream** uses COM + BS2 handshake. Amber floating notices: Simulator after **3 s** without data, Bitstream after **10 s** without handshake; **10 s** visible with hover-pause (`FLOATING_ALERT_NOTICES.md`).
 
-Packaged **VSIX** uses npm `@ternion/t3d`, not necessarily your linked `T3D/` tree — rebuild and publish after library changes.
+Packaged **VSIX** bundles the prebuilt webview from `npm run compile` — no external `@ternion/t3d` package.
 
 ---
 
 ## CLI tools (no browser)
 
-Run from `t3d-extension/`. Bridge must be up with loopback for `--ws` / inject commands.
+Run from **`extension/`**. Bridge must be up for `--ws` / inject commands.
 
 | Command | Description |
 |---------|-------------|
@@ -301,8 +297,8 @@ Firmware / UART not required for the above.
 | **WS disconnected** | Broker on 9998; `npm run dev:clean`; firewall |
 | **Samples stay 0** | External sim streaming; hard refresh; bridge log for decode errors |
 | **Send PING does nothing** | Sim streaming or UART COM open; compare with `bitstream2:dev-inject -- --ping-req` |
-| **ENOENT on npm scripts** | Run commands from **`t3d-extension/`**, not monorepo root |
-| **Vite / `@ternion/t3d` errors** | `cd T3D && npm run build:lib` and npm link |
+| **ENOENT on npm scripts** | Run commands from **`extension/`**, not repo root |
+| **Vite build errors** | `npm run compile`; check `out/webview/index.js` exists |
 | **Port 5173 vs `[::1]`** | Try `http://localhost:5173/` if `127.0.0.1` fails |
 | **Clicks blocked** | Simulator root must include `t3d-shell-overlay pointer-events-auto` |
 

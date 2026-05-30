@@ -19,10 +19,10 @@ import {
 } from "../../ui/TRN/TRNMenu.js";
 import {
   CollapsibleCard,
-  Button,
   LabeledSlider,
   LabeledSwitch,
-} from "@ternion/t3d/ui";
+} from "../../ui/catalog/index.js";
+import { Button } from "../../ui/components/Button";
 import type {
   AnimationBlendMode,
   AnimationClipLoop,
@@ -701,7 +701,7 @@ export function PreviewAnimationCard({
       <div className="flex items-center gap-2">
         <Button
           variant="secondary"
-          size="sm"
+          size="compact"
           onClick={() => onPlayPause(!isPlaying)}
           className={actionButtonClass}
         >
@@ -764,7 +764,7 @@ export function PreviewAnimationCard({
       <div className="flex items-center gap-2">
         <Button
           variant="secondary"
-          size="sm"
+          size="compact"
           onClick={() => onPlayPause(!isPlaying)}
           className={actionButtonClass}
         >
@@ -782,7 +782,7 @@ export function PreviewAnimationCard({
         </Button>
         <Button
           variant="outline"
-          size="sm"
+          size="compact"
           onClick={onReset}
           className={actionButtonClass}
         >

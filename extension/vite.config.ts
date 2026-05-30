@@ -1,13 +1,7 @@
 // @ts-nocheck
 import react from "@vitejs/plugin-react";
 import { resolve, dirname, extname, relative } from "path";
-import {
-  existsSync,
-  readFileSync,
-  statSync,
-  realpathSync,
-  lstatSync,
-} from "fs";
+import { existsSync, readFileSync, statSync } from "fs";
 import { fileURLToPath } from "url";
 
 import { defineConfig } from "vite";
@@ -22,145 +16,11 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Determine COI worker source path (supports both npm link and installed package)
-// vite-static-copy resolves paths relative to root (src/webview)
-// IMPORTANT: `vite.config.ts` lives in `t3d-extension/`, so node_modules is `./node_modules`
-const packagePath = resolve(__dirname, "./node_modules/@ternion/t3d");
-const t3dLocalCandidates = [
-  resolve(__dirname, "../T3D"),
-  resolve(__dirname, "../../ternion-t3d/T3D"),
-];
-const t3dDistIndex = "dist/index.es.js";
-
-const normalizePathForCompare = (p: string) => p.replace(/\\/g, "/").toLowerCase();
-
-const pathPointsAtLocalT3d = (resolvedPath: string) => {
-  const normalized = normalizePathForCompare(resolvedPath);
-  return t3dLocalCandidates.some((local) => {
-    const localNorm = normalizePathForCompare(local);
-    return normalized === localNorm || normalized.startsWith(`${localNorm}/`);
-  });
-};
-
-const t3dDistIsReady = (root: string) =>
-  existsSync(resolve(root, t3dDistIndex));
-
-/** Resolved T3D package root with built `dist/` (node_modules, symlink, or monorepo `../T3D`). */
-const resolveActualT3dPackageRoot = (): string => {
-  if (existsSync(packagePath)) {
-    try {
-      const stats = lstatSync(packagePath);
-      const candidate = stats.isSymbolicLink()
-        ? realpathSync(packagePath)
-        : packagePath;
-      if (t3dDistIsReady(candidate)) {
-        return candidate;
-      }
-    } catch {
-      // Fall through to local monorepo path
-    }
-  }
-
-  for (const t3dLocalPath of t3dLocalCandidates)
-  {
-    if (t3dDistIsReady(t3dLocalPath))
-    {
-      if (process.env.NODE_ENV !== "production")
-      {
-        console.warn(
-          `[vite] @ternion/t3d dist not ready in node_modules; using ${t3dLocalPath}. Run "npm run build:lib:dev" in T3D or npm link @ternion/t3d.`,
-        );
-      }
-      return t3dLocalPath;
-    }
-  }
-
-  return packagePath;
-};
-
-const actualT3dPackageRoot = resolveActualT3dPackageRoot();
-
-const getCoiWorkerPath = () =>
-  resolve(actualT3dPackageRoot, "dist/t3d-coi-serviceworker.js");
-
-const isPackageLinked = () => {
-  try {
-    if (!existsSync(packagePath)) return false;
-    const stats = lstatSync(packagePath);
-    if (!stats.isSymbolicLink()) return false;
-    return pathPointsAtLocalT3d(realpathSync(packagePath));
-  } catch {
-    return false;
-  }
-};
-
-const coiWorkerPath = getCoiWorkerPath();
-
-// Subpath aliases must be declared before `@ternion/t3d` (Vite prefix matching).
-const t3dResolveAliases = t3dDistIsReady(actualT3dPackageRoot)
-  ? {
-      "@ternion/t3d/vscode-webview": resolve(
-        actualT3dPackageRoot,
-        "dist/vscode-webview.es.js",
-      ),
-      "@ternion/t3d/mqtt-client": resolve(
-        actualT3dPackageRoot,
-        "dist/mqtt-client.es.js",
-      ),
-      "@ternion/t3d/ui": resolve(actualT3dPackageRoot, "dist/ui.es.js"),
-      "@ternion/t3d": resolve(actualT3dPackageRoot, "dist/index.es.js"),
-    }
-  : {};
-
-/**
- * Dev server: `T3DJoltLoader` registers `/t3d-coi-serviceworker.js` (see T3DJoltLoaderConfig).
- * Vite only mirrors `public/` at the root; we copy the COI script at build time but not into `public/`.
- * Serve the same file from `@ternion/t3d` during `vite` so COI + multithreaded Jolt work in the browser.
- */
-const serveCoiServiceWorkerPlugin = () => ({
-  name: "serve-t3d-coi-serviceworker",
-  configureServer(server: { middlewares: { use: (fn: unknown) => void } }) {
-    server.middlewares.use(
-      (
-        req: { method?: string; url?: string },
-        res: {
-          setHeader: (k: string, v: string) => void;
-          end: (b: Buffer) => void;
-        },
-        next: () => void,
-      ) => {
-        if (req.method !== "GET" || !req.url) {
-          return next();
-        }
-        const pathname = (req.url.split("?")[0] || "").replace(/\/$/, "") || "/";
-        if (pathname !== "/t3d-coi-serviceworker.js") {
-          return next();
-        }
-        if (!existsSync(coiWorkerPath)) {
-          console.warn(
-            `[serve-t3d-coi-serviceworker] Missing file: ${coiWorkerPath}`,
-          );
-          return next();
-        }
-        try {
-          const content = readFileSync(coiWorkerPath);
-          res.setHeader("Content-Type", "application/javascript; charset=utf-8");
-          res.setHeader("Cache-Control", "no-store");
-          res.end(content);
-        } catch (error) {
-          console.warn("[serve-t3d-coi-serviceworker] Read failed:", error);
-          next();
-        }
-      },
-    );
-  },
-});
-
-// Optional repo-level assets (parent of t3d-extension); used for Jolt fallback only.
+// Optional repo-level assets (parent of extension/); used for Jolt fallback only.
 const projectRootAssetsPath = resolve(__dirname, "../assets");
 const joltPath = resolve(projectRootAssetsPath, "jolt");
 
-// Bundled extension assets under `t3d-extension/src/assets` (free pack, tesaiot Model Loader samples)
+// Bundled extension assets (free pack, tesaiot Model Loader samples, Jolt WASM)
 const localAssetsPath = resolve(__dirname, "src/assets");
 const localJoltPath = resolve(localAssetsPath, "jolt");
 const freeTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.freeTextures);
@@ -168,171 +28,6 @@ const freeModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.freeModels
 const tesaiotModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotModels);
 const tesaiotTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotTextures);
 const localSoundsPath = resolve(localAssetsPath, "sounds");
-const project4CubemapTexturesPath = resolve(localAssetsPath, "textures/cubemap");
-const project4RobotModelPath = resolve(
-  localAssetsPath,
-  "models",
-  "robot-4th-project",
-);
-
-// Custom plugin to resolve @ternion/t3d package exports
-// Supports npm package, file: dependency, and npm link modes.
-// In dev server, prefer T3D source files when available for faster iteration.
-const t3dPackageResolverPlugin = () => {
-  const actualPackagePath = actualT3dPackageRoot;
-  const isLinked = isPackageLinked();
-
-  if (isLinked && process.env.NODE_ENV !== "production") {
-    console.log(
-      `[t3d-package-resolver] Detected npm link mode -> ${actualPackagePath}`,
-    );
-  }
-
-  // Helper to resolve file paths from npm package or linked package
-  const resolveFilePath = (relativePath: string): string | null => {
-    const filePath = resolve(actualPackagePath, relativePath);
-    if (existsSync(filePath)) {
-      return filePath;
-    }
-    return null;
-  };
-
-  // NOTE:
-  // T3D source currently uses extensive internal "@/..." aliases and decorator syntax
-  // that are not fully compatible with extension webview Vite import-analysis/dev scan.
-  // Keep dist-first resolution for reliability in both dev/build.
-  const useSourceInDev = false;
-
-  // Map subpath exports to dist files (safe default for compile/package).
-  const subpathExportsDist: Record<string, string> = {
-    "vscode-webview": "dist/vscode-webview.es.js",
-    ui: "dist/ui.es.js",
-    "mqtt-client": "dist/mqtt-client.es.js",
-  };
-  // Source entry points (used in dev when available).
-  const subpathExportsSource: Record<string, string> = {
-    "vscode-webview": "src/T3D/vscode-webview/index.ts",
-    ui: "src/T3D/ui/components/index.ts",
-    "mqtt-client": "src/T3D/mqtt-client/index.ts",
-  };
-
-  return {
-    name: "t3d-package-resolver",
-    enforce: "pre",
-    resolveId(id) {
-      if (!id.startsWith("@ternion/t3d")) {
-        return null;
-      }
-
-      let resolvedPath: string | null = null;
-
-      // Main export: prefer source in dev, fallback to dist.
-      if (id === "@ternion/t3d") {
-        if (useSourceInDev) {
-          resolvedPath = resolveFilePath("src/T3D/index.ts");
-        }
-        resolvedPath ??= resolveFilePath("dist/index.es.js");
-      }
-      // Subpath exports: @ternion/t3d/vscode-webview, etc.
-      else if (id.startsWith("@ternion/t3d/")) {
-        const subpath = id.replace("@ternion/t3d/", "");
-        if (useSourceInDev) {
-          const sourceFile = subpathExportsSource[subpath];
-          if (sourceFile) {
-            resolvedPath = resolveFilePath(sourceFile);
-          }
-        }
-        if (!resolvedPath) {
-          const distFile = subpathExportsDist[subpath];
-          if (distFile) {
-            resolvedPath = resolveFilePath(distFile);
-          }
-        }
-      }
-
-      if (resolvedPath) {
-        // Log in development to help debug
-        if (process.env.NODE_ENV !== "production") {
-          console.log(
-            `[t3d-package-resolver] Resolved ${id} -> ${resolvedPath}`,
-          );
-        }
-        return resolvedPath;
-      }
-
-      // Log failure in development
-      if (process.env.NODE_ENV !== "production") {
-        console.warn(
-          `[t3d-package-resolver] Failed to resolve ${id} from ${packagePath}`,
-        );
-      }
-
-      return null;
-    },
-  };
-};
-
-// Custom plugin to resolve T3D path aliases in source files.
-// Handles @/ aliases used inside T3D source (both linked/file and node_modules layouts).
-const t3dAliasPlugin = () => {
-  const t3dPackagePath = resolve(__dirname, "./node_modules/@ternion/t3d");
-  const t3dLocalPathNormalized = t3dLocalPath.replace(/\\/g, "/").toLowerCase();
-  const t3dLocalSrcPath = resolve(t3dLocalPath, "src/T3D");
-  const t3dPackageSrcPath = resolve(t3dPackagePath, "src/T3D");
-
-  const resolveFromT3DRoot = (
-    t3dSrcRoot: string,
-    pathWithoutAlias: string,
-  ): string | null => {
-    const normalized = pathWithoutAlias.replace(/\\/g, "/");
-    const candidates = [
-      // direct file imports
-      resolve(t3dSrcRoot, normalized),
-      resolve(t3dSrcRoot, `${normalized}.ts`),
-      resolve(t3dSrcRoot, `${normalized}.tsx`),
-      resolve(t3dSrcRoot, `${normalized}.js`),
-      resolve(t3dSrcRoot, `${normalized}.mjs`),
-      // folder imports
-      resolve(t3dSrcRoot, normalized, "index.ts"),
-      resolve(t3dSrcRoot, normalized, "index.tsx"),
-      resolve(t3dSrcRoot, normalized, "index.js"),
-      resolve(t3dSrcRoot, normalized, "index.mjs"),
-    ];
-    for (const p of candidates) {
-      if (existsSync(p)) return p.replace(/\\/g, "/");
-    }
-    return null;
-  };
-
-  return {
-    name: "t3d-alias-resolver",
-    enforce: "pre", // Run before other resolve plugins
-    resolveId(id, importer) {
-      // Only process imports that use @/ aliases
-      if (!id.startsWith("@/")) {
-        return null;
-      }
-
-      // Remove the @/ prefix and resolve relative to T3D source root.
-      const pathWithoutAlias = id.substring(2); // Remove '@/'
-      // Resolve against local T3D source first (file:../T3D dev flow).
-      const localResolved = resolveFromT3DRoot(t3dLocalSrcPath, pathWithoutAlias);
-      if (localResolved) {
-        return localResolved;
-      }
-      // Fallback to package source layout under node_modules.
-      const packageResolved = resolveFromT3DRoot(
-        t3dPackageSrcPath,
-        pathWithoutAlias,
-      );
-      if (packageResolved) {
-        return packageResolved;
-      }
-      // If unresolved in T3D roots, let Vite's normal aliases (extension "@/") handle it.
-      return null;
-    },
-  };
-};
 
 // Custom plugin to skip jolt-physics files from being processed
 // Both multithreaded and single-threaded versions should be external
@@ -544,7 +239,7 @@ function sendViteDevStaticFile(
 }
 
 /**
- * Serve `t3d-extension/src/assets` during dev.
+ * Serve `extension/src/assets` during dev.
  * Vite root is `src/webview`, so `/assets/...` maps to `src/webview/assets`, not `src/assets`.
  * Model Catalog uses `/__extension_src_assets/...` for GLB under `src/assets/free/models`, `tesaiot/models`, etc.
  *
@@ -741,10 +436,8 @@ export default defineConfig({
       },
     }),
     tailwindcss(),
-    t3dPackageResolverPlugin(), // Resolve @ternion/t3d subpath exports before other plugins
     skipJoltPhysicsPlugin(),
     serveJoltAssetsPlugin(), // Serve Jolt assets during development
-    serveCoiServiceWorkerPlugin(), // `/t3d-coi-serviceworker.js` for T3DJoltLoader COI (dev)
     serveExtensionLocalAssetsPlugin(), // src/assets for Model Catalog (browser dev)
     suppressCSSWarningsPlugin(), // Suppress CSS warnings during build
     viteStaticCopy({
@@ -754,22 +447,6 @@ export default defineConfig({
               {
                 src: "../assets/free/textures/cubemap/**/*",
                 dest: "./assets/free/textures/cubemap",
-              },
-            ]
-          : []),
-        ...(existsSync(project4CubemapTexturesPath)
-          ? [
-              {
-                src: "../assets/textures/cubemap/**/*",
-                dest: "./assets/textures/cubemap",
-              },
-            ]
-          : []),
-        ...(existsSync(project4RobotModelPath)
-          ? [
-              {
-                src: "../assets/models/robot-4th-project/**/*",
-                dest: "./assets/models/robot-4th-project",
               },
             ]
           : []),
@@ -832,18 +509,6 @@ export default defineConfig({
                 },
               ]
             : []),
-        ...(existsSync(coiWorkerPath)
-          ? [
-              {
-                src: relative(
-                  resolve(__dirname, "src/webview"),
-                  coiWorkerPath,
-                ).replace(/\\/g, "/"),
-                dest: "./",
-                rename: "t3d-coi-serviceworker.js",
-              },
-            ]
-          : []),
       ],
     }),
   ],
@@ -851,12 +516,11 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "src/webview"),
       "@assets": resolve(__dirname, "src/assets"),
-      /** CJS-only package; @ternion/t3d vscode-webview expects `import default` (see shim file). */
+      /** CJS-only package; webview shim provides ESM default export. */
       crossoriginworker: resolve(
         __dirname,
         "src/webview/shims/crossoriginworker.ts",
       ),
-      ...t3dResolveAliases,
     },
     dedupe: [
       "react",
@@ -903,22 +567,16 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    /** Default: app launcher. Override only in scripts (e.g. dev-bitstream2-loopback → Bitstream Lab). */
-    open: process.env.VITE_DEV_OPEN ?? "/?launcher=1",
+    /** Default: Bitstream app. Override in scripts (e.g. dev-bitstream2-loopback). */
+    open: process.env.VITE_DEV_OPEN ?? "/?app=bitstream",
     cors: true,
     fs: {
       // Allow serving files from node_modules
       allow: [
-        // Extension webview directory
         resolve(__dirname, "src/webview"),
-        // Model Catalog / bridge load GLB from extension assets (../assets from webview root)
         resolve(__dirname, "src/assets"),
-        // Monorepo parent (T3D, shared assets) when resolving outside webview root
         resolve(__dirname, ".."),
-        // Extension node_modules (includes @ternion/t3d)
         resolve(__dirname, "node_modules"),
-        // Local T3D when developing against `file:../T3D` or monorepo fallback
-        actualT3dPackageRoot,
       ],
     },
     headers: {

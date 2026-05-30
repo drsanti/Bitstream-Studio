@@ -1,6 +1,6 @@
 import React from 'react';
 import { Camera } from 'lucide-react';
-import { CollapsibleCard, LabeledSlider } from '@ternion/t3d/ui';
+import { CollapsibleCard, LabeledSlider } from '../../ui/catalog/index.js';
 import { PreviewFovSourceControl } from './PreviewFovSourceControl';
 import type { PreviewFovSourceMode } from '../persisted-settings';
 

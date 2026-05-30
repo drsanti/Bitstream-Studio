@@ -1,4 +1,4 @@
 export {
   CollapsiblePanelCard,
   type CollapsiblePanelCardProps,
-} from '@ternion/t3d/ui';
+} from '../../ui/catalog/index.js';

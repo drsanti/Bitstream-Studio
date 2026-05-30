@@ -18,14 +18,7 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/webview/*"],
-      "@ternion/t3d/vscode-webview": [
-        "node_modules/@ternion/t3d/dist/T3D/vscode-webview/index.d.ts"
-      ],
-      "@ternion/t3d/ui": ["node_modules/@ternion/t3d/dist/T3D/ui/index.d.ts"],
-      "@ternion/t3d/mqtt-client": [
-        "node_modules/@ternion/t3d/dist/T3D/mqtt-client/index.d.ts"
-      ]
+      "@/*": ["src/webview/*"]
     }
   },
   "include": [

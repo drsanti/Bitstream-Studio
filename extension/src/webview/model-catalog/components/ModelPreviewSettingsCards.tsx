@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Globe, Camera, MousePointer, Crosshair, Play } from 'lucide-react';
-import { LabeledSlider, SortableCardList, type SortableCardItem } from '@ternion/t3d/ui';
+import { LabeledSlider, SortableCardList, type SortableCardItem } from '../../ui/catalog/index.js';
 import type {
   PreviewClickTargetMode,
   AnimationClipLoop,

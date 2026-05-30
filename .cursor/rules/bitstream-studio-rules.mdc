@@ -21,9 +21,9 @@ alwaysApply: true
 - Dev URLs: `http://localhost:5173/?app=bitstream`, `?app=sensor-studio`.
 - Full runbook: **`extension/HOW_TO_RUN.md`**.
 
-## `@ternion/t3d` (temporary)
+## No `@ternion/t3d`
 
-Phase 4 removes this dependency. Until then, use **npm registry** `"@ternion/t3d": "0.0.3"` — **no** `file:../T3D`, **no** npm link to monorepo `T3D/`.
+Decoupling complete (2026-05-30). Webview uses local **`ui/catalog/`**, **`extension-bridge/`**, and vendored CSS — **no** npm dependency on `@ternion/t3d` or `T3D/` tree.
 
 ## VSIX
 

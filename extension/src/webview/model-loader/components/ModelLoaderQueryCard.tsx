@@ -1,6 +1,6 @@
 import React from "react";
 import { List } from "lucide-react";
-import { NumericInputRow } from "@ternion/t3d/ui";
+import { NumericInputRow } from "../../ui/catalog/index.js";
 import { Button } from "../../ui/components/Button";
 import { Input } from "../../ui/components/Input";
 import { GlassDropdown } from "../../ui/components/GlassDropdown";

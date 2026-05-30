@@ -6,7 +6,7 @@ import {
   CollapsibleCard,
   LabeledSlider,
   LabeledSwitch,
-} from '@ternion/t3d/ui';
+} from '../../ui/catalog/index.js';
 
 export interface PreviewMainEnvironmentSettingsCardProps {
   envPresetIndex: number;

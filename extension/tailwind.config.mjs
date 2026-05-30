@@ -1,28 +1,9 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const resolveGlob = (...segments) => path.resolve(__dirname, ...segments).replace(/\\/g, "/");
-
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    // Extension webview source files
     "./src/webview/**/*.{ts,tsx,js,jsx}",
-    // Bitstream demo/source files
     "./src/bitstream/**/*.{ts,tsx,js,jsx}",
-    // Panel HTML template (Tailwind classes in TernionToolsPanel etc.)
     "./src/panels/**/*.ts",
-    // T3D library from npm package (published package includes src/T3D/** and dist)
-    resolveGlob("node_modules/@ternion/t3d/src/T3D/ui/**/*.{ts,tsx}"),
-    // Quick scenes + applications (e.g. Welcome page) live outside /ui
-    resolveGlob("node_modules/@ternion/t3d/src/T3D/applications/**/*.{ts,tsx}"),
-    resolveGlob("node_modules/@ternion/t3d/src/T3D/quick-scene/**/*.{ts,tsx}"),
-    // Built JS may contain class strings (keep broad to avoid missing utilities)
-    resolveGlob("node_modules/@ternion/t3d/dist/*.{js,mjs}"),
-    resolveGlob("node_modules/@ternion/t3d/dist/ui.es.js"),
   ],
   safelist: [
     "bg-gray-800/90",

@@ -43,8 +43,9 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 ### Build and package gates
 
 - [x] **`npm run compile`** — no TypeScript / webview build errors (CI and local gate).
-- [x] **`npm run package`** — produces **`ternion-digital-twin-<version>.vsix`** (verified **2026-05-25** on `0.0.8` after unified-shell host bootstrap fix).
-- [ ] **Install smoke** — install the `.vsix` in a **clean** VS Code / Cursor profile (or reload window after upgrade): open **Bitstream** / **Sensor Studio**, confirm **no bogus “Bridge”** badge when the bridge is off, paths show **globalStorage** (not repo `src/assets`) where expected.
+- [x] **`npm run package`** — produces **`bitstream-studio-<version>.vsix`** (verified **2026-05-30** on `0.1.0` after T3D decoupling + Vite cleanup; 66.5 MB).
+- [ ] **Install smoke (UI)** — reload window; **Bitstream Studio: Open Sensor Telemetry** / **Open Sensor Studio**; Model Catalog preview; no bogus Bridge badge when bridge is off.
+- [x] **CLI install** — `code --install-extension bitstream-studio-0.1.0.vsix` succeeded **2026-05-30**.
 
 ### Webview and runtime behavior (happy users)
 
@@ -319,7 +320,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Bitstream — T3D decoupling → [Bitstream-Studio](https://github.com/drsanti/Bitstream-Studio)** — **Phase 2 done** (2026-05-30): local `extension-bridge/getVsCodeApi`, quick-action store, cubemap presets; no `@ternion/t3d/vscode-webview` or main-package bridge imports. **Next:** Phase 3 TRN migration for model-catalog/model-loader UI. **Plan:** [`BITSTREAM_T3D_DECOUPLING_PLAN.md`](./BITSTREAM_T3D_DECOUPLING_PLAN.md).
+- **Bitstream — T3D decoupling** — **Done** (2026-05-30): Phases 0–4 complete; legacy T3D scripts removed; **`npm run dev`** → `dev:all`. **Next:** install VSIX smoke + UART/Sim matrix. **Plan:** [`BITSTREAM_T3D_DECOUPLING_PLAN.md`](./BITSTREAM_T3D_DECOUPLING_PLAN.md).
 - **Bitstream Lab phases 4–8** — Loopback + Publish panels; broker / protocol / bridge observability (specs in `src/webview/bitstream-lab/docs/`). **Continue from:** `bitstream-lab/docs/RUNBOOK.md` §5. Phases 0–3 shipped **`eaa347f`**.
 - **BS2 protocol — post-HELLO validation (MCU)** — CLI probe **passed 2026-05-26** (see **`AGENT_HANDOFF.md` §9.2**, skill **`tesaiot-bs2-uart-bringup`**):
   - [x] EVT_SENSOR: all four sensors (CLI 30s soak; ~29 samples/sensor)

@@ -29,7 +29,7 @@ blog/**
 .tmp-tesa-tutorials/**
 
 # --- Extension assets: exclude from VSIX ---
-# Dev / bundled models under t3d-extension/src/assets/free and tesaiot (also covered by src/** above).
+# Dev / bundled models under extension/src/assets/free and tesaiot (also covered by src/** above).
 src/assets/free/**
 src/assets/tesaiot/**
 
