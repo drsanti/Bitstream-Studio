@@ -114,7 +114,7 @@ async function main(): Promise<void> {
       console.warn(
         "[mqtt-test] strict TLS mode enabled. Node does NOT use the Windows trust store.\n" +
           "[mqtt-test] To emulate browser/webview trust, set NODE_EXTRA_CA_CERTS to the TESAIoT CA chain PEM.\n" +
-          '[mqtt-test] Example (bash): export NODE_EXTRA_CA_CERTS="../docs/ca-chain.pem"'
+          '[mqtt-test] Example (bash): export NODE_EXTRA_CA_CERTS="/path/to/your/ca-chain.pem"'
       );
     } else {
       console.log("[mqtt-test] NODE_EXTRA_CA_CERTS:", extra);

@@ -70,6 +70,8 @@ MCU implementation and sensor-specific wire notes:
 | `TESAIoT_Library/CM55/modules/bitstream` | Firmware BS2 module (encoders, publish, ports) |
 | `TESAIoT_Library/.../BS_WIRE.md` (under bitstream module) | Per-sensor EVT layout, rates, firmware-only details |
 
+Wi‑Fi IPC, BMI270 fusion cadence, and MQTT firmware bundles are **not** under `extension/docs/` — use the TESAIoT firmware/library trees on your machine.
+
 When changing **on-wire** layout or command IDs:
 
 1. Update **`BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md`** (this repo).

@@ -3,9 +3,10 @@ import {
   BROWSER_USER_MODELS_URL_RELATIVE_PREFIX,
   BROWSER_USER_TESAIOT_TEXTURES_URL_RELATIVE_PREFIX,
 } from "../assetLayout";
+import { isViteDevMode } from "./utils/isViteDevMode";
 
 function devWebappOriginRoot(): string {
-  const base = import.meta.env.BASE_URL ?? "/";
+  const base = import.meta.env?.BASE_URL ?? "/";
   const baseUrl = new URL(base, window.location.origin).toString();
   return baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
 }
@@ -16,7 +17,7 @@ function devWebappOriginRoot(): string {
  * {@link resolveWebviewModelAssetUrl} resolves pack GLBs under globalStorage mirrors.
  */
 export function installDevAssetBaseUris(): void {
-  if (!import.meta.env.DEV || typeof window === "undefined") {
+  if (!isViteDevMode() || typeof window === "undefined") {
     return;
   }
   if (window.WEBVIEW_READY === true) {

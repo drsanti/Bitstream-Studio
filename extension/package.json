@@ -95,6 +95,26 @@
         "category": "Bitstream Studio"
       },
       {
+        "command": "bitstream-studio.startAllBackendServices",
+        "title": "Start All Backend Services",
+        "category": "Bitstream Studio"
+      },
+      {
+        "command": "bitstream-studio.stopAllBackendServices",
+        "title": "Stop All Backend Services",
+        "category": "Bitstream Studio"
+      },
+      {
+        "command": "bitstream-studio.startBitstreamSimulator",
+        "title": "Start Bitstream Simulator",
+        "category": "Bitstream Studio"
+      },
+      {
+        "command": "bitstream-studio.stopBitstreamSimulator",
+        "title": "Stop Bitstream Simulator",
+        "category": "Bitstream Studio"
+      },
+      {
         "command": "bitstream-studio.openToolsPanel",
         "title": "Open Tools Panel",
         "category": "Bitstream Studio"
@@ -127,6 +147,22 @@
         },
         {
           "command": "bitstream-studio.openBitstreamSensorStudio",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.startAllBackendServices",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.stopAllBackendServices",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.startBitstreamSimulator",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.stopBitstreamSimulator",
           "when": "true"
         }
       ]
@@ -259,6 +295,9 @@
     "compile": "node scripts/build-extension.js && npm run build:webview",
     "watch": "node scripts/build-extension.js --watch",
     "watch:all": "concurrently --prefix-colors \"yellow,cyan\" --prefix \"name\" --names \"extension,webview\" --kill-others-on-fail false --hide \"exited\" \"node scripts/build-extension.js --watch\" \"vite build --watch\"",
+    "copy:jolt-assets": "node scripts/copy-jolt-assets.mjs",
+    "prebuild:webview": "npm run copy:jolt-assets",
+    "postinstall": "node scripts/copy-jolt-assets.mjs",
     "build:webview": "vite build",
     "dev:webview": "vite",
     "rebuild:full": "npm run compile && npm run package",
@@ -378,6 +417,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gsap": "^3.13.0",
+    "jolt-physics": "^0.38.1",
     "lucide-react": "^0.546.0",
     "mqtt": "^5.14.1",
     "react": "^19.2.0",

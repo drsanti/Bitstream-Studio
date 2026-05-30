@@ -73,8 +73,11 @@ On `activate` (`extension.ts`):
 
 1. **Bridge filesystem roots** — `setBridgeModelDownloadsRoot` and `setBridgeUserAssetsRoot` point the Model Downloader bridge at the same globalStorage trees as the extension (see [ASSETS_LOCATION_SYSTEM.md](./ASSETS_LOCATION_SYSTEM.md)).
 2. **Local browser HTTP** — `setLocalWebappUserModelsRoot`, `setLocalWebappFreePackRoot`, and `setLocalWebappTesaiotTexturesRoot` for static routes used when opening the app in a browser (see [ASSETS_LOCATION_SYSTEM.md](./ASSETS_LOCATION_SYSTEM.md)).
-3. **Serial bridge process** — `initializeSerialBridge(context.extensionPath)` spawns the **combined** bridge (`out/combined-bridge-entry.js`) so both brokers and both bridge clients are available without a manual command.
-4. **Embedded Model Loader broker** — `ensureEmbeddedModelLoaderBroker()` so **Open in Browser** / browser dev can use the configured model broker URL (default `ws://127.0.0.1:9999`) even when the full spawned process is not the one holding the model port.
+3. **Serial bridge process** — `startAllBackendServices()` (via `initializeSerialBridge`) spawns the **combined** bridge (`out/combined-bridge-entry.js`) so both brokers and both bridge clients are available without a manual command.
+4. **Embedded Model Loader broker** — same helper starts the model broker client path for browser / Model Loader (default `ws://127.0.0.1:9999`).
+5. **MQTT broker** — local Aedes instance (1883 / 8883) starts with the same helper.
+
+**Manual control:** Command Palette → **Start All Backend Services** / **Stop All Backend Services** (stops serial bridge, embedded model broker, and MQTT; does not stop the Vite browser dev server). Individual **Start/Stop Serial Bridge** and **Start/Stop MQTT Broker** commands remain for debugging.
 
 On `deactivate`, the extension clears bridge roots, stops the embedded broker, and stops the spawned Serial Bridge process.
 

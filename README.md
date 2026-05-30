@@ -4,10 +4,10 @@ VS Code extension for **Sensor Telemetry** and **Sensor Studio** (BS2 Bitstream 
 
 - **Repository:** https://github.com/drsanti/Bitstream-Studio
 - **Onboarding (read first):** [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md)
+- **Docs index:** [`extension/docs/README.md`](extension/docs/README.md)
 - **Backlog:** [`extension/docs/DEVELOPMENT_TRACKER.md`](extension/docs/DEVELOPMENT_TRACKER.md)
 - **Runbook:** [`extension/HOW_TO_RUN.md`](extension/HOW_TO_RUN.md)
 - **Telemetry modes:** [`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`](extension/docs/TELEMETRY_MODE_LIFECYCLE.md)
-- **T3D decoupling (complete):** [`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`](extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md)
 
 **Version:** `0.1.0` — VSIX smoke passed **2026-05-30** (see handoff §4).
 

@@ -154,7 +154,7 @@ export const useBitstreamTelemetrySourceStore = create<BitstreamTelemetrySourceS
       persistBackend(backend);
       set({
         backend,
-        ...(backend === "simulator" ? { loopbackAvailable: true } : {}),
+        ...(backend === "simulator" ? { loopbackAvailable: false } : {}),
         uartBringUpPending: computeUartBringUpPending({
           prevBackend,
           nextBackend: backend,

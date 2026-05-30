@@ -1,5 +1,4 @@
 import React from "react";
-import { WebviewRuntimeInstaller } from "../runtime/WebviewRuntimeInstaller";
 import {
   readInitialBitstreamWorkspace,
   useBitstreamWorkspaceModeStore,
@@ -19,11 +18,6 @@ export function BitstreamApp()
     useBitstreamWorkspaceModeStore.setState({ workspace: readInitialBitstreamWorkspace() });
   }, []);
 
-  return (
-    <>
-      <WebviewRuntimeInstaller />
-      <BitstreamShellMain />
-    </>
-  );
+  return <BitstreamShellMain />;
 }
 

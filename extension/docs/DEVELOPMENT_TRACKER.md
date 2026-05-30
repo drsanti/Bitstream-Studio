@@ -77,6 +77,11 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-29** — **Telemetry source UX:** removed **Auto** backend; toolbar **Bitstream** (`uart`) vs **Simulator**; config lock banner removed (reason logged to **Activity Log** on Refresh); port admin copy/status helpers.
 - **2026-05-30** — **Removed `dev:bitstream2-loopback`**: canonical browser dev is **`start:bridge`** + **`dev:webview`** (two terminals); deleted `scripts/dev-bitstream2-loopback.mjs`.
 - **2026-05-30** — **package.json scripts cleanup**: removed T3D-era aliases (`dev:linked`, `dev:with-copy`, `dev:with-supervisor`, `dev:browser`); refreshed `description:scripts`; settings panel titles → Bitstream Studio.
+- **2026-05-30** — **Docs — `APPLICATION_MIGRATION_PLAN.md`**: Phased plan to port **E84 rotation**, **ABB robot**, and **vehicle physics** from `ternion-t3d` into Bitstream Studio using **R3F** (vehicle: **`jolt-physics`** recommended); checklists for phases 0–3.
+- **2026-05-30** — **Landing 3D backdrop:** R3F welcome cube floor + 2D nebula/flow compositor; double-click / Shift+double-click mode cycling; lazy 3D; `landing/README.md`.
+- **2026-05-30** — **Landing nav fix:** broke `bitstreamLandingNav` ↔ store circular import; `isViteDevMode()` + `bitstreamLandingActions.ts` (fixes `import.meta.env.DEV` crash on `/`).
+- **2026-05-30** — **Digital Twin simulations (Phase 0 + E84 MVP):** `webview/simulations/` (`catalog`, `shared`, `e84-rotation`, `abb-robot`/`vehicle-physics` stubs), `SimulationHub`, landing **Digital Twin simulations** section; E84 sine rotation on `E84_1`; dev `?sim=e84-rotation`.
+- **2026-05-30** — **Vehicle physics (Phase 3 partial):** Jolt restored under `simulations/vehicle-physics/`; driving, config panel, engine sound; Y-axis alignment fix.
 - **2026-05-30** — **Removed Jolt Physics**: dropped `jolt-physics`, `crossoriginworker`, `sync-jolt-assets.js`, `src/assets/jolt/`, Vite Jolt plugins/copy, host COI/importmap bootstrap; Rapier deps kept for future physics in Sensor Studio.
 - **2026-05-30** — **Product-ready cleanup**: VSIX smoke checklist in **`HOW_TO_RUN.md`**; README → Bitstream Studio; removed unused **`cannon-es`** and **`ui/components/demo/`**; dropped legacy **`sensor-lab`** URL alias.
 - **2026-05-30** — **Telemetry mode A+B:** `telemetryModeLifecycle` + `bitstream2/telemetry/route`; bridge gates UART vs sim inject; `origin` on `evt/sensor`; user verified VSIX + mode switch. Doc: **`docs/TELEMETRY_MODE_LIFECYCLE.md`**.
@@ -322,12 +327,18 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- *(none — pick from **Planned / next**.)*
+- **Landing CSS3D cards** — `landing/css3d/`: CSS3DRenderer + R3F camera sync; parallax cards when backdrop is 3D/blend. See **`src/webview/landing/README.md`** § Phase 2.
 
 ---
 
 ## Planned / next
 
+- **Digital Twin simulations (from `ternion-t3d`)** — canonical plan **[`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md)**. Order: **Phase 0** shared R3F shell → **Phase 1** E84 → **Phase 2** ABB → **Phase 3** vehicle (Jolt).
+  - [x] Phase 0 — `webview/simulations/**`, catalog, hub, landing cards (2026-05-30)
+  - [ ] Phase 0 smoke — GLB loads in dev/VSIX with free pack
+  - [~] Phase 1 — E84 rotation MVP done; **MQTT** + TRN panels remain
+  - [ ] Phase 2 — ABB robot + MQTT (stub preview only)
+  - [ ] Phase 3 — Vehicle physics (`jolt-physics`; sub-phases 3a–3d; stub preview only)
 - **Bitstream — T3D decoupling** — **Shipped** **`3441cb5`** on `main` (2026-05-30). **Remaining:** VSIX UI reload smoke + UART/Sim matrix.
 - **2026-05-30** — **Removed `bitstream-lab/`** module (unused; standalone entry was already gone). Transport debug: CLI probes (`bitstream2:uart-probe`, `mock-probe`) + `HOW_TO_RUN.md`.
 - **BS2 protocol — post-HELLO validation (MCU)** — CLI probe **passed 2026-05-26** (see **`AGENT_HANDOFF.md` §9.2**, skill **`tesaiot-bs2-uart-bringup`**):
@@ -472,6 +483,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 | Logged `YYYY-MM-DD` | Source | Requirement | Status |
 |---------------------|--------|--------------|--------|
+| **2026-05-30** | User / extension | **Migrate Digital Twin sims** (E84 rotation, ABB robot, vehicle physics) from `ternion-t3d` welcome cards into Bitstream Studio without `@ternion/t3d` (R3F + mqtt; Jolt for vehicle). Track in **`APPLICATION_MIGRATION_PLAN.md`**. | `accepted` |
 | **2026-05-12** | User / extension | **Bitstream sensor `cfg` reload truth**: On browser reload, left sensor deck must show **MCU-actual** values for **`enabled`**, **`publishMode`**, **`samplingIntervalMs`**, **`deltaX100`**, **`minPublishIntervalMs`**. Backend/bridge should converge on firmware truth at startup (cold **`sensor.cfg.get`** and/or persisted **`RUNTIME_SNAPSHOT.sensorConfigs`**); avoid republishing seeded defaults as truth. | `accepted` |
 | **2026-05-12** | User / extension | **Bitstream telemetry (MCU→UI)**: Intermittent **UI stall** and **telemetry / progress-style HUD jumps**; treat as **known deferred bug** — analysis in [`BITSTREAM_TELEMETRY_STALE_PIPELINE.md`](./BITSTREAM_TELEMETRY_STALE_PIPELINE.md) and **Future / ideas** (*Known issues — Bitstream telemetry MCU → UI*); implement fixes (smoothing, unified Hz, transport surfacing, reconnect UX) when scheduled. | `deferred` |
 | **2026-05-11** | User / extension | **Asset Browser (models + environments + textures)**: UI to browse/select **bundled + downloaded + URL** assets across at least three categories (Models, Environments, Textures); loaders must write an index/manifest to storage; persist **stable asset refs** (not absolute paths or Vite `@fs` URLs) and resolve to runtime URLs per environment (VS Code webview vs browser dev vs packaged VSIX). | `accepted` |

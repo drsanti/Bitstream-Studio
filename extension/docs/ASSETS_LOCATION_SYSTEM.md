@@ -6,7 +6,7 @@ This document explains **how the extension decides where assets live on disk** a
 
 The same logical content (for example a GLB under “Tesaiot downloads” or the free GitHub pack) can appear in several places:
 
-1. **Bundled / repo tree** — `t3d-extension/src/assets/**` (development, some packaged mirrors in the VSIX build).
+1. **Bundled / repo tree** — `extension/src/assets/**` (development, some packaged mirrors in the VSIX build).
 2. **Per-user writable storage** — VS Code `globalStorage` under `.../assets/` (production downloads and sync).
 3. **Logical web keys** — Stable strings such as `tesaiot/models/...` and `free/models/...` used in catalog merge, deduplication, and bridge messages; these are **not** always the same as a single filesystem path.
 

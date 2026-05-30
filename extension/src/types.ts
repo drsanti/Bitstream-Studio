@@ -56,7 +56,9 @@ export interface WebviewMessage {
   | 'system-settings-update'
   | 'bitstream-dashboard-config-pull'
   | 'bitstream-dashboard-config-push'
-  | 'ternion-quick-action-toggle';
+  | 'ternion-quick-action-toggle'
+  | 'bitstream-simulator-start'
+  | 'bitstream-simulator-stop';
   topic?: string;
   payload?: string;
   brokerUrl?: string;
@@ -86,6 +88,8 @@ export interface WebviewMessage {
   absolutePath?: string;
   /** JSON string of persisted Bitstream dashboard fields (mirror file in extension global storage). */
   configJson?: string;
+  /** When true (default), host starts serial bridge before launching external simulator. */
+  ensureBackends?: boolean;
 }
 
 export interface ExtensionMessage {
@@ -128,7 +132,9 @@ export interface ExtensionMessage {
   | 'asset-free-local-list-response'
   | 'asset-reveal-path-result'
   | 'asset-default-download-paths-response'
-  | 'bitstream-dashboard-config-response';
+  | 'bitstream-dashboard-config-response'
+  | 'bitstream-simulator-start-response'
+  | 'bitstream-simulator-stop-response';
   topic?: string;
   localIps?: string[];
   payload?: string;

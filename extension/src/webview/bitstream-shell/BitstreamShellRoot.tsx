@@ -2,12 +2,10 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useRef,
   useState,
 } from "react";
-import { useQuickAction } from "@/ui/quick-action/useQuickAction";
-import { RefreshCw } from "lucide-react";
+import { useBitstreamShellQuickCommands } from "./hooks/useBitstreamShellQuickCommands.js";
 import {
   useGlassModalHamburgerMenu,
 } from "../ui/components/common/index.js";
@@ -21,6 +19,7 @@ import { useUartFirmwareHotplugRecovery } from "../bitstream-app/hooks/useUartFi
 import { useSyncBrokerWsToConnectionStore } from "../bitstream-app/hooks/useSyncBrokerWsToConnectionStore.js";
 import { useTelemetryActivityMirror } from "../sensor-telemetry/hooks/useTelemetryActivityMirror.js";
 import { appendTelemetryActivity } from "../sensor-telemetry/store/telemetryActivity.store.js";
+import { ensureBitstreamSimulatorReady } from "../bitstream-app/bridge/requestBitstreamSimulatorHost.js";
 import { useWsClientStore } from "../ws-client-store";
 import { CY_WCM_SECURITY_WPA2_AES_PSK } from "../../bitstream/wifi/wifi-wcm-security.js";
 import {
@@ -199,9 +198,6 @@ export { BitstreamShellRoot as BitstreamAppWrapper };
 export function BitstreamShellRoot(props: { children?: ReactNode }) {
   const { children } = props;
   const { state: windows, actions: windowActions } = useBitstreamShellWindowsState();
-  const { registerCommand, unregisterCommand } = useQuickAction();
-  const streamQuickActionsRegisteredRef = useRef(false);
-
   const sensorStudioWorkspaceBoundsRef = useRef<HTMLDivElement>(null);
 
   const openModelLoaderFromAssetManager = useCallback(() => {
@@ -325,37 +321,23 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
     autoUartOpenAttemptedRef,
   });
 
-  useLayoutEffect(() => {
-    if (streamQuickActionsRegisteredRef.current) {
-      return;
-    }
-    streamQuickActionsRegisteredRef.current = true;
-
-    registerCommand({
-      id: "bitstream-reconnect-telemetry",
-      label: "Reconnect telemetry",
-      icon: RefreshCw,
-      keywords: [
-        "bitstream",
-        "telemetry",
-        "reconnect",
-        "session",
-        "host",
-        "decode",
-        "serial",
-        "stale",
-        "refresh",
-      ],
-      action: () => {
-        handleReconnectTelemetry();
-      },
-    });
-
-    return () => {
-      streamQuickActionsRegisteredRef.current = false;
-      unregisterCommand("bitstream-reconnect-telemetry");
-    };
-  }, [handleReconnectTelemetry, registerCommand, unregisterCommand]);
+  useBitstreamShellQuickCommands({
+    connected,
+    connecting,
+    handleReconnectTelemetry,
+    connectSession,
+    disconnectSession,
+    windowActions: {
+      openWifiPanel: openWifiPanelFromMenu,
+      openSystemLogs: windowActions.openSystemLogs,
+      openSystemDiagnostics: openSystemDiagnosticsFromMenu,
+      openFirmwareLogLevel: openFirmwareLogLevelFromMenu,
+      openTelemetryLinkDiagnostics: openTelemetryLinkDiagnosticsFromMenu,
+    },
+    openModelLoader: openModelLoaderFromAssetManager,
+    openFreeAssetsLoader: openFreeLoaderFromAssetManager,
+    openModelCatalog: openModelCatalogFromAssetManager,
+  });
 
   const {
     sensorConfigAck,
@@ -717,17 +699,25 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
           brokerWsConnecting={brokerWsConnecting}
           onConnect={() => {
             appendTelemetryActivity({ text: "Connection starting (Connect)…", tone: "info" });
-            const tel = useBitstreamTelemetrySourceStore.getState();
-            const serial = useSerialPortStore.getState();
-            const live = useBitstreamLiveStore.getState();
-            void connectSession(undefined, {
-              userInitiated: true,
-              forceUartFullBringUp:
-                tel.backend === "uart" &&
-                (tel.uartBringUpPending ||
-                  live.handshakeState !== "passed" ||
-                  serial.status?.isOpen !== true),
-            });
+            void (async () =>
+            {
+              const ready = await ensureBitstreamSimulatorReady();
+              if (!ready)
+              {
+                return;
+              }
+              const tel = useBitstreamTelemetrySourceStore.getState();
+              const serial = useSerialPortStore.getState();
+              const live = useBitstreamLiveStore.getState();
+              await connectSession(undefined, {
+                userInitiated: true,
+                forceUartFullBringUp:
+                  tel.backend === "uart" &&
+                  (tel.uartBringUpPending ||
+                    live.handshakeState !== "passed" ||
+                    serial.status?.isOpen !== true),
+              });
+            })();
           }}
           onDisconnect={() => void disconnectSession({ userInitiated: true })}
           onOpenSystemLogs={windowActions.openSystemLogs}

@@ -23,6 +23,7 @@ import {
   sendBrokerRestarted as sendMqttBrokerRestarted,
 } from "../mqtt-handle";
 import { handleSerialBridgeWebviewMessage } from "../bridge-handle";
+import { handleBitstreamSimulatorWebviewMessage } from "../bitstream-simulator-handle";
 import { handleAiBridgeWebviewMessage } from "../ai-bridge-handle";
 import { handleCaCertInstall } from "../ca-cert-handle";
 import { handleModelDownloaderWebviewMessage } from "../model-downloader-handle";
@@ -178,6 +179,16 @@ export class TernionDigitalTwin {
     // Try to handle Serial Bridge messages
     if (handleSerialBridgeWebviewMessage(message, this._panel)) {
       return; // Message was handled by Bridge handler
+    }
+
+    if (
+      handleBitstreamSimulatorWebviewMessage(
+        message,
+        this._panel,
+        this._context.extensionPath,
+      )
+    ) {
+      return;
     }
 
     if (handleAiBridgeWebviewMessage(message, this._context.extensionPath)) {

@@ -58,6 +58,8 @@ Only **one** backend is active at a time. The toolbar sets `backend` to **`uart`
 
 On switch, the webview runs **`telemetryModeLifecycle`** (clear live data, release COM when entering Simulator, publish **`bitstream2/telemetry/route`**, sim **`idle`/`run`**). The bridge enforces the same route and tags samples with **`origin`**.
 
+**Simulator orchestration (VS Code panel):** With **Source = Simulator**, **Connect** (and the toolbar **Start simulator** button when the external VSIX is offline) calls the host command **`bitstreamSimulator.start`** on the separate **bitstream-simulator** extension and ensures backend services are up. **Disconnect** does **not** stop the simulator VSIX. Palette: **Start / Stop Bitstream Simulator** (`bitstream-studio.startBitstreamSimulator` / `.stopBitstreamSimulator`).
+
 Full design: **`docs/TELEMETRY_MODE_LIFECYCLE.md`**. After edits to **`SerialPortWebSocketBridge.ts`**, restart **`npm run start:bridge`**.
 
 ---
@@ -91,7 +93,15 @@ npm start
 
 `npm start` runs the full dev stack. For **Simulator** telemetry, also run the **Bitstream Simulator** extension from repo **`bitstream-simulator/`** (install VSIX or F5). The bridge **no longer** embeds `BsFirmwareSimulator` — do **not** set `BITSTREAM2_DEV_LOOPBACK=1`.
 
-Dev URL: **http://localhost:5173/** — one app shell; switch **Sensor Telemetry** / **Sensor Studio** with the toolbar tabs (last tab persisted in `localStorage`). Browser shortcuts: **Ctrl+Shift+1** / **Ctrl+Shift+2**.
+Dev URL: **http://localhost:5173/** — browser dev shows a **landing page** first (2D nebula/flow + optional **3D cube floor**, workspace cards, **Digital Twin simulation** cards). Pick a workspace or simulation to enter. Skip landing: **`?app=bitstream`** or **`?landing=0`**. Force landing: **`?landing=1`**. Sim deep link: **`?sim=e84-rotation`** (etc.). VSIX panel skips landing (opens the app directly).
+
+**Backdrop gestures** (empty area, not on buttons): **double-click** cycles **2D only → 3D only → blend**; **Shift+double-click** cycles overlay (**nebula+flow → nebula → flow → none**). Badge bottom-right shows current mode. See **`src/webview/landing/README.md`**.
+
+**Stale COI service worker:** If the page fails to load with `t3d-coi-serviceworker.js` / `Failed to fetch`, unregister service workers for `localhost:5173` in DevTools → **Application** → **Service Workers** (leftover from vehicle physics / T3D on the same port), then hard-reload.
+
+Implementation: **`src/webview/landing/`**, **`src/webview/simulations/`**, **`src/webview/ui/flow-canvas-background/`**.
+
+After entering the app, switch tabs with the toolbar (last tab persisted in `localStorage`). Browser shortcuts: **Ctrl+Shift+1** / **Ctrl+Shift+2**, **Ctrl+/** quick commands.
 
 | VS Code command | Tab |
 |-----------------|-----|
@@ -234,9 +244,18 @@ Optional env:
 
 ## VS Code extension (installed / F5)
 
-1. Run **Bitstream Studio: Start Serial Bridge** (starts `combined-bridge-entry` on port **9998**).
-2. For **Simulator** telemetry: install/run the external **Bitstream Simulator** extension from repo **`bitstream-simulator/`** (not in-bridge mock).
-3. Command Palette → **Bitstream Studio: Open Sensor Telemetry** or **Open Sensor Studio**.
+On activation, the extension **auto-starts** backend services (serial bridge on **9998**, model broker path, local MQTT **1883/8883**). You usually do not need a manual start.
+
+| Command | Action |
+|---------|--------|
+| **Start All Backend Services** | Same stack as activation (after you stopped them) |
+| **Stop All Backend Services** | Stops bridge + model broker client + MQTT (not Vite browser dev server) |
+| **Start / Stop Bitstream Simulator** | Runs **`bitstreamSimulator.start`** / **`.stop`** on the external VSIX (also used by Connect auto-start) |
+| **Start / Stop Serial Bridge** | Bridge only (debug) |
+| **Start / Stop MQTT Broker** | MQTT only (debug) |
+
+1. For **Simulator** telemetry: install the external **bitstream-simulator** VSIX from **`bitstream-simulator/`** (not in-bridge mock). Studio can start it for you when you **Connect** with **Source = Simulator**.
+2. Status bar **Bitstream** or Command Palette → **Open Bitstream Studio** (or tab-specific open commands).
 
 **Telemetry source:** **Simulator** requires external Bitstream Simulator streaming. **Bitstream** uses COM + BS2 handshake (CLI bring-up today). Amber floating notices: Simulator after **3 s** without data, Bitstream after **10 s** without handshake; **10 s** visible with hover-pause (`FLOATING_ALERT_NOTICES.md`).
 

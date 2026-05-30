@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-05-30 (v0.1.0 VSIX smoke passed; telemetry mode A+B; product-ready cleanup)  
+**Last updated:** 2026-05-30 (landing 3D backdrop + sim hub; CSS3D cards in progress)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -22,7 +22,7 @@
 7. **Tests:** `npm run test:bitstream2` (50 tests; `--test-force-exit` in script).
 8. **External repos** (not in tree): **bitstream-simulator** (Simulator mode), **TESAIoT_Firmware** (MCU BS2 truth).
 
-**Uncommitted work:** Run `git status` in repo root — this session may have doc + code changes not yet pushed.
+**Landing (dev):** `http://localhost:5173/` — workspace + simulation picker; 2D/3D backdrop (see `extension/src/webview/landing/README.md`). Ctrl+/ **Open workspace landing** from sims.
 
 ---
 
@@ -56,7 +56,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 |------|------|
 | **`extension/`** | VS Code extension + webview + `src/bitstream2/` |
 | **`extension/docs/DEVELOPMENT_TRACKER.md`** | Backlog, VSIX gates, recently completed |
-| **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`** | T3D removal ( **complete** ) |
+| **`extension/docs/APPLICATION_MIGRATION_PLAN.md`** | E84 / ABB / vehicle sim port from `ternion-t3d` (R3F, phased) |
+| **`extension/docs/README.md`** | Docs index (BS2, bridge, assets, Sensor Studio) |
 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** | Bitstream vs Simulator exclusivity (A+B) |
 | **`AGENT_HANDOFF.md`** | This file |
 
@@ -108,10 +109,9 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 3 | **`extension/HOW_TO_RUN.md`** (dev, VSIX smoke, CLI probes) |
 | 4 | **`extension/docs/BS2_PROTOCOL_INDEX.md`** |
 | 5 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** |
-| 6 | **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`** (historical + complete) |
-| 7 | **`extension/docs/BITSTREAM_TELEMETRY_OPERATIONS.md`** |
-| 8 | **`TESAIoT_Firmware/AGENT_HANDOFF.md`** (MCU BS2 — firmware wire in **`TESAIoT_Library/CM55/modules/bitstream`**) |
-| 9 | **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`** |
+| 6 | **`extension/docs/BITSTREAM_TELEMETRY_OPERATIONS.md`** |
+| 7 | **`TESAIoT_Firmware/AGENT_HANDOFF.md`** (MCU BS2 — firmware wire in **`TESAIoT_Library/CM55/modules/bitstream`**) |
+| 8 | **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`** |
 
 ---
 
@@ -152,8 +152,13 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 2026-05-30 | **Telemetry mode A+B** — lifecycle + `bitstream2/telemetry/route` + bridge `origin` tags |
 | 2026-05-30 | **VSIX smoke passed** — user `npm run package`, install, panels + mode switch verified |
 | 2026-05-30 | **Handoff docs pass** — `TELEMETRY_MODE_LIFECYCLE.md`; expanded AGENT_HANDOFF; cross-links in HOW_TO_RUN, README, sensor flow, cursor rules |
+| 2026-05-30 | **Landing + sim hub** — `webview/landing/` (2D/3D backdrop, sim cards), `webview/simulations/` (E84, vehicle physics Jolt); nav circular-import fix |
+| 2026-05-30 | **CSS3D landing cards** — Phase 2 started (`landing/css3d/`) |
 | 2026-05-30 | **Cursor rules + skills** — `bs2-protocol-change`, simulator path, four project skills; rules deduped for Bitstream Studio (no t3d-extension paths) |
 | 2026-05-30 | **URL routing removed (A+C)** — no `?app=`; toolbar + `localStorage`; `bitstream-studio.open` unified VS Code entry; tab shortcut commands kept |
+| 2026-05-30 | **Simulator orchestration** — host `bitstreamSimulator.start/stop` commands; Connect auto-starts external sim; toolbar **Start simulator** button; `loopbackAvailable` no longer optimistic on Source switch |
+| 2026-05-30 | **`extension/docs` cleanup** — removed TESAIoT firmware/MQTT/credential copies; added `docs/README.md` index |
+| 2026-05-30 | **Removed `BITSTREAM_T3D_DECOUPLING_PLAN.md`** — migration complete; history in session log + `docs/README.md` |
 
 ---
 

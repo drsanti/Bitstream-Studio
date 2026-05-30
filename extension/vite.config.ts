@@ -23,6 +23,11 @@ const freeModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.freeModels
 const tesaiotModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotModels);
 const tesaiotTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotTextures);
 const localSoundsPath = resolve(localAssetsPath, "sounds");
+const localJoltPath = resolve(localAssetsPath, "jolt");
+const vehiclePhysicsRoot = resolve(
+  __dirname,
+  "src/webview/simulations/vehicle-physics",
+);
 
 /**
  * Vite dev: resolve `rel` (decoded path under HTTP prefix) to a real file for user mirrors.
@@ -124,6 +129,85 @@ function sendViteDevStaticFile(
   }
   res.end(readFileSync(filePath));
 }
+
+/**
+ * Serve Jolt WASM glue from `src/assets/jolt` during Vite dev (`/jolt/*`, `/assets/jolt/*`).
+ */
+const serveJoltAssetsPlugin = () => {
+  return {
+    name: "serve-jolt-assets",
+    configureServer(server) {
+      if (!existsSync(localJoltPath)) {
+        console.warn(
+          "[serveJoltAssetsPlugin] Jolt assets not found, skipping middleware",
+        );
+        return;
+      }
+
+      const serveJoltFile = (
+        req,
+        res,
+        next,
+        prefix: string,
+      ): boolean => {
+        const method = req.method ?? "GET";
+        if (method !== "GET" && method !== "HEAD") {
+          return false;
+        }
+        const pathname = (req.url ?? "").split("?")[0] || "";
+        if (!pathname.startsWith(prefix)) {
+          return false;
+        }
+        const relativePath =
+          decodeURIComponent(pathname.slice(prefix.length)) || "index.js";
+        const filePath = resolve(localJoltPath, relativePath);
+        if (
+          relative(localJoltPath, filePath).startsWith("..") ||
+          relative(localJoltPath, filePath) === ""
+        ) {
+          return false;
+        }
+        if (!existsSync(filePath)) {
+          return false;
+        }
+        try {
+          const stats = statSync(filePath);
+          if (!stats.isFile()) {
+            return false;
+          }
+          const content = readFileSync(filePath);
+          const ext = extname(filePath).toLowerCase();
+          const contentType =
+            ext === ".js"
+              ? "application/javascript"
+              : ext === ".wasm"
+                ? "application/wasm"
+                : "application/octet-stream";
+          res.setHeader("Content-Type", contentType);
+          res.setHeader("Content-Length", content.length);
+          res.end(content);
+          return true;
+        } catch (error) {
+          console.warn(
+            `[serveJoltAssetsPlugin] Error serving ${filePath}:`,
+            error,
+          );
+          return false;
+        }
+      };
+
+      server.middlewares.use((req, res, next) => {
+        if (
+          serveJoltFile(req, res, next, "/jolt/") ||
+          serveJoltFile(req, res, next, "/assets/jolt/")
+        ) {
+          return;
+        }
+        next();
+      });
+    },
+  };
+};
 
 /**
  * Serve `extension/src/assets` during dev.
@@ -318,6 +402,7 @@ export default defineConfig({
       },
     }),
     tailwindcss(),
+    serveJoltAssetsPlugin(),
     serveExtensionLocalAssetsPlugin(), // src/assets for Model Catalog (browser dev)
     suppressCSSWarningsPlugin(), // Suppress CSS warnings during build
     viteStaticCopy({
@@ -357,11 +442,23 @@ export default defineConfig({
         ...(existsSync(localSoundsPath)
           ? [
               {
-                src: "../assets/sounds",
+                src: "../assets/sounds/**/*",
                 dest: "./assets/sounds",
               },
             ]
             : []),
+        ...(existsSync(localJoltPath)
+          ? [
+              {
+                src: "../assets/jolt/**/*",
+                dest: "./jolt",
+              },
+              {
+                src: "../assets/jolt",
+                dest: "./assets",
+              },
+            ]
+          : []),
       ],
     }),
   ],
@@ -369,6 +466,15 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "src/webview"),
       "@assets": resolve(__dirname, "src/assets"),
+      "@vehicle-jolt": resolve(vehiclePhysicsRoot, "physics/jolt"),
+      "@vehicle-engine": resolve(
+        vehiclePhysicsRoot,
+        "physics/VehicleSimulationEngine.ts",
+      ),
+      "@vehicle-host": resolve(
+        vehiclePhysicsRoot,
+        "physics/VehiclePhysicsHost.ts",
+      ),
     },
     dedupe: [
       "react",

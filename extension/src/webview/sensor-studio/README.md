@@ -5,8 +5,8 @@ Current focus is configuration-first architecture and Node Editor groundwork.
 
 ## Start Here (Recommended Reading Order)
 
-1. Project direction and stack:
-   - [`../../../docs/SENSOR_STORY_NO_CODE_TECH_STACK_REFERENCE.md`](../../../docs/SENSOR_STORY_NO_CODE_TECH_STACK_REFERENCE.md)
+1. Docs index:
+   - [`../../../docs/README.md`](../../../docs/README.md)
 2. MVP1 task board:
    - [`../../../docs/MVP1_NODE_EDITOR_TASK_BOARD.md`](../../../docs/MVP1_NODE_EDITOR_TASK_BOARD.md)
 3. Day-by-day execution:

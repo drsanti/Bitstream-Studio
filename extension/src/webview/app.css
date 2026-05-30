@@ -503,6 +503,16 @@ body.webview-digital-twin-shell::after {
   mix-blend-mode: screen;
 }
 
+.webview-launcher-bg-3d canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.webview-launcher-bg-2d.webview-launcher-bg-2d {
+  transition: opacity 0.45s ease;
+}
+
 .webview-launcher-hero {
   animation: webview-launcher-fade-up 0.9s ease-out both;
 }
@@ -556,10 +566,6 @@ body.webview-digital-twin-shell::after {
   animation-play-state: running;
 }
 
-.webview-launcher-footer {
-  animation: webview-launcher-fade-up 0.7s ease-out 0.35s both;
-}
-
 @media (prefers-reduced-motion: reduce) {
   .webview-launcher-nebula__canvas {
     opacity: 0.65;
@@ -575,8 +581,7 @@ body.webview-digital-twin-shell::after {
   .webview-launcher-hero__subtitle,
   .webview-launcher-card,
   .webview-launcher-card__icon,
-  .webview-launcher-card__shine,
-  .webview-launcher-footer {
+  .webview-launcher-card__shine {
     animation: none !important;
   }
 

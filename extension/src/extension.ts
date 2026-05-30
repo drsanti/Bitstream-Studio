@@ -1,14 +1,12 @@
 import * as vscode from "vscode";
 import { GlobalConfig } from "./GlobalConfig";
 import {
-  initializeMqttBroker,
   startMqttBroker,
   stopMqttBroker,
   setGetCurrentPanelCallback,
 } from "./mqtt-handle";
 import {
   initializeSerialBridge,
-  startSerialBridge,
   stopSerialBridge,
   setGetCurrentPanelCallback as setSerialBridgeGetCurrentPanelCallback,
 } from "./bridge-handle";
@@ -44,10 +42,6 @@ import {
   stopLocalWebappServer,
 } from "./local-webapp-server";
 import {
-  ensureEmbeddedModelLoaderBroker,
-  stopEmbeddedModelLoaderBroker,
-} from "./embedded-model-loader-broker";
-import {
   getFreeGithubMirrorRootUri,
   getModelDownloadsRootUri,
   getTesaiotTexturesRootUri,
@@ -57,6 +51,14 @@ import {
   setBridgeModelDownloadsRoot,
   setBridgeUserAssetsRoot,
 } from "./model-downloader/bridgeDefaultPaths";
+import {
+  startAllBackendServices,
+  stopAllBackendServices,
+} from "./backend-services";
+import {
+  startBitstreamSimulatorExtension,
+  stopBitstreamSimulatorExtension,
+} from "./bitstream-simulator-host";
 
 /**
  * Activate the extension
@@ -113,11 +115,6 @@ export function activate(context: vscode.ExtensionContext) {
   toggleDevToolsStatusBarItem.command = "bitstream-studio.toggleDevTools";
   toggleDevToolsStatusBarItem.show();
 
-  // Initialize MQTT broker
-  initializeMqttBroker().catch((error) => {
-    console.error("Failed to initialize MQTT broker:", error);
-  });
-
   // Set callback to get current panel for MQTT event forwarding
   setGetCurrentPanelCallback(() => {
     return TernionDigitalTwin.currentPanel?._panel;
@@ -136,19 +133,12 @@ export function activate(context: vscode.ExtensionContext) {
   /**
    * Combined bridge (`out/combined-bridge-entry.js`) listens on **ternion.ws.brokerPort** (default 9998)
    * for Bitstream/serial and **ternion.ws.modelBrokerPort** (default 9999) for Model/Free Loader.
-   * `initializeSerialBridge` waits until both TCP ports accept after spawn; then
-   * `ensureEmbeddedModelLoaderBroker` binds or connects only on the model port.
    */
   void (async () => {
     try {
-      await initializeSerialBridge(context.extensionPath);
+      await startAllBackendServices(context.extensionPath);
     } catch (error) {
-      console.error("Failed to initialize Serial Bridge:", error);
-    }
-    try {
-      await ensureEmbeddedModelLoaderBroker();
-    } catch (error) {
-      console.error("Failed to start embedded model-loader broker:", error);
+      console.error("Failed to start backend services:", error);
     }
   })();
 
@@ -312,10 +302,10 @@ export function activate(context: vscode.ExtensionContext) {
   const startSerialBridgeDisposable = vscode.commands.registerCommand(
     "bitstream-studio.startSerialBridge",
     () => {
-      startSerialBridge().catch((error) => {
+      void initializeSerialBridge(context.extensionPath).catch((error) => {
         console.error("Failed to start Serial Bridge:", error);
-        vscode.window.showErrorMessage(
-          `Failed to start Serial Bridge: ${error?.message || error}`,
+        void vscode.window.showErrorMessage(
+          `Failed to start Serial Bridge: ${error instanceof Error ? error.message : String(error)}`,
         );
       });
     },
@@ -324,7 +314,56 @@ export function activate(context: vscode.ExtensionContext) {
   const stopSerialBridgeDisposable = vscode.commands.registerCommand(
     "bitstream-studio.stopSerialBridge",
     () => {
-      stopSerialBridge();
+      void stopSerialBridge();
+    },
+  );
+
+  const startAllBackendServicesDisposable = vscode.commands.registerCommand(
+    "bitstream-studio.startAllBackendServices",
+    () => {
+      void startAllBackendServices(context.extensionPath).catch((error) => {
+        console.error("Failed to start backend services:", error);
+        void vscode.window.showErrorMessage(
+          `Failed to start backend services: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      });
+    },
+  );
+
+  const stopAllBackendServicesDisposable = vscode.commands.registerCommand(
+    "bitstream-studio.stopAllBackendServices",
+    () => {
+      void stopAllBackendServices();
+    },
+  );
+
+  const startBitstreamSimulatorDisposable = vscode.commands.registerCommand(
+    "bitstream-studio.startBitstreamSimulator",
+    () => {
+      void startBitstreamSimulatorExtension(context.extensionPath).then((result) =>
+      {
+        if (!result.ok)
+        {
+          void vscode.window.showErrorMessage(
+            result.error ?? "Failed to start Bitstream Simulator.",
+          );
+        }
+      });
+    },
+  );
+
+  const stopBitstreamSimulatorDisposable = vscode.commands.registerCommand(
+    "bitstream-studio.stopBitstreamSimulator",
+    () => {
+      void stopBitstreamSimulatorExtension().then((result) =>
+      {
+        if (!result.ok)
+        {
+          void vscode.window.showErrorMessage(
+            result.error ?? "Failed to stop Bitstream Simulator.",
+          );
+        }
+      });
     },
   );
 
@@ -339,8 +378,7 @@ export function activate(context: vscode.ExtensionContext) {
     "bitstream-studio.openInBrowser",
     async () => {
       try {
-        await initializeSerialBridge(context.extensionPath);
-        await ensureEmbeddedModelLoaderBroker();
+        await startAllBackendServices(context.extensionPath);
         const url = await ensureLocalWebappServer(context.extensionPath);
         const assetSourceStrategy = vscode.workspace
           .getConfiguration("ternion.assets")
@@ -415,6 +453,10 @@ export function activate(context: vscode.ExtensionContext) {
     stopMqttBrokerDisposable,
     startSerialBridgeDisposable,
     stopSerialBridgeDisposable,
+    startAllBackendServicesDisposable,
+    stopAllBackendServicesDisposable,
+    startBitstreamSimulatorDisposable,
+    stopBitstreamSimulatorDisposable,
     openToolsPanelDisposable,
     openInBrowserDisposable,
     setBrowserAppPortDisposable,
@@ -435,9 +477,5 @@ export function deactivate() {
   setLocalWebappFreePackRoot(null);
   setLocalWebappTesaiotTexturesRoot(null);
   void stopLocalWebappServer();
-  void stopEmbeddedModelLoaderBroker();
-  // Stop MQTT broker
-  stopMqttBroker();
-  // Stop Serial Bridge
-  stopSerialBridge();
+  void stopAllBackendServices({ warnIfPanelOpen: false });
 }

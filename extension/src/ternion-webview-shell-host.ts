@@ -64,6 +64,8 @@ export async function pickTernionApplication(
     | "bitstreamTelemetry"
     | "bitstreamFlow"
     | "browser"
+    | "startBackends"
+    | "stopBackends"
     | "reloadWebview"
     | "devTools";
 
@@ -91,6 +93,26 @@ export async function pickTernionApplication(
       label: "$(globe) Open in browser",
       description: "Local dev server (Vite)",
       id: "browser",
+    },
+    {
+      label: "$(play) Start all backend services",
+      description: "Serial bridge (9998), model broker, MQTT",
+      id: "startBackends",
+    },
+    {
+      label: "$(debug-stop) Stop all backend services",
+      description: "Free ports; disconnects open panel telemetry",
+      id: "stopBackends",
+    },
+    {
+      label: "$(vm) Start Bitstream Simulator",
+      description: "External bitstream-simulator VSIX + broker",
+      id: "startSimulator",
+    },
+    {
+      label: "$(debug-stop) Stop Bitstream Simulator",
+      description: "Stop external virtual MCU extension",
+      id: "stopSimulator",
     },
   ];
 
@@ -136,6 +158,26 @@ export async function pickTernionApplication(
     case "browser":
       await vscode.commands.executeCommand(
         "bitstream-studio.openInBrowser",
+      );
+      break;
+    case "startBackends":
+      await vscode.commands.executeCommand(
+        "bitstream-studio.startAllBackendServices",
+      );
+      break;
+    case "stopBackends":
+      await vscode.commands.executeCommand(
+        "bitstream-studio.stopAllBackendServices",
+      );
+      break;
+    case "startSimulator":
+      await vscode.commands.executeCommand(
+        "bitstream-studio.startBitstreamSimulator",
+      );
+      break;
+    case "stopSimulator":
+      await vscode.commands.executeCommand(
+        "bitstream-studio.stopBitstreamSimulator",
       );
       break;
     case "reloadWebview":

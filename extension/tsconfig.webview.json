@@ -18,7 +18,16 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/webview/*"]
+      "@/*": ["src/webview/*"],
+      "@vehicle-jolt/*": [
+        "src/webview/simulations/vehicle-physics/physics/jolt/*"
+      ],
+      "@vehicle-engine": [
+        "src/webview/simulations/vehicle-physics/physics/VehicleSimulationEngine.ts"
+      ],
+      "@vehicle-host": [
+        "src/webview/simulations/vehicle-physics/physics/VehiclePhysicsHost.ts"
+      ]
     }
   },
   "include": [

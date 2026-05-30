@@ -3,12 +3,15 @@ import {
   Globe2,
   Menu,
   MessageSquareText,
+  Play,
   Plug,
   RefreshCcw,
   ScrollText,
   Unplug,
   Workflow,
 } from "lucide-react";
+import { ensureBitstreamSimulatorReady } from "../../bitstream-app/bridge/requestBitstreamSimulatorHost";
+import { isVsCodeExtensionWebview } from "../../isVsCodeExtensionWebview";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { useSensorStudioAssistantUiStore } from "../../sensor-studio/state/sensorStudioAssistantUi.store";
 import { useBitstreamTelemetrySourceStore } from "../../bitstream-app/state/bitstreamTelemetrySource.store";
@@ -186,7 +189,30 @@ export function BitstreamMainToolbar(props: {
   const linkConnecting = brokerWsConnecting || connecting;
 
   const telemetryBackend = useBitstreamTelemetrySourceStore((s) => s.backend);
+  const loopbackAvailable = useBitstreamTelemetrySourceStore((s) => s.loopbackAvailable);
   const sourceIsUart = telemetryBackend === "uart";
+  const showStartSimulator =
+    telemetryBackend === "simulator" &&
+    !loopbackAvailable &&
+    isVsCodeExtensionWebview();
+
+  const [simulatorStartBusy, setSimulatorStartBusy] = useState(false);
+  const startSimulator = useCallback(async () =>
+  {
+    if (simulatorStartBusy)
+    {
+      return;
+    }
+    setSimulatorStartBusy(true);
+    try
+    {
+      await ensureBitstreamSimulatorReady();
+    }
+    finally
+    {
+      setSimulatorStartBusy(false);
+    }
+  }, [simulatorStartBusy]);
 
   const linkStatusLabel = linkConnecting
     ? "Connecting…"
@@ -281,6 +307,22 @@ export function BitstreamMainToolbar(props: {
           </div>
           <div className="ml-2 inline-flex items-center gap-2">
             <BitstreamTelemetrySourceField />
+            {showStartSimulator ? (
+              <TRNIconButton
+                icon={
+                  <Play
+                    size={16}
+                    className="text-violet-200/90"
+                    strokeWidth={2.25}
+                  />
+                }
+                label={simulatorStartBusy ? "Starting simulator…" : "Start simulator"}
+                nativeTitle={false}
+                disabled={simulatorStartBusy}
+                onClick={() => void startSimulator()}
+                className="border border-violet-700/60 bg-violet-950/25 text-zinc-200 hover:bg-violet-900/15"
+              />
+            ) : null}
             <div
               className="inline-flex shrink-0 items-center gap-1.5 border-l border-zinc-700/80 pl-2"
               role="group"

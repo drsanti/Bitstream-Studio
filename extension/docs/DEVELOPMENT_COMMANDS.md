@@ -1,6 +1,6 @@
 # Development commands — when to use what
 
-This guide maps **`npm` scripts in `t3d-extension`** to typical workflows: what runs, when it fits, and when to avoid it. For bridge internals, see [How the Bridge Works](./BRIDGE.md). For **Bitstream Assistant** (AI bridge) details and serial attach options, see [`src/ai/README.md`](../src/ai/README.md).
+This guide maps **`npm` scripts in `extension/`** (Bitstream Studio) to typical workflows: what runs, when it fits, and when to avoid it. For bridge internals, see [How the Bridge Works](./BRIDGE.md). For **Bitstream Assistant** (AI bridge) details and serial attach options, see [`src/ai/README.md`](../src/ai/README.md).
 
 ## Quick port reference
 

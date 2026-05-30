@@ -40,9 +40,9 @@ out/webview/assets/downloads/**
 out/webview/assets/*.glb
 out/webview/assets/**/*.gltf
 
-# Bundled demo textures/sounds (large); omit from VSIX — use online assets or user data when needed.
+# Bundled demo textures (large); omit from VSIX — use online assets or user data when needed.
 out/webview/assets/free/textures/**
-out/webview/assets/sounds/**
+# Vehicle engine loop (~590 KB) — ship in VSIX at out/webview/assets/sounds/car-engine.mp3
 
 # `out/` is gitignored; vsce excludes gitignored paths unless re-included here.
 # Native deps for `combined-bridge-entry.js` (see scripts/stage-serialport-runtime.cjs).

@@ -80,11 +80,6 @@ function filterCommands(commands: Command[], query: string): FilteredCommand[]
 
   for (const command of commands)
   {
-    if (command.disabled)
-    {
-      continue;
-    }
-
     let bestScore = 0;
     let matchedText = "";
 
