@@ -65,7 +65,5 @@ sequenceDiagram
 
 ## Related docs
 
-- Full spec §13: `t3d-extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md`
-- Sensor cfg: `SENSOR_CFG_V2.md`
-- Bridge overview: `t3d-extension/docs/BRIDGE.md`
-- Lab runbook: `src/webview/bitstream-lab/docs/RUNBOOK.md`
+- Bridge overview: `extension/docs/BRIDGE.md` (if present) or `HOW_TO_RUN.md`
+- Dev / UART probes: `src/bitstream2/dev/UART_TEST_COMMANDS.md`, `extension/HOW_TO_RUN.md`

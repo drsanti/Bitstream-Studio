@@ -75,6 +75,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 2026-05-30 | **Vite + VSIX:** stripped T3D resolver/alias/COI plugins from `vite.config.ts`; dev default `/?app=bitstream`; `npm run package` → `bitstream-studio-0.1.0.vsix` (66.5 MB); install smoke pending |
 | 2026-05-30 | **Cleanup:** removed `ensure-t3d-linked-build-fresh.js` / `sync-t3d-css.js`; fixed `npm run dev` → `dev:all`; updated HOW_TO_RUN + decoupling plan current state |
 | 2026-05-30 | **Ship:** `3441cb5` pushed to `origin/main`; CLI VSIX install OK; `bitstream2:mock-probe` + `sim-scenario --offline boot` OK |
+| 2026-05-30 | **Removed `bitstream-lab/`** — dead transport workbench module; use CLI probes + Sensor Telemetry for debug |
 
 ---
 
@@ -84,5 +85,4 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 |----------|------|--------|
 | 1 | **VSIX UI smoke** | Reload window → **Open Sensor Telemetry** / **Open Sensor Studio**; Model Catalog preview |
 | 2 | **Dual-runtime** | `npm run dev:bitstream2-loopback` + external **bitstream-simulator**; UART `bitstream2:uart-probe` when COM available |
-| 3 | **Bitstream Lab 4–8** | Loopback/Publish panels → broker/protocol/bridge observability — `src/webview/bitstream-lab/docs/RUNBOOK.md` §5 |
-| 4 | **MCU soak** | 5–10 min EVT without `--` flicker — `DEVELOPMENT_TRACKER.md` BS2 post-HELLO row |
+| 3 | **MCU soak** | 5–10 min EVT without `--` flicker — `DEVELOPMENT_TRACKER.md` BS2 post-HELLO row |

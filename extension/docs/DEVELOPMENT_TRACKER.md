@@ -320,8 +320,8 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Bitstream — T3D decoupling** — **Shipped** **`3441cb5`** on `main` (2026-05-30). Automated smoke: `test:bitstream2`, `bitstream2:mock-probe`, `sim-scenario --offline boot`. **Remaining:** VSIX UI reload smoke + UART/Sim matrix.
-- **Bitstream Lab phases 4–8** — **Next engineering track** — Loopback + Publish panels; broker / protocol / bridge observability (specs in `src/webview/bitstream-lab/docs/`). **Continue from:** `bitstream-lab/docs/RUNBOOK.md` §5. Phases 0–3 shipped **`eaa347f`** (ternion-t3d); re-home panels under Bitstream Studio when implementing.
+- **Bitstream — T3D decoupling** — **Shipped** **`3441cb5`** on `main` (2026-05-30). **Remaining:** VSIX UI reload smoke + UART/Sim matrix.
+- **2026-05-30** — **Removed `bitstream-lab/`** module (unused; standalone entry was already gone). Transport debug: CLI probes (`bitstream2:uart-probe`, `mock-probe`) + `HOW_TO_RUN.md`.
 - **BS2 protocol — post-HELLO validation (MCU)** — CLI probe **passed 2026-05-26** (see **`AGENT_HANDOFF.md` §9.2**, skill **`tesaiot-bs2-uart-bringup`**):
   - [x] EVT_SENSOR: all four sensors (CLI 30s soak; ~29 samples/sensor)
   - [x] `bitstream2/metrics`: `framesOk` ↑, CRC flat
