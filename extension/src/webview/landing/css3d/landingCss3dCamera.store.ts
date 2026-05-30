@@ -15,9 +15,14 @@ import { create } from "zustand";
 import type { Camera } from "three";
 
 export type LandingCss3dCameraSnapshot = {
+  fov: number;
+  aspect: number;
+  near: number;
+  far: number;
   position: THREE.Vector3;
   quaternion: THREE.Quaternion;
   projectionMatrix: THREE.Matrix4;
+  matrixWorldInverse: THREE.Matrix4;
   width: number;
   height: number;
 };
@@ -36,11 +41,19 @@ export const useLandingCss3dCameraStore = create<LandingCss3dCameraStoreState>((
 
   setSnapshot: (camera, width, height) =>
   {
+    camera.updateMatrixWorld(true);
+    const perspective = camera as THREE.PerspectiveCamera;
+
     set({
       snapshot: {
+        fov: perspective.fov,
+        aspect: width / Math.max(height, 1),
+        near: perspective.near,
+        far: perspective.far,
         position: camera.position.clone(),
         quaternion: camera.quaternion.clone(),
         projectionMatrix: camera.projectionMatrix.clone(),
+        matrixWorldInverse: camera.matrixWorldInverse.clone(),
         width,
         height,
       },

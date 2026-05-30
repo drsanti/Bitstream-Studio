@@ -328,7 +328,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- **2026-05-30** — **Landing CSS3D cards (MVP):** `landing/css3d/` — CSS3DRenderer overlay, R3F camera sync, card slots for workspace + sim cards when backdrop is 3D/blend.
+- *(none — pick from **Planned / next**.)*
 
 ---
 

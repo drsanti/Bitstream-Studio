@@ -13,12 +13,22 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { CSS3DObject, CSS3DRenderer } from "three/examples/jsm/renderers/CSS3DRenderer.js";
-import { computeLandingCardCss3dTransform } from "./landingCss3dLayout.js";
-import { useLandingCss3dCameraStore } from "./landingCss3dCamera.store.js";
+import {
+  computeLandingCardCss3dTransform,
+  LANDING_CSS3D_CARD_WIDTH_PX,
+} from "./landingCss3dLayout.js";
+import {
+  useLandingCss3dCameraStore,
+  type LandingCss3dCameraSnapshot,
+} from "./landingCss3dCamera.store.js";
 import {
   useLandingCss3dRegistryStore,
   type LandingCss3dCardRegistration,
 } from "./landingCss3dRegistry.store.js";
+import {
+  WELCOME_BG3D_CAMERA_FROM,
+  WELCOME_BG3D_CAMERA_LOOK_AT,
+} from "../welcomeBackground3DConstants.js";
 
 export type LandingCss3dOverlayProps = {
   enabled: boolean;
@@ -28,6 +38,44 @@ type AttachedCard = {
   registration: LandingCss3dCardRegistration;
   object: CSS3DObject;
 };
+
+/**
+ * Applies a stored R3F camera snapshot to the CSS3D camera (matrices, not just position).
+ */
+function applyCameraSnapshot(
+  cssCamera: THREE.PerspectiveCamera,
+  snapshot: LandingCss3dCameraSnapshot,
+): void
+{
+  cssCamera.fov = snapshot.fov;
+  cssCamera.aspect = snapshot.aspect;
+  cssCamera.near = snapshot.near;
+  cssCamera.far = snapshot.far;
+  cssCamera.position.copy(snapshot.position);
+  cssCamera.quaternion.copy(snapshot.quaternion);
+  cssCamera.updateMatrixWorld(true);
+  cssCamera.projectionMatrix.copy(snapshot.projectionMatrix);
+  cssCamera.matrixWorldInverse.copy(snapshot.matrixWorldInverse);
+}
+
+/**
+ * Fallback camera until the lazy-loaded R3F canvas publishes its first frame.
+ */
+function applyFallbackCamera(
+  cssCamera: THREE.PerspectiveCamera,
+  width: number,
+  height: number,
+): void
+{
+  cssCamera.fov = 45;
+  cssCamera.aspect = width / Math.max(height, 1);
+  cssCamera.near = 0.1;
+  cssCamera.far = 200;
+  cssCamera.position.set(...WELCOME_BG3D_CAMERA_FROM);
+  cssCamera.lookAt(...WELCOME_BG3D_CAMERA_LOOK_AT);
+  cssCamera.updateProjectionMatrix();
+  cssCamera.updateMatrixWorld(true);
+}
 
 /**
  * Full-viewport CSS3D layer between WebGL backdrop and flat hero copy.
@@ -56,6 +104,7 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
     cssRenderer.domElement.style.position = "absolute";
     cssRenderer.domElement.style.inset = "0";
     cssRenderer.domElement.style.pointerEvents = "none";
+    cssRenderer.domElement.style.zIndex = "8";
     host.appendChild(cssRenderer.domElement);
 
     const attached = new Map<string, AttachedCard>();
@@ -80,6 +129,9 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
         object.rotation.set(...rotation);
         object.scale.setScalar(scale);
         registration.element.style.pointerEvents = "auto";
+        registration.element.style.width = `${LANDING_CSS3D_CARD_WIDTH_PX}px`;
+        registration.element.style.maxWidth = "100%";
+        registration.element.classList.add("landing-css3d-card");
         cssScene.add(object);
         attached.set(id, { registration, object });
       }
@@ -90,6 +142,9 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
         {
           cssScene.remove(entry.object);
           const { element, anchor } = entry.registration;
+          element.classList.remove("landing-css3d-card");
+          element.style.removeProperty("width");
+          element.style.removeProperty("max-width");
           if (element.parentElement !== anchor)
           {
             anchor.appendChild(element);
@@ -102,22 +157,26 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
     syncRegistry();
     const unsubRegistry = useLandingCss3dRegistryStore.subscribe(syncRegistry);
 
-    /* --- Block: render loop (camera from R3F snapshot) --- */
+    /* --- Block: render loop (camera from R3F snapshot or fallback) --- */
     let frameId = 0;
     const render = (): void =>
     {
+      const width = host.clientWidth || window.innerWidth;
+      const height = host.clientHeight || window.innerHeight;
       const snapshot = useLandingCss3dCameraStore.getState().snapshot;
+
       if (snapshot != null)
       {
-        cssCamera.aspect = snapshot.width / Math.max(snapshot.height, 1);
-        cssCamera.projectionMatrix.copy(snapshot.projectionMatrix);
-        cssCamera.position.copy(snapshot.position);
-        cssCamera.quaternion.copy(snapshot.quaternion);
-        cssCamera.updateMatrixWorld(true);
+        applyCameraSnapshot(cssCamera, snapshot);
         cssRenderer.setSize(snapshot.width, snapshot.height);
-        cssRenderer.render(cssScene, cssCamera);
+      }
+      else
+      {
+        applyFallbackCamera(cssCamera, width, height);
+        cssRenderer.setSize(width, height);
       }
 
+      cssRenderer.render(cssScene, cssCamera);
       frameId = window.requestAnimationFrame(render);
     };
 
@@ -125,11 +184,9 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
 
     const handleResize = (): void =>
     {
-      const snapshot = useLandingCss3dCameraStore.getState().snapshot;
-      if (snapshot != null)
-      {
-        cssRenderer.setSize(snapshot.width, snapshot.height);
-      }
+      const width = host.clientWidth || window.innerWidth;
+      const height = host.clientHeight || window.innerHeight;
+      cssRenderer.setSize(width, height);
     };
 
     window.addEventListener("resize", handleResize);
@@ -144,6 +201,9 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
       {
         cssScene.remove(entry.object);
         const { element, anchor } = entry.registration;
+        element.classList.remove("landing-css3d-card");
+        element.style.removeProperty("width");
+        element.style.removeProperty("max-width");
         if (element.parentElement !== anchor)
         {
           anchor.appendChild(element);
@@ -152,7 +212,6 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
       attached.clear();
 
       cssRenderer.domElement.remove();
-      useLandingCss3dRegistryStore.getState().clearCards();
     };
   }, [enabled]);
 
@@ -164,8 +223,7 @@ export function LandingCss3dOverlay({ enabled }: LandingCss3dOverlayProps)
   return (
     <div
       ref={hostRef}
-      className="landing-css3d-host pointer-events-none absolute inset-0 z-[5]"
-      aria-hidden
+      className="landing-css3d-host pointer-events-none fixed inset-0 z-[8]"
     />
   );
 }

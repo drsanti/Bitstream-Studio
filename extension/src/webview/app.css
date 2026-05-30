@@ -571,8 +571,18 @@ body.webview-digital-twin-shell::after {
   min-height: 13.5rem;
 }
 
+.landing-css3d-content .landing-css3d-slot {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.landing-css3d-host {
+  overflow: hidden;
+}
+
+.landing-css3d-renderer .landing-css3d-card,
 .landing-css3d-renderer .webview-launcher-card {
-  width: min(100%, 22rem);
+  box-sizing: border-box;
 }
 
 @media (prefers-reduced-motion: reduce) {

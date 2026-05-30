@@ -84,7 +84,12 @@ export function BitstreamLanding({ onEnter, onOpenSimulation }: BitstreamLanding
       <LandingCss3dOverlay enabled={css3dEnabled} />
       <BitstreamLandingBackgroundModeHint />
 
-      <div className="webview-launcher__content relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-10 sm:px-6 sm:py-14">
+      <div
+        className={[
+          "webview-launcher__content relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center px-4 py-10 sm:px-6 sm:py-14",
+          css3dEnabled ? "landing-css3d-content" : "",
+        ].join(" ")}
+      >
         <header className="webview-launcher-hero mb-10 text-center sm:mb-12">
           <p className="text-xs font-semibold tracking-[0.35em] text-sky-400/80 uppercase">
             TESA · TESAIoT

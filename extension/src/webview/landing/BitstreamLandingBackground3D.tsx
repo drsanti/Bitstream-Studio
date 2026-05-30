@@ -64,8 +64,8 @@ export function BitstreamLandingBackground3D({
       >
         <Suspense fallback={null}>
           <WelcomeBackground3DScene animate={animate} />
-          <LandingCss3dCameraSync />
         </Suspense>
+        <LandingCss3dCameraSync />
       </Canvas>
     </div>
   );
