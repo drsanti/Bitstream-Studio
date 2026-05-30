@@ -46,8 +46,8 @@ Core Bitstream library APIs live in `src/bitstream/` and `src/bitstream2/`; this
 
 ## Manual QA (simulator)
 
-1. `cd t3d-extension && npm run dev:bitstream2-loopback`
+1. `cd extension && npm run start:bridge` (terminal 1) and `npm run dev:webview` (terminal 2)
 2. Open `http://localhost:5173/?app=bitstream`
-3. Set **SOURCE** to **Simulator** (or **Auto** with loopback on)
+3. Set **SOURCE** to **Simulator** (or **Auto** with external sim running)
 4. **Connect** — expect WS connected, BS2 HELLO, live samples on decks / Sensor Studio nodes
 5. **UART** source — connect logs that serial transport is removed; no COM session in webview

@@ -5,15 +5,20 @@ alwaysApply: true
 
 # TESAIoT firmware and Bitstream (external workspaces)
 
-Firmware truth is **not** vendored in Bitstream-Studio. When the task mentions protocol fields, encoders, or MCU behavior, check:
+**Host BS2 spec + TypeScript:** this repo — **`extension/docs/BS2_PROTOCOL_INDEX.md`**, **`extension/src/bitstream2/`**.
+
+Firmware on-wire implementation is **not** vendored in Bitstream-Studio. When the task mentions protocol fields, encoders, or MCU behavior, check:
 
 | Role | Path |
 |------|------|
 | **Main firmware** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware` |
 | **Library** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Library` |
-| **Bitstream module (authoritative)** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Library\CM55\modules\bitstream` |
-| **Host BS2 encode/decode** | `extension/src/bitstream2/` |
+| **Bitstream module (firmware authoritative)** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Library\CM55\modules\bitstream` |
+| **Host wire spec (canonical)** | `extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` |
+| **Host encode/decode** | `extension/src/bitstream2/` |
 
-**bitstream-simulator** — separate repo / VS Code extension (not under Bitstream-Studio). Install separately for Simulator telemetry.
+**bitstream-simulator** — separate VSIX; see **`bitstream-simulator-app-path.mdc`**.
+
+After wire changes: **`.cursor/rules/bs2-protocol-change.mdc`** (spec → host code → tests → firmware → sim).
 
 Communication: **Thai and/or English** only.

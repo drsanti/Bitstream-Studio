@@ -23,7 +23,7 @@ To be production-ready, anything that must be consistent across clients must be 
 
 The dashboard **`HostSession`** is constructed with **`disableWriteAwaitAck: true`** so high-frequency UI controls do not block on CONTROL ACK matching. The webview therefore treats **broker JSON** (`sensor-cfg-updated`, BMI270 topics, `RUNTIME_SNAPSHOT`) plus **live telemetry** as the primary cross-client synchronization mechanism, while still **sending** `sensor.cfg.set` frames toward firmware. This is **not** a replacement for backend serial truth: if the bridge publishes richer `sensorConfigs` or expanded snapshots in the future, clients should prefer those fields when present.
 
-**BS2 / Simulator:** sensor configuration and streaming also use **`bitstream2/req`** (`SENSOR_CFG_SET`) and **`bitstream2/evt/sensor`** without a `HostSession` on the mock path. **`shouldIngestTelemetry()`** decides whether BS2 samples update the UI (UART vs Simulator). See **`BITSTREAM_SENSOR_DATA_FLOW_AND_STATE.md`** §0 and **`src/bitstream2/docs/SENSOR_CFG_V2.md`**.
+**BS2 / Simulator:** sensor configuration and streaming use **`bitstream2/req`** / **`bitstream2/evt/sensor`**. Ingest is gated by toolbar mode, COM state, and optional sample **`origin`** — see **`../../../../docs/TELEMETRY_MODE_LIFECYCLE.md`** and **`BITSTREAM_SENSOR_DATA_FLOW_AND_STATE.md`** §0.
 
 ### What belongs in the frontend (per-client UI state)
 

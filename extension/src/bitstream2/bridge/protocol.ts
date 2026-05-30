@@ -41,6 +41,11 @@ export const BITSTREAM2_TOPICS = {
    * Use **idle** when telemetry source is UART (no COM / real firmware).
    */
   DEV_SIM_CONTROL: "bitstream2/dev/sim/control",
+  /**
+   * Webview → bridge — authoritative telemetry mode (Bitstream UART vs external Simulator).
+   * Last writer wins; bridge gates inject-rx vs real COM decode accordingly.
+   */
+  TELEMETRY_ROUTE: "bitstream2/telemetry/route",
   /** Webview → bitstream-simulator — set waveform (3-sine) config for one channel. */
   DEV_SIM_WAVE_SET: "bitstream2/dev/sim/wave/set",
 
@@ -94,6 +99,17 @@ export type Bitstream2SensorSamplePayload = {
    * For BMI270 this is ACC->GYR->TMP->EULER->QUAT (see spec).
    */
   values: number[];
+  atMs: number;
+  /** Set by bridge when publishing — `uart` (real COM) or `sim` (inject-rx). */
+  origin?: Bitstream2TelemetrySampleOrigin;
+};
+
+export type Bitstream2TelemetrySampleOrigin = "uart" | "sim";
+
+export type Bitstream2TelemetryRouteMode = "uart" | "simulator";
+
+export type Bitstream2TelemetryRoutePayload = {
+  mode: Bitstream2TelemetryRouteMode;
   atMs: number;
 };
 

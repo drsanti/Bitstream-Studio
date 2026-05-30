@@ -10,36 +10,39 @@ Self-contained implementation of the **BS-framed** UART protocol (Bitstream vNex
 - **Serial bridge** owns UART IO, decodes frames, publishes structured JSON on `bitstream2/*` topics.
 - **Webview** consumes JSON only (no raw UART parsing).
 
-Full wire spec: `t3d-extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` (pointer in `docs/SPEC.md`).
+Full wire spec: `docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` (see `docs/SPEC.md` if present).
 
 **Sensor config v2 (draft):** [`src/bitstream2/docs/SENSOR_CFG_V2.md`](./docs/SENSOR_CFG_V2.md) — publish modes, delta, v2.1 `publishIntervalMs`, host simulator sine synth (§9.1), webview **Sampling frequency** UI.
 
 ## Host-only validation (no MCU)
 
 ```bash
-cd t3d-extension
+cd extension
 npm run test:bitstream2
 npm run bitstream2:mock-probe
 ```
 
-`BsFirmwareSimulator` (`device/firmware-simulator.ts`) answers PING, config commands, streams `EVT_SENSOR` with **sine-wave** synthetic payloads (`device/sensor-synth.ts`, `SIM_SINE_HZ ≈ 0.2`), and publishes state on `bitstream2/dev/sim/state` when loopback is on. Respects publish gating (`publish-gate.ts`). (`BsMockFirmware` is an alias.)
+**External simulator:** Install the **bitstream-simulator** VS Code extension. Bridge auto-detects it via `bitstream2/sim/status`. In-process bridge loopback (`BITSTREAM2_DEV_LOOPBACK`) was removed.
 
-When the webview toolbar is **UART** (with loopback enabled), `bitstream2/dev/sim/control` **`idle`** pauses mock stream timers; **Simulator** sends **`run`**.
+When the webview toolbar is **Bitstream**, real COM carries BS frames. **Simulator** uses `bitstream2/dev/inject-rx` from the external extension. Mode exclusivity: **`docs/TELEMETRY_MODE_LIFECYCLE.md`**.
 
-### WS dev simulator (`BITSTREAM2_DEV_LOOPBACK=1`)
-
-Bridge treats WS traffic like UART when loopback is on:
+### Broker topics (webview ↔ bridge)
 
 | Topic | Direction | Use |
 |--------|-----------|-----|
-| `serialport/write` | Host → “MCU” | BS REQ bytes; mock firmware replies with RES |
-| `bitstream2/dev/inject-rx` | Device → host | Inject HELLO / EVT_SENSOR without TX |
+| `bitstream2/telemetry/route` | Webview → bridge | Authoritative **`uart`** \| **`simulator`** mode |
+| `bitstream2/dev/sim/control` | Webview → sim | **`idle`** / **`run`** streaming |
+| `bitstream2/dev/inject-rx` | Sim → bridge | Virtual UART bytes (sim path only) |
+| `bitstream2/evt/sensor` | Bridge → webview | Decoded samples; optional **`origin`**: `uart` \| `sim` |
+| `bitstream2/req` / `bitstream2/res` | Webview ↔ device | BS2 commands (PING, SENSOR_CFG, …) |
+
+Types: `src/bitstream2/bridge/protocol.ts` (`TELEMETRY_ROUTE`, `Bitstream2TelemetryRoutePayload`).
 
 ```bash
 # Terminal A
-BITSTREAM2_DEV_LOOPBACK=1 npm run start:bridge
+npm run start:bridge
 
-# Terminal B — inject HELLO + sample, or PING via write
+# Terminal B — CLI inject (bridge running; dev/debug)
 npm run bitstream2:dev-inject -- --hello --sample
 npm run bitstream2:dev-inject -- --ping-req
 
@@ -47,17 +50,16 @@ npm run bitstream2:dev-inject -- --ping-req
 npm run bitstream2:sim-scenario -- --offline boot
 npm run bitstream2:sim-scenario -- --offline full_board
 
-# Scenarios (WS; bridge with loopback)
+# Scenarios (WS; bridge running)
 npm run bitstream2:sim-scenario -- --ws full_board
 
 # Regenerate golden wire fixtures
 npm run bitstream2:golden:gen
 
-# Or one command (bridge + Vite) if cross-env is available:
-npm run dev:bitstream2-loopback
+# Browser dev: start:bridge (terminal 1) + dev:webview (terminal 2) — see HOW_TO_RUN.md
 ```
 
-In Vite dev, open **Sensor Studio** (`?app=bitstream`) for the **Bitstream2 Simulator UI** (`webview/bitstream2-simulator/`).
+In Vite dev, open **Sensor Telemetry** (`?app=bitstream`) or the dedicated sim dashboard (`?app=bitstream2-sim`).
 
 ## Production checklist
 
@@ -66,8 +68,8 @@ In Vite dev, open **Sensor Studio** (`?app=bitstream`) for the **Bitstream2 Simu
 | `framing/` | Prefix scan, LEN cap, CRC-16/CCITT-FALSE, CRLF |
 | `runtime/uart-decode.ts` | UART bytes → hello/sensor broker payloads |
 | `runtime/session.ts` | REQ/RES correlation over UART |
-| `serialport-bridge/` | WS broker + `bitstream2/*` publish |
-| `device/` | Host firmware simulator (REQ/RES, streaming, `sensor-synth.ts`) |
+| `serialport-bridge/` | WS broker + `bitstream2/*` publish; **`telemetry/route`** gating |
+| `device/` | In-process mock for **CLI/tests** only (`sensor-synth.ts`); not the webview sim path |
 | `webview/bitstream2-simulator/` | Simulator dashboard UI |
 
-Start bridge: **TERNION → Start Serial Bridge**, open webview **Sensor Studio** entry (`bitstream`).
+Start bridge: **Bitstream Studio: Start Serial Bridge**, open **Sensor Telemetry** or **Sensor Studio**. See **`HOW_TO_RUN.md`** and **`AGENT_HANDOFF.md`**.

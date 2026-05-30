@@ -25,14 +25,19 @@ import {
 import { getSerialportDataBinaryPublishQos } from "./serialDataBinaryQos";
 import {
   BITSTREAM2_TOPICS,
+  type Bitstream2HelloPayload,
+  type Bitstream2TelemetryRoutePayload,
   type Bitstream2DevInjectRxPayload,
   type Bitstream2DevStatusPayload,
   type Bitstream2HelloPayload,
   type Bitstream2HostReqPayload,
   type Bitstream2HostResPayload,
   type Bitstream2MetricsPayload,
+  type Bitstream2SensorSamplePayload,
   type Bitstream2SimHostTxPayload,
   type Bitstream2SimStatusPayload,
+  type Bitstream2TelemetryRouteMode,
+  type Bitstream2TelemetrySampleOrigin,
 } from "../bitstream2/bridge/protocol";
 import { applyDevSerialWrite } from "../bitstream2/dev/dev-write";
 import { BsSession } from "../bitstream2/runtime/session";
@@ -152,6 +157,9 @@ export class SerialPortWebSocketBridge {
   private allZeroRxStreak = 0;
   /** Skip `serialport/status` when only byte counters changed (UART flood). */
   private lastStatusPublishKey: string | null = null;
+  /** Authoritative mode from `bitstream2/telemetry/route` (default Bitstream until webview publishes). */
+  private telemetryRouteMode: Bitstream2TelemetryRouteMode = "uart";
+  private telemetryRouteAtMs = 0;
   private readonly bsSession: BsSession;
 
   /** Route host UART TX to standalone bitstream-simulator (auto-detect or forced). */
@@ -163,6 +171,51 @@ export class SerialPortWebSocketBridge {
       return false;
     }
     return Date.now() - this.externalSimLastAtMs < EXTERNAL_SIM_STATUS_STALE_MS;
+  }
+
+  private allowsUartTelemetry(): boolean {
+    return this.telemetryRouteMode === "uart";
+  }
+
+  private allowsSimInject(): boolean {
+    return this.telemetryRouteMode === "simulator" && !this.port.isOpen();
+  }
+
+  /** Apply webview-published route; close COM when entering Simulator mode. */
+  private onTelemetryRoute(payload: unknown): void {
+    const route = payload as Partial<Bitstream2TelemetryRoutePayload>;
+    if (route.mode !== "uart" && route.mode !== "simulator")
+    {
+      return;
+    }
+    const atMs = typeof route.atMs === "number" ? route.atMs : Date.now();
+    if (atMs < this.telemetryRouteAtMs)
+    {
+      return;
+    }
+    const prev = this.telemetryRouteMode;
+    this.telemetryRouteMode = route.mode;
+    this.telemetryRouteAtMs = atMs;
+    if (prev === route.mode)
+    {
+      return;
+    }
+    this.pushOperation(
+      "telemetry-route",
+      `telemetry route → ${route.mode}`,
+    );
+    if (route.mode === "simulator" && this.port.isOpen())
+    {
+      this.setHostUartSessionActive(false, "telemetry-route-simulator");
+      this.clearBs2HandshakeState("telemetry-route-simulator");
+      this.bsUartDecoder.reset();
+      void this.port.close().catch(() => {
+        void this.port.forceClose().catch(() => {
+          /* ignore */
+        });
+      });
+      void this.schedulePublishStatus();
+    }
   }
 
   constructor(config: SerialPortBridgeConfig = {}) {
@@ -197,8 +250,8 @@ export class SerialPortWebSocketBridge {
       write: async (bytes: Uint8Array) => {
         await applyDevSerialWrite({
           data: bytes,
-          portOpen: this.port.isOpen(),
-          useExternalSim: this.useExternalSim(),
+          portOpen: this.port.isOpen() && this.allowsUartTelemetry(),
+          useExternalSim: this.useExternalSim() && this.allowsSimInject(),
           writeToPort: async (data) => {
             await this.port.write(Buffer.from(data));
           },
@@ -320,7 +373,7 @@ export class SerialPortWebSocketBridge {
         return;
       }
       this.lastRxAtMs = Date.now();
-      this.publishData(data);
+      this.publishData(data, "uart");
     });
     this.port.on("line", (line: string) => {
       if (!this.hostUartSessionActive)
@@ -333,7 +386,7 @@ export class SerialPortWebSocketBridge {
         return;
       }
       this.lastRxAtMs = Date.now();
-      this.publishData(buf, "utf8");
+      this.publishData(buf, "uart", "utf8");
     });
     this.port.on("open", () => {
       this.setHostUartSessionActive(true, "serial-open-event");
@@ -398,6 +451,10 @@ export class SerialPortWebSocketBridge {
 
   /** Treat bytes as virtual UART RX (external sim inject-rx or lab inject). */
   private simulateUartRx(bytes: Uint8Array): void {
+    if (!this.allowsSimInject())
+    {
+      return;
+    }
     if (!this.hostUartSessionActive)
     {
       this.setHostUartSessionActive(true, "virtual-rx");
@@ -406,7 +463,7 @@ export class SerialPortWebSocketBridge {
     if (this.useExternalSim()) {
       this.setFirmwareLiveness("alive", "external-sim");
     }
-    this.publishData(Buffer.from(bytes));
+    this.publishData(Buffer.from(bytes), "sim");
   }
 
   /** Drop external sim when heartbeat goes stale. */
@@ -475,7 +532,19 @@ export class SerialPortWebSocketBridge {
     void this.client.publish(BITSTREAM2_TOPICS.DEV_STATUS, payload, 0);
   }
 
-  private publishData(buf: Buffer, encoding?: string): void {
+  private publishData(
+    buf: Buffer,
+    origin: Bitstream2TelemetrySampleOrigin,
+    encoding?: string,
+  ): void {
+    if (origin === "uart" && !this.allowsUartTelemetry())
+    {
+      return;
+    }
+    if (origin === "sim" && !this.allowsSimInject())
+    {
+      return;
+    }
     if (!this.hostUartSessionActive || !this.client.isConnected())
     {
       return;
@@ -509,7 +578,11 @@ export class SerialPortWebSocketBridge {
         continue;
       }
       if (ev.type === "sensor") {
-        void this.client.publish(BITSTREAM2_TOPICS.EVT_SENSOR, ev.payload, 0);
+        const sample: Bitstream2SensorSamplePayload = {
+          ...ev.payload,
+          origin,
+        };
+        void this.client.publish(BITSTREAM2_TOPICS.EVT_SENSOR, sample, 0);
         continue;
       }
       if (ev.type === "res_frame") {
@@ -587,6 +660,7 @@ export class SerialPortWebSocketBridge {
     await this.client.subscribe(SERIALPORT_TOPICS.WRITE, 0, "json");
     await this.client.subscribe(BITSTREAM2_TOPICS.REQ, 0, "json");
     await this.client.subscribe(BITSTREAM2_TOPICS.DEV_INJECT_RX, 0, "json");
+    await this.client.subscribe(BITSTREAM2_TOPICS.TELEMETRY_ROUTE, 0, "json");
     await this.client.subscribe(BITSTREAM2_TOPICS.SIM_STATUS, 0, "json");
     /* Browser refresh: webview WS reconnects; OS COM stays open on the bridge. */
     if (this.port.isOpen() && !this.hostUartSessionActive)
@@ -621,6 +695,17 @@ export class SerialPortWebSocketBridge {
     if (topic === SERIALPORT_TOPICS.OPEN) {
       const req = payload as Partial<OpenRequest>;
       const requestId = typeof req.requestId === "string" ? req.requestId : `open-${Date.now()}`;
+      if (this.telemetryRouteMode === "simulator")
+      {
+        const res: OpenResult = {
+          requestId,
+          success: false,
+          error: "Serial open blocked: telemetry route is Simulator (switch to Bitstream first)",
+          leaseId: null,
+        };
+        await this.client.publish(SERIALPORT_TOPICS.OPEN_RESULT, res, 0);
+        return;
+      }
       try {
         const cfg: SerialPortConfig = {
           path: String(req.path ?? ""),
@@ -677,8 +762,8 @@ export class SerialPortWebSocketBridge {
           typeof req.data === "string" ? base64ToBytes(req.data) : new Uint8Array(0);
         await applyDevSerialWrite({
           data: raw,
-          portOpen: this.port.isOpen(),
-          useExternalSim: this.useExternalSim(),
+          portOpen: this.port.isOpen() && this.allowsUartTelemetry(),
+          useExternalSim: this.useExternalSim() && this.allowsSimInject(),
           writeToPort: async (data) => {
             await this.port.write(Buffer.from(data));
           },
@@ -705,7 +790,15 @@ export class SerialPortWebSocketBridge {
       if (typeof req.dataB64 !== "string" || req.dataB64.length === 0) {
         return;
       }
+      if (!this.allowsSimInject()) {
+        return;
+      }
       this.simulateUartRx(base64ToBytes(req.dataB64));
+      return;
+    }
+
+    if (topic === BITSTREAM2_TOPICS.TELEMETRY_ROUTE) {
+      this.onTelemetryRoute(payload);
       return;
     }
 

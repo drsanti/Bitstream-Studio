@@ -11,14 +11,27 @@ alwaysApply: true
 
 ## On new session
 
-1. Read **`AGENT_HANDOFF.md`** at the **repository root**.
-2. Read **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`** for migration phase status.
-3. Read **`extension/docs/DEVELOPMENT_TRACKER.md`** for backlog.
-4. **Firmware / MCU BS2:** **`D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware\AGENT_HANDOFF.md`** and **`TESAIoT_Library/CM55/modules/bitstream`**.
+1. **`AGENT_HANDOFF.md`** (repo root) — §0 checklist, v0.1.0 milestone, implementation map.
+2. **`extension/docs/DEVELOPMENT_TRACKER.md`** — backlog and VSIX gates.
+3. **`extension/HOW_TO_RUN.md`** — dev stack and VSIX smoke.
+4. **BS2 protocol work:** **`extension/docs/BS2_PROTOCOL_INDEX.md`** + rule **`bs2-protocol-change.mdc`** + skill **`bs2-protocol-change`**.
+5. **Telemetry modes:** **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`**.
+6. **Firmware / MCU:** **`TESAIoT_Firmware/AGENT_HANDOFF.md`**, **`TESAIoT_Library/CM55/modules/bitstream`**.
 
-## External repos (not in this tree)
+After a substantial session, append **`AGENT_HANDOFF.md`** §7.
 
-- **bitstream-simulator** — separate VS Code extension repo (install for Simulator telemetry).
-- **ternion-t3d** — legacy monorepo (Digital Twin archive); migration source was branch **`BS2`**.
+## Project skills (`.cursor/skills/`)
+
+| Skill | Use when |
+|-------|----------|
+| **`bitstream-studio-dev`** | compile, dev:webview, bridge, package VSIX |
+| **`bs2-protocol-change`** | wire spec, codec, golden fixtures, broker topics |
+| **`bs2-uart-bringup`** | real COM / uart-probe / MCU soak |
+| **`bitstream-simulator-app`** | external sim VSIX, Simulator toolbar mode |
+
+## External repos
+
+- **bitstream-simulator** — separate VSIX (`bitstream-simulator-app-path.mdc`)
+- **ternion-t3d** — legacy Digital Twin; **not** canonical for BS2 docs
 
 Do not edit `changelog.md` unless the user explicitly requests it.

@@ -11,28 +11,12 @@
  *******************************************************************************/
 
 import type { BitstreamTelemetryBackend } from "../state/bitstreamTelemetryBackend";
-import { releaseOpenSerialPort } from "./releaseOpenSerialPort";
 
 /** True when routing uses the external simulator, not firmware UART. */
 export function effectiveTelemetryRouteIsSimulator(
   backend: BitstreamTelemetryBackend,
 ): boolean {
   return backend === "simulator";
-}
-
-/**
- * Close COM when the user switches Bitstream → Simulator.
- */
-export function releaseComIfEnteringSimulatorRoute(args: {
-  prevBackend: BitstreamTelemetryBackend;
-  nextBackend: BitstreamTelemetryBackend;
-}): void {
-  const prevSim = effectiveTelemetryRouteIsSimulator(args.prevBackend);
-  const nextSim = effectiveTelemetryRouteIsSimulator(args.nextBackend);
-  if (nextSim && !prevSim)
-  {
-    void releaseOpenSerialPort();
-  }
 }
 
 /**

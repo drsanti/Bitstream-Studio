@@ -1,39 +1,14 @@
 ---
-description: TESAIoT firmware and library paths for Bitstream or protocol analysis (off-repo sources of truth)
+description: TESAIoT firmware and library paths for Bitstream protocol truth
 alwaysApply: true
 ---
 
-# TESAIoT firmware and Bitstream (off `t3d-extension`)
+# TESAIoT firmware and Bitstream (external workspaces)
 
-The **host** implementation and docs live under this repo (`t3d-extension` / `src/bitstream`). For **firmware truth** (what fields mean, counters, encoders, task flow), the authoritative sources are in the **TESAIoT** workspace on this machine—**not** vendored inside `ternion-t3d`.
+See repo root **`.cursor/rules/tesaiot-firmware-bitstream-paths.mdc`**.
 
-When the user (or the task) mentions **Protocol**, **Bitstream**, or **firmware behavior** and the answer is not fully specified in `src/bitstream` or the webview, **check or reference** these locations:
+**Host canonical (this package):** `docs/BS2_PROTOCOL_INDEX.md`, `docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md`, `src/bitstream2/`.
 
-| Role | Path |
-|------|------|
-| **Main firmware** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware` |
-| **Library** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Library` |
-| **Bitstream (firmware module)** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware\proj_cm55\src\bitstream` |
-| **Bitstream Simulator (host virtual MCU)** | `D:\CODE\2026\ternion-t3d\bitstream-simulator` — see **`bitstream-simulator-app-path.mdc`** |
+**Firmware:** `TESAIoT_Library/CM55/modules/bitstream`.
 
-## Agent behavior
-
-1. Prefer **`proj_cm55\src\bitstream`** for payload layout, sensor publish logic, and counters versus **`src/bitstream`** (host) for decode/UI parity.
-2. Use **`TESAIoT_Library`** when shared drivers/types cross projects.
-3. If those folders are outside the current Cursor workspace, **say so** and use terminal/read tools with **absolute paths** when the environment allows, or ask the user to add the TESAIoT folder to the workspace for direct file reads.
-
-## Firmware Bitstream portability (non-negotiable)
-
-When implementing or refactoring firmware Bitstream code under
-`D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware\proj_cm55\src\bitstream`:
-
-- **Isolation requirement**: Treat Bitstream as a **copyable module**. Do **not** include headers from other firmware modules/services (Wi‑Fi, diagnostics, UI, transport, app-level code) inside the protocol core and shared Bitstream sources.
-- **Ports-only integration**: All project-specific wiring must go through the **protocol port layer** under:
-  - `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware\proj_cm55\src\bitstream\protocol\port\include`
-- **Copy-to-other-project goal**: A user must be able to copy the entire `proj_cm55\src\bitstream` folder into another firmware project and have it work by editing **only** the protocol port files (and their adapter implementations) without touching protocol logic, encoders/decoders, or channel handlers.
-
-If a change would violate this, restructure it behind a port API (or a thin adapter owned by the target module) instead of adding new cross-module includes to Bitstream.
-
-## Communication
-
-Per project language rules, explain in **Thai and/or English** only.
+Protocol change checklist: **`bs2-protocol-change.mdc`**.

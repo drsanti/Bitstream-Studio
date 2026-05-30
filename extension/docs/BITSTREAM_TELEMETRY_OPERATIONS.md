@@ -7,7 +7,13 @@
 
 - **Hamburger → Telemetry link diagnostics** — transport snapshot, **BRx**, **WS RX**, per-sensor decode freshness, **0x01 decode reject** counter, **Reconnect telemetry**, and wedge guidance.
 - **Telemetry performance** (settings) — UI cadence plus automation toggles below.
-- **Toolbar → Telemetry data source** — **Bitstream** vs **Simulator** (see **`HOW_TO_RUN.md`**). Mock simulator samples must **not** update the UI when Bitstream is selected and COM is closed (`shouldIngestTelemetry` in `bitstream-app/utils/bitstreamTelemetryTransport.ts`).
+- **Toolbar → Telemetry data source** — **Bitstream** vs **Simulator** (see **`HOW_TO_RUN.md`**, **`TELEMETRY_MODE_LIFECYCLE.md`**). Only one stream at a time: bridge publishes **`bitstream2/telemetry/route`**; samples carry optional **`origin`** (`uart` | `sim`). Webview gates: `shouldIngestTelemetryForRoute` + `shouldAcceptBs2SampleOrigin` in `bitstream-app/utils/bitstreamTelemetryTransport.ts`.
+
+## Mode switch (operator)
+
+1. **Bitstream → Simulator:** UI clears live samples; bridge closes COM if open; external sim receives **`run`** when route is simulator.
+2. **Simulator → Bitstream:** sim **`idle`**; open COM from toolbar or Port Admin; samples appear only after COM open + BS2 HELLO/handshake.
+3. **Mixed data symptom:** restart bridge, confirm toolbar mode, check Activity Log for route publish. See **`TELEMETRY_MODE_LIFECYCLE.md`** § Verify mode switch.
 
 ## Settings (persisted)
 

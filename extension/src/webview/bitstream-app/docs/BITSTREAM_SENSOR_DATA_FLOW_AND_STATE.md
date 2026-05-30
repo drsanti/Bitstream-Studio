@@ -1,6 +1,8 @@
 # Bitstream sensor data: firmware to UI, stores, and hooks
 
-**Last updated:** 27 May 2026
+**Last updated:** 2026-05-30
+
+> **2026-05-30 — Telemetry mode A+B:** Bitstream and Simulator are **mutually exclusive**. Webview **`telemetryModeLifecycle`** + broker **`bitstream2/telemetry/route`** + bridge **`origin`** tags. See **`../../../../docs/TELEMETRY_MODE_LIFECYCLE.md`**.
 
 > **2026-05-27 — Webview transport simulator-only:** Main shell removed **`serialport/*`** UI exchange, serial port list, wedge auto-reconnect, and **`runtimeSync`**. Telemetry flows via **`useBitstream2TelemetryBridge`** only. See **`BITSTREAM_WEBVIEW_TRANSPORT_SIMULATOR_ONLY.md`**.
 
@@ -55,7 +57,7 @@ flowchart LR
 
   subgraph Webview["Webview"]
     BR["useBitstream2TelemetryBridge"]
-    GATE["shouldIngestTelemetry"]
+    GATE["shouldIngestTelemetryForRoute\n+ shouldAcceptBs2SampleOrigin"]
     LIVE["bitstreamLive / flow store"]
     UI["Deck / Sensor Studio"]
   end
@@ -66,11 +68,12 @@ flowchart LR
 
 | Piece | Path / topic |
 | ----- | ------------- |
-| Synthetic values (sim only) | `src/bitstream2/device/sensor-synth.ts` — all masked scalars are **sine** (~0.2 Hz) |
-| Ingest gating | `../utils/bitstreamTelemetryTransport.ts` — **Simulator** always; **UART** requires open serial and **no** loopback-only mock when source is UART |
-| BS2 cfg apply | `useBitstream2SensorCfgTransport` → `bitstream2/req` (`SENSOR_CFG_SET`) |
-| Panel unlock | `useSensorSettingsPanelReady` — WS + HELLO / handshake / loopback, not serial snapshot alone |
-| Simulator idle | `bitstream2/dev/sim/control` `{ mode: "idle" }` when UART selected with loopback on |
+| Synthetic values (sim only) | External **bitstream-simulator** extension (not in-process mock) |
+| Route + lifecycle | `../bridge/telemetryModeLifecycle.ts`, `bitstream2/telemetry/route` |
+| Ingest gating | `../utils/bitstreamTelemetryTransport.ts` — **Bitstream:** COM open only; **Simulator:** COM closed only; optional **`origin`** on `evt/sensor` |
+| BS2 cfg apply (v0.1) | Local draft in **`useSensorConfigController`**; wire **`SENSOR_CFG_SET`** restore is backlog |
+| Panel unlock | `useSensorSettingsPanelReady` — HELLO / handshake / WS ready, not serial snapshot alone |
+| Simulator stream control | `bitstream2/dev/sim/control` **`idle`** / **`run`** on toolbar change |
 
 Legacy **v1** `HostSession` + `decodeBitstreamSensorSample` (§1 below) still applies for older firmware; BS2 JSON may update the same UI hints in parallel when ingested.
 

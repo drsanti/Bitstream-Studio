@@ -3,15 +3,20 @@
 VS Code extension for **Sensor Telemetry** and **Sensor Studio** (BS2 Bitstream protocol).
 
 - **Repository:** https://github.com/drsanti/Bitstream-Studio
-- **Migration plan:** `extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`
-- **Onboarding:** `AGENT_HANDOFF.md`
+- **Onboarding (read first):** [`AGENT_HANDOFF.md`](AGENT_HANDOFF.md)
+- **Backlog:** [`extension/docs/DEVELOPMENT_TRACKER.md`](extension/docs/DEVELOPMENT_TRACKER.md)
+- **Runbook:** [`extension/HOW_TO_RUN.md`](extension/HOW_TO_RUN.md)
+- **Telemetry modes:** [`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`](extension/docs/TELEMETRY_MODE_LIFECYCLE.md)
+- **T3D decoupling (complete):** [`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`](extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md)
+
+**Version:** `0.1.0` — VSIX smoke passed **2026-05-30** (see handoff §4).
 
 ## Layout
 
 ```text
 Bitstream-Studio/
   extension/     # VS Code extension (npm project root)
-  .cursor/       # Cursor agent rules
+  .cursor/       # Agent rules + skills (see .cursor/skills/README.md)
 ```
 
 **Not in this repo:** `T3D/` (legacy engine), `bitstream-simulator/` (separate VS Code extension).
@@ -21,13 +26,25 @@ Bitstream-Studio/
 ```bash
 cd extension
 npm install
-npm run dev:bitstream2-loopback   # bridge + Vite; see HOW_TO_RUN.md
+
+# Terminal 1
+npm run start:bridge
+
+# Terminal 2
+npm run dev:webview
 ```
+
+See **`HOW_TO_RUN.md`** for Simulator mode and full stack (`npm start`).
 
 Browser:
 
-- Sensor Telemetry: http://localhost:5173/?app=bitstream
-- Sensor Studio: http://localhost:5173/?app=sensor-studio
+Dev URL: **http://localhost:5173/** — toolbar tabs switch Sensor Telemetry / Sensor Studio (persisted in `localStorage`).
+
+| VS Code | Behavior |
+|---------|----------|
+| **Open Bitstream Studio** (`bitstream-studio.open`) | Last tab |
+| **… (Sensor Telemetry tab)** | Telemetry workspace |
+| **… (Sensor Studio tab)** | Studio workspace |
 
 ## External dependencies
 
@@ -35,7 +52,7 @@ Browser:
 |-----------|----------|
 | **TESAIoT firmware / library** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\` (add to Cursor multi-root as needed) |
 | **bitstream-simulator** | Separate repo — install VS Code extension for Simulator mode |
-| **`@ternion/t3d`** | Temporary npm dep — removed in Phase 4 of decoupling plan |
+| **`@ternion/t3d`** | Removed (Phase 4 decoupling complete) |
 
 ## Legacy source
 

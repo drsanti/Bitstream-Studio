@@ -49,7 +49,7 @@ test("applyDevSerialWrite routes to external sim when useExternalSim", async () 
   assert.deepEqual([...external[0]!], [5, 6]);
 });
 
-test("applyDevSerialWrite writes port and external sim when both enabled", async () => {
+test("applyDevSerialWrite prefers port when COM open (no external sim feed)", async () => {
   let portWrites = 0;
   let externalFeeds = 0;
   await applyDevSerialWrite({
@@ -64,5 +64,5 @@ test("applyDevSerialWrite writes port and external sim when both enabled", async
     },
   });
   assert.equal(portWrites, 1);
-  assert.equal(externalFeeds, 1);
+  assert.equal(externalFeeds, 0);
 });

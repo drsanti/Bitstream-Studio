@@ -13,13 +13,13 @@
 import { create } from "zustand";
 import type { Bitstream2HelloPayload } from "../../../bitstream2/bridge/protocol";
 import {
-  releaseComIfEnteringSimulatorRoute,
   shouldRequestUartFullBringUp,
 } from "../bridge/telemetryRouteComPolicy.js";
 import {
   publishDevSimStreamingControl,
   publishDevSimStreamingIdle,
 } from "../bridge/publishDevSimStreamingControl.js";
+import { runTelemetryModeLifecycleSwitch } from "../bridge/telemetryModeLifecycle.js";
 import {
   type BitstreamTelemetryBackend,
   type BitstreamTelemetryEffectiveBackend,
@@ -67,13 +67,12 @@ function loadPersistedBackend(): BitstreamTelemetryBackend {
   return "uart";
 }
 
-function applyTelemetryRouteChange(args: {
+function computeUartBringUpPending(args: {
   prevBackend: BitstreamTelemetryBackend;
   nextBackend: BitstreamTelemetryBackend;
-}): { uartBringUpPending: boolean } {
-  releaseComIfEnteringSimulatorRoute(args);
-  const uartBringUpPending = shouldRequestUartFullBringUp(args);
-  return { uartBringUpPending };
+  currentPending: boolean;
+}): boolean {
+  return args.currentPending || shouldRequestUartFullBringUp(args);
 }
 
 type BitstreamTelemetrySourceState = {
@@ -148,29 +147,32 @@ export const useBitstreamTelemetrySourceStore = create<BitstreamTelemetrySourceS
     uartAwaitingReplug: false,
     setBackend: (backend) => {
       const prevBackend = get().backend;
+      if (prevBackend === backend)
+      {
+        return;
+      }
       persistBackend(backend);
-      const route = applyTelemetryRouteChange({
-        prevBackend,
-        nextBackend: backend,
-      });
       set({
         backend,
         ...(backend === "simulator" ? { loopbackAvailable: true } : {}),
-        uartBringUpPending: get().uartBringUpPending || route.uartBringUpPending,
+        uartBringUpPending: computeUartBringUpPending({
+          prevBackend,
+          nextBackend: backend,
+          currentPending: get().uartBringUpPending,
+        }),
+        bs2Hello: null,
+        ...(backend === "simulator"
+          ? { uartWatchStartedAtMs: null }
+          : { simulatorWatchStartedAtMs: null }),
       });
-      if (prevBackend !== backend) {
-        useBitstreamLiveStore.getState().resetLiveData();
-        if (backend === "simulator") {
-          set({ bs2Hello: null, uartWatchStartedAtMs: null });
-          armSimulatorMissingNoticeWatchState(set, get);
-          publishDevSimStreamingControl();
-        }
-        else {
-          set({ bs2Hello: null, simulatorWatchStartedAtMs: null });
-          armUartMissingHandshakeWatchState(set, get);
-          publishDevSimStreamingIdle();
-        }
-      }
+      void runTelemetryModeLifecycleSwitch({
+        prevBackend,
+        nextBackend: backend,
+        armSimulatorWatch: () => get().armSimulatorMissingNoticeWatch(),
+        armUartWatch: () => get().armUartMissingHandshakeWatch(),
+      }).catch(() => {
+        /* Activity log / serial status reflects remaining state */
+      });
     },
     setLoopbackAvailable: (loopbackAvailable) => {
       set({ loopbackAvailable });

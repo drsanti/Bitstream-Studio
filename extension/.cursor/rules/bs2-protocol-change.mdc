@@ -1,0 +1,55 @@
+---
+description: Mandatory checklist when changing BS2 wire protocol, broker topics, or sensor cfg
+alwaysApply: true
+---
+
+# BS2 protocol change checklist (Bitstream Studio)
+
+**Canonical doc index:** `docs/BS2_PROTOCOL_INDEX.md` (paths relative to **`extension/`**)  
+**Skill:** repo root `.cursor/skills/bs2-protocol-change/SKILL.md`
+
+When the task changes **UART wire format**, **message types**, **SENSOR_CFG** layout, **EVT_SENSOR** payloads, **broker JSON** (`bitstream2/*`), or **telemetry route** behavior, follow this order. Do **not** skip spec or tests for “code-only” tweaks that change on-wire or decode behavior.
+
+## 1. Spec
+
+| Change type | Edit first |
+|-------------|------------|
+| Framing, TYPE bytes, HELLO, REQ/RES, EVT_* | `docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` |
+| SENSOR_CFG body, caps bits, publish modes | `src/bitstream2/docs/SENSOR_CFG_V2.md` |
+| Host COM lifecycle | `src/bitstream2/docs/HOST_UART_LINK.md` |
+| Broker route / `origin` (not UART bytes) | `docs/TELEMETRY_MODE_LIFECYCLE.md` |
+
+Do **not** treat `ternion-t3d` docs as canonical.
+
+## 2. Implementation
+
+| Layer | Path |
+|-------|------|
+| Framing / CRC | `src/bitstream2/framing/` |
+| Types / codec | `src/bitstream2/protocol/`, `domains/` |
+| UART → JSON | `src/bitstream2/runtime/uart-decode.ts` |
+| WS broker types | `src/bitstream2/bridge/protocol.ts` |
+| Bridge gating | `src/serialport-bridge/SerialPortWebSocketBridge.ts` |
+| Webview ingest | `src/webview/bitstream-app/utils/bitstreamTelemetryTransport.ts` |
+| CLI probes | `src/bitstream2/dev/` |
+
+After **bridge** changes: restart `npm run start:bridge`.
+
+## 3. Tests
+
+```bash
+npm run test:bitstream2
+```
+
+Wire byte changes: `npm run bitstream2:golden:gen`. MCU: skill **`bs2-uart-bringup`**.
+
+## 4. Firmware + simulator
+
+- Firmware: `TESAIoT_Library/CM55/modules/bitstream`
+- External sim: **`bitstream-simulator`** repo
+
+## 5. Tracker
+
+Update `docs/DEVELOPMENT_TRACKER.md` and root **`AGENT_HANDOFF.md`** when shipping.
+
+See root **`.cursor/rules/bs2-protocol-change.mdc`** for full checklist and **`bitstream-dual-runtime.mdc`** for telemetry parity.

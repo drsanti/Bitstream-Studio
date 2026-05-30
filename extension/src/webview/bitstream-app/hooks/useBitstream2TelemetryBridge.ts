@@ -16,11 +16,13 @@ import { bs2SampleToBitstreamSensorSampleV2 } from "../bridge/bs2-sample-to-live
 import { useBitstreamTelemetrySourceStore } from "../state/bitstreamTelemetrySource.store";
 import { useBitstreamConnectionStore } from "../state/bitstreamConnection.store";
 import { useBitstreamLiveStore } from "../state/bitstreamLive.store";
-import { publishDevSimStreamingControl } from "../bridge/publishDevSimStreamingControl.js";
+import { publishDevSimStreamingControl, publishDevSimStreamingIdle } from "../bridge/publishDevSimStreamingControl.js";
+import { publishTelemetryRoute } from "../bridge/publishTelemetryRoute.js";
 import {
   isSimulatorTelemetryBackend,
   reconcileBs2HandshakePassedFromStores,
   shouldAcceptBs2Hello,
+  shouldAcceptBs2SampleOrigin,
   shouldIngestTelemetry,
   type TelemetryTransportSnapshot,
 } from "../utils/bitstreamTelemetryTransport.js";
@@ -133,15 +135,19 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
     void connect();
   }, [connect]);
 
-  /** Re-assert run when WS connects and Telemetry Source is Simulator. */
+  /** Re-assert route + sim control when WS connects. */
   useEffect(() => {
     if (!isConnected) {
       return;
     }
-    if (telemetryBackend !== "simulator") {
-      return;
+    const backend = useBitstreamTelemetrySourceStore.getState().backend;
+    publishTelemetryRoute(backend);
+    if (backend === "simulator") {
+      publishDevSimStreamingControl();
     }
-    publishDevSimStreamingControl();
+    else {
+      publishDevSimStreamingIdle();
+    }
   }, [isConnected, telemetryBackend]);
 
   useEffect(() => {
@@ -166,7 +172,15 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
       if (cancelled) {
         return;
       }
-      publishDevSimStreamingControl();
+      const backend = useBitstreamTelemetrySourceStore.getState().backend;
+      if (backend === "uart") {
+        publishTelemetryRoute("uart");
+        publishDevSimStreamingIdle();
+      }
+      else {
+        publishTelemetryRoute("simulator");
+        publishDevSimStreamingControl();
+      }
     })();
 
     const onMessage = (topic: string, payload: unknown) => {
@@ -190,7 +204,15 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
           dev.loopbackEnabled === true || dev.externalSimOnline === true;
         useBitstreamTelemetrySourceStore.getState().setLoopbackAvailable(loopbackOn);
         if (loopbackOn) {
-          publishDevSimStreamingControl();
+          const backend = useBitstreamTelemetrySourceStore.getState().backend;
+          if (backend === "uart") {
+            publishTelemetryRoute("uart");
+            publishDevSimStreamingIdle();
+          }
+          else {
+            publishTelemetryRoute("simulator");
+            publishDevSimStreamingControl();
+          }
         }
         if (loopbackOn && useBitstreamTelemetrySourceStore.getState().backend === "simulator") {
           useBitstreamLiveStore.getState().touchFirmwareRxAt();
@@ -222,9 +244,12 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
         return;
       }
 
-      useBitstreamLiveStore.getState().bumpBs2EvtSensorRx();
-
       const bs2 = payload as Bitstream2SensorSamplePayload;
+      if (!shouldAcceptBs2SampleOrigin(bs2)) {
+        return;
+      }
+
+      useBitstreamLiveStore.getState().bumpBs2EvtSensorRx();
       const mapped = bs2SampleToBitstreamSensorSampleV2(bs2);
       if (mapped == null) {
         return;

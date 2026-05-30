@@ -1,4 +1,5 @@
 import type { SerialPortStatusPayload } from "../../../serialport-bridge/protocol";
+import type { Bitstream2SensorSamplePayload } from "../../../bitstream2/bridge/protocol";
 import type { HandshakeLifecycleState } from "../state/bitstreamLive.store";
 import { useBitstreamLiveStore } from "../state/bitstreamLive.store";
 import {
@@ -91,24 +92,54 @@ export function isTelemetryDecodePipelineActive(
 }
 
 /**
- * Whether decoded sensor samples may update the UI (BS2 `evt/sensor` on UART; legacy v1 on simulator).
+ * Whether decoded sensor samples may update the UI (BS2 `evt/sensor` on UART; simulator via inject-rx).
  *
- * - **Simulator:** always (mock MCU on the bridge).
- * - **UART:** ingest when the serial port is open (real BS-framed MCU traffic).
- *   Dev loopback does not block UART ingest — use **Simulator** as SOURCE for mock-only traffic.
+ * Modes are mutually exclusive:
+ * - **Simulator:** ingest when COM is closed (virtual sim inject only).
+ * - **Bitstream (UART):** ingest when COM is open (real hardware only).
  */
-export function shouldIngestTelemetry(
+export function shouldIngestTelemetryForRoute(
+  backend: BitstreamTelemetryEffectiveBackend,
   conn: TelemetryTransportSnapshot,
 ): boolean {
-  if (isSimulatorTelemetryBackend()) {
-    return true;
+  const comOpen = isComLinkOpen(conn);
+
+  if (backend === "simulator")
+  {
+    return !comOpen;
   }
 
-  if (isBs2UartFirmwareLink()) {
-    return isComLinkOpen(conn);
+  if (backend === "uart")
+  {
+    return comOpen;
   }
 
   return false;
+}
+
+export function shouldIngestTelemetry(
+  conn: TelemetryTransportSnapshot,
+): boolean {
+  return shouldIngestTelemetryForRoute(getEffectiveTelemetryBackend(), conn);
+}
+
+/**
+ * When bridge tags `evt/sensor` with `origin`, enforce mode match (defense in depth).
+ * Legacy payloads without `origin` fall back to route + COM rules only.
+ */
+export function shouldAcceptBs2SampleOrigin(
+  sample: Pick<Bitstream2SensorSamplePayload, "origin">,
+  backend: BitstreamTelemetryEffectiveBackend = getEffectiveTelemetryBackend(),
+): boolean {
+  if (sample.origin === "uart")
+  {
+    return backend === "uart";
+  }
+  if (sample.origin === "sim")
+  {
+    return backend === "simulator";
+  }
+  return true;
 }
 
 /**

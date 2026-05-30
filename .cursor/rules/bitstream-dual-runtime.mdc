@@ -7,13 +7,37 @@ alwaysApply: true
 
 **NON-NEGOTIABLE:** Every Bitstream-related feature must behave correctly in **both** telemetry backends and ship the same in **dev** and **installed VSIX**.
 
-## UART and Simulation
+## UART and Simulation (mutually exclusive)
 
-Treat **UART** (serial / BS-framed firmware) and **Simulation** (external **bitstream-simulator** VS Code extension) as **first-class peers**.
+Treat **Bitstream** (real COM / BS-framed firmware) and **Simulation** (external **bitstream-simulator** VS Code extension) as **first-class peers** — **never mixed in the UI**.
 
-- Backend store: **`uart`** (UI **Bitstream**) | **`simulator`** — no Auto mode.
-- **Ingest:** **`shouldIngestTelemetry()`** — Simulator ingests BS2 from external sim; UART only when serial is open.
-- See **`extension/HOW_TO_RUN.md`** for bridge + sim install.
+- Backend store: **`useBitstreamTelemetrySourceStore`** — **`uart`** (UI **Bitstream**) | **`simulator`**; no Auto mode.
+- **Route:** webview publishes **`bitstream2/telemetry/route`**; bridge gates UART vs `inject-rx`; samples tagged **`origin`**: `uart` | `sim`.
+- **Ingest:** **`shouldIngestTelemetryForRoute()`** + **`shouldAcceptBs2SampleOrigin()`** in `bitstreamTelemetryTransport.ts`.
+- **Lifecycle:** **`telemetryModeLifecycle.ts`** on toolbar change (clear data, release COM → Simulator, sim **`idle`/`run`**).
+- Full design: **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`**.
+- **Restart bridge** after `SerialPortWebSocketBridge.ts` changes.
+
+### Sensor configuration (SENSOR_CFG v2 / v2.1)
+
+- **Apply path (webview, v0.1):** **`useSensorConfigController`** updates store as **local draft** only (`updatedAtMs: 0`). Wire **`SENSOR_CFG_SET`** restore is backlog.
+- Protocol: **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`**.
+
+### UI readiness (sensor settings deck)
+
+- Use **`useSensorSettingsPanelReady`** — HELLO / handshake + WS ready; not serial snapshot alone.
+
+### Testing matrix (minimum)
+
+| Backend | Connect | Verify |
+|--------|---------|--------|
+| **Simulation** | `start:bridge` + external sim streaming + toolbar **Simulator** | Sine samples; deck unlocks; no COM open |
+| **Bitstream** | COM open @ 921600 + toolbar **Bitstream** | Hardware EVT only; sim inject blocked |
+
+| Environment | Verify |
+|-------------|--------|
+| **Vite dev** | Both rows above + mode switch clears mixed data |
+| **Installed VSIX** | Same; **`extension/HOW_TO_RUN.md`** smoke checklist |
 
 ## VS Code webview detection
 
@@ -23,9 +47,8 @@ Treat **UART** (serial / BS-framed firmware) and **Simulation** (external **bits
 ## Build
 
 - **`npm run compile`** in **`extension/`** before packaging.
-- Re-test **`.vsix`** in a clean window after **`npm run package`**.
+- Re-test **`.vsix`** after **`npm run package`** (no `@ternion/t3d` in this repo).
 
 ## Related
 
-- **`bitstream-studio-rules.mdc`**, **`bitstream-app-conventions.mdc`**
-- **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`**
+- **`AGENT_HANDOFF.md`**, **`bitstream-studio-handoff.mdc`**, **`bs2-protocol-change.mdc`**, **`bitstream-app-conventions.mdc`**, **`HOW_TO_RUN.md`**

@@ -15,7 +15,7 @@ flowchart TB
     RRoot --> RDev["Vite dev routes"]
     RDev --> RMap["src assets keys to __extension_src_assets"]
     RDev --> UDev["pack keys to __ternion_user mirrors"]
-    RRoot --> RSub["free and tesaiot packs plus bundled models textures jolt fonts"]
+    RRoot --> RSub["free and tesaiot packs plus bundled models textures fonts"]
   end
 
   subgraph userTree["Per user tree VS Code only"]

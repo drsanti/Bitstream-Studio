@@ -55,7 +55,7 @@ flowchart TD
 | Command | What it runs | Use when |
 |---------|----------------|----------|
 | **`npm run dev:with-model-loader`** | **`start:model-downloader-bridge`** + **`npm run dev`** (same as `dev:with-t3d-watch` stack). | Full extension watch **and** Model Loader / related WS in **browser** or webview. |
-| **`npm run dev:model-loader-browser`** | **`start:model-downloader-bridge`** + **`dev:browser`** (Vite only). | Fast **browser-only** UI iteration; **no** extension TypeScript watch. |
+| **`npm run dev:model-loader-browser`** | **`start:model-downloader-bridge`** + **`dev:webview`** (Vite only). | Fast **browser-only** UI iteration; **no** extension TypeScript watch. |
 
 **Do not** use these if you only need the **serial** side — they emphasize the **9999** stack. For serial/Bitstream UI, run **`start:bridge`** (combined bridge, includes serial broker on **9998**).
 
@@ -153,7 +153,7 @@ Environment knobs:
 
 | Command | Use when |
 |---------|----------|
-| **`npm run dev:browser`** | Quick **Vite** open-in-browser (same `predev` hooks as `dev:webview`). No extension compile watch. |
+| **`npm run dev:webview`** | Vite dev server (opens `/?app=bitstream` by default). No extension compile watch unless paired with `watch:all` via `dev:all`. |
 
 Pair with **`start:bridge`** or **`dev:with-model-loader`** depending on whether you need serial (**9998**) or model-loader (**9999**) WS.
 
@@ -226,11 +226,13 @@ Not the same process as **`ai:bridge`** (WebSocket + fenced tools in the extensi
 
 ---
 
-## 10. Aliases and legacy names
+## 10. Aliases
 
 | Script | Note |
 |--------|------|
-| **`dev:linked`**, **`dev:with-copy`** | Same as **`dev:all`** — historical aliases. |
+| **`dev`** | Same as **`dev:all`**. |
+| **`test:bitstream`** | Same as **`test:bitstream2`**. |
+| **`bitstream:assistant`** | Same as **`ai:bridge`**. |
 
 ---
 

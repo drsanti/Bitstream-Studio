@@ -29,8 +29,9 @@ The main **Sensor Studio / Bitstream** shell (`?app=bitstream`) uses **`SensorSa
 ## Run
 
 ```bash
-cd t3d-extension
-npm run dev:bitstream2-loopback
+cd extension
+npm run start:bridge   # terminal 1
+npm run dev:webview    # terminal 2
 ```
 
 Open `http://localhost:5173/?app=bitstream`.

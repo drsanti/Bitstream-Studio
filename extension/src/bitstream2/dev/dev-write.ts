@@ -14,18 +14,20 @@ export type DevSerialWriteDeps = {
 export async function applyDevSerialWrite(deps: DevSerialWriteDeps): Promise<void> {
   const { data, portOpen, useExternalSim, writeToPort, feedExternalSim } = deps;
 
-  if (portOpen) {
+  /* Real COM takes precedence — do not mirror host TX to the external sim while UART is open. */
+  if (portOpen)
+  {
     await writeToPort(data);
+    return;
   }
 
-  if (useExternalSim) {
+  if (useExternalSim)
+  {
     await feedExternalSim(data);
     return;
   }
 
-  if (!portOpen) {
-    throw new Error(
-      "Serial port is not open. Start the bitstream-simulator extension (or BITSTREAM2_EXTERNAL_SIM=1) for host-only simulation.",
-    );
-  }
+  throw new Error(
+    "Serial port is not open. Start the bitstream-simulator extension (or BITSTREAM2_EXTERNAL_SIM=1) for host-only simulation.",
+  );
 }

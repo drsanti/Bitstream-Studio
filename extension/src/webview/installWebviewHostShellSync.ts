@@ -1,5 +1,8 @@
 import type { TernionShellHostToWebviewMessage } from "../ternion-shell-host-message.js";
-import { useBitstreamWorkspaceModeStore } from "./bitstream-app/state/bitstreamWorkspaceMode.store.js";
+import {
+  normalizeBitstreamWorkspaceId,
+  useBitstreamWorkspaceModeStore,
+} from "./bitstream-app/state/bitstreamWorkspaceMode.store.js";
 import { toggleQuickActionPalette } from "./quickActionToggle.js";
 
 let installed = false;
@@ -35,7 +38,11 @@ export function installWebviewHostShellSync(): void {
       toggleQuickActionPalette();
       return;
     }
-    useBitstreamWorkspaceModeStore.getState().setWorkspace(event.data.workspace);
+    const workspace = normalizeBitstreamWorkspaceId(event.data.workspace);
+    if (workspace != null)
+    {
+      useBitstreamWorkspaceModeStore.getState().setWorkspace(workspace);
+    }
   };
 
   window.addEventListener("message", onMessage);

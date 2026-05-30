@@ -5,43 +5,8 @@ alwaysApply: true
 
 # Development tracker (`docs/DEVELOPMENT_TRACKER.md`)
 
-Single canonical plan for **done / doing / next / inbox**. Prose in that file is **English only** (repository Markdown policy).
+Paths relative to **`extension/`**. Full policy: repo root **`.cursor/rules/development-tracker.mdc`**.
 
-## Read first (“open” the document)
+Read **`docs/DEVELOPMENT_TRACKER.md`** before substantial feature work. For BS2 protocol tasks, also read **`docs/BS2_PROTOCOL_INDEX.md`**.
 
-Treat **reading** `docs/DEVELOPMENT_TRACKER.md` with the Read tool as **opening** it for this workflow.
-
-**New machine / continuing BS2 work:** read monorepo **`AGENT_HANDOFF.md`** (repo root, one level above `t3d-extension/`) for Git branch **`BS2`**, clone setup, architecture, and session log — then read the tracker below.
-
-**Before** substantial work on `t3d-extension` when the task touches **features**, **multi-step refactors**, **Sensor Studio**, **Bitstream webview**, **AI bridge**, **dev scripts / ports**, or the user mentions **roadmap**, **backlog**, **next steps**, or **what’s left**:
-
-1. Read `docs/DEVELOPMENT_TRACKER.md` to align with **In progress**, **Planned / next**, **Incoming requirements**, and **Parking lot**.
-2. If the user’s request clearly continues a listed item, prefer that wording so the doc and implementation stay consistent.
-
-Skip a full read only for **narrow** fixes (e.g. single typo, one obvious file) that do not affect planning.
-
-## Update when something meaningful ships
-
-When you **finish** work that is **user-visible** or **worth remembering** for the next session (feature slice, consolidated fix, notable refactor):
-
-- Add a bullet under **Recently completed** with **`YYYY-MM-DD`** (see conventions inside `DEVELOPMENT_TRACKER.md`).
-- Update **In progress** (check off or remove items) and **Planned / next** if priorities shifted.
-
-Do **not** log every trivial one-line change unless the user asks for traceability.
-
-## User asks for a feature or requirement
-
-When the user **requests** a new capability, behavior, or requirement (or explicitly accepts a proposal):
-
-- Add a row to **Incoming requirements (inbox)** with **mandatory `YYYY-MM-DD`**, **Source**, one-line **Requirement**, **Status** `inbox`.
-- After you implement it: set Status to `accepted` / `deferred` / `rejected` as appropriate, add a **Recently completed** line, and link the work under **Planned / next** only if follow-ups remain.
-
-## Suggestions and follow-ups
-
-When you have **concrete follow-up** suggestions (tech debt, UX, security, docs) the team should not forget:
-
-- Add a short line under **Planned / next** or **Future / ideas**, unless the user declines.
-
-## Conflicts
-
-If instructions conflict, **user chat instructions** override this rule for that task; still update the tracker **after** the task when it resulted in shipped work or a new requirement.
+Update **Recently completed** when shipping; follow **`bs2-protocol-change.mdc`** for wire changes.

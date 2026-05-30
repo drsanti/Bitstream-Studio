@@ -1,0 +1,68 @@
+---
+description: Mandatory checklist when changing BS2 wire protocol, broker topics, or sensor cfg
+alwaysApply: true
+---
+
+# BS2 protocol change checklist (Bitstream Studio)
+
+**Canonical doc index:** `extension/docs/BS2_PROTOCOL_INDEX.md`  
+**Skill:** `.cursor/skills/bs2-protocol-change/SKILL.md`
+
+When the task changes **UART wire format**, **message types**, **SENSOR_CFG** layout, **EVT_SENSOR** payloads, **broker JSON** (`bitstream2/*`), or **telemetry route** behavior, follow this order. Do **not** skip spec or tests for “code-only” tweaks that change on-wire or decode behavior.
+
+## 1. Spec (this repo)
+
+| Change type | Edit first |
+|-------------|------------|
+| Framing, TYPE bytes, HELLO, REQ/RES, EVT_* | `extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` |
+| SENSOR_CFG body, caps bits, publish modes | `extension/src/bitstream2/docs/SENSOR_CFG_V2.md` |
+| Host COM lifecycle | `extension/src/bitstream2/docs/HOST_UART_LINK.md` |
+| Broker route / `origin` (not UART bytes) | `extension/docs/TELEMETRY_MODE_LIFECYCLE.md` |
+
+Do **not** edit `ternion-t3d/t3d-extension/docs/` as canonical — migration source only.
+
+## 2. Host implementation (`extension/`)
+
+| Layer | Path |
+|-------|------|
+| Framing / CRC | `src/bitstream2/framing/` |
+| Types / codec | `src/bitstream2/protocol/`, `domains/` |
+| UART → JSON | `src/bitstream2/runtime/uart-decode.ts` |
+| WS broker types | `src/bitstream2/bridge/protocol.ts` |
+| Bridge gating | `src/serialport-bridge/SerialPortWebSocketBridge.ts` |
+| Webview ingest | `src/webview/bitstream-app/utils/bitstreamTelemetryTransport.ts` |
+| CLI probes | `src/bitstream2/dev/` |
+
+After **bridge** changes: restart `npm run start:bridge`.
+
+## 3. Tests and golden fixtures
+
+```bash
+cd extension
+npm run test:bitstream2
+```
+
+- Add or update unit tests under `tests/bitstream2/`.
+- If **wire bytes** change: `npm run bitstream2:golden:gen` and commit `tests/fixtures/bitstream2-golden/`.
+- With MCU: `npm run bitstream2:uart-probe -- --path COMx --baud 921600` (skill **`bs2-uart-bringup`**).
+
+## 4. Firmware (separate workspace)
+
+Port the **same logical** wire change to:
+
+- `TESAIoT_Library/CM55/modules/bitstream` (+ `BS_WIRE.md` there for sensor EVT details)
+
+Firmware is authoritative for **on-device** packing; Bitstream Studio spec + TypeScript are authoritative for **host** decode/encode.
+
+## 5. External simulator
+
+If wire or SENSOR_CFG behavior changes, sync **`bitstream-simulator`** (separate repo) so **Simulator** toolbar mode matches UART.
+
+## 6. Tracker / handoff
+
+- Shipped feature: bullet in `extension/docs/DEVELOPMENT_TRACKER.md` (**Recently completed**).
+- Substantial session: row in repo root **`AGENT_HANDOFF.md`** §7.
+
+## Dual-runtime
+
+Bitstream (**uart**) and **Simulator** must stay mutually exclusive and parity-safe — see **`bitstream-dual-runtime.mdc`**.

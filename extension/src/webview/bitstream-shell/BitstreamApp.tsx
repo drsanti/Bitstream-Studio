@@ -1,7 +1,7 @@
 import React from "react";
 import { WebviewRuntimeInstaller } from "../runtime/WebviewRuntimeInstaller";
 import {
-  readBitstreamWorkspaceFromUrl,
+  readInitialBitstreamWorkspace,
   useBitstreamWorkspaceModeStore,
 } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { BitstreamShellMain } from "./BitstreamShellMain";
@@ -16,7 +16,7 @@ import { BitstreamShellMain } from "./BitstreamShellMain";
 export function BitstreamApp()
 {
   React.useEffect(() => {
-    useBitstreamWorkspaceModeStore.setState({ workspace: readBitstreamWorkspaceFromUrl() });
+    useBitstreamWorkspaceModeStore.setState({ workspace: readInitialBitstreamWorkspace() });
   }, []);
 
   return (

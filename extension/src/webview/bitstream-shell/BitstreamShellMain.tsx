@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { SensorStudioApp } from "../sensor-studio/app/SensorStudioApp.tsx";
 import { FreeAssetsLoaderDashboard } from "../free-assets-loader/FreeAssetsLoaderDashboard";
 import { ModelCatalogDashboard } from "../model-catalog/ModelCatalogDashboard";
@@ -13,24 +12,13 @@ import { usePreviewMeshMissingUiStore } from "../bitstream-app/state/previewMesh
 import { BitstreamSensorWorkspaceView } from "../bitstream-app/workspace/BitstreamSensorWorkspaceView";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import {
-  readBitstreamWorkspaceFromUrl,
-  useBitstreamWorkspaceModeStore,
-} from "../bitstream-app/state/bitstreamWorkspaceMode.store";
+import { useBitstreamWorkspaceModeStore } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { AssetManagerProvider, useOpenAssetManager } from "../assets-manager";
 
 export function BitstreamShellMain()
 {
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
   const sensorStudioMode = workspace === "sensor-studio";
-
-  useEffect(() => {
-    const onPopState = () => {
-      useBitstreamWorkspaceModeStore.setState({ workspace: readBitstreamWorkspaceFromUrl() });
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, []);
 
   const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
 

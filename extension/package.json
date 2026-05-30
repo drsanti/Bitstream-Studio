@@ -35,18 +35,23 @@
   "contributes": {
     "commands": [
       {
+        "command": "bitstream-studio.open",
+        "title": "Open Bitstream Studio",
+        "category": "Bitstream Studio"
+      },
+      {
         "command": "bitstream-studio.pickApplication",
         "title": "Bitstream Studio: Choose Application",
         "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.openBitstream",
-        "title": "Open Sensor Telemetry",
+        "title": "Open Bitstream Studio (Sensor Telemetry tab)",
         "category": "Bitstream Studio"
       },
       {
         "command": "bitstream-studio.openBitstreamSensorStudio",
-        "title": "Open Sensor Studio",
+        "title": "Open Bitstream Studio (Sensor Studio tab)",
         "category": "Bitstream Studio"
       },
       {
@@ -113,6 +118,10 @@
     "menus": {
       "commandPalette": [
         {
+          "command": "bitstream-studio.open",
+          "when": "true"
+        },
+        {
           "command": "bitstream-studio.openBitstream",
           "when": "true"
         },
@@ -138,7 +147,7 @@
     ],
     "configuration": [
       {
-        "title": "TERNION: WebSocket",
+        "title": "Bitstream Studio: WebSocket",
         "properties": {
           "ternion.ws.brokerPort": {
             "type": "number",
@@ -191,7 +200,7 @@
         }
       },
       {
-        "title": "TERNION: Assets",
+        "title": "Bitstream Studio: Assets",
         "properties": {
           "ternion.githubToken": {
             "type": "string",
@@ -217,7 +226,6 @@
   "scripts": {
     "dev:clean": "node scripts/dev-clean.mjs",
     "dev:supervisor": "node scripts/dev-supervisor.mjs",
-    "dev:with-supervisor": "npm run dev:supervisor",
     "prestart": "npm run dev:clean",
     "start": "node scripts/start-supervised.mjs",
     "start:inner": "concurrently --prefix-colors \"cyan,blue,magenta,yellow\" --prefix \"name\" --names \"bridge,dev,ai,model\" --kill-others-on-fail false \"npm run start:bridge\" \"npm run dev:all\" \"npm run ai:bridge:no-serial\" \"npm run start:model-downloader-bridge\"",
@@ -245,21 +253,14 @@
     "ai:bridge": "npx tsx src/ai/run.ai.bridge.ts",
     "ai:bridge:no-serial": "npx tsx src/ai/run.ai.bridge.ts --no-bitstream",
     "bitstream:assistant": "npx tsx src/ai/run.ai.bridge.ts",
-    "dev:model-loader-browser": "concurrently --prefix-colors \"cyan,blue\" --prefix \"name\" --names \"model-bridge,browser\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev:browser\"",
+    "dev:model-loader-browser": "concurrently --prefix-colors \"cyan,blue\" --prefix \"name\" --names \"model-bridge,browser\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev:webview\"",
     "dev:with-model-loader": "concurrently --prefix-colors \"cyan,blue,green\" --prefix \"name\" --names \"model-bridge,dev\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev\"",
     "vscode:prepublish": "npm run compile",
     "compile": "node scripts/build-extension.js && npm run build:webview",
     "watch": "node scripts/build-extension.js --watch",
     "watch:all": "concurrently --prefix-colors \"yellow,cyan\" --prefix \"name\" --names \"extension,webview\" --kill-others-on-fail false --hide \"exited\" \"node scripts/build-extension.js --watch\" \"vite build --watch\"",
-    "prewatch:all": "node scripts/sync-jolt-assets.js",
     "build:webview": "vite build",
-    "prebuild:webview": "node scripts/sync-jolt-assets.js",
     "dev:webview": "vite",
-    "predev:webview": "node scripts/sync-jolt-assets.js",
-    "dev:browser": "vite",
-    "predev:browser": "node scripts/sync-jolt-assets.js",
-    "dev:linked": "npm run dev:all",
-    "dev:with-copy": "npm run dev:all",
     "rebuild:full": "npm run compile && npm run package",
     "package": "npm run compile && npx vsce package --no-dependencies --allow-missing-repository",
     "publish": "npm run compile && npx vsce publish --no-dependencies --allow-missing-repository",
@@ -276,7 +277,7 @@
     "rebuild": "npx @electron/rebuild -v 37.3.1",
     "test:mqtt:wss": "npx tsx src/mqtt-node/test-mqtt-wss.ts",
     "test:bitstream": "npm run test:bitstream2",
-    "test:bitstream2": "npx tsx --test tests/bitstream2/*.test.ts",
+    "test:bitstream2": "npx tsx --test --test-force-exit tests/bitstream2/*.test.ts",
     "bitstream2:mock-probe": "npx tsx src/bitstream2/dev/run-mock-probe.ts",
     "bitstream2:dev-inject": "npx tsx src/bitstream2/dev/run-ws-injector.ts",
     "bitstream2:sim-scenario": "npx tsx src/bitstream2/dev/run-sim-scenario.ts",
@@ -288,7 +289,6 @@
     "bitstream2:uart-cfg-roundtrip": "npx tsx src/bitstream2/dev/run-uart-sensor-cfg-roundtrip.ts",
     "bitstream2:uart-cfg-behavior": "npx tsx src/bitstream2/dev/run-uart-sensor-cfg-behavior.ts",
     "bitstream2:golden:gen": "npx tsx src/bitstream2/dev/generate-golden-fixtures.ts",
-    "dev:bitstream2-loopback": "node scripts/dev-bitstream2-loopback.mjs",
     "bitstream:serial:probe": "npx tsx src/bitstream/probe-serial-list.ts",
     "bitstream:serial:open-close": "npx tsx src/bitstream/probe-serial-open-close.ts",
     "bitstream:probe:protocol": "npx tsx src/bitstream/probe-protocol-torture-cli.ts",
@@ -300,26 +300,28 @@
     "sync:studio-cubemap-assets": "node scripts/sync-studio-cubemap-assets.mjs"
   },
   "description:scripts": {
-    "dev": "Extension watch + Vite only — no Model Downloader WebSocket (ws://localhost:9998). Browser Model Loader needs a bridge; use dev:with-model-loader or dev:model-loader-browser.",
-    "dev:with-model-loader": "Same as dev plus start:model-downloader-bridge (WS + bridge) so browser Model Loader can connect.",
-    "dev:model-loader-browser": "Lightweight browser dev: Vite + model-downloader bridge only (no extension TS watch).",
-    "dev:clean": "Try to free dev TCP ports (default 9998 broker; set DEV_CLEAN_PORTS=9998,5173). Use --dry-run to only check. Cross-platform.",
-    "prestart": "Runs automatically before npm start to free default broker port(s) so start is less likely to hit EADDRINUSE.",
-    "start:no-clean": "Same as npm start but skips prestart/dev:clean (use when broker port is already free or another tool owns it).",
-    "start:inner:bitstream-ai": "Like start:inner but the AI lane runs **npm run ai:bridge** (Bitstream HostSession attach) instead of ai:bridge:no-serial. Set BITSTREAM_SERIAL_PATH (or rely on auto-detect). See DEVELOPMENT_COMMANDS.md.",
-    "start:with-bitstream-mcp": "**npm run prestart** then **start:inner:bitstream-ai** — one command for broker + dev + MCP-capable AI bridge (Sensor Studio Bitstream tools). Not the same as **npm start** (supervisor + no-serial AI).",
-    "start:bridge": "Combined broker + serial bridge (one-shot; restart manually after bridge TS edits)",
-    "start:bridge:watch": "Same as start:bridge but tsx watch — auto-restart on bridge entry / serialport-bridge edits",
-    "start:bridge:attach": "Attach only bridge clients to an already-running ws://127.0.0.1:9998 server (avoids EADDRINUSE from start:bridge).",
-    "dev:browser": "Run webview standalone in browser (fast dev)",
-    "dev:bitstream2-loopback": "Bridge + Vite for Simulator telemetry; run bitstream-simulator extension alongside. Browser opens /?app=bitstream.",
-    "build:webview": "Build webview only (outputs to out/webview/)",
-    "compile": "Full build: extension + webview for VS Code",
-    "ai:bridge": "WebSocket server for Assistant / Ai Dev Trace (default port 9987). Included in npm start as ai:bridge:no-serial to avoid COM contention with start:bridge.",
-    "bitstream:assistant": "Alias for ai:bridge. For firmware-backed MCP tools without a second serial attach, run this alone or stop start:bridge — see src/ai/README.md.",
-    "ai:bridge:no-serial": "Same as ai:bridge but skips serial attach (ANTHROPIC-only smoke or UI without COM).",
-    "publish:studio-asset-manifest": "PUT bundled `studio-asset-manifest.v1.json` to `ternion-3d-assets-free` (`assets/studio-asset-manifest.v1.json`). Requires env `GITHUB_TOKEN` (repo scope). Optional: `GITHUB_MANIFEST_OWNER`, `GITHUB_MANIFEST_REPO`, `GITHUB_MANIFEST_BRANCH`.",
-    "sync:studio-cubemap-assets": "HTTP GET cubemap JPEGs from `ternion-3d-assets-free` into `src/assets/textures/cubemap/...`. Default: paths from bundled `studio-asset-manifest.v1.json`. `--discover-all`: GitHub Contents API lists all `assets/textures/cubemap/*` (like `node-animator/scripts/download-assets.ts`); optional `GITHUB_TOKEN` for API rate limit. `--dry-run`, `--force`. Env: `STUDIO_ASSETS_RAW_BASE`, `GITHUB_FREE_ASSETS_*`. For private repos use Git Bash + SSH where your key works."
+    "start": "Dev supervisor (127.0.0.1:9910) + full stack: start:bridge, dev:all, ai:bridge:no-serial, model-downloader bridge. Runs prestart/dev:clean first.",
+    "start:no-clean": "Same inner stack as npm start without supervisor wrapper (start:inner).",
+    "start:with-bitstream-mcp": "prestart + start:inner:bitstream-ai — broker + dev + ai:bridge with HostSession attach for MCP tools.",
+    "start:bridge": "Combined serial/bitstream WebSocket broker (:9998) + bridge. Restart manually after bridge TS edits.",
+    "start:bridge:watch": "start:bridge with tsx watch — auto-restart on bridge source changes.",
+    "start:bridge:attach": "Attach bridge clients to an already-running broker (avoids second listener on :9998).",
+    "dev": "Alias for dev:all — extension TS watch + Vite webview. Does not start broker or model-loader WS (:9999).",
+    "dev:all": "Extension watch + Vite only. Pair with start:bridge in another terminal for Sensor Telemetry / Simulator.",
+    "dev:webview": "Vite dev server (opens /). Pair with start:bridge for broker-backed telemetry.",
+    "dev:with-model-loader": "dev + start:model-downloader-bridge so browser Model Catalog / loader can use WS :9999.",
+    "dev:model-loader-browser": "Vite + model-downloader bridge only (no extension TS watch).",
+    "dev:clean": "Free dev TCP ports (default 9998, 5173; override DEV_CLEAN_PORTS). Use --dry-run to inspect only.",
+    "compile": "Full build: extension host + webview (out/) for VS Code and VSIX.",
+    "build:webview": "Build webview only to out/webview/.",
+    "package": "compile + vsce package (.vsix).",
+    "test:bitstream2": "BS2 unit tests (framing, simulator, golden parity). test:bitstream is an alias.",
+    "bitstream:ci:check": "test:bitstream2 + StreamSight bitstream sync check.",
+    "ai:bridge": "AI WebSocket server (:9987). Included in npm start as ai:bridge:no-serial to avoid COM contention.",
+    "bitstream:assistant": "Alias for ai:bridge — see src/ai/README.md.",
+    "ai:bridge:no-serial": "AI bridge without serial HostSession attach.",
+    "publish:studio-asset-manifest": "Upload studio-asset-manifest.v1.json to ternion-3d-assets-free (GITHUB_TOKEN required).",
+    "sync:studio-cubemap-assets": "Download cubemap JPEGs from ternion-3d-assets-free into src/assets/textures/cubemap/."
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.16",
@@ -372,13 +374,10 @@
     "@serialport/parser-readline": "^13.0.0",
     "@xyflow/react": "^12.10.2",
     "aedes": "^0.51.3",
-    "cannon-es": "^0.20.0",
     "chroma-js": "^3.1.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "crossoriginworker": "^1.0.0",
     "gsap": "^3.13.0",
-    "jolt-physics": "^0.38.0",
     "lucide-react": "^0.546.0",
     "mqtt": "^5.14.1",
     "react": "^19.2.0",

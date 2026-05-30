@@ -44,7 +44,7 @@ export interface StatusBarItemsFor3DPanel {
 
 export interface TernionDigitalTwinCreateOptions {
   statusBar?: StatusBarItemsFor3DPanel;
-  /** Initial workspace when opening the panel (default `telemetry`). */
+  /** When set, overrides webview localStorage for the first paint only. Omit to use last tab. */
   bitstreamWorkspace?: BitstreamWorkspaceHostId;
 }
 
@@ -54,7 +54,7 @@ export class TernionDigitalTwin {
   private readonly _extensionUri: vscode.Uri;
   private readonly _context: vscode.ExtensionContext;
   private readonly _statusBar?: StatusBarItemsFor3DPanel;
-  private readonly _bitstreamWorkspace: BitstreamWorkspaceHostId;
+  private readonly _bitstreamWorkspace: BitstreamWorkspaceHostId | undefined;
   private _disposables: vscode.Disposable[] = [];
 
   public get webviewApp(): TernionWebviewEntry
@@ -85,14 +85,16 @@ export class TernionDigitalTwin {
       ? vscode.window.activeTextEditor.viewColumn
       : undefined;
 
-    const requestedWorkspace: BitstreamWorkspaceHostId =
-      options?.bitstreamWorkspace ?? "telemetry";
+    const requestedWorkspace = options?.bitstreamWorkspace;
 
     if (TernionDigitalTwin.currentPanel)
     {
-      TernionDigitalTwin.currentPanel.navigateBitstreamWorkspace(
-        requestedWorkspace,
-      );
+      if (requestedWorkspace != null)
+      {
+        TernionDigitalTwin.currentPanel.navigateBitstreamWorkspace(
+          requestedWorkspace,
+        );
+      }
       TernionDigitalTwin.currentPanel.reveal(column);
       return;
     }
@@ -100,7 +102,10 @@ export class TernionDigitalTwin {
     const panelTitle =
       requestedWorkspace === "sensor-studio"
         ? "Bitstream Studio — Sensor Studio"
-        : "Bitstream Studio — Sensor Telemetry";
+        : requestedWorkspace === "telemetry" ||
+            requestedWorkspace === "sensor-telemetry"
+          ? "Bitstream Studio — Sensor Telemetry"
+          : "Bitstream Studio";
 
     const panel = vscode.window.createWebviewPanel(
       "ternionDigitalTwinPanel",
@@ -137,7 +142,7 @@ export class TernionDigitalTwin {
     extensionUri: vscode.Uri,
     context: vscode.ExtensionContext,
     statusBar: StatusBarItemsFor3DPanel | undefined,
-    bitstreamWorkspace: BitstreamWorkspaceHostId,
+    bitstreamWorkspace: BitstreamWorkspaceHostId | undefined,
   )
   {
     this._panel = panel;
@@ -666,69 +671,6 @@ export class TernionDigitalTwin {
       "local-first",
     );
 
-    /**
-     *
-     *
-     */
-
-    // Use multithreaded Jolt Physics builds
-    // Note: VS Code webviews don't support COI, but we'll use blob URLs for workers
-    const joltProdMultithreadUri = this._panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "out",
-        "webview",
-        "assets",
-        "jolt",
-        "jolt-physics.multithread.wasm-compat.js",
-      ),
-    );
-    const joltDebugMultithreadUri = this._panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "out",
-        "webview",
-        "assets",
-        "jolt",
-        "jolt-physics.debug.multithread.wasm-compat.js",
-      ),
-    );
-
-    // Also provide single-threaded URIs as fallback
-    const joltProdModuleUri = this._panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "out",
-        "webview",
-        "assets",
-        "jolt",
-        "jolt-physics.wasm-compat.js",
-      ),
-    );
-    const joltDebugModuleUri = this._panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "out",
-        "webview",
-        "assets",
-        "jolt",
-        "jolt-physics.debug.wasm-compat.js",
-      ),
-    );
-
-    // Worker script URI for multithreaded Jolt Physics
-    const joltWorkerScriptUri = joltProdMultithreadUri;
-
-    // Get COI service worker URI
-    const coiWorkerUri = this._panel.webview.asWebviewUri(
-      vscode.Uri.joinPath(
-        this._extensionUri,
-        "out",
-        "webview",
-        "t3d-coi-serviceworker.js",
-      ),
-    );
-
     // Generate a random nonce for the webview
     const nonce = getNonce();
 
@@ -777,7 +719,7 @@ export class TernionDigitalTwin {
 
     window.WEBVIEW_READY = true;
     window.TERNION_WEBVIEW_APP = "bitstream";
-    window.TERNION_BITSTREAM_WORKSPACE = ${JSON.stringify(this._bitstreamWorkspace)};
+    ${this._bitstreamWorkspace != null ? `window.TERNION_BITSTREAM_WORKSPACE = ${JSON.stringify(this._bitstreamWorkspace)};` : ""}
     window.T3D_BITSTREAM_WS_URL = ${JSON.stringify(bitstreamWsUrl)};
     window.T3D_MODEL_LOADER_WS_URL = ${JSON.stringify(modelLoaderWsUrl)};
     window.T3D_AI_BRIDGE_WS_URL = ${JSON.stringify(aiBridgeWsUrl)};
@@ -809,36 +751,14 @@ export class TernionDigitalTwin {
       
     // Set online assets base URI for T3D engine (fallback)
     window.ONLINE_ASSETS_BASE_URI = "${onlineAssetsBaseUrl}";
-    
-    // COI service worker URI for multi-threaded Jolt Physics
-    window.COI_SERVICE_WORKER_URI = "${coiWorkerUri}";
-    
-    // Jolt Physics Worker script URI for multithreaded build
-    // This will be used as mainScriptUrlOrBlob to configure Worker creation in VS Code webview
-    window.JOLT_WORKER_SCRIPT_URI = "${joltWorkerScriptUri}";
-    
-    // Store single-threaded URIs for fallback when COI is not available
-    window.JOLT_SINGLE_THREADED_PROD_URI = "${joltProdModuleUri}";
-    window.JOLT_SINGLE_THREADED_DEBUG_URI = "${joltDebugModuleUri}";
-
-    //Store multithreaded URIs for fallback when COI is not available
-    window.JOLT_MULTITHREADED_PROD_URI = "${joltProdMultithreadUri}";
-    window.JOLT_MULTITHREADED_DEBUG_URI = "${joltDebugMultithreadUri}";
-
-
 
     const canUseThreads =
       globalThis.crossOriginIsolated === true &&
       typeof SharedArrayBuffer !== 'undefined';
 
-    const joltUri = canUseThreads
-      ? window.JOLT_MULTITHREADED_PROD_URI
-      : window.JOLT_SINGLE_THREADED_PROD_URI;
-
     const isWebview = typeof window.location !== 'undefined' && window.location.origin.startsWith('vscode-webview://');
 
     window.IS_WEBVIEW = isWebview;
-    window.JOLT_URI = joltUri;
     window.CAN_USE_THREADS = canUseThreads;
     window.SHARED_ARRAY_BUFFER = typeof SharedArrayBuffer !== 'undefined';
     window.CROSS_ORIGIN_ISOLATED = globalThis.crossOriginIsolated;
@@ -846,151 +766,10 @@ export class TernionDigitalTwin {
     console.clear();
     console.group('🔧 [HTML] Debug Info');
     console.log('%c🔧 [HTML] Is Webview:', 'color: lime; font-weight: bold;', isWebview);
-    console.log('%c🔧 [HTML] Jolt URI:', 'color: lime; font-weight: bold;', joltUri);
     console.log('%c🔧 [HTML] Can use threads:', 'color: lime; font-weight: bold;', canUseThreads);
     console.log('%c🔧 [HTML] SharedArrayBuffer:', 'color: lime; font-weight: bold;', typeof SharedArrayBuffer !== 'undefined');
     console.log('%c🔧 [HTML] CrossOriginIsolated:', 'color: lime; font-weight: bold;', globalThis.crossOriginIsolated);
     console.groupEnd();
-  </script>
-  <script nonce="${nonce}">
-    // CRITICAL: Patch Worker.prototype.postMessage IMMEDIATELY in HTML (synchronous)
-    // This MUST run before any module scripts load to ensure bundled code uses patched version
-    // Note: VS Code webviews now try multi-threading with crossoriginworker (primary) or blob URLs (fallback)
-    // This patch converts SharedArrayBuffer to ArrayBuffer since VS Code webviews don't support COI
-    // Browsers use multithreaded Jolt Physics which requires this patch for SharedArrayBuffer handling
-    (function() {
-      'use strict';
-      
-      // Only patch if we're in a webview without COI
-      if (window.WEBVIEW_READY && !window.crossOriginIsolated) {
-        console.log('🔧 [HTML] Applying Worker.prototype.postMessage patch synchronously before module load...');
-        
-        const OriginalWorkerPostMessage = Worker.prototype.postMessage;
-        
-        // Helper to check if transfer list contains SharedArrayBuffer
-        function hasSharedArrayBuffer(transfer) {
-          if (!transfer) return false;
-          return transfer.some(function(item) { return item instanceof SharedArrayBuffer; });
-        }
-        
-        // PROACTIVE patch: Check and convert SharedArrayBuffer BEFORE calling postMessage
-        Worker.prototype.postMessage = function(message, transferOrOptions) {
-          // Handle transfer list (legacy API: postMessage(message, transferList))
-          if (Array.isArray(transferOrOptions)) {
-            if (hasSharedArrayBuffer(transferOrOptions)) {
-              console.log('🔧 [HTML PROACTIVE] Detected SharedArrayBuffer in transfer list, converting to ArrayBuffer...');
-              const newTransferList = [];
-              for (let i = 0; i < transferOrOptions.length; i++) {
-                const item = transferOrOptions[i];
-                if (item instanceof SharedArrayBuffer) {
-                  // Convert SharedArrayBuffer to ArrayBuffer by copying
-                  const copy = new ArrayBuffer(item.byteLength);
-                  new Uint8Array(copy).set(new Uint8Array(item));
-                  newTransferList.push(copy);
-                } else {
-                  newTransferList.push(item);
-                }
-              }
-              return OriginalWorkerPostMessage.call(this, message, newTransferList);
-            }
-            // No SharedArrayBuffer, call normally
-            return OriginalWorkerPostMessage.call(this, message, transferOrOptions);
-          }
-          
-          // Handle StructuredSerializeOptions (new API: postMessage(message, { transfer: [...] }))
-          if (transferOrOptions && typeof transferOrOptions === 'object' && 'transfer' in transferOrOptions) {
-            const options = transferOrOptions;
-            if (Array.isArray(options.transfer) && hasSharedArrayBuffer(options.transfer)) {
-              console.log('🔧 [HTML PROACTIVE] Detected SharedArrayBuffer in transfer options, converting to ArrayBuffer...');
-              const newTransferList = [];
-              for (let i = 0; i < options.transfer.length; i++) {
-                const item = options.transfer[i];
-                if (item instanceof SharedArrayBuffer) {
-                  const copy = new ArrayBuffer(item.byteLength);
-                  new Uint8Array(copy).set(new Uint8Array(item));
-                  newTransferList.push(copy);
-                } else {
-                  newTransferList.push(item);
-                }
-              }
-              return OriginalWorkerPostMessage.call(this, message, {
-                transfer: newTransferList
-              });
-            }
-            // No SharedArrayBuffer, call normally
-            return OriginalWorkerPostMessage.call(this, message, transferOrOptions);
-          }
-          
-          // No transfer list/options, call normally
-          return OriginalWorkerPostMessage.call(this, message, transferOrOptions);
-        };
-        
-        console.log('✅ [HTML] Worker.prototype.postMessage patched synchronously before module load');
-      }
-    })();
-  </script>
-  <script type="importmap" nonce="${nonce}">
-  {
-    "imports": {
-      "jolt-physics/wasm-compat-multithread": "${String(joltProdModuleUri)}",
-      "jolt-physics/debug-wasm-compat-multithread": "${String(joltDebugModuleUri)}",
-      "jolt-physics/wasm-compat": "${String(joltProdModuleUri)}",
-      "jolt-physics/debug-wasm-compat": "${String(joltDebugModuleUri)}"
-    }
-  }
-  </script>
-  <script nonce="${nonce}">
-    // VS Code webview: Using single-threaded Jolt Physics builds (no workers)
-    // Patch import() function to resolve jolt-physics modules via importmap or direct URI
-    (function() {
-      'use strict';
-
-      
-      if (window.WEBVIEW_READY) {
-        console.log('🔧 Setting up module resolution for single-threaded Jolt Physics...');
-        
-        // Store the single-threaded module URIs
-        const joltProdUri = "${String(joltProdModuleUri)}";
-        const joltDebugUri = "${String(joltDebugModuleUri)}";
-        
-        // Store original import function
-        const originalImport = window.__import || (() => {
-          // Fallback: We'll patch it differently
-          return null;
-        })();
-        
-        // Create a module resolution map
-        const moduleResolutionMap = {
-          'jolt-physics/wasm-compat-multithread': joltProdUri,
-          'jolt-physics/debug-wasm-compat-multithread': joltDebugUri,
-          'jolt-physics/wasm-compat': joltProdUri,
-          'jolt-physics/debug-wasm-compat': joltDebugUri
-        };
-        
-        // Store the resolution map globally for potential use
-        window.__JOLT_MODULE_RESOLUTION_MAP__ = moduleResolutionMap;
-        
-        console.log('✅ Module resolution map configured:', moduleResolutionMap);
-        console.log('✅ Importmap should handle resolution, but fallback map is ready if needed.');
-        
-        // Verify importmap exists
-        const importmapScript = document.querySelector('script[type="importmap"]');
-        if (importmapScript) {
-          try {
-            const importmapText = importmapScript.textContent || importmapScript.innerHTML;
-            const importmap = JSON.parse(importmapText);
-            if (importmap.imports) {
-              console.log('✅ Importmap is valid and contains imports');
-              console.log('📋 Importmap redirects:', importmap.imports);
-            }
-          } catch (error) {
-            console.error('❌ Failed to parse importmap:', error);
-          }
-        } else {
-          console.warn('⚠️ Importmap script not found - module resolution may fail!');
-        }
-      }
-    })();
   </script>
 </head>
 <body>

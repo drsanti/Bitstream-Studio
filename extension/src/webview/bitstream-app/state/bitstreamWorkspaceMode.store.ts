@@ -1,87 +1,120 @@
 import { create } from "zustand";
+import type { BitstreamWorkspaceHostId } from "../../../ternion-shell-host-message.js";
 
 /**
  * Bitstream shell workspaces under {@link BitstreamAppMain}:
- * - **sensor-telemetry** — sensor configuration + live telemetry deck, URL default.
- * - **sensor-studio** — flow editor (`SensorStudioApp`), `?app=sensor-studio`.
+ * - **sensor-telemetry** — sensor configuration + live telemetry deck.
+ * - **sensor-studio** — flow editor (`SensorStudioApp`).
+ *
+ * Tab selection is persisted in localStorage (no `?app=` URL routing).
  */
 export type BitstreamWorkspaceId = "sensor-telemetry" | "sensor-studio";
 
-function readBitstreamWorkspaceFromHost(): BitstreamWorkspaceId | null {
-  if (typeof window === "undefined") {
-    return null;
+const STORAGE_KEY = "bitstream-studio.workspace.v1";
+
+/** Map host / legacy ids to store workspace ids. */
+export function normalizeBitstreamWorkspaceId(
+  value: BitstreamWorkspaceHostId | BitstreamWorkspaceId | string | null | undefined,
+): BitstreamWorkspaceId | null
+{
+  if (value === "sensor-studio")
+  {
+    return "sensor-studio";
   }
-  const host = window.TERNION_BITSTREAM_WORKSPACE;
-  if (host === "sensor-studio" || host === "sensor-telemetry" || host === "telemetry") {
-    return host;
+  if (
+    value === "sensor-telemetry" ||
+    value === "telemetry" ||
+    value === "bitstream"
+  )
+  {
+    return "sensor-telemetry";
   }
   return null;
 }
 
-export function readBitstreamWorkspaceFromUrl(): BitstreamWorkspaceId {
+function readBitstreamWorkspaceFromHost(): BitstreamWorkspaceId | null
+{
+  if (typeof window === "undefined")
+  {
+    return null;
+  }
+  const host = window.TERNION_BITSTREAM_WORKSPACE;
+  return normalizeBitstreamWorkspaceId(host);
+}
+
+function readPersistedBitstreamWorkspace(): BitstreamWorkspaceId | null
+{
+  if (typeof window === "undefined")
+  {
+    return null;
+  }
+  try
+  {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    return normalizeBitstreamWorkspaceId(raw);
+  }
+  catch
+  {
+    return null;
+  }
+}
+
+function persistBitstreamWorkspace(workspace: BitstreamWorkspaceId): void
+{
+  if (typeof window === "undefined")
+  {
+    return;
+  }
+  try
+  {
+    window.localStorage.setItem(STORAGE_KEY, workspace);
+  }
+  catch
+  {
+    // ignore quota / private mode
+  }
+}
+
+/** Host inject (first paint) → localStorage → default telemetry tab. */
+export function readInitialBitstreamWorkspace(): BitstreamWorkspaceId
+{
   const fromHost = readBitstreamWorkspaceFromHost();
-  if (fromHost != null) {
+  if (fromHost != null)
+  {
     return fromHost;
   }
-  if (typeof window === "undefined") {
-    return "sensor-telemetry";
-  }
-  try {
-    const app = new URLSearchParams(window.location.search).get("app");
-    if (app === "sensor-studio") {
-      return "sensor-studio";
-    }
-    if (app === "sensor-telemetry" || app === "bitstream" || app === "sensor-lab") {
-      return "sensor-telemetry";
-    }
-  } catch {
-    // ignore
+  const persisted = readPersistedBitstreamWorkspace();
+  if (persisted != null)
+  {
+    return persisted;
   }
   return "sensor-telemetry";
 }
 
-/** Sync workspace to the URL (`?app=sensor-studio` or bitstream default). */
-export function syncBitstreamWorkspaceToUrl(
-  workspace: BitstreamWorkspaceId,
-  usePushState: boolean,
-): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  const url = new URL(window.location.href);
-  url.searchParams.delete("launcher");
-  if (workspace === "sensor-studio") {
-    url.searchParams.set("app", "sensor-studio");
-  } else {
-    url.searchParams.set("app", "bitstream");
-  }
-  const next = `${url.pathname}${url.search}${url.hash}`;
-  if (usePushState) {
-    window.history.pushState({}, "", next);
-  } else {
-    window.history.replaceState({}, "", next);
-  }
-}
+/** @deprecated Use {@link readInitialBitstreamWorkspace}. */
+export const readBitstreamWorkspaceFromUrl = readInitialBitstreamWorkspace;
 
 type BitstreamWorkspaceModeState = {
   workspace: BitstreamWorkspaceId;
-  /** Updates workspace and syncs the URL (pushState so browser Back returns to the previous workspace). */
+  /** Updates workspace and persists the last tab (toolbar / shortcuts). */
   setWorkspace: (next: BitstreamWorkspaceId) => void;
 };
 
 export const useBitstreamWorkspaceModeStore = create<BitstreamWorkspaceModeState>((set, get) => ({
-  workspace: readBitstreamWorkspaceFromUrl(),
+  workspace: readInitialBitstreamWorkspace(),
   setWorkspace: (next) => {
-    if (get().workspace === next) {
+    if (get().workspace === next)
+    {
       return;
     }
     set({ workspace: next });
-    syncBitstreamWorkspaceToUrl(next, true);
+    persistBitstreamWorkspace(next);
   },
 }));
 
-/** Launcher / entry switch: set workspace before mounting {@link BitstreamAppMain}. */
-export function primeBitstreamWorkspaceForEntry(workspace: BitstreamWorkspaceId): void {
+/** Entry bootstrap: set workspace before mounting {@link BitstreamAppMain}. */
+export function primeBitstreamWorkspaceForEntry(workspace: BitstreamWorkspaceId): void
+{
   useBitstreamWorkspaceModeStore.setState({ workspace });
-  syncBitstreamWorkspaceToUrl(workspace, false);
+  persistBitstreamWorkspace(workspace);
 }

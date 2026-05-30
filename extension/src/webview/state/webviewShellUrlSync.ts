@@ -1,7 +1,3 @@
-import {
-  readBitstreamWorkspaceFromUrl,
-  useBitstreamWorkspaceModeStore,
-} from "../bitstream-app/state/bitstreamWorkspaceMode.store.js";
 import { getWebviewEntryStore } from "./webviewEntry.store.js";
 import { readShellStateFromUrl } from "./webviewShellUrl.js";
 import { teardownBeforeShellSwitch, teardownBitstreamShell } from "./webviewShellTeardown.js";
@@ -15,19 +11,12 @@ export function applyShellStateFromUrl(href?: string): boolean {
 
   const store = getWebviewEntryStore();
   const current = store.getState();
-  const workspace = desired.entry === "bitstream" ? readBitstreamWorkspaceFromUrl() : null;
 
   const sameSurface =
     current.showLauncher === desired.showLauncher && current.entry === desired.entry;
 
-  if (sameSurface) {
-    if (desired.entry === "bitstream" && workspace != null) {
-      const curWs = useBitstreamWorkspaceModeStore.getState().workspace;
-      if (curWs !== workspace) {
-        teardownBitstreamShell();
-        useBitstreamWorkspaceModeStore.setState({ workspace });
-      }
-    }
+  if (sameSurface)
+  {
     return false;
   }
 
@@ -43,8 +32,9 @@ export function applyShellStateFromUrl(href?: string): boolean {
     });
   }
 
-  if (desired.entry === "bitstream" && workspace != null) {
-    useBitstreamWorkspaceModeStore.setState({ workspace });
+  if (desired.entry === "bitstream")
+  {
+    teardownBitstreamShell();
   }
 
   store.setState({
@@ -55,18 +45,8 @@ export function applyShellStateFromUrl(href?: string): boolean {
   return true;
 }
 
-let urlSyncInstalled = false;
-
-/** Keep store aligned when the user edits the address bar or uses browser Back/Forward. */
-export function installWebviewShellUrlSync(): void {
-  if (urlSyncInstalled || typeof window === "undefined") {
-    return;
-  }
-  if (readShellStateFromUrl() == null) {
-    return;
-  }
-  urlSyncInstalled = true;
-  window.addEventListener("popstate", () => {
-    applyShellStateFromUrl();
-  });
+/** @deprecated Bitstream Studio no longer syncs shell state from the URL bar. */
+export function installWebviewShellUrlSync(): void
+{
+  // intentionally empty
 }

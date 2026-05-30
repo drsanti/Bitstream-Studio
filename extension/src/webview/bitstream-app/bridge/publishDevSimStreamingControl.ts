@@ -34,7 +34,7 @@ export function publishDevSimStreamingControl(): void {
 }
 
 /** Publish idle when leaving Simulator source (Bitstream selected). */
-export function publishDevSimStreamingIdle(): void {
+function publishDevSimStreamingIdleOnce(): void {
   const store = useBitstreamTelemetrySourceStore.getState();
   if (store.backend !== "uart") {
     return;
@@ -48,4 +48,12 @@ export function publishDevSimStreamingIdle(): void {
     { mode: "idle", atMs: Date.now() },
     0,
   );
+}
+
+export function publishDevSimStreamingIdle(): void {
+  publishDevSimStreamingIdleOnce();
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.setTimeout(() => publishDevSimStreamingIdleOnce(), 450);
 }

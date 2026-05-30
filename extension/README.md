@@ -1,12 +1,11 @@
-# TERNION Digital Twin
+# Bitstream Studio
 
-A VS Code extension that provides an integrated MQTT broker, 3D visualization, and bridge (Serial Port and Model Downloader) for building and testing digital twin applications.
+VS Code extension for **Sensor Telemetry** (BS2 live deck + 3D orientation) and **Sensor Studio** (node-based flow editor). Includes a serial WebSocket bridge, optional MQTT broker, Model Catalog, and Asset Manager.
 
 ## Table of Contents
 
 - [Features](#features)
 - [Quick Start](#quick-start)
-- [Bridge (Serial Port and Model Downloader)](#bridge-serial-port-and-model-downloader)
 - [Development](#development)
 - [Documentation](#documentation)
 - [Native Module Rebuild](#native-module-rebuild)
@@ -14,37 +13,41 @@ A VS Code extension that provides an integrated MQTT broker, 3D visualization, a
 
 ## Features
 
-- **Integrated MQTT Broker**: Built-in Aedes broker for local MQTT testing.
-- **3D Digital Twin Viewer**: High-performance 3D visualization using Three.js and Jolt Physics.
-- **Serial Port Bridge**: Connect to hardware devices via a WebSocket bridge (serial port list, open, close, write, stream).
-- **Model Downloader**: TESAIoT Product Model Store (list models, get info, download 3D models) via WebSocket bridge.
-- **WebSocket Gateway**: Real-time data streaming between hardware, brokers, and the 3D UI.
-- **Developer Tools**: Dedicated panels for monitoring MQTT clients, serial data, and physics state.
+- **Sensor Telemetry** — BS2 sensor configuration, live telemetry deck, 3D orientation preview, activity log.
+- **Sensor Studio** — Visual flow editor with Three.js / R3F previews (physics engine TBD; Rapier deps reserved).
+- **Serial Port Bridge** — WebSocket broker (default **9998**) for telemetry JSON between webview, bridge, and external **Bitstream Simulator**.
+- **Model Catalog & Asset Manager** — Bundled and user-downloaded GLB/textures under extension `globalStorage`.
+- **Integrated MQTT Broker** (optional) — Local Aedes broker for IoT testing.
 
-### Bridge (Serial Port and Model Downloader)
+### External simulator
 
-The extension runs a **bridge process** (broker + Serial Port and Model Downloader bridges) as an isolated Node process for stability. For development, run `npm run start:bridge` to start the WebSocket broker and both bridges. See [docs/BRIDGE.md](docs/BRIDGE.md) for architecture and run modes.
+**Bitstream Simulator** is a separate VS Code extension (`bitstream-simulator/` repo). It is required for **Simulator** telemetry mode in the webview — the bridge no longer embeds an in-process firmware mock.
+
+See [HOW_TO_RUN.md](HOW_TO_RUN.md) and [docs/BRIDGE.md](docs/BRIDGE.md).
 
 ## Quick Start
 
-1. **Open 3D World** — Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → "Open 3D World".
-2. **Start Serial Bridge** (for Serial Port and Model Downloader in the Tester) — Command Palette → "Start Serial Bridge". Or from repo root: `cd t3d-extension && npm run start:bridge` to run broker + both bridges in two processes.
-3. **Start MQTT Broker** (optional) — Command Palette → "Start MQTT Broker" (port 1883).
+1. Install the **`.vsix`** (or F5 from `extension/`).
+2. **Bitstream Studio: Open Sensor Telemetry** — main BS2 workbench.
+3. **Bitstream Studio: Open Sensor Studio** — flow editor.
+4. For live sim data: **Bitstream Studio: Start Serial Bridge**, then start **Bitstream Simulator** → Streaming, set toolbar source to **Simulator** and **Link**.
+
+Full checklist: [HOW_TO_RUN.md § VSIX smoke checklist](HOW_TO_RUN.md#vsix-smoke-checklist-before-release).
 
 ## Development
 
-- **Command map (when to use which script)**: [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md) — `npm start` vs `dev` vs `start:bridge`, Model Loader, AI bridge, ports **9998/9999**, and common mistakes.
-- **Build**: `npm run compile` — compiles extension and webview.
-- **Watch**: `npm run dev:all` — watch extension and webview with hot reload.
-- **Bridge (dev)**: `npm run start:bridge` — run WebSocket broker and both bridges (Serial Port + Model Downloader) for testing in browser or webview.
-- **AI gate (before PR)**: `npm run ai:gate` — runs AI debug smoke tests and full AI test suite.
-- **Package**: `npm run package` — produce `.vsix` for install from VSIX.
+- **Command map:** [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md)
+- **Build:** `npm run compile`
+- **Dev:** Terminal 1 `npm run start:bridge` · Terminal 2 `npm run dev:webview`
+- **Package:** `npm run package` → `bitstream-studio-<version>.vsix`
 
 Requires **VS Code 1.75+** and **Node.js 18+** (for building).
 
 ## Documentation
 
+- **[Agent handoff](../AGENT_HANDOFF.md)** — Start on a new machine; session log and implementation map.
 - **[Development tracker](docs/DEVELOPMENT_TRACKER.md)** — Done / planned / inbox for features and requirements (living doc).
+- **[Telemetry mode lifecycle](docs/TELEMETRY_MODE_LIFECYCLE.md)** — Bitstream vs Simulator exclusivity (A+B).
 - **[Assets location system](docs/ASSETS_LOCATION_SYSTEM.md)** — Disk layout, logical web paths, Vite dev URLs, and webview injection; **[Global asset directories](docs/GLOBAL_ASSET_DIRECTORIES.md)** is the compact checklist.
 - **[Development commands](docs/DEVELOPMENT_COMMANDS.md)** — Which `npm` scripts to run for each workflow; ports and pitfalls.
 - **[How the Bridge Works](docs/BRIDGE.md)** — Bridge architecture, run modes, and `npm run start:bridge`.
@@ -70,7 +73,7 @@ The rebuild happens automatically on `npm install` via the `postinstall` script.
 If you encounter a "No native build was found" error, rebuild for your VS Code's Electron version:
 
 ```bash
-cd t3d-extension
+cd extension
 npm run rebuild:serialport
 ```
 
@@ -160,36 +163,9 @@ sudo update-ca-certificates
 - Fedora/RHEL: `/etc/pki/ca-trust/source/anchors/`
 - Arch Linux: `/etc/ca-certificates/trust-source/anchors/`
 
-### Quick Installation (Using T3D CLI)
+### Quick Installation (optional CLI)
 
-**Prerequisites:**
-
-- Node.js 18+ installed
-- T3D CLI installed (via `npm install -g @ternion/t3d` or `npm link`)
-- Administrator/sudo privileges (required for certificate installation)
-- Certificate file (`.pem` or `.crt` format)
-
-**Install CA Certificate:**
-
-```bash
-t3d ca install --cert <path-to-certificate-file>
-```
-
-**Example:**
-
-```bash
-t3d ca install --cert src/mqtt-node/data/ca-chain.pem
-```
-
-**Uninstall CA Certificate (when no longer needed):**
-
-```bash
-t3d ca uninstall --cert <path-to-certificate-file>
-```
-
-**Note:** You can also pipe certificate content via stdin or use `--cert-content "<PEM>"` for inline PEM content. 
-
-### Platform-Specific Notes
+If you use a CA management CLI for your environment, install the CA into the OS trust store using that tool’s documented `install` command and your `.pem` / `.crt` file. After installation, restart browsers and VS Code.
 
 - **Windows**: Run PowerShell or Command Prompt as Administrator
   - Certificate is added to "Trusted Root Certification Authorities"

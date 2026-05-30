@@ -1,7 +1,7 @@
 # Bitstream (vNext) — `BS` framed UART protocol specification
 
 **Status:** Draft (greenfield)  
-**Scope:** UART wire protocol between Host and Firmware, carried transparently through the T3D Serial bridge / WS broker. Includes **§13 host UART link lifecycle** (browser refresh, Simulator↔UART routing, USB hotplug).  
+**Scope:** UART wire protocol between Host and Firmware, carried through the Bitstream Studio serial bridge / WS broker. Includes **§13 host UART link lifecycle** (browser refresh, Simulator↔Bitstream routing, USB hotplug).  
 **Design goals:** robust resync under mixed UART bytes, high-rate sensor streaming, reliable control/config, low overhead.
 
 ---

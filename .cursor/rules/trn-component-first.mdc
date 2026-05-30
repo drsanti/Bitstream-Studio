@@ -9,6 +9,6 @@ When adding UI under **`extension/src/webview/`**:
 
 1. **Prefer TRN** — **`extension/src/webview/ui/TRN`** (`TRNFormField`, `TRNSectionContainer`, `TRNSelect`, etc.).
 2. **Match sibling panels** — reuse patterns from Bitstream / Sensor Studio before inventing new styles.
-3. **Phase 3 goal** — migrate remaining **`@ternion/t3d/ui`** usage in model-catalog to TRN (see **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`**).
+3. **Catalog widgets** — shared non-TRN pieces live in **`extension/src/webview/ui/catalog/`** (Phase 3 decoupling complete; no `@ternion/t3d`).
 
 Scrollable lists: **`trn-glass-dropdown-scrollbars.mdc`**.

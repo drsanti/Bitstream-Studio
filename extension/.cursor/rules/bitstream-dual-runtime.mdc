@@ -5,75 +5,50 @@ alwaysApply: true
 
 # Bitstream dual-runtime parity (UART / Simulation, dev / VSIX)
 
-**NON-NEGOTIABLE:** Every Bitstream-related feature (sensor cfg UI, telemetry, transport, stores, MCP, bridge) must behave correctly in **both** telemetry backends and ship the same in **dev** and **installed VSIX**.
+**NON-NEGOTIABLE:** Every Bitstream-related feature must behave correctly in **both** telemetry backends and ship the same in **dev** and **installed VSIX**.
 
-## UART and Simulation
+## UART and Simulation (mutually exclusive)
 
-Treat **UART** (serial / BS-framed firmware) and **Simulation** (external **`bitstream-simulator`** extension, `bitstream2/sim/status`, `DEV_SIM_STATE`) as **first-class peers**, not “UART first, sim later.”
+Treat **Bitstream** (real COM / BS-framed firmware) and **Simulation** (external **bitstream-simulator** VS Code extension) as **first-class peers** — **never mixed in the UI**.
 
-### Telemetry backend
-
-- Resolve mode via **`useBitstreamTelemetrySourceStore`** (`backend`: **`uart`** (UI label **Bitstream**) | **`simulator`**, **`loopbackAvailable`** from external sim heartbeat for status hints, **`bs2Hello`**).
-- Do **not** gate features on **`getEffectiveBackend() === "simulator"` alone** for writes; prefer **BS2** when available.
-- **Ingest:** **`shouldIngestTelemetry()`** — Simulator ingests BS2 samples from external sim; UART ingests only when serial is **open** (simulator traffic must not fake UART mode).
-- **Sim streaming control:** webview publishes **`bitstream2/dev/sim/control`** **`idle`** / **`run`** to external simulator (see **`HOW_TO_RUN.md`**).
+- Backend store: **`useBitstreamTelemetrySourceStore`** — **`uart`** (UI **Bitstream**) | **`simulator`**; no Auto mode.
+- **Route:** webview publishes **`bitstream2/telemetry/route`**; bridge gates UART vs `inject-rx`; samples tagged **`origin`**: `uart` | `sim`.
+- **Ingest:** **`shouldIngestTelemetryForRoute()`** + **`shouldAcceptBs2SampleOrigin()`** in `bitstreamTelemetryTransport.ts`.
+- **Lifecycle:** **`telemetryModeLifecycle.ts`** on toolbar change (clear data, release COM → Simulator, sim **`idle`/`run`**).
+- Full design: **`docs/TELEMETRY_MODE_LIFECYCLE.md`** (paths relative to **`extension/`**).
+- **Restart bridge** after `SerialPortWebSocketBridge.ts` changes.
 
 ### Sensor configuration (SENSOR_CFG v2 / v2.1)
 
-- **Apply path (webview):** firmware **`SENSOR_CFG_SET`** / legacy **`sensor.cfg.set`** apply from the Bitstream UI is **stubbed** while sensor cfg is rebuilt; **`useSensorConfigController`** updates the shared store as **local draft** only (`updatedAtMs: 0`). When restoring wire apply, use BS2 **`bitstream2/req`** (`SENSOR_CFG_SET`) for **UART and Simulation** — do not require **`HostSession`** for simulator-only flows.
-- Include **`publishIntervalMs`** (v2.1) in store rows, patches, fan-out, and BS2 encode — not hardcoded `0`.
-- Protocol reference: **`t3d-extension/src/bitstream2/docs/SENSOR_CFG_V2.md`**.
+- **Apply path (webview, v0.1):** **`useSensorConfigController`** updates store as **local draft** only (`updatedAtMs: 0`). Wire **`SENSOR_CFG_SET`** restore is backlog.
+- Protocol: **`src/bitstream2/docs/SENSOR_CFG_V2.md`**.
 
 ### UI readiness (sensor settings deck)
 
-- Do **not** require **only** `handshakeState === "passed"` **and** `runtimeSyncState === "ready"` from the serial bridge snapshot.
-- Use **`useSensorSettingsPanelReady`** (or equivalent) so the deck unlocks when:
-  - **BS2 HELLO** received, or handshake `passed`, **and**
-  - runtime `ready`, **or** BS2 link marked ready, **or** simulator loopback + WebSocket connected.
-- On **HELLO** / **`DEV_SIM_STATE`**, mark runtime ready and merge configs (see **`useBitstream2TelemetryBridge`**).
+- Use **`useSensorSettingsPanelReady`** — HELLO / handshake + WS ready; not serial snapshot alone.
 
 ### Testing matrix (minimum)
 
 | Backend | Connect | Verify |
 |--------|---------|--------|
-| **Simulation** | Toolbar Connect + loopback bridge (`dev:bitstream2-loopback` or env) | Sensor deck unlocks; telemetry **sine** samples sweep (~0.2 Hz, `sensor-synth.ts`); cfg **apply to firmware** pending restore of BS2 `SENSOR_CFG_SET` from the webview |
-| **UART** | Serial open + BS2 HELLO or bridge handshake `passed` | Same deck readiness; cfg **apply to firmware** pending restore; no stuck greyed panel |
-
-## Development (Vite) and VSIX (packaged extension)
-
-Dev (`npm run dev`) and **installed `.vsix`** must match for webview behavior users rely on.
-
-### VS Code webview detection
-
-- **Do not** use **`T3DVSCodeUtils.isVsCodeMode()` / `getVsCodeApi()` alone** — second `acquireVsCodeApi()` can throw; API may be `null` in the real webview.
-- **Use** globals set before ES modules load: **`window.WEBVIEW_READY === true`** and/or **`window.__VSCODE_API__`** (see **`isVsCodeExtensionWebview()`** in `free-assets-loader/useFreeAssetsLoaderRuntime.ts`).
-- Browser-only paths (bridge badge, repo `src/assets`, Model Loader WS) must **not** appear in VSIX when host flows should run.
-
-### Build and dependency truth
-
-- **`npm run compile`** in `t3d-extension` before claiming done or packaging.
-- **VSIX** bundles **`node_modules/@ternion/t3d` from npm**, not necessarily linked **`T3D/`** — re-test after **`npm run package`** and install in a clean window.
-- After **`T3D/src/`** changes: rebuild lib, refresh link / bump extension dep, clear **`node_modules/.vite`** if stale prebundle.
-
-### Testing matrix (minimum)
+| **Simulation** | `start:bridge` + external sim streaming + toolbar **Simulator** | Sine samples; deck unlocks; no COM open |
+| **Bitstream** | COM open @ 921600 + toolbar **Bitstream** | Hardware EVT only; sim inject blocked |
 
 | Environment | Verify |
 |-------------|--------|
-| **Vite / dev webview** | Feature under work + UART and Simulation rows above |
-| **Installed VSIX** | Same flows; globalStorage paths; no spurious “browser dev” UI; sensor panel + BS2 cfg |
+| **Vite dev** | Both rows above + mode switch clears mixed data |
+| **Installed VSIX** | Same; **`HOW_TO_RUN.md`** smoke checklist |
 
-## Implementation checklist (before marking done)
+## VS Code webview detection
 
-1. Works with **Simulation** backend (loopback + Connect).
-2. Works with **UART** backend (serial + BS2 or bridge handshake).
-3. No **HostSession-only** gate for cfg that BS2 can send.
-4. Panel / controls use **dual-runtime readiness**, not snapshot-only locks.
-5. **`npm run compile`** clean.
-6. If webview/host-specific: verified with **VSIX** detection pattern, not dev-only assumptions.
+- **Do not** use **`T3DVSCodeUtils.isVsCodeMode()` alone**.
+- **Use** **`isVsCodeExtensionWebview()`**, **`window.WEBVIEW_READY`**, **`window.__VSCODE_API__`**.
 
-## Related rules and docs
+## Build
 
-- Root **`rules.mdc`** — VSIX pre-flight, repo layout, `npm link`.
-- **`t3d-extension/.cursor/rules/bitstream-app-conventions.mdc`** — bitstream-app file layout.
-- **`t3d-extension/src/webview/bitstream-app/docs/CONTROL_PANEL_MULTI_INSTANCE_SYNC.md`** — broker fan-out.
-- **`t3d-extension/HOW_TO_RUN.md`** — dev scripts and loopback.
+- **`npm run compile`** in **`extension/`** before packaging.
+- Re-test **`.vsix`** after **`npm run package`** (no `@ternion/t3d` in this repo).
+
+## Related
+
+- **`AGENT_HANDOFF.md`** (repo root), **`bs2-protocol-change.mdc`**, **`bitstream-app-conventions.mdc`**, **`HOW_TO_RUN.md`**

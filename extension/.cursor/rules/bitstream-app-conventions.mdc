@@ -6,29 +6,6 @@ alwaysApply: false
 
 # Bitstream app (`src/webview/bitstream-app`)
 
-## Dual-runtime parity (UART / Simulation, dev / VSIX)
+Same policy as repo root **`.cursor/rules/bitstream-app-conventions.mdc`**.
 
-**Mandatory** for all changes here: see **`.cursor/rules/bitstream-dual-runtime.mdc`** (monorepo) and **`t3d-extension/.cursor/rules/bitstream-dual-runtime.mdc`**. Sensor cfg, transport gates, and panel readiness must work in **both** telemetry backends and in **Vite dev** and **packaged VSIX**.
-
-- **BS2 cfg (firmware):** webview **`SENSOR_CFG_SET`** apply is **stubbed** pending rebuild; deck still uses **`SensorSamplingFrequencyCard`** (`samplingIntervalMs`, `publishIntervalMs = 0`) for **local store** — not separate “internal” vs “telemetry” Hz cards in the main deck.
-- **Simulator telemetry:** sine synthetic values from `src/bitstream2/device/sensor-synth.ts`; ingest via **`shouldIngestTelemetry()`** — document in `docs/` when behavior changes.
-
-## Documentation (`docs/**` and any `*.md` under this tree)
-
-- **English only** for technical prose (same intent as `markdown-documentation.mdc`). Do **not** add Thai-only summary sections, bilingual duplicate bodies, or routine Thai headings unless the user explicitly asks for a localized artifact.
-- Keep canonical technical references in **`docs/`** (e.g. `docs/SENSOR_DECK_VIEWER_CONVENTIONS.md`) instead of scattering conventions only in chat.
-
-## Shared TypeScript types
-
-- **Cross-sensor / cross-component** contracts used by multiple folders (e.g. telemetry deck card frame props, shared `*DataViewer` prop shapes) **must live under** **`bitstream-app/types/`** (e.g. `types/sensorDeckCardFrame.ts`).
-- **Do not** put app-wide shared types under `components/` unless the type is **strictly internal** to a single file/module.
-- **Per-sensor** `components/<sensor>/types.ts` stays for that sensor’s control-panel typings only.
-
-## Naming (avoid confusion)
-
-- Do **not** use **“chrome”** in type or file names for card UI (reads like Google Chrome). Use **frame**, **shell**, or **card frame** (e.g. `SensorDeckCardFrameProps`, `sensorDeckCardFrame.ts`).
-
-## Shared preview model URLs (Bitstream + Sensor Studio)
-
-- **`resolveDefaultPreviewMeshGlbUrl()`** / **`resolveWebviewModelAssetUrl()`** in **`components/3d-rotation/shared/resolveWebviewModelAssetUrl.ts`** are the **canonical** way to turn **`PSOC_E84_GLB_RELATIVE_PATH`** (and similar keys) into fetchable URLs using **`FREE_ASSETS_BASE_URI`**, **`LOCAL_ASSETS_BASE_URI`**, online mirrors, and asset source strategy.
-- **Sensor Studio** rotation defaults import this module for parity; do **not** duplicate asset-root logic in `sensor-studio/` for the same GLB. Large GLBs are often **not** in the VSIX — see **`docs/ASSETS_LOCATION_SYSTEM.md`**.
+Dual-runtime: **`bitstream-dual-runtime.mdc`**. Ingest gates: **`shouldIngestTelemetryForRoute`**, **`shouldAcceptBs2SampleOrigin`**.

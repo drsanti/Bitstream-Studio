@@ -16,126 +16,13 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-// Optional repo-level assets (parent of extension/); used for Jolt fallback only.
-const projectRootAssetsPath = resolve(__dirname, "../assets");
-const joltPath = resolve(projectRootAssetsPath, "jolt");
-
-// Bundled extension assets (free pack, tesaiot Model Loader samples, Jolt WASM)
+// Bundled extension assets (free pack, tesaiot Model Loader samples)
 const localAssetsPath = resolve(__dirname, "src/assets");
-const localJoltPath = resolve(localAssetsPath, "jolt");
 const freeTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.freeTextures);
 const freeModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.freeModels);
 const tesaiotModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotModels);
 const tesaiotTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotTextures);
 const localSoundsPath = resolve(localAssetsPath, "sounds");
-
-// Custom plugin to skip jolt-physics files from being processed
-// Both multithreaded and single-threaded versions should be external
-// They are dynamically imported at runtime and resolved via importmap
-const skipJoltPhysicsPlugin = () => {
-  return {
-    name: "skip-jolt-physics",
-    resolveId(id) {
-      // Skip processing all jolt-physics entry points
-      // They are dynamically imported at runtime and should not be bundled
-      if (
-        id === "jolt-physics/wasm-compat-multithread" ||
-        id === "jolt-physics/debug-wasm-compat-multithread" ||
-        id === "jolt-physics/wasm-compat" ||
-        id === "jolt-physics/debug-wasm-compat" ||
-        id.includes("jolt-physics/dist/jolt-physics.multithread.wasm-compat") ||
-        id.includes(
-          "jolt-physics/dist/jolt-physics.debug.multithread.wasm-compat",
-        ) ||
-        id.includes("jolt-physics/dist/jolt-physics.wasm-compat") ||
-        id.includes("jolt-physics/dist/jolt-physics.debug.wasm-compat")
-      ) {
-        // Return the id as-is, marking it as external
-        return { id, external: true };
-      }
-      return null;
-    },
-  };
-};
-
-// Custom plugin to serve Jolt assets during development
-// viteStaticCopy only copies during build, so we need to serve from source in dev
-const serveJoltAssetsPlugin = () => {
-  return {
-    name: "serve-jolt-assets",
-    configureServer(server) {
-      // Determine the actual Jolt assets path
-      const actualJoltPath = existsSync(localJoltPath)
-        ? localJoltPath
-        : existsSync(joltPath)
-          ? joltPath
-          : null;
-
-      if (!actualJoltPath) {
-        console.warn(
-          "[serveJoltAssetsPlugin] Jolt assets not found, skipping middleware",
-        );
-        return;
-      }
-
-      // Middleware to serve Jolt assets from source directory
-      // Only match paths that start with /jolt/ (not /jolt-physics or /jolt-anything)
-      server.middlewares.use((req, res, next) => {
-        // Only handle GET requests
-        if (req.method !== "GET") {
-          return next();
-        }
-
-        const requestedPath = req.url || "/";
-        // Only handle paths that start with /jolt/ (not /jolt-)
-        if (!requestedPath.startsWith("/jolt/")) {
-          return next();
-        }
-
-        // Remove leading /jolt/ to get the relative path within jolt directory
-        const relativePath =
-          requestedPath.replace(/^\/jolt\//, "") || "index.js";
-        const filePath = resolve(actualJoltPath, relativePath);
-
-        // Check if file exists
-        if (existsSync(filePath)) {
-          // Serve the file
-          try {
-            const stats = statSync(filePath);
-            if (stats.isFile()) {
-              const content = readFileSync(filePath);
-              const ext = extname(filePath);
-
-              // Set appropriate content type
-              const contentType =
-                ext === ".js"
-                  ? "application/javascript"
-                  : ext === ".wasm"
-                    ? "application/wasm"
-                    : ext === ".json"
-                      ? "application/json"
-                      : "application/octet-stream";
-
-              res.setHeader("Content-Type", contentType);
-              res.setHeader("Content-Length", stats.size);
-              res.end(content);
-              return;
-            }
-          } catch (error) {
-            // If there's an error reading the file, continue to next middleware
-            console.warn(
-              `[serveJoltAssetsPlugin] Error serving ${filePath}:`,
-              error,
-            );
-          }
-        }
-
-        // File not found, continue to next middleware
-        next();
-      });
-    },
-  };
-};
 
 /**
  * Vite dev: resolve `rel` (decoded path under HTTP prefix) to a real file for user mirrors.
@@ -360,11 +247,6 @@ const serveExtensionLocalAssetsPlugin = () => {
   };
 };
 
-// Note: T3DJoltLoader now handles conditional imports at runtime based on environment
-// - VS Code webview: uses jolt-physics/wasm-compat (single-threaded)
-// - Web browser: uses jolt-physics/wasm-compat-multithread (multi-threaded)
-// No build-time transformation needed since loadJolt() uses dynamic imports
-
 // Plugin to suppress CSS variable warnings during build
 const suppressCSSWarningsPlugin = () => {
   let originalWarn: typeof console.warn;
@@ -436,8 +318,6 @@ export default defineConfig({
       },
     }),
     tailwindcss(),
-    skipJoltPhysicsPlugin(),
-    serveJoltAssetsPlugin(), // Serve Jolt assets during development
     serveExtensionLocalAssetsPlugin(), // src/assets for Model Catalog (browser dev)
     suppressCSSWarningsPlugin(), // Suppress CSS warnings during build
     viteStaticCopy({
@@ -481,33 +361,6 @@ export default defineConfig({
                 dest: "./assets/sounds",
               },
             ]
-          : []),
-        // Copy Jolt assets to both /jolt and /assets/jolt for compatibility
-        // Standardize on /jolt for all browser modes (same as main T3D app)
-        // For /jolt: use glob pattern to copy contents directly (no nested directory)
-        // For /assets/jolt: preserve directory structure (copy directory itself)
-        ...(existsSync(localJoltPath)
-          ? [
-              {
-                src: "../assets/jolt/**/*",
-                dest: "./jolt", // Standardized path: /jolt (files directly in /jolt)
-              },
-              {
-                src: "../assets/jolt",
-                dest: "./assets", // Keep /assets/jolt for backward compatibility
-              },
-            ]
-          : existsSync(joltPath)
-            ? [
-                {
-                  src: "../../../assets/jolt/**/*",
-                  dest: "./jolt", // Standardized path: /jolt (files directly in /jolt)
-                },
-                {
-                  src: "../../../assets/jolt",
-                  dest: "./assets", // Keep /assets/jolt for backward compatibility
-                },
-              ]
             : []),
       ],
     }),
@@ -516,11 +369,6 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "src/webview"),
       "@assets": resolve(__dirname, "src/assets"),
-      /** CJS-only package; webview shim provides ESM default export. */
-      crossoriginworker: resolve(
-        __dirname,
-        "src/webview/shims/crossoriginworker.ts",
-      ),
     },
     dedupe: [
       "react",
@@ -554,21 +402,10 @@ export default defineConfig({
       process.env.VITE_MQTT_BROKER_URL || "ws://localhost:8083",
     ),
   },
-  // Exclude jolt-physics files from Vite's dependency optimization
-  // These files are dynamically imported at runtime and contain Node.js-specific code
-  // Both multithreaded and single-threaded versions should be excluded
-  optimizeDeps: {
-    exclude: [
-      "jolt-physics/wasm-compat-multithread",
-      "jolt-physics/debug-wasm-compat-multithread",
-      "jolt-physics/wasm-compat",
-      "jolt-physics/debug-wasm-compat",
-    ],
-  },
   server: {
     port: 5173,
-    /** Default: Bitstream app. Override in scripts (e.g. dev-bitstream2-loopback). */
-    open: process.env.VITE_DEV_OPEN ?? "/?app=bitstream",
+    /** Default dev entry — toolbar tabs switch workspace (no `?app=`). */
+    open: process.env.VITE_DEV_OPEN ?? "/",
     cors: true,
     fs: {
       // Allow serving files from node_modules
@@ -623,7 +460,7 @@ export default defineConfig({
   build: {
     // Set target to esnext to support top-level await
     target: "esnext",
-    chunkSizeWarningLimit: 2000, // 3D stack (Three.js, Jolt, Rapier) produces large chunks
+    chunkSizeWarningLimit: 2000, // 3D stack (Three.js, Rapier) produces large chunks
     outDir: resolve(__dirname, "out/webview"),
     cssCodeSplit: true,
     rollupOptions: {
@@ -642,33 +479,8 @@ export default defineConfig({
           return "assets/[name].[ext]"; // out/webview/assets/*
         },
       },
-      // Mark jolt-physics files as external to prevent bundling
-      // These files are dynamically imported at runtime and should not be processed by Rollup
-      // Both multithreaded and single-threaded versions should be external
-      external: (id) => {
-        // Externalize all jolt-physics entry points
-        if (
-          id === "jolt-physics/wasm-compat-multithread" ||
-          id === "jolt-physics/debug-wasm-compat-multithread" ||
-          id === "jolt-physics/wasm-compat" ||
-          id === "jolt-physics/debug-wasm-compat" ||
-          id.includes(
-            "jolt-physics/dist/jolt-physics.multithread.wasm-compat",
-          ) ||
-          id.includes(
-            "jolt-physics/dist/jolt-physics.debug.multithread.wasm-compat",
-          ) ||
-          id.includes("jolt-physics/dist/jolt-physics.wasm-compat") ||
-          id.includes("jolt-physics/dist/jolt-physics.debug.wasm-compat")
-        ) {
-          return true;
-        }
-        return false;
-      },
       // Suppress harmless warnings about Node.js modules being externalized
-      // These modules (module, worker_threads) are correctly externalized for browser builds
       onwarn(warning, warn) {
-        // Suppress warnings about externalized Node.js modules
         if (
           warning.code === "MODULE_LEVEL_DIRECTIVE" ||
           (warning.message &&
@@ -676,15 +488,6 @@ export default defineConfig({
               warning.message.includes(
                 "externalized for browser compatibility",
               )))
-        ) {
-          return;
-        }
-        // Suppress commonjs resolver warnings about IIFE format for jolt-physics files
-        if (
-          warning.message &&
-          warning.message.includes(
-            'Module format "iife" does not support top-level await',
-          )
         ) {
           return;
         }
@@ -716,7 +519,6 @@ export default defineConfig({
         ) {
           return;
         }
-        // Use default warning handler for other warnings
         warn(warning);
       },
     },

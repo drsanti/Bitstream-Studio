@@ -1,0 +1,14 @@
+---
+description: External bitstream-simulator VSIX path and integration with Bitstream Studio bridge
+alwaysApply: true
+---
+
+# Bitstream Simulator (standalone app)
+
+See repo root **`.cursor/rules/bitstream-simulator-app-path.mdc`** for full policy.
+
+**Path:** `D:\CODE\2026\ternion-t3d\bitstream-simulator` (separate VSIX; not in Bitstream-Studio tree)
+
+**Bridge:** `src/serialport-bridge/SerialPortWebSocketBridge.ts` — no in-bridge loopback.
+
+**Skill:** `.cursor/skills/bitstream-simulator-app/SKILL.md`

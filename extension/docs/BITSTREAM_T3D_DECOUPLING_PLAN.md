@@ -1,7 +1,7 @@
 # Bitstream isolation plan — remove `T3D/` dependency
 
 **Date:** 2026-05-29  
-**Status:** Phase 3–4 complete (2026-05-30); Vite cleanup + VSIX build OK; install smoke pending  
+**Status:** Complete (2026-05-30); VSIX smoke **user-verified** on **v0.1.0** — checklist in **`HOW_TO_RUN.md`**  
 **Target repo:** [Bitstream-Studio](https://github.com/drsanti/Bitstream-Studio) (`https://github.com/drsanti/Bitstream-Studio`) — empty; bootstrap from `ternion-t3d` branch **`BS2`**.  
 **Source (migration):** `D:/CODE/2026/ternion-t3d` — copy **`t3d-extension/`** only; **do not** copy `T3D/` or `bitstream-simulator/`.  
 **External sim:** `bitstream-simulator` stays in its **own repo** (today under `ternion-t3d/bitstream-simulator/` until moved); install separately for Simulator telemetry mode.  
@@ -9,7 +9,9 @@
 
 ---
 
-## Current state (2026-05-30 — decoupling complete)
+## Current state (2026-05-30 — decoupling complete, v0.1.0 ship gate)
+
+**Ship gate (user-verified 2026-05-30):** `npm run compile`, `test:bitstream2` (50/50), `npm run package` → **~40.48 MB** VSIX, install smoke, Sensor Telemetry + Sensor Studio panels, **Bitstream ↔ Simulator** exclusive telemetry (**`TELEMETRY_MODE_LIFECYCLE.md`**).
 
 ```mermaid
 flowchart TB
@@ -49,8 +51,8 @@ flowchart TB
 | Mechanism | Location |
 |-----------|----------|
 | npm | **No** `@ternion/t3d` in `package.json` |
-| Vite | Extension-only aliases; Jolt from `src/assets/jolt` |
-| Prebuild | `scripts/sync-jolt-assets.js` only |
+| Vite | Extension-only aliases; Three.js / R3F webview bundle |
+| Prebuild | `npm run compile` → extension host + `vite build` (no physics WASM sync) |
 | CSS | Vendored `src/webview/t3d-shared.css` (name legacy; no npm dep) |
 
 *(Historical migration diagram and pre-decoupling tables are in git history / `ternion-t3d` BS2.)*
@@ -300,7 +302,7 @@ npm run dev:webview
 - `App.tsx`, `MyApp.tsx`, `WebviewRoot.tsx`
 - `webview-launcher/`, `quick-scene/`, `project4/`
 - `bitstream2-simulator/` webview (`?app=bitstream2-sim`) — unless still required
-- Vite COI / Jolt wiring (Bitstream 3D preview uses R3F/Three in extension)
+- Legacy Vite COI / Jolt wiring (removed 2026-05-30; 3D preview uses R3F/Three only until physics engine is chosen)
 
 ### Keep (core product)
 
@@ -331,8 +333,10 @@ Update this table as phases complete. Mirror major milestones in `docs/DEVELOPME
 | Phase 1 — Product isolation | Done | 2026-05-30 | BitstreamApp-only entry; removed Digital Twin / Project4 / launcher |
 | Phase 2 — Thin bridge replacement | Done | 2026-05-30 | Local extension-bridge, quick-action store, cubemap presets |
 | Phase 3 — UI decoupling | Done | 2026-05-30 | `ui/catalog/` local widgets; model-catalog/model-loader off `@ternion/t3d/ui` |
-| Phase 4 — Delete @ternion/t3d dep | Done | 2026-05-30 | Removed from `package.json`; prebuild = `sync-jolt-assets` only; Vite T3D plugins removed |
-| VSIX + dual-runtime verify | In progress | 2026-05-30 | VSIX CLI install OK; offline BS2 smoke OK; UI reload + UART/Sim pending |
+| Phase 4 — Delete @ternion/t3d dep | Done | 2026-05-30 | Removed from `package.json`; Vite T3D plugins removed |
+| Phase 4b — Remove Jolt Physics | Done | 2026-05-30 | Dropped `jolt-physics`, sync script, assets, host COI/importmap; Rapier deps kept for future Sensor Studio physics |
+| VSIX + dual-runtime verify | Done | 2026-05-30 | VSIX install smoke passed; Bitstream/Simulator exclusivity (A+B); `test:bitstream2` 50/50 |
+| Handoff documentation | Done | 2026-05-30 | **`TELEMETRY_MODE_LIFECYCLE.md`**; expanded **`AGENT_HANDOFF.md`** |
 
 ---
 
@@ -352,8 +356,9 @@ Update this table as phases complete. Mirror major milestones in `docs/DEVELOPME
 
 ## Related docs
 
-- `HOW_TO_RUN.md` — dev scripts (update after Phase 4)
-- `AGENT_HANDOFF.md` — session log
-- `docs/DEVELOPMENT_TRACKER.md` — backlog
-- `.cursor/rules/` — see **`BITSTREAM_T3D_DECOUPLING_PLAN.md`** § Phase 0 (Rules and skills migration)
+- **`AGENT_HANDOFF.md`** — start on new machine; session log; implementation map
+- **`HOW_TO_RUN.md`** — dev stack, VSIX smoke checklist, telemetry modes
+- **`docs/TELEMETRY_MODE_LIFECYCLE.md`** — Bitstream vs Simulator (A+B)
+- **`docs/DEVELOPMENT_TRACKER.md`** — backlog
+- **`.cursor/rules/`** — agent handoff + dual-runtime rules
 - External **bitstream-simulator** repo — not part of Bitstream-Studio tree

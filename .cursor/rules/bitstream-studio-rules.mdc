@@ -1,5 +1,5 @@
 ---
-description: Bitstream-Studio repo layout and build conventions
+description: Bitstream Studio repo layout and build conventions
 alwaysApply: true
 ---
 
@@ -9,29 +9,39 @@ alwaysApply: true
 
 | Path | Role |
 |------|------|
-| **`extension/`** | VS Code extension + webview (Sensor Telemetry, Sensor Studio, BS2 bridge) |
+| **`extension/`** | VS Code extension + webview + `src/bitstream2/` |
 | **`AGENT_HANDOFF.md`** | Session onboarding |
-| **`.cursor/rules/`** | Agent policy (this folder) |
+| **`.cursor/rules/`** | Agent policy |
+| **`.cursor/skills/`** | Project skills (dev, protocol, UART, simulator) |
 
-**Not in this repo:** `T3D/`, `bitstream-simulator/` (separate extension repo).
+**Not in this repo:** `T3D/`, `bitstream-simulator/` (separate VSIX).
 
 ## Development
 
-- Work in **`extension/`**: `npm install`, `npm run dev:webview`, `npm run compile`.
+- Work in **`extension/`**: `npm install`, `npm run start:bridge`, `npm run dev:webview`, `npm run compile`.
 - Dev URLs: `http://localhost:5173/?app=bitstream`, `?app=sensor-studio`.
-- Full runbook: **`extension/HOW_TO_RUN.md`**.
+- Runbook: **`extension/HOW_TO_RUN.md`**. Skill: **`bitstream-studio-dev`**.
+
+## BS2 protocol (canonical in this repo)
+
+| Doc | Path |
+|-----|------|
+| Index | **`extension/docs/BS2_PROTOCOL_INDEX.md`** |
+| Wire spec | **`extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md`** |
+| Host code | **`extension/src/bitstream2/`** |
+
+Protocol changes: **`.cursor/rules/bs2-protocol-change.mdc`**, skill **`bs2-protocol-change`**.
 
 ## No `@ternion/t3d`
 
-Decoupling complete (2026-05-30). Webview uses local **`ui/catalog/`**, **`extension-bridge/`**, and vendored CSS — **no** npm dependency on `@ternion/t3d` or `T3D/` tree.
+Decoupling complete (2026-05-30). Local **`ui/catalog/`**, **`extension-bridge/`**, vendored CSS — no npm `@ternion/t3d`.
 
 ## VSIX
 
-- Extension id: **`bitstream-studio`**.
-- Use **`isVsCodeExtensionWebview()`** / `window.__VSCODE_API__` — not `T3DVSCodeUtils.isVsCodeMode()` alone.
+- Extension id: **`bitstream-studio`** (v0.1.0).
+- **`isVsCodeExtensionWebview()`** / `window.__VSCODE_API__` — not `T3DVSCodeUtils.isVsCodeMode()` alone.
 - Re-test after **`npm run package`** in a clean VS Code window.
 
-## Related
+## Related rules
 
-- **`bitstream-dual-runtime.mdc`** — UART + Simulator parity.
-- **`tesaiot-firmware-bitstream-paths.mdc`** — firmware truth paths.
+- **`bitstream-studio-handoff.mdc`**, **`bs2-protocol-change.mdc`**, **`bitstream-dual-runtime.mdc`**, **`bitstream-simulator-app-path.mdc`**, **`tesaiot-firmware-bitstream-paths.mdc`**

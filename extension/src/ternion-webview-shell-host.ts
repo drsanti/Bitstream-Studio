@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import {
   TernionDigitalTwin,
   type StatusBarItemsFor3DPanel,
+  type TernionDigitalTwinCreateOptions,
 } from "./panels/TernionDigitalTwin";
 import type { BitstreamWorkspaceHostId, TernionShellHostToWebviewMessage } from "./ternion-shell-host-message";
 
@@ -30,20 +31,25 @@ export function openTernionPanel(
   options?: OpenTernionPanelOptions,
 ): void
 {
-  const workspace = options?.bitstreamWorkspace ?? "telemetry";
+  const workspace = options?.bitstreamWorkspace;
 
   const current = TernionDigitalTwin.currentPanel;
   if (current)
   {
-    current.navigateBitstreamWorkspace(workspace);
+    if (workspace != null)
+    {
+      current.navigateBitstreamWorkspace(workspace);
+    }
     current.reveal();
     return;
   }
 
-  TernionDigitalTwin.createOrShow(extensionUri, context, {
-    statusBar,
-    bitstreamWorkspace: workspace,
-  });
+  const createOptions: TernionDigitalTwinCreateOptions = { statusBar };
+  if (workspace != null)
+  {
+    createOptions.bitstreamWorkspace = workspace;
+  }
+  TernionDigitalTwin.createOrShow(extensionUri, context, createOptions);
 }
 
 export async function pickTernionApplication(
@@ -54,6 +60,7 @@ export async function pickTernionApplication(
 {
   const panelOpen = TernionDigitalTwin.currentPanel != null;
   type PickId =
+    | "openLast"
     | "bitstreamTelemetry"
     | "bitstreamFlow"
     | "browser"
@@ -65,6 +72,11 @@ export async function pickTernionApplication(
     description?: string;
     id: PickId;
   }> = [
+    {
+      label: "$(window) Open Bitstream Studio",
+      description: "Last toolbar tab (Sensor Telemetry or Sensor Studio)",
+      id: "openLast",
+    },
     {
       label: "$(pulse) Sensor Telemetry",
       description: "Live BS2 telemetry and sensor configuration",
@@ -108,6 +120,9 @@ export async function pickTernionApplication(
 
   switch (pick.id)
   {
+    case "openLast":
+      openTernionPanel(extensionUri, context, statusBar);
+      break;
     case "bitstreamTelemetry":
       openTernionPanel(extensionUri, context, statusBar, {
         bitstreamWorkspace: "telemetry",

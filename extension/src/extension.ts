@@ -79,8 +79,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
   launchMenuStatusBarItem.text = "$(list-selection) Bitstream";
   launchMenuStatusBarItem.tooltip =
-    "Open Bitstream Studio (Sensor Telemetry, Sensor Studio, browser…)";
-  launchMenuStatusBarItem.command = "bitstream-studio.pickApplication";
+    "Open Bitstream Studio (last tab; use toolbar or command shortcuts for Sensor Telemetry / Studio)";
+  launchMenuStatusBarItem.command = "bitstream-studio.open";
   launchMenuStatusBarItem.show();
 
   // Create status bar item for reload webview button (hidden initially)
@@ -156,6 +156,17 @@ export function activate(context: vscode.ExtensionContext) {
     "bitstream-studio.pickApplication",
     () => {
       void pickTernionApplication(
+        context.extensionUri,
+        context,
+        getPanelStatusBar(),
+      );
+    },
+  );
+
+  const openStudioDisposable = vscode.commands.registerCommand(
+    "bitstream-studio.open",
+    () => {
+      openTernionPanel(
         context.extensionUri,
         context,
         getPanelStatusBar(),
@@ -335,10 +346,7 @@ export function activate(context: vscode.ExtensionContext) {
           .getConfiguration("ternion.assets")
           .get<string>("sourceStrategy", "local-first");
         const browserUrl = vscode.Uri.parse(url).with({
-          query: [
-            `assetSourceStrategy=${encodeURIComponent(assetSourceStrategy)}`,
-            "app=bitstream",
-          ].join("&"),
+          query: `assetSourceStrategy=${encodeURIComponent(assetSourceStrategy)}`,
         });
         await vscode.env.openExternal(browserUrl);
         void vscode.window.showInformationMessage(
@@ -388,13 +396,14 @@ export function activate(context: vscode.ExtensionContext) {
       void vscode.window.showInformationMessage(
         port === 0
           ? "Browser app port: 0 (ephemeral). Run Open in browser to get the URL."
-          : `Browser app port set to ${port}. Run Open in browser to use http://127.0.0.1:${port}/?app=bitstream`,
+          : `Browser app port set to ${port}. Run Open in browser to use http://127.0.0.1:${port}/`,
       );
     },
   );
 
   context.subscriptions.push(
     pickApplicationDisposable,
+    openStudioDisposable,
     toggleQuickActionDisposable,
     openBitstreamDisposable,
     openBitstreamSensorStudioDisposable,

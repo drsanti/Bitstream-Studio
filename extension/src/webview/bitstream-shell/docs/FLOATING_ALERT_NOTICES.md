@@ -72,8 +72,8 @@ export const BITSTREAM_ALERT_PRESET_UART = {
 
 ## Dev test
 
-1. `npm run start:bridge` in `t3d-extension`.
-2. `npm run dev:webview` (or `dev:bitstream2-loopback`).
+1. `npm run start:bridge` in `extension/` (terminal 1).
+2. `npm run dev:webview` (terminal 2).
 3. **Simulator:** Source **Simulator**, Link on, **do not** start Bitstream Simulator extension → notice after **3 s**, visible **10 s** (hover pauses timer).
 4. **Bitstream:** Source **Bitstream**, no board / no handshake → notice after **10 s**.
 5. Hard-reload after webview changes.

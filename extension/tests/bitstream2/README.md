@@ -10,6 +10,8 @@ Run:
 npm run test:bitstream2
 ```
 
+**Note:** The npm script includes **`--test-force-exit`** because in-process simulator timers can keep Jest alive after tests finish (50 tests as of 2026-05-30).
+
 `npm run test:bitstream` is an alias for `test:bitstream2`.
 
 ## Coverage (representative)

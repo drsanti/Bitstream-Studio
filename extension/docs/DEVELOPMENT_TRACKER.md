@@ -17,7 +17,7 @@ Do **not** duplicate long prose between the two: use the tracker for **ongoing s
 
 ## Agent handoff (new machine / Cursor)
 
-**Start here when switching PCs:** monorepo root **`AGENT_HANDOFF.md`** (Git branch **`BS2`**, clone steps, architecture, doc index, session log). Keep that file updated when closing a substantial agent session.
+**Start here when switching PCs:** repo root **`AGENT_HANDOFF.md`** (clone steps, v0.1.0 milestone, doc index, session log). Then **`HOW_TO_RUN.md`** and **`docs/TELEMETRY_MODE_LIFECYCLE.md`** (Bitstream vs Simulator exclusivity). Keep **`AGENT_HANDOFF.md`** updated when closing a substantial agent session.
 
 ## How to use
 
@@ -43,15 +43,15 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 ### Build and package gates
 
 - [x] **`npm run compile`** — no TypeScript / webview build errors (CI and local gate).
-- [x] **`npm run package`** — produces **`bitstream-studio-<version>.vsix`** (verified **2026-05-30** on `0.1.0` after T3D decoupling + Vite cleanup; 66.5 MB).
-- [ ] **Install smoke (UI)** — reload window; **Bitstream Studio: Open Sensor Telemetry** / **Open Sensor Studio**; Model Catalog preview; no bogus Bridge badge when bridge is off.
+- [x] **`npm run package`** — produces **`bitstream-studio-<version>.vsix`** (verified **2026-05-30** post-Jolt cleanup: **40.48 MB**, was 66.5 MB).
+- [x] **Install smoke (UI)** — user verified **2026-05-30**: Sensor Telemetry + Sensor Studio panels; Bitstream/Simulator mode switch (A+B route lifecycle).
 - [x] **CLI install** — `code --install-extension bitstream-studio-0.1.0.vsix` succeeded **2026-05-30**.
 
 ### Webview and runtime behavior (happy users)
 
 - [ ] **Extension vs browser** — Features that differ between **VS Code webview** and **Vite + bridge** must use **`window.WEBVIEW_READY === true`** and/or **`window.__VSCODE_API__`** (see **`isVsCodeExtensionWebview()`** in `src/webview/isVsCodeExtensionWebview.ts`). Do **not** rely on **`T3DVSCodeUtils.isVsCodeMode()`** / **`getVsCodeApi()`** alone in packaged builds (second `acquireVsCodeApi()` can fail → null API).
 - [ ] **Large models** — Default rotation / catalog previews use **`resolveWebviewModelAssetUrl`**, **`resolveDefaultPreviewMeshGlbUrl`**, **`bridgeWebPathToCatalogModelUrl`**, etc.; do **not** build URLs with **`import.meta.url`** for paths omitted from the VSIX (see **`.vscodeignore`** `out/webview/assets/models/**`).
-- [ ] **Jolt / COI** — Webview keeps **`T3DJoltLoader.initializeCOI`** as a no-op when **`WEBVIEW_READY`** (see `main.tsx`); do not remove without an approved host strategy.
+- [x] **Physics engine (Sensor Studio)** — Jolt removed **2026-05-30**; **`@dimforge/rapier3d`** / **`@react-three/rapier`** remain for a future choice (Rapier or other). No COI/Jolt host bootstrap in webview HTML.
 - [ ] **Downloads** — Model Loader / Free pack / API downloads land under **`globalStorage/.../assets`** (see **`extensionAssetPaths`**, Asset Manager **Global Directories**). After first run, users sync via **Asset Manager → Actions** if previews are missing.
 
 ### Optional polish before wide distribution
@@ -63,7 +63,7 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 ## Current focus
 
-Until priorities change explicitly: **Bitstream T3D decoupling** ([`BITSTREAM_T3D_DECOUPLING_PLAN.md`](./BITSTREAM_T3D_DECOUPLING_PLAN.md)) — isolate **Sensor Telemetry** + **Sensor Studio** from `T3D/` — then ongoing **Sensor Studio** and **Bitstream** feature work. Treat **Project 4** and **Digital Twin** as **out of scope** for new work (see **Parking lot**). **AI bridge / Assistant** stay in scope when they support **Sensor Studio** or **Bitstream** workflows.
+**Ship v0.1.x:** VSIX install smoke **passed** (user **2026-05-30**). Remaining: dual-runtime UART probe when COM available, optional MCU soak, then version/changelog cut. T3D decoupling **done**.
 
 ---
 
@@ -75,6 +75,14 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 - **2026-05-29** — **Sensor Telemetry UI labels:** workbench panes **Sensor Config · 3D Orientation · Telemetry Deck · Activity Log**; **`SENSOR_CFG_UI`** title case; 3D preview **3D Orientation** headers; docs **`CONFIGURATION_PANE_IMPROVEMENT_PLAN.md`**, **`SENSOR_DECK_VIEWER_CONVENTIONS.md`**, **`ROTATION_3D_PREVIEW.md`**.
 - **2026-05-29** — **Telemetry source UX:** removed **Auto** backend; toolbar **Bitstream** (`uart`) vs **Simulator**; config lock banner removed (reason logged to **Activity Log** on Refresh); port admin copy/status helpers.
+- **2026-05-30** — **Removed `dev:bitstream2-loopback`**: canonical browser dev is **`start:bridge`** + **`dev:webview`** (two terminals); deleted `scripts/dev-bitstream2-loopback.mjs`.
+- **2026-05-30** — **package.json scripts cleanup**: removed T3D-era aliases (`dev:linked`, `dev:with-copy`, `dev:with-supervisor`, `dev:browser`); refreshed `description:scripts`; settings panel titles → Bitstream Studio.
+- **2026-05-30** — **Removed Jolt Physics**: dropped `jolt-physics`, `crossoriginworker`, `sync-jolt-assets.js`, `src/assets/jolt/`, Vite Jolt plugins/copy, host COI/importmap bootstrap; Rapier deps kept for future physics in Sensor Studio.
+- **2026-05-30** — **Product-ready cleanup**: VSIX smoke checklist in **`HOW_TO_RUN.md`**; README → Bitstream Studio; removed unused **`cannon-es`** and **`ui/components/demo/`**; dropped legacy **`sensor-lab`** URL alias.
+- **2026-05-30** — **Telemetry mode A+B:** `telemetryModeLifecycle` + `bitstream2/telemetry/route`; bridge gates UART vs sim inject; `origin` on `evt/sensor`; user verified VSIX + mode switch. Doc: **`docs/TELEMETRY_MODE_LIFECYCLE.md`**.
+- **2026-05-30** — **URL routing removed (A+C):** no `?app=`; toolbar tabs + `localStorage` (`bitstream-studio.workspace.v1`); VS Code **`bitstream-studio.open`** (last tab); tab shortcut commands retained; host inject only on tab-specific open.
+- **2026-05-30** — **Cursor rules + skills:** `bs2-protocol-change.mdc`, `bitstream-simulator-app-path.mdc`; skills dev/protocol/UART/sim; stale `t3d-extension` references removed from rules.
+- **2026-05-30** — **Dev stack verified**: `start:bridge` + `dev:webview` green; fresh VSIX **40.48 MB** after Jolt removal.
 - **2026-05-29** — **External bitstream-simulator:** removed in-bridge `BsFirmwareSimulator` and `BITSTREAM2_DEV_LOOPBACK`; bridge auto-detects **`bitstream-simulator/`** via `bitstream2/sim/status`; skill **`bitstream-simulator-app`**, rules **`bitstream-simulator-app-path.mdc`**.
 - **2026-05-29** — **Floating notice UX:** Simulator **3 s** grace / **10 s** visible; **`TRNFloatingNotice`** `pauseDismissOnHover` freezes progress bar + timer on hover (Bitstream alerts default on).
 - **2026-05-29** — **Floating alert notices:** shared **`BitstreamFloatingAlertNotice`** + presets; Simulator (no EVT_SENSOR) and UART (no handshake) warnings; doc **`bitstream-shell/docs/FLOATING_ALERT_NOTICES.md`**.
@@ -482,7 +490,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 | Since `YYYY-MM-DD` | Blocker / question | Next step |
 |--------------------|--------------------|-----------|
-| **2026-05-11** | **Project 4 sunsetting** — **`src/webview/project4`** will be **removed**; treat as **legacy** (no new work, no M4 VSIX QA). | Delete app + commands + docs when ready; remove tracker / inbox references in the same pass. |
+| **2026-05-11** | **Project 4 sunsetting** — webview **`project4/`** removed; AI-bridge **`project4-*`** MCP stubs remain (defer strip with Assistant scope). | Remove AI-bridge Project4 registry when Assistant scope is trimmed. |
 
 ---
 

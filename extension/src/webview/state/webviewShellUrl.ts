@@ -28,19 +28,8 @@ function parseLocation(href: string): WebviewShellUrlState | null
   }
   try
   {
-    const params = new URLSearchParams(new URL(href, window.location.origin).search);
-    const app = params.get("app")?.trim() ?? "";
-
-    if (app === "sensor-studio")
-    {
-      return { showLauncher: false, entry: "bitstream" };
-    }
-    if (app === "bitstream" || app === "sensor-telemetry" || app.length === 0)
-    {
-      return { showLauncher: false, entry: "bitstream" };
-    }
-
-    return null;
+    new URL(href, window.location.origin);
+    return { showLauncher: false, entry: "bitstream" };
   }
   catch
   {
@@ -96,32 +85,8 @@ export type WriteShellUrlOptions = {
   usePushState?: boolean;
 };
 
-/** Write canonical dev URLs (`?app=bitstream` or `?app=sensor-studio`). */
-export function writeShellUrl(options: WriteShellUrlOptions): void
+/** No-op: Bitstream Studio uses toolbar tabs + localStorage (no `?app=` URL routing). */
+export function writeShellUrl(_options: WriteShellUrlOptions): void
 {
-  if (!isBrowserShellEnvironment())
-  {
-    return;
-  }
-  try
-  {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("launcher");
-    url.searchParams.delete("app");
-    url.searchParams.set("app", "bitstream");
-
-    const next = `${url.pathname}${url.search ? url.search : ""}${url.hash}`;
-    if (options.usePushState)
-    {
-      window.history.pushState({}, "", next);
-    }
-    else
-    {
-      window.history.replaceState({}, "", next);
-    }
-  }
-  catch
-  {
-    // ignore
-  }
+  // intentionally empty
 }

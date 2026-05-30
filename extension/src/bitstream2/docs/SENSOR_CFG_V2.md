@@ -3,7 +3,7 @@
 **Status:** Draft — v2 + v2.1 implemented on host simulator; firmware should follow §7–§8  
 **Last updated:** 2026-05-26  
 **Audience:** `bitstream2` encode/decode, `BsFirmwareSimulator`, webview `bitstream-app` / `bitstream2-simulator`, TESAIoT firmware alignment  
-**Canonical wire doc:** `t3d-extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` (§8.4 after merge)
+**Canonical wire doc:** [`extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md`](../../../docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md) (§8.4 SENSOR_CFG)
 
 ---
 

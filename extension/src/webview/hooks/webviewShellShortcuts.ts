@@ -1,5 +1,4 @@
 import {
-  syncBitstreamWorkspaceToUrl,
   useBitstreamWorkspaceModeStore,
   type BitstreamWorkspaceId,
 } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
@@ -35,8 +34,7 @@ function isAppSwitchShortcut(event: KeyboardEvent): boolean
 
 function switchBitstreamWorkspace(workspace: BitstreamWorkspaceId): void
 {
-  useBitstreamWorkspaceModeStore.setState({ workspace });
-  syncBitstreamWorkspaceToUrl(workspace, true);
+  useBitstreamWorkspaceModeStore.getState().setWorkspace(workspace);
 }
 
 function runShellShortcut(code: string): void

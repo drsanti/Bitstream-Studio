@@ -10,6 +10,9 @@ Related docs:
 
 | Document | Purpose |
 |----------|---------|
+| **`../AGENT_HANDOFF.md`** | Start here on a new machine (clone, milestone, session log) |
+| **`docs/TELEMETRY_MODE_LIFECYCLE.md`** | Bitstream vs Simulator exclusivity (route topic, bridge gates) |
+| `docs/DEVELOPMENT_TRACKER.md` | Backlog and VSIX readiness checklist |
 | `docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` | Wire format (BS framing, sensors, commands) |
 | `src/bitstream2/README.md` | Module layout and design |
 | `src/bitstream2/docs/SENSOR_CFG_V2.md` | `SENSOR_CFG` v2/v2.1, simulator sine synth, UI mapping |
@@ -44,6 +47,19 @@ flowchart LR
 
 The webview **never** parses raw UART bytes; it only consumes JSON on `bitstream2/*` (and serial status topics).
 
+### Telemetry source (Bitstream vs Simulator)
+
+Only **one** backend is active at a time. The toolbar sets `backend` to **`uart`** (label **Bitstream**) or **`simulator`** (**Simulator**).
+
+| Mode | Data path | COM |
+|------|-----------|-----|
+| **Bitstream** | Real MCU → bridge decode → `bitstream2/evt/sensor` (`origin: uart`) | Must be open for UI ingest |
+| **Simulator** | External **bitstream-simulator** → `inject-rx` → bridge → `evt/sensor` (`origin: sim`) | Must be **closed** |
+
+On switch, the webview runs **`telemetryModeLifecycle`** (clear live data, release COM when entering Simulator, publish **`bitstream2/telemetry/route`**, sim **`idle`/`run`**). The bridge enforces the same route and tags samples with **`origin`**.
+
+Full design: **`docs/TELEMETRY_MODE_LIFECYCLE.md`**. After edits to **`SerialPortWebSocketBridge.ts`**, restart **`npm run start:bridge`**.
+
 ---
 
 ## Prerequisites
@@ -55,13 +71,7 @@ The webview **never** parses raw UART bytes; it only consumes JSON on `bitstream
    npm install
    ```
 
-2. **Jolt WASM assets** (Model Catalog preview): `predev:webview` runs `scripts/sync-jolt-assets.js` automatically. If `/jolt` 404s in the browser, run:
-
-   ```bash
-   node scripts/sync-jolt-assets.js
-   ```
-
-3. **Ports free**: broker **9998**, Vite **5173**. If something is stuck:
+2. **Ports free**: broker **9998**, Vite **5173**. If something is stuck:
 
    ```bash
    npm run dev:clean
@@ -81,24 +91,30 @@ npm start
 
 `npm start` runs the full dev stack. For **Simulator** telemetry, also run the **Bitstream Simulator** extension from repo **`bitstream-simulator/`** (install VSIX or F5). The bridge **no longer** embeds `BsFirmwareSimulator` — do **not** set `BITSTREAM2_DEV_LOOPBACK=1`.
 
-| URL | Workspace |
-|-----|-----------|
-| `http://localhost:5173/?app=bitstream` | Sensor Telemetry |
-| `http://localhost:5173/?app=sensor-studio` | Flow editor |
-| `http://localhost:5173/?app=bitstream2-sim` | Legacy BS2 webview dashboard |
+Dev URL: **http://localhost:5173/** — one app shell; switch **Sensor Telemetry** / **Sensor Studio** with the toolbar tabs (last tab persisted in `localStorage`). Browser shortcuts: **Ctrl+Shift+1** / **Ctrl+Shift+2**.
+
+| VS Code command | Tab |
+|-----------------|-----|
+| `Bitstream Studio: Open Bitstream Studio` | Last tab (status bar default) |
+| `… (Sensor Telemetry tab)` | Sensor Telemetry |
+| `… (Sensor Studio tab)` | Sensor Studio |
 
 In the toolbar, use **Telemetry data source**:
 
 - **Simulator** — WebSocket + external **Bitstream Simulator** extension streaming.
 - **Bitstream** — firmware on serial; COM bring-up via bridge; see UART probes below.
 
-Dev stack (bridge + Vite, no in-bridge mock):
+Dev stack (bridge + Vite, two terminals):
 
 ```bash
-npm run dev:bitstream2-loopback
+# Terminal 1
+npm run start:bridge
+
+# Terminal 2
+npm run dev:webview
 ```
 
-Then start **Bitstream Simulator** (sidebar **Start** / **Streaming**). Browser opens **Sensor Telemetry** (`/?app=bitstream`).
+Then start **Bitstream Simulator** (sidebar **Start** / **Streaming**). Vite opens **`http://localhost:5173/`** by default (use toolbar tabs to switch workspace).
 
 In the toolbar: set source to **Simulator**, click **Link** (Connect).
 
@@ -114,15 +130,14 @@ In the toolbar: set source to **Simulator**, click **Link** (Connect).
 | Live telemetry | `bitstream2/evt/sensor` | Same when handshake OK |
 | Sensor cfg apply | Local store draft | BS2 on wire via CLI; webview TBD |
 
-### Real MCU — CLI and `?app=bitstream` (no webview COM session)
+### Real MCU — browser dev + CLI (no webview COM session)
 
 | URL | Use when |
 |-----|----------|
-| **`http://localhost:5173/?app=bitstream`** | Simulator loopback UI; **not** webview COM open for UART yet |
-| **`http://localhost:5173/?app=bitstream2-sim`** | Dev BS2 dashboard (loopback mock) |
+| **`http://localhost:5173/`** | Bitstream Studio UI; UART bring-up via CLI, not webview COM session yet |
 | **CLI** | **Yes** for real PSoC on COM — see below |
 
-**MCU stack (no loopback):**
+**MCU stack:**
 
 ```bash
 # Terminal A
@@ -157,20 +172,26 @@ npm run bitstream2:uart-matrix -- --list-cases --tier=standard
 
 ## Quick start (recommended)
 
-**Terminal A** — bridge + Vite:
+**Terminal A** — broker:
 
 ```bash
-npm run dev:bitstream2-loopback
+npm run start:bridge
 ```
 
-**Terminal B** (or VS Code) — **Bitstream Simulator** extension from **`../bitstream-simulator`** (`npm run compile` + F5, or install packaged VSIX).
+**Terminal B** — Vite webview:
+
+```bash
+npm run dev:webview
+```
+
+**Terminal C** (or VS Code) — **Bitstream Simulator** extension from **`../bitstream-simulator`** (`npm run compile` + F5, or install packaged VSIX).
 
 1. Wait for bridge log on `:9998`.
 2. Start **Streaming** in Bitstream Simulator.
 3. Open in the browser:
 
    ```
-   http://localhost:5173/?app=bitstream
+   http://localhost:5173/
    ```
 
 4. Set source **Simulator**, click **Link**. You should see:
@@ -199,7 +220,7 @@ npm run dev:webview
 
 **Terminal C / VS Code — Bitstream Simulator extension** (required for Simulator source).
 
-Same URL: `http://localhost:5173/?app=bitstream`
+Same URL: `http://localhost:5173/`
 
 Optional env:
 
@@ -213,13 +234,83 @@ Optional env:
 
 ## VS Code extension (installed / F5)
 
-1. Run **TERNION → Start Serial Bridge** (or your extension command that starts `combined-bridge-entry`).
-2. For **host-only sim**: install/run the **Bitstream Simulator** extension from **`bitstream-simulator/`** (not `BITSTREAM2_DEV_LOOPBACK`).
-3. Open the **Sensor Telemetry** / Sensor Studio webview entry.
+1. Run **Bitstream Studio: Start Serial Bridge** (starts `combined-bridge-entry` on port **9998**).
+2. For **Simulator** telemetry: install/run the external **Bitstream Simulator** extension from repo **`bitstream-simulator/`** (not in-bridge mock).
+3. Command Palette → **Bitstream Studio: Open Sensor Telemetry** or **Open Sensor Studio**.
 
-**Telemetry source:** **Simulator** requires external Bitstream Simulator streaming. **Bitstream** uses COM + BS2 handshake. Amber floating notices: Simulator after **3 s** without data, Bitstream after **10 s** without handshake; **10 s** visible with hover-pause (`FLOATING_ALERT_NOTICES.md`).
+**Telemetry source:** **Simulator** requires external Bitstream Simulator streaming. **Bitstream** uses COM + BS2 handshake (CLI bring-up today). Amber floating notices: Simulator after **3 s** without data, Bitstream after **10 s** without handshake; **10 s** visible with hover-pause (`FLOATING_ALERT_NOTICES.md`).
 
 Packaged **VSIX** bundles the prebuilt webview from `npm run compile` — no external `@ternion/t3d` package.
+
+---
+
+## VSIX smoke checklist (before release)
+
+**Status:** User-verified **2026-05-30** on **`bitstream-studio-0.1.0.vsix`** (panels A–B, mode switch). Re-run after material changes.
+
+Run after **`npm run compile`** and **`npm run package`**. Use a **clean VS Code window** (or profile) so an old Digital Twin / linked T3D install does not mask issues.
+
+### Build and install
+
+```bash
+cd extension
+npm run compile
+npm run package
+code --install-extension bitstream-studio-*.vsix
+```
+
+Reload the window (**Developer: Reload Window**).
+
+### A — Panels open (bridge **off**)
+
+Do **not** start the serial bridge for this pass.
+
+| Step | Action | Pass if |
+|------|--------|---------|
+| A1 | **Bitstream Studio: Open Sensor Telemetry** | 4-pane workbench loads (Sensor Config · 3D Orientation · Telemetry Deck · Activity Log) |
+| A2 | **Bitstream Studio: Open Sensor Studio** | Flow canvas + node library load |
+| A3 | Toolbar / status | No spurious **Bridge: disconnected** dev badge; no `(fetching path…)` repo asset paths |
+| A4 | Model Catalog / 3D preview (if used) | Preview mesh loads from **globalStorage** or bundled assets — not blank 404 |
+
+### B — Simulator path (bridge **on**)
+
+```bash
+# Terminal 1
+npm run start:bridge
+```
+
+Start **Bitstream Simulator** (external extension) → **Streaming**.
+
+| Step | Action | Pass if |
+|------|--------|---------|
+| B1 | Open Sensor Telemetry panel | Toolbar **Simulator** + **Link** |
+| B2 | Connect | WS connected; **Samples** increase (~sine on masked channels) |
+| B3 | Sensor config deck | Unlocks after HELLO / readiness (not stuck greyed) |
+
+### C — UART path (optional, hardware)
+
+Bridge running; MCU on COM @ **921600**:
+
+```bash
+npm run bitstream2:uart-probe -- --path COM3 --baud 921600
+```
+
+| Step | Action | Pass if |
+|------|--------|---------|
+| C1 | Probe CLI | **PROBE PASSED** |
+| C2 | Sensor Telemetry, source **Bitstream** | Live EVT after CLI/COM bring-up (webview COM session TBD) |
+
+### D — Automated gate
+
+```bash
+npm run test:bitstream2
+```
+
+All tests green.
+
+**Sensor cfg apply (v0.1):** Webview **Apply** updates the **local draft store** only; wire **`SENSOR_CFG_SET`** to firmware is via **CLI / MCP** until restored in UI. Document this in release notes.
+
+Tracker mirror: **`docs/DEVELOPMENT_TRACKER.md`** § VSIX and marketplace readiness.
 
 ---
 
@@ -236,10 +327,10 @@ Run from **`extension/`**. Bridge must be up for `--ws` / inject commands.
 | `npm run bitstream2:dev-inject -- --ping-req` | PING via `bitstream2/req` (same as UI **Send PING**) |
 | `npm run bitstream2:sim-scenario -- --offline boot` | Scenario without bridge |
 | `npm run bitstream2:sim-scenario -- --offline full_board` | All four sensors streaming (in-process) |
-| `npm run bitstream2:sim-scenario -- --ws full_board` | Same via broker (loopback on) |
+| `npm run bitstream2:sim-scenario -- --ws full_board` | Same via broker (bridge running) |
 | `npm run bitstream2:golden:gen` | Regenerate `tests/fixtures/bitstream2-golden/` |
 
-Example — WS inject (bridge already running with loopback):
+Example — WS inject (bridge already running):
 
 ```bash
 npm run bitstream2:dev-inject -- --hello --sample
@@ -260,12 +351,12 @@ npm run bitstream2:dev-inject -- --ping-req
 
 If buttons do not respond, ensure the app root uses `pointer-events-auto` (`t3d-shell-overlay` on the simulator shell). The host `#root` uses `pointer-events: none` for the 3D engine elsewhere.
 
-### Quick validation (host loopback only)
+### Quick validation (Simulator + external sim)
 
-1. `npm run dev:bitstream2-loopback` → browser opens Sensor Telemetry (`/?app=bitstream`). For Sensor Studio UI: open `/?app=sensor-studio`.
+1. `npm run start:bridge` + `npm run dev:webview` → open **`http://localhost:5173/`**; use toolbar tabs for Sensor Telemetry vs Sensor Studio.
 2. **Sine motion:** BMI270 acc/gyro/euler/quat and other sensors should sweep smoothly (~0.2 Hz); charts must not sit flat.
 3. **Sampling frequency:** change Hz preset → **Apply** → stream rate follows (`publishIntervalMs` stays 0 = same as sampling).
-4. **UART vs sim:** with loopback on, switch toolbar to **UART** (no COM open) → UI should **not** show mock samples; mock stream idles. Back to **Simulator** → samples resume.
+4. **Bitstream vs Simulator:** with external sim streaming and COM open on **Bitstream**, UI shows **hardware only**. Switch to **Simulator** → COM released, **sine sim only**. Toggle back → single source, no mixed samples (see **`TELEMETRY_MODE_LIFECYCLE.md`**).
 5. **Decimation / on-change / coerce:** use `?app=bitstream2-sim` or `SENSOR_CFG_V2.md` §4–§7.1 for `publishIntervalMs`, delta, and invalid telemetry>sampling coercion tests.
 
 Firmware / UART not required for the above.
@@ -274,7 +365,7 @@ Firmware / UART not required for the above.
 
 ## Real hardware (UART)
 
-1. Start bridge **without** loopback (or loopback off):
+1. Start bridge:
 
    ```bash
    npm run start:bridge

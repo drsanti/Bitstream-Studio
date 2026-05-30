@@ -25,21 +25,14 @@ declare global {
     TESAIOT_TEXTURES_BASE_URI?: string;
     USER_MODELS_BASE_URI?: string;
     ASSET_SOURCE_STRATEGY?: "local-only" | "local-first" | "online-only";
-    COI_SERVICE_WORKER_URI?: string;
-    JOLT_WORKER_SCRIPT_URI?: string;
-    JOLT_SINGLE_THREADED_PROD_URI?: string;
-    JOLT_SINGLE_THREADED_DEBUG_URI?: string;
-    JOLT_MULTITHREADED_PROD_URI?: string;
-    JOLT_MULTITHREADED_DEBUG_URI?: string;
     IS_WEBVIEW?: boolean;
-    JOLT_URI?: string;
     CAN_USE_THREADS?: boolean;
     SHARED_ARRAY_BUFFER?: boolean;
     CROSS_ORIGIN_ISOLATED?: boolean;
-    __JOLT_WORKER_BLOB_URL__?: string;
     __VSCODE_API__?: {
       postMessage: (message: unknown) => void;
     };
   }
+}
 
 export {};
