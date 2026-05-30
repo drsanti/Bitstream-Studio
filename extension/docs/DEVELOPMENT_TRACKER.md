@@ -78,6 +78,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-30** — **Removed `dev:bitstream2-loopback`**: canonical browser dev is **`start:bridge`** + **`dev:webview`** (two terminals); deleted `scripts/dev-bitstream2-loopback.mjs`.
 - **2026-05-30** — **package.json scripts cleanup**: removed T3D-era aliases (`dev:linked`, `dev:with-copy`, `dev:with-supervisor`, `dev:browser`); refreshed `description:scripts`; settings panel titles → Bitstream Studio.
 - **2026-05-30** — **Docs — `APPLICATION_MIGRATION_PLAN.md`**: Phased plan to port **E84 rotation**, **ABB robot**, and **vehicle physics** from `ternion-t3d` into Bitstream Studio using **R3F** (vehicle: **`jolt-physics`** recommended); checklists for phases 0–3.
+- **2026-05-30** — **Landing CSS3D cards (MVP):** `landing/css3d/` — CSS3DRenderer overlay, R3F camera sync, card slots for workspace + sim cards when backdrop is 3D/blend.
 - **2026-05-30** — **Landing 3D backdrop:** R3F welcome cube floor + 2D nebula/flow compositor; double-click / Shift+double-click mode cycling; lazy 3D; `landing/README.md`.
 - **2026-05-30** — **Landing nav fix:** broke `bitstreamLandingNav` ↔ store circular import; `isViteDevMode()` + `bitstreamLandingActions.ts` (fixes `import.meta.env.DEV` crash on `/`).
 - **2026-05-30** — **Digital Twin simulations (Phase 0 + E84 MVP):** `webview/simulations/` (`catalog`, `shared`, `e84-rotation`, `abb-robot`/`vehicle-physics` stubs), `SimulationHub`, landing **Digital Twin simulations** section; E84 sine rotation on `E84_1`; dev `?sim=e84-rotation`.
