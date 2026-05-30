@@ -55,6 +55,8 @@ Target: `BitstreamLandingOptionCard` and `SimulationLandingOptionCard` in Three.
 | `css3d/landingCss3dCamera.store.ts` | Camera + viewport from R3F |
 | `css3d/LandingCss3dCameraSync.tsx` | `useFrame` publisher inside Canvas |
 | `css3d/LandingCss3dOverlay.tsx` | CSS3DRenderer + card registry |
+| `css3d/LandingCss3dCardSlot.tsx` | Registers card DOM for CSS3D |
 | `css3d/landingCss3dLayout.ts` | Card positions in scene space |
+| `css3d/LandingCss3dCameraSync.tsx` | R3F → CSS3D camera sync |
 
-Active when backdrop mode is **3D** or **blend** (not **2D only**). Flat HTML fallback remains for 2D-only and reduced motion.
+Active when backdrop mode is **3D** or **blend** (not **2D only**). Flat HTML fallback for 2D-only and reduced motion.

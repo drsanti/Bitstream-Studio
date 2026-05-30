@@ -14,6 +14,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense, useMemo } from "react";
 import * as THREE from "three";
 import { WelcomeBackground3DScene } from "./WelcomeBackground3DScene.js";
+import { LandingCss3dCameraSync } from "./css3d/LandingCss3dCameraSync.js";
 import {
   WELCOME_BG3D_CAMERA_FROM,
   WELCOME_BG3D_SCENE_BACKGROUND,
@@ -63,6 +64,7 @@ export function BitstreamLandingBackground3D({
       >
         <Suspense fallback={null}>
           <WelcomeBackground3DScene animate={animate} />
+          <LandingCss3dCameraSync />
         </Suspense>
       </Canvas>
     </div>

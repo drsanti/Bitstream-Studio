@@ -566,6 +566,15 @@ body.webview-digital-twin-shell::after {
   animation-play-state: running;
 }
 
+/* CSS3D card slots — reserve grid height when DOM nodes move to CSS3DRenderer */
+.landing-css3d-slot {
+  min-height: 13.5rem;
+}
+
+.landing-css3d-renderer .webview-launcher-card {
+  width: min(100%, 22rem);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .webview-launcher-nebula__canvas {
     opacity: 0.65;
