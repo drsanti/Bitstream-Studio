@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { T3DVSCodeUtils } from "@ternion/t3d/vscode-webview";
+import { getVsCodeApi } from "../extension-bridge/getVsCodeApi";
 
 function nextRequestId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -43,11 +43,7 @@ export interface UseModelDownloaderExtensionResult {
 }
 
 export function useModelDownloaderExtension(): UseModelDownloaderExtensionResult {
-  // Use pre-injected API from HTML (ES modules may not see global acquireVsCodeApi)
-  // or fall back to T3DVSCodeUtils
-  const vscodeApi =
-    (typeof window !== "undefined" && window.__VSCODE_API__) ||
-    T3DVSCodeUtils.getVsCodeApi();
+  const vscodeApi = getVsCodeApi();
   const isAvailable = vscodeApi !== null && vscodeApi !== undefined;
 
   const [config, setConfigState] = useState<ModelDownloaderExtensionConfig | null>(null);

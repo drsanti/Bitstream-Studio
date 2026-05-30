@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { T3DVSCodeUtils } from "@ternion/t3d/vscode-webview";
+import { getVsCodeApi } from "../../extension-bridge/getVsCodeApi.js";
 import { isVsCodeExtensionWebview } from "../../isVsCodeExtensionWebview.js";
 
 function nextRequestId(): string {
@@ -33,7 +33,7 @@ export function useExtensionDefaultDownloadPaths() {
   );
 
   const requestPaths = useCallback(() => {
-    const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+    const vscodeApi = getVsCodeApi();
     if (!isExtensionHost || vscodeApi == null) {
       setLoading(false);
       return;
@@ -92,7 +92,7 @@ export function useExtensionDefaultDownloadPaths() {
 
   const revealAbsolutePath = useCallback((absolutePath: string) => {
     return new Promise<RevealPathResult>((resolve) => {
-      const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+      const vscodeApi = getVsCodeApi();
       if (vscodeApi == null) {
         resolve({ ok: false, error: "VS Code API is not available" });
         return;

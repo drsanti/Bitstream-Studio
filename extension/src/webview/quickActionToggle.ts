@@ -1,4 +1,4 @@
-import { useQuickActionStore } from "@ternion/t3d/ui";
+import { useQuickActionStore } from "@/ui/quick-action/quick-action-store";
 
 let lastToggleMs = 0;
 

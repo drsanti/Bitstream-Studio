@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { T3DVSCodeUtils } from "@ternion/t3d/vscode-webview";
+import { getVsCodeApi } from "../extension-bridge/getVsCodeApi";
 import type { FreeAssetIndexEntry, FreeLocalAssetEntry } from "../../model-downloader/protocol";
 import type { SyncTernionFreeAssetsProgress } from "../../asset-sync/syncTernionFreeAssets";
 import { useFreeAssetsSyncOverWs } from "../asset-sync/useFreeAssetsSyncOverWs";
@@ -184,7 +184,7 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
 
   useEffect(() => {
     if (!isExtension || !active) return;
-    const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+    const vscodeApi = getVsCodeApi();
     if (!vscodeApi) return;
     const requestId = nextRequestId();
     vscodeApi.postMessage({ type: "asset-get-default-download-paths", requestId });
@@ -225,7 +225,7 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
   const listIndex = useCallback(async (): Promise<FreeAssetIndexEntry[]> => {
     setError(null);
     if (isExtension) {
-      const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+      const vscodeApi = getVsCodeApi();
       if (!vscodeApi) throw new Error("VS Code API not available");
       setListLoading(true);
       try {
@@ -259,7 +259,7 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
   const listLocalFreeAssets = useCallback(async () => {
     setError(null);
     if (isExtension) {
-      const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+      const vscodeApi = getVsCodeApi();
       if (!vscodeApi) throw new Error("VS Code API not available");
       setLocalListLoading(true);
       try {
@@ -297,7 +297,7 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
       setError(null);
       setProgress(null);
       if (isExtension) {
-        const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+        const vscodeApi = getVsCodeApi();
         if (!vscodeApi) throw new Error("VS Code API not available");
         setBusy(true);
         try {
@@ -352,7 +352,7 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
   const revealFolder = useCallback(
     async (absolutePath: string) => {
       if (isExtension) {
-        const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+        const vscodeApi = getVsCodeApi();
         if (!vscodeApi) throw new Error("VS Code API not available");
         const requestId = nextRequestId();
         await new Promise<void>((resolve, reject) => {

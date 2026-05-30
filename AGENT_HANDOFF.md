@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI on **Bitstream-Studio**. Read this first.
 
-**Last updated:** 2026-05-29 (Phase 0 bootstrap)  
+**Last updated:** 2026-05-30 (Phase 2 thin bridge)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Migration source:** `ternion-t3d` @ **`BS2`** (legacy; Digital Twin stays there)
 
@@ -70,3 +70,4 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 |------|---------|
 | 2026-05-29 | **Phase 0 bootstrap:** new repo; `extension/` from `ternion-t3d` BS2; rebrand `bitstream-studio`; `@ternion/t3d@0.0.3` npm (no `T3D/`); root `.cursor/rules`; sim external |
 | 2026-05-30 | **Phase 1 isolation:** `main.tsx` → `BitstreamApp` only; removed MyApp/WebviewRoot/launcher/project4/quick-scene; trimmed VS Code commands; `sync-t3d-css` npm fallback |
+| 2026-05-30 | **Phase 2 thin bridge:** `extension-bridge/getVsCodeApi`; local quick-action store; `engine-environment/cubemapPresets`; zero `@ternion/t3d/vscode-webview` imports |

@@ -37,7 +37,9 @@ declare global {
     SHARED_ARRAY_BUFFER?: boolean;
     CROSS_ORIGIN_ISOLATED?: boolean;
     __JOLT_WORKER_BLOB_URL__?: string;
+    __VSCODE_API__?: {
+      postMessage: (message: unknown) => void;
+    };
   }
-}
 
 export {};

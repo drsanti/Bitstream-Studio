@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { T3DAssetManager } from "@ternion/t3d";
-import { T3DVSCodeUtils } from "@ternion/t3d/vscode-webview";
-import { GlobalConfig } from "../../../GlobalConfig.js";
+import { getVsCodeApi } from "../../extension-bridge/getVsCodeApi.js";
 import { isVsCodeExtensionWebview } from "../../isVsCodeExtensionWebview.js";
-import { normalizeAssetBaseUrl } from "../store/asset-presets.js";
 
 export type InjectedAssetBasesSnapshot = {
   local: string;
@@ -39,17 +36,6 @@ function applySnapshotToWindow(snapshot: InjectedAssetBasesSnapshot): void {
   window.FREE_ASSETS_BASE_URI = snapshot.free;
   window.TESAIOT_TEXTURES_BASE_URI = snapshot.tesaiotTextures;
   window.ONLINE_ASSETS_BASE_URI = snapshot.online;
-}
-
-function applySnapshotToEngine(snapshot: InjectedAssetBasesSnapshot): void {
-  if (GlobalConfig.IS_DEV_MODE || !snapshot.online) {
-    return;
-  }
-  try {
-    T3DAssetManager.setAssetsBaseUrlToOnline(normalizeAssetBaseUrl(snapshot.online));
-  } catch {
-    // ignore if engine bundle not ready
-  }
 }
 
 type AssetConfigPayload = {
@@ -109,7 +95,6 @@ export function useInjectedAssetBases(): UseInjectedAssetBasesResult {
       }
       const next = payloadToSnapshot(d.assetConfig);
       applySnapshotToWindow(next);
-      applySnapshotToEngine(next);
       setSnapshot(next);
       if (awaitingHostRefreshRef.current) {
         awaitingHostRefreshRef.current = false;
@@ -123,7 +108,7 @@ export function useInjectedAssetBases(): UseInjectedAssetBasesResult {
   }, []);
 
   const refreshFromHost = useCallback(() => {
-    const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+    const vscodeApi = getVsCodeApi();
     if (!isExtensionHost || vscodeApi == null) {
       setStatusMessage("Refresh is only available inside the VS Code / Cursor webview.");
       return;

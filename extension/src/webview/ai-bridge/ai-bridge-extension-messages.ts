@@ -1,4 +1,4 @@
-import { T3DVSCodeUtils } from "@ternion/t3d/vscode-webview";
+import { getVsCodeApi } from "@/extension-bridge/getVsCodeApi";
 
 export type AiBridgeHostReportedStatus = {
   running: boolean;
@@ -7,14 +7,9 @@ export type AiBridgeHostReportedStatus = {
   externalProcess: boolean;
 };
 
-function getVsCodeWebviewPostMessageApi(): { postMessage: (msg: unknown) => void } | null {
-  const injected = (
-    window as unknown as { __VSCODE_API__?: { postMessage?: (msg: unknown) => void } }
-  ).__VSCODE_API__;
-  if (injected?.postMessage) {
-    return injected as { postMessage: (msg: unknown) => void };
-  }
-  return T3DVSCodeUtils.getVsCodeApi();
+function getVsCodeWebviewPostMessageApi(): { postMessage: (msg: unknown) => void } | null
+{
+  return getVsCodeApi();
 }
 
 /** Ask the extension host to spawn or attach to the local AI bridge (same as Command Palette flow). */

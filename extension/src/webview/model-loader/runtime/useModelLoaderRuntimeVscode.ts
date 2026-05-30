@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { T3DVSCodeUtils } from "@ternion/t3d/vscode-webview";
+import { getVsCodeApi } from "../../extension-bridge/getVsCodeApi.js";
 import { useModelDownloaderExtension } from "../../model-downloader/useModelDownloaderExtension";
 import type { ModelLoaderRuntimePort } from "./loaderRuntimePort";
 import type {
@@ -90,7 +90,7 @@ export function useModelLoaderRuntimeVscode(): ModelLoaderRuntimePort {
   const [defaultOutputDir, setDefaultOutputDir] = useState("");
 
   useEffect(() => {
-    const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+    const vscodeApi = getVsCodeApi();
     if (!vscodeApi) return;
     const requestId = nextRequestId();
     const onMsg = (event: MessageEvent) => {
@@ -114,7 +114,7 @@ export function useModelLoaderRuntimeVscode(): ModelLoaderRuntimePort {
   }, []);
 
   const revealFolder = useCallback(async (absolutePath: string) => {
-    const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+    const vscodeApi = getVsCodeApi();
     if (!vscodeApi) {
       throw new Error("VS Code API not available");
     }
@@ -152,7 +152,7 @@ export function useModelLoaderRuntimeVscode(): ModelLoaderRuntimePort {
 
   const sendRequest = useCallback(
     <T>(type: string, payload: Record<string, unknown>): Promise<T> => {
-      const vscodeApi = window.__VSCODE_API__ ?? T3DVSCodeUtils.getVsCodeApi();
+      const vscodeApi = getVsCodeApi();
       return new Promise<T>((resolve, reject) => {
         if (!vscodeApi) {
           reject(new Error("VS Code API not available"));

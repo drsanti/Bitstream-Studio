@@ -1,5 +1,50 @@
+import { useCallback, useEffect } from "react";
+import { useQuickActionStore } from "./quick-action-store.js";
+import type { Command } from "./types.js";
+
+export interface UseQuickActionReturn
+{
+  registerCommand: (command: Command) => void;
+  unregisterCommand: (id: string) => void;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+}
+
 /**
- * Quick Action command registration — backed by `@ternion/t3d` at install time.
- * Import from here from **`bitstream-app`** / **`sensor-studio`** so those trees stay free of direct `@ternion/t3d` imports.
+ * Register Ctrl+/ quick-action commands. Import from here in bitstream-app / sensor-studio.
  */
-export { useQuickAction } from "@ternion/t3d/ui";
+export function useQuickAction(
+  callback?: (api: UseQuickActionReturn) => void | (() => void),
+): UseQuickActionReturn
+{
+  const registerCommand = useQuickActionStore((state) => state.registerCommand);
+  const unregisterCommand = useQuickActionStore(
+    (state) => state.unregisterCommand,
+  );
+  const setOpen = useQuickActionStore((state) => state.setOpen);
+  const toggle = useQuickActionStore((state) => state.toggle);
+
+  const open = useCallback(() => setOpen(true), [setOpen]);
+  const close = useCallback(() => setOpen(false), [setOpen]);
+
+  const api: UseQuickActionReturn = {
+    registerCommand,
+    unregisterCommand,
+    open,
+    close,
+    toggle,
+  };
+
+  useEffect(() =>
+  {
+    if (!callback)
+    {
+      return;
+    }
+    const cleanup = callback(api);
+    return cleanup;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return api;
+}

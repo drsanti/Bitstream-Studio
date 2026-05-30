@@ -319,7 +319,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Bitstream — T3D decoupling → [Bitstream-Studio](https://github.com/drsanti/Bitstream-Studio)** — **Phase 1 done** (2026-05-30): BitstreamApp-only entry; Digital Twin / Project4 / launcher removed. **Next:** Phase 2 thin bridge. **Plan:** [`BITSTREAM_T3D_DECOUPLING_PLAN.md`](./BITSTREAM_T3D_DECOUPLING_PLAN.md).
+- **Bitstream — T3D decoupling → [Bitstream-Studio](https://github.com/drsanti/Bitstream-Studio)** — **Phase 2 done** (2026-05-30): local `extension-bridge/getVsCodeApi`, quick-action store, cubemap presets; no `@ternion/t3d/vscode-webview` or main-package bridge imports. **Next:** Phase 3 TRN migration for model-catalog/model-loader UI. **Plan:** [`BITSTREAM_T3D_DECOUPLING_PLAN.md`](./BITSTREAM_T3D_DECOUPLING_PLAN.md).
 - **Bitstream Lab phases 4–8** — Loopback + Publish panels; broker / protocol / bridge observability (specs in `src/webview/bitstream-lab/docs/`). **Continue from:** `bitstream-lab/docs/RUNBOOK.md` §5. Phases 0–3 shipped **`eaa347f`**.
 - **BS2 protocol — post-HELLO validation (MCU)** — CLI probe **passed 2026-05-26** (see **`AGENT_HANDOFF.md` §9.2**, skill **`tesaiot-bs2-uart-bringup`**):
   - [x] EVT_SENSOR: all four sensors (CLI 30s soak; ~29 samples/sensor)

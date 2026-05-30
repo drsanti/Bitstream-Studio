@@ -346,7 +346,7 @@ Update this table as phases complete. Mirror major milestones in `docs/DEVELOPME
 | Decisions (§ Open decisions) | Done | 2026-05-29 | All items locked |
 | Phase 0 — Bootstrap Bitstream-Studio | Done | 2026-05-29 | Initial push; npm install OK |
 | Phase 1 — Product isolation | Done | 2026-05-30 | BitstreamApp-only entry; removed Digital Twin / Project4 / launcher |
-| Phase 2 — Thin bridge replacement | Pending | — | |
+| Phase 2 — Thin bridge replacement | Done | 2026-05-30 | Local extension-bridge, quick-action store, cubemap presets |
 | Phase 3 — UI decoupling | Pending | — | TRN vs vendor TBD |
 | Phase 4 — Delete @ternion/t3d dep | Pending | — | No T3D/ in Bitstream-Studio |
 | VSIX + dual-runtime verify | Pending | — | UART + Simulator |
