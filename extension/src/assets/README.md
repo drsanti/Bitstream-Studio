@@ -1,0 +1,3 @@
+# Online Assets
+
+The large model and texture payloads under this directory are published for consumption by downstream applications (including the VS Code TERNION Digital Twin extension). These files are intentionally **not** bundled into the VSIX package—`out/webview/assets/models/**` and `out/webview/assets/textures/**` are declared in the extension’s `.vscodeignore` so Marketplace installs stay lightweight. Update that ignore list if you add new heavy assets here to keep the published extension size under control.

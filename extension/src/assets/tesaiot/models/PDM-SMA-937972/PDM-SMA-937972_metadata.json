@@ -1,0 +1,52 @@
+{
+  "files": {
+    "original": {
+      "url": "/api/v1/product-models/files/PDM-SMA-937972.glb",
+      "size": 10419164,
+      "md5": "cd9c00a6d0d32fd76ded62441f2867fb",
+      "uploaded_at": "2025-12-14T13:02:01.886Z"
+    },
+    "processed": {
+      "snapshot_urls": []
+    },
+    "thumbnail": {
+      "url": "/api/v1/product-models/files/thumbnails/PDM-SMA-937972.webp",
+      "uploaded_at": "2025-12-14T13:02:01.885Z",
+      "size": 35708
+    },
+    "source_archive": {
+      "url": "/api/v1/product-models/files/sources/PDM-SMA-937972.zip",
+      "size": 7753917,
+      "uploaded_at": "2025-12-14T13:02:01.886Z"
+    }
+  },
+  "geometry": {
+    "materials": []
+  },
+  "animations": {
+    "hasAnimations": false,
+    "clipCount": 0,
+    "clips": []
+  },
+  "stats": {
+    "view_count": 4,
+    "download_count": 22
+  },
+  "_id": "693eb549d265f0d73348c076",
+  "product_id": "PDM-SMA-937972",
+  "name": "Cute Home Robot",
+  "description": "My cute robot is an evolution of today’s home assistants.\r\nCredit: Yandrack",
+  "tags": [
+    "robot",
+    "smart home"
+  ],
+  "category": "Smart Home",
+  "organization_id": "bdh-corporation",
+  "created_by": "69209e7e4dbdd1f5b389b03d",
+  "created_by_email": "product@tesa.iot",
+  "is_public": true,
+  "processing_status": "completed",
+  "created_at": "2025-12-14T13:02:01.851Z",
+  "updated_at": "2026-03-25T14:17:32.868Z",
+  "__v": 0
+}

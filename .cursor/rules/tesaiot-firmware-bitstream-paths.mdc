@@ -1,0 +1,19 @@
+---
+description: TESAIoT firmware and library paths for Bitstream protocol truth
+alwaysApply: true
+---
+
+# TESAIoT firmware and Bitstream (external workspaces)
+
+Firmware truth is **not** vendored in Bitstream-Studio. When the task mentions protocol fields, encoders, or MCU behavior, check:
+
+| Role | Path |
+|------|------|
+| **Main firmware** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware` |
+| **Library** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Library` |
+| **Bitstream module (authoritative)** | `D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Library\CM55\modules\bitstream` |
+| **Host BS2 encode/decode** | `extension/src/bitstream2/` |
+
+**bitstream-simulator** — separate repo / VS Code extension (not under Bitstream-Studio). Install separately for Simulator telemetry.
+
+Communication: **Thai and/or English** only.

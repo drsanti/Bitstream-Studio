@@ -1,0 +1,24 @@
+{
+  "editor.fontFamily": "Cascadia Code",
+  "editor.fontWeight": "550",
+  "editor.fontSize": 14,
+  "editor.lineHeight": 1.3,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+  "editor.formatOnSaveMode": "file",
+  "cSpell.words": [
+    "crossoriginworker",
+    "dimforge",
+    "gsap",
+    "importmap",
+    "psoc",
+    "raycaster",
+    "Raycaster",
+    "TERNIONDEV",
+    "Toastify"
+  ]
+}

@@ -1,0 +1,81 @@
+/* TRNFloatingNotice — card enter/exit, icon pop, optional auto-dismiss progress */
+
+@keyframes trnFloatingNoticeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes trnFloatingNoticeIconPop {
+  0% {
+    transform: scale(0.55);
+    opacity: 0;
+  }
+  65% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes trnFloatingNoticeRingPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--trn-floating-notice-ring, rgba(52, 211, 153, 0.35));
+  }
+  50% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+@keyframes trnFloatingNoticeProgressShrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.trn-floating-notice-card--enter {
+  animation: trnFloatingNoticeIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.trn-floating-notice-card--exit {
+  animation: trnFloatingNoticeIn 0.2s ease-in reverse forwards;
+}
+
+.trn-floating-notice-icon {
+  animation: trnFloatingNoticeIconPop 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+}
+
+.trn-floating-notice-icon-shell {
+  animation: trnFloatingNoticeRingPulse 1.4s ease-out 0.2s 2;
+}
+
+.trn-floating-notice-progress {
+  animation: trnFloatingNoticeProgressShrink var(--trn-floating-notice-dismiss-ms, 3200ms) linear
+    forwards;
+}
+
+.trn-floating-notice-progress--paused {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trn-floating-notice-card--enter,
+  .trn-floating-notice-card--exit,
+  .trn-floating-notice-icon,
+  .trn-floating-notice-icon-shell,
+  .trn-floating-notice-progress {
+    animation: none;
+  }
+}

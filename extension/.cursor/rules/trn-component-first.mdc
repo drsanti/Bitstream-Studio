@@ -1,0 +1,18 @@
+---
+description: Prefer TRN UI components for new webview UI; check existing usage for consistency
+alwaysApply: true
+---
+
+# Webview UI: TRN components first
+
+When **adding a new UI component** or **non-trivial panel section** under **`src/webview/`** (Bitstream, Sensor Studio, Assets Manager, Project4, AI bridge, shared dialogs, etc.):
+
+1. **Prefer TRN first** — Use building blocks from **`src/webview/ui/TRN`** (barrel **`../ui/TRN`** or **`../../ui/TRN`** depending on depth): forms (`TRNFormField`, …), hints (`TRNHintText`, `TRNHintTooltip`), chrome (`TRNSectionContainer`, `TRNMenuSectionTitle`), inputs (`TRNSelect`, toggles, shared rows), tables, tooltips, and other exports in **`src/webview/ui/TRN/index.ts`**. Extend an existing TRN primitive when the pattern is clearly shared.
+
+2. **Check existing usage before inventing styles** — Search the codebase for the same interaction (inspector rows, settings cards, telemetry rows, menus). Reuse the same TRN component and className patterns so typography, spacing, borders, and hint copy stay aligned.
+
+3. **When TRN is not enough** — If no TRN fit exists, match **Tailwind + layout** used in sibling panels (zinc borders, text scales, `scrollbar-hide` for scrollable TRN-style lists per **`trn-glass-dropdown-scrollbars.mdc`**). Prefer adding a **reusable TRN** piece only when multiple call sites will share it; avoid one-off divergent “design systems” in a single feature folder.
+
+4. **T3D library** — UI inside **`../T3D`** (`@ternion/t3d`) follows that package’s components; this rule targets **extension webview** code under **`src/webview/`** (i.e. **`t3d-extension/src/webview/`** when the repo root is **`ternion-t3d`**).
+
+5. **Monorepo root** — When the workspace root is **`ternion-t3d`**, the same policy is mirrored at **`.cursor/rules/trn-component-first.mdc`** (repo root). Update both files if you change this guidance.

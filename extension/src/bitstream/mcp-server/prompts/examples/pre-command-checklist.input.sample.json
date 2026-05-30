@@ -1,0 +1,8 @@
+{
+  "command": "sensor_reinit",
+  "targetScope": "sourceId=1",
+  "runtimeHealth": {
+    "runtimeReady": true,
+    "transportState": "connected"
+  }
+}

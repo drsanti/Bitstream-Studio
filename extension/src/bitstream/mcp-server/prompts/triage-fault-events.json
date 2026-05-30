@@ -1,0 +1,35 @@
+{
+  "name": "triage_fault_events",
+  "description": "Analyze fault events and produce likely root causes with prioritized next steps.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "faultEvents": {
+        "type": "array",
+        "description": "Fault event list from bitstream_diag_fault_events_get."
+      },
+      "diagSnapshot": {
+        "type": "object",
+        "description": "Diagnostic snapshot from bitstream_diag_snapshot_get."
+      },
+      "errorCodeReference": {
+        "type": "object",
+        "description": "Optional lookup map from bitstream://diagnostics/error-codes."
+      }
+    },
+    "required": [
+      "faultEvents"
+    ],
+    "additionalProperties": false
+  },
+  "output_contract": {
+    "type": "markdown",
+    "sections": [
+      "Incident summary",
+      "Top probable causes",
+      "Confidence and evidence",
+      "Recommended next actions"
+    ]
+  },
+  "template": "You are a firmware diagnostics assistant. Correlate fault events with diagnostic evidence and prioritize operator-safe recovery actions. Always distinguish observed facts from hypotheses."
+}

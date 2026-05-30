@@ -1,0 +1,24 @@
+---
+description: Read AGENT_HANDOFF.md before Bitstream / BS2 / Sensor Studio work
+alwaysApply: true
+---
+
+# Agent handoff (Bitstream-Studio)
+
+## Language
+
+**Thai and/or English only** in chat — see **`communication-language.mdc`**.
+
+## On new session
+
+1. Read **`AGENT_HANDOFF.md`** at the **repository root**.
+2. Read **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`** for migration phase status.
+3. Read **`extension/docs/DEVELOPMENT_TRACKER.md`** for backlog.
+4. **Firmware / MCU BS2:** **`D:\CODE\2026\TESAIoT_PSoC_Edge_Workspace\TESAIoT_Firmware\AGENT_HANDOFF.md`** and **`TESAIoT_Library/CM55/modules/bitstream`**.
+
+## External repos (not in this tree)
+
+- **bitstream-simulator** — separate VS Code extension repo (install for Simulator telemetry).
+- **ternion-t3d** — legacy monorepo (Digital Twin archive); migration source was branch **`BS2`**.
+
+Do not edit `changelog.md` unless the user explicitly requests it.

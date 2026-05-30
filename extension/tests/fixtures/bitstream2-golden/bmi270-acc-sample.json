@@ -1,0 +1,17 @@
+{
+  "id": "bmi270-acc-sample",
+  "description": "BMI270 ACC-only EVT_SENSOR",
+  "wireB64": "QlMgEAAEAAEBAAAA6AMAAAoAFAAeAC2qDQo=",
+  "expect": {
+    "event": "sensor",
+    "sensorId": 0,
+    "mask": 1,
+    "counter": 1,
+    "tMs": 1000,
+    "values": [
+      10,
+      20,
+      30
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "codes": [
+    {
+      "code": "E_UART_TIMEOUT",
+      "severity": "high",
+      "meaning": "No UART response within timeout window.",
+      "recommendedAction": "Check transport readiness and cable/bridge state."
+    },
+    {
+      "code": "W_SAMPLE_STALE",
+      "severity": "medium",
+      "meaning": "Latest sample timestamp is older than expected cadence.",
+      "recommendedAction": "Verify sensor start/stop state and task scheduling."
+    }
+  ],
+  "lastUpdatedUtc": "2026-05-04T11:30:00Z"
+}

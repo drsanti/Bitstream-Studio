@@ -1,0 +1,40 @@
+{
+  "name": "pre_command_checklist",
+  "description": "Create a safety checklist before running control operations or raw commands.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "command": {
+        "type": "string",
+        "description": "Requested command or operation."
+      },
+      "targetScope": {
+        "type": "string",
+        "description": "Target subsystem, sensor set, or global scope."
+      },
+      "safeCommandsPolicy": {
+        "type": "object",
+        "description": "Optional policy data from bitstream://operations/safe-commands."
+      },
+      "runtimeHealth": {
+        "type": "object",
+        "description": "Optional health status from bitstream_health_check."
+      }
+    },
+    "required": [
+      "command"
+    ],
+    "additionalProperties": false
+  },
+  "output_contract": {
+    "type": "markdown",
+    "sections": [
+      "Execution intent",
+      "Preconditions",
+      "Risks and blast radius",
+      "Abort conditions",
+      "Go/No-go recommendation"
+    ]
+  },
+  "template": "You are a safety gate for firmware control commands. Validate readiness and risk before execution. If key evidence is missing, return No-go with the minimum additional checks required."
+}

@@ -1,0 +1,51 @@
+{
+  "files": {
+    "original": {
+      "url": "/api/v1/product-models/files/PDM-EVM-731468.glb",
+      "size": 2697068,
+      "md5": "1fbc40a31a4a04b33b624592af55045a",
+      "uploaded_at": "2025-11-25T11:03:11.375Z"
+    },
+    "processed": {
+      "snapshot_urls": []
+    },
+    "thumbnail": {
+      "url": "/api/v1/product-models/files/thumbnails/PDM-EVM-731468.webp",
+      "uploaded_at": "2025-11-25T11:03:11.372Z",
+      "size": 15870
+    },
+    "source_archive": {
+      "url": "/api/v1/product-models/files/sources/PDM-EVM-731468.zip",
+      "size": 4562803,
+      "uploaded_at": "2025-11-25T11:03:11.375Z"
+    }
+  },
+  "geometry": {
+    "materials": []
+  },
+  "animations": {
+    "clipCount": 0,
+    "clips": [],
+    "hasAnimations": false
+  },
+  "stats": {
+    "view_count": 11,
+    "download_count": 26
+  },
+  "_id": "69258cef06b8253e695fa162",
+  "product_id": "PDM-EVM-731468",
+  "name": "Steering Wheel",
+  "description": "Williams FW46 Steering Wheel",
+  "tags": [
+    "steering wheel"
+  ],
+  "category": "EV & Mobility",
+  "organization_id": "bdh-corporation",
+  "created_by": "69209e7e4dbdd1f5b389b03d",
+  "created_by_email": "product@tesa.iot",
+  "is_public": true,
+  "processing_status": "completed",
+  "created_at": "2025-11-25T11:03:11.328Z",
+  "updated_at": "2026-03-24T09:28:41.800Z",
+  "__v": 1
+}

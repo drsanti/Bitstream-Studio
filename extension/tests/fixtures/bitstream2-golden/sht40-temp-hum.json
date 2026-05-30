@@ -1,0 +1,12 @@
+{
+  "id": "sht40-temp-hum",
+  "description": "SHT40 temp+humidity EVT_SENSOR",
+  "wireB64": "QlMgDgAEAgMDAAAAuAsAAC4JUBTdPA0K",
+  "expect": {
+    "event": "sensor",
+    "sensorId": 2,
+    "mask": 3,
+    "counter": 3,
+    "valuesLength": 2
+  }
+}

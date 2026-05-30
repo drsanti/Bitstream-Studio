@@ -1,0 +1,62 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  Activity,
+  ArrowDown,
+  BetweenHorizontalStart,
+  Box,
+  Camera,
+  ChartSpline,
+  CircleDot,
+  Clapperboard,
+  Compass,
+  Cpu,
+  Droplets,
+  Gauge,
+  GitBranch,
+  Globe,
+  Hash,
+  Magnet,
+  Orbit,
+  Package,
+  Plug,
+  RotateCw,
+  ScanLine,
+  Shrink,
+  Sigma,
+  Thermometer,
+  ToggleLeft,
+  Waves,
+} from "lucide-react";
+
+/** Maps `NodeCatalogEntry.icon` (kebab-style slug) → Lucide component. */
+const CATALOG_LUCIDE_BY_SLUG: Record<string, LucideIcon> = {
+  activity: Activity,
+  plug: Plug,
+  cpu: Cpu,
+  orbit: Orbit,
+  compass: Compass,
+  "arrow-down": ArrowDown,
+  "rotate-cw": RotateCw,
+  gauge: Gauge,
+  droplets: Droplets,
+  magnet: Magnet,
+  thermometer: Thermometer,
+  sigma: Sigma,
+  "git-branch": GitBranch,
+  "between-horizontal-start": BetweenHorizontalStart,
+  shrink: Shrink,
+  waves: Waves,
+  "circle-dot": CircleDot,
+  "chart-spline": ChartSpline,
+  package: Package,
+  "scan-line": ScanLine,
+  globe: Globe,
+  camera: Camera,
+  clapperboard: Clapperboard,
+  "toggle-left": ToggleLeft,
+  hash: Hash,
+};
+
+export function getCatalogLucideIcon(slug: string): LucideIcon {
+  return CATALOG_LUCIDE_BY_SLUG[slug] ?? Box;
+}

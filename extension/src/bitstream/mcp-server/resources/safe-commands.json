@@ -1,0 +1,6 @@
+{
+  "uri": "bitstream://operations/safe-commands",
+  "name": "bitstream_operations_safe_commands",
+  "description": "Read-only allowlist of commands, risk levels, and preconditions for safe control operations.",
+  "mimeType": "application/json"
+}

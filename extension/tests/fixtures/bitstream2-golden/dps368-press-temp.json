@@ -1,0 +1,12 @@
+{
+  "id": "dps368-press-temp",
+  "description": "DPS368 pressure+temp EVT_SENSOR",
+  "wireB64": "QlMgDgAEAwMEAAAAoA8AAJInYAlySA0K",
+  "expect": {
+    "event": "sensor",
+    "sensorId": 3,
+    "mask": 3,
+    "counter": 4,
+    "valuesLength": 2
+  }
+}

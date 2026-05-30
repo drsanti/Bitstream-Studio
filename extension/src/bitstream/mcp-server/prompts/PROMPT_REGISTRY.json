@@ -1,0 +1,21 @@
+{
+  "version": "1.0.0",
+  "serverIdentifier": "user-bitstream-backend",
+  "prompts": [
+    {
+      "name": "triage_fault_events",
+      "descriptorFile": "prompts/triage-fault-events.json",
+      "useWhen": "You need a structured root-cause analysis after fault events are collected."
+    },
+    {
+      "name": "sensor_health_report",
+      "descriptorFile": "prompts/sensor-health-report.json",
+      "useWhen": "You need a concise operational health report across sensors."
+    },
+    {
+      "name": "pre_command_checklist",
+      "descriptorFile": "prompts/pre-command-checklist.json",
+      "useWhen": "You need a safety gate before command execution with side effects."
+    }
+  ]
+}

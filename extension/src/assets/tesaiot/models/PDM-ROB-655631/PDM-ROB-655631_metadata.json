@@ -1,0 +1,46 @@
+{
+  "files": {
+    "original": {
+      "url": "/api/v1/product-models/files/PDM-ROB-655631.glb",
+      "size": 11267616,
+      "md5": "e7bd07dc5710cf4e0d35c9e499d8cfd1",
+      "uploaded_at": "2025-11-25T11:30:23.140Z"
+    },
+    "processed": {
+      "snapshot_urls": []
+    },
+    "thumbnail": {
+      "url": "/api/v1/product-models/files/thumbnails/PDM-ROB-655631.webp",
+      "uploaded_at": "2025-11-25T11:30:23.140Z",
+      "size": 18254
+    }
+  },
+  "geometry": {
+    "materials": []
+  },
+  "animations": {
+    "clipCount": 0,
+    "clips": [],
+    "hasAnimations": false
+  },
+  "stats": {
+    "view_count": 23,
+    "download_count": 20
+  },
+  "_id": "6925934f06b8253e695fa17c",
+  "product_id": "PDM-ROB-655631",
+  "name": "First Aid DX2",
+  "description": "Found the original idea, the amazing design was made by NUONE DESIGN.",
+  "tags": [
+    "amr"
+  ],
+  "category": "Robotics",
+  "organization_id": "bdh-corporation",
+  "created_by": "69209e7e4dbdd1f5b389b03d",
+  "created_by_email": "product@tesa.iot",
+  "is_public": true,
+  "processing_status": "completed",
+  "created_at": "2025-11-25T11:30:23.126Z",
+  "updated_at": "2026-03-24T09:28:32.784Z",
+  "__v": 1
+}

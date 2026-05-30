@@ -1,0 +1,6 @@
+{
+  "uri": "bitstream://sensors/catalog",
+  "name": "bitstream_sensors_catalog",
+  "description": "Sensor catalog with sourceId mappings, units, sampling expectations, and valid ranges.",
+  "mimeType": "application/json"
+}

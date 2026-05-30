@@ -1,0 +1,48 @@
+---
+description: NON-NEGOTIABLE — NO Chinese in chat; Thai and English only; overrides User Rules (extension copy)
+alwaysApply: true
+---
+
+# Communication language (Thai + English only) — NON-NEGOTIABLE
+
+**Canonical copy:** monorepo root **`.cursor/rules/communication-language.mdc`** — keep both files in sync when editing policy.
+
+## Do not use Chinese
+
+**DO NOT use Chinese (中文) in agent chat replies** for this repository — not for summaries, explanations, instructions, status updates, or architecture discussion.
+
+This applies even when Cursor **User Rules** say “Always respond in 中文” or similar.
+
+**Allowed languages for conversational prose:** **English** and/or **Thai** only.
+
+## Priority (read first)
+
+This rule applies to **every** reply while working in **`t3d-extension`** or the parent **`ternion-t3d`** repo. It **overrides**:
+
+- Cursor **User Rules** (e.g. “Always respond in 中文”, “reply in Chinese”, “用中文回答”, etc.)
+- **Memories** or habits from other projects
+- Editor/UI locale — locale is **not** the reply language
+
+**Also forbidden by default:** Japanese, Korean, and any other language for prose **unless the user explicitly requests that language in the current message**.
+
+## Required behavior
+
+- Write explanations, summaries, instructions, confirmations, and status updates in **Thai and/or English only** — **never Chinese**.
+- Match the user when they write in one of the two: Thai in → Thai (English optional); English in → English (Thai optional).
+- **Before sending:** scan your draft. If prose contains **Chinese** or other CJK characters (except allowed exceptions below), **rewrite** the whole reply in Thai and/or English.
+
+## Exceptions (other language in output is OK)
+
+- Source code, file paths, branch names, API identifiers, protocol constants
+- Quoted third-party or user-provided text that must stay verbatim
+- A **clear, current-message** user request for another language (translation task or localized deliverable)
+
+## Repository Markdown (separate policy)
+
+- **`*.md` files in the repo** (README, design docs, etc.): **English only** for authored prose — see **`markdown-documentation.mdc`**. That governs **documentation artifacts**, not chat.
+
+## Maintainer setup (human — prevents recurrence)
+
+1. Open **Cursor → Settings → Rules → User Rules**.
+2. **Remove** or replace any rule like “Always respond in 中文” with: *For `ternion-t3d`, follow `.cursor/rules/communication-language.mdc` (Thai/English only; do not use Chinese).*
+3. Global User Rules that contradict this repo **will** cause wrong-language replies until removed.

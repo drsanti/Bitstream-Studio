@@ -1,0 +1,52 @@
+{
+  "files": {
+    "original": {
+      "url": "/api/v1/product-models/files/PDM-ROB-917698.glb",
+      "size": 10133552,
+      "md5": "ffe49f6c34f710427071e236293e77ca",
+      "uploaded_at": "2025-12-14T13:12:36.349Z"
+    },
+    "processed": {
+      "snapshot_urls": []
+    },
+    "thumbnail": {
+      "url": "/api/v1/product-models/files/thumbnails/PDM-ROB-917698.webp",
+      "uploaded_at": "2025-12-14T13:12:36.348Z",
+      "size": 17472
+    },
+    "source_archive": {
+      "url": "/api/v1/product-models/files/sources/PDM-ROB-917698.zip",
+      "size": 81678153,
+      "uploaded_at": "2025-12-14T13:12:36.350Z"
+    }
+  },
+  "geometry": {
+    "materials": []
+  },
+  "animations": {
+    "hasAnimations": false,
+    "clipCount": 0,
+    "clips": []
+  },
+  "stats": {
+    "view_count": 9,
+    "download_count": 26
+  },
+  "_id": "693eb7c4d265f0d73348c080",
+  "product_id": "PDM-ROB-917698",
+  "name": "Black Honey - Robotic Arm",
+  "description": "12kg Reach 1300mm The HCR-7A has the widest working radius and a largest payload of the HCR series. It is the most effective robot arm that can deal with heavy products. HCR-7A is designed to do repetitive and dangerous tasks such as loading & unloading metal materials into a machine, you can make your working environment safer and improve productivity.\r\nCredit: re1monsen",
+  "tags": [
+    "industrial robot",
+    "robotic arm"
+  ],
+  "category": "Robotics",
+  "organization_id": "bdh-corporation",
+  "created_by": "69209e7e4dbdd1f5b389b03d",
+  "created_by_email": "product@tesa.iot",
+  "is_public": true,
+  "processing_status": "completed",
+  "created_at": "2025-12-14T13:12:36.328Z",
+  "updated_at": "2026-03-25T14:17:20.143Z",
+  "__v": 0
+}

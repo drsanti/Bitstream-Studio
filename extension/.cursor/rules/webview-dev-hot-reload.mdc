@@ -1,0 +1,34 @@
+---
+description: Prefer Vite HMR during webview iteration; reserve npm run compile for packaging and extension-host changes
+alwaysApply: true
+---
+
+# Webview dev hot reload (do not run full compile every edit)
+
+## Daily UI work (`src/webview/**`)
+
+When the user (or agent) iterates on Bitstream / Sensor Telemetry / Sensor Studio **webview** code:
+
+1. Assume **`npm run dev:webview`** (or **`npm run dev`**) is running — **Vite HMR** applies saves in seconds.
+2. **Do not** run **`npm run compile`** after every webview-only change.
+3. Use **IDE TypeScript diagnostics** or a targeted check when unsure.
+
+## Bridge / broker (`start:bridge`)
+
+- **`npm run start:bridge`** — one-shot; restart manually after **`src/serialport-bridge/**`**, **`src/combined-bridge-entry.ts`**, or **`src/bitstream2/**`** bridge-side edits.
+- **`npm run start:bridge:watch`** — auto-restarts bridge on those files (use when editing bridge code frequently).
+
+## When **`npm run compile`** is required
+
+- Before **`npm run package`** / VSIX install
+- After **`src/extension.ts`** or other **extension host** entry changes (unless **`watch:all`** is already running)
+- End-of-feature / CI gate when the user asks for a full build verify
+
+## Typical two-terminal flow
+
+```bash
+npm run start:bridge          # or start:bridge:watch
+npm run dev:webview           # http://localhost:5173/?app=bitstream
+```
+
+Hard-reload the browser tab after **`vite.config.ts`** changes or stale HMR.

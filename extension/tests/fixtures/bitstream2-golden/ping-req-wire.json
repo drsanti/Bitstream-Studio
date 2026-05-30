@@ -1,0 +1,8 @@
+{
+  "id": "ping-req-wire",
+  "description": "Host REQ PING wire bytes (device answers in session tests)",
+  "wireB64": "QlMgBAACAQABAA4xDQo=",
+  "expect": {
+    "event": "req_ping"
+  }
+}

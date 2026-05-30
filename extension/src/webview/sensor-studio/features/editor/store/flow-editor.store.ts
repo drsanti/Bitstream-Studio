@@ -1,0 +1,3188 @@
+import { create } from "zustand";
+import type { Connection, Edge, Node } from "@xyflow/react";
+import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
+import type { NodeCatalogEntry } from "../../../core/config/config-types";
+import { NODE_CATALOG_DEFAULTS } from "../../../config/node-catalog.config";
+import {
+  inferSensorTelemetryHintFromSourceKey,
+  isValidStudioSensorSourceKey,
+  resolveLiveNumericFromLatestByHint,
+} from "../../../core/live/resolve-sensor-source-key";
+import { bitstreamSensorHintToSourceId } from "../../../core/device/bitstream-hint-to-source-id";
+import { sensorHealthAgeThresholdsMs } from "../../../core/device/sensor-health-thresholds";
+import { computeBmi270PinBundle } from "../../../core/live/bmi270-pin-bundle";
+import type { FlowWireQuaternion, FlowWireVec3 } from "../../../core/live/flow-wire-types";
+import { useBitstreamLiveStore } from "../../../../bitstream-app/state/bitstreamLive.store";
+import {
+  useBitstreamDeviceSensorConfigStore,
+  type DeviceSensorConfigRow,
+} from "../../../../bitstream-app/state/bitstreamDeviceSensorConfig.store";
+import { useBmi270FusionEulerWireTapStore } from "../../../../bitstream-app/state/bmi270FusionEulerWireTap.store";
+import { useBmi270FusionQuatOrientationStore } from "../../../../bitstream-app/state/bmi270FusionQuatOrientation.store";
+import {
+  computeBmm350PinBundle,
+  computeDps368PinBundle,
+  computeSht40PinBundle,
+} from "../../../core/live/environment-sensors-live-ports";
+import type {
+  BitstreamSensorSampleV2,
+  BitstreamSensorSourceHint,
+} from "../../../../bitstream/events/sensor-decoder";
+import { validateStudioNodeConfig } from "../../../core/validation/node-config.validation";
+import {
+  type StudioPersistedViewport,
+  clearPersistedFlowDocument,
+  isValidStudioPersistedViewport,
+} from "../../../persistence/flow-graph.repository";
+import {
+  coerceScene3DConfigV1,
+  defaultScene3DConfig,
+  persistScene3DConfig,
+} from "../nodes/rotation/scene3d-config";
+import {
+  coerceOscilloscopeConfig,
+  persistOscilloscopeConfig,
+  type OscilloscopeConfig,
+} from "../nodes/oscilloscope/oscilloscope-config";
+import type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
+import {
+  coerceFlowWireEnvironmentV1,
+  flowWireEnvironmentFromNodeDefaultConfig,
+  isFlowWireEnvironmentV1,
+} from "../nodes/environment/flow-wire-environment";
+import type { FlowWireCameraV1 } from "../nodes/camera-view/flow-wire-camera";
+import {
+  coerceFlowWireCameraV1,
+  flowWireCameraFromNodeDefaultConfig,
+  isFlowWireCameraV1,
+} from "../nodes/camera-view/flow-wire-camera";
+import type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation";
+import {
+  coerceFlowWireAnimationV1,
+  flowAnimationWireFromBundleDefaultConfig,
+  isFlowWireAnimationV1,
+} from "../nodes/animation/flow-wire-animation";
+import {
+  computeAggregatedEnvironmentWire,
+  computeEnvironmentInputHandles,
+  mergeEnvironmentVisibilityWithIncomingEdges,
+  readEnvironmentInputSocketVisibility,
+} from "../nodes/environment/environment-node-inputs";
+import { coerceNumberConstantValue } from "../nodes/constants/number-constant-helpers";
+import {
+  readSourceModelNodeId,
+  reconcileStudioModelGeneratedChildIds,
+  remapSourceModelNodeIdAfterDuplicate,
+  resolveStudioSourceModelGlbUrl,
+  STUDIO_SOURCE_MODEL_NODE_ID_KEY,
+} from "../model/model-generated-bindings";
+
+export type { FlowWireQuaternion, FlowWireVec3 } from "../../../core/live/flow-wire-types";
+export type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
+export type { FlowWireCameraV1 } from "../nodes/camera-view/flow-wire-camera";
+export type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation";
+
+export type StudioPortType =
+  | "number"
+  | "boolean"
+  | "string"
+  | "event"
+  | "vector3"
+  | "quaternion"
+  | "environment"
+  | "camera"
+  | "glbAnimation";
+
+/** Present only while Bitstream provides a matching hardware sample for this node. */
+export type SensorHardwareStreamLive = "live";
+export type SensorHealthStatus = "live" | "stale" | "offline" | "sim";
+
+/** Catalog-derived output pin (React Flow handle `id` = `id`). */
+export type StudioOutputHandleDef = {
+  id: string;
+  portType: StudioPortType;
+  label: string;
+};
+
+export const STUDIO_HANDLE_OUT = "out";
+export const STUDIO_HANDLE_IN = "in";
+/** Optional second input on 3D canvas nodes for wired HDRI / background settings. */
+export const STUDIO_HANDLE_ENV = "env";
+/** Optional third input on 3D canvas nodes for wired camera / orbit framing. */
+export const STUDIO_HANDLE_CAM = "cam";
+/** Optional fourth input on **`model-viewer`** for structured GLB animation clip drives. */
+export const STUDIO_HANDLE_ANIM = "anim";
+
+/** Single-output nodes that mirror one BMI270 stream (live hardware or synthesized feed). */
+export const BMI270_TAP_NODE_IDS = [
+  "bmi270-tap-quaternion",
+  "bmi270-tap-euler",
+  "bmi270-tap-accel",
+  "bmi270-tap-gyro",
+] as const;
+
+export const BMI270_TAP_NODE_ID_SET = new Set<string>(BMI270_TAP_NODE_IDS);
+
+/** Single-output tap nodes for DPS368 / SHT40 / BMM350 (same bundles as `*-input`). */
+export const ENVIRONMENT_SENSOR_TAP_NODE_IDS = [
+  "dps368-tap-pressure",
+  "dps368-tap-temp",
+  "sht40-tap-humidity",
+  "sht40-tap-temp",
+  "bmm350-tap-magnetic",
+  "bmm350-tap-temp",
+] as const;
+
+export const ENVIRONMENT_SENSOR_TAP_NODE_ID_SET = new Set<string>(ENVIRONMENT_SENSOR_TAP_NODE_IDS);
+
+/** True for any BMI270 or environment sensor *tap* node (single `out` handle). */
+export function isStudioSensorTapNodeId(nodeId: string): boolean {
+  return BMI270_TAP_NODE_ID_SET.has(nodeId) || ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(nodeId);
+}
+
+/** Header chip label for sensor source nodes (BMI270 family + environment sensors). */
+export const STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID: Record<string, string> = {
+  "bmi270-input": "BMI270",
+  "bmi270-tap-quaternion": "BMI270",
+  "bmi270-tap-euler": "BMI270",
+  "bmi270-tap-accel": "BMI270",
+  "bmi270-tap-gyro": "BMI270",
+  "dps368-input": "DPS368",
+  "dps368-tap-pressure": "DPS368",
+  "dps368-tap-temp": "DPS368",
+  "sht40-input": "SHT40",
+  "sht40-tap-humidity": "SHT40",
+  "sht40-tap-temp": "SHT40",
+  "bmm350-input": "BMM350",
+  "bmm350-tap-magnetic": "BMM350",
+  "bmm350-tap-temp": "BMM350",
+};
+
+/** Stable key for multi-pin flow values: `nodeId::handleId`. */
+export function studioFlowPinKey(nodeId: string, handleId: string): string {
+  return `${nodeId}::${handleId}`;
+}
+
+export type StudioNodeData = {
+  label: string;
+  category: NodeCatalogEntry["category"];
+  nodeId: string;
+  defaultConfig: Record<string, unknown>;
+  ui?: {
+    resizable?: boolean;
+    minWidth?: number;
+    minHeight?: number;
+  };
+  inputType?: StudioPortType;
+  /** Single-output nodes (legacy); omit when `outputHandles` is set. */
+  outputType?: StudioPortType;
+  outputHandles?: StudioOutputHandleDef[];
+  /** Multi-input nodes (target handle id = `id`); same shape as output handles. */
+  inputHandles?: StudioOutputHandleDef[];
+  liveValue?: number | boolean | string | null;
+  /** Populated for multi-output nodes with `vector3` pins (e.g. BMI270 accel/gyro). */
+  liveVector3ByHandle?: Record<string, { x: number; y: number; z: number }>;
+  /** Populated for multi-output nodes with scalar pins (e.g. BMI270 temp). */
+  liveNumberByHandle?: Record<string, number>;
+  /** BMI270 quaternion pin snapshot for the aligned readings panel. */
+  liveQuaternionWire?: FlowWireQuaternion;
+  /** Single vector3 from BMI270 tap nodes (Euler / Accel / Gyro). */
+  liveVector3Wire?: FlowWireVec3;
+  /** Incoming `env` pin snapshot for 3D canvas nodes (HDRI / background / IBL). */
+  liveEnvironmentWire?: FlowWireEnvironmentV1;
+  /** Incoming `cam` pin snapshot for 3D canvas nodes (camera + orbit limits). */
+  liveCameraWire?: FlowWireCameraV1;
+  /** Incoming **`anim`** pin snapshot on **`model-viewer`** (structured clip times + speed). */
+  liveAnimationWire?: FlowWireAnimationV1;
+  liveHistory?: number[];
+  /** Multi-channel numeric history for oscilloscope (`handleId` → samples). */
+  liveScopeHistory?: Record<string, number[]>;
+  lastUpdatedAt?: string;
+  /** Set only when this node is driven by a matching Bitstream sample this tick. */
+  sensorStreamMode?: SensorHardwareStreamLive;
+  /** Freshness status derived from live-store timestamps. */
+  sensorHealth?: SensorHealthStatus;
+  /** Field-level issues when live payload is partially missing; shown for debugging. */
+  sensorInvalidReason?: string;
+  /** Last valid live timestamp per pin/handle (ISO string). */
+  sensorLastValidAtByHandle?: Record<string, string>;
+  /** Pin-level invalid reasons (handle -> reason). */
+  sensorInvalidByHandle?: Record<string, string>;
+  /** Populated when `defaultConfig` fails schema validation for this node type. */
+  configErrors?: string[];
+};
+
+export type StudioNode = Node<StudioNodeData>;
+
+/** Built-in canvas presets from **Run Demo Template** (toolbar + shortcuts). */
+export type StudioDemoTemplateId =
+  | "basic-indicator"
+  | "gauge-monitor"
+  | "signal-chain"
+  | "bmi270-gauge-z";
+
+export type FlowSnapshot = {
+  nodes: StudioNode[];
+  edges: Edge[];
+  selectedNodeId: string | null;
+  /** Present on snapshots after multi-select support; older snapshots omit this. */
+  selectedNodeIds?: string[];
+};
+
+function selectionFromIds(ids: readonly string[]): {
+  selectedNodeId: string | null;
+  selectedNodeIds: string[];
+} {
+  const seen = new Set<string>();
+  const selectedNodeIds: string[] = [];
+  for (const id of ids) {
+    if (typeof id !== "string" || id.length === 0 || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    selectedNodeIds.push(id);
+  }
+  return {
+    selectedNodeIds,
+    selectedNodeId: selectedNodeIds[0] ?? null,
+  };
+}
+
+function normalizeFlowSnapshotSelection(snapshot: {
+  selectedNodeId: string | null;
+  selectedNodeIds?: string[];
+}): { selectedNodeId: string | null; selectedNodeIds: string[] } {
+  const raw =
+    snapshot.selectedNodeIds != null && snapshot.selectedNodeIds.length > 0
+      ? snapshot.selectedNodeIds
+      : snapshot.selectedNodeId != null
+        ? [snapshot.selectedNodeId]
+        : [];
+  return selectionFromIds(raw);
+}
+
+function applyStudioFlowSelection(
+  nodes: StudioNode[],
+  selectedIds: readonly string[],
+): StudioNode[] {
+  const set = new Set(selectedIds);
+  return nodes.map((n) => ({ ...n, selected: set.has(n.id) }));
+}
+
+/**
+ * When two or more flow nodes are selected and every one shares the same catalog `nodeId`,
+ * inspector may apply label / typed config / oscilloscope changes to the whole set in one undo step.
+ */
+function getHomogeneousMultiSelectionIds(state: {
+  nodes: StudioNode[];
+  selectedNodeIds: string[];
+}): string[] | null {
+  const ids = state.selectedNodeIds;
+  if (ids.length < 2) {
+    return null;
+  }
+  const picked: StudioNode[] = [];
+  for (const id of ids) {
+    const n = state.nodes.find((x) => x.id === id);
+    if (n == null) {
+      return null;
+    }
+    picked.push(n);
+  }
+  const nodeId = picked[0]?.data.nodeId;
+  if (nodeId == null || !picked.every((n) => n.data.nodeId === nodeId)) {
+    return null;
+  }
+  return [...ids];
+}
+
+const MAX_UNDO = 40;
+
+/** Coalesce rapid layout-only changes (drag/resize) into one undo step. */
+let layoutUndoPrimed = false;
+let layoutUndoIdleTimer: ReturnType<typeof setTimeout> | undefined;
+
+function nodeChangesAreLayoutOnly(
+  changes: Parameters<typeof applyNodeChanges<StudioNode>>[0],
+): boolean {
+  if (changes.length === 0) {
+    return false;
+  }
+  return changes.every((ch) => ch.type === "position" || ch.type === "dimensions");
+}
+
+/** Re-run the pin solver so config-driven sources (e.g. `model-select`) refresh downstream `liveValue` without waiting for UART ticks. */
+function flushFlowSimulationPins(get: () => { tickSimulation: () => void }): void {
+  get().tickSimulation();
+}
+
+type FlowEditorState = {
+  nodes: StudioNode[];
+  edges: Edge[];
+  selectedNodeId: string | null;
+  /** React Flow multi-selection order (primary inspector target is `selectedNodeId`, kept in sync). */
+  selectedNodeIds: string[];
+  undoStack: FlowSnapshot[];
+  redoStack: FlowSnapshot[];
+  pushUndoSnapshot: () => void;
+  undo: () => void;
+  redo: () => void;
+  hydrateFlowDocument: (snapshot: FlowSnapshot) => void;
+  exportFlowGraphJson: (options?: {
+    viewport?: StudioPersistedViewport | null;
+  }) => string;
+  importFlowGraphJson: (
+    json: string,
+  ) =>
+    | { ok: true; viewport?: StudioPersistedViewport }
+    | { ok: false; message: string };
+  duplicateSelection: () => void;
+  deleteSelection: () => void;
+  selectAllNodes: () => void;
+  clearNodeSelection: () => void;
+  /** Programmatic selection (e.g. jump from Model card to a linked node). Does not push undo. */
+  selectStudioNodesByIds: (nodeIds: string[]) => void;
+  onNodesChange: (changes: Parameters<typeof applyNodeChanges<StudioNode>>[0]) => void;
+  onEdgesChange: (changes: Parameters<typeof applyEdgeChanges<Edge>>[0]) => void;
+  onConnect: (connection: Connection) => void;
+  onSelectionChange: (selectedNodeIds: string[]) => void;
+  addNodeFromCatalog: (
+    entry: NodeCatalogEntry,
+    options?: { ui?: StudioNodeData["ui"] },
+  ) => void;
+  addNodeFromCatalogAt: (
+    entry: NodeCatalogEntry,
+    position: { x: number; y: number },
+    options?: {
+      ui?: StudioNodeData["ui"];
+      flowNodeLabel?: string;
+      mergeDefaultConfig?: Record<string, unknown>;
+    },
+  ) => string;
+  /**
+   * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
+   * `sourceModelNodeId`. The store reconciles `generatedChildNodeIds` on the parent.
+   */
+  addNodeFromCatalogLinkedToModel: (
+    entry: NodeCatalogEntry,
+    position: { x: number; y: number },
+    options: {
+      parentModelNodeId: string;
+      ui?: StudioNodeData["ui"];
+      /** Overrides `data.label` after creation (e.g. GLB extraction row title). */
+      flowNodeLabel?: string;
+      mergeDefaultConfig?: Record<string, unknown>;
+    },
+  ) => void;
+  updateNodeConfigFieldByNodeId: (nodeId: string, key: string, value: unknown) => void;
+  /** Collapse/expand utility node bodies and sync React Flow height (header-only when collapsed). */
+  setStudioUtilityNodeBodyExpanded: (
+    flowNodeId: string,
+    field: StudioUtilityBodyExpandedField,
+    expanded: boolean,
+  ) => void;
+  resetCanvas: () => void;
+  runDemoTemplate: (templateId: StudioDemoTemplateId, catalog: NodeCatalogEntry[]) => void;
+  updateSelectedNodeLabel: (nextLabel: string) => void;
+  updateSelectedNodeConfigField: (key: string, value: unknown) => boolean;
+  /**
+   * Single-selection config patch without pushing an undo snapshot (e.g. animation playback ticks).
+   * Returns **false** for multi-edit or when nothing is selected.
+   */
+  applySelectedNodeConfigFieldLive: (key: string, value: unknown) => boolean;
+  updateSelectedNodeConfigFromJson: (nextJson: string) => { ok: true } | { ok: false; message: string };
+  /** Replace oscilloscope `defaultConfig` in one undo step (coerced + persisted). */
+  updateSelectedNodeOscilloscopeConfig: (next: OscilloscopeConfig) => void;
+  tickSimulation: () => void;
+};
+
+function inferPortTypes(entry: NodeCatalogEntry): {
+  inputType?: StudioPortType;
+  outputType?: StudioPortType;
+  outputHandles?: StudioOutputHandleDef[];
+  inputHandles?: StudioOutputHandleDef[];
+} {
+  if (entry.id === "environment" && entry.outputPorts != null && entry.outputPorts.length > 0) {
+    return {
+      outputHandles: entry.outputPorts.map((p) => ({
+        id: p.id,
+        portType: p.portType as StudioPortType,
+        label: p.label,
+      })),
+      inputHandles: [],
+    };
+  }
+  if (entry.inputPorts != null && entry.inputPorts.length > 0) {
+    const inputHandles = entry.inputPorts.map((p) => ({
+      id: p.id,
+      portType: p.portType as StudioPortType,
+      label: p.label,
+    }));
+    const outputHandles =
+      entry.outputPorts != null && entry.outputPorts.length > 0
+        ? entry.outputPorts.map((p) => ({
+            id: p.id,
+            portType: p.portType as StudioPortType,
+            label: p.label,
+          }))
+        : undefined;
+    return {
+      inputHandles,
+      ...(outputHandles != null ? { outputHandles } : {}),
+    };
+  }
+  if (
+    entry.id === "vector-splitter" &&
+    entry.outputPorts != null &&
+    entry.outputPorts.length > 0
+  ) {
+    return {
+      inputType: "vector3",
+      outputHandles: entry.outputPorts.map((p) => ({
+        id: p.id,
+        portType: p.portType as StudioPortType,
+        label: p.label,
+      })),
+    };
+  }
+  if (
+    entry.id === "quaternion-splitter" &&
+    entry.outputPorts != null &&
+    entry.outputPorts.length > 0
+  ) {
+    return {
+      inputType: "quaternion",
+      outputHandles: entry.outputPorts.map((p) => ({
+        id: p.id,
+        portType: p.portType as StudioPortType,
+        label: p.label,
+      })),
+    };
+  }
+  if (entry.outputPorts != null && entry.outputPorts.length > 0) {
+    return {
+      outputHandles: entry.outputPorts.map((p) => ({
+        id: p.id,
+        portType: p.portType as StudioPortType,
+        label: p.label,
+      })),
+    };
+  }
+  if (entry.id === "quat-input") {
+    return { outputType: "quaternion" };
+  }
+  if (entry.id === "sensor-input") {
+    return { outputType: "number" };
+  }
+  if (entry.id === "number-average") {
+    return { inputType: "number", outputType: "number" };
+  }
+  if (entry.id === "threshold") {
+    return { inputType: "number", outputType: "boolean" };
+  }
+  if (entry.id === "indicator") {
+    return { inputType: "boolean" };
+  }
+  if (entry.id === "gauge" || entry.id === "sparkline") {
+    return { inputType: "number" };
+  }
+  if (entry.category === "input") {
+    return { outputType: "number" };
+  }
+  if (entry.category === "output") {
+    return { inputType: "number" };
+  }
+  if (entry.category === "utility") {
+    return { inputType: "number", outputType: "number" };
+  }
+  return { inputType: "number", outputType: "number" };
+}
+
+/** Legacy handle id before split Euler vs quaternion outputs. */
+function migrateStudioEdgesFusionQuat(edges: Edge[]): Edge[] {
+  return edges.map((e) => ({
+    ...e,
+    sourceHandle: e.sourceHandle === "fusionQuat" ? "quaternion" : e.sourceHandle,
+    targetHandle: e.targetHandle === "fusionQuat" ? "quaternion" : e.targetHandle,
+  }));
+}
+
+/** Refresh input/output pin definitions from the bundled catalog (catalog updates, import). */
+function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
+  const entry = NODE_CATALOG_DEFAULTS.payload.nodes.find((n) => n.id === node.data.nodeId);
+  if (entry == null) {
+    return node;
+  }
+  const inferred = inferPortTypes(entry);
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      ...inferred,
+    },
+  };
+}
+
+function getSourcePortType(node: StudioNode, sourceHandle: string): StudioPortType | null {
+  if (node.data.outputHandles != null && node.data.outputHandles.length > 0) {
+    return node.data.outputHandles.find((h) => h.id === sourceHandle)?.portType ?? null;
+  }
+  if (sourceHandle === STUDIO_HANDLE_OUT && node.data.outputType != null) {
+    return node.data.outputType;
+  }
+  return null;
+}
+
+function edgeLabelForSource(sourceNode: StudioNode, sourceHandle: string): string {
+  const t = getSourcePortType(sourceNode, sourceHandle);
+  return t ?? "";
+}
+
+function canConnect(connection: Connection, nodes: StudioNode[]): boolean {
+  if (connection.source == null || connection.target == null) {
+    return false;
+  }
+  const sourceNode = nodes.find((n) => n.id === connection.source);
+  const targetNode = nodes.find((n) => n.id === connection.target);
+  if (sourceNode == null || targetNode == null) {
+    return false;
+  }
+  const sourceHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
+  const targetHandle = connection.targetHandle ?? STUDIO_HANDLE_IN;
+  const inputHandles = targetNode.data.inputHandles;
+  if (inputHandles != null && inputHandles.length > 0) {
+    const def = inputHandles.find((h) => h.id === targetHandle);
+    if (def == null) {
+      return false;
+    }
+    const sourceType = getSourcePortType(sourceNode, sourceHandle);
+    if (sourceType == null) {
+      return false;
+    }
+    return sourceType === def.portType;
+  }
+  if (targetHandle !== STUDIO_HANDLE_IN) {
+    return false;
+  }
+  const sourceType = getSourcePortType(sourceNode, sourceHandle);
+  const targetType = targetNode.data.inputType;
+  if (sourceType == null || targetType == null) {
+    return false;
+  }
+  return sourceType === targetType;
+}
+
+function asFiniteNumber(value: unknown, fallback: number): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function flowValueAsVec3(v: unknown): FlowWireVec3 {
+  if (v != null && typeof v === "object" && "x" in v && "y" in v && "z" in v) {
+    const o = v as Record<string, unknown>;
+    return {
+      x: asFiniteNumber(o.x, 0),
+      y: asFiniteNumber(o.y, 0),
+      z: asFiniteNumber(o.z, 0),
+    };
+  }
+  return { x: 0, y: 0, z: 0 };
+}
+
+function cloneFlowSnapshot(state: {
+  nodes: StudioNode[];
+  edges: Edge[];
+  selectedNodeId: string | null;
+  selectedNodeIds?: string[];
+}): FlowSnapshot {
+  const sel = normalizeFlowSnapshotSelection(state);
+  return {
+    nodes: JSON.parse(JSON.stringify(state.nodes)) as StudioNode[],
+    edges: JSON.parse(JSON.stringify(state.edges)) as Edge[],
+    selectedNodeId: sel.selectedNodeId,
+    selectedNodeIds: sel.selectedNodeIds,
+  };
+}
+
+/** Title bar only — keeps sliders / sockets from starting a canvas node drag (see `nodrag` on body + sockets). */
+function dragHandleSelectorForNodeId(_nodeId: string): string {
+  return ".studio-node-drag-handle";
+}
+
+/** Drop legacy persisted non-live markers (e.g. old `"demo"`); only `"live"` may be stored. */
+function coercePersistedSensorStreamMode(data: StudioNodeData): StudioNodeData {
+  const marker = (data as StudioNodeData & { sensorStreamMode?: unknown }).sensorStreamMode;
+  if (marker === undefined || marker === "live") {
+    return data;
+  }
+  const { sensorStreamMode: _, ...rest } = data as StudioNodeData & { sensorStreamMode?: unknown };
+  return rest as StudioNodeData;
+}
+
+function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
+  return nodes.map((node) => {
+    const coercedData = coercePersistedSensorStreamMode(node.data);
+    const withScene3d: StudioNodeData =
+      coercedData.nodeId === "rotation-3d-euler" ||
+      coercedData.nodeId === "rotation-3d-quaternion" ||
+      coercedData.nodeId === "model-viewer"
+        ? (() => {
+            const dc = coercedData.defaultConfig as Record<string, unknown>;
+            if (dc.scene3d != null) {
+              const normalized = coerceScene3DConfigV1(dc.scene3d);
+              return {
+                ...coercedData,
+                defaultConfig: {
+                  ...dc,
+                  scene3d: normalized,
+                },
+              };
+            }
+            const next = defaultScene3DConfig();
+            const legacyShowGrid = dc.showGrid;
+            if (typeof legacyShowGrid === "boolean") {
+              next.helpers.grid.enabled = legacyShowGrid;
+            }
+            const legacyEnvIdx = dc.environmentPresetIndex;
+            if (typeof legacyEnvIdx === "number" && Number.isFinite(legacyEnvIdx)) {
+              next.environment.presetIndex = Math.max(0, Math.round(legacyEnvIdx));
+            }
+            const legacyBg = dc.showBackgroundTexture;
+            if (typeof legacyBg === "boolean") {
+              next.environment.showBackgroundTexture = legacyBg;
+            }
+            const legacyIbl = dc.useCubemapIbl;
+            if (typeof legacyIbl === "boolean") {
+              next.environment.useCubemapIbl = legacyIbl;
+            }
+            const migrated: StudioNodeData = {
+              ...coercedData,
+              defaultConfig: {
+                ...dc,
+                scene3d: persistScene3DConfig(next),
+              },
+            };
+            return migrated;
+          })()
+        : coercedData;
+    let piped: StudioNodeData = withScene3d;
+    if (piped.nodeId === "oscilloscope") {
+      const osc = persistOscilloscopeConfig(piped.defaultConfig);
+      piped = {
+        ...piped,
+        defaultConfig: { ...(osc as unknown as Record<string, unknown>) },
+        ui: {
+          ...piped.ui,
+          resizable: piped.ui?.resizable !== false,
+          minWidth: piped.ui?.minWidth ?? 280,
+          minHeight: piped.ui?.minHeight ?? 168,
+        },
+      };
+    }
+    if (piped.nodeId === "model-viewer") {
+      piped = {
+        ...piped,
+        ui: {
+          ...piped.ui,
+          resizable: piped.ui?.resizable !== false,
+          minWidth: piped.ui?.minWidth ?? 280,
+          minHeight: piped.ui?.minHeight ?? 200,
+        },
+      };
+    }
+    if (piped.nodeId === "environment") {
+      const dc0 = piped.defaultConfig as Record<string, unknown>;
+      const vis0 = readEnvironmentInputSocketVisibility(dc0);
+      const vis =
+        edges == null
+          ? vis0
+          : mergeEnvironmentVisibilityWithIncomingEdges(node.id, vis0, edges);
+      const expanded =
+        typeof dc0.environmentControlsExpanded === "boolean" ? dc0.environmentControlsExpanded : true;
+      const w = flowWireEnvironmentFromNodeDefaultConfig({
+        ...dc0,
+        inputSocketVisibility: vis,
+        environmentControlsExpanded: expanded,
+      });
+      const dcNext: Record<string, unknown> = {
+        ...(w as unknown as Record<string, unknown>),
+        inputSocketVisibility: vis,
+        environmentControlsExpanded: expanded,
+      };
+      piped = {
+        ...piped,
+        defaultConfig: dcNext,
+        inputHandles: computeEnvironmentInputHandles(vis),
+        outputHandles: [{ id: STUDIO_HANDLE_OUT, portType: "environment", label: "Environment" }],
+        inputType: undefined,
+        outputType: undefined,
+      };
+    }
+    if (piped.nodeId === "camera-view") {
+      const dcCam = piped.defaultConfig as Record<string, unknown>;
+      const expanded =
+        typeof dcCam.cameraViewControlsExpanded === "boolean"
+          ? dcCam.cameraViewControlsExpanded
+          : true;
+      const w = flowWireCameraFromNodeDefaultConfig(dcCam);
+      piped = {
+        ...piped,
+        defaultConfig: {
+          ...dcCam,
+          ...(w as unknown as Record<string, unknown>),
+          cameraViewControlsExpanded: expanded,
+        },
+      };
+    }
+    if (piped.nodeId === "glb-animation-bundle") {
+      const dcAnim = piped.defaultConfig as Record<string, unknown>;
+      const w = flowAnimationWireFromBundleDefaultConfig(dcAnim);
+      piped = {
+        ...piped,
+        defaultConfig: {
+          ...dcAnim,
+          clips: w.clips,
+        },
+      };
+    }
+    const errors = validateStudioNodeConfig(piped.nodeId, piped.defaultConfig);
+    const dragHandle = dragHandleSelectorForNodeId(piped.nodeId);
+    let layoutNode: StudioNode = {
+      ...node,
+      dragHandle,
+      data: {
+        ...piped,
+        configErrors: errors.length > 0 ? errors : undefined,
+      },
+    };
+    layoutNode = syncStudioUtilityNodeLayoutFromConfig(layoutNode, piped);
+    return layoutNode;
+  });
+}
+
+function attachConfigErrorsWithModelChildRegistry(
+  nodes: StudioNode[],
+  edges?: Edge[],
+): StudioNode[] {
+  return attachConfigErrors(reconcileStudioModelGeneratedChildIds(nodes), edges);
+}
+
+const STUDIO_UTILITY_BODY_EXPANDED_KEYS = {
+  cameraViewControlsExpanded: "cameraViewLayoutHeight",
+  environmentControlsExpanded: "environmentLayoutHeight",
+} as const;
+
+export type StudioUtilityBodyExpandedField = keyof typeof STUDIO_UTILITY_BODY_EXPANDED_KEYS;
+
+/** Read explicit flow-node height (resize handle, style, or last measured). */
+function readStudioNodeLayoutHeightPx(node: StudioNode): number | undefined {
+  if (typeof node.height === "number" && Number.isFinite(node.height) && node.height > 0)
+  {
+    return Math.round(node.height);
+  }
+  const styleHeight = node.style?.height;
+  if (typeof styleHeight === "number" && Number.isFinite(styleHeight) && styleHeight > 0)
+  {
+    return Math.round(styleHeight);
+  }
+  if (typeof styleHeight === "string")
+  {
+    const match = /^([\d.]+)\s*px$/i.exec(styleHeight.trim());
+    if (match != null)
+    {
+      const parsed = Number(match[1]);
+      if (Number.isFinite(parsed) && parsed > 0)
+      {
+        return Math.round(parsed);
+      }
+    }
+  }
+  const measuredHeight = node.measured?.height;
+  if (typeof measuredHeight === "number" && Number.isFinite(measuredHeight) && measuredHeight > 0)
+  {
+    return Math.round(measuredHeight);
+  }
+  return undefined;
+}
+
+/** Drop fixed height so the node can shrink to header + sockets when a utility body is collapsed. */
+function stripStudioNodeFixedHeight(node: StudioNode): StudioNode {
+  const { height: _height, measured, style, ...rest } = node;
+  let nextStyle: StudioNode["style"];
+  if (style != null)
+  {
+    const { height: _styleHeight, ...styleRest } = style;
+    nextStyle = Object.keys(styleRest).length > 0 ? styleRest : undefined;
+  }
+  let nextMeasured: StudioNode["measured"];
+  if (measured != null)
+  {
+    const { height: _measuredHeight, ...measuredRest } = measured;
+    nextMeasured = Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
+  }
+  return {
+    ...rest,
+    style: nextStyle,
+    measured: nextMeasured,
+  };
+}
+
+function applyStudioNodeLayoutHeight(node: StudioNode, heightPx: number): StudioNode {
+  const rounded = Math.max(1, Math.round(heightPx));
+  return {
+    ...node,
+    height: rounded,
+    style: {
+      ...(node.style ?? {}),
+      height: rounded,
+    },
+  };
+}
+
+/** Keep React Flow node height aligned with utility collapse state (including after hydrate). */
+function syncStudioUtilityNodeLayoutFromConfig(
+  layoutNode: StudioNode,
+  piped: StudioNodeData,
+): StudioNode {
+  if (piped.nodeId === "camera-view")
+  {
+    const dc = piped.defaultConfig as Record<string, unknown>;
+    const expanded =
+      typeof dc.cameraViewControlsExpanded === "boolean"
+        ? dc.cameraViewControlsExpanded
+        : true;
+    if (!expanded)
+    {
+      return stripStudioNodeFixedHeight(layoutNode);
+    }
+    const saved = dc.cameraViewLayoutHeight;
+    if (typeof saved === "number" && Number.isFinite(saved) && saved > 0)
+    {
+      return applyStudioNodeLayoutHeight(layoutNode, saved);
+    }
+    return layoutNode;
+  }
+  if (piped.nodeId === "environment")
+  {
+    const dc = piped.defaultConfig as Record<string, unknown>;
+    const expanded =
+      typeof dc.environmentControlsExpanded === "boolean"
+        ? dc.environmentControlsExpanded
+        : true;
+    if (!expanded)
+    {
+      return stripStudioNodeFixedHeight(layoutNode);
+    }
+    const saved = dc.environmentLayoutHeight;
+    if (typeof saved === "number" && Number.isFinite(saved) && saved > 0)
+    {
+      return applyStudioNodeLayoutHeight(layoutNode, saved);
+    }
+    return layoutNode;
+  }
+  return layoutNode;
+}
+
+function patchStudioUtilityNodeBodyExpanded(
+  node: StudioNode,
+  field: StudioUtilityBodyExpandedField,
+  nextExpanded: boolean,
+): StudioNode {
+  const layoutHeightKey = STUDIO_UTILITY_BODY_EXPANDED_KEYS[field];
+  const dc = { ...node.data.defaultConfig, [field]: nextExpanded };
+  if (nextExpanded)
+  {
+    const saved = dc[layoutHeightKey];
+    const savedPx =
+      typeof saved === "number" && Number.isFinite(saved) && saved > 0
+        ? Math.round(saved)
+        : undefined;
+    const nextNode =
+      savedPx != null ? applyStudioNodeLayoutHeight(node, savedPx) : node;
+    return {
+      ...nextNode,
+      data: {
+        ...nextNode.data,
+        defaultConfig: dc,
+      },
+    };
+  }
+  const currentHeight = readStudioNodeLayoutHeightPx(node);
+  if (currentHeight != null)
+  {
+    dc[layoutHeightKey] = currentHeight;
+  }
+  const nextNode = stripStudioNodeFixedHeight(node);
+  return {
+    ...nextNode,
+    data: {
+      ...nextNode.data,
+      defaultConfig: dc,
+    },
+  };
+}
+
+function createStudioNodeFromCatalogEntry(
+  entry: NodeCatalogEntry,
+  position: { x: number; y: number },
+  options?: {
+    ui?: StudioNodeData["ui"];
+  },
+): StudioNode {
+  const id = `${entry.id}-${Date.now()}-${Math.round(Math.random() * 1000)}`;
+  const inferred = inferPortTypes(entry);
+  const base: StudioNode = {
+    id,
+    type: "studio",
+    position,
+    dragHandle: dragHandleSelectorForNodeId(entry.id),
+    data: {
+      label: entry.title,
+      category: entry.category,
+      nodeId: entry.id,
+      defaultConfig: { ...entry.defaultConfig },
+      ui: options?.ui,
+      inputType: inferred.inputType,
+      outputType: inferred.outputType,
+      outputHandles: inferred.outputHandles,
+      inputHandles: inferred.inputHandles,
+      liveValue: null,
+      liveHistory: [],
+      liveScopeHistory: {},
+    },
+  };
+  return attachConfigErrors([base], undefined)[0] ?? base;
+}
+
+function stripTransientStudioNodeData(data: StudioNodeData): StudioNodeData {
+  return {
+    label: data.label,
+    category: data.category,
+    nodeId: data.nodeId,
+    defaultConfig: { ...data.defaultConfig },
+    ui: data.ui != null ? { ...data.ui } : undefined,
+    inputType: data.inputType,
+    outputType: data.outputType,
+    outputHandles: data.outputHandles?.map((h) => ({ ...h })),
+    inputHandles: data.inputHandles?.map((h) => ({ ...h })),
+    liveValue: null,
+    liveHistory: [],
+    liveScopeHistory: {},
+    configErrors: data.configErrors,
+  };
+}
+
+function studioDupNodeId(): string {
+  return `studio-dup-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function cloneStudioNodeForDuplicate(
+  source: StudioNode,
+  newId: string,
+  position: { x: number; y: number },
+): StudioNode {
+  const dragHandle = dragHandleSelectorForNodeId(source.data.nodeId);
+  const base: StudioNode = {
+    ...source,
+    id: newId,
+    position,
+    selected: false,
+    dragHandle,
+    data: stripTransientStudioNodeData(source.data),
+  };
+  return attachConfigErrors([base], undefined)[0] ?? base;
+}
+
+function flowValueAsQuaternion(v: unknown): FlowWireQuaternion {
+  if (v != null && typeof v === "object" && "w" in v && "x" in v) {
+    const o = v as Record<string, unknown>;
+    return {
+      x: asFiniteNumber(o.x, 0),
+      y: asFiniteNumber(o.y, 0),
+      z: asFiniteNumber(o.z, 0),
+      w: asFiniteNumber(o.w, 1),
+    };
+  }
+  return { x: 0, y: 0, z: 0, w: 1 };
+}
+
+function flowValueAsEnvironment(v: unknown): FlowWireEnvironmentV1 | null {
+  if (!isFlowWireEnvironmentV1(v)) {
+    return null;
+  }
+  return coerceFlowWireEnvironmentV1(v);
+}
+
+function flowValueAsCamera(v: unknown): FlowWireCameraV1 | null {
+  if (!isFlowWireCameraV1(v)) {
+    return null;
+  }
+  return coerceFlowWireCameraV1(v);
+}
+
+function flowValueAsAnimation(v: unknown): FlowWireAnimationV1 | null {
+  if (!isFlowWireAnimationV1(v)) {
+    return null;
+  }
+  return coerceFlowWireAnimationV1(v);
+}
+
+type StudioSimulationPinValue =
+  | number
+  | boolean
+  | string
+  | FlowWireVec3
+  | FlowWireQuaternion
+  | FlowWireEnvironmentV1
+  | FlowWireCameraV1
+  | FlowWireAnimationV1
+  | null;
+
+function readPinForEdgeTarget(
+  edges: Edge[],
+  targetNodeId: string,
+  targetHandle: string,
+  pinValues: Map<string, StudioSimulationPinValue>,
+): StudioSimulationPinValue | null {
+  const edge = edges.find(
+    (e) =>
+      e.target === targetNodeId &&
+      (e.targetHandle ?? STUDIO_HANDLE_IN) === targetHandle,
+  );
+  if (edge == null) {
+    return null;
+  }
+  const sh = edge.sourceHandle ?? STUDIO_HANDLE_OUT;
+  return pinValues.get(studioFlowPinKey(edge.source, sh)) ?? null;
+}
+
+function hasLiveBmi270QuaternionFields(sample: BitstreamSensorSampleV2 | null): boolean {
+  if (sample == null) {
+    return false;
+  }
+  return (
+    typeof sample.fusionQuatWBucketX10000 === "number" &&
+    typeof sample.fusionQuatXX10000 === "number" &&
+    typeof sample.fusionQuatYX10000 === "number" &&
+    typeof sample.fusionQuatZX10000 === "number"
+  );
+}
+
+function hasLiveBmi270EulerFields(sample: BitstreamSensorSampleV2 | null): boolean {
+  if (sample == null) {
+    return false;
+  }
+  return (
+    typeof sample.fusionRollRadX100 === "number" &&
+    typeof sample.fusionPitchRadX100 === "number" &&
+    typeof sample.fusionHeadingRadX100 === "number"
+  );
+}
+
+function hasLiveBmi270AccelFields(sample: BitstreamSensorSampleV2 | null): boolean {
+  if (sample == null) {
+    return false;
+  }
+  return (
+    typeof sample.accelXMs2X100 === "number" &&
+    typeof sample.accelYMs2X100 === "number" &&
+    typeof sample.accelZMs2X100 === "number"
+  );
+}
+
+function hasLiveBmi270GyroFields(sample: BitstreamSensorSampleV2 | null): boolean {
+  if (sample == null) {
+    return false;
+  }
+  return (
+    typeof sample.gyroXRadSX100 === "number" &&
+    typeof sample.gyroYRadSX100 === "number" &&
+    typeof sample.gyroZRadSX100 === "number"
+  );
+}
+
+function inferSensorHintFromNode(node: StudioNode): BitstreamSensorSourceHint | null {
+  switch (node.data.nodeId) {
+    case "bmi270-input":
+    case "bmi270-tap-quaternion":
+    case "bmi270-tap-euler":
+    case "bmi270-tap-accel":
+    case "bmi270-tap-gyro":
+      return "bmi270";
+    case "dps368-input":
+    case "dps368-tap-pressure":
+    case "dps368-tap-temp":
+      return "dps368";
+    case "sht40-input":
+    case "sht40-tap-humidity":
+    case "sht40-tap-temp":
+      return "sht40";
+    case "bmm350-input":
+    case "bmm350-tap-magnetic":
+    case "bmm350-tap-temp":
+      return "bmm350";
+    case "sensor-input": {
+      const sk = node.data.defaultConfig.sourceKey;
+      return typeof sk === "string" ? inferSensorTelemetryHintFromSourceKey(sk) : null;
+    }
+    default:
+      return null;
+  }
+}
+
+function computeSensorHealthStatus(
+  hardwareStreamLive: boolean,
+  hint: BitstreamSensorSourceHint | null,
+  lastAtByHint: Record<BitstreamSensorSourceHint, number | null>,
+  /** Verified device rows keyed by firmware `sensor.cfg` `sourceId` (sparse). */
+  deviceSensorCfgBySourceId: Partial<Record<number, DeviceSensorConfigRow>>,
+): SensorHealthStatus {
+  if (!hardwareStreamLive || hint == null) {
+    return "sim";
+  }
+  const lastAt = lastAtByHint[hint];
+  if (lastAt == null) {
+    return "offline";
+  }
+  const sourceId = bitstreamSensorHintToSourceId(hint);
+  const row = sourceId != null ? deviceSensorCfgBySourceId[sourceId] ?? null : null;
+  const { liveMaxAgeMs, staleMaxAgeMs } = sensorHealthAgeThresholdsMs(row);
+  const ageMs = Date.now() - lastAt;
+  if (ageMs <= liveMaxAgeMs) {
+    return "live";
+  }
+  if (ageMs <= staleMaxAgeMs) {
+    return "stale";
+  }
+  return "offline";
+}
+
+function keepLastFiniteNumber(next: unknown, previous: number | undefined, fallback: number): number {
+  if (typeof next === "number" && Number.isFinite(next)) {
+    return next;
+  }
+  if (typeof previous === "number" && Number.isFinite(previous)) {
+    return previous;
+  }
+  return fallback;
+}
+
+function invalidReasonForRequiredNumber(
+  sample: BitstreamSensorSampleV2 | null,
+  value: unknown,
+  label: string,
+): string | undefined {
+  if (sample == null) {
+    return undefined;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return undefined;
+  }
+  return `${label} missing in live payload`;
+}
+
+function computeNodeInvalidReason(
+  node: StudioNode,
+  latestByHint: Record<BitstreamSensorSourceHint, BitstreamSensorSampleV2 | null>,
+): string | undefined {
+  switch (node.data.nodeId) {
+    case "dps368-input":
+    case "dps368-tap-pressure":
+      return invalidReasonForRequiredNumber(latestByHint.dps368, latestByHint.dps368?.secondaryX100, "Pressure");
+    case "dps368-tap-temp":
+      return invalidReasonForRequiredNumber(
+        latestByHint.dps368,
+        latestByHint.dps368?.temperatureCx100,
+        "Temperature",
+      );
+    case "sht40-input":
+    case "sht40-tap-humidity":
+      return invalidReasonForRequiredNumber(
+        latestByHint.sht40,
+        latestByHint.sht40?.secondaryX100,
+        "Humidity",
+      );
+    case "sht40-tap-temp":
+      return invalidReasonForRequiredNumber(
+        latestByHint.sht40,
+        latestByHint.sht40?.temperatureCx100,
+        "Temperature",
+      );
+    case "bmm350-input":
+    case "bmm350-tap-magnetic": {
+      const s = latestByHint.bmm350;
+      if (s == null) {
+        return undefined;
+      }
+      const hasMag =
+        typeof s.magneticXUtX100 === "number" &&
+        typeof s.magneticYUtX100 === "number" &&
+        typeof s.magneticZUtX100 === "number";
+      return hasMag ? undefined : "Magnetic vector missing in live payload";
+    }
+    case "bmm350-tap-temp":
+      return invalidReasonForRequiredNumber(
+        latestByHint.bmm350,
+        latestByHint.bmm350?.temperatureCx100,
+        "Temperature",
+      );
+    default:
+      return undefined;
+  }
+}
+
+function mergeValidHandleTimestamp(
+  previous: Record<string, string> | undefined,
+  handle: string,
+  isValid: boolean,
+  nowIso: string,
+): Record<string, string> | undefined {
+  if (!isValid) {
+    return previous;
+  }
+  return {
+    ...(previous ?? {}),
+    [handle]: nowIso,
+  };
+}
+
+export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
+  nodes: [],
+  edges: [],
+  selectedNodeId: null,
+  selectedNodeIds: [],
+  undoStack: [],
+  redoStack: [],
+  pushUndoSnapshot: () => {
+    const st = get();
+    const snap = cloneFlowSnapshot({
+      nodes: st.nodes,
+      edges: st.edges,
+      selectedNodeId: st.selectedNodeId,
+      selectedNodeIds: st.selectedNodeIds,
+    });
+    set((s) => ({
+      undoStack: [...s.undoStack, snap].slice(-MAX_UNDO),
+      redoStack: [],
+    }));
+  },
+  undo: () => {
+    const st = get();
+    if (st.undoStack.length === 0) {
+      return;
+    }
+    const prev = st.undoStack[st.undoStack.length - 1];
+    const cur = cloneFlowSnapshot({
+      nodes: st.nodes,
+      edges: st.edges,
+      selectedNodeId: st.selectedNodeId,
+      selectedNodeIds: st.selectedNodeIds,
+    });
+    const prevSel = normalizeFlowSnapshotSelection(prev);
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(prev.nodes, prevSel.selectedNodeIds),
+        prev.edges,
+      ),
+      edges: prev.edges,
+      selectedNodeId: prevSel.selectedNodeId,
+      selectedNodeIds: prevSel.selectedNodeIds,
+      undoStack: st.undoStack.slice(0, -1),
+      redoStack: [cur, ...st.redoStack].slice(0, MAX_UNDO),
+    });
+    flushFlowSimulationPins(get);
+  },
+  redo: () => {
+    const st = get();
+    if (st.redoStack.length === 0) {
+      return;
+    }
+    const next = st.redoStack[0];
+    const cur = cloneFlowSnapshot({
+      nodes: st.nodes,
+      edges: st.edges,
+      selectedNodeId: st.selectedNodeId,
+      selectedNodeIds: st.selectedNodeIds,
+    });
+    const nextSel = normalizeFlowSnapshotSelection(next);
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(next.nodes, nextSel.selectedNodeIds),
+        next.edges,
+      ),
+      edges: next.edges,
+      selectedNodeId: nextSel.selectedNodeId,
+      selectedNodeIds: nextSel.selectedNodeIds,
+      undoStack: [...st.undoStack, cur].slice(-MAX_UNDO),
+      redoStack: st.redoStack.slice(1),
+    });
+    flushFlowSimulationPins(get);
+  },
+  hydrateFlowDocument: (snapshot) => {
+    const nodesRaw = (snapshot.nodes as StudioNode[]).map((n) => refreshCatalogOutputHandles(n));
+    const sel = normalizeFlowSnapshotSelection(snapshot);
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(nodesRaw, sel.selectedNodeIds),
+        snapshot.edges,
+      ),
+      edges: snapshot.edges,
+      selectedNodeId: sel.selectedNodeId,
+      selectedNodeIds: sel.selectedNodeIds,
+      undoStack: [],
+      redoStack: [],
+    });
+    flushFlowSimulationPins(get);
+  },
+  exportFlowGraphJson: (options) => {
+    const st = get();
+    const viewportArg = options?.viewport;
+    const viewportPayload =
+      viewportArg != null && isValidStudioPersistedViewport(viewportArg) ? viewportArg : undefined;
+    return JSON.stringify(
+      {
+        version: 1 as const,
+        updatedAt: new Date().toISOString(),
+        nodes: st.nodes,
+        edges: st.edges,
+        selectedNodeId: st.selectedNodeId,
+        selectedNodeIds: st.selectedNodeIds,
+        ...(viewportPayload != null ? { viewport: viewportPayload } : {}),
+      },
+      null,
+      2,
+    );
+  },
+  importFlowGraphJson: (json) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      return { ok: false, message: "Invalid JSON." };
+    }
+    if (typeof parsed !== "object" || parsed === null) {
+      return { ok: false, message: "Flow document must be an object." };
+    }
+    const o = parsed as Record<string, unknown>;
+    if (o.version !== 1) {
+      return { ok: false, message: "Flow document version must be 1." };
+    }
+    if (!Array.isArray(o.nodes) || !Array.isArray(o.edges)) {
+      return { ok: false, message: "Flow document must include nodes and edges arrays." };
+    }
+    const sel = o.selectedNodeId;
+    const selectedNodeId =
+      typeof sel === "string" ? sel : sel === null || sel === undefined ? null : null;
+    const rawMulti = o.selectedNodeIds;
+    const selectedNodeIdsFromFile = Array.isArray(rawMulti)
+      ? rawMulti.filter((x): x is string => typeof x === "string" && x.length > 0)
+      : undefined;
+    const selection = normalizeFlowSnapshotSelection({
+      selectedNodeId,
+      selectedNodeIds: selectedNodeIdsFromFile,
+    });
+    get().pushUndoSnapshot();
+    const migratedEdges = migrateStudioEdgesFusionQuat(o.edges as Edge[]);
+    const migratedNodes = (o.nodes as StudioNode[]).map((n) => refreshCatalogOutputHandles(n));
+    const vpRaw = o.viewport;
+    const viewport =
+      vpRaw != null && isValidStudioPersistedViewport(vpRaw)
+        ? vpRaw
+        : undefined;
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(
+          migratedNodes.map((n) => ({ ...n, selected: false })),
+          selection.selectedNodeIds,
+        ),
+        migratedEdges,
+      ),
+      edges: migratedEdges,
+      selectedNodeId: selection.selectedNodeId,
+      selectedNodeIds: selection.selectedNodeIds,
+      redoStack: [],
+    });
+    flushFlowSimulationPins(get);
+    return viewport != null ? { ok: true, viewport } : { ok: true };
+  },
+  duplicateSelection: () => {
+    const st = get();
+    const fromRfSelection = st.nodes.filter((n) => n.selected).map((n) => n.id);
+    const sourceIds =
+      fromRfSelection.length > 0
+        ? fromRfSelection
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    if (sourceIds.length === 0) {
+      return;
+    }
+    const OFFSET = 36;
+    const idMap = new Map<string, string>();
+    for (const id of sourceIds) {
+      idMap.set(id, studioDupNodeId());
+    }
+    const sourceSet = new Set(sourceIds);
+    const oldNodes = st.nodes.filter((n) => sourceSet.has(n.id));
+    const newNodesRaw: StudioNode[] = oldNodes.map((n) =>
+      cloneStudioNodeForDuplicate(n, idMap.get(n.id) ?? studioDupNodeId(), {
+        x: n.position.x + OFFSET,
+        y: n.position.y + OFFSET,
+      }),
+    );
+    const newNodes = remapSourceModelNodeIdAfterDuplicate(newNodesRaw, idMap);
+    for (const nn of newNodes) {
+      nn.selected = true;
+    }
+    const dupEdges: Edge[] = [];
+    for (const e of st.edges) {
+      if (!sourceSet.has(e.source) || !sourceSet.has(e.target)) {
+        continue;
+      }
+      const srcNew = idMap.get(e.source);
+      const tgtNew = idMap.get(e.target);
+      if (srcNew == null || tgtNew == null) {
+        continue;
+      }
+      const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
+      const sourceStub =
+        newNodes.find((n) => n.id === srcNew) ??
+        st.nodes.find((n) => n.id === e.source);
+      const label =
+        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle) : "";
+      dupEdges.push({
+        ...e,
+        id: `studio-edge-${studioDupNodeId()}`,
+        source: srcNew,
+        target: tgtNew,
+        sourceHandle: e.sourceHandle ?? STUDIO_HANDLE_OUT,
+        targetHandle: e.targetHandle ?? STUDIO_HANDLE_IN,
+        animated: true,
+        label,
+        style: { ...(e.style ?? {}), strokeWidth: 2 },
+      });
+    }
+    get().pushUndoSnapshot();
+    const mergedNodes = [
+      ...st.nodes.map((n) => ({ ...n, selected: false })),
+      ...newNodes,
+    ];
+    const dupIds = newNodes.map((n) => n.id);
+    const mergedEdges = [...st.edges, ...dupEdges];
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges),
+      edges: mergedEdges,
+      ...selectionFromIds(dupIds),
+    });
+    flushFlowSimulationPins(get);
+  },
+  deleteSelection: () => {
+    const st = get();
+    const fromRf = st.nodes.filter((n) => n.selected).map((n) => n.id);
+    const ids =
+      fromRf.length > 0
+        ? new Set(fromRf)
+        : st.selectedNodeId != null
+          ? new Set([st.selectedNodeId])
+          : null;
+    if (ids == null || ids.size === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const nextNodes = st.nodes.filter((n) => !ids.has(n.id));
+    const nextEdges = st.edges.filter((e) => !ids.has(e.source) && !ids.has(e.target));
+    const priorSelection =
+      st.selectedNodeIds.length > 0
+        ? st.selectedNodeIds
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    const survivingSelectedIds = priorSelection.filter((id) =>
+      nextNodes.some((n) => n.id === id),
+    );
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, nextEdges),
+      edges: nextEdges,
+      ...selectionFromIds(survivingSelectedIds),
+    });
+    flushFlowSimulationPins(get);
+  },
+  selectAllNodes: () => {
+    set((state) => {
+      const allIds = state.nodes.map((n) => n.id);
+      return {
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((n) => ({
+            ...n,
+            selected: true,
+          })),
+          state.edges,
+        ),
+        ...selectionFromIds(allIds),
+      };
+    });
+  },
+  clearNodeSelection: () => {
+    set((state) => ({
+      nodes: state.nodes.map((n) => ({
+        ...n,
+        selected: false,
+      })),
+      selectedNodeId: null,
+      selectedNodeIds: [],
+    }));
+  },
+  selectStudioNodesByIds: (nodeIds) => {
+    const sel = selectionFromIds(nodeIds);
+    set((state) => ({
+      ...sel,
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(state.nodes, sel.selectedNodeIds),
+        state.edges,
+      ),
+    }));
+  },
+  onNodesChange: (changes) => {
+    if (changes.length === 0) {
+      return;
+    }
+    const layoutOnly = nodeChangesAreLayoutOnly(changes);
+    if (layoutOnly) {
+      if (!layoutUndoPrimed) {
+        get().pushUndoSnapshot();
+        layoutUndoPrimed = true;
+      }
+      if (layoutUndoIdleTimer != null) {
+        window.clearTimeout(layoutUndoIdleTimer);
+      }
+      layoutUndoIdleTimer = window.setTimeout(() => {
+        layoutUndoPrimed = false;
+        layoutUndoIdleTimer = undefined;
+      }, 450);
+    } else {
+      get().pushUndoSnapshot();
+    }
+    set((state) => {
+      const nextNodes = applyNodeChanges(changes, state.nodes);
+      const reconciled = layoutOnly
+        ? nextNodes
+        : reconcileStudioModelGeneratedChildIds(nextNodes);
+      return {
+        nodes: layoutOnly ? reconciled : attachConfigErrors(reconciled, state.edges),
+      };
+    });
+    if (!layoutOnly) {
+      flushFlowSimulationPins(get);
+    }
+  },
+  onEdgesChange: (changes) => {
+    if (changes.length === 0) {
+      return;
+    }
+    const structural = changes.some((ch) => ch.type === "remove");
+    if (structural) {
+      get().pushUndoSnapshot();
+    }
+    set((state) => {
+      const nextEdges = applyEdgeChanges(changes, state.edges);
+      return {
+        edges: nextEdges,
+        nodes: attachConfigErrorsWithModelChildRegistry(state.nodes, nextEdges),
+      };
+    });
+    flushFlowSimulationPins(get);
+  },
+  onConnect: (connection) => {
+    if (!canConnect(connection, get().nodes)) {
+      return;
+    }
+    const hasDuplicate = get().edges.some(
+      (edge) =>
+        edge.source === connection.source &&
+        edge.target === connection.target &&
+        edge.sourceHandle === connection.sourceHandle &&
+        edge.targetHandle === connection.targetHandle,
+    );
+    if (hasDuplicate) {
+      return;
+    }
+    const sourceNode = get().nodes.find((n) => n.id === connection.source);
+    const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
+    const label =
+      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle) : "";
+    get().pushUndoSnapshot();
+    set((state) => {
+      const nextEdges = addEdge(
+        {
+          ...connection,
+          sourceHandle: connection.sourceHandle ?? STUDIO_HANDLE_OUT,
+          targetHandle: connection.targetHandle ?? STUDIO_HANDLE_IN,
+          id: `${connection.source}-${connection.target}-${Date.now()}`,
+          animated: true,
+          label,
+          style: { strokeWidth: 2 },
+        },
+        state.edges,
+      );
+      return {
+        edges: nextEdges,
+        nodes: attachConfigErrorsWithModelChildRegistry(state.nodes, nextEdges),
+      };
+    });
+    flushFlowSimulationPins(get);
+  },
+  onSelectionChange: (selectedNodeIds) => {
+    const sel = selectionFromIds(selectedNodeIds);
+    set((state) => ({
+      ...sel,
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(state.nodes, sel.selectedNodeIds),
+        state.edges,
+      ),
+    }));
+  },
+  addNodeFromCatalog: (entry, options) => {
+    get().pushUndoSnapshot();
+    const x = 80 + Math.round(Math.random() * 280);
+    const y = 80 + Math.round(Math.random() * 220);
+    const nextNode = createStudioNodeFromCatalogEntry(entry, { x, y }, options);
+    nextNode.selected = true;
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, nextNode], [nextNode.id]),
+        state.edges,
+      ),
+      ...selectionFromIds([nextNode.id]),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  addNodeFromCatalogAt: (entry, position, options) => {
+    get().pushUndoSnapshot();
+    const nextNode = createStudioNodeFromCatalogEntry(entry, position, options);
+    const flowLabel = options?.flowNodeLabel?.trim();
+    if (flowLabel != null && flowLabel.length > 0) {
+      nextNode.data.label = flowLabel;
+    }
+    if (options?.mergeDefaultConfig != null) {
+      nextNode.data.defaultConfig = {
+        ...nextNode.data.defaultConfig,
+        ...options.mergeDefaultConfig,
+      };
+    }
+    nextNode.selected = true;
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, nextNode], [nextNode.id]),
+        state.edges,
+      ),
+      ...selectionFromIds([nextNode.id]),
+    }));
+    flushFlowSimulationPins(get);
+    return nextNode.id;
+  },
+  addNodeFromCatalogLinkedToModel: (entry, position, options) => {
+    const parentId = options.parentModelNodeId.trim();
+    if (parentId.length === 0) {
+      return;
+    }
+    const parent = get().nodes.find((n) => n.id === parentId);
+    if (parent == null || parent.data.nodeId !== "model-select") {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const nextNode = createStudioNodeFromCatalogEntry(entry, position, {
+      ui: options.ui,
+    });
+    nextNode.selected = true;
+    const flowLabel = options.flowNodeLabel?.trim();
+    if (flowLabel != null && flowLabel.length > 0) {
+      nextNode.data.label = flowLabel;
+    }
+    nextNode.data.defaultConfig = {
+      ...nextNode.data.defaultConfig,
+      ...(options.mergeDefaultConfig ?? {}),
+      [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: parentId,
+    };
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, nextNode], [nextNode.id]),
+        state.edges,
+      ),
+      ...selectionFromIds([nextNode.id]),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  updateNodeConfigFieldByNodeId: (nodeId, key, value) => {
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: {
+                    ...node.data.defaultConfig,
+                    [key]: value,
+                  },
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  setStudioUtilityNodeBodyExpanded: (flowNodeId, field, expanded) => {
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === flowNodeId ? patchStudioUtilityNodeBodyExpanded(node, field, expanded) : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  resetCanvas: () => {
+    get().pushUndoSnapshot();
+    clearPersistedFlowDocument();
+    set({
+      nodes: [],
+      edges: [],
+      selectedNodeId: null,
+      selectedNodeIds: [],
+    });
+  },
+  runDemoTemplate: (templateId, catalog) => {
+    const makeNode = (
+      entry: NodeCatalogEntry,
+      id: string,
+      x: number,
+      y: number,
+    ): StudioNode => {
+      const inferred = inferPortTypes(entry);
+      return {
+        id,
+        type: "studio",
+        position: { x, y },
+        data: {
+          label: entry.title,
+          category: entry.category,
+          nodeId: entry.id,
+          defaultConfig: { ...entry.defaultConfig },
+          inputType: inferred.inputType,
+          outputType: inferred.outputType,
+          outputHandles: inferred.outputHandles,
+          inputHandles: inferred.inputHandles,
+          liveValue: null,
+          liveHistory: [],
+          liveScopeHistory: {},
+        },
+      };
+    };
+
+    if (templateId === "bmi270-gauge-z") {
+      const bmi270Entry = catalog.find((entry) => entry.id === "bmi270-input");
+      const vectorSplitterEntry = catalog.find((entry) => entry.id === "vector-splitter");
+      const gaugeEntry = catalog.find((entry) => entry.id === "gauge");
+      if (bmi270Entry == null || vectorSplitterEntry == null || gaugeEntry == null) {
+        return;
+      }
+      const bmiNode = makeNode(bmi270Entry, "demo-bmi270", 72, 156);
+      const splitNode = makeNode(vectorSplitterEntry, "demo-vec-split", 360, 156);
+      const gaugeNode = makeNode(gaugeEntry, "demo-gauge-bmi", 660, 156);
+      gaugeNode.data.label = "Gauge (accel Z)";
+      gaugeNode.data.defaultConfig = {
+        ...gaugeNode.data.defaultConfig,
+        decimals: 3,
+        unit: " m/s²",
+      };
+      get().pushUndoSnapshot();
+      const bmiDemoEdges: Edge[] = [
+        {
+          id: "demo-bmi-e1",
+          source: bmiNode.id,
+          target: splitNode.id,
+          sourceHandle: "accel",
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(bmiNode, "accel") ?? "vector3",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-bmi-e2",
+          source: splitNode.id,
+          target: gaugeNode.id,
+          sourceHandle: "z",
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(splitNode, "z") ?? "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection([bmiNode, splitNode, gaugeNode], [gaugeNode.id]),
+          bmiDemoEdges,
+        ),
+        edges: bmiDemoEdges,
+        ...selectionFromIds([gaugeNode.id]),
+      });
+      return;
+    }
+
+    const sensor = catalog.find((entry) => entry.id === "sensor-input");
+    const lowPass = catalog.find((entry) => entry.id === "low-pass");
+    const threshold = catalog.find((entry) => entry.id === "threshold");
+    const indicator = catalog.find((entry) => entry.id === "indicator");
+    const gauge = catalog.find((entry) => entry.id === "gauge");
+    const sparkline = catalog.find((entry) => entry.id === "sparkline");
+
+    if (
+      sensor == null ||
+      lowPass == null ||
+      threshold == null ||
+      indicator == null ||
+      gauge == null ||
+      sparkline == null
+    ) {
+      return;
+    }
+
+    const typeFor = (node: StudioNode) => node.data.outputType ?? "";
+    const sensorNode = makeNode(sensor, "demo-sensor", 80, 140);
+    const lowPassNode = makeNode(lowPass, "demo-lowpass", 330, 140);
+    const thresholdNode = makeNode(threshold, "demo-threshold", 580, 140);
+    const indicatorNode = makeNode(indicator, "demo-indicator", 840, 120);
+    const gaugeNode = makeNode(gauge, "demo-gauge", 840, 220);
+    const sparklineNode = makeNode(sparkline, "demo-sparkline", 580, 300);
+
+    let templateNodes: StudioNode[] = [];
+    let templateEdges: Edge[] = [];
+    let selectedNodeId = sensorNode.id;
+
+    if (templateId === "basic-indicator") {
+      templateNodes = [sensorNode, thresholdNode, indicatorNode];
+      templateEdges = [
+        {
+          id: "demo-e1",
+          source: sensorNode.id,
+          target: thresholdNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(sensorNode),
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-e2",
+          source: thresholdNode.id,
+          target: indicatorNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(thresholdNode),
+          style: { strokeWidth: 2 },
+        },
+      ];
+      selectedNodeId = thresholdNode.id;
+    } else if (templateId === "gauge-monitor") {
+      templateNodes = [sensorNode, gaugeNode, sparklineNode];
+      templateEdges = [
+        {
+          id: "demo-e1",
+          source: sensorNode.id,
+          target: gaugeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(sensorNode),
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-e2",
+          source: sensorNode.id,
+          target: sparklineNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(sensorNode),
+          style: { strokeWidth: 2 },
+        },
+      ];
+      selectedNodeId = gaugeNode.id;
+    } else {
+      templateNodes = [
+        sensorNode,
+        lowPassNode,
+        thresholdNode,
+        indicatorNode,
+        gaugeNode,
+        sparklineNode,
+      ];
+      templateEdges = [
+        {
+          id: "demo-e1",
+          source: sensorNode.id,
+          target: lowPassNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(sensorNode),
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-e2",
+          source: lowPassNode.id,
+          target: thresholdNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(lowPassNode),
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-e3",
+          source: thresholdNode.id,
+          target: indicatorNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(thresholdNode),
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-e4",
+          source: lowPassNode.id,
+          target: gaugeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(lowPassNode),
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-e5",
+          source: lowPassNode.id,
+          target: sparklineNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: typeFor(lowPassNode),
+          style: { strokeWidth: 2 },
+        },
+      ];
+      selectedNodeId = lowPassNode.id;
+    }
+
+    get().pushUndoSnapshot();
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(templateNodes, [selectedNodeId]),
+        templateEdges,
+      ),
+      edges: templateEdges,
+      ...selectionFromIds([selectedNodeId]),
+    });
+  },
+  updateSelectedNodeLabel: (nextLabel) => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    if (multiIds != null) {
+      get().pushUndoSnapshot();
+      const idSet = new Set(multiIds);
+      set((state) => ({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((node) =>
+            idSet.has(node.id)
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    label: nextLabel,
+                  },
+                }
+              : node,
+          ),
+          state.edges,
+        ),
+      }));
+      return;
+    }
+    const selectedNodeId = st.selectedNodeId;
+    if (selectedNodeId == null) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === selectedNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  label: nextLabel,
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+  },
+  updateSelectedNodeConfigField: (key, value) => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    if (multiIds != null) {
+      const ref = st.nodes.find((node) => node.id === multiIds[0]);
+      if (
+        key === "sourceKey" &&
+        ref?.data.nodeId === "sensor-input" &&
+        typeof value === "string" &&
+        !isValidStudioSensorSourceKey(value)
+      ) {
+        return false;
+      }
+      const normalizedValue =
+        key === "sourceKey" && typeof value === "string" ? value.trim() : value;
+      get().pushUndoSnapshot();
+      const idSet = new Set(multiIds);
+      set((state) => ({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((node) =>
+            idSet.has(node.id)
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    defaultConfig: {
+                      ...node.data.defaultConfig,
+                      [key]: normalizedValue,
+                    },
+                  },
+                }
+              : node,
+          ),
+          state.edges,
+        ),
+      }));
+      flushFlowSimulationPins(get);
+      return true;
+    }
+    const selectedNodeId = st.selectedNodeId;
+    if (selectedNodeId == null) {
+      return false;
+    }
+    const selected = st.nodes.find((node) => node.id === selectedNodeId);
+    if (
+      key === "sourceKey" &&
+      selected?.data.nodeId === "sensor-input" &&
+      typeof value === "string" &&
+      !isValidStudioSensorSourceKey(value)
+    ) {
+      return false;
+    }
+    const normalizedValue =
+      key === "sourceKey" && typeof value === "string" ? value.trim() : value;
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === selectedNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: {
+                    ...node.data.defaultConfig,
+                    [key]: normalizedValue,
+                  },
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  applySelectedNodeConfigFieldLive: (key, value) => {
+    const st = get();
+    if (getHomogeneousMultiSelectionIds(st) != null) {
+      return false;
+    }
+    const selectedNodeId = st.selectedNodeId;
+    if (selectedNodeId == null) {
+      return false;
+    }
+    const normalizedValue =
+      key === "sourceKey" && typeof value === "string" ? value.trim() : value;
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === selectedNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: {
+                    ...node.data.defaultConfig,
+                    [key]: normalizedValue,
+                  },
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  updateSelectedNodeOscilloscopeConfig: (next) => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    if (multiIds != null) {
+      const ref = st.nodes.find((node) => node.id === multiIds[0]);
+      if (ref?.data.nodeId !== "oscilloscope") {
+        return;
+      }
+      const persisted = persistOscilloscopeConfig(next);
+      get().pushUndoSnapshot();
+      const idSet = new Set(multiIds);
+      set((state) => ({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((node) =>
+            idSet.has(node.id)
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    defaultConfig: { ...(persisted as unknown as Record<string, unknown>) },
+                  },
+                }
+              : node,
+          ),
+          state.edges,
+        ),
+      }));
+      flushFlowSimulationPins(get);
+      return;
+    }
+    const selectedNodeId = st.selectedNodeId;
+    if (selectedNodeId == null) {
+      return;
+    }
+    const selected = st.nodes.find((node) => node.id === selectedNodeId);
+    if (selected?.data.nodeId !== "oscilloscope") {
+      return;
+    }
+    const persisted = persistOscilloscopeConfig(next);
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === selectedNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: { ...(persisted as unknown as Record<string, unknown>) },
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  updateSelectedNodeConfigFromJson: (nextJson) => {
+    const st = get();
+    if (getHomogeneousMultiSelectionIds(st) != null) {
+      return {
+        ok: false,
+        message: "Select a single node to edit JSON configuration.",
+      };
+    }
+    const selectedNodeId = st.selectedNodeId;
+    if (selectedNodeId == null) {
+      return { ok: false, message: "No selected node." };
+    }
+    const selected = st.nodes.find((node) => node.id === selectedNodeId);
+    try {
+      const parsed = JSON.parse(nextJson) as Record<string, unknown>;
+      if (selected?.data.nodeId === "sensor-input" && "sourceKey" in parsed) {
+        const sk = parsed.sourceKey;
+        if (sk === null) {
+          delete parsed.sourceKey;
+        } else if (sk !== undefined && !isValidStudioSensorSourceKey(sk)) {
+          return {
+            ok: false,
+            message:
+              "Invalid sourceKey: use one of the hardware paths from the Sensor Input dropdown list.",
+          };
+        } else if (typeof sk === "string" && isValidStudioSensorSourceKey(sk)) {
+          parsed.sourceKey = sk.trim();
+        }
+      }
+      get().pushUndoSnapshot();
+      set((state) => ({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((node) =>
+            node.id === selectedNodeId
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    defaultConfig: parsed,
+                  },
+                }
+              : node,
+          ),
+          state.edges,
+        ),
+      }));
+      flushFlowSimulationPins(get);
+      return { ok: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid JSON";
+      return { ok: false, message };
+    }
+  },
+  tickSimulation: () => {
+    const { nodes, edges } = get();
+    if (nodes.length === 0) {
+      return;
+    }
+
+    type FlowValue =
+      | number
+      | boolean
+      | string
+      | FlowWireVec3
+      | FlowWireQuaternion
+      | FlowWireEnvironmentV1
+      | FlowWireCameraV1
+      | FlowWireAnimationV1
+      | null;
+
+    const nowIso = new Date().toISOString();
+
+    const incomingByTarget = new Map<
+      string,
+      { source: string; sourceHandle: string; targetHandle: string }[]
+    >();
+    for (const edge of edges) {
+      const list = incomingByTarget.get(edge.target) ?? [];
+      list.push({
+        source: edge.source,
+        sourceHandle: edge.sourceHandle ?? STUDIO_HANDLE_OUT,
+        targetHandle: edge.targetHandle ?? STUDIO_HANDLE_IN,
+      });
+      incomingByTarget.set(edge.target, list);
+    }
+
+    const pinValues = new Map<string, FlowValue>();
+    const liveStore = useBitstreamLiveStore.getState();
+    const deviceSensorCfgBySourceId = useBitstreamDeviceSensorConfigStore.getState().bySourceId;
+    const quatOrient = useBmi270FusionQuatOrientationStore.getState();
+    const eulerWireTap = useBmi270FusionEulerWireTapStore.getState();
+    const hasQuatWireTap = quatOrient.seq > 0;
+    const hasEulerWireTap = eulerWireTap.seq > 0;
+    const quatFromWireTap: FlowWireQuaternion = {
+      w: quatOrient.qw,
+      x: quatOrient.qx,
+      y: quatOrient.qy,
+      z: quatOrient.qz,
+    };
+    const eulerFromWireTap: FlowWireVec3 = {
+      // Align with Sensor Studio convention: x=roll, y=pitch, z=heading(yaw).
+      x: eulerWireTap.rollRad,
+      y: eulerWireTap.pitchRad,
+      z: eulerWireTap.yawRad,
+    };
+    const latestByHint = liveStore.latestByHint;
+    const lastAtByHint = {
+      ...liveStore.lastAtByHint,
+      bmi270: Math.max(
+        liveStore.lastAtByHint.bmi270 ?? 0,
+        quatOrient.lastAtMs ?? 0,
+        eulerWireTap.lastAtMs ?? 0,
+      ),
+    };
+    const sensorHardwareLiveNodeIds = new Set<string>();
+
+    const readIncoming = (targetId: string, targetHandle?: string): FlowValue | null => {
+      const list = incomingByTarget.get(targetId);
+      if (list == null || list.length === 0) {
+        return null;
+      }
+      const targetNode = nodes.find((n) => n.id === targetId);
+      if (targetNode?.data.nodeId === "number-average") {
+        const nums: number[] = [];
+        for (const inc of list) {
+          if (inc.targetHandle !== STUDIO_HANDLE_IN) {
+            continue;
+          }
+          const v = pinValues.get(studioFlowPinKey(inc.source, inc.sourceHandle));
+          if (typeof v === "number" && Number.isFinite(v)) {
+            nums.push(v);
+          }
+        }
+        if (nums.length === 0) {
+          return null;
+        }
+        return nums.reduce((a, b) => a + b, 0) / nums.length;
+      }
+      const chosen =
+        targetHandle != null
+          ? list.find((e) => e.targetHandle === targetHandle)
+          : list.length === 1
+            ? list[0]
+            : list.find((e) => e.targetHandle === STUDIO_HANDLE_IN) ?? list[0];
+      if (chosen == null) {
+        return null;
+      }
+      return pinValues.get(studioFlowPinKey(chosen.source, chosen.sourceHandle)) ?? null;
+    };
+
+    const narrowNumber = (v: FlowValue | null): number =>
+      typeof v === "number" && Number.isFinite(v) ? v : 0;
+
+    for (let pass = 0; pass < 3; pass += 1) {
+      for (const node of nodes) {
+        if (node.data.nodeId === "sine-wave") {
+          const freq = asFiniteNumber(node.data.defaultConfig.frequency, 1);
+          const amp = asFiniteNumber(node.data.defaultConfig.amplitude, 1);
+          const offset = asFiniteNumber(node.data.defaultConfig.offset, 0);
+          const phase = asFiniteNumber(node.data.defaultConfig.phase, 0);
+          const t = Date.now() / 1000;
+          const val = amp * Math.sin(2 * Math.PI * freq * t + phase) + offset;
+          pinValues.set(studioFlowPinKey(node.id, "out"), val);
+          continue;
+        }
+
+        if (node.data.nodeId === "boolean-constant") {
+          const raw = node.data.defaultConfig.value;
+          let b = false;
+          if (typeof raw === "boolean") {
+            b = raw;
+          } else if (typeof raw === "number" && Number.isFinite(raw)) {
+            b = raw !== 0;
+          } else if (typeof raw === "string") {
+            const s = raw.trim().toLowerCase();
+            b = s === "true" || s === "1" || s === "yes";
+          }
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), b);
+          continue;
+        }
+
+        if (node.data.nodeId === "number-constant") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const v = coerceNumberConstantValue(dc, dc.value);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
+          continue;
+        }
+
+        if (node.data.nodeId === "sensor-input") {
+          const rawKey = node.data.defaultConfig.sourceKey;
+          const sourceKey =
+            typeof rawKey === "string" && rawKey.trim().length > 0 ? rawKey.trim() : "bmi270.accel.x";
+          const live = resolveLiveNumericFromLatestByHint(latestByHint, sourceKey);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            live != null && Number.isFinite(live) ? Number(live.toFixed(6)) : 0,
+          );
+          if (live != null && Number.isFinite(live)) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "dps368-input") {
+          const bundle = computeDps368PinBundle(latestByHint);
+          pinValues.set(studioFlowPinKey(node.id, "pressure"), bundle.pressureHpa);
+          pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
+          if (bundle.streamLive) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "sht40-input") {
+          const bundle = computeSht40PinBundle(latestByHint);
+          pinValues.set(studioFlowPinKey(node.id, "humidity"), bundle.humidityPct);
+          pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
+          if (bundle.streamLive) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "bmm350-input") {
+          const bundle = computeBmm350PinBundle(latestByHint);
+          pinValues.set(studioFlowPinKey(node.id, "magnetic"), bundle.magneticUt);
+          pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
+          if (bundle.streamLive) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "bmi270-input") {
+          const bundle = computeBmi270PinBundle(latestByHint);
+          const bmiSample = latestByHint.bmi270;
+          const prevQuat = node.data.liveQuaternionWire ?? { x: 0, y: 0, z: 0, w: 1 };
+          const prevEuler = node.data.liveVector3ByHandle?.euler ?? { x: 0, y: 0, z: 0 };
+          const prevAccel = node.data.liveVector3ByHandle?.accel ?? { x: 0, y: 0, z: 0 };
+          const prevGyro = node.data.liveVector3ByHandle?.gyro ?? { x: 0, y: 0, z: 0 };
+          pinValues.set(
+            studioFlowPinKey(node.id, "accel"),
+            hasLiveBmi270AccelFields(bmiSample) ? bundle.accel : prevAccel,
+          );
+          pinValues.set(
+            studioFlowPinKey(node.id, "gyro"),
+            hasLiveBmi270GyroFields(bmiSample) ? bundle.gyro : prevGyro,
+          );
+          pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.temp);
+          pinValues.set(
+            studioFlowPinKey(node.id, "euler"),
+            hasEulerWireTap
+              ? eulerFromWireTap
+              : hasLiveBmi270EulerFields(bmiSample)
+                ? bundle.euler
+                : prevEuler,
+          );
+          pinValues.set(
+            studioFlowPinKey(node.id, "quaternion"),
+            hasQuatWireTap
+              ? quatFromWireTap
+              : hasLiveBmi270QuaternionFields(bmiSample)
+                ? bundle.quaternion
+                : prevQuat,
+          );
+          if (bundle.streamLive) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (BMI270_TAP_NODE_ID_SET.has(node.data.nodeId)) {
+          const bundle = computeBmi270PinBundle(latestByHint);
+          const bmiSample = latestByHint.bmi270;
+          const prevQuat = node.data.liveQuaternionWire ?? { x: 0, y: 0, z: 0, w: 1 };
+          const prevEuler = node.data.liveVector3Wire ?? { x: 0, y: 0, z: 0 };
+          const prevVec = node.data.liveVector3Wire ?? { x: 0, y: 0, z: 0 };
+          let out: FlowValue;
+          switch (node.data.nodeId) {
+            case "bmi270-tap-accel":
+              out = hasLiveBmi270AccelFields(bmiSample) ? bundle.accel : prevVec;
+              break;
+            case "bmi270-tap-gyro":
+              out = hasLiveBmi270GyroFields(bmiSample) ? bundle.gyro : prevVec;
+              break;
+            case "bmi270-tap-euler":
+              out = hasEulerWireTap
+                ? eulerFromWireTap
+                : hasLiveBmi270EulerFields(bmiSample)
+                  ? bundle.euler
+                  : prevEuler;
+              break;
+            case "bmi270-tap-quaternion":
+              out = hasQuatWireTap
+                ? quatFromWireTap
+                : hasLiveBmi270QuaternionFields(bmiSample)
+                  ? bundle.quaternion
+                  : prevQuat;
+              break;
+            default:
+              out = bundle.accel;
+          }
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), out);
+          if (bundle.streamLive) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)) {
+          let out: FlowValue = 0;
+          let streamLive = false;
+          switch (node.data.nodeId) {
+            case "dps368-tap-pressure": {
+              const b = computeDps368PinBundle(latestByHint);
+              out = b.pressureHpa;
+              streamLive = b.streamLive;
+              break;
+            }
+            case "dps368-tap-temp": {
+              const b = computeDps368PinBundle(latestByHint);
+              out = b.tempC;
+              streamLive = b.streamLive;
+              break;
+            }
+            case "sht40-tap-humidity": {
+              const b = computeSht40PinBundle(latestByHint);
+              out = b.humidityPct;
+              streamLive = b.streamLive;
+              break;
+            }
+            case "sht40-tap-temp": {
+              const b = computeSht40PinBundle(latestByHint);
+              out = b.tempC;
+              streamLive = b.streamLive;
+              break;
+            }
+            case "bmm350-tap-magnetic": {
+              const b = computeBmm350PinBundle(latestByHint);
+              out = b.magneticUt;
+              streamLive = b.streamLive;
+              break;
+            }
+            case "bmm350-tap-temp": {
+              const b = computeBmm350PinBundle(latestByHint);
+              out = b.tempC;
+              streamLive = b.streamLive;
+              break;
+            }
+            default:
+              break;
+          }
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), out);
+          if (streamLive) {
+            sensorHardwareLiveNodeIds.add(node.id);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "quat-input") {
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), { x: 0, y: 0, z: 0, w: 1 });
+          continue;
+        }
+
+        if (node.data.nodeId === "vector-splitter") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          const vec = flowValueAsVec3(incomingValue);
+          pinValues.set(studioFlowPinKey(node.id, "x"), vec.x);
+          pinValues.set(studioFlowPinKey(node.id, "y"), vec.y);
+          pinValues.set(studioFlowPinKey(node.id, "z"), vec.z);
+          continue;
+        }
+
+        if (node.data.nodeId === "quaternion-splitter") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          const q = flowValueAsQuaternion(incomingValue);
+          pinValues.set(studioFlowPinKey(node.id, "x"), q.x);
+          pinValues.set(studioFlowPinKey(node.id, "y"), q.y);
+          pinValues.set(studioFlowPinKey(node.id, "z"), q.z);
+          pinValues.set(studioFlowPinKey(node.id, "w"), q.w);
+          continue;
+        }
+
+        if (node.data.nodeId === "oscilloscope") {
+          continue;
+        }
+
+        if (node.data.nodeId === "model-viewer") {
+          continue;
+        }
+
+        if (node.data.nodeId === "model-select") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const url = typeof dc.selectedModelUrl === "string" ? dc.selectedModelUrl : "";
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), url);
+          continue;
+        }
+
+        if (node.data.nodeId === "environment") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const wire = computeAggregatedEnvironmentWire(node.id, dc, edges, (tid, th) =>
+            readIncoming(tid, th),
+          );
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
+        if (node.data.nodeId === "camera-view") {
+          const wire = flowWireCameraFromNodeDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
+        if (node.data.nodeId === "glb-animation-bundle") {
+          const wire = flowAnimationWireFromBundleDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
+        const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+
+        if (node.data.nodeId === "number-average") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            narrowNumber(incomingValue),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "threshold") {
+          const rawThreshold = node.data.defaultConfig.value;
+          const threshold =
+            typeof rawThreshold === "number" ? rawThreshold : Number(rawThreshold ?? 0.5);
+          const operator = node.data.defaultConfig.operator === "<" ? "<" : ">";
+          const numericIncoming = narrowNumber(incomingValue);
+          const result =
+            operator === ">" ? numericIncoming > threshold : numericIncoming < threshold;
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), result);
+          continue;
+        }
+
+        if (node.data.nodeId === "map-range") {
+          const inMin = asFiniteNumber(node.data.defaultConfig.inMin, 0);
+          const inMax = asFiniteNumber(node.data.defaultConfig.inMax, 1);
+          const outMin = asFiniteNumber(node.data.defaultConfig.outMin, -1);
+          const outMax = asFiniteNumber(node.data.defaultConfig.outMax, 1);
+          const numericIncoming = narrowNumber(incomingValue);
+          const inSpan = inMax - inMin;
+          if (Math.abs(inSpan) < 1e-9) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), outMin);
+            continue;
+          }
+          const normalized = (numericIncoming - inMin) / inSpan;
+          const mapped = outMin + normalized * (outMax - outMin);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), mapped);
+          continue;
+        }
+
+        if (node.data.nodeId === "clamp") {
+          const min = asFiniteNumber(node.data.defaultConfig.min, -1);
+          const max = asFiniteNumber(node.data.defaultConfig.max, 1);
+          const numericIncoming = narrowNumber(incomingValue);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), clampNumber(numericIncoming, min, max));
+          continue;
+        }
+
+        if (node.data.nodeId === "low-pass") {
+          const alpha = clampNumber(asFiniteNumber(node.data.defaultConfig.alpha, 0.2), 0, 1);
+          const numericIncoming = narrowNumber(incomingValue);
+          const prev = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          const prevNumber = typeof prev === "number" ? prev : numericIncoming;
+          const smoothed = prevNumber + alpha * (numericIncoming - prevNumber);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), smoothed);
+          continue;
+        }
+
+        if (node.data.nodeId === "indicator") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            typeof incomingValue === "boolean" ? incomingValue : false,
+          );
+          continue;
+        }
+
+        pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), incomingValue);
+      }
+    }
+
+    const oscilloscopeHistUpdates = new Map<string, Record<string, number[]>>();
+    for (const node of nodes) {
+      if (node.data.nodeId !== "oscilloscope") {
+        continue;
+      }
+      const handles = node.data.inputHandles ?? [];
+      const oscCfg = coerceOscilloscopeConfig(node.data.defaultConfig);
+      const cap = oscCfg.sampleCount;
+      const prev = node.data.liveScopeHistory ?? {};
+      const nextCh: Record<string, number[]> = {};
+      for (const h of handles) {
+        const pinVal = readPinForEdgeTarget(edges, node.id, h.id, pinValues);
+        const sample =
+          typeof pinVal === "number" && Number.isFinite(pinVal) ? pinVal : Number.NaN;
+        const series = [...(prev[h.id] ?? [])];
+        series.push(sample);
+        nextCh[h.id] = series.slice(-cap);
+      }
+      oscilloscopeHistUpdates.set(node.id, nextCh);
+    }
+
+    set((state) => ({
+      nodes: state.nodes.map((node) => {
+        const dataWithoutSensorMode: StudioNodeData = { ...node.data };
+        delete dataWithoutSensorMode.sensorStreamMode;
+        delete dataWithoutSensorMode.sensorHealth;
+        delete dataWithoutSensorMode.sensorInvalidReason;
+        delete dataWithoutSensorMode.sensorLastValidAtByHandle;
+        delete dataWithoutSensorMode.sensorInvalidByHandle;
+        if (node.data.nodeId !== "bmi270-input" && node.data.nodeId !== "bmm350-input") {
+          delete dataWithoutSensorMode.liveVector3ByHandle;
+        }
+        if (
+          node.data.nodeId !== "bmi270-tap-euler" &&
+          node.data.nodeId !== "bmi270-tap-accel" &&
+          node.data.nodeId !== "bmi270-tap-gyro" &&
+          node.data.nodeId !== "bmm350-tap-magnetic" &&
+          node.data.nodeId !== "rotation-3d-euler"
+        ) {
+          delete dataWithoutSensorMode.liveVector3Wire;
+        }
+        if (
+          node.data.nodeId !== "bmi270-input" &&
+          node.data.nodeId !== "quat-input" &&
+          node.data.nodeId !== "bmi270-tap-quaternion" &&
+          node.data.nodeId !== "rotation-3d-quaternion"
+        ) {
+          delete dataWithoutSensorMode.liveQuaternionWire;
+        }
+        if (
+          node.data.nodeId !== "rotation-3d-euler" &&
+          node.data.nodeId !== "rotation-3d-quaternion" &&
+          node.data.nodeId !== "model-viewer"
+        ) {
+          delete dataWithoutSensorMode.liveEnvironmentWire;
+        }
+        if (
+          node.data.nodeId !== "rotation-3d-euler" &&
+          node.data.nodeId !== "rotation-3d-quaternion" &&
+          node.data.nodeId !== "model-viewer"
+        ) {
+          delete dataWithoutSensorMode.liveCameraWire;
+        }
+        if (node.data.nodeId !== "model-viewer") {
+          delete dataWithoutSensorMode.liveAnimationWire;
+        }
+        if (
+          node.data.nodeId !== "bmi270-input" &&
+          node.data.nodeId !== "dps368-input" &&
+          node.data.nodeId !== "sht40-input" &&
+          node.data.nodeId !== "bmm350-input" &&
+          node.data.nodeId !== "vector-splitter" &&
+          node.data.nodeId !== "quaternion-splitter"
+        ) {
+          delete dataWithoutSensorMode.liveNumberByHandle;
+        }
+        if (node.data.nodeId !== "oscilloscope") {
+          delete dataWithoutSensorMode.liveScopeHistory;
+        }
+
+        const outPin = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+        let nextLive: number | boolean | string | null = null;
+        if (
+          node.data.nodeId === "bmi270-input" ||
+          node.data.nodeId === "dps368-input" ||
+          node.data.nodeId === "sht40-input" ||
+          node.data.nodeId === "bmm350-input" ||
+          node.data.nodeId === "quat-input" ||
+          node.data.nodeId === "vector-splitter" ||
+          node.data.nodeId === "quaternion-splitter" ||
+          node.data.nodeId === "rotation-3d-euler" ||
+          node.data.nodeId === "rotation-3d-quaternion" ||
+          node.data.nodeId === "model-viewer" ||
+          node.data.nodeId === "environment" ||
+          node.data.nodeId === "camera-view" ||
+          node.data.nodeId === "oscilloscope" ||
+          BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
+          ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
+        ) {
+          nextLive = null;
+        } else if (typeof outPin === "number" || typeof outPin === "boolean" || typeof outPin === "string") {
+          nextLive = outPin;
+        }
+
+        const nextHistory =
+          node.data.nodeId === "oscilloscope"
+            ? []
+            : typeof nextLive === "number"
+              ? [
+                  ...((node.data.liveHistory ?? []).slice(
+                    -Math.max(
+                      1,
+                      node.data.nodeId === "sparkline"
+                        ? Math.min(
+                            512,
+                            Math.round(asFiniteNumber(node.data.defaultConfig.historySize, 64)),
+                          )
+                        : 64,
+                    ) + 1,
+                  )),
+                  nextLive,
+                ]
+              : (node.data.liveHistory ?? []).slice(-64);
+
+        const base: StudioNodeData = {
+          ...dataWithoutSensorMode,
+          liveValue: nextLive,
+          liveHistory: nextHistory,
+          lastUpdatedAt: nowIso,
+        };
+
+        if (node.data.nodeId === "oscilloscope") {
+          base.liveScopeHistory = oscilloscopeHistUpdates.get(node.id) ?? {};
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)) {
+          if (node.data.nodeId === "bmm350-tap-magnetic") {
+            const vecOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+            const isValidVec = vecOut != null && typeof vecOut === "object" && "x" in vecOut;
+            const prev = node.data.liveVector3Wire;
+            if (isValidVec) {
+              base.liveVector3Wire = flowValueAsVec3(vecOut);
+            } else if (prev != null) {
+              base.liveVector3Wire = prev;
+            } else {
+              base.liveVector3Wire = { x: 0, y: 0, z: 0 };
+            }
+            base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
+              node.data.sensorLastValidAtByHandle,
+              "out",
+              isValidVec,
+              nowIso,
+            );
+            if (!isValidVec && latestByHint.bmm350 != null) {
+              base.sensorInvalidByHandle = { out: "Magnetic vector missing in live payload" };
+            }
+          } else {
+            const scalarOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+            const prevLive = typeof node.data.liveValue === "number" ? node.data.liveValue : undefined;
+            const reason = computeNodeInvalidReason(node, latestByHint);
+            const isValidScalar =
+              reason == null && typeof scalarOut === "number" && Number.isFinite(scalarOut);
+            base.liveValue = keepLastFiniteNumber(isValidScalar ? scalarOut : undefined, prevLive, 0);
+            base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
+              node.data.sensorLastValidAtByHandle,
+              "out",
+              isValidScalar,
+              nowIso,
+            );
+            if (!isValidScalar) {
+              if (reason != null) {
+                base.sensorInvalidByHandle = { out: reason };
+              }
+            }
+          }
+        }
+
+        if (node.data.nodeId === "dps368-input") {
+          const pressure = pinValues.get(studioFlowPinKey(node.id, "pressure"));
+          const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const prev = node.data.liveNumberByHandle;
+          const dpsSample = latestByHint.dps368;
+          const pressureValid =
+            dpsSample == null ||
+            (typeof dpsSample.secondaryX100 === "number" && Number.isFinite(dpsSample.secondaryX100));
+          const tempValid =
+            dpsSample == null ||
+            (typeof dpsSample.temperatureCx100 === "number" &&
+              Number.isFinite(dpsSample.temperatureCx100));
+          base.liveNumberByHandle = {
+            pressure: keepLastFiniteNumber(pressureValid ? pressure : undefined, prev?.pressure, 0),
+            temp: keepLastFiniteNumber(tempValid ? temp : undefined, prev?.temp, 0),
+          };
+          base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
+            mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "pressure", pressureValid, nowIso),
+            "temp",
+            tempValid,
+            nowIso,
+          );
+          if (latestByHint.dps368 != null) {
+            const invalidByHandle: Record<string, string> = {};
+            if (!pressureValid) {
+              invalidByHandle.pressure = "Pressure missing in live payload";
+            }
+            if (!tempValid) {
+              invalidByHandle.temp = "Temperature missing in live payload";
+            }
+            if (Object.keys(invalidByHandle).length > 0) {
+              base.sensorInvalidByHandle = invalidByHandle;
+            }
+          }
+        }
+
+        if (node.data.nodeId === "sht40-input") {
+          const humidity = pinValues.get(studioFlowPinKey(node.id, "humidity"));
+          const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const prev = node.data.liveNumberByHandle;
+          const shtSample = latestByHint.sht40;
+          const humidityValid =
+            shtSample == null ||
+            (typeof shtSample.secondaryX100 === "number" && Number.isFinite(shtSample.secondaryX100));
+          const tempValid =
+            shtSample == null ||
+            (typeof shtSample.temperatureCx100 === "number" &&
+              Number.isFinite(shtSample.temperatureCx100));
+          base.liveNumberByHandle = {
+            humidity: keepLastFiniteNumber(humidityValid ? humidity : undefined, prev?.humidity, 0),
+            temp: keepLastFiniteNumber(tempValid ? temp : undefined, prev?.temp, 0),
+          };
+          base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
+            mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "humidity", humidityValid, nowIso),
+            "temp",
+            tempValid,
+            nowIso,
+          );
+          if (latestByHint.sht40 != null) {
+            const invalidByHandle: Record<string, string> = {};
+            if (!humidityValid) {
+              invalidByHandle.humidity = "Humidity missing in live payload";
+            }
+            if (!tempValid) {
+              invalidByHandle.temp = "Temperature missing in live payload";
+            }
+            if (Object.keys(invalidByHandle).length > 0) {
+              base.sensorInvalidByHandle = invalidByHandle;
+            }
+          }
+        }
+
+        if (node.data.nodeId === "bmm350-input") {
+          const mag = pinValues.get(studioFlowPinKey(node.id, "magnetic"));
+          const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const prevVec = node.data.liveVector3ByHandle?.magnetic;
+          const bmmSample = latestByHint.bmm350;
+          const magValid =
+            bmmSample == null ||
+            (typeof bmmSample.magneticXUtX100 === "number" &&
+              typeof bmmSample.magneticYUtX100 === "number" &&
+              typeof bmmSample.magneticZUtX100 === "number");
+          const tempValid =
+            bmmSample == null ||
+            (typeof bmmSample.temperatureCx100 === "number" &&
+              Number.isFinite(bmmSample.temperatureCx100));
+          const nextMag =
+            magValid
+              ? flowValueAsVec3(mag)
+              : (prevVec ?? { x: 0, y: 0, z: 0 });
+          base.liveVector3ByHandle = {
+            magnetic: nextMag,
+          };
+          base.liveNumberByHandle = {
+            temp: keepLastFiniteNumber(tempValid ? temp : undefined, node.data.liveNumberByHandle?.temp, 0),
+          };
+          base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
+            mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "magnetic", magValid, nowIso),
+            "temp",
+            tempValid,
+            nowIso,
+          );
+          if (latestByHint.bmm350 != null) {
+            const invalidByHandle: Record<string, string> = {};
+            if (!magValid) {
+              invalidByHandle.magnetic = "Magnetic vector missing in live payload";
+            }
+            if (!tempValid) {
+              invalidByHandle.temp = "Temperature missing in live payload";
+            }
+            if (Object.keys(invalidByHandle).length > 0) {
+              base.sensorInvalidByHandle = invalidByHandle;
+            }
+          }
+        }
+
+        if (node.data.nodeId === "bmi270-input") {
+          const accel = pinValues.get(studioFlowPinKey(node.id, "accel"));
+          const gyro = pinValues.get(studioFlowPinKey(node.id, "gyro"));
+          const euler = pinValues.get(studioFlowPinKey(node.id, "euler"));
+          const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          base.liveVector3ByHandle = {
+            accel:
+              accel != null && typeof accel === "object" && accel !== null && "x" in accel
+                ? (accel as { x: number; y: number; z: number })
+                : { x: 0, y: 0, z: 0 },
+            gyro:
+              gyro != null && typeof gyro === "object" && gyro !== null && "x" in gyro
+                ? (gyro as { x: number; y: number; z: number })
+                : { x: 0, y: 0, z: 0 },
+            euler:
+              euler != null && typeof euler === "object" && euler !== null && "x" in euler
+                ? (euler as { x: number; y: number; z: number })
+                : { x: 0, y: 0, z: 0 },
+          };
+          base.liveNumberByHandle = {
+            temp: typeof temp === "number" && Number.isFinite(temp) ? temp : 0,
+          };
+          const quatWire = pinValues.get(studioFlowPinKey(node.id, "quaternion"));
+          base.liveQuaternionWire = flowValueAsQuaternion(quatWire);
+        }
+
+        if (
+          node.data.nodeId === "sensor-input" ||
+          node.data.nodeId === "bmi270-input" ||
+          node.data.nodeId === "dps368-input" ||
+          node.data.nodeId === "sht40-input" ||
+          node.data.nodeId === "bmm350-input" ||
+          BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
+          ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
+        ) {
+          if (sensorHardwareLiveNodeIds.has(node.id)) {
+            base.sensorStreamMode = "live";
+          } else {
+            delete base.sensorStreamMode;
+          }
+        }
+
+        if (node.data.nodeId === "quat-input") {
+          const qOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          base.liveQuaternionWire = flowValueAsQuaternion(qOut);
+        }
+
+        if (
+          node.data.nodeId === "bmi270-tap-euler" ||
+          node.data.nodeId === "bmi270-tap-accel" ||
+          node.data.nodeId === "bmi270-tap-gyro"
+        ) {
+          const vecOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          base.liveVector3Wire = flowValueAsVec3(vecOut);
+        }
+
+        if (node.data.nodeId === "bmi270-tap-quaternion") {
+          const qTap = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          base.liveQuaternionWire = flowValueAsQuaternion(qTap);
+        }
+
+        if (node.data.nodeId === "rotation-3d-euler") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          base.liveVector3Wire = flowValueAsVec3(incomingValue);
+          const envVal = readIncoming(node.id, STUDIO_HANDLE_ENV);
+          const envWire = flowValueAsEnvironment(envVal);
+          if (envWire != null) {
+            base.liveEnvironmentWire = envWire;
+          } else {
+            delete base.liveEnvironmentWire;
+          }
+          const camVal = readIncoming(node.id, STUDIO_HANDLE_CAM);
+          const camWire = flowValueAsCamera(camVal);
+          if (camWire != null) {
+            base.liveCameraWire = camWire;
+          } else {
+            delete base.liveCameraWire;
+          }
+        }
+
+        if (node.data.nodeId === "rotation-3d-quaternion") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          base.liveQuaternionWire = flowValueAsQuaternion(incomingValue);
+          const envVal = readIncoming(node.id, STUDIO_HANDLE_ENV);
+          const envWire = flowValueAsEnvironment(envVal);
+          if (envWire != null) {
+            base.liveEnvironmentWire = envWire;
+          } else {
+            delete base.liveEnvironmentWire;
+          }
+          const camVal = readIncoming(node.id, STUDIO_HANDLE_CAM);
+          const camWire = flowValueAsCamera(camVal);
+          if (camWire != null) {
+            base.liveCameraWire = camWire;
+          } else {
+            delete base.liveCameraWire;
+          }
+        }
+
+        if (node.data.nodeId === "model-viewer") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const fbRaw = dc.fallbackModelUrl;
+          const fb = typeof fbRaw === "string" ? fbRaw.trim() : "";
+          const linkedUrl = resolveStudioSourceModelGlbUrl(
+            nodes,
+            readSourceModelNodeId(dc),
+          );
+          base.liveValue =
+            typeof incomingValue === "string" && incomingValue.trim().length > 0
+              ? incomingValue.trim()
+              : linkedUrl != null && linkedUrl.length > 0
+                ? linkedUrl
+                : fb.length > 0
+                  ? fb
+                  : null;
+          base.liveHistory = [];
+          const envVal = readIncoming(node.id, STUDIO_HANDLE_ENV);
+          const envWire = flowValueAsEnvironment(envVal);
+          if (envWire != null) {
+            base.liveEnvironmentWire = envWire;
+          } else {
+            delete base.liveEnvironmentWire;
+          }
+          const camVal = readIncoming(node.id, STUDIO_HANDLE_CAM);
+          const camWire = flowValueAsCamera(camVal);
+          if (camWire != null) {
+            base.liveCameraWire = camWire;
+          } else {
+            delete base.liveCameraWire;
+          }
+          const animVal = readIncoming(node.id, STUDIO_HANDLE_ANIM);
+          const animWire = flowValueAsAnimation(animVal);
+          if (animWire != null) {
+            base.liveAnimationWire = animWire;
+          } else {
+            delete base.liveAnimationWire;
+          }
+        }
+
+        if (node.data.nodeId === "vector-splitter") {
+          base.liveNumberByHandle = {
+            x: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "x")) ?? null),
+            y: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "y")) ?? null),
+            z: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "z")) ?? null),
+          };
+        }
+
+        if (node.data.nodeId === "quaternion-splitter") {
+          base.liveNumberByHandle = {
+            x: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "x")) ?? null),
+            y: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "y")) ?? null),
+            z: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "z")) ?? null),
+            w: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "w")) ?? null),
+          };
+        }
+
+        const sensorTelemetryHint = inferSensorHintFromNode(node);
+        const caresAboutSensorHealth =
+          sensorTelemetryHint != null || node.data.nodeId === "sensor-input";
+        if (caresAboutSensorHealth) {
+          const hardwareLive = sensorHardwareLiveNodeIds.has(node.id);
+          base.sensorHealth = computeSensorHealthStatus(
+            hardwareLive,
+            sensorTelemetryHint,
+            lastAtByHint,
+            deviceSensorCfgBySourceId,
+          );
+          if (hardwareLive && sensorTelemetryHint != null) {
+            base.sensorInvalidReason = computeNodeInvalidReason(node, latestByHint);
+          }
+        }
+
+        return {
+          ...node,
+          data: base,
+        };
+      }),
+    }));
+  },
+}));
+
+/**
+ * Resets module-level drag/resize undo coalescing. Call between node:test cases that
+ * exercise `onNodesChange` so order does not leak state.
+ */
+export function resetLayoutUndoCoalescingForTests(): void {
+  if (layoutUndoIdleTimer != null) {
+    window.clearTimeout(layoutUndoIdleTimer);
+  }
+  layoutUndoIdleTimer = undefined;
+  layoutUndoPrimed = false;
+}

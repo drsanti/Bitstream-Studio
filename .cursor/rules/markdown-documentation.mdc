@@ -1,0 +1,33 @@
+---
+description: All Markdown documentation in the repository must be written in English
+alwaysApply: true
+---
+
+# Markdown documentation language (English only)
+
+## Rule
+
+- **All `*.md` files** in this repository (including `README.md`, design notes, `docs/**`, ADRs, and user manuals under version control) must use **English** for:
+  - Titles, headings, and body prose
+  - Table cell text and list items
+  - Diagram captions and labels where you author the text (Mermaid node labels, descriptions)
+- **Exceptions:**
+  - **Quoted third-party text**, legal notices, or verbatim excerpts copied from external specs (keep original language in quotes when required).
+  - **User-facing UI strings** reproduced inside docs for reference (e.g. button labels in screenshots descriptions may stay as in-product).
+  - A file explicitly requested **by the user** to be in another language for a named deliverable (localized manual export, etc.) — then follow that one-off request for that file only.
+  - **Identifiers** (`sensor.cfg.get`, file paths, protocol constants) remain as-is.
+
+## Agent behavior
+
+- When **creating or editing** Markdown documentation in `t3d-extension`, write and maintain it in **English**.
+- If an existing `*.md` file mixes another language into prose, **translate the prose to English** when editing that file, unless the user asked to keep a specific section.
+- This rule applies to **repository artifacts**, not to chat replies (see `communication-language.mdc` for conversational language with the user).
+
+## Rationale
+
+Keep technical documentation consistent for the team, search, diffs, and tooling; avoid mixed-language design docs and READMEs in the same tree.
+
+## Relationship to other rules
+
+- **Conversational replies** to the user may still be **Thai and/or English** per `communication-language.mdc`.
+- **Repository Markdown** is **English only** per this rule.

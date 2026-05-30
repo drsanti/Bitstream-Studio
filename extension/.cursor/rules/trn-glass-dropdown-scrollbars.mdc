@@ -1,0 +1,11 @@
+---
+description: TRN glass floating list panels hide scrollbars by default
+alwaysApply: true
+---
+
+# TRN glass dropdown / listbox scrollbars
+
+When adding or editing scrollable **`TRNMenuPanel`** list UIs (**`TRNSelect`** portal menus, **`GlassDropdown`**, **`DropdownList`**, Bitstream rotation preview toolbar pickers, and the same pattern elsewhere):
+
+- **Default:** **`scrollbar-hide`** with **`overflow-y-auto`** (or **`overflow-auto`**) so content still scrolls but the scrollbar track is not shown.
+- **Exception:** Use **`scrollbar-dark-small`** (or another visible scrollbar utility) only when the product explicitly needs a visible scrollbar; prefer passing that via **`panelClassName`**, **`menuClassName`**, or a one-off wrapper class instead of changing the shared default back to a visible bar.

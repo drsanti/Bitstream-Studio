@@ -1,0 +1,104 @@
+import { BookOpen, GitBranch, Layers, SlidersHorizontal } from "lucide-react";
+import type { WorkbenchRegistry } from "../../../../ui/workbench";
+import { AssetBrowserPanel } from "../../asset-browser/AssetBrowserPanel";
+import { FlowCanvas } from "../components/FlowCanvas";
+import { NodeInspector } from "../components/NodeInspector";
+import { NodePalette } from "../components/NodePalette";
+import { useStudioWorkbenchShell } from "./studio-workbench-context";
+
+export function WorkbenchLibraryPanel() {
+  const p = useStudioWorkbenchShell();
+  return (
+    <NodePalette
+      borderColor={p.borderColor}
+      panelColor={p.panelBackgroundColor}
+      mutedTextColor={p.secondaryTextColor}
+      categoryColors={p.minimapCategoryColors}
+      entries={p.entries}
+      onAddNode={p.onAddNode}
+      onSpawnGlbExtract={p.onSpawnGlbExtract}
+    />
+  );
+}
+
+export function WorkbenchFlowPanel() {
+  const p = useStudioWorkbenchShell();
+  return (
+    <FlowCanvas
+      borderColor={p.borderColor}
+      panelColor={p.panelBackgroundColor}
+      primaryTextColor={p.primaryTextColor}
+      secondaryTextColor={p.secondaryTextColor}
+      numberColor={p.numberColor}
+      booleanColor={p.booleanColor}
+      stringColor={p.stringColor}
+      eventColor={p.eventColor}
+      vector3Color={p.vector3Color}
+      quaternionColor={p.quaternionColor}
+      environmentColor={p.environmentColor}
+      cameraColor={p.cameraColor}
+      glbAnimationColor={p.glbAnimationColor}
+      minimapCategoryColors={p.minimapCategoryColors}
+      nodes={p.nodes}
+      edges={p.edges}
+      onNodesChange={p.onNodesChange}
+      onEdgesChange={p.onEdgesChange}
+      onConnect={p.onConnect}
+      onSelectionChange={p.onSelectionChange}
+      fitViewVersion={p.fitViewVersion}
+      initialViewport={p.initialFlowViewport ?? null}
+      onViewportMoveEnd={p.onFlowViewportMoveEnd}
+      applyViewport={p.applyFlowViewport ?? null}
+      applyViewportNonce={p.applyFlowViewportNonce ?? 0}
+      onDropPaletteCatalogNode={p.onDropPaletteCatalogNode}
+      onDropGlbExtract={p.onDropGlbExtract}
+      onDropStudioAsset={p.onDropStudioAsset}
+    />
+  );
+}
+
+export function WorkbenchAssetsPanel() {
+  const p = useStudioWorkbenchShell();
+  return <AssetBrowserPanel borderColor={p.borderColor} panelColor={p.panelBackgroundColor} />;
+}
+
+export function WorkbenchInspectorPanel() {
+  const p = useStudioWorkbenchShell();
+  return (
+    <NodeInspector
+      borderColor={p.borderColor}
+      panelColor={p.panelBackgroundColor}
+      selectedNode={p.selectedNode}
+      orderedSelectedNodes={p.orderedSelectedNodes}
+      onOpenDeviceSensorSettings={p.onOpenDeviceSensorSettings}
+      catalogEntries={p.entries}
+      categoryColors={p.minimapCategoryColors}
+      onUpdateLabel={p.onUpdateLabel}
+      onUpdateConfigField={p.onUpdateConfigField}
+      onUpdateConfigJson={p.onUpdateConfigJson}
+    />
+  );
+}
+
+export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
+  library: {
+    icon: <BookOpen className="size-3.5" aria-hidden />,
+    label: "Library",
+    component: WorkbenchLibraryPanel,
+  },
+  assets: {
+    icon: <Layers className="size-3.5" aria-hidden />,
+    label: "Assets",
+    component: WorkbenchAssetsPanel,
+  },
+  flow: {
+    icon: <GitBranch className="size-3.5" aria-hidden />,
+    label: "Flow",
+    component: WorkbenchFlowPanel,
+  },
+  inspector: {
+    icon: <SlidersHorizontal className="size-3.5" aria-hidden />,
+    label: "Inspector",
+    component: WorkbenchInspectorPanel,
+  },
+};

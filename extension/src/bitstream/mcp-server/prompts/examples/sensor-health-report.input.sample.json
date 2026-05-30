@@ -1,0 +1,19 @@
+{
+  "sensorStatus": [
+    {
+      "sourceId": 1,
+      "state": "started"
+    },
+    {
+      "sourceId": 2,
+      "state": "stopped"
+    }
+  ],
+  "latestSamples": [
+    {
+      "sourceId": 1,
+      "timestampUtc": "2026-05-04T11:31:00Z",
+      "value": 24.9
+    }
+  ]
+}

@@ -1,0 +1,1034 @@
+import {
+  Handle,
+  Position,
+  useUpdateNodeInternals,
+  type NodeProps,
+} from "@xyflow/react";
+import { ChevronDown } from "lucide-react";
+import { useLayoutEffect, useMemo, type ReactNode } from "react";
+import type { StudioNodeData } from "../store/flow-editor.store";
+import {
+  isStudioSensorTapNodeId,
+  STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID,
+} from "../store/flow-editor.store";
+import { useFlowEditorStore } from "../store/flow-editor.store";
+import { studioPortAccent } from "./port-accent";
+import {
+  Bmi270AlignedReadings,
+  FlowNodeBody,
+  FlowNodeHeader,
+  FlowNodeResizeControl,
+  FlowNodeShell,
+  FlowNodeSocketDot,
+  FlowNodeSocketRegion,
+  FlowNodeSocketRow,
+  QuaternionScalarsGrid,
+  ReadingAxisNumber,
+  ReadingLabel,
+  ReadingPanel,
+  ReadingNumber,
+  Vec3ReadingRow,
+} from "./flow-node";
+import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
+import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
+import { readSourceModelNodeId } from "../model/model-generated-bindings";
+import {
+  BooleanConstantNodePanel,
+  NumberConstantNodePanel,
+} from "./constants/ConstantGeneratorPanels";
+import { EnvironmentNodePanel } from "./environment/EnvironmentNodePanel";
+import { CameraViewNodePanel } from "./camera-view/CameraViewNodePanel";
+import { RotationPreviewPanelV4 } from "./rotation/RotationPreviewPanelV4";
+import { OscilloscopeCanvas } from "./oscilloscope/OscilloscopeCanvas";
+import { RadialGaugeNodePanel } from "./radial-gauge/RadialGaugeNodePanel";
+import { BarMeterNodePanel } from "./bar-meter/BarMeterNodePanel";
+import { LedIndicatorNodePanel } from "./led-indicator/LedIndicatorNodePanel";
+import { KnobNodePanel } from "./knob/KnobNodePanel";
+import { NumericDisplayNodePanel } from "./numeric-display/NumericDisplayNodePanel";
+import {
+  coerceOscilloscopeConfig,
+  OSCILLOSCOPE_INPUT_IDS,
+} from "./oscilloscope/oscilloscope-config";
+import {
+  isRotation3DCatalogNodeId,
+} from "./rotation/rotation-3d-node-ids";
+import { coerceScene3DConfigV1, defaultScene3DConfig } from "./rotation/scene3d-config";
+import { mergeFlowWireEnvironmentIntoScene3d } from "./environment/flow-wire-environment";
+import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
+import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
+
+const handleBaseClass =
+  "!h-2.5 !w-2.5 !border-2 !bg-zinc-900 [&.react-flow__handle]:pointer-events-auto";
+
+const TAP_VEC_PANEL_LABEL: Record<string, string> = {
+  "bmi270-tap-euler": "Euler",
+  "bmi270-tap-accel": "Acceleration",
+  "bmi270-tap-gyro": "Gyroscope",
+  "bmm350-tap-magnetic": "Magnetic (µT)",
+};
+
+/** Single-number environment tap nodes: label includes unit (matches multi-out panels). */
+const TAP_SCALAR_PANEL_LABEL: Record<string, string> = {
+  "dps368-tap-pressure": "Pressure (hPa)",
+  "dps368-tap-temp": "Temperature (°C)",
+  "sht40-tap-humidity": "Humidity (%RH)",
+  "sht40-tap-temp": "Temperature (°C)",
+  "bmm350-tap-temp": "Temperature (°C)",
+};
+
+const AGE_BADGE_LIVE_MAX_SEC = 1;
+const AGE_BADGE_STALE_MAX_SEC = 3.5;
+
+export function StudioNodeCard(props: NodeProps) {
+  const { id, selected: selectedFromRf } = props;
+  const data = props.data as StudioNodeData;
+  /** RF does not always surface `selected` on custom nodes consistently; mirror `node.selected` from the store. */
+  const selectedInDocument = useFlowEditorStore(
+    (s) => s.nodes.find((n) => n.id === id)?.selected === true,
+  );
+  const primarySelectedId = useFlowEditorStore((s) => s.selectedNodeId);
+  const updateNodeConfigFieldByNodeId = useFlowEditorStore(
+    (s) => s.updateNodeConfigFieldByNodeId,
+  );
+  const setStudioUtilityNodeBodyExpanded = useFlowEditorStore(
+    (s) => s.setStudioUtilityNodeBodyExpanded,
+  );
+  const updateNodeInternals = useUpdateNodeInternals();
+  const isSelected = Boolean(
+    selectedFromRf || selectedInDocument || primarySelectedId === id,
+  );
+  const linkedModelSubtitle = useFlowEditorStore((s) => {
+    const self = s.nodes.find((n) => n.id === id);
+    const pid = readSourceModelNodeId(self?.data.defaultConfig);
+    if (pid == null) {
+      return null;
+    }
+    const parent = s.nodes.find((n) => n.id === pid);
+    const label =
+      parent != null && typeof parent.data.label === "string" && parent.data.label.trim().length > 0
+        ? parent.data.label.trim()
+        : pid;
+    return `Linked model · ${label}`;
+  });
+  const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
+  const flowBodyFlexCol =
+    isRotationNode ||
+    data.nodeId === "oscilloscope" ||
+    data.nodeId === "radial-gauge" ||
+    data.nodeId === "bar-meter" ||
+    data.nodeId === "knob";
+  const hasInvalid =
+    (typeof data.sensorInvalidReason === "string" &&
+      data.sensorInvalidReason.length > 0) ||
+    (data.sensorInvalidByHandle != null &&
+      Object.keys(data.sensorInvalidByHandle).length > 0);
+  const lastValidTitle = (handle: string): string | undefined => {
+    const iso = data.sensorLastValidAtByHandle?.[handle];
+    if (iso == null) {
+      return undefined;
+    }
+    const dt = new Date(iso);
+    if (Number.isNaN(dt.getTime())) {
+      return undefined;
+    }
+    return `Last valid: ${dt.toLocaleString()}`;
+  };
+  const lastValidAgeText = (handle: string): string | null => {
+    const iso = data.sensorLastValidAtByHandle?.[handle];
+    if (iso == null) {
+      return null;
+    }
+    const ts = new Date(iso).getTime();
+    if (Number.isNaN(ts)) {
+      return null;
+    }
+    const ageSec = Math.max(0, (Date.now() - ts) / 1000);
+    if (ageSec < 10) {
+      return `${ageSec.toFixed(1)}s`;
+    }
+    return `${Math.round(ageSec)}s`;
+  };
+  const renderLabelWithAge = (label: string, handle: string) => {
+    const age = lastValidAgeText(handle);
+    const ageSecRaw = (() => {
+      const iso = data.sensorLastValidAtByHandle?.[handle];
+      if (iso == null) {
+        return null;
+      }
+      const ts = new Date(iso).getTime();
+      if (Number.isNaN(ts)) {
+        return null;
+      }
+      return Math.max(0, (Date.now() - ts) / 1000);
+    })();
+    const ageBadgeClass =
+      ageSecRaw == null
+        ? "border-zinc-600/70 bg-zinc-900/70 text-zinc-300"
+        : ageSecRaw <= AGE_BADGE_LIVE_MAX_SEC
+          ? "border-emerald-500/60 bg-emerald-950/45 text-emerald-200"
+          : ageSecRaw <= AGE_BADGE_STALE_MAX_SEC
+            ? "border-amber-500/60 bg-amber-950/45 text-amber-200"
+            : "border-rose-500/65 bg-rose-950/45 text-rose-200";
+    return (
+      <span className="inline-flex items-center gap-1">
+        <span className="min-w-0">{label}</span>
+        {age != null ? (
+          <span
+            className={`rounded border px-1 py-px text-[9px] font-medium ${ageBadgeClass}`}
+            title={lastValidTitle(handle)}
+          >
+            {age}
+          </span>
+        ) : null}
+      </span>
+    );
+  };
+  const liveValue =
+    typeof data.liveValue === "number"
+      ? data.liveValue.toFixed(4)
+      : data.liveValue == null
+        ? "-"
+        : String(data.liveValue);
+  const sparklineBars = (data.liveHistory ?? []).slice(-24);
+  const maxAbs = sparklineBars.reduce(
+    (acc, value) => Math.max(acc, Math.abs(value)),
+    1,
+  );
+  const indicatorOn = data.nodeId === "indicator" && data.liveValue === true;
+  const gaugeValue = typeof data.liveValue === "number" ? data.liveValue : 0;
+  const gaugeRatio = Math.max(0, Math.min(1, (gaugeValue + 1) / 2));
+  const gaugeDecimals =
+    typeof data.defaultConfig.decimals === "number"
+      ? Math.max(0, Math.min(6, Math.round(data.defaultConfig.decimals)))
+      : 3;
+  const gaugeUnit =
+    typeof data.defaultConfig.unit === "string" ? data.defaultConfig.unit : "";
+  const sparkPoints =
+    sparklineBars.length > 0
+      ? sparklineBars
+          .map((value, index) => {
+            const x =
+              sparklineBars.length <= 1
+                ? 0
+                : (index / (sparklineBars.length - 1)) * 100;
+            const normalized = (value + maxAbs) / (maxAbs * 2);
+            const y = (1 - normalized) * 100;
+            return `${x.toFixed(2)},${y.toFixed(2)}`;
+          })
+          .join(" ")
+      : "";
+
+  /** Hide `sim` — only surfaced when hardware stream is absent (no extra pill). */
+  const sensorHealthBadge =
+    data.sensorHealth != null && data.sensorHealth !== "sim" ? (
+      <span
+        className={`rounded border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+          data.sensorHealth === "live"
+            ? "border-emerald-500/60 bg-emerald-950/50 text-emerald-300"
+            : data.sensorHealth === "stale"
+              ? "border-amber-500/60 bg-amber-950/45 text-amber-200"
+              : data.sensorHealth === "offline"
+                ? "border-rose-500/65 bg-rose-950/45 text-rose-200"
+                : "border-zinc-500/60 bg-zinc-900/60 text-zinc-300"
+        }`}
+      >
+        {data.sensorHealth}
+      </span>
+    ) : null;
+
+  const invalidBadge = hasInvalid ? (
+    <span className="rounded border border-rose-500/70 bg-rose-950/45 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-rose-200">
+      Invalid
+    </span>
+  ) : null;
+
+  const sensorFamilyTagLabel =
+    STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID[data.nodeId];
+  const sensorFamilyTag =
+    sensorFamilyTagLabel != null ? (
+      <span className="rounded border border-cyan-500/45 bg-cyan-950/35 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-cyan-200/90">
+        {sensorFamilyTagLabel}
+      </span>
+    ) : null;
+
+  const envDc = data.defaultConfig as Record<string, unknown>;
+  const environmentControlsExpanded =
+    data.nodeId === "environment"
+      ? typeof envDc.environmentControlsExpanded === "boolean"
+        ? envDc.environmentControlsExpanded
+        : true
+      : true;
+
+  const cameraDc = data.defaultConfig as Record<string, unknown>;
+  const cameraViewControlsExpanded =
+    data.nodeId === "camera-view"
+      ? typeof cameraDc.cameraViewControlsExpanded === "boolean"
+        ? cameraDc.cameraViewControlsExpanded
+        : true
+      : true;
+
+  const utilityBodyFitsContent =
+    (data.nodeId === "environment" && !environmentControlsExpanded) ||
+    (data.nodeId === "camera-view" && !cameraViewControlsExpanded);
+
+  useLayoutEffect(() => {
+    if (data.nodeId === "camera-view" || data.nodeId === "environment")
+    {
+      updateNodeInternals(id);
+    }
+  }, [
+    id,
+    data.nodeId,
+    cameraViewControlsExpanded,
+    environmentControlsExpanded,
+    updateNodeInternals,
+  ]);
+
+  const environmentBodyToggle =
+    data.nodeId === "environment" ? (
+      <button
+        type="button"
+        className="nodrag inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/80 bg-zinc-900/70 text-zinc-300 hover:bg-zinc-800/80"
+        title={environmentControlsExpanded ? "Hide environment controls" : "Show environment controls"}
+        aria-expanded={environmentControlsExpanded}
+        onClick={() => {
+          setStudioUtilityNodeBodyExpanded(
+            id,
+            "environmentControlsExpanded",
+            !environmentControlsExpanded,
+          );
+        }}
+      >
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${environmentControlsExpanded ? "" : "-rotate-90"}`}
+          aria-hidden
+        />
+      </button>
+    ) : null;
+
+  const cameraViewBodyToggle =
+    data.nodeId === "camera-view" ? (
+      <button
+        type="button"
+        className="nodrag inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/80 bg-zinc-900/70 text-zinc-300 hover:bg-zinc-800/80"
+        title={cameraViewControlsExpanded ? "Hide camera controls" : "Show camera controls"}
+        aria-expanded={cameraViewControlsExpanded}
+        onClick={() => {
+          setStudioUtilityNodeBodyExpanded(
+            id,
+            "cameraViewControlsExpanded",
+            !cameraViewControlsExpanded,
+          );
+        }}
+      >
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform ${cameraViewControlsExpanded ? "" : "-rotate-90"}`}
+          aria-hidden
+        />
+      </button>
+    ) : null;
+
+  const headerTrailing =
+    data.nodeId === "environment" ||
+    data.nodeId === "camera-view" ||
+    sensorHealthBadge != null ||
+    invalidBadge != null ||
+    sensorFamilyTag != null ? (
+      <div className="inline-flex items-center gap-1.5">
+        {environmentBodyToggle}
+        {cameraViewBodyToggle}
+        {sensorHealthBadge != null || invalidBadge != null || sensorFamilyTag != null ? (
+          <div className="inline-flex flex-row-reverse items-center gap-1">
+            {sensorFamilyTag}
+            {invalidBadge}
+            {sensorHealthBadge}
+          </div>
+        ) : null}
+      </div>
+    ) : null;
+
+  const hasSocketRegion =
+    data.inputType != null ||
+    (data.inputHandles != null && data.inputHandles.length > 0) ||
+    data.outputType != null ||
+    (data.outputHandles != null && data.outputHandles.length > 0);
+
+  const nodeResizable = data.ui?.resizable !== false;
+  const minNodeWidth =
+    typeof data.ui?.minWidth === "number" && Number.isFinite(data.ui.minWidth)
+      ? Math.round(data.ui.minWidth)
+      : 170;
+  const minNodeHeight =
+    typeof data.ui?.minHeight === "number" && Number.isFinite(data.ui.minHeight)
+      ? Math.round(data.ui.minHeight)
+      : 64;
+
+  const inputSockets: ReactNode[] =
+    data.inputHandles != null && data.inputHandles.length > 0
+      ? data.inputHandles.map((h) => (
+          <FlowNodeSocketRow
+            key={h.id}
+            variant="input"
+            label={<span className="text-zinc-400">{h.label}</span>}
+            socket={
+              <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+                <Handle
+                  id={h.id}
+                  type="target"
+                  position={Position.Left}
+                  className={handleBaseClass}
+                  style={{
+                    borderColor: studioPortAccent(h.portType),
+                  }}
+                />
+              </FlowNodeSocketDot>
+            }
+          />
+        ))
+      : data.inputType != null
+        ? [
+            <FlowNodeSocketRow
+              key="in"
+              variant="input"
+              label={
+                <span className="font-medium text-zinc-200">
+                  In · {data.inputType}
+                </span>
+              }
+              socket={
+                <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+                  <Handle
+                    id="in"
+                    type="target"
+                    position={Position.Left}
+                    className={handleBaseClass}
+                    style={{
+                      borderColor: studioPortAccent(data.inputType),
+                    }}
+                  />
+                </FlowNodeSocketDot>
+              }
+            />,
+          ]
+        : [];
+
+  const outputSockets =
+    data.outputHandles != null && data.outputHandles.length > 0
+      ? data.outputHandles.map((h) => (
+          <FlowNodeSocketRow
+            key={h.id}
+            variant="output"
+            label={<span className="text-zinc-400">{h.label}</span>}
+            socket={
+              <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+                <Handle
+                  id={h.id}
+                  type="source"
+                  position={Position.Right}
+                  className={handleBaseClass}
+                  style={{
+                    borderColor: studioPortAccent(h.portType),
+                  }}
+                />
+              </FlowNodeSocketDot>
+            }
+          />
+        ))
+      : data.outputType != null
+        ? [
+            <FlowNodeSocketRow
+              key="out"
+              variant="output"
+              label={
+                <span className="text-zinc-400">Out · {data.outputType}</span>
+              }
+              socket={
+                <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+                  <Handle
+                    id="out"
+                    type="source"
+                    position={Position.Right}
+                    className={handleBaseClass}
+                    style={{
+                      borderColor: studioPortAccent(data.outputType),
+                    }}
+                  />
+                </FlowNodeSocketDot>
+              }
+            />,
+          ]
+        : [];
+
+  const rotationShowGrid =
+    typeof data.defaultConfig.showGrid === "boolean"
+      ? data.defaultConfig.showGrid
+      : true;
+
+  type RotationPreviewScenePropsV4 = RotationPreviewSceneProps & { scene3d?: unknown };
+  const scene3d =
+    data.defaultConfig.scene3d != null
+      ? coerceScene3DConfigV1(data.defaultConfig.scene3d)
+      : defaultScene3DConfig();
+
+  const scene3dForPreview = useMemo(
+    () =>
+      mergeFlowWireCameraIntoScene3d(
+        mergeFlowWireEnvironmentIntoScene3d(scene3d, data.liveEnvironmentWire ?? null),
+        data.liveCameraWire ?? null,
+      ),
+    [scene3d, data.liveEnvironmentWire, data.liveCameraWire],
+  );
+
+  const eulerScene = useMemo<RotationPreviewScenePropsV4 | null>(() => {
+    if (data.liveVector3Wire == null) {
+      return null;
+    }
+    if (data.nodeId !== "rotation-3d-euler") {
+      return null;
+    }
+    return {
+      qw: 1,
+      qx: 0,
+      qy: 0,
+      qz: 0,
+      fusionEulerHundredths: {
+        roll: Math.round(data.liveVector3Wire.x * 100),
+        pitch: Math.round(data.liveVector3Wire.y * 100),
+        heading: Math.round(data.liveVector3Wire.z * 100),
+      },
+      meshOrientationFromEulerFallback: false,
+      eulerOnly: true,
+      showGrid: rotationShowGrid,
+      scene3d: scene3dForPreview,
+    };
+  }, [data.liveVector3Wire, data.nodeId, rotationShowGrid, scene3dForPreview]);
+
+  const quaternionScene = useMemo<RotationPreviewScenePropsV4 | null>(() => {
+    if (data.liveQuaternionWire == null) {
+      return null;
+    }
+    if (data.nodeId !== "rotation-3d-quaternion") {
+      return null;
+    }
+    return {
+      qw: data.liveQuaternionWire.w,
+      qx: data.liveQuaternionWire.x,
+      qy: data.liveQuaternionWire.y,
+      qz: data.liveQuaternionWire.z,
+      fusionEulerHundredths: null,
+      meshOrientationFromEulerFallback: false,
+      showGrid: rotationShowGrid,
+      scene3d: scene3dForPreview,
+    };
+  }, [data.liveQuaternionWire, data.nodeId, rotationShowGrid, scene3dForPreview]);
+
+  return (
+    <div
+      className={`relative w-full min-w-0 max-w-full ${utilityBodyFitsContent ? "h-auto" : "h-full"}`}
+    >
+      <FlowNodeResizeControl
+        visible={nodeResizable}
+        active={isSelected}
+        minWidth={minNodeWidth}
+        minHeight={minNodeHeight}
+      />
+      <FlowNodeShell
+        glass
+        glassPreset="medium"
+        style={{
+          width: "100%",
+          height: utilityBodyFitsContent ? "auto" : "100%",
+        }}
+        className={[
+          isSelected
+            ? /* Keep base drop shadow + outer “ring” via shadow only (no border width jump). */
+              "shadow-[0_8px_24px_rgba(0,0,0,0.35),0_0_0_2px_rgba(0,200,200,0.5)] transition-shadow duration-150"
+            : "transition-shadow duration-150",
+          data.nodeId === "oscilloscope" || data.nodeId === "model-viewer"
+            ? "min-h-0"
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+      >
+        <FlowNodeHeader
+          glass
+          glassPreset="medium"
+          className="studio-node-drag-handle cursor-move"
+          subtitle={linkedModelSubtitle ?? undefined}
+          primary={
+            <div className="text-sm font-semibold leading-tight text-zinc-100">
+              {data.label}
+            </div>
+          }
+          trailing={headerTrailing}
+        />
+
+        {hasSocketRegion ? (
+          <FlowNodeSocketRegion
+            className={
+              data.nodeId === "oscilloscope" ? "pb-0 pt-1.5" : undefined
+            }
+          >
+            {inputSockets}
+            {outputSockets}
+          </FlowNodeSocketRegion>
+        ) : null}
+
+        {typeof data.sensorInvalidReason === "string" &&
+        data.sensorInvalidReason.length > 0 ? (
+          <div className="nodrag px-3 pt-2 text-[10px] text-rose-300/90">
+            {data.sensorInvalidReason}
+          </div>
+        ) : null}
+        {data.sensorInvalidByHandle != null &&
+        Object.keys(data.sensorInvalidByHandle).length > 0 ? (
+          <div className="nodrag px-3 pt-1 text-[10px] text-rose-200/85">
+            {Object.entries(data.sensorInvalidByHandle).map(
+              ([handle, reason]) => (
+                <div key={handle}>
+                  {handle}: {reason}
+                </div>
+              ),
+            )}
+          </div>
+        ) : null}
+
+        {!utilityBodyFitsContent ? (
+        <FlowNodeBody
+          className={
+            flowBodyFlexCol
+              ? data.nodeId === "oscilloscope"
+                ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
+                : "flex min-h-0 flex-1 flex-col"
+              : "space-y-0"
+          }
+        >
+          {data.nodeId === "bmi270-input" &&
+          data.liveVector3ByHandle != null ? (
+            <ReadingPanel className="space-y-0">
+              <Bmi270AlignedReadings
+                accel={data.liveVector3ByHandle.accel}
+                gyro={data.liveVector3ByHandle.gyro}
+                euler={data.liveVector3ByHandle.euler}
+                quaternion={
+                  data.liveQuaternionWire ?? { w: 1, x: 0, y: 0, z: 0 }
+                }
+                temp={data.liveNumberByHandle?.temp}
+              />
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "dps368-input" && data.liveNumberByHandle != null ? (
+            <ReadingPanel className="text-[11px] leading-tight">
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(5.25rem,auto)] gap-x-2 gap-y-1.5">
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge("Pressure (hPa)", "pressure")}
+                </span>
+                <div
+                  className="justify-self-end tabular-nums"
+                  title={lastValidTitle("pressure")}
+                >
+                  <ReadingNumber
+                    value={data.liveNumberByHandle.pressure ?? Number.NaN}
+                    fractionDigits={2}
+                  />
+                </div>
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge("Temperature (°C)", "temp")}
+                </span>
+                <div
+                  className="justify-self-end tabular-nums"
+                  title={lastValidTitle("temp")}
+                >
+                  <ReadingNumber
+                    value={data.liveNumberByHandle.temp ?? Number.NaN}
+                    fractionDigits={2}
+                  />
+                </div>
+              </div>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "sht40-input" && data.liveNumberByHandle != null ? (
+            <ReadingPanel className="text-[11px] leading-tight">
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(5.25rem,auto)] gap-x-2 gap-y-1.5">
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge("Humidity (%RH)", "humidity")}
+                </span>
+                <div
+                  className="justify-self-end tabular-nums"
+                  title={lastValidTitle("humidity")}
+                >
+                  <ReadingNumber
+                    value={data.liveNumberByHandle.humidity ?? Number.NaN}
+                    fractionDigits={2}
+                  />
+                </div>
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge("Temperature (°C)", "temp")}
+                </span>
+                <div
+                  className="justify-self-end tabular-nums"
+                  title={lastValidTitle("temp")}
+                >
+                  <ReadingNumber
+                    value={data.liveNumberByHandle.temp ?? Number.NaN}
+                    fractionDigits={2}
+                  />
+                </div>
+              </div>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "bmm350-input" &&
+          data.liveVector3ByHandle != null &&
+          data.liveNumberByHandle != null ? (
+            <ReadingPanel className="text-[11px] leading-tight">
+              {/*
+              Excel-like grid: label column + three numeric columns (X,Y,Z). Temperature sits under Z
+              so the scalar aligns with the right-hand column (same as magnetic Z).
+            */}
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_repeat(3,minmax(3.35rem,auto))] gap-x-1.5 gap-y-1 items-baseline">
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge("Magnetic (µT)", "magnetic")}
+                </span>
+                <div
+                  className="justify-self-end"
+                  title={lastValidTitle("magnetic")}
+                >
+                  <ReadingAxisNumber
+                    axis="x"
+                    value={data.liveVector3ByHandle.magnetic?.x}
+                    fractionDigits={2}
+                  />
+                </div>
+                <div
+                  className="justify-self-end"
+                  title={lastValidTitle("magnetic")}
+                >
+                  <ReadingAxisNumber
+                    axis="y"
+                    value={data.liveVector3ByHandle.magnetic?.y}
+                    fractionDigits={2}
+                  />
+                </div>
+                <div
+                  className="justify-self-end"
+                  title={lastValidTitle("magnetic")}
+                >
+                  <ReadingAxisNumber
+                    axis="z"
+                    value={data.liveVector3ByHandle.magnetic?.z}
+                    fractionDigits={2}
+                  />
+                </div>
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge("Temperature (°C)", "temp")}
+                </span>
+                <div aria-hidden className="min-h-0 min-w-0" />
+                <div aria-hidden className="min-h-0 min-w-0" />
+                <div
+                  className="justify-self-end tabular-nums"
+                  title={lastValidTitle("temp")}
+                >
+                  <ReadingNumber
+                    value={data.liveNumberByHandle.temp ?? Number.NaN}
+                    fractionDigits={2}
+                  />
+                </div>
+              </div>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "vector-splitter" &&
+          data.liveNumberByHandle != null ? (
+            <ReadingPanel>
+              <ReadingLabel className="mb-1 block">Scalars</ReadingLabel>
+              <Vec3ReadingRow
+                vector={{
+                  x: data.liveNumberByHandle.x ?? Number.NaN,
+                  y: data.liveNumberByHandle.y ?? Number.NaN,
+                  z: data.liveNumberByHandle.z ?? Number.NaN,
+                }}
+                fractionDigits={3}
+              />
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "quaternion-splitter" &&
+          data.liveNumberByHandle != null ? (
+            <ReadingPanel>
+              <ReadingLabel className="mb-1 block">Scalars</ReadingLabel>
+              <QuaternionScalarsGrid
+                w={data.liveNumberByHandle.w}
+                x={data.liveNumberByHandle.x}
+                y={data.liveNumberByHandle.y}
+                z={data.liveNumberByHandle.z}
+                fractionDigits={3}
+              />
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "quat-input" && data.liveQuaternionWire != null ? (
+            <ReadingPanel>
+              <ReadingLabel className="mb-1 block">Quaternion</ReadingLabel>
+              <QuaternionScalarsGrid
+                w={data.liveQuaternionWire.w}
+                x={data.liveQuaternionWire.x}
+                y={data.liveQuaternionWire.y}
+                z={data.liveQuaternionWire.z}
+                fractionDigits={3}
+              />
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "bmi270-tap-quaternion" &&
+          data.liveQuaternionWire != null ? (
+            <ReadingPanel>
+              <ReadingLabel className="mb-1 block">Quaternion</ReadingLabel>
+              <QuaternionScalarsGrid
+                w={data.liveQuaternionWire.w}
+                x={data.liveQuaternionWire.x}
+                y={data.liveQuaternionWire.y}
+                z={data.liveQuaternionWire.z}
+                fractionDigits={3}
+              />
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "rotation-3d-euler" ? (
+            <RotationPreviewPanelV4
+              title="3D Scene (Euler)"
+              sceneProps={
+                eulerScene ?? {
+                  qw: 1,
+                  qx: 0,
+                  qy: 0,
+                  qz: 0,
+                  fusionEulerHundredths: {
+                    roll: 0,
+                    pitch: 0,
+                    heading: 0,
+                  },
+                  meshOrientationFromEulerFallback: false,
+                  eulerOnly: true,
+                  showGrid: rotationShowGrid,
+                  scene3d: scene3dForPreview,
+                }
+              }
+            />
+          ) : null}
+          {data.nodeId === "rotation-3d-quaternion" ? (
+            <RotationPreviewPanelV4
+              title="3D Scene (Quaternion)"
+              sceneProps={
+                quaternionScene ?? {
+                  qw: 1,
+                  qx: 0,
+                  qy: 0,
+                  qz: 0,
+                  fusionEulerHundredths: null,
+                  meshOrientationFromEulerFallback: false,
+                  showGrid: rotationShowGrid,
+                  scene3d: scene3dForPreview,
+                }
+              }
+            />
+          ) : null}
+          {data.nodeId === "model-select" ? (
+            <ModelSelectNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "boolean-constant" ? (
+            <BooleanConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "number-constant" ? (
+            <NumberConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "model-viewer" ? (
+            <ModelViewerNodePanel
+              liveValue={data.liveValue}
+              liveEnvironmentWire={data.liveEnvironmentWire}
+              liveCameraWire={data.liveCameraWire}
+              liveAnimationWire={data.liveAnimationWire}
+              defaultConfig={data.defaultConfig}
+            />
+          ) : null}
+          {data.nodeId === "environment" && environmentControlsExpanded ? (
+            <EnvironmentNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "camera-view" && cameraViewControlsExpanded ? (
+            <CameraViewNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.liveVector3Wire != null &&
+          TAP_VEC_PANEL_LABEL[data.nodeId] != null ? (
+            <ReadingPanel>
+              <ReadingLabel className="mb-1 block">
+                {TAP_VEC_PANEL_LABEL[data.nodeId]}
+              </ReadingLabel>
+              <Vec3ReadingRow
+                vector={data.liveVector3Wire}
+                fractionDigits={data.nodeId === "bmm350-tap-magnetic" ? 2 : 3}
+              />
+            </ReadingPanel>
+          ) : null}
+          {TAP_SCALAR_PANEL_LABEL[data.nodeId] != null &&
+          typeof data.liveValue === "number" &&
+          Number.isFinite(data.liveValue) ? (
+            <ReadingPanel className="text-[11px] leading-tight">
+              <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(5.25rem,auto)] gap-x-2 gap-y-1">
+                <span className="min-w-0 text-zinc-500">
+                  {renderLabelWithAge(
+                    TAP_SCALAR_PANEL_LABEL[data.nodeId],
+                    "out",
+                  )}
+                </span>
+                <div
+                  className="justify-self-end tabular-nums"
+                  title={lastValidTitle("out")}
+                >
+                  <ReadingNumber value={data.liveValue} fractionDigits={2} />
+                </div>
+              </div>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "indicator" ? (
+            <ReadingPanel className="flex items-center gap-2 text-xs">
+              <span
+                className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${
+                  indicatorOn ? "bg-emerald-400" : "bg-zinc-500"
+                }`}
+              />
+              <span
+                className={indicatorOn ? "text-emerald-300" : "text-zinc-300"}
+              >
+                {indicatorOn ? "ON" : "OFF"}
+              </span>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "gauge" ? (
+            <ReadingPanel className="space-y-1.5 text-xs">
+              <div className="text-right">
+                {typeof data.liveValue === "number" ? (
+                  <span className="inline-flex items-baseline justify-end gap-1 font-mono">
+                    <ReadingNumber
+                      value={data.liveValue}
+                      fractionDigits={gaugeDecimals}
+                      className="text-zinc-100"
+                    />
+                    {gaugeUnit.length > 0 ? (
+                      <span className="text-zinc-400">{gaugeUnit}</span>
+                    ) : null}
+                  </span>
+                ) : (
+                  <span className="font-mono text-zinc-300">—</span>
+                )}
+              </div>
+              <div className="h-2 w-full min-w-24 rounded bg-zinc-700/70">
+                <div
+                  className="h-2 rounded bg-cyan-400"
+                  style={{ width: `${Math.round(gaugeRatio * 100)}%` }}
+                />
+              </div>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "sparkline" ? (
+            <ReadingPanel className="flex min-h-0 w-full max-w-full flex-col p-1">
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                className="block h-10 w-full min-h-10 min-w-40 shrink-0"
+              >
+                <polyline
+                  fill="none"
+                  stroke="rgb(34 211 238)"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  vectorEffect="nonScalingStroke"
+                  points={sparkPoints}
+                />
+              </svg>
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId === "radial-gauge" ? (
+            <RadialGaugeNodePanel
+              className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
+              value={typeof data.liveValue === "number" ? data.liveValue : null}
+              defaultConfig={data.defaultConfig}
+            />
+          ) : null}
+          {data.nodeId === "bar-meter" ? (
+            <BarMeterNodePanel
+              className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
+              value={typeof data.liveValue === "number" ? data.liveValue : null}
+              defaultConfig={data.defaultConfig}
+            />
+          ) : null}
+          {data.nodeId === "led-indicator" ? (
+            <LedIndicatorNodePanel
+              value={data.liveValue}
+              defaultConfig={data.defaultConfig}
+            />
+          ) : null}
+          {data.nodeId === "knob" ? (
+            <KnobNodePanel
+              nodeId={id}
+              defaultConfig={data.defaultConfig}
+              updateValue={(nid, v) => updateNodeConfigFieldByNodeId(nid, "value", v)}
+            />
+          ) : null}
+          {data.nodeId === "numeric-display" ? (
+            <NumericDisplayNodePanel
+              value={typeof data.liveValue === "number" ? data.liveValue : null}
+              defaultConfig={data.defaultConfig}
+            />
+          ) : null}
+          {data.nodeId === "oscilloscope" ? (
+            <ReadingPanel className="mt-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none ring-0">
+              <OscilloscopeCanvas
+                className="relative box-border min-h-0 min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
+                histories={data.liveScopeHistory ?? {}}
+                channelOrder={
+                  data.inputHandles?.map((h) => h.id) ?? [...OSCILLOSCOPE_INPUT_IDS]
+                }
+                config={coerceOscilloscopeConfig(data.defaultConfig)}
+              />
+            </ReadingPanel>
+          ) : null}
+          {data.nodeId !== "bmi270-input" &&
+          data.nodeId !== "dps368-input" &&
+          data.nodeId !== "sht40-input" &&
+          data.nodeId !== "bmm350-input" &&
+          data.nodeId !== "vector-splitter" &&
+          data.nodeId !== "quaternion-splitter" &&
+          data.nodeId !== "rotation-3d-euler" &&
+          data.nodeId !== "rotation-3d-quaternion" &&
+          data.nodeId !== "model-select" &&
+          data.nodeId !== "model-viewer" &&
+          data.nodeId !== "boolean-constant" &&
+          data.nodeId !== "number-constant" &&
+          data.nodeId !== "environment" &&
+          data.nodeId !== "camera-view" &&
+          data.nodeId !== "glb-animation-bundle" &&
+          data.nodeId !== "quat-input" &&
+          !isStudioSensorTapNodeId(data.nodeId) &&
+          data.nodeId !== "indicator" &&
+          data.nodeId !== "gauge" &&
+          data.nodeId !== "sparkline" &&
+          data.nodeId !== "oscilloscope" &&
+          data.nodeId !== "radial-gauge" &&
+          data.nodeId !== "bar-meter" &&
+          data.nodeId !== "led-indicator" &&
+          data.nodeId !== "knob" &&
+          data.nodeId !== "numeric-display" ? (
+            <ReadingPanel className="text-right text-xs">
+              {typeof data.liveValue === "number" ? (
+                <ReadingNumber
+                  value={data.liveValue}
+                  fractionDigits={4}
+                  className="font-mono text-zinc-100"
+                />
+              ) : (
+                <span className="font-mono text-zinc-300">{liveValue}</span>
+              )}
+            </ReadingPanel>
+          ) : null}
+        </FlowNodeBody>
+        ) : null}
+      </FlowNodeShell>
+    </div>
+  );
+}

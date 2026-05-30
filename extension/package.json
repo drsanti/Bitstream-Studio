@@ -1,0 +1,460 @@
+{
+  "name": "bitstream-studio",
+  "displayName": "Bitstream Studio",
+  "description": "Bitstream Studio — Sensor Telemetry and Sensor Studio (BS2)",
+  "version": "0.1.0",
+  "publisher": "TERNIONDEV",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/drsanti/Bitstream-Studio.git"
+  },
+  "homepage": "https://github.com/drsanti/Bitstream-Studio#readme",
+  "bugs": {
+    "url": "https://github.com/drsanti/Bitstream-Studio/issues"
+  },
+  "keywords": [
+    "bitstream",
+    "sensor",
+    "telemetry",
+    "bs2",
+    "iot",
+    "ternion",
+    "mcu"
+  ],
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "bitstream-studio.open3DWorld",
+        "title": "Open 3D World",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.pickApplication",
+        "title": "TERNION: Choose Application",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.openBitstream",
+        "title": "Open Sensor Studio",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.openBitstreamSensorStudio",
+        "title": "Open Sensor Studio — Flow Editor",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.openProject4Twin",
+        "title": "Open Project 4 — Robot Twin",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.configBaseUrl",
+        "title": "Configure Base URL",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.reloadWebview",
+        "title": "Reload TERNION Digital Twin",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.reloadWindow",
+        "title": "Reload VSCode Window",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.toggleDevTools",
+        "title": "Toggle Developer Tools",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.startMqttBroker",
+        "title": "Start MQTT Broker",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.stopMqttBroker",
+        "title": "Stop MQTT Broker",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.startSerialBridge",
+        "title": "Start Serial Bridge",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.stopSerialBridge",
+        "title": "Stop Serial Bridge",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.startAiBridge",
+        "title": "Start AI Bridge",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.stopAiBridge",
+        "title": "Stop AI Bridge",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.startProject4MockMcu",
+        "title": "Start Project 4 Mock MCU (HTTP)",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.stopProject4MockMcu",
+        "title": "Stop Project 4 Mock MCU",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.openToolsPanel",
+        "title": "Open TERNION Tools",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.openInBrowser",
+        "title": "Open TERNION Web App in Browser",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.setBrowserAppPort",
+        "title": "Set Local Web App Port (Browser)",
+        "category": "TERNION"
+      },
+      {
+        "command": "bitstream-studio.toggleQuickAction",
+        "title": "TERNION: Toggle Quick Actions",
+        "category": "TERNION"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "bitstream-studio.openBitstream",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.openProject4Twin",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.startProject4MockMcu",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.stopProject4MockMcu",
+          "when": "true"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "-editor.action.commentLine",
+        "key": "ctrl+/",
+        "mac": "cmd+/",
+        "when": "webviewFocus"
+      },
+      {
+        "command": "bitstream-studio.toggleQuickAction",
+        "key": "ctrl+/",
+        "mac": "cmd+/",
+        "when": "webviewFocus"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "TERNION: WebSocket",
+        "properties": {
+          "ternion.ws.brokerPort": {
+            "type": "number",
+            "default": 9998,
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "TCP port for the Bitstream / serial WebSocket broker (combined bridge serial side).",
+            "scope": "application"
+          },
+          "ternion.ws.modelBrokerPort": {
+            "type": "number",
+            "default": 9999,
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "TCP port for the Model Loader, Free Loader, and catalog WebSocket broker (separate from serial to avoid contention).",
+            "scope": "application"
+          },
+          "ternion.ws.aiBrokerPort": {
+            "type": "number",
+            "default": 9987,
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "TCP port for the AI bridge WebSocket server (LLM + MCP bitstream tools).",
+            "scope": "application"
+          }
+        }
+      },
+      {
+        "title": "TERNION: Browser",
+        "properties": {
+          "ternion.browserApp.port": {
+            "type": "number",
+            "default": 0,
+            "minimum": 0,
+            "maximum": 65535,
+            "description": "TCP port for the local static server used by \"Open Digital Twin in Browser\". Use 0 for an ephemeral (OS-assigned) port.",
+            "scope": "application"
+          }
+        }
+      },
+      {
+        "title": "TERNION: Project 4",
+        "properties": {
+          "ternion.project4.mockMcuPort": {
+            "type": "number",
+            "default": 8787,
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "TCP port for the bundled HTTP mock MCU (/data, /move, /setSpeed). Match Project 4 connection MCU base URL (e.g. http://127.0.0.1:<port>).",
+            "scope": "application"
+          }
+        }
+      },
+      {
+        "title": "TERNION: MQTT",
+        "properties": {
+          "ternion.mqtt.configuration": {
+            "type": "object",
+            "default": null,
+            "description": "MQTT client configuration including connection profiles, UI state, and publish history",
+            "scope": "application"
+          }
+        }
+      },
+      {
+        "title": "TERNION: Assets",
+        "properties": {
+          "ternion.githubToken": {
+            "type": "string",
+            "default": "",
+            "description": "GitHub personal access token (read-only repo scope is enough) for Free Loader list/sync. Raises GitHub API rate limits vs anonymous requests. If empty, GITHUB_TOKEN from the environment is used.",
+            "scope": "application"
+          },
+          "ternion.assets.sourceStrategy": {
+            "type": "string",
+            "enum": [
+              "local-only",
+              "local-first",
+              "online-only"
+            ],
+            "default": "local-first",
+            "description": "Asset source policy for model/cubemap URLs in webview/browser mode: local-only, local-first, or online-only.",
+            "scope": "application"
+          }
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "dev:clean": "node scripts/dev-clean.mjs",
+    "dev:supervisor": "node scripts/dev-supervisor.mjs",
+    "dev:with-supervisor": "npm run dev:supervisor",
+    "prestart": "npm run dev:clean",
+    "start": "node scripts/start-supervised.mjs",
+    "start:inner": "concurrently --prefix-colors \"cyan,blue,magenta,yellow\" --prefix \"name\" --names \"bridge,dev,ai,model\" --kill-others-on-fail false \"npm run start:bridge\" \"npm run dev:all\" \"npm run ai:bridge:no-serial\" \"npm run start:model-downloader-bridge\"",
+    "start:inner:bitstream-ai": "concurrently --prefix-colors \"cyan,blue,magenta,yellow\" --prefix \"name\" --names \"bridge,dev,ai,model\" --kill-others-on-fail false \"npm run start:bridge\" \"npm run dev:all\" \"npm run ai:bridge\" \"npm run start:model-downloader-bridge\"",
+    "start:with-bitstream-mcp": "npm run prestart && npm run start:inner:bitstream-ai",
+    "start:inner:no-ai": "concurrently --prefix-colors \"cyan,blue,yellow\" --prefix \"name\" --names \"bridge,dev,model\" --kill-others-on-fail false \"npm run start:bridge\" \"npm run dev:all\" \"npm run start:model-downloader-bridge\"",
+    "start:no-clean": "npm run start:inner",
+    "dev:all": "concurrently --prefix-colors \"blue,green\" --prefix \"name\" --names \"watch,webview\" --kill-others-on-fail false --group \"npm run watch:all\" \"npm run dev:webview\"",
+    "dev": "npm run dev:with-t3d-watch",
+    "start:bridge": "npx tsx src/combined-bridge-entry.ts",
+    "start:bridge:watch": "npx tsx watch --clear-screen=false src/combined-bridge-entry.ts",
+    "start:bridge:attach": "npx tsx src/run.bridge.ts",
+    "start:model-downloader-bridge": "concurrently --prefix-colors \"cyan,magenta\" --prefix \"name\" --names \"ws-server,model-bridge\" --kill-others-on-fail true \"npx tsx src/websocket/run.ws.server.ts --port=9999\" \"npx tsx src/model-downloader/run.model-downloader.bridge.ts\"",
+    "run:model-downloader-bridge": "npx tsx src/model-downloader/run.model-downloader.bridge.ts",
+    "run:model-downloader-client": "npx tsx src/model-downloader/run.model-downloader.client.ts",
+    "mqtt:broker:start": "npx tsx src/mqtt-node/run-mqtt-broker.ts",
+    "mqtt:broker:status": "npx tsx src/mqtt-node/broker-control-cli.ts status",
+    "mqtt:broker:stop": "npx tsx src/mqtt-node/broker-control-cli.ts stop",
+    "mqtt:broker:restart": "npx tsx src/mqtt-node/broker-control-cli.ts restart",
+    "bitstream:mcp:stdio": "npx tsx src/bitstream/mcp-server/run.mcp-server.ts",
+    "bitstream:mcp:stdio:attach": "npx tsx src/bitstream/mcp-server/run.mcp-server.ts --path=COM5 --baudRate=921600",
+    "bitstream:mcp:validate": "npx tsx src/bitstream/mcp-server/validate-descriptors.ts",
+    "bitstream:mcp:smoke": "npx tsx src/bitstream/mcp-server/mcp-e2e-smoke.ts",
+    "bitstream:mcp:gate": "npm run -s bitstream:mcp:validate && npm run -s test:bitstream2 && npm run -s bitstream:mcp:smoke",
+    "ai:bridge": "npx tsx src/ai/run.ai.bridge.ts",
+    "ai:bridge:no-serial": "npx tsx src/ai/run.ai.bridge.ts --no-bitstream",
+    "bitstream:assistant": "npx tsx src/ai/run.ai.bridge.ts",
+    "dev:model-loader-browser": "concurrently --prefix-colors \"cyan,blue\" --prefix \"name\" --names \"model-bridge,browser\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev:browser\"",
+    "dev:with-model-loader": "concurrently --prefix-colors \"cyan,blue,green\" --prefix \"name\" --names \"model-bridge,dev\" --kill-others-on-fail false \"npm run start:model-downloader-bridge\" \"npm run dev\"",
+    "dev:with-mock-mcu": "concurrently --prefix-colors \"yellow,green\" --prefix \"name\" --names \"mock-mcu,dev\" --kill-others-on-fail false \"npm run project4:mock-mcu\" \"npm run dev\"",
+    "dev:with-t3d-watch": "concurrently --prefix-colors \"magenta,blue,green\" --prefix \"name\" --names \"t3d,watch,webview\" --kill-others-on-fail false --group \"npm --prefix ../T3D run watch:lib\" \"npm run watch:all\" \"npm run dev:webview\"",
+    "vscode:prepublish": "npm run compile",
+    "compile": "node scripts/build-extension.js && npm run build:webview",
+    "watch": "node scripts/build-extension.js --watch",
+    "watch:all": "concurrently --prefix-colors \"yellow,cyan\" --prefix \"name\" --names \"extension,webview\" --kill-others-on-fail false --hide \"exited\" \"node scripts/build-extension.js --watch\" \"vite build --watch\"",
+    "prewatch:all": "node scripts/ensure-t3d-linked-build-fresh.js && node scripts/sync-jolt-assets.js && node scripts/sync-t3d-css.js",
+    "build:webview": "vite build",
+    "prebuild:webview": "node scripts/ensure-t3d-linked-build-fresh.js && node scripts/sync-jolt-assets.js && node scripts/sync-t3d-css.js",
+    "dev:webview": "vite",
+    "predev:webview": "node scripts/ensure-t3d-linked-build-fresh.js && node scripts/sync-jolt-assets.js && node scripts/sync-t3d-css.js",
+    "dev:browser": "vite",
+    "predev:browser": "node scripts/ensure-t3d-linked-build-fresh.js && node scripts/sync-jolt-assets.js && node scripts/sync-t3d-css.js",
+    "dev:linked": "npm run dev:all",
+    "dev:with-copy": "npm run dev:all",
+    "unlink:lib": "npm unlink @ternion/t3d && npm install @ternion/t3d",
+    "rebuild:full": "cd ../.. && npm run build:lib && cd apps/t3d-extension && npm run compile && npx vsce package --no-dependencies --allow-missing-repository",
+    "package": "npm run compile && npx vsce package --no-dependencies --allow-missing-repository",
+    "publish": "npm run compile && npx vsce publish --no-dependencies --allow-missing-repository",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "release:patch": "npm run version:patch && npm run publish",
+    "release:minor": "npm run version:minor && npm run publish",
+    "release:major": "npm run version:major && npm run publish",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "lint:glass-button-guard": "node scripts/check-no-legacy-glass-imports.js",
+    "test": "node ./out/test/runTest.js",
+    "rebuild": "npx @electron/rebuild -v 37.3.1",
+    "test:mqtt:wss": "npx tsx src/mqtt-node/test-mqtt-wss.ts",
+    "test:bitstream": "npm run test:bitstream2",
+    "test:bitstream2": "npx tsx --test tests/bitstream2/*.test.ts",
+    "bitstream2:mock-probe": "npx tsx src/bitstream2/dev/run-mock-probe.ts",
+    "bitstream2:dev-inject": "npx tsx src/bitstream2/dev/run-ws-injector.ts",
+    "bitstream2:sim-scenario": "npx tsx src/bitstream2/dev/run-sim-scenario.ts",
+    "bitstream2:uart-probe": "npx tsx src/bitstream2/dev/run-uart-probe.ts",
+    "bitstream2:uart-sensor-rate-check": "npx tsx src/bitstream2/dev/run-uart-sensor-rate-check.ts",
+    "bitstream2:uart-matrix": "npx tsx src/bitstream2/dev/run-uart-sensor-matrix.ts",
+    "bitstream2:uart-matrix:smoke": "npx tsx src/bitstream2/dev/run-uart-sensor-matrix.ts --tier=smoke",
+    "bitstream2:uart-matrix:standard": "npx tsx src/bitstream2/dev/run-uart-sensor-matrix.ts --tier=standard",
+    "bitstream2:uart-cfg-roundtrip": "npx tsx src/bitstream2/dev/run-uart-sensor-cfg-roundtrip.ts",
+    "bitstream2:uart-cfg-behavior": "npx tsx src/bitstream2/dev/run-uart-sensor-cfg-behavior.ts",
+    "bitstream2:golden:gen": "npx tsx src/bitstream2/dev/generate-golden-fixtures.ts",
+    "dev:bitstream2-loopback": "node scripts/dev-bitstream2-loopback.mjs",
+    "bitstream:serial:probe": "npx tsx src/bitstream/probe-serial-list.ts",
+    "bitstream:serial:open-close": "npx tsx src/bitstream/probe-serial-open-close.ts",
+    "bitstream:probe:protocol": "npx tsx src/bitstream/probe-protocol-torture-cli.ts",
+    "bitstream:ci:check": "npm run test:bitstream2 && npm run bitstream:sync:check",
+    "bitstream:sync:check": "node scripts/check-streamsight-bitstream-sync.js",
+    "bitstream:sync:update": "node scripts/check-streamsight-bitstream-sync.js --update",
+    "verify:ai-mcp-tools": "npx tsx src/ai/bridge/verify-ai-mcp-tools.ts",
+    "project4:analyze-glb": "npx tsx src/webview/project4/scripts/analyze-glb.ts",
+    "project4:mock-mcu": "npx tsx src/webview/project4/scripts/mock-mcu-server.ts",
+    "publish:studio-asset-manifest": "node scripts/publish-studio-asset-manifest.mjs",
+    "sync:studio-cubemap-assets": "node scripts/sync-studio-cubemap-assets.mjs"
+  },
+  "description:scripts": {
+    "dev": "Extension watch + Vite only — no Model Downloader WebSocket (ws://localhost:9998). Browser Model Loader needs a bridge; use dev:with-model-loader or dev:model-loader-browser.",
+    "dev:with-model-loader": "Same as dev plus start:model-downloader-bridge (WS + bridge) so browser Model Loader can connect.",
+    "dev:with-mock-mcu": "Same as npm run dev plus project4:mock-mcu (HTTP mock at 127.0.0.1:8787) for Project 4 without hardware.",
+    "dev:with-t3d-watch": "Run T3D watch:lib + extension/webview dev together so T3D dist updates automatically during coding.",
+    "dev:model-loader-browser": "Lightweight browser dev: Vite + model-downloader bridge only (no extension TS watch).",
+    "dev:clean": "Try to free dev TCP ports (default 9998 broker; set DEV_CLEAN_PORTS=9998,5173). Use --dry-run to only check. Cross-platform.",
+    "prestart": "Runs automatically before npm start to free default broker port(s) so start is less likely to hit EADDRINUSE.",
+    "start:no-clean": "Same as npm start but skips prestart/dev:clean (use when broker port is already free or another tool owns it).",
+    "start:inner:bitstream-ai": "Like start:inner but the AI lane runs **npm run ai:bridge** (Bitstream HostSession attach) instead of ai:bridge:no-serial. Set BITSTREAM_SERIAL_PATH (or rely on auto-detect). See DEVELOPMENT_COMMANDS.md.",
+    "start:with-bitstream-mcp": "**npm run prestart** then **start:inner:bitstream-ai** — one command for broker + dev + MCP-capable AI bridge (Sensor Studio Bitstream tools). Not the same as **npm start** (supervisor + no-serial AI).",
+    "start:bridge": "Combined broker + serial bridge (one-shot; restart manually after bridge TS edits)",
+    "start:bridge:watch": "Same as start:bridge but tsx watch — auto-restart on bridge entry / serialport-bridge edits",
+    "start:bridge:attach": "Attach only bridge clients to an already-running ws://127.0.0.1:9998 server (avoids EADDRINUSE from start:bridge).",
+    "dev:browser": "Run webview standalone in browser (fast dev)",
+    "dev:bitstream2-loopback": "Bridge + Vite for Simulator telemetry; run bitstream-simulator extension alongside. Browser opens /?app=bitstream.",
+    "build:webview": "Build webview only (outputs to out/webview/)",
+    "compile": "Full build: extension + webview for VS Code",
+    "ai:bridge": "WebSocket server for Assistant / Ai Dev Trace (default port 9987). Included in npm start as ai:bridge:no-serial to avoid COM contention with start:bridge.",
+    "bitstream:assistant": "Alias for ai:bridge. For firmware-backed MCP tools without a second serial attach, run this alone or stop start:bridge — see src/ai/README.md.",
+    "ai:bridge:no-serial": "Same as ai:bridge but skips serial attach (ANTHROPIC-only smoke or UI without COM).",
+    "publish:studio-asset-manifest": "PUT bundled `studio-asset-manifest.v1.json` to `ternion-3d-assets-free` (`assets/studio-asset-manifest.v1.json`). Requires env `GITHUB_TOKEN` (repo scope). Optional: `GITHUB_MANIFEST_OWNER`, `GITHUB_MANIFEST_REPO`, `GITHUB_MANIFEST_BRANCH`.",
+    "sync:studio-cubemap-assets": "HTTP GET cubemap JPEGs from `ternion-3d-assets-free` into `src/assets/textures/cubemap/...`. Default: paths from bundled `studio-asset-manifest.v1.json`. `--discover-all`: GitHub Contents API lists all `assets/textures/cubemap/*` (like `node-animator/scripts/download-assets.ts`); optional `GITHUB_TOKEN` for API rate limit. `--dry-run`, `--force`. Env: `STUDIO_ASSETS_RAW_BASE`, `GITHUB_FREE_ASSETS_*`. For private repos use Git Bash + SSH where your key works."
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.16",
+    "@types/chroma-js": "^3.1.2",
+    "@types/node": "^24.5.2",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/serialport": "^8.0.5",
+    "@types/three": "^0.180.0",
+    "@types/vscode": "^1.75.0",
+    "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^6.4.1",
+    "@typescript-eslint/parser": "^6.4.1",
+    "@vitejs/plugin-react": "^5.1.0",
+    "@vscode/vsce": "^3.6.2",
+    "autoprefixer": "^10.4.21",
+    "babel-plugin-react-compiler": "latest",
+    "baseline-browser-mapping": "^2.8.32",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.25.11",
+    "eslint": "^8.47.0",
+    "kill-port": "^2.0.1",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "^5.6.3",
+    "vite": "^7.1.10",
+    "vite-plugin-static-copy": "^3.1.4"
+  },
+  "dependencies": {
+    "@dimforge/rapier3d": "^0.19.2",
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@radix-ui/react-context-menu": "^2.2.16",
+    "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-progress": "^1.1.2",
+    "@radix-ui/react-scroll-area": "^1.2.2",
+    "@radix-ui/react-select": "^2.1.7",
+    "@radix-ui/react-separator": "^1.1.2",
+    "@radix-ui/react-slider": "^1.2.2",
+    "@radix-ui/react-switch": "^1.1.2",
+    "@radix-ui/react-tabs": "^1.1.2",
+    "@radix-ui/react-tooltip": "^1.1.7",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "@react-three/rapier": "^2.2.0",
+    "@serialport/parser-byte-length": "^13.0.0",
+    "@serialport/parser-delimiter": "^13.0.0",
+    "@serialport/parser-readline": "^13.0.0",
+    "@ternion/t3d": "0.0.3",
+    "@xyflow/react": "^12.10.2",
+    "aedes": "^0.51.3",
+    "cannon-es": "^0.20.0",
+    "chroma-js": "^3.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "crossoriginworker": "^1.0.0",
+    "gsap": "^3.13.0",
+    "jolt-physics": "^0.38.0",
+    "lucide-react": "^0.546.0",
+    "mqtt": "^5.14.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.1",
+    "react-toastify": "^11.0.5",
+    "recharts": "^3.7.0",
+    "remark-gfm": "^4.0.1",
+    "serialport": "^13.0.0",
+    "tailwind-merge": "^3.3.1",
+    "three": "^0.180.0",
+    "three-nebula": "^10.0.3",
+    "uuid": "^13.0.0",
+    "websocket-stream": "^5.3.0",
+    "ws": "^8.18.3",
+    "zod": "^4.4.1",
+    "zustand": "^5.0.0"
+  }
+}

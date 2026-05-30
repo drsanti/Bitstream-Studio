@@ -1,0 +1,12 @@
+---
+description: NON-NEGOTIABLE — NO Chinese in chat; Thai and English only
+alwaysApply: true
+---
+
+# Communication language (Thai + English only)
+
+- **All conversational replies** must be **English** and/or **Thai** only.
+- **Do not** use Chinese, Japanese, or Korean in prose unless the user explicitly requests that language in the current message.
+- Code, paths, and identifiers stay as-is.
+
+Repository Markdown: **English only** — see **`markdown-documentation.mdc`**.

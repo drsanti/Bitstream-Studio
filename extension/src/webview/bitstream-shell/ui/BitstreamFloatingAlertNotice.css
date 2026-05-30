@@ -1,0 +1,60 @@
+/*******************************************************************************
+ * File Name : BitstreamFloatingAlertNotice.css
+ *
+ * Description : Shared icon motion presets for BitstreamFloatingAlertNotice.
+ *
+ * Author : Asst.Prof.Santi Nuratch, Ph.D
+ * Thailand Embedded Systems Association (TESA)
+ * Version : 1.0
+ * Target : PSoC Edge E84 (shared)
+ *
+ *******************************************************************************/
+
+@keyframes bitstreamFloatingAlertBob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(4deg);
+  }
+}
+
+@keyframes bitstreamFloatingAlertGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 rgba(251, 191, 36, 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.45));
+  }
+}
+
+@keyframes bitstreamFloatingAlertPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.08);
+  }
+}
+
+.bitstream-floating-alert-icon--bob-glow {
+  animation:
+    bitstreamFloatingAlertBob 2.4s ease-in-out 0.55s infinite,
+    bitstreamFloatingAlertGlow 2.4s ease-in-out 0.55s infinite;
+}
+
+.bitstream-floating-alert-icon--pulse-glow {
+  animation:
+    bitstreamFloatingAlertPulse 2.4s ease-in-out 0.55s infinite,
+    bitstreamFloatingAlertGlow 2.4s ease-in-out 0.55s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitstream-floating-alert-icon--bob-glow,
+  .bitstream-floating-alert-icon--pulse-glow {
+    animation: none;
+  }
+}

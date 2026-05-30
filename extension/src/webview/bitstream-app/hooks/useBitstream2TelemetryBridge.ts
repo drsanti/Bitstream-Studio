@@ -1,0 +1,267 @@
+import { useCallback, useEffect, useRef } from "react";
+import {
+  BITSTREAM2_TOPICS,
+  type Bitstream2DevSimStatePayload,
+  type Bitstream2DevStatusPayload,
+  type Bitstream2HelloPayload,
+  type Bitstream2SensorSamplePayload,
+} from "../../../bitstream2/bridge/protocol";
+import {
+  SERIALPORT_TOPICS,
+  type BridgeRuntimeSnapshotPayload,
+  type SerialPortStatusPayload,
+} from "../../../serialport-bridge/protocol";
+import type { BitstreamSensorSampleV2 } from "../../../bitstream/events/sensor-decoder.js";
+import { bs2SampleToBitstreamSensorSampleV2 } from "../bridge/bs2-sample-to-live-v2";
+import { useBitstreamTelemetrySourceStore } from "../state/bitstreamTelemetrySource.store";
+import { useBitstreamConnectionStore } from "../state/bitstreamConnection.store";
+import { useBitstreamLiveStore } from "../state/bitstreamLive.store";
+import { publishDevSimStreamingControl } from "../bridge/publishDevSimStreamingControl.js";
+import {
+  isSimulatorTelemetryBackend,
+  reconcileBs2HandshakePassedFromStores,
+  shouldAcceptBs2Hello,
+  shouldIngestTelemetry,
+  type TelemetryTransportSnapshot,
+} from "../utils/bitstreamTelemetryTransport.js";
+import { useWsClientStore } from "../../ws-client-store";
+import type { HandshakeSummary } from "../state/bitstreamLive.store";
+
+const LISTENER_ID = "bitstream-app-bs2-telemetry-bridge";
+
+const BMI270_WIRE_GAP_RING_MAX = 64;
+
+/** External sim online: mark loopback when BS2 arrives without open COM (status hint only). */
+function noteExternalSimulatorOnline(conn: TelemetryTransportSnapshot): void {
+  if (conn.serialBridgeStatus?.isOpen === true) {
+    return;
+  }
+  if (!useBitstreamTelemetrySourceStore.getState().loopbackAvailable) {
+    useBitstreamTelemetrySourceStore.getState().setLoopbackAvailable(true);
+  }
+}
+
+export type Bitstream2TelemetryBridgeHandlers = {
+  onBs2Sample: (sample: BitstreamSensorSampleV2) => void;
+  setHandshakeFromBs2?: (summary: HandshakeSummary) => void;
+  setHandshakeState?: (state: "passed" | "unknown") => void;
+  /** After simulator `DEV_SIM_STATE` merges verified sensor rows (no UART cold sync). */
+  onSimConfigsSynced?: () => void;
+};
+
+/**
+ * Subscribes to `bitstream2/*` broker topics and maps samples into the legacy live-store shape.
+ * Used for UART (BS-framed firmware) and dev loopback simulator.
+ */
+export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridgeHandlers): void {
+  const connect = useWsClientStore((s) => s.connect);
+  const isConnected = useWsClientStore((s) => s.isConnected);
+  const telemetryBackend = useBitstreamTelemetrySourceStore((s) => s.backend);
+  const subscribeTopic = useWsClientStore((s) => s.subscribeTopic);
+  const addMessageListener = useWsClientStore((s) => s.addMessageListener);
+  const removeMessageListener = useWsClientStore((s) => s.removeMessageListener);
+
+  const handlersRef = useRef(handlers);
+  handlersRef.current = handlers;
+
+  const bmi270GapsRef = useRef<number[]>([]);
+  const bmi270LastPerfRef = useRef<number | null>(null);
+
+  const getTelemetryConnSnapshot = useCallback(() => {
+    const c = useBitstreamConnectionStore.getState();
+    return {
+      connected: c.connected,
+      transportState: c.transportState,
+      serialBridgeStatus: c.serialBridgeStatus,
+    };
+  }, []);
+
+  const markRuntimeReadyForBs2Link = useCallback(() => {
+    const conn = useBitstreamConnectionStore.getState();
+    const wsUp = useWsClientStore.getState().isConnected;
+    const simUp =
+      conn.transportState === "connected" ||
+      (isSimulatorTelemetryBackend() && wsUp);
+    if (simUp && conn.runtimeSyncState !== "ready") {
+      conn.setRuntimeSyncState("ready");
+      if (!conn.connected && wsUp) {
+        conn.setConnected(true);
+        conn.setTransportState("connected");
+      }
+    }
+  }, []);
+
+  const applyHello = useCallback((hello: Bitstream2HelloPayload) => {
+    if (!shouldAcceptBs2Hello(getTelemetryConnSnapshot())) {
+      return;
+    }
+    useBitstreamTelemetrySourceStore.getState().setBs2Hello(hello);
+    useBitstreamLiveStore.getState().touchFirmwareRxAt();
+    // BS HELLO applies to simulator and UART (BS-framed firmware on serial).
+    handlersRef.current.setHandshakeFromBs2?.({
+      protocolVersion: hello.version,
+      capsFlags: hello.caps,
+      statusCounter: 0,
+      totalDurationMs: 0,
+    });
+    handlersRef.current.setHandshakeState?.("passed");
+    reconcileBs2HandshakePassedFromStores();
+    markRuntimeReadyForBs2Link();
+  }, [getTelemetryConnSnapshot, markRuntimeReadyForBs2Link]);
+
+  const applyHandshakeFromSimState = useCallback((sim: Bitstream2DevSimStatePayload) => {
+    if (useBitstreamTelemetrySourceStore.getState().getEffectiveBackend() !== "simulator") {
+      return;
+    }
+    handlersRef.current.setHandshakeFromBs2?.({
+      protocolVersion: sim.version,
+      capsFlags: sim.caps,
+      statusCounter: 0,
+      totalDurationMs: 0,
+    });
+    handlersRef.current.setHandshakeState?.("passed");
+  }, []);
+
+  const syncSimConfigs = useCallback((sim: Bitstream2DevSimStatePayload) => {
+    applyHandshakeFromSimState(sim);
+    void sim.configs;
+    markRuntimeReadyForBs2Link();
+    handlersRef.current.onSimConfigsSynced?.();
+  }, [applyHandshakeFromSimState, markRuntimeReadyForBs2Link]);
+
+  useEffect(() => {
+    void connect();
+  }, [connect]);
+
+  /** Re-assert run when WS connects and Telemetry Source is Simulator. */
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+    if (telemetryBackend !== "simulator") {
+      return;
+    }
+    publishDevSimStreamingControl();
+  }, [isConnected, telemetryBackend]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        await subscribeTopic(BITSTREAM2_TOPICS.HELLO, 0, "json");
+        await subscribeTopic(BITSTREAM2_TOPICS.EVT_SENSOR, 0, "json");
+        await subscribeTopic(BITSTREAM2_TOPICS.RES, 0, "json");
+        await subscribeTopic(BITSTREAM2_TOPICS.DEV_STATUS, 0, "json");
+        await subscribeTopic(BITSTREAM2_TOPICS.DEV_SIM_STATE, 0, "json");
+        await subscribeTopic(BITSTREAM2_TOPICS.DEV_SIM_CONTROL, 0, "json");
+        await subscribeTopic(SERIALPORT_TOPICS.STATUS, 0, "json");
+        await subscribeTopic(SERIALPORT_TOPICS.RUNTIME_SNAPSHOT, 0, "json");
+      } catch {
+        // Retry on next connect cycle.
+      }
+      if (cancelled) {
+        return;
+      }
+      publishDevSimStreamingControl();
+    })();
+
+    const onMessage = (topic: string, payload: unknown) => {
+      if (topic === SERIALPORT_TOPICS.STATUS) {
+        useBitstreamConnectionStore.getState().setSerialBridgeStatus(
+          payload as SerialPortStatusPayload,
+        );
+        return;
+      }
+
+      if (topic === SERIALPORT_TOPICS.RUNTIME_SNAPSHOT) {
+        useBitstreamConnectionStore.getState().setRuntimeSnapshot(
+          payload as BridgeRuntimeSnapshotPayload,
+        );
+        return;
+      }
+
+      if (topic === BITSTREAM2_TOPICS.DEV_STATUS) {
+        const dev = payload as Bitstream2DevStatusPayload;
+        const loopbackOn =
+          dev.loopbackEnabled === true || dev.externalSimOnline === true;
+        useBitstreamTelemetrySourceStore.getState().setLoopbackAvailable(loopbackOn);
+        if (loopbackOn) {
+          publishDevSimStreamingControl();
+        }
+        if (loopbackOn && useBitstreamTelemetrySourceStore.getState().backend === "simulator") {
+          useBitstreamLiveStore.getState().touchFirmwareRxAt();
+        }
+        return;
+      }
+
+      if (topic === BITSTREAM2_TOPICS.HELLO) {
+        noteExternalSimulatorOnline(getTelemetryConnSnapshot());
+        applyHello(payload as Bitstream2HelloPayload);
+        return;
+      }
+
+      if (topic === BITSTREAM2_TOPICS.DEV_SIM_STATE) {
+        const backend = useBitstreamTelemetrySourceStore.getState().backend;
+        if (backend === "simulator") {
+          syncSimConfigs(payload as Bitstream2DevSimStatePayload);
+        }
+        return;
+      }
+
+      if (topic !== BITSTREAM2_TOPICS.EVT_SENSOR) {
+        return;
+      }
+
+      noteExternalSimulatorOnline(getTelemetryConnSnapshot());
+
+      if (!shouldIngestTelemetry(getTelemetryConnSnapshot())) {
+        return;
+      }
+
+      useBitstreamLiveStore.getState().bumpBs2EvtSensorRx();
+
+      const bs2 = payload as Bitstream2SensorSamplePayload;
+      const mapped = bs2SampleToBitstreamSensorSampleV2(bs2);
+      if (mapped == null) {
+        return;
+      }
+
+      useBitstreamLiveStore.getState().touchFirmwareRxAt();
+      handlersRef.current.onBs2Sample(mapped);
+
+      if (mapped.sourceHint === "bmi270") {
+        useBitstreamLiveStore.getState().recordBmi270EvtMask(bs2.mask);
+        const nowPerf = performance.now();
+        const prev = bmi270LastPerfRef.current;
+        if (prev != null) {
+          const gap = nowPerf - prev;
+          const gaps = bmi270GapsRef.current;
+          gaps.push(gap);
+          while (gaps.length > BMI270_WIRE_GAP_RING_MAX) {
+            gaps.shift();
+          }
+        }
+        bmi270LastPerfRef.current = nowPerf;
+      }
+    };
+
+    addMessageListener(LISTENER_ID, onMessage);
+    return () => {
+      cancelled = true;
+      removeMessageListener(LISTENER_ID);
+    };
+  }, [
+    addMessageListener,
+    applyHello,
+    isConnected,
+    removeMessageListener,
+    subscribeTopic,
+    applyHandshakeFromSimState,
+    syncSimConfigs,
+    getTelemetryConnSnapshot,
+  ]);
+}

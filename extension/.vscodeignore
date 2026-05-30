@@ -1,0 +1,53 @@
+.vscode/**
+.vscode-test/**
+.cursor/**
+src/**
+docs/**
+.gitignore
+.yarnrc
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+node_modules
+node_modules/**
+**/node_modules/**
+# Serial stack for combined-bridge lives under `out/serialport-runtime/` (see scripts/stage-serialport-runtime.cjs).
+*.vsix
+TOAST-IMPLEMENTATION.md
+*.md
+!README.md
+!CHANGELOG.md
+!changelog.md
+build-extension.js
+tailwind.config.mjs
+tsconfig.webview.json
+
+# Blog / tutorials tree (large); not required for extension runtime — keeps VSIX smaller so install/unpack is not "stuck" with no UI feedback.
+blog/**
+.tmp-tesa-tutorials/**
+
+# --- Extension assets: exclude from VSIX ---
+# Dev / bundled models under t3d-extension/src/assets/free and tesaiot (also covered by src/** above).
+src/assets/free/**
+src/assets/tesaiot/**
+
+# Webview build copies into out/webview/assets/ ; do not ship large 3D payloads in the VSIX.
+out/webview/assets/models/**
+out/webview/assets/tesaiot/**
+out/webview/assets/downloads/**
+out/webview/assets/*.glb
+out/webview/assets/**/*.gltf
+
+# Bundled demo textures/sounds (large); omit from VSIX — use online assets or user data when needed.
+out/webview/assets/free/textures/**
+out/webview/assets/sounds/**
+
+# `out/` is gitignored; vsce excludes gitignored paths unless re-included here.
+# Native deps for `combined-bridge-entry.js` (see scripts/stage-serialport-runtime.cjs).
+!out/serialport-runtime/**
+# AI bridge (Node entry started by extension host).
+!out/ai/**
+# Project 4 HTTP mock MCU (bundled Node script started by the extension host).
+!out/project4-mock-mcu.js

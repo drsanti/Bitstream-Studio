@@ -1,0 +1,19 @@
+{
+  "commands": [
+    {
+      "name": "sensor_reinit",
+      "riskLevel": "medium",
+      "requiresRuntimeReady": true,
+      "requiresTransportConnected": true,
+      "notes": "Use when sensor state is stale or after recoverable transport errors."
+    },
+    {
+      "name": "diag.stream.start",
+      "riskLevel": "low",
+      "requiresRuntimeReady": true,
+      "requiresTransportConnected": true,
+      "notes": "Enables diagnostics stream for troubleshooting."
+    }
+  ],
+  "lastUpdatedUtc": "2026-05-04T12:30:00Z"
+}

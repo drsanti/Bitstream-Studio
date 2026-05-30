@@ -1,0 +1,31 @@
+{
+  "version": "1.0.0",
+  "serverIdentifier": "user-bitstream-backend",
+  "resources": [
+    {
+      "uri": "bitstream://protocol/version",
+      "descriptorFile": "resources/protocol-version.json",
+      "useWhen": "Before decoding payloads or validating firmware compatibility."
+    },
+    {
+      "uri": "bitstream://sensors/catalog",
+      "descriptorFile": "resources/sensors-catalog.json",
+      "useWhen": "Before mapping sourceId values to names, units, and valid ranges."
+    },
+    {
+      "uri": "bitstream://diagnostics/error-codes",
+      "descriptorFile": "resources/diagnostics-error-codes.json",
+      "useWhen": "After reading fault events to interpret severity and operator action."
+    },
+    {
+      "uri": "bitstream://operations/safe-commands",
+      "descriptorFile": "resources/safe-commands.json",
+      "useWhen": "Before executing control or raw command operations."
+    },
+    {
+      "uri": "bitstream://defaults/sensor-config",
+      "descriptorFile": "resources/sensor-config-defaults.json",
+      "useWhen": "When comparing runtime config against known-safe defaults."
+    }
+  ]
+}

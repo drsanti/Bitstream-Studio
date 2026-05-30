@@ -1,0 +1,12 @@
+{
+  "id": "bmm350-mag-temp",
+  "description": "BMM350 MAG+TMP EVT_SENSOR",
+  "wireB64": "QlMgEgAEAQMCAAAA0AcAAGQAyAAsAcQJ5pcNCg==",
+  "expect": {
+    "event": "sensor",
+    "sensorId": 1,
+    "mask": 3,
+    "counter": 2,
+    "valuesLength": 4
+  }
+}

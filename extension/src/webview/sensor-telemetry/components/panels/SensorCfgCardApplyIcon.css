@@ -1,0 +1,54 @@
+/*******************************************************************************
+ * File Name : SensorCfgCardApplyIcon.css
+ *
+ * Description : Icon-only apply affordance on config card headers (color pulse).
+ *
+ * Author : Asst.Prof.Santi Nuratch, Ph.D
+ * Thailand Embedded Systems Association (TESA)
+ * Version : 1.0
+ * Target : PSoC Edge E84 (shared)
+ *
+ *******************************************************************************/
+
+@keyframes sensorCfgCardApplyIconFade {
+  0%,
+  100% {
+    color: rgb(250, 204, 21);
+    opacity: 0.78;
+    transform: rotate(-5deg);
+  }
+  50% {
+    color: rgb(34, 211, 238);
+    opacity: 1;
+    transform: rotate(5deg);
+  }
+}
+
+.sensor-cfg-card-apply-icon {
+  transform-origin: center center;
+  animation: sensorCfgCardApplyIconFade 1.05s ease-in-out infinite;
+}
+
+.sensor-cfg-card-apply-icon:hover {
+  animation-play-state: paused;
+  color: rgb(103, 232, 249);
+  opacity: 1;
+}
+
+.sensor-cfg-card-apply-icon--exit {
+  animation: none;
+  transition: opacity 240ms ease-out, color 240ms ease-out, transform 240ms ease-out;
+  transform: rotate(0deg);
+  opacity: 0;
+  color: rgba(34, 211, 238, 0);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sensor-cfg-card-apply-icon {
+    animation: none;
+    transform: none;
+    color: rgb(34, 211, 238);
+    opacity: 1;
+  }
+}

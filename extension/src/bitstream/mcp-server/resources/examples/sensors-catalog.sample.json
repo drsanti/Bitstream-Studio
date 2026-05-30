@@ -1,0 +1,25 @@
+{
+  "sensors": [
+    {
+      "sourceId": 1,
+      "name": "imu_accel",
+      "unit": "m/s^2",
+      "expectedSampleRateHz": 100,
+      "validRange": {
+        "min": -160,
+        "max": 160
+      }
+    },
+    {
+      "sourceId": 2,
+      "name": "imu_gyro",
+      "unit": "deg/s",
+      "expectedSampleRateHz": 100,
+      "validRange": {
+        "min": -2000,
+        "max": 2000
+      }
+    }
+  ],
+  "lastUpdatedUtc": "2026-05-04T11:30:00Z"
+}

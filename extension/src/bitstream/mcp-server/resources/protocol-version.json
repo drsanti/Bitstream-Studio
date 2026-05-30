@@ -1,0 +1,6 @@
+{
+  "uri": "bitstream://protocol/version",
+  "name": "bitstream_protocol_version",
+  "description": "Canonical protocol version and firmware compatibility matrix for bitstream payload decoding.",
+  "mimeType": "application/json"
+}

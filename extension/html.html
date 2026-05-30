@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TESAIoT – Sensor Temperature Pie Chart</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+      text-align: center;
+      color: #e0e0ff;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #aaa;
+      margin-bottom: 36px;
+      text-align: center;
+    }
+
+    .chart-wrapper {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 50px;
+    }
+
+    /* ── SVG pie ── */
+    .pie-container {
+      position: relative;
+    }
+
+    svg#pie {
+      width: 300px;
+      height: 300px;
+      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.6));
+    }
+
+    .slice {
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      transform-origin: 150px 150px;
+    }
+
+    .slice:hover {
+      opacity: 0.85;
+      transform: scale(1.04);
+    }
+
+    /* centre label */
+    #centre-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      pointer-events: none;
+    }
+
+    #centre-label .sensor-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    #centre-label .sensor-temp {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #ffd700;
+    }
+
+    #centre-label .sensor-unit {
+      font-size: 0.75rem;
+      color: #ccc;
+    }
+
+    /* ── Legend ── */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      padding: 10px 16px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: background 0.2s, border-color 0.2s;
+      min-width: 200px;
+    }
+
+    .legend-item:hover {
+      background: rgba(255, 255, 255, 0.13);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .legend-color {
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .legend-text {
+      flex: 1;
+    }
+
+    .legend-sensor {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #e0e0ff;
+    }
+
+    .legend-value {
+      font-size: 0.8rem;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    .legend-pct {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #ffd700;
+    }
+
+    /* ── Timestamp ── */
+    .timestamp {
+      margin-top: 32px;
+      font-size: 0.75rem;
+      color: #666;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🌡️ TESAIoT Sensor Temperatures</h1>
+  <p class="subtitle">Live snapshot — all on-board sensors</p>
+
+  <div class="chart-wrapper">
+
+    <!-- PIE -->
+    <div class="pie-container">
+      <svg id="pie" viewBox="0 0 300 300"></svg>
+      <div id="centre-label">
+        <div class="sensor-name" id="cl-name">Hover a slice</div>
+        <div class="sensor-temp" id="cl-temp">—</div>
+        <div class="sensor-unit" id="cl-unit"></div>
+      </div>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend" id="legend"></div>
+
+  </div>
+
+  <div class="timestamp" id="ts"></div>
+
+  <script>
+    const sensors = [
+      { name: "SHT40", tempC: 41.76, color: "#4fc3f7" },
+      { name: "DPS368", tempC: 44.51, color: "#ff8a65" },
+      { name: "BMM350", tempC: 42.69, color: "#a5d6a7" },
+      { name: "BMI270", tempC: 43.51, color: "#ce93d8" },
+    ];
+
+    const total = sensors.reduce((s, d) => s + d.tempC, 0);
+    const cx = 150, cy = 150, R = 130, innerR = 68;
+
+    function polarToXY(angleDeg, r) {
+      const rad = (angleDeg - 90) * Math.PI / 180;
+      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+    }
+
+    function describeSlice(startDeg, endDeg) {
+      const s = polarToXY(startDeg, R), e = polarToXY(endDeg, R);
+      const si = polarToXY(startDeg, innerR), ei = polarToXY(endDeg, innerR);
+      const large = (endDeg - startDeg) > 180 ? 1 : 0;
+      return [
+        `M ${si.x} ${si.y}`,
+        `L ${s.x} ${s.y}`,
+        `A ${R} ${R} 0 ${large} 1 ${e.x} ${e.y}`,
+        `L ${ei.x} ${ei.y}`,
+        `A ${innerR} ${innerR} 0 ${large} 0 ${si.x} ${si.y}`,
+        "Z"
+      ].join(" ");
+    }
+
+    const svg = document.getElementById("pie");
+    const legend = document.getElementById("legend");
+    const clName = document.getElementById("cl-name");
+    const clTemp = document.getElementById("cl-temp");
+    const clUnit = document.getElementById("cl-unit");
+
+    let startDeg = 0;
+
+    sensors.forEach((s, i) => {
+      const pct = s.tempC / total;
+      const sweep = pct * 360;
+      const endDeg = startDeg + sweep;
+
+      // slice
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", describeSlice(startDeg, endDeg));
+      path.setAttribute("fill", s.color);
+      path.setAttribute("stroke", "#1a1a2e");
+      path.setAttribute("stroke-width", "2");
+      path.classList.add("slice");
+
+      const highlight = () => {
+        clName.textContent = s.name;
+        clTemp.textContent = s.tempC.toFixed(2);
+        clUnit.textContent = "°C  (" + (pct * 100).toFixed(1) + "%)";
+      };
+      path.addEventListener("mouseenter", highlight);
+      path.addEventListener("focus", highlight);
+      path.setAttribute("tabindex", "0");
+      svg.appendChild(path);
+
+      // legend item
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      item.innerHTML = `
+      <div class="legend-color" style="background:${s.color}"></div>
+      <div class="legend-text">
+        <div class="legend-sensor">${s.name}</div>
+        <div class="legend-value">${s.tempC.toFixed(2)} °C</div>
+      </div>
+      <div class="legend-pct">${(pct * 100).toFixed(1)}%</div>
+    `;
+      item.addEventListener("mouseenter", highlight);
+      legend.appendChild(item);
+
+      startDeg = endDeg;
+    });
+
+    // timestamp
+    document.getElementById("ts").textContent =
+      "Snapshot taken: " + new Date().toLocaleString();
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,37 @@
+---
+description: Bitstream-Studio repo layout and build conventions
+alwaysApply: true
+---
+
+# Bitstream-Studio rules
+
+## Repository layout
+
+| Path | Role |
+|------|------|
+| **`extension/`** | VS Code extension + webview (Sensor Telemetry, Sensor Studio, BS2 bridge) |
+| **`AGENT_HANDOFF.md`** | Session onboarding |
+| **`.cursor/rules/`** | Agent policy (this folder) |
+
+**Not in this repo:** `T3D/`, `bitstream-simulator/` (separate extension repo).
+
+## Development
+
+- Work in **`extension/`**: `npm install`, `npm run dev:webview`, `npm run compile`.
+- Dev URLs: `http://localhost:5173/?app=bitstream`, `?app=sensor-studio`.
+- Full runbook: **`extension/HOW_TO_RUN.md`**.
+
+## `@ternion/t3d` (temporary)
+
+Phase 4 removes this dependency. Until then, use **npm registry** `"@ternion/t3d": "0.0.3"` — **no** `file:../T3D`, **no** npm link to monorepo `T3D/`.
+
+## VSIX
+
+- Extension id: **`bitstream-studio`**.
+- Use **`isVsCodeExtensionWebview()`** / `window.__VSCODE_API__` — not `T3DVSCodeUtils.isVsCodeMode()` alone.
+- Re-test after **`npm run package`** in a clean VS Code window.
+
+## Related
+
+- **`bitstream-dual-runtime.mdc`** — UART + Simulator parity.
+- **`tesaiot-firmware-bitstream-paths.mdc`** — firmware truth paths.

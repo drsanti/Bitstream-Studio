@@ -1,0 +1,6 @@
+{
+  "uri": "bitstream://diagnostics/error-codes",
+  "name": "bitstream_diagnostics_error_codes",
+  "description": "Fault and diagnostic code reference including severity, meaning, and recommended operator actions.",
+  "mimeType": "application/json"
+}

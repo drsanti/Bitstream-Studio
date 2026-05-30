@@ -1,0 +1,6 @@
+{
+  "uri": "bitstream://defaults/sensor-config",
+  "name": "bitstream_defaults_sensor_config",
+  "description": "Default sensor configuration baselines used for drift detection and safe reset operations.",
+  "mimeType": "application/json"
+}

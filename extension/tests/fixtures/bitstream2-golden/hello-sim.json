@@ -1,0 +1,10 @@
+{
+  "id": "hello-sim",
+  "description": "HELLO from BS2_SIM_BOARD_PROFILE",
+  "wireB64": "QlMgFAABAj8AAAEAAgxiczItc2ltLXBzb2MQxg0K",
+  "expect": {
+    "event": "hello",
+    "version": 2,
+    "fwTag": "bs2-sim-psoc"
+  }
+}

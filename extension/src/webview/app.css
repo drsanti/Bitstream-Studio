@@ -1,0 +1,586 @@
+/* Tailwind setup mirrors apps/next-app */
+@import 'tailwindcss';
+@config "../../tailwind.config.mjs";
+
+/* Shared T3D design tokens + base styles (synced from T3D/src/index.css) */
+@import './t3d-shared.css';
+
+/* Webview-specific hard resets / sizing */
+@layer base {
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+html {
+  height: 100%;
+  width: 100%;
+}
+
+body,
+html {
+  overflow: hidden;
+  background-color: #222;
+  color: #ccc;
+  font-family: Inter, Helvetica, sans-serif, Arial;
+}
+
+/* Global default: dark micro scrollbars everywhere (opt-out via `.scrollbar-hide`). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 63, 70, 0.85) transparent;
+}
+*::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(63, 63, 70, 0.65);
+  border-radius: 9999px;
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.85);
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  /* Solid backdrop (no external asset — keeps Vite CSS build reliable). */
+  background: radial-gradient(ellipse at center, #2a2a32 0%, #141418 70%);
+  filter: blur(0);
+  z-index: -2;
+  pointer-events: none;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Digital Twin: animated nebula shell (MyApp) instead of static bg1.png */
+body.webview-digital-twin-shell::before,
+body.webview-digital-twin-shell::after {
+  display: none;
+}
+
+.webview-engine-shell {
+  background: #030308;
+}
+
+/*
+ * Quick-scene apps render on the WebGL canvas appended to `body` (z-index 0).
+ * #root is z-index 1 — this host must stay transparent so the canvas is visible.
+ */
+.webview-engine-canvas-host {
+  background: transparent;
+}
+
+.webview-engine-shell .t3d-flow-canvas-bg__base {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 0%, rgba(76, 29, 149, 0.12), transparent 54%),
+    linear-gradient(180deg, #04030a 0%, #080612 45%, #030308 100%);
+}
+
+.webview-engine-shell .t3d-flow-canvas-bg__canvas {
+  z-index: 2;
+  opacity: 0.92;
+  mix-blend-mode: screen;
+}
+
+/* Let nebula/bubbles show through T3D LoadingProgress backdrop */
+.webview-engine-shell [aria-label="Initializing Engine"] > .absolute.inset-0 {
+  background: rgba(0, 0, 0, 0.15) !important;
+  backdrop-filter: blur(6px) !important;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  /*
+   * T3D mounts the WebGL canvas on document.body (behind #root). Without this,
+   * the full-viewport root captures pointer events and OrbitControls never see drags.
+   * Interactive UI sets pointer-events-auto (panels, toolbar, dialogs, etc.).
+   */
+  pointer-events: none;
+}
+
+/* Full-screen modals under #root (Model Catalog / Loader / Free Loader, alerts, …). */
+#root .t3d-shell-overlay {
+  pointer-events: auto;
+}
+
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* App default: no visible scrollbars (core UX feature).
+   Opt-in visible scrollbars for debugging via `.scrollbar-debug-show`. */
+* {
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.scrollbar-debug-show {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 63, 70, 0.85) transparent;
+}
+.scrollbar-debug-show::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+.scrollbar-debug-show::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-debug-show::-webkit-scrollbar-thumb {
+  background-color: rgba(63, 63, 70, 0.65);
+  border-radius: 9999px;
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-debug-show::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.85);
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-debug-show::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@keyframes trnScrollHintDown {
+  0%,
+  100% {
+    transform: translateY(-1px);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(2px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes trnScrollHintUp {
+  0%,
+  100% {
+    transform: translateY(1px);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-2px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes trnScrollHintRight {
+  0%,
+  100% {
+    transform: translateX(-1px);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateX(2px);
+    opacity: 0.95;
+  }
+}
+
+@keyframes trnScrollHintLeft {
+  0%,
+  100% {
+    transform: translateX(1px);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateX(-2px);
+    opacity: 0.95;
+  }
+}
+
+/* Dark, small scrollbar theme (scoped via class to avoid global side effects) */
+.scrollbar-dark-small {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(113, 113, 122, 0.75) transparent;
+}
+.scrollbar-dark-small::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+.scrollbar-dark-small::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-dark-small::-webkit-scrollbar-thumb {
+  background-color: rgba(113, 113, 122, 0.55);
+  border-radius: 9999px;
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-dark-small::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(161, 161, 170, 0.7);
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-dark-small::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Darker, narrower scrollbar (e.g. broker monitor log). */
+.scrollbar-dark-micro {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 63, 70, 0.85) transparent;
+}
+.scrollbar-dark-micro::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
+}
+.scrollbar-dark-micro::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-dark-micro::-webkit-scrollbar-thumb {
+  background-color: rgba(63, 63, 70, 0.65);
+  border-radius: 9999px;
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-dark-micro::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.85);
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-dark-micro::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Minimal scrollbar: hidden until `.scrollbar-edge-reveal--active` (see useScrollbarEdgeReveal). */
+.scrollbar-edge-reveal {
+  scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-edge-reveal::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.scrollbar-edge-reveal::-webkit-scrollbar-thumb {
+  background-color: transparent;
+}
+.scrollbar-edge-reveal::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.scrollbar-edge-reveal.scrollbar-edge-reveal--active {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(63, 63, 70, 0.85) transparent;
+}
+.scrollbar-edge-reveal.scrollbar-edge-reveal--active::-webkit-scrollbar {
+  width: 1px;
+  height: 1px;
+}
+.scrollbar-edge-reveal.scrollbar-edge-reveal--active::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-edge-reveal.scrollbar-edge-reveal--active::-webkit-scrollbar-thumb {
+  background-color: rgba(63, 63, 70, 0.65);
+  border-radius: 9999px;
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-edge-reveal.scrollbar-edge-reveal--active::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(113, 113, 122, 0.85);
+  border: 0 solid transparent;
+  background-clip: content-box;
+}
+.scrollbar-edge-reveal.scrollbar-edge-reveal--active::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* TRNSidePanel: collapsed expand + inner-edge collapse — muted glyph + gentle fade in/out (see prefers-reduced-motion). */
+@keyframes trn-side-panel-expand-icon-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.trn-side-panel-expand-icon {
+  animation: trn-side-panel-expand-icon-breathe 2.4s ease-in-out infinite;
+}
+
+/* Hover: hold at full opacity and pause the loop (parent must use `group`). */
+.group:hover .trn-side-panel-expand-icon {
+  animation-play-state: paused;
+  opacity: 1 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trn-side-panel-expand-icon {
+    animation: none;
+    opacity: 0.9;
+  }
+
+  .group:hover .trn-side-panel-expand-icon {
+    opacity: 1 !important;
+  }
+}
+
+/* Model Loader: glassmorphism numeric rows (T3D shared NumericInputRow). */
+.model-loader-glass-numeric input {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgb(229, 231, 235) !important;
+  backdrop-filter: blur(12px);
+}
+
+.model-loader-glass-numeric input::placeholder {
+  color: rgb(156, 163, 175) !important;
+}
+
+.model-loader-glass-numeric input:focus {
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.model-loader-glass-numeric button {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgb(209, 213, 219) !important;
+  backdrop-filter: blur(12px);
+}
+
+.model-loader-glass-numeric button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Search + Category rows — Model Loader (light glass). */
+.model-loader-filter-row input,
+.model-loader-filter-row select {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  color: rgb(229, 231, 235) !important;
+  backdrop-filter: blur(12px);
+}
+
+/* Model Catalog: dark glass to match category dropdown (Tailwind classes alone were overridden by !important above). */
+.model-catalog-filter-row input,
+.model-catalog-filter-row select {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(10, 10, 10, 0.88) !important;
+  color: rgb(229, 231, 235) !important;
+  backdrop-filter: blur(12px);
+}
+
+.model-catalog-filter-row input::placeholder,
+.model-loader-filter-row input::placeholder {
+  color: rgb(156, 163, 175) !important;
+}
+
+.model-catalog-filter-row input:focus,
+.model-catalog-filter-row select:focus {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.model-loader-filter-row input:focus,
+.model-loader-filter-row select:focus {
+  border-color: rgba(96, 165, 250, 0.7) !important;
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.35);
+}
+
+/* ── Webview launcher (browser dev landing) ───────────────────────────────── */
+
+@keyframes webview-launcher-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes webview-launcher-icon-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 0.92;
+  }
+}
+
+@keyframes webview-launcher-card-shine {
+  0% {
+    transform: translateX(-120%) skewX(-12deg);
+  }
+  100% {
+    transform: translateX(220%) skewX(-12deg);
+  }
+}
+
+.webview-launcher {
+  background: #030308;
+}
+
+/* Launcher deep-space nebula (see WebviewLauncherNebulaLayer) */
+.webview-launcher-nebula__depth {
+  background:
+    radial-gradient(ellipse 95% 65% at 50% 12%, rgba(88, 28, 135, 0.38), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 78% 22%, rgba(14, 116, 144, 0.22), transparent 52%),
+    radial-gradient(ellipse 70% 55% at 18% 28%, rgba(59, 130, 246, 0.14), transparent 50%),
+    linear-gradient(180deg, #070512 0%, #05040c 42%, #030308 100%);
+}
+
+.webview-launcher-nebula__canvas {
+  z-index: 1;
+  opacity: 0.78;
+  mix-blend-mode: screen;
+}
+
+.webview-launcher-nebula__horizon {
+  height: 40%;
+  background: linear-gradient(180deg, transparent 0%, rgba(3, 3, 8, 0.75) 50%, #030308 100%);
+  pointer-events: none;
+}
+
+.webview-launcher .t3d-flow-canvas-bg__base {
+  background:
+    radial-gradient(ellipse 85% 55% at 50% 0%, rgba(76, 29, 149, 0.12), transparent 54%),
+    linear-gradient(180deg, #04030a 0%, #080612 45%, #030308 100%);
+}
+
+/* Flow bubbles/waves — keep full strength over nebula (default was 0.92). */
+.webview-launcher .t3d-flow-canvas-bg__canvas {
+  z-index: 2;
+  opacity: 0.92;
+  mix-blend-mode: screen;
+}
+
+.webview-launcher-hero {
+  animation: webview-launcher-fade-up 0.9s ease-out both;
+}
+
+.webview-launcher-hero__subtitle {
+  animation: webview-launcher-fade-up 0.9s ease-out 0.08s both;
+}
+
+.webview-launcher-hero__partner-logo {
+  filter: drop-shadow(0 4px 18px rgba(0, 0, 0, 0.45));
+}
+
+.webview-launcher-hero__logo-wrap {
+  isolation: isolate;
+}
+
+.webview-launcher-hero__logo {
+  filter: drop-shadow(0 8px 28px rgba(0, 0, 0, 0.55))
+    drop-shadow(0 0 12px rgba(56, 189, 248, 0.28));
+}
+
+.webview-launcher-card {
+  animation: webview-launcher-fade-up 0.65s ease-out both;
+}
+
+.webview-launcher-card--delay-0 {
+  animation-delay: 0.12s;
+}
+
+.webview-launcher-card--delay-1 {
+  animation-delay: 0.22s;
+}
+
+.webview-launcher-card__icon {
+  animation: webview-launcher-icon-pulse 5s ease-in-out infinite;
+}
+
+.webview-launcher-card__shine {
+  background: linear-gradient(
+    105deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.12) 50%,
+    transparent 65%
+  );
+  animation: webview-launcher-card-shine 1.1s ease-out forwards;
+  animation-play-state: paused;
+}
+
+.webview-launcher-card:hover .webview-launcher-card__shine,
+.webview-launcher-card:focus-visible .webview-launcher-card__shine {
+  animation-play-state: running;
+}
+
+.webview-launcher-footer {
+  animation: webview-launcher-fade-up 0.7s ease-out 0.35s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .webview-launcher-nebula__canvas {
+    opacity: 0.65;
+    mix-blend-mode: normal;
+  }
+
+  .webview-launcher .t3d-flow-canvas-bg__canvas {
+    opacity: 0.65;
+    mix-blend-mode: normal;
+  }
+
+  .webview-launcher-hero,
+  .webview-launcher-hero__subtitle,
+  .webview-launcher-card,
+  .webview-launcher-card__icon,
+  .webview-launcher-card__shine,
+  .webview-launcher-footer {
+    animation: none !important;
+  }
+
+  .webview-launcher-card__shine {
+    opacity: 0 !important;
+  }
+}

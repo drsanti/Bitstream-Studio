@@ -1,0 +1,21 @@
+{
+  "defaults": [
+    {
+      "sourceId": 1,
+      "enabled": true,
+      "publishMode": 0,
+      "samplingIntervalMs": 1000,
+      "deltaX100": 10,
+      "minPublishIntervalMs": 50
+    },
+    {
+      "sourceId": 4,
+      "enabled": true,
+      "publishMode": 0,
+      "samplingIntervalMs": 20,
+      "deltaX100": 10,
+      "minPublishIntervalMs": 15
+    }
+  ],
+  "lastUpdatedUtc": "2026-05-04T12:30:00Z"
+}

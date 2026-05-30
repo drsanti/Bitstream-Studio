@@ -1,0 +1,35 @@
+{
+  "name": "sensor_health_report",
+  "description": "Generate a concise health report for sensors based on status, config, and latest samples.",
+  "arguments": {
+    "type": "object",
+    "properties": {
+      "sensorStatus": {
+        "type": "array",
+        "description": "Sensor start/stop and config summary from bitstream_sensor_status_get."
+      },
+      "latestSamples": {
+        "type": "array",
+        "description": "Recent sample data from bitstream_sensor_latest_samples_get."
+      },
+      "sensorCatalog": {
+        "type": "object",
+        "description": "Optional sensor metadata from bitstream://sensors/catalog."
+      }
+    },
+    "required": [
+      "sensorStatus"
+    ],
+    "additionalProperties": false
+  },
+  "output_contract": {
+    "type": "markdown",
+    "sections": [
+      "Fleet status overview",
+      "Per-sensor health table",
+      "Missing or stale data",
+      "Action items"
+    ]
+  },
+  "template": "You are a sensor operations assistant. Classify each sensor as OK, Warn, or Critical using status and freshness of samples. Highlight only actionable findings."
+}

@@ -1,0 +1,42 @@
+{
+  "referenceRoot": "D:/CODE/2026/TESAIoT_PSoC_Edge_Workspace/StreamSight",
+  "capturedAt": "2026-04-30T10:24:30.657Z",
+  "files": [
+    {
+      "path": "packages/backend/src/protocol/bitstreamBuilder.ts",
+      "exists": true,
+      "sha256": "824564c631642a77fe8e9fa100123bafbad78d58632d68b00861c3f77446c9ba",
+      "size": 4349
+    },
+    {
+      "path": "packages/backend/src/protocol/bitstreamParser.ts",
+      "exists": true,
+      "sha256": "2aa356e0c382bd02b21e58ad6515ef862afabb4989aab0d8041788dafc98151b",
+      "size": 1458
+    },
+    {
+      "path": "packages/backend/src/protocol/handshake.ts",
+      "exists": true,
+      "sha256": "ea249adadb901742ad50545ad6a6c298641c0860953d4bb689cc7082816844b4",
+      "size": 7840
+    },
+    {
+      "path": "packages/backend/src/serial/serialPortManager.ts",
+      "exists": true,
+      "sha256": "c9306a07b81e7ad15a73cc47a976843d40e6020f7bf8323469aacc54c0a16ef4",
+      "size": 3416
+    },
+    {
+      "path": "docs/ARCHITECTURE.md",
+      "exists": true,
+      "sha256": "8171d99207a583b7f30561f1df4e4b37a7c199ef50a2176502192796aebd6a42",
+      "size": 17874
+    },
+    {
+      "path": "docs/SYSTEM_DIAGNOSTICS_TYPE_0X05_SPEC.md",
+      "exists": true,
+      "sha256": "f7acc0a3841cb6c99abe11b4ce644a0eb74685aba25d78d7007efc8749947068",
+      "size": 28747
+    }
+  ]
+}

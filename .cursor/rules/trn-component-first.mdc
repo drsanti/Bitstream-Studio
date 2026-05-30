@@ -1,0 +1,14 @@
+---
+description: Prefer TRN UI components for new webview UI
+alwaysApply: true
+---
+
+# Webview UI: TRN components first
+
+When adding UI under **`extension/src/webview/`**:
+
+1. **Prefer TRN** — **`extension/src/webview/ui/TRN`** (`TRNFormField`, `TRNSectionContainer`, `TRNSelect`, etc.).
+2. **Match sibling panels** — reuse patterns from Bitstream / Sensor Studio before inventing new styles.
+3. **Phase 3 goal** — migrate remaining **`@ternion/t3d/ui`** usage in model-catalog to TRN (see **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`**).
+
+Scrollable lists: **`trn-glass-dropdown-scrollbars.mdc`**.

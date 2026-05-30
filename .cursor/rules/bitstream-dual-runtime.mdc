@@ -1,0 +1,31 @@
+---
+description: Bitstream features must work in UART + Simulation and in dev + packaged VSIX
+alwaysApply: true
+---
+
+# Bitstream dual-runtime parity (UART / Simulation, dev / VSIX)
+
+**NON-NEGOTIABLE:** Every Bitstream-related feature must behave correctly in **both** telemetry backends and ship the same in **dev** and **installed VSIX**.
+
+## UART and Simulation
+
+Treat **UART** (serial / BS-framed firmware) and **Simulation** (external **bitstream-simulator** VS Code extension) as **first-class peers**.
+
+- Backend store: **`uart`** (UI **Bitstream**) | **`simulator`** — no Auto mode.
+- **Ingest:** **`shouldIngestTelemetry()`** — Simulator ingests BS2 from external sim; UART only when serial is open.
+- See **`extension/HOW_TO_RUN.md`** for bridge + sim install.
+
+## VS Code webview detection
+
+- **Do not** use **`T3DVSCodeUtils.isVsCodeMode()` alone**.
+- **Use** **`isVsCodeExtensionWebview()`**, **`window.WEBVIEW_READY`**, **`window.__VSCODE_API__`**.
+
+## Build
+
+- **`npm run compile`** in **`extension/`** before packaging.
+- Re-test **`.vsix`** in a clean window after **`npm run package`**.
+
+## Related
+
+- **`bitstream-studio-rules.mdc`**, **`bitstream-app-conventions.mdc`**
+- **`extension/docs/BITSTREAM_T3D_DECOUPLING_PLAN.md`**

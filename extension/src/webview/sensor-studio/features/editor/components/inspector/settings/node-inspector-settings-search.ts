@@ -1,0 +1,110 @@
+const TYPED_SECTION_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
+  threshold: ["threshold", "operator", "compare", "value"],
+  "map-range": ["map", "range", "remap", "in", "out", "scale"],
+  clamp: ["clamp", "min", "max", "limit"],
+  "low-pass": ["low", "pass", "filter", "alpha", "smooth"],
+  gauge: ["gauge", "unit", "decimals", "digits"],
+  sparkline: ["sparkline", "history", "buffer", "samples"],
+  oscilloscope: ["oscilloscope", "scope", "channel", "timebase", "sample"],
+  "sensor-input": ["sensor", "source", "sourcekey", "hardware", "bmi270"],
+  environment: [
+    "environment",
+    "ibl",
+    "hdri",
+    "cubemap",
+    "background",
+    "yaw",
+    "modulation",
+    "socket",
+    "pin",
+  ],
+  "camera-view": ["camera", "fov", "orbit", "look", "polar", "distance"],
+  "glb-animation-bundle": ["animation", "bundle", "model", "viewer", "clip"],
+  "boolean-constant": ["boolean", "constant", "true", "false", "logic"],
+  "number-constant": [
+    "number",
+    "constant",
+    "float",
+    "integer",
+    "min",
+    "max",
+    "step",
+    "clamp",
+    "quantize",
+    "slider",
+    "card",
+    "input",
+  ],
+};
+
+const ROTATION_SEARCH = [
+  "rotation",
+  "3d",
+  "scene",
+  "model",
+  "grid",
+  "euler",
+  "quaternion",
+  "ibl",
+  "environment",
+  "shadow",
+  "light",
+  "mesh",
+];
+
+const JSON_SEARCH = ["json", "config", "raw", "default", "advanced"];
+
+function tokens(query: string): string[] {
+  return query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
+}
+
+function haystackIncludesAll(hay: string, toks: string[]): boolean {
+  if (toks.length === 0) {
+    return true;
+  }
+  return toks.every((t) => hay.includes(t));
+}
+
+export function shouldShowTypedSettingsSection(
+  nodeId: string,
+  catalogDefinitionTitle: string,
+  query: string,
+): boolean {
+  const toks = tokens(query);
+  if (toks.length === 0) {
+    return true;
+  }
+  const hay = `${nodeId} ${catalogDefinitionTitle}`.toLowerCase();
+  if (haystackIncludesAll(hay, toks)) {
+    return true;
+  }
+  const extra = TYPED_SECTION_KEYWORDS[nodeId];
+  if (extra == null) {
+    return false;
+  }
+  const kwHay = `${hay} ${extra.join(" ")}`;
+  return haystackIncludesAll(kwHay, toks);
+}
+
+export function shouldShowRotation3dSettings(query: string): boolean {
+  const toks = tokens(query);
+  if (toks.length === 0) {
+    return true;
+  }
+  const hay = ROTATION_SEARCH.join(" ");
+  return toks.some((t) => hay.includes(t) || ROTATION_SEARCH.some((k) => k.includes(t)));
+}
+
+export function shouldShowJsonConfigSection(query: string): boolean {
+  const toks = tokens(query);
+  if (toks.length === 0) {
+    return true;
+  }
+  const hay = JSON_SEARCH.join(" ");
+  return toks.some((t) => hay.includes(t) || JSON_SEARCH.some((k) => k.includes(t)));
+}

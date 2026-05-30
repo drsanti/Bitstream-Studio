@@ -1,0 +1,17 @@
+{
+  "protocolVersion": "2.1.0",
+  "schemaRevision": 5,
+  "firmwareCompatibility": [
+    {
+      "firmwareRange": ">=1.8.0 <2.0.0",
+      "supported": true,
+      "notes": "Current production range."
+    },
+    {
+      "firmwareRange": ">=2.0.0",
+      "supported": false,
+      "notes": "Future format not yet supported by extension decoder."
+    }
+  ],
+  "lastUpdatedUtc": "2026-05-04T11:30:00Z"
+}
