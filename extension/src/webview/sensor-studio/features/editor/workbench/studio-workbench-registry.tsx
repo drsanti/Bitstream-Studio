@@ -53,6 +53,8 @@ export function WorkbenchFlowPanel() {
       onDropPaletteCatalogNode={p.onDropPaletteCatalogNode}
       onDropGlbExtract={p.onDropGlbExtract}
       onDropStudioAsset={p.onDropStudioAsset}
+      canvasBackgroundColor={p.canvasBackgroundColor}
+      flowCanvasPreferences={p.flowCanvasPreferences}
     />
   );
 }
@@ -100,6 +102,9 @@ export function WorkbenchInspectorPanel() {
         onImportFlowPick: p.onImportFlowPick,
         onOpenDeviceSensorSettings: p.onOpenDeviceSensorSettings,
         onResetWorkspaceLayout: p.onResetWorkspaceLayout,
+        flowCanvasPreferences: p.flowCanvasPreferences,
+        themeCanvasBackgroundColor: p.canvasBackgroundColor,
+        onFlowCanvasPreferencesChange: p.onFlowCanvasPreferencesChange,
       }}
     />
   );

@@ -73,6 +73,7 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Sensor Studio Canvas appearance (inspector v0.2):** persisted **`flow-canvas-ui-persistence`** — show grid, snap to grid, grid size (12–32 px), minimap (category-colored), custom canvas background + theme reset; **`FlowCanvas`** wires React Flow snap/Background/MiniMap; palette drops snap via **`snapFlowPoint`**.
 - **2026-05-31** — **Sensor Studio Canvas inspector (empty selection):** **`CanvasInspectorPanel`** replaces placeholder when no node selected — graph stats, telemetry RX row, view (fit / restore / zoom %), selection helpers, starter templates, import/export/clear graph, workbench layout reset; pane title **Inspector**; live **`flowViewport`** wired from **`SensorStudioMain`**.
 - **2026-05-31** — **Sensor Studio Node library live rows:** **`LibraryEntryRow`** canvas-parity readings (primary bundle matrix, semantic scalar colors, right-aligned); **`TrnLiveDataPulseIcon`** + GSAP icon pulse on data change; compact TRN choice buttons with **`hint`** tooltips.
 - **2026-05-31** — **BMI270 temperature + EVT merge (host):** partial EVT mappers, `mergePartialBitstreamSensorSample`, `finalizeBmi270DeckSample`, restored **Telemetry channels** card, stable hybrid hint via `bmi270EvtMaskSeenOr`; firmware default mask **0x07** (IMU+temp).

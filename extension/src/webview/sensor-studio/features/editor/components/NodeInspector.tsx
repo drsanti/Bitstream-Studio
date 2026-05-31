@@ -62,7 +62,10 @@ export type NodeInspectorProps = {
     nextJson: string,
   ) => { ok: true } | { ok: false; message: string };
   /** When no node is selected, show canvas-level controls (omit for legacy layouts). */
-  canvasInspector?: Omit<CanvasInspectorPanelProps, "nodes" | "edges" | "orderedSelectedNodes">;
+  canvasInspector?: Omit<
+    CanvasInspectorPanelProps,
+    "nodes" | "edges" | "orderedSelectedNodes"
+  >;
   nodes?: CanvasInspectorPanelProps["nodes"];
   edges?: CanvasInspectorPanelProps["edges"];
   orderedSelectedNodesForCanvas?: CanvasInspectorPanelProps["orderedSelectedNodes"];

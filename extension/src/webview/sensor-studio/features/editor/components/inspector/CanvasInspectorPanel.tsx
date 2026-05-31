@@ -16,7 +16,12 @@ import { TRNButton, TRNSelect } from "../../../../../ui/TRN";
 import { resolveStudioNodeSourceId } from "../../../../core/device/resolve-studio-node-source-id";
 import type { StudioDemoTemplateId, StudioNode } from "../../store/flow-editor.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
+import type {
+  FlowCanvasGridSize,
+  FlowCanvasPreferences,
+} from "../flow-canvas-ui-persistence";
 import { CANVAS_DEMO_TEMPLATE_OPTIONS } from "./canvas-inspector-demo-templates";
+import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { InspectorSection } from "./InspectorSection";
 
@@ -37,7 +42,18 @@ export type CanvasInspectorPanelProps = {
   onImportFlowPick: () => void;
   onOpenDeviceSensorSettings?: (initialSourceId: number | null) => void;
   onResetWorkspaceLayout?: () => void;
+  flowCanvasPreferences: FlowCanvasPreferences;
+  themeCanvasBackgroundColor: string;
+  onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
 };
+
+const GRID_SIZE_OPTIONS: { value: string; label: string }[] = [
+  { value: "12", label: "12 px" },
+  { value: "16", label: "16 px" },
+  { value: "20", label: "20 px" },
+  { value: "24", label: "24 px" },
+  { value: "32", label: "32 px" },
+];
 
 function formatZoomPercent(zoom: number | undefined): string {
   if (zoom == null || !Number.isFinite(zoom)) {
@@ -104,6 +120,9 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
     onImportFlowPick,
     onOpenDeviceSensorSettings,
     onResetWorkspaceLayout,
+    flowCanvasPreferences,
+    themeCanvasBackgroundColor,
+    onFlowCanvasPreferencesChange,
   } = props;
 
   const undoDepth = useFlowEditorStore((s) => s.undoStack.length);
@@ -123,6 +142,10 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
 
   const activeTemplateHint =
     CANVAS_DEMO_TEMPLATE_OPTIONS.find((o) => o.value === templateId)?.hint ?? "";
+
+  const effectiveBackgroundHex =
+    flowCanvasPreferences.backgroundHex ?? themeCanvasBackgroundColor;
+  const usingThemeBackground = flowCanvasPreferences.backgroundHex == null;
 
   const onClearGraphConfirmed = () => {
     if (
@@ -225,6 +248,78 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
                 Restore view
               </TRNButton>
             ) : null}
+          </div>
+        </InspectorSection>
+
+        <InspectorSection title="Appearance" hint="Grid, minimap, and canvas background.">
+          <div className="space-y-2.5">
+            <InspectorCompactToggleRow
+              label="Show grid"
+              hint="Dot grid aligned to the snap size below."
+              checked={flowCanvasPreferences.showGrid}
+              onCheckedChange={(next) => onFlowCanvasPreferencesChange({ showGrid: next })}
+            />
+            <InspectorCompactToggleRow
+              label="Snap to grid"
+              hint="Snap node drag and palette drops to the grid."
+              checked={flowCanvasPreferences.snapToGrid}
+              onCheckedChange={(next) => onFlowCanvasPreferencesChange({ snapToGrid: next })}
+            />
+            <InspectorPropertyRow
+              label="Grid size"
+              description="Used for snap spacing and dot grid gap."
+            >
+              <TRNSelect
+                value={String(flowCanvasPreferences.gridSize)}
+                options={GRID_SIZE_OPTIONS}
+                ariaLabel="Flow canvas grid size"
+                size="sm"
+                onValueChange={(next) =>
+                  onFlowCanvasPreferencesChange({
+                    gridSize: Number(next) as FlowCanvasGridSize,
+                  })
+                }
+              />
+            </InspectorPropertyRow>
+            <InspectorCompactToggleRow
+              label="Minimap"
+              hint="Overview map in the bottom-right of the flow canvas."
+              checked={flowCanvasPreferences.showMinimap}
+              onCheckedChange={(next) => onFlowCanvasPreferencesChange({ showMinimap: next })}
+            />
+            <InspectorPropertyRow
+              label="Background"
+              description={
+                usingThemeBackground
+                  ? `Using theme default (${themeCanvasBackgroundColor}).`
+                  : "Custom canvas fill color."
+              }
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  className="h-8 min-w-0 flex-1 cursor-pointer rounded border border-zinc-700 bg-zinc-900"
+                  value={
+                    /^#[0-9a-fA-F]{6}$/.test(effectiveBackgroundHex)
+                      ? effectiveBackgroundHex
+                      : "#09090b"
+                  }
+                  aria-label="Flow canvas background color"
+                  onChange={(e) =>
+                    onFlowCanvasPreferencesChange({ backgroundHex: e.target.value })
+                  }
+                />
+                <TRNButton
+                  size="compact"
+                  className="shrink-0"
+                  disabled={usingThemeBackground}
+                  hint="Revert to the Sensor Studio theme canvas color."
+                  onClick={() => onFlowCanvasPreferencesChange({ backgroundHex: null })}
+                >
+                  Theme
+                </TRNButton>
+              </div>
+            </InspectorPropertyRow>
           </div>
         </InspectorSection>
 

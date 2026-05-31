@@ -7,6 +7,8 @@ import { useBmi270FusionQuatWireTapStore } from "../../bitstream-app/state/bmi27
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
+import { snapFlowPoint } from "../features/editor/components/snap-flow-position";
+import { useFlowCanvasPreferences } from "../features/editor/components/use-flow-canvas-preferences";
 import {
   type StudioDemoTemplateId,
   type StudioNode,
@@ -194,6 +196,10 @@ export function SensorStudioMain() {
 
   const selectedNode = orderedSelectedNodes[0] ?? null;
   const [templateId, setTemplateId] = useState<StudioDemoTemplateId>("signal-chain");
+  const { preferences: flowCanvasPreferences, patchPreferences: patchFlowCanvasPreferences } =
+    useFlowCanvasPreferences();
+  const flowCanvasPrefsRef = useRef(flowCanvasPreferences);
+  flowCanvasPrefsRef.current = flowCanvasPreferences;
   const [deviceSensorSettingsOpen, setDeviceSensorSettingsOpen] = useState(false);
   const [deviceSensorSettingsInitialSourceId, setDeviceSensorSettingsInitialSourceId] =
     useState<number | null>(null);
@@ -267,8 +273,14 @@ export function SensorStudioMain() {
     });
   }, [bootViewport]);
 
+  const snapDropPosition = useCallback((position: { x: number; y: number }) => {
+    const prefs = flowCanvasPrefsRef.current;
+    return snapFlowPoint(position, prefs.gridSize, prefs.snapToGrid);
+  }, []);
+
   const onDropPaletteCatalogNode = useCallback(
     (catalogNodeId: string, flowPosition: { x: number; y: number }) => {
+      const snapped = snapDropPosition(flowPosition);
       const entry = catalog.find((n) => n.id === catalogNodeId);
       if (entry == null) {
         return;
@@ -276,14 +288,14 @@ export function SensorStudioMain() {
       const st = useFlowEditorStore.getState();
       const parentId = resolveSingleModelSelectParentId(st);
       if (parentId != null && catalogEntrySpawnsLinkedToModel(entry.id)) {
-        addNodeFromCatalogLinkedToModel(entry, flowPosition, {
+        addNodeFromCatalogLinkedToModel(entry, snapped, {
           parentModelNodeId: parentId,
         });
         return;
       }
-      addNodeFromCatalogAt(entry, flowPosition);
+      addNodeFromCatalogAt(entry, snapped);
     },
-    [addNodeFromCatalogAt, addNodeFromCatalogLinkedToModel, catalog],
+    [addNodeFromCatalogAt, addNodeFromCatalogLinkedToModel, catalog, snapDropPosition],
   );
 
   const spawnGlbLinkedNumberConstant = useCallback(
@@ -332,14 +344,15 @@ export function SensorStudioMain() {
           ref: payload.glbRef,
           label: payload.label,
         },
-        flowPosition,
+        snapDropPosition(flowPosition),
       );
     },
-    [spawnGlbLinkedNumberConstant],
+    [spawnGlbLinkedNumberConstant, snapDropPosition],
   );
 
   const onDropStudioAsset = useCallback(
     (payload: StudioAssetDragPayloadV1, flowPosition: { x: number; y: number }) => {
+      const dropPosition = snapDropPosition(flowPosition);
       const modelEntry = catalog.find((n) => n.id === "model-select");
       const viewerEntry = catalog.find((n) => n.id === "model-viewer");
       if (modelEntry == null) {
@@ -363,7 +376,7 @@ export function SensorStudioMain() {
           ? selectedEmpty
           : sortNodesByFlowPositionProximity(
               selectedEmpty.length > 0 ? selectedEmpty : allEmptyViewers,
-              flowPosition,
+              dropPosition,
             );
       const targetViewer = sortedEmpty[0] ?? null;
       const modelPosition =
@@ -372,7 +385,7 @@ export function SensorStudioMain() {
               x: targetViewer.position.x - STUDIO_MODEL_TO_VIEWER_OFFSET_X,
               y: targetViewer.position.y,
             }
-          : flowPosition;
+          : dropPosition;
 
       const modelNodeId = addNodeFromCatalogAt(modelEntry, modelPosition, {
         flowNodeLabel: payload.label,
@@ -418,6 +431,7 @@ export function SensorStudioMain() {
       catalog,
       descriptors,
       onConnect,
+      snapDropPosition,
     ],
   );
 
@@ -819,6 +833,8 @@ export function SensorStudioMain() {
         onClearCanvasSelection={onClearFlowSelection}
         flowViewport={flowViewport}
         onRestoreFlowViewport={onRestoreFlowViewport}
+        flowCanvasPreferences={flowCanvasPreferences}
+        onFlowCanvasPreferencesChange={patchFlowCanvasPreferences}
         onDropPaletteCatalogNode={onDropPaletteCatalogNode}
         onSpawnGlbExtract={onSpawnGlbExtract}
         onDropGlbExtract={onDropGlbExtract}

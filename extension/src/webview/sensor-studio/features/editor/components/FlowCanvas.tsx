@@ -1,5 +1,7 @@
 import {
   Background,
+  BackgroundVariant,
+  MiniMap,
   type ReactFlowInstance,
   ReactFlow,
   type Edge,
@@ -11,9 +13,11 @@ import {
 import { useCallback, useEffect, useMemo, useRef, type DragEvent } from "react";
 import "@xyflow/react/dist/style.css";
 import "../nodes/flow-node/flow-node-handles.css";
+import "../flow-canvas-minimap.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import type { StudioNode } from "../store/flow-editor.store";
+import type { FlowCanvasPreferences } from "./flow-canvas-ui-persistence";
 import { parseStudioAssetDragData, type StudioAssetDragPayloadV1 } from "../../asset-browser/studio-asset-drag";
 import { parsePaletteCatalogDragData } from "./node-palette/palette-catalog-drag";
 import { parseStudioGlbExtractDragData, type StudioGlbExtractDragPayloadV1 } from "./node-palette/glb-extract-drag";
@@ -63,6 +67,9 @@ type FlowCanvasProps = {
     payload: StudioAssetDragPayloadV1,
     flowPosition: { x: number; y: number },
   ) => void;
+  /** Theme default when `flowCanvasPreferences.backgroundHex` is null. */
+  canvasBackgroundColor: string;
+  flowCanvasPreferences: FlowCanvasPreferences;
 };
 
 export function FlowCanvas(props: FlowCanvasProps) {
@@ -93,6 +100,8 @@ export function FlowCanvas(props: FlowCanvasProps) {
     onDropPaletteCatalogNode,
     onDropGlbExtract,
     onDropStudioAsset,
+    canvasBackgroundColor,
+    flowCanvasPreferences,
   } = props;
   const reactFlowRef = useRef<ReactFlowInstance<StudioNode> | null>(null);
 
@@ -210,6 +219,27 @@ export function FlowCanvas(props: FlowCanvasProps) {
     reactFlowRef.current?.setViewport(applyViewport);
   }, [applyViewportNonce, applyViewport]);
 
+  const effectiveCanvasBackground =
+    flowCanvasPreferences.backgroundHex ?? canvasBackgroundColor;
+  const snapGrid = useMemo(
+    (): [number, number] => [
+      flowCanvasPreferences.gridSize,
+      flowCanvasPreferences.gridSize,
+    ],
+    [flowCanvasPreferences.gridSize],
+  );
+
+  const minimapNodeColor = useCallback(
+    (node: StudioNode) => {
+      const category = node.data?.category;
+      if (category != null && minimapCategoryColors[category] != null) {
+        return minimapCategoryColors[category];
+      }
+      return "#52525b";
+    },
+    [minimapCategoryColors],
+  );
+
   return (
     <section
       className="flex h-full min-h-0 flex-col overflow-hidden rounded border"
@@ -227,10 +257,13 @@ export function FlowCanvas(props: FlowCanvasProps) {
         <ReactFlow<StudioNode>
           colorMode="dark"
           proOptions={{ hideAttribution: true }}
+          style={{ backgroundColor: effectiveCanvasBackground }}
           nodes={nodes}
           edges={coloredEdges}
           nodeTypes={nodeTypes}
           elementsSelectable
+          snapToGrid={flowCanvasPreferences.snapToGrid}
+          snapGrid={snapGrid}
           deleteKeyCode={["Backspace", "Delete"]}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
@@ -260,7 +293,24 @@ export function FlowCanvas(props: FlowCanvasProps) {
             }
           }}
         >
-          <Background />
+          {flowCanvasPreferences.showGrid ? (
+            <Background
+              variant={BackgroundVariant.Dots}
+              gap={flowCanvasPreferences.gridSize}
+              size={1}
+              color="#52525b"
+            />
+          ) : null}
+          {flowCanvasPreferences.showMinimap ? (
+            <MiniMap
+              nodeColor={minimapNodeColor}
+              nodeStrokeWidth={2}
+              zoomable
+              pannable
+              maskColor="rgb(9 9 11 / 0.78)"
+              className="studio-flow-minimap"
+            />
+          ) : null}
         </ReactFlow>
       </div>
     </section>

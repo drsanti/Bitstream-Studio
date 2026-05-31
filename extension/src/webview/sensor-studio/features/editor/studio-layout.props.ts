@@ -10,6 +10,7 @@ import type { StudioGltfExtractRow } from "./gltf/studio-gltf-extract";
 import type { StudioAssetDragPayloadV1 } from "../asset-browser/studio-asset-drag";
 import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/glb-extract-drag";
 import type { StudioDemoTemplateId, StudioNode } from "./store/flow-editor.store";
+import type { FlowCanvasPreferences } from "./components/flow-canvas-ui-persistence";
 
 /** Props for `StudioLayout` and the Sensor Studio workbench panel context. */
 export type StudioLayoutProps = {
@@ -60,6 +61,8 @@ export type StudioLayoutProps = {
   onRestoreFlowViewport?: () => void;
   /** Reset workbench pane split layout (provided by StudioLayout). */
   onResetWorkspaceLayout?: () => void;
+  flowCanvasPreferences: FlowCanvasPreferences;
+  onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
   deviceSensorSettingsOpen?: boolean;
   onDeviceSensorSettingsOpenChange?: (open: boolean) => void;
   deviceSensorSettingsInitialSourceId?: number | null;
