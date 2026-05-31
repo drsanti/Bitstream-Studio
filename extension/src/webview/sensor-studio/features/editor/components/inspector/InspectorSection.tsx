@@ -2,11 +2,12 @@ import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { twMerge } from "tailwind-merge";
+import { TRNHintTooltip } from "../../../../../ui/TRN";
 
 export type InspectorSectionProps = {
   title: string;
-  /** Muted subline under the title when expanded. */
-  hint?: string;
+  /** Hover tooltip on the section title ({@link TRNHintTooltip}). */
+  hint?: ReactNode;
   /** Optional actions on the section header row (right). */
   headerTrailing?: ReactNode;
   defaultExpanded?: boolean;
@@ -17,6 +18,35 @@ export type InspectorSectionProps = {
   className?: string;
   contentClassName?: string;
 };
+
+function InspectorSectionTitle(props: {
+  title: string;
+  hint?: ReactNode;
+  variant: "default" | "error";
+}) {
+  const { title, hint, variant } = props;
+  const titleClass = twMerge(
+    "block min-w-0 truncate text-[11px] font-semibold tracking-wide",
+    variant === "error" ? "text-rose-200/95" : "text-zinc-200/95",
+    hint != null ? "cursor-help" : null,
+  );
+
+  if (hint == null || (typeof hint === "string" && hint.trim().length === 0)) {
+    return <span className={titleClass}>{title}</span>;
+  }
+
+  return (
+    <TRNHintTooltip
+      trigger={<span className={titleClass}>{title}</span>}
+      content={hint}
+      triggerAriaLabel={`About ${title}`}
+      placement="top-start"
+      triggerClassName="min-w-0 flex-1 text-left"
+      triggerWrapper="span"
+      wide={typeof hint === "string" ? hint.length > 120 : true}
+    />
+  );
+}
 
 /**
  * Flat inspector section — instrument readout style (no glass TRNCard frame).
@@ -47,14 +77,7 @@ export function InspectorSection(props: InspectorSectionProps) {
 
   const headerInner = (
     <>
-      <span
-        className={twMerge(
-          "min-w-0 flex-1 text-[11px] font-semibold tracking-wide",
-          variant === "error" ? "text-rose-200/95" : "text-zinc-200/95",
-        )}
-      >
-        {title}
-      </span>
+      <InspectorSectionTitle title={title} hint={hint} variant={variant} />
       {headerTrailing != null ? (
         <span className="flex shrink-0 items-center gap-1.5">{headerTrailing}</span>
       ) : null}
@@ -99,9 +122,6 @@ export function InspectorSection(props: InspectorSectionProps) {
         )}
       >
         {headerRow}
-        {hint != null && hint.length > 0 && isOpen ? (
-          <p className="pb-1.5 text-[10px] leading-snug text-zinc-500">{hint}</p>
-        ) : null}
       </div>
       {isOpen ? <div className={contentClassName}>{children}</div> : null}
     </section>

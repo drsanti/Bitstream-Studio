@@ -8,9 +8,12 @@ import {
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
-  trnInspectorTabActiveClassName,
+  TRN_INSPECTOR_TAB_ACTIVE_CLASS,
 } from "../../../../../ui/TRN";
-import type { StudioDemoTemplateId, StudioNode } from "../../store/flow-editor.store";
+import type {
+  StudioDemoTemplateId,
+  StudioNode,
+} from "../../store/flow-editor.store";
 import type { FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
 import { CanvasInspectorCanvasTab } from "./CanvasInspectorCanvasTab";
 import { CanvasInspectorContextBar } from "./CanvasInspectorContextBar";
@@ -42,7 +45,9 @@ export type CanvasInspectorPanelProps = {
   onResetWorkspaceLayout?: () => void;
   flowCanvasPreferences: FlowCanvasPreferences;
   themeCanvasBackgroundColor: string;
-  onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
+  onFlowCanvasPreferencesChange: (
+    patch: Partial<FlowCanvasPreferences>,
+  ) => void;
 };
 
 const CANVAS_INSPECTOR_TABS: readonly {
@@ -50,9 +55,9 @@ const CANVAS_INSPECTOR_TABS: readonly {
   label: string;
   Icon: LucideIcon;
 }[] = [
-  { id: "canvas", label: "Canvas", Icon: LayoutGrid },
-  { id: "telemetry", label: "Telemetry", Icon: Activity },
-  { id: "document", label: "Document", Icon: FileStack },
+  { id: "canvas", label: "View", Icon: LayoutGrid },
+  { id: "document", label: "Flow", Icon: FileStack },
+  { id: "telemetry", label: "Sensors", Icon: Activity },
 ];
 
 export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
@@ -92,18 +97,13 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-      <CanvasInspectorContextBar
-        nodeCount={nodes.length}
-        edgeCount={edges.length}
-        selectionCount={selectionCount}
-        health={health}
-      />
-
       <TRNTabs
         value={activeTab}
-        onValueChange={(next) => setActiveTabPersisted(next as CanvasInspectorTab)}
+        onValueChange={(next) =>
+          setActiveTabPersisted(next as CanvasInspectorTab)
+        }
         className="flex min-h-0 min-w-0 flex-1 flex-col"
-        activeTriggerClassName={trnInspectorTabActiveClassName(activeTab, "telemetry")}
+        activeTriggerClassName={TRN_INSPECTOR_TAB_ACTIVE_CLASS}
       >
         <div className={TRN_INSPECTOR_TAB_BAR_WRAP_CLASS}>
           <TRNTabsList className={TRN_INSPECTOR_TAB_LIST_CLASS}>
@@ -120,7 +120,19 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
           </TRNTabsList>
         </div>
 
-        <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <CanvasInspectorContextBar
+            activeTab={activeTab}
+            nodeCount={nodes.length}
+            edgeCount={edges.length}
+            selectionCount={selectionCount}
+            health={health}
+            flowViewport={flowViewport}
+            flowCanvasPreferences={flowCanvasPreferences}
+            templateId={templateId}
+          />
+
+          <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
           {activeTab === "canvas" ? (
             <CanvasInspectorCanvasTab
               flowViewport={flowViewport}
@@ -156,6 +168,7 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
               onImportFlowPick={onImportFlowPick}
             />
           ) : null}
+          </div>
         </div>
       </TRNTabs>
     </div>

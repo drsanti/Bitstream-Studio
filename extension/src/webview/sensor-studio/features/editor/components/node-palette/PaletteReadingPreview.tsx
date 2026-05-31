@@ -7,7 +7,7 @@ import {
 } from "../../nodes/flow-node/readings";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "../../nodes/flow-node/readings/socket-live-value-cell";
 import type { PalettePreview, PalettePreviewStreamTone } from "./palette-live-preview";
-import { NODE_PALETTE_TABULAR_CLASS } from "./node-palette-font";
+import { NODE_PALETTE_TABULAR_CLASS, PALETTE_ROW_LABEL_TYPOGRAPHY } from "./node-palette-font";
 import { PalettePrimaryReadingsPreview } from "./PalettePrimaryReadingsPreview";
 import { getPaletteScalarReadingColorClass } from "./palette-scalar-reading-styles";
 
@@ -36,7 +36,6 @@ export function PaletteReadingPreview(props: PaletteReadingPreviewProps) {
   const { preview, align = "start", density = "dense" } = props;
   const isDense = density === "dense";
   const textSize = isDense ? "text-[10px] leading-none" : "text-[11px] leading-tight";
-  const unitSize = isDense ? "text-[9px]" : "text-[10px]";
 
   if (preview.kind === "primaryBundle") {
     return (
@@ -88,7 +87,7 @@ export function PaletteReadingPreview(props: PaletteReadingPreviewProps) {
       >
         <span>—</span>
         {preview.unit != null ? (
-          <span className={twMerge(unitSize, "text-zinc-700")}>{preview.unit}</span>
+          <span className={twMerge("shrink-0", PALETTE_ROW_LABEL_TYPOGRAPHY)}>{preview.unit}</span>
         ) : null}
       </span>
     );
@@ -115,7 +114,7 @@ export function PaletteReadingPreview(props: PaletteReadingPreviewProps) {
           className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, digitAlign, tone)}
         />
         {preview.unit != null ? (
-          <span className={twMerge(unitSize, "opacity-80", tone)}>{preview.unit}</span>
+          <span className={twMerge("shrink-0", PALETTE_ROW_LABEL_TYPOGRAPHY)}>{preview.unit}</span>
         ) : null}
       </span>
     );
@@ -192,7 +191,7 @@ export function PaletteReadingPreview(props: PaletteReadingPreviewProps) {
     >
       <span>{preview.text}</span>
       {preview.unit != null ? (
-        <span className={twMerge(unitSize, "opacity-80")}>{preview.unit}</span>
+        <span className={twMerge("shrink-0", PALETTE_ROW_LABEL_TYPOGRAPHY)}>{preview.unit}</span>
       ) : null}
     </span>
   );

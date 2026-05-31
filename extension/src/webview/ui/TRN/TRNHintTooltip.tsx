@@ -18,6 +18,8 @@ export type TRNHintTooltipProps = {
   triggerAriaLabel?: string;
   /** Wider cap for long documentation (default matches standard hint width). */
   wide?: boolean;
+  /** Use `"span"` when the trigger lives inside another button (e.g. collapsible section header). */
+  triggerWrapper?: "button" | "span";
 };
 
 /**
@@ -35,6 +37,7 @@ export function TRNHintTooltip(props: TRNHintTooltipProps) {
     triggerClassName = "",
     triggerAriaLabel,
     wide = false,
+    triggerWrapper = "button",
   } = props;
 
   return (
@@ -42,6 +45,7 @@ export function TRNHintTooltip(props: TRNHintTooltipProps) {
       className={className}
       triggerClassName={triggerClassName}
       triggerAriaLabel={triggerAriaLabel}
+      triggerWrapper={triggerWrapper}
       placement={placement}
       openDelayMs={TRN_HINT_HOVER_DELAY_MS}
       disableHoverFx

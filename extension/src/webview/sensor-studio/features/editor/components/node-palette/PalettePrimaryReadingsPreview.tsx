@@ -11,6 +11,7 @@ import type {
   PalettePreviewStreamTone,
 } from "./palette-live-preview";
 import { getPaletteScalarReadingColorClass } from "./palette-scalar-reading-styles";
+import { PALETTE_ROW_LABEL_TYPOGRAPHY } from "./node-palette-font";
 
 type PalettePrimaryReadingsPreviewProps = {
   streamMode: PalettePreviewStreamTone;
@@ -49,14 +50,16 @@ function PrimaryBundleRow(props: {
       <div className="flex min-w-0 items-baseline justify-between gap-2">
         <span className={labelClass}>{row.label}</span>
         {unavailable ? (
-          <span className={`${SOCKET_LIVE_VALUE_TYPOGRAPHY} text-zinc-600`}>
+          <span className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "shrink-0 text-zinc-600")}>
             <span>—</span>
             {row.unit != null ? (
-              <span className="ml-0.5 text-[9px] text-zinc-700">{row.unit}</span>
+              <span className={twMerge("ml-0.5 shrink-0", PALETTE_ROW_LABEL_TYPOGRAPHY)}>
+                {row.unit}
+              </span>
             ) : null}
           </span>
         ) : (
-          <span className="inline-flex items-baseline gap-0.5">
+          <span className="inline-flex shrink-0 items-baseline gap-0.5">
             <ReadingNumber
               value={row.value}
               fractionDigits={row.fractionDigits ?? 2}
@@ -64,7 +67,7 @@ function PrimaryBundleRow(props: {
               className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "text-right", scalarTone)}
             />
             {row.unit != null ? (
-              <span className={`text-[9px] opacity-80 ${scalarTone}`}>{row.unit}</span>
+              <span className={twMerge("shrink-0", PALETTE_ROW_LABEL_TYPOGRAPHY)}>{row.unit}</span>
             ) : null}
           </span>
         )}
@@ -126,12 +129,8 @@ function PrimaryBundleRow(props: {
 
 /** Compact multi-row live matrix for primary sensor stream nodes in the library. */
 export function PalettePrimaryReadingsPreview(props: PalettePrimaryReadingsPreviewProps) {
-  const { streamMode, rows, align = "end", density = "dense" } = props;
-  const isDense = density === "dense";
-  const labelClass = twMerge(
-    "shrink-0 truncate font-medium text-zinc-500",
-    isDense ? "w-[2.75rem] text-[9px] leading-none" : "w-[3rem] text-[10px] leading-tight",
-  );
+  const { streamMode, rows, align = "end" } = props;
+  const labelClass = twMerge("shrink-0 truncate w-[3rem]", PALETTE_ROW_LABEL_TYPOGRAPHY);
 
   return (
     <div

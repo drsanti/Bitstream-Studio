@@ -14,6 +14,7 @@ import {
   SENSOR_SOURCE_ID_SHT40,
 } from "../../bitstream-app/constants/sensorSourceIds.js";
 import {
+  isBs2UartFirmwareLink,
   isSimulatorTelemetryBackend,
   isTelemetryDecodePipelineActive,
   isTelemetryTransportReady,
@@ -30,10 +31,17 @@ import {
   computeRollingFpsFromSampleCount,
   formatAggregateDecodeFps,
 } from "../../bitstream-app/utils/telemetryStreamRate.js";
+import {
+  formatTelemetryDeltaFixed,
+  normalizeDeviceBadgeDeltaMs,
+} from "../../bitstream-app/utils/telemetryDeltaDisplay.js";
 
 export type SensorRxChipMetric = "freshness" | "aggregateFps";
 
 export type TelemetryRxBadgeVariant = "chip" | "cardRow" | "panel";
+
+/** Panel layout: one worst-age header row vs one bordered row per sensor hint. */
+export type PanelSensorRowsLayout = "aggregate" | "perSensor";
 
 function formatTime(ts: number | null): string {
   if (ts == null) {
@@ -259,6 +267,150 @@ function hintToSensorTitle(hint: (typeof SENSOR_RX_HINTS)[number]): string {
     default:
       return hint;
   }
+}
+
+type PerSensorDecodeRowModel = {
+  hint: (typeof SENSOR_RX_HINTS)[number];
+  title: string;
+  subtitle: string;
+  /** Single-line fallback (link pending, disabled, no sample). */
+  valueLabel: string;
+  /** Last frame Δt (device tMs gap, host fallback via normalizeDeviceBadgeDeltaMs). */
+  deltaLabel?: string;
+  /** Wall-clock age since last decode in this webview. */
+  ageLabel?: string;
+  borderClass: string;
+  toneClass: string;
+};
+
+function formatPerSensorWallAgeLabel(ageMs: number): string {
+  return `${formatSampleAge(ageMs)} ago`;
+}
+
+function buildPerSensorDecodeDualLabels(args: {
+  ageMs: number;
+  deviceInterArrivalMs: number | null | undefined;
+}): { deltaLabel: string; ageLabel: string } {
+  const deltaMs = normalizeDeviceBadgeDeltaMs({
+    deviceInterArrivalMs: args.deviceInterArrivalMs,
+    wallAgeMs: args.ageMs,
+  });
+  return {
+    deltaLabel:
+      formatTelemetryDeltaFixed(deltaMs, { placeholder: false }) ??
+      formatTelemetryDeltaFixed(null, { placeholder: true }) ??
+      "--- Δms",
+    ageLabel: formatPerSensorWallAgeLabel(args.ageMs),
+  };
+}
+
+function freshnessTierPanelStyles(tier: 0 | 1 | 2): { borderClass: string; toneClass: string } {
+  if (tier === 0) {
+    return {
+      borderClass: "border-emerald-500/35 bg-emerald-500/10",
+      toneClass: "text-emerald-400",
+    };
+  }
+  if (tier === 1) {
+    return {
+      borderClass: "border-amber-500/35 bg-amber-500/10",
+      toneClass: "text-amber-400",
+    };
+  }
+  return {
+    borderClass: "border-rose-500/40 bg-rose-500/10",
+    toneClass: "text-rose-400",
+  };
+}
+
+const PANEL_NEUTRAL_STYLES = {
+  borderClass: "border-zinc-600/50 bg-white/4",
+  toneClass: "text-zinc-500",
+} as const;
+
+function buildPerSensorDecodeRowModels(args: {
+  decodePipelineActive: boolean;
+  linkStatusTransportReady: boolean;
+  handshakeState: HandshakeLifecycleState;
+  lastAtByHint: Record<string, number | null>;
+  lastDeltaMsByHint: Record<string, number | null>;
+  nowMs: number;
+  bySourceId: Partial<Record<number, DeviceSensorConfigRow>>;
+  simulatorMode?: boolean;
+}): PerSensorDecodeRowModel[] {
+  const {
+    decodePipelineActive,
+    linkStatusTransportReady,
+    handshakeState,
+    lastAtByHint,
+    lastDeltaMsByHint,
+    nowMs,
+    bySourceId,
+    simulatorMode,
+  } = args;
+
+  return SENSOR_RX_HINTS.map((hint) => {
+    const sid = HINT_TO_SOURCE_ID[hint];
+    const cfg = bySourceId[sid];
+    const title = hintToSensorTitle(hint);
+    const interval = clampSamplingIntervalMs(cfg?.samplingIntervalMs);
+
+    if (!isSensorRowEnabled(cfg)) {
+      return {
+        hint,
+        title,
+        subtitle: "bitstreamLive · disabled",
+        valueLabel: "—",
+        ...PANEL_NEUTRAL_STYLES,
+      };
+    }
+
+    const t = lastAtByHint[hint];
+    if (typeof t === "number") {
+      const ageMs = Math.max(0, nowMs - t);
+      const tier = tierForSensorAge(ageMs, cfg?.samplingIntervalMs);
+      const status = tier === 0 ? "Good" : tier === 1 ? "Marginal" : "Stale";
+      const { borderClass, toneClass } = freshnessTierPanelStyles(tier);
+      const { deltaLabel, ageLabel } = buildPerSensorDecodeDualLabels({
+        ageMs,
+        deviceInterArrivalMs: lastDeltaMsByHint[hint],
+      });
+
+      return {
+        hint,
+        title,
+        subtitle: `bitstreamLive · ${interval} ms · ${status}`,
+        valueLabel: `${deltaLabel} · ${ageLabel}`,
+        deltaLabel,
+        ageLabel,
+        borderClass,
+        toneClass,
+      };
+    }
+
+    if (!decodePipelineActive) {
+      const linkStatus = telemetryLinkStatusLabel({
+        transportReady: linkStatusTransportReady,
+        handshakeState,
+        simulatorMode,
+      });
+      return {
+        hint,
+        title,
+        subtitle: "bitstreamLive · link pending",
+        valueLabel: linkStatus ?? "Link down",
+        ...PANEL_NEUTRAL_STYLES,
+      };
+    }
+
+    return {
+      hint,
+      title,
+      subtitle: `bitstreamLive · ${interval} ms interval`,
+      valueLabel: "No sample",
+      ...PANEL_NEUTRAL_STYLES,
+    };
+  });
 }
 
 function maxSensorSampleAtMs(
@@ -688,6 +840,8 @@ export function BitstreamBridgeSerialRxBadge(props: {
 export function BitstreamSensorSampleRxBadge(props: {
   variant?: TelemetryRxBadgeVariant;
   panelEmbed?: boolean;
+  /** Panel-only: aggregate worst-age row (default) vs one row per sensor hint. */
+  panelSensorRows?: PanelSensorRowsLayout;
   /** Chip-only: show rolling decode FPS (all sensors) vs worst-sensor wall age. */
   chipMetric?: SensorRxChipMetric;
   /** When decode Δ is stale (≥3s), click triggers reconnect (Sensor Studio toolbar). */
@@ -695,11 +849,13 @@ export function BitstreamSensorSampleRxBadge(props: {
 }) {
   const variant = props.variant ?? "chip";
   const panelEmbed = props.panelEmbed ?? false;
+  const panelSensorRows = props.panelSensorRows ?? "aggregate";
   const chipMetric = props.chipMetric ?? "freshness";
   const isAggregateFpsChip = variant === "chip" && chipMetric === "aggregateFps";
   const onReconnectTelemetry = props.onReconnectTelemetry;
   const handshakeState = useBitstreamLiveStore((s) => s.handshakeState);
   const lastAtByHint = useBitstreamLiveStore((s) => s.lastAtByHint);
+  const lastDeltaMsByHint = useBitstreamLiveStore((s) => s.lastDeltaMsByHint);
   const sampleCount = useBitstreamLiveStore((s) => s.sampleCount);
   const bySourceId = useBitstreamDeviceSensorConfigStore((s) => s.bySourceId);
   const connected = useBitstreamConnectionStore((s) => s.connected);
@@ -735,6 +891,7 @@ export function BitstreamSensorSampleRxBadge(props: {
     { connected, transportState, serialBridgeStatus },
     handshakeState,
   );
+  const linkStatusTransportReady = isBs2UartFirmwareLink() ? visible : transportReady;
 
   useEffect(() => {
     if (!isAggregateFpsChip || !visible) {
@@ -818,6 +975,30 @@ export function BitstreamSensorSampleRxBadge(props: {
     [transportReady, handshakeState, lastAtByHint, nowMs, bySourceId, simulatorMode],
   );
 
+  const perSensorDecodeRowModels = useMemo(
+    () =>
+      buildPerSensorDecodeRowModels({
+        decodePipelineActive: visible,
+        linkStatusTransportReady,
+        handshakeState,
+        lastAtByHint,
+        lastDeltaMsByHint,
+        nowMs,
+        bySourceId,
+        simulatorMode,
+      }),
+    [
+      visible,
+      linkStatusTransportReady,
+      handshakeState,
+      lastAtByHint,
+      lastDeltaMsByHint,
+      nowMs,
+      bySourceId,
+      simulatorMode,
+    ],
+  );
+
   const toneClass = isAggregateFpsChip
     ? !visible || sampleCount <= 0
       ? "text-zinc-500"
@@ -880,12 +1061,16 @@ export function BitstreamSensorSampleRxBadge(props: {
           : "RX —";
 
   const cardValueLabel =
-    !transportReady || !visible
+    !visible
       ? handshakeState === "running"
         ? "Handshake…"
         : handshakeState === "failed"
           ? "Handshake failed"
-          : "Await handshake"
+          : telemetryLinkStatusLabel({
+              transportReady: linkStatusTransportReady,
+              handshakeState,
+              simulatorMode,
+            }) ?? "Link down"
       : label;
 
   const decodeAgeLabel =
@@ -1062,8 +1247,8 @@ export function BitstreamSensorSampleRxBadge(props: {
     </div>
   );
 
-  const sensorDecodePanelDetails = (
-    <div className="min-w-0 space-y-2 border-t border-zinc-800/70 bg-zinc-950/35 px-2 py-2">
+  const sensorDecodePanelSessionSummaryContent = (
+    <>
       <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Session summary</div>
       <div className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-[11px]">
         <span className="text-zinc-500">Newest decoded frame</span>
@@ -1075,6 +1260,12 @@ export function BitstreamSensorSampleRxBadge(props: {
           {sampleCount.toLocaleString()}
         </span>
       </div>
+    </>
+  );
+
+  const sensorDecodePanelDetails = (
+    <div className="min-w-0 space-y-2 border-t border-zinc-800/70 bg-zinc-950/35 px-2 py-2">
+      {sensorDecodePanelSessionSummaryContent}
       <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Per sensor</div>
       <TRNDataGrid
         columns={SENSOR_DECODE_DIAGNOSTICS_GRID_COLUMNS}
@@ -1090,13 +1281,70 @@ export function BitstreamSensorSampleRxBadge(props: {
     </div>
   );
 
+  const sensorDecodePerSensorRows = (
+    <div className="space-y-1 p-1">
+      {perSensorDecodeRowModels.map((row) => (
+        <div
+          key={row.hint}
+          role="region"
+          tabIndex={-1}
+          aria-label={
+            row.deltaLabel != null && row.ageLabel != null
+              ? `Sensor decode ${row.title}: frame gap ${row.deltaLabel.trim()}, last decode ${row.ageLabel}`
+              : `Sensor decode ${row.title}: ${row.valueLabel}`
+          }
+          className={twMerge(
+            "flex w-full min-w-0 items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-left outline-none transition-colors cursor-default",
+            row.borderClass,
+          )}
+        >
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <Radio size={16} aria-hidden className={`shrink-0 ${row.toneClass}`} />
+            <div className="min-w-0">
+              <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+                Sensor decode · {row.title}
+              </div>
+              <div className="truncate text-[10px] text-zinc-500">{row.subtitle}</div>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-0.5 text-end">
+            {row.deltaLabel != null && row.ageLabel != null ? (
+              <>
+                <span
+                  className={twMerge(
+                    "font-mono text-[10px] tabular-nums leading-none text-zinc-300",
+                    row.toneClass,
+                  )}
+                  title="Device tMs gap between last two EVT_SENSOR frames"
+                >
+                  {row.deltaLabel.trim()}
+                </span>
+                <span
+                  className={twMerge("text-xs leading-none text-zinc-100", row.toneClass)}
+                  title="Wall-clock age since last decode in this webview"
+                >
+                  {row.ageLabel}
+                </span>
+              </>
+            ) : (
+              <span className={twMerge("text-xs text-zinc-100", row.toneClass)}>{row.valueLabel}</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   if (variant === "panel") {
-    const cardsBody = (
-      <>
-        {sensorDecodeRow}
-        {sensorDecodePanelDetails}
-      </>
-    );
+    const cardsBody =
+      panelSensorRows === "perSensor" ? (
+        sensorDecodePerSensorRows
+      ) : (
+        <>
+          {sensorDecodeRow}
+          {sensorDecodePanelDetails}
+        </>
+      );
     if (panelEmbed) {
       return cardsBody;
     }

@@ -9,7 +9,7 @@ import {
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
-  trnInspectorTabActiveClassName,
+  TRN_INSPECTOR_TAB_ACTIVE_CLASS,
 } from "../../../../ui/TRN";
 import { isRotation3DCatalogNodeId } from "../nodes/rotation/rotation-3d-node-ids";
 import type { StudioNode } from "../store/flow-editor.store";
@@ -250,7 +250,7 @@ export function NodeInspector(props: NodeInspectorProps) {
               setActiveTabPersisted(next as InspectorMainTab)
             }
             className="flex min-h-0 min-w-0 flex-1 flex-col"
-            activeTriggerClassName={trnInspectorTabActiveClassName(activeTab, "live")}
+            activeTriggerClassName={TRN_INSPECTOR_TAB_ACTIVE_CLASS}
           >
             <div className={TRN_INSPECTOR_TAB_BAR_WRAP_CLASS}>
               <TRNTabsList className={TRN_INSPECTOR_TAB_LIST_CLASS}>

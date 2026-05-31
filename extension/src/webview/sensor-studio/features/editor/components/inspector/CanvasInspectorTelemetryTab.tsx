@@ -1,9 +1,7 @@
 import { Cpu, Radio } from "lucide-react";
 import { useMemo } from "react";
 import { twMerge } from "tailwind-merge";
-import { useBitstreamTransportActions } from "../../../../../bitstream-app/context/bitstreamTransportActions.context";
-import { BitstreamSensorSampleRxBadge } from "../../../../../bitstream-shell/ui/BitstreamTelemetryRxBadges";
-import { TRNButton, TRNHintText } from "../../../../../ui/TRN";
+import { TRNButton } from "../../../../../ui/TRN";
 import type { StudioNode } from "../../store/flow-editor.store";
 import {
   healthStatusLabel,
@@ -19,7 +17,6 @@ export type CanvasInspectorTelemetryTabProps = {
 
 export function CanvasInspectorTelemetryTab(props: CanvasInspectorTelemetryTabProps) {
   const { nodes, onOpenDeviceSensorSettings } = props;
-  const { reconnectTelemetry } = useBitstreamTransportActions();
 
   const linkedNodes = useMemo(() => listHardwareLinkedFlowNodes(nodes), [nodes]);
   const sortedLinkedNodes = useMemo(
@@ -32,24 +29,6 @@ export function CanvasInspectorTelemetryTab(props: CanvasInspectorTelemetryTabPr
 
   return (
     <div className="space-y-2">
-      <InspectorSection
-        title="Link & decode"
-        hint="Bitstream UART or Simulator route and aggregate sample rate."
-      >
-        <div className="overflow-hidden rounded-md border border-zinc-800/80 bg-zinc-950/50">
-          <BitstreamSensorSampleRxBadge
-            variant="panel"
-            panelEmbed
-            chipMetric="aggregateFps"
-            onReconnectTelemetry={reconnectTelemetry}
-          />
-        </div>
-        <TRNHintText tone="muted" className="mt-2 mb-0 text-[10px] leading-snug">
-          Header row shows transport link and decode freshness. Expand details in the panel above
-          for per-sensor diagnostics when samples are flowing.
-        </TRNHintText>
-      </InspectorSection>
-
       <InspectorSection
         title="Graph sensors"
         hint="Hardware-linked nodes on this canvas and their stream health."

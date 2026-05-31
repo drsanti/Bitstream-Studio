@@ -9,12 +9,16 @@ export const TRN_INSPECTOR_TAB_LIST_CLASS =
 export const TRN_INSPECTOR_TAB_TRIGGER_CLASS =
   "inline-flex flex-1 items-center justify-center gap-1.5 rounded-t-md rounded-b-none border-b-0 px-2 py-1.5 text-[11px] font-medium tracking-wide";
 
-/** Active trigger: emerald on `accentTabId`, zinc otherwise. */
+/** Selected inspector tab — emerald (Node + Canvas inspector). */
+export const TRN_INSPECTOR_TAB_ACTIVE_CLASS =
+  "border-emerald-400/45 bg-emerald-950/35 text-emerald-100 shadow-sm";
+
+/** Active trigger: emerald on `accentTabId`, zinc otherwise (telemetry deck accent tab only). */
 export function trnInspectorTabActiveClassName(
   activeTab: string,
   accentTabId: string,
 ): string {
   return activeTab === accentTabId
-    ? "border-emerald-400/45 bg-emerald-950/35 text-emerald-100 shadow-sm"
+    ? TRN_INSPECTOR_TAB_ACTIVE_CLASS
     : "border-zinc-500/45 text-zinc-100 bg-zinc-800/55 shadow-sm";
 }
