@@ -58,6 +58,13 @@ import {
   type GlbAnimationClipPreviewDrive,
 } from "../../gltf/studio-glb-animation-preview-mixer";
 import {
+  advanceGlbAnimationSequenceAfterMixerTick,
+  filterGlbAnimationDrivesForPreview,
+  resetGlbAnimationSequencePlaybackState,
+  type GlbAnimationSequencePlaybackState,
+  type StudioGlbAnimationPlaybackModeV1,
+} from "../../gltf/studio-glb-animation-playback-mode";
+import {
   applyStudioShadowMeshes,
   configureStudioDirectionalShadow,
   disableShadowOnObjectSubtree,
@@ -350,6 +357,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const glbAnimLoopsRef = useRef<Record<string, "once" | "loop" | "pingpong">>({});
   const glbAnimWeightsRef = useRef<Record<string, number>>({});
   const glbAnimDrivesRef = useRef<Record<string, GlbAnimationClipPreviewDrive>>({});
+  const glbAnimPlaybackModeRef = useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
+  const glbAnimClipOrderRef = useRef<string[]>([]);
+  const glbAnimSequenceStateRef = useRef<GlbAnimationSequencePlaybackState>({ activeClipName: null });
+  const glbAnimPlaybackModePrevRef = useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
   const glbPartsRef = useRef<Record<string, number>>({});
   const glbMaterialPbrRef = useRef<Record<string, GlbMaterialPbrDriveRow>>({});
   const glbMaterialTexturesRef = useRef<Record<string, GlbMaterialTextureDriveRow>>({});
@@ -362,6 +373,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     glbAnimationLoopByClipName?: Record<string, "once" | "loop" | "pingpong">;
     glbAnimationWeightByClipName?: Record<string, number>;
     glbAnimationClipDrivesByName?: Record<string, GlbAnimationClipPreviewDrive>;
+    glbAnimationPlaybackMode?: StudioGlbAnimationPlaybackModeV1;
+    glbAnimationClipOrder?: string[];
     glbPartVisibilityByPath?: Record<string, number>;
     glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
     glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
@@ -374,6 +387,12 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbAnimLoopsRef.current = scenePropsGlb.glbAnimationLoopByClipName ?? {};
   glbAnimWeightsRef.current = scenePropsGlb.glbAnimationWeightByClipName ?? {};
   glbAnimDrivesRef.current = scenePropsGlb.glbAnimationClipDrivesByName ?? {};
+  glbAnimPlaybackModeRef.current = scenePropsGlb.glbAnimationPlaybackMode ?? "per-clip";
+  glbAnimClipOrderRef.current = scenePropsGlb.glbAnimationClipOrder ?? [];
+  if (glbAnimPlaybackModePrevRef.current !== glbAnimPlaybackModeRef.current) {
+    resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
+    glbAnimPlaybackModePrevRef.current = glbAnimPlaybackModeRef.current;
+  }
   glbPartsRef.current = scenePropsGlb.glbPartVisibilityByPath ?? {};
   glbMaterialPbrRef.current = scenePropsGlb.glbMaterialPbrByName ?? {};
   glbMaterialTexturesRef.current = scenePropsGlb.glbMaterialTexturesByName ?? {};
@@ -919,6 +938,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
         if (modelRoot != null) {
           root.remove(modelRoot);
@@ -1107,11 +1127,28 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           const structuredDrives = glbAnimDrivesRef.current;
           const driveKeys = Object.keys(structuredDrives);
           if (driveKeys.length > 0) {
+            const playbackMode = glbAnimPlaybackModeRef.current;
+            const clipOrder = glbAnimClipOrderRef.current;
+            const drivesForMixer = filterGlbAnimationDrivesForPreview({
+              drives: structuredDrives,
+              playbackMode,
+              clipOrder,
+              sequenceState: glbAnimSequenceStateRef.current,
+            });
             applyStudioGlbAnimationMixerDrives({
               clipActions,
-              drives: structuredDrives,
+              drives: drivesForMixer,
               state: animationMixerState,
             });
+            if (playbackMode === "sequence") {
+              animationMixer.update(deltaSec);
+              advanceGlbAnimationSequenceAfterMixerTick({
+                clipActions,
+                drives: structuredDrives,
+                clipOrder,
+                sequenceState: glbAnimSequenceStateRef.current,
+              });
+            }
           } else {
             const drives = glbAnimsRef.current;
             const scales = glbAnimScalesRef.current;
@@ -1249,6 +1286,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
         if (modelRoot != null) {
           root.remove(modelRoot);

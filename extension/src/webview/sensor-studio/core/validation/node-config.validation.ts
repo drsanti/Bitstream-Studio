@@ -277,6 +277,7 @@ function validateGlbAnimationBundle(cfg: Record<string, unknown>): string[] {
     sourceModelNodeId: z.string().optional(),
     animationClipCardOrder: z.array(z.string()).optional(),
     animationSoloClipRef: z.string().optional(),
+    animationPlaybackMode: z.enum(["per-clip", "parallel-all", "sequence"]).optional(),
   });
   const r = schema.safeParse(cfg);
   const out: string[] = [];

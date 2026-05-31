@@ -1,3 +1,9 @@
+import type { StudioGlbAnimationPlaybackModeV1 } from "../../gltf/studio-glb-animation-playback-mode";
+import {
+  isStudioGlbAnimationPlaybackModeV1,
+  readStudioGlbAnimationPlaybackMode,
+} from "../../gltf/studio-glb-animation-playback-mode";
+
 /** Loop mode mapped to THREE.AnimationAction in the studio GLB preview. */
 export type StudioGlbAnimationLoopModeV1 = "once" | "loop" | "pingpong";
 
@@ -34,9 +40,13 @@ export type FlowWireAnimationV1 = {
   clips: Record<string, FlowWireAnimationClipV1>;
   /**
    * When set, only this clip name receives merged time/scale drives; others stay paused in the
-   * preview (inspector “solo” audition).
+   * preview (inspector “solo” audition). Ignored when {@link playbackMode} is **parallel-all** or **sequence**.
    */
   soloClipName?: string | null;
+  /** Multi-clip playback strategy for bundle → preview merge (default **per-clip**). */
+  playbackMode?: StudioGlbAnimationPlaybackModeV1;
+  /** Clip play order for **sequence** mode (inspector card order). */
+  clipOrder?: string[];
 };
 
 function asFiniteNumber(value: unknown, fallback: number): number {
@@ -191,18 +201,43 @@ export function coerceFlowWireAnimationV1(raw: unknown): FlowWireAnimationV1 {
   } else if (soloRaw === null) {
     soloClipName = null;
   }
-  return { version: 1, clips, soloClipName };
+  const playbackRaw = o.playbackMode;
+  const playbackMode = isStudioGlbAnimationPlaybackModeV1(playbackRaw) ? playbackRaw : undefined;
+  const clipOrderRaw = o.clipOrder;
+  let clipOrder: string[] | undefined;
+  if (Array.isArray(clipOrderRaw)) {
+    const order = clipOrderRaw
+      .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+      .map((x) => x.trim());
+    clipOrder = order.length > 0 ? order : undefined;
+  }
+  return {
+    version: 1,
+    clips,
+    soloClipName,
+    playbackMode,
+    clipOrder,
+  };
 }
 
-/** Build a wire from bundle node **`defaultConfig`** (`clips` + optional solo ref). */
+/** Build a wire from bundle node **`defaultConfig`** (`clips` + optional solo ref + playback mode). */
 export function flowAnimationWireFromBundleDefaultConfig(dc: Record<string, unknown>): FlowWireAnimationV1 {
   const soloRaw = dc.animationSoloClipRef;
   const soloClipName =
     typeof soloRaw === "string" && soloRaw.trim().length > 0 ? soloRaw.trim() : null;
+  const playbackMode = readStudioGlbAnimationPlaybackMode(dc);
+  const orderRaw = dc.animationClipCardOrder;
+  const clipOrder = Array.isArray(orderRaw)
+    ? orderRaw
+        .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+        .map((x) => x.trim())
+    : undefined;
   return coerceFlowWireAnimationV1({
     version: 1,
     clips: dc.clips ?? {},
     soloClipName,
+    playbackMode,
+    clipOrder,
   });
 }
 
@@ -305,7 +340,10 @@ export function mergeFlowWireAnimationIntoClipDrives(args: {
     return { times, scales, loops, weights, drives };
   }
 
-  const solo = typeof wire.soloClipName === "string" ? wire.soloClipName.trim() : "";
+  const playbackMode = wire.playbackMode ?? "per-clip";
+  const applySolo = playbackMode === "per-clip";
+  const solo = applySolo && typeof wire.soloClipName === "string" ? wire.soloClipName.trim() : "";
+
   for (const [name, clip] of Object.entries(wire.clips)) {
     if (name.trim().length === 0) {
       continue;
@@ -329,7 +367,7 @@ export function mergeFlowWireAnimationIntoClipDrives(args: {
     weights[name] = drive.weight;
   }
 
-  if (solo.length > 0) {
+  if (applySolo && solo.length > 0) {
     for (const name of Object.keys(times)) {
       if (name !== solo) {
         delete times[name];

@@ -17,6 +17,7 @@ import {
   ROTATION_PREVIEW_ORBIT_MAX_DISTANCE,
 } from "./rotationPreviewConstants.js";
 import type { GlbAnimationClipPreviewDrive } from "../../../../sensor-studio/features/editor/gltf/studio-glb-animation-preview-mixer";
+import type { StudioGlbAnimationPlaybackModeV1 } from "../../../../sensor-studio/features/editor/gltf/studio-glb-animation-playback-mode";
 import type { GlbMaterialPbrDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-texture";
 
@@ -57,6 +58,10 @@ export type RotationPreviewSceneProps = {
   glbAnimationWeightByClipName?: Record<string, number>;
   /** Structured per-clip drives (trim, fade, loop, weight) for the studio GLB preview mixer. */
   glbAnimationClipDrivesByName?: Record<string, GlbAnimationClipPreviewDrive>;
+  /** Multi-clip strategy from **GLB Animation Bundle** wire (default **per-clip**). */
+  glbAnimationPlaybackMode?: StudioGlbAnimationPlaybackModeV1;
+  /** Clip order for **sequence** mode. */
+  glbAnimationClipOrder?: string[];
   /** Optional part visibility by object path (`> 0.5` visible), matching GLB extraction part refs. */
   glbPartVisibilityByPath?: Record<string, number>;
   /** Optional material PBR scalars by material **name** (emissive, roughness, metalness, opacity). */

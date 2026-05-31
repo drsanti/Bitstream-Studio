@@ -338,6 +338,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultVisible: true,
         defaultConfig: {
           clips: {},
+          animationPlaybackMode: "per-clip",
         },
         outputPorts: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
       },

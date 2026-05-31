@@ -73,6 +73,7 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Sensor Studio flow domains — Phase 4 multi-clip playback (slice 4):** **GLB Animation Bundle** **`animationPlaybackMode`** (**per-clip** / **parallel-all** / **sequence**); inspector playback select; preview sequence advance + parallel merge.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 demo template:** **`material-glb-drives`** (Model Viewer + material param + texture on robot GLB).
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material texture swap (slice 2):** **`glb-material-texture`** node (map slots); GLB **Materials → Tex** spawn; preview texture apply.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material params (slice 1):** **`glb-material-param`** node (emissive / roughness / metalness / opacity); GLB **Materials** spawn; PBR preview apply.
@@ -388,7 +389,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
   - [x] Phase 1 — frame loop (**2026-05-31**)
   - [x] Phase 2 — **`FlowWireTransformV1`** + model-viewer / rotation **`xf`** consumer (**2026-05-31**)
   - [x] Phase 3 — event layer (**slice 1–4 shipped 2026-05-31**: On Key/Click, Toggle/Set Boolean, GLB part visibility, animation trigger)
-  - [x] Phase 4 — GLB animation depth (**slices 1–3 2026-05-31**; multi-clip modes backlog)
+  - [x] Phase 4 — GLB animation depth (**slices 1–4 2026-05-31**; multi-clip playback modes)
   - [x] Phase 5 — material parameter nodes (**slices 1–3 2026-05-31**; full shader graph → Phase 6)
   - [ ] Phase 6 — optional geometry / full shader DAG
 - **`ternion-3d-assets-free` upstream cleanup** — **Done 2026-05-31** ([`b2cc826`](https://github.com/drsanti/ternion-3d-assets-free/commit/b2cc826)): legacy root duplicates removed; **`docs/LAYOUT.md`** on GitHub. Bitstream contract: **[`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md)**.

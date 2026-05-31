@@ -84,3 +84,41 @@ test("mergeGlbAnimationClipDrivesForPreview merges distinct clips from each laye
   assert.equal(merged.times.bundleClip, 2);
   assert.equal(merged.drives.eventClip?.restartNonce, 1);
 });
+
+test("mergeGlbAnimationClipDrivesForPreview parallel-all ignores solo clip filter", () => {
+  const wire: FlowWireAnimationV1 = {
+    version: 1,
+    playbackMode: "parallel-all",
+    soloClipName: "walk",
+    clips: {
+      walk: { timeS: 1, speed: 1, enabled: true },
+      run: { timeS: 2, speed: 1, enabled: true },
+    },
+  };
+  const merged = mergeGlbAnimationClipDrivesForPreview({
+    scalarTimesByClipName: {},
+    wire,
+    eventDrivesByClipName: {},
+  });
+  assert.equal(merged.times.walk, 1);
+  assert.equal(merged.times.run, 2);
+});
+
+test("mergeGlbAnimationClipDrivesForPreview per-clip solo still filters other clips", () => {
+  const wire: FlowWireAnimationV1 = {
+    version: 1,
+    playbackMode: "per-clip",
+    soloClipName: "walk",
+    clips: {
+      walk: { timeS: 1, speed: 1, enabled: true },
+      run: { timeS: 2, speed: 1, enabled: true },
+    },
+  };
+  const merged = mergeGlbAnimationClipDrivesForPreview({
+    scalarTimesByClipName: {},
+    wire,
+    eventDrivesByClipName: {},
+  });
+  assert.equal(merged.times.walk, 1);
+  assert.equal(merged.times.run, undefined);
+});

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clapperboard } from "lucide-react";
 import {
+  TRNFormField,
   TRNHintText,
   TRNSortableCard,
   TRNSortableContainer,
+  TRNSelect,
+  type TRNSelectOption,
 } from "../../../../../../../ui/TRN";
 import { useStudioAssetDescriptors } from "../../../../../asset-browser/useStudioAssetDescriptors";
 import { useStudioGltfExtraction } from "../../../../gltf/useStudioGltfExtraction";
@@ -20,6 +23,13 @@ import {
   type StudioGlbAnimationLoopModeV1,
 } from "../../../../nodes/animation/flow-wire-animation";
 import { GlbAnimationClipInspectorCard } from "./GlbAnimationClipInspectorCard";
+import {
+  STUDIO_ANIMATION_PLAYBACK_MODE_KEY,
+  STUDIO_GLB_ANIMATION_PLAYBACK_MODES,
+  playbackModeLabel,
+  readStudioGlbAnimationPlaybackMode,
+  type StudioGlbAnimationPlaybackModeV1,
+} from "../../../../gltf/studio-glb-animation-playback-mode";
 
 const ANIMATION_CLIP_CARD_ORDER_KEY = "animationClipCardOrder" as const;
 const ANIMATION_SOLO_CLIP_REF_KEY = "animationSoloClipRef" as const;
@@ -52,6 +62,24 @@ function mergeAnimationClipCardOrder(
     }
   }
   return out;
+}
+
+const PLAYBACK_MODE_OPTIONS: TRNSelectOption[] = STUDIO_GLB_ANIMATION_PLAYBACK_MODES.map((mode) => ({
+  value: mode,
+  label: playbackModeLabel(mode),
+}));
+
+function playbackModeHint(mode: StudioGlbAnimationPlaybackModeV1): string {
+  switch (mode) {
+    case "per-clip":
+      return "Solo on a clip card limits preview to that clip only.";
+    case "parallel-all":
+      return "All enabled clips play together in the linked Model Viewer. Solo is ignored.";
+    case "sequence":
+      return "Plays one enabled clip at a time in card order; advances when a once clip reaches trim end.";
+    default:
+      return "";
+  }
 }
 
 function readClipMap(dc: Record<string, unknown> | undefined): Record<string, unknown> {
@@ -118,6 +146,8 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
   const soloClipRefRaw = defaultConfig?.[ANIMATION_SOLO_CLIP_REF_KEY];
   const soloClipRef =
     typeof soloClipRefRaw === "string" && soloClipRefRaw.trim().length > 0 ? soloClipRefRaw.trim() : "";
+
+  const playbackMode = readStudioGlbAnimationPlaybackMode(defaultConfig);
 
   const [playingRefs, setPlayingRefs] = useState<readonly string[]>([]);
   const playingSet = useMemo(() => new Set(playingRefs), [playingRefs]);
@@ -348,7 +378,24 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
           </div>
 
           {showClipCards ? (
-            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+            <>
+              <TRNFormField label="Playback mode" id="glb-bundle-playback-mode" className="shrink-0 space-y-1.5">
+                <TRNSelect
+                  ariaLabel="Animation playback mode"
+                  value={playbackMode}
+                  options={PLAYBACK_MODE_OPTIONS}
+                  size="sm"
+                  className="min-w-0"
+                  buttonClassName="min-h-7 text-[10px]"
+                  panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
+                  onValueChange={(next) => {
+                    onUpdateConfigField(STUDIO_ANIMATION_PLAYBACK_MODE_KEY, next);
+                  }}
+                />
+                <TRNHintText>{playbackModeHint(playbackMode)}</TRNHintText>
+              </TRNFormField>
+
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
               <div className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
                 Animation clips
               </div>
@@ -404,6 +451,7 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
                 })}
               </TRNSortableContainer>
             </div>
+            </>
           ) : refStatus.status === "ok" &&
             extraction.state === "ok" &&
             extraction.result != null &&
