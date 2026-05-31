@@ -50,6 +50,12 @@ export type PersistedFlowDocumentV1 = {
   selectedNodeId: string | null;
   /** Multi-selection from React Flow; omitted in older saves. */
   selectedNodeIds?: string[];
+  /** Nested node-group documents keyed by group / subgraph id. */
+  subgraphs?: Record<string, unknown>;
+  activeGraphId?: string;
+  graphStack?: string[];
+  rootNodes?: unknown[];
+  rootEdges?: unknown[];
   viewport?: StudioPersistedViewport;
   /** Optional flow canvas chrome (grid, minimap, edge routing, etc.). */
   canvasPreferences?: FlowCanvasPreferences;

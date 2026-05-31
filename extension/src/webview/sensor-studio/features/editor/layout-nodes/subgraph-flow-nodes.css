@@ -1,0 +1,148 @@
+.studio-node-group {
+  min-width: 168px;
+  border-radius: 8px;
+  border: 1px solid rgb(63 63 70 / 0.85);
+  background: linear-gradient(180deg, rgb(24 24 27 / 0.96), rgb(9 9 11 / 0.98));
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+.studio-node-group--selected {
+  border-color: rgb(34 211 238 / 0.65);
+  box-shadow: 0 0 0 1px rgb(34 211 238 / 0.35), 0 8px 24px rgb(0 0 0 / 0.35);
+}
+
+.studio-node-group__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgb(63 63 70 / 0.55);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgb(228 228 231 / 0.95);
+}
+
+.studio-node-group__icon {
+  color: rgb(34 211 238 / 0.85);
+}
+
+.studio-node-group__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-node-group__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px 8px 12px;
+  min-height: 56px;
+}
+
+.studio-node-group__socket-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studio-node-group__socket-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 18px;
+  padding-left: 10px;
+}
+
+.studio-node-group__socket-row--out {
+  justify-content: flex-end;
+  padding-left: 0;
+  padding-right: 10px;
+}
+
+.studio-node-group__socket-label {
+  font-size: 10px;
+  color: rgb(161 161 170 / 0.95);
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio-group-boundary {
+  min-width: 140px;
+  border-radius: 8px;
+  border: 1px dashed rgb(63 63 70 / 0.9);
+  background: rgb(9 9 11 / 0.72);
+  padding: 8px 10px 10px;
+}
+
+.studio-group-boundary__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgb(161 161 170 / 0.95);
+  margin-bottom: 8px;
+}
+
+.studio-group-boundary__sockets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.studio-group-boundary__socket-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 18px;
+  padding: 0 8px;
+}
+
+.studio-group-boundary__socket-label {
+  font-size: 10px;
+  color: rgb(212 212 216 / 0.92);
+}
+
+.studio-flow-graph-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: rgb(161 161 170 / 0.95);
+}
+
+.studio-flow-graph-breadcrumb__sep {
+  color: rgb(82 82 91 / 0.95);
+}
+
+.studio-flow-graph-breadcrumb__link {
+  border: 0;
+  background: transparent;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: rgb(212 212 216 / 0.95);
+  cursor: pointer;
+}
+
+.studio-flow-graph-breadcrumb__link:hover {
+  background: rgb(39 39 42 / 0.85);
+  color: rgb(244 244 245 / 0.98);
+}
+
+.studio-flow-graph-breadcrumb__link--active {
+  color: rgb(34 211 238 / 0.95);
+  cursor: default;
+}
+
+.studio-flow-graph-breadcrumb__link--active:hover {
+  background: transparent;
+}

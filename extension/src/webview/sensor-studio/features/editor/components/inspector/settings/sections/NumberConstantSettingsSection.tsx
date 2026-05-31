@@ -10,6 +10,19 @@ import {
   readOptionalFiniteNumber,
 } from "../../../../nodes/constants/number-constant-helpers";
 import { readGlbExtractTag } from "../../../../model/model-generated-bindings";
+import {
+  readGlbPartDriveMode,
+  STUDIO_GLB_PART_DRIVE_MODE_KEY,
+  type StudioGlbPartDriveModeV1,
+} from "../../../../nodes/events/glb-part-event-config";
+import {
+  materialParamLabel,
+  readGlbMaterialParam,
+  STUDIO_GLB_MATERIAL_PARAM_KEY,
+  STUDIO_GLB_MATERIAL_PARAMS,
+  type StudioGlbMaterialParamV1,
+} from "../../../../gltf/studio-glb-material-param";
+import { TRNSelect } from "../../../../../../../ui/TRN";
 
 /** Same chrome as each axis cell in {@link TRNVector3Field} (`TRNVector3Field.tsx`). */
 const TRN_DENSE_NUMERIC_FIELD_SHELL =
@@ -95,6 +108,8 @@ export function NumberConstantSettingsSection(props: NodeInspectorSettingsSectio
   const valueStep =
     mode === "integer" ? Math.max(1, step ?? 1) : step != null && step > 0 ? step : 0.01;
   const glbTag = readGlbExtractTag(dc);
+  const partDriveMode = readGlbPartDriveMode(dc);
+  const materialParam = readGlbMaterialParam(dc);
 
   return (
     <InspectorSettingsSectionFrame title="Number">
@@ -107,6 +122,55 @@ export function NumberConstantSettingsSection(props: NodeInspectorSettingsSectio
               <span className="mx-1 text-zinc-600">·</span>
               <span>{glbTag.ref}</span>
             </div>
+            {glbTag.kind === "part" ? (
+              <div className="mt-2">
+                <InspectorPropertyRow
+                  label="Part drive mode"
+                  description="Visibility-only treats the value as on/off (> 0.5 visible). Opacity passes 0–1 through to material opacity in the preview."
+                >
+                <TRNSegmentedControl
+                  ariaLabel="GLB part drive mode"
+                  className="nodrag w-full"
+                  fullWidth
+                  size="sm"
+                  stopPointerDownPropagation
+                  tone="neutral"
+                  variant="surface"
+                  value={partDriveMode}
+                  options={[
+                    { value: "visibility", label: "Visibility" },
+                    { value: "opacity", label: "Opacity" },
+                  ]}
+                  onValueChange={(next) => {
+                    if (next === "visibility" || next === "opacity") {
+                      onUpdateConfigField(STUDIO_GLB_PART_DRIVE_MODE_KEY, next as StudioGlbPartDriveModeV1);
+                    }
+                  }}
+                />
+              </InspectorPropertyRow>
+              </div>
+            ) : null}
+            {glbTag.kind === "material" ? (
+              <div className="mt-2">
+                <InspectorPropertyRow
+                  label="PBR channel"
+                  description="Which material property this number drives in linked Model Viewer previews."
+                >
+                <TRNSelect
+                  value={materialParam}
+                  options={STUDIO_GLB_MATERIAL_PARAMS.map((p) => ({
+                    value: p,
+                    label: materialParamLabel(p),
+                  }))}
+                  ariaLabel="GLB material PBR channel"
+                  size="sm"
+                  onValueChange={(next) =>
+                    onUpdateConfigField(STUDIO_GLB_MATERIAL_PARAM_KEY, next as StudioGlbMaterialParamV1)
+                  }
+                />
+              </InspectorPropertyRow>
+              </div>
+            ) : null}
             <TRNHintText tone="muted" className="mt-1 text-[10px] leading-snug">
               {glbTag.kind === "morph" ||
               glbTag.kind === "light" ||
@@ -117,9 +181,36 @@ export function NumberConstantSettingsSection(props: NodeInspectorSettingsSectio
                 <>
                   With a <span className="font-medium text-zinc-300">Model viewer</span> linked to
                   the same Model, this number drives the GLB target in the preview:{" "}
-                  <span className="font-medium text-zinc-300">part</span> visibility (&gt; 0.5
-                  visible), <span className="font-medium text-zinc-300">material</span> emissive
-                  intensity (≥ 0), <span className="font-medium text-zinc-300">camera</span> pose
+                  {glbTag.kind === "part" ? (
+                    partDriveMode === "opacity" ? (
+                      <>
+                        <span className="font-medium text-zinc-300">part</span> opacity (0–1; 0 hides
+                        the mesh), plus other kinds as below.
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-medium text-zinc-300">part</span> visibility (&gt; 0.5
+                        visible), plus other kinds as below.
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <span className="font-medium text-zinc-300">part</span> visibility (&gt; 0.5
+                      visible),{" "}
+                    </>
+                  )}
+                  {glbTag.kind === "material" ? (
+                    <>
+                      <span className="font-medium text-zinc-300">material</span>{" "}
+                      {materialParamLabel(materialParam).toLowerCase()} (channel picker above),{" "}
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-medium text-zinc-300">material</span> emissive
+                      intensity (≥ 0),{" "}
+                    </>
+                  )}
+                  <span className="font-medium text-zinc-300">camera</span> pose
                   when &gt; 0.5 (highest value wins if several cameras are driven), plus{" "}
                   <span className="font-medium text-zinc-300">morph</span>,{" "}
                   <span className="font-medium text-zinc-300">light</span>, and{" "}

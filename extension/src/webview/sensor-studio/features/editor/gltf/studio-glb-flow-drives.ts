@@ -1,5 +1,5 @@
 import { buildGlbAnimEventPreviewDrive } from "../nodes/events/glb-anim-event-config";
-import { readGlbPartVisibilityScalar } from "../nodes/events/glb-part-event-config";
+import { readGlbPartDriveScalar } from "../nodes/events/glb-part-event-config";
 import { coerceNumberConstantValue } from "../nodes/constants/number-constant-helpers";
 import { readGlbExtractTag, resolveNodeStudioModelScopeNodeId, type StudioFlowEdgeLike } from "../model/model-generated-bindings";
 import type { StudioGltfExtractKind } from "./studio-gltf-extract";
@@ -53,11 +53,17 @@ const GLB_SCALAR_DRIVE_KINDS = new Set<StudioGltfExtractKind>([
 function readGlbScalarDriveValue(n: FlowNodeLike): number {
   const rawCfg = n.data.defaultConfig;
   if (n.data.nodeId === "number-constant" || n.data.nodeId === "glb-material-param") {
-    return typeof n.data.liveValue === "number" && Number.isFinite(n.data.liveValue)
-      ? n.data.liveValue
-      : coerceNumberConstantValue(rawCfg, rawCfg.value);
+    const v =
+      typeof n.data.liveValue === "number" && Number.isFinite(n.data.liveValue)
+        ? n.data.liveValue
+        : coerceNumberConstantValue(rawCfg, rawCfg.value);
+    const tag = readGlbExtractTag(rawCfg);
+    if (tag?.kind === "part") {
+      return readGlbPartDriveScalar({ ...rawCfg, value: v });
+    }
+    return v;
   }
-  return readGlbPartVisibilityScalar(rawCfg);
+  return readGlbPartDriveScalar(rawCfg);
 }
 
 /**

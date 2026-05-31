@@ -27,11 +27,16 @@ import "@xyflow/react/dist/style.css";
 import "../nodes/flow-node/flow-node-handles.css";
 import "../flow-canvas-minimap.css";
 import "../layout-nodes/layout-flow-nodes.css";
+import "../layout-nodes/subgraph-flow-nodes.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
 import { RerouteLayoutNode } from "../layout-nodes/RerouteLayoutNode";
 import { FrameLayoutNode } from "../layout-nodes/FrameLayoutNode";
 import { NoteLayoutNode } from "../layout-nodes/NoteLayoutNode";
 import { SplitLayoutNode } from "../layout-nodes/SplitLayoutNode";
+import { NodeGroupLayoutNode } from "../layout-nodes/NodeGroupLayoutNode";
+import { GroupInputLayoutNode } from "../layout-nodes/GroupInputLayoutNode";
+import { GroupOutputLayoutNode } from "../layout-nodes/GroupOutputLayoutNode";
+import { FlowGraphBreadcrumb } from "./FlowGraphBreadcrumb";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import type { FlowGraphNode } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
@@ -48,6 +53,8 @@ import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
 import { resolveFlowSourcePortType } from "../layout/layout-port-resolution";
+import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
+import { isStudioNodeGroupNode, type StudioNodeGroupData } from "../subgraphs/studio-subgraph.types";
 import { sortFlowNodesParentFirst, isStudioFrameNode } from "../layout/frame-flow-nodes";
 import {
   buildFlowPortColorMap,
@@ -147,6 +154,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   const addLayoutNodeAt = useFlowEditorStore((s) => s.addLayoutNodeAt);
   const insertRerouteOnEdge = useFlowEditorStore((s) => s.insertRerouteOnEdge);
   const applyFlowFrameDragStop = useFlowEditorStore((s) => s.applyFlowFrameDragStop);
+  const enterGroup = useFlowEditorStore((s) => s.enterGroup);
+  const subgraphs = useFlowEditorStore((s) => s.subgraphs);
   const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{ clientX: number; clientY: number } | null>(
     null,
   );
@@ -214,8 +223,16 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           });
         });
       },
+      getSelectedNodeGroupId: () => {
+        const selectedGroups = nodes.filter((n) => n.selected && isStudioNodeGroupNode(n));
+        if (selectedGroups.length !== 1) {
+          return null;
+        }
+        const group = selectedGroups[0]!;
+        return group.data.subgraphId ?? group.id;
+      },
     }),
-    [addNodeMenuAnchor],
+    [addNodeMenuAnchor, nodes],
   );
 
   const openAddNodeMenuAtPointer = useCallback((clientX: number, clientY: number) => {
@@ -287,6 +304,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
       "studio-frame": FrameLayoutNode,
       "studio-note": NoteLayoutNode,
       "studio-split": SplitLayoutNode,
+      "studio-node-group": NodeGroupLayoutNode,
+      "studio-group-input": GroupInputLayoutNode,
+      "studio-group-output": GroupOutputLayoutNode,
     }),
     [],
   );
@@ -330,10 +350,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
         setConnectingLineStroke(null);
         return;
       }
-      const portType = resolveFlowSourcePortType(node, handleId);
+      const portType =
+        resolveStudioGroupNodePortType(node, handleId, "output", subgraphs) ??
+        resolveFlowSourcePortType(node, handleId);
       setConnectingLineStroke(strokeForPortType(portColorMap, portType));
     },
-    [nodes, portColorMap],
+    [nodes, portColorMap, subgraphs],
   );
 
   const handleConnectEnd = useCallback(() => {
@@ -419,6 +441,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
       if (node.type === "studio-note") {
         return "#ca8a04";
       }
+      if (node.type === "studio-node-group") {
+        return "#0891b2";
+      }
+      if (node.type === "studio-group-input" || node.type === "studio-group-output") {
+        return "#52525b";
+      }
       const category = isStudioFlowNode(node) ? node.data?.category : undefined;
       if (category != null && minimapCategoryColors[category] != null) {
         return minimapCategoryColors[category];
@@ -446,6 +474,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY };
         }}
       >
+        <div className="pointer-events-none absolute left-3 top-3 z-20">
+          <div className="pointer-events-auto rounded border border-zinc-700/70 bg-zinc-950/80 px-2 py-1 backdrop-blur-sm">
+            <FlowGraphBreadcrumb />
+          </div>
+        </div>
         <ReactFlow<FlowGraphNode>
           colorMode="dark"
           proOptions={{ hideAttribution: true }}
@@ -465,6 +498,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeDragStop={handleNodeDragStop}
+          onNodeDoubleClick={(_event, node) => {
+            if (isStudioNodeGroupNode(node)) {
+              const data = node.data as StudioNodeGroupData;
+              enterGroup(data.subgraphId ?? node.id);
+            }
+          }}
           onConnect={handleConnect}
           onConnectStart={handleConnectStart}
           onConnectEnd={handleConnectEnd}

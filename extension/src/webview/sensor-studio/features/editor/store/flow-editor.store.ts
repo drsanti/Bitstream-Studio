@@ -40,6 +40,23 @@ import {
   remapFlowPaste,
   serializeFlowClipboard,
 } from "../clipboard/flow-clipboard";
+import { createStudioNodeGroupFromSelection } from "../subgraphs/create-studio-node-group";
+import { rewireParentGraphForStudioGroup } from "../subgraphs/rewire-parent-graph-for-group";
+import {
+  commitActiveGraphMutation,
+  initialSubgraphStoreSlice,
+  persistActiveGraphBuffer,
+  resolveEvaluationGraph,
+} from "../subgraphs/studio-subgraph-store-sync";
+import {
+  isExcludedFromNodeGroup,
+  isStudioNodeGroupNode,
+  STUDIO_ROOT_GRAPH_ID,
+  type StudioGraphId,
+  type StudioSubgraphDocument,
+  type SubgraphFlowNode,
+} from "../subgraphs/studio-subgraph.types";
+import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
 import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
 import { readClipboardText, writeClipboardText } from "../../../../ui/utils/clipboard";
@@ -333,7 +350,7 @@ export type StudioNodeData = {
 
 export type StudioNode = Node<StudioNodeData>;
 
-export type FlowGraphNode = StudioNode | LayoutFlowNode;
+export type FlowGraphNode = StudioNode | LayoutFlowNode | SubgraphFlowNode;
 
 /** Built-in canvas presets from **Run Demo Template** (toolbar + shortcuts). */
 export type StudioDemoTemplateId =
@@ -350,6 +367,11 @@ export type FlowSnapshot = {
   selectedNodeId: string | null;
   /** Present on snapshots after multi-select support; older snapshots omit this. */
   selectedNodeIds?: string[];
+  subgraphs?: Record<string, StudioSubgraphDocument>;
+  activeGraphId?: StudioGraphId;
+  graphStack?: StudioGraphId[];
+  rootNodes?: FlowGraphNode[];
+  rootEdges?: Edge[];
 };
 
 function selectionFromIds(ids: readonly string[]): {
@@ -442,6 +464,11 @@ function flushFlowSimulationPins(get: () => { tickSimulation: () => void }): voi
 type FlowEditorState = {
   nodes: FlowGraphNode[];
   edges: Edge[];
+  subgraphs: Record<string, StudioSubgraphDocument>;
+  activeGraphId: StudioGraphId;
+  graphStack: StudioGraphId[];
+  rootNodes: FlowGraphNode[];
+  rootEdges: Edge[];
   selectedNodeId: string | null;
   /** React Flow multi-selection order (primary inspector target is `selectedNodeId`, kept in sync). */
   selectedNodeIds: string[];
@@ -463,6 +490,10 @@ type FlowEditorState = {
   duplicateSelection: () => void;
   copyFlowSelectionToClipboard: () => Promise<boolean>;
   pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
+  createGroupFromSelection: () => void;
+  enterGroup: (groupId: string) => void;
+  exitGroup: () => void;
+  jumpToGraph: (graphId: StudioGraphId) => void;
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
@@ -678,16 +709,54 @@ function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
   };
 }
 
-function getSourcePortType(node: FlowGraphNode, sourceHandle: string): StudioPortType | null {
+function getSourcePortType(
+  node: FlowGraphNode,
+  sourceHandle: string,
+  subgraphs: Record<string, StudioSubgraphDocument>,
+): StudioPortType | null {
+  const groupType = resolveStudioGroupNodePortType(node, sourceHandle, "output", subgraphs);
+  if (groupType != null) {
+    return groupType;
+  }
   return resolveFlowSourcePortType(node, sourceHandle);
 }
 
-function edgeLabelForSource(sourceNode: FlowGraphNode, sourceHandle: string): string {
-  const t = getSourcePortType(sourceNode, sourceHandle);
+function getTargetPortType(
+  node: FlowGraphNode,
+  targetHandle: string,
+  subgraphs: Record<string, StudioSubgraphDocument>,
+): StudioPortType | null {
+  const groupType = resolveStudioGroupNodePortType(node, targetHandle, "input", subgraphs);
+  if (groupType != null) {
+    return groupType;
+  }
+  if (!isStudioFlowNode(node)) {
+    return null;
+  }
+  const inputHandles = node.data.inputHandles;
+  if (inputHandles != null && inputHandles.length > 0) {
+    return inputHandles.find((h) => h.id === targetHandle)?.portType ?? null;
+  }
+  if (targetHandle !== STUDIO_HANDLE_IN) {
+    return null;
+  }
+  return node.data.inputType ?? null;
+}
+
+function edgeLabelForSource(
+  sourceNode: FlowGraphNode,
+  sourceHandle: string,
+  subgraphs: Record<string, StudioSubgraphDocument>,
+): string {
+  const t = getSourcePortType(sourceNode, sourceHandle, subgraphs);
   return t ?? "";
 }
 
-function canConnect(connection: Connection, nodes: FlowGraphNode[]): boolean {
+function canConnect(
+  connection: Connection,
+  nodes: FlowGraphNode[],
+  subgraphs: Record<string, StudioSubgraphDocument>,
+): boolean {
   if (connection.source == null || connection.target == null) {
     return false;
   }
@@ -698,9 +767,13 @@ function canConnect(connection: Connection, nodes: FlowGraphNode[]): boolean {
   }
   const sourceHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
   const targetHandle = connection.targetHandle ?? STUDIO_HANDLE_IN;
-  const sourceType = resolveFlowSourcePortType(sourceNode, sourceHandle);
+  const sourceType = getSourcePortType(sourceNode, sourceHandle, subgraphs);
   if (sourceType == null) {
     return false;
+  }
+  if (isStudioNodeGroupNode(targetNode)) {
+    const targetType = getTargetPortType(targetNode, targetHandle, subgraphs);
+    return targetType != null && sourceType === targetType;
   }
   if (isLayoutFlowNode(targetNode)) {
     if (targetNode.type === "studio-note" || targetNode.type === "studio-frame") {
@@ -709,20 +782,13 @@ function canConnect(connection: Connection, nodes: FlowGraphNode[]): boolean {
     return layoutNodeAcceptsInput(targetNode, targetHandle, sourceType);
   }
   if (!isStudioFlowNode(targetNode)) {
-    return false;
-  }
-  const inputHandles = targetNode.data.inputHandles;
-  if (inputHandles != null && inputHandles.length > 0) {
-    const def = inputHandles.find((h) => h.id === targetHandle);
-    if (def == null) {
-      return false;
+    if (targetNode.type === "studio-group-output") {
+      const targetType = getTargetPortType(targetNode, targetHandle, subgraphs);
+      return targetType != null && sourceType === targetType;
     }
-    return sourceType === def.portType;
-  }
-  if (targetHandle !== STUDIO_HANDLE_IN) {
     return false;
   }
-  const targetType = targetNode.data.inputType;
+  const targetType = getTargetPortType(targetNode, targetHandle, subgraphs);
   if (targetType == null) {
     return false;
   }
@@ -754,17 +820,31 @@ function flowValueAsVec3(v: unknown): FlowWireVec3 {
 }
 
 function cloneFlowSnapshot(state: {
-  nodes: StudioNode[];
+  nodes: FlowGraphNode[];
   edges: Edge[];
   selectedNodeId: string | null;
   selectedNodeIds?: string[];
+  subgraphs?: Record<string, StudioSubgraphDocument>;
+  activeGraphId?: StudioGraphId;
+  graphStack?: StudioGraphId[];
+  rootNodes?: FlowGraphNode[];
+  rootEdges?: Edge[];
 }): FlowSnapshot {
   const sel = normalizeFlowSnapshotSelection(state);
   return {
-    nodes: JSON.parse(JSON.stringify(state.nodes)) as StudioNode[],
+    nodes: JSON.parse(JSON.stringify(state.nodes)) as FlowGraphNode[],
     edges: JSON.parse(JSON.stringify(state.edges)) as Edge[],
     selectedNodeId: sel.selectedNodeId,
     selectedNodeIds: sel.selectedNodeIds,
+    ...(state.subgraphs != null ? { subgraphs: JSON.parse(JSON.stringify(state.subgraphs)) } : {}),
+    ...(state.activeGraphId != null ? { activeGraphId: state.activeGraphId } : {}),
+    ...(state.graphStack != null ? { graphStack: [...state.graphStack] } : {}),
+    ...(state.rootNodes != null
+      ? { rootNodes: JSON.parse(JSON.stringify(state.rootNodes)) as FlowGraphNode[] }
+      : {}),
+    ...(state.rootEdges != null
+      ? { rootEdges: JSON.parse(JSON.stringify(state.rootEdges)) as Edge[] }
+      : {}),
   };
 }
 
@@ -1642,6 +1722,7 @@ function applyConfigFieldPatch(
 export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   nodes: [],
   edges: [],
+  ...initialSubgraphStoreSlice(),
   selectedNodeId: null,
   selectedNodeIds: [],
   undoStack: [],
@@ -1653,6 +1734,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: st.edges,
       selectedNodeId: st.selectedNodeId,
       selectedNodeIds: st.selectedNodeIds,
+      subgraphs: st.subgraphs,
+      activeGraphId: st.activeGraphId,
+      graphStack: st.graphStack,
+      rootNodes: st.rootNodes,
+      rootEdges: st.rootEdges,
     });
     set((s) => ({
       undoStack: [...s.undoStack, snap].slice(-MAX_UNDO),
@@ -1670,6 +1756,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: st.edges,
       selectedNodeId: st.selectedNodeId,
       selectedNodeIds: st.selectedNodeIds,
+      subgraphs: st.subgraphs,
+      activeGraphId: st.activeGraphId,
+      graphStack: st.graphStack,
+      rootNodes: st.rootNodes,
+      rootEdges: st.rootEdges,
     });
     const prevSel = normalizeFlowSnapshotSelection(prev);
     set({
@@ -1680,6 +1771,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: prev.edges,
       selectedNodeId: prevSel.selectedNodeId,
       selectedNodeIds: prevSel.selectedNodeIds,
+      subgraphs: prev.subgraphs ?? st.subgraphs,
+      activeGraphId: prev.activeGraphId ?? STUDIO_ROOT_GRAPH_ID,
+      graphStack: prev.graphStack ?? [],
+      rootNodes: prev.rootNodes ?? prev.nodes,
+      rootEdges: prev.rootEdges ?? prev.edges,
       undoStack: st.undoStack.slice(0, -1),
       redoStack: [cur, ...st.redoStack].slice(0, MAX_UNDO),
     });
@@ -1696,6 +1792,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: st.edges,
       selectedNodeId: st.selectedNodeId,
       selectedNodeIds: st.selectedNodeIds,
+      subgraphs: st.subgraphs,
+      activeGraphId: st.activeGraphId,
+      graphStack: st.graphStack,
+      rootNodes: st.rootNodes,
+      rootEdges: st.rootEdges,
     });
     const nextSel = normalizeFlowSnapshotSelection(next);
     set({
@@ -1706,6 +1807,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: next.edges,
       selectedNodeId: nextSel.selectedNodeId,
       selectedNodeIds: nextSel.selectedNodeIds,
+      subgraphs: next.subgraphs ?? st.subgraphs,
+      activeGraphId: next.activeGraphId ?? STUDIO_ROOT_GRAPH_ID,
+      graphStack: next.graphStack ?? [],
+      rootNodes: next.rootNodes ?? next.nodes,
+      rootEdges: next.rootEdges ?? next.edges,
       undoStack: [...st.undoStack, cur].slice(-MAX_UNDO),
       redoStack: st.redoStack.slice(1),
     });
@@ -1716,6 +1822,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n)),
     );
     const sel = normalizeFlowSnapshotSelection(snapshot);
+    const subgraphs = snapshot.subgraphs ?? {};
+    const activeGraphId = snapshot.activeGraphId ?? STUDIO_ROOT_GRAPH_ID;
     set({
       nodes: attachConfigErrorsWithModelChildRegistry(
         applyStudioFlowSelection(nodesRaw, sel.selectedNodeIds),
@@ -1724,13 +1832,22 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: snapshot.edges,
       selectedNodeId: sel.selectedNodeId,
       selectedNodeIds: sel.selectedNodeIds,
+      subgraphs,
+      activeGraphId,
+      graphStack: snapshot.graphStack ?? [],
+      rootNodes: snapshot.rootNodes ?? nodesRaw,
+      rootEdges: snapshot.rootEdges ?? snapshot.edges,
       undoStack: [],
       redoStack: [],
     });
     flushFlowSimulationPins(get);
   },
   exportFlowGraphJson: (options) => {
-    const st = get();
+    const st = persistActiveGraphBuffer(get());
+    const exportNodes =
+      st.activeGraphId === STUDIO_ROOT_GRAPH_ID ? st.nodes : st.rootNodes;
+    const exportEdges =
+      st.activeGraphId === STUDIO_ROOT_GRAPH_ID ? st.edges : st.rootEdges;
     const viewportArg = options?.viewport;
     const viewportPayload =
       viewportArg != null && isValidStudioPersistedViewport(viewportArg) ? viewportArg : undefined;
@@ -1739,10 +1856,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       {
         version: 1 as const,
         updatedAt: new Date().toISOString(),
-        nodes: st.nodes,
-        edges: st.edges,
+        nodes: exportNodes,
+        edges: exportEdges,
         selectedNodeId: st.selectedNodeId,
         selectedNodeIds: st.selectedNodeIds,
+        ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
+        ...(st.activeGraphId !== STUDIO_ROOT_GRAPH_ID ? { activeGraphId: st.activeGraphId } : {}),
+        ...(st.graphStack.length > 0 ? { graphStack: st.graphStack } : {}),
+        ...(st.rootNodes.length > 0 ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
         ...(viewportPayload != null ? { viewport: viewportPayload } : {}),
         ...(canvasPreferences != null ? { canvasPreferences } : {}),
       },
@@ -1792,6 +1913,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       o.canvasPreferences != null
         ? coerceFlowCanvasPreferences(o.canvasPreferences)
         : undefined;
+    const subgraphsRaw = o.subgraphs;
+    const subgraphs =
+      subgraphsRaw != null && typeof subgraphsRaw === "object" && !Array.isArray(subgraphsRaw)
+        ? (subgraphsRaw as Record<string, StudioSubgraphDocument>)
+        : {};
+    const activeGraphId =
+      typeof o.activeGraphId === "string" ? (o.activeGraphId as StudioGraphId) : STUDIO_ROOT_GRAPH_ID;
+    const graphStack = Array.isArray(o.graphStack)
+      ? o.graphStack.filter((x): x is StudioGraphId => typeof x === "string")
+      : [];
+    const rootNodesRaw = o.rootNodes;
+    const rootEdgesRaw = o.rootEdges;
     set({
       nodes: attachConfigErrorsWithModelChildRegistry(
         applyStudioFlowSelection(
@@ -1803,6 +1936,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: migratedEdges,
       selectedNodeId: selection.selectedNodeId,
       selectedNodeIds: selection.selectedNodeIds,
+      subgraphs,
+      activeGraphId,
+      graphStack,
+      rootNodes: Array.isArray(rootNodesRaw)
+        ? (rootNodesRaw as FlowGraphNode[])
+        : (migratedNodes as FlowGraphNode[]),
+      rootEdges: Array.isArray(rootEdgesRaw) ? (rootEdgesRaw as Edge[]) : migratedEdges,
       redoStack: [],
     });
     flushFlowSimulationPins(get);
@@ -1867,7 +2007,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         newNodes.find((n) => n.id === srcNew) ??
         st.nodes.find((n) => n.id === e.source);
       const label =
-        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle) : "";
+        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, st.subgraphs) : "";
       dupEdges.push({
         ...e,
         id: `studio-edge-${studioDupNodeId()}`,
@@ -1939,7 +2079,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const pastedEdges: Edge[] = pastedEdgesRaw.map((e) => {
       const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
       const sourceStub = pastedNodes.find((n) => n.id === e.source);
-      const label = sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle) : "";
+      const label = sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, st.subgraphs) : "";
       return {
         ...e,
         animated: true,
@@ -1961,9 +2101,163 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
     return { ok: true };
   },
+  createGroupFromSelection: () => {
+    const s = get();
+    const selected = s.nodes.filter((n) => n.selected && !isExcludedFromNodeGroup(n));
+    if (selected.length < 1) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const groupId = `group_${Date.now()}`;
+    const { groupNode, subgraph } = createStudioNodeGroupFromSelection(
+      groupId,
+      selected,
+      s.edges,
+      s.nodes,
+      s.subgraphs,
+    );
+    const selectedIds = new Set(selected.map((n) => n.id));
+    const { nodes: parentNodes, edges: parentEdges } = rewireParentGraphForStudioGroup(
+      s.nodes,
+      s.edges,
+      groupNode,
+      selectedIds,
+      subgraph.interface,
+      s.subgraphs,
+    );
+    const nextSubgraphs = { ...s.subgraphs, [groupId]: subgraph };
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      parentNodes as FlowGraphNode[],
+      parentEdges,
+    );
+
+    if (s.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+      set({
+        nodes: attachedNodes,
+        edges: parentEdges,
+        rootNodes: attachedNodes,
+        rootEdges: parentEdges,
+        subgraphs: nextSubgraphs,
+        ...selectionFromIds([groupId]),
+      });
+    } else {
+      const parentSub = s.subgraphs[s.activeGraphId];
+      set({
+        nodes: attachedNodes,
+        edges: parentEdges,
+        subgraphs: {
+          ...nextSubgraphs,
+          [s.activeGraphId]: {
+            ...parentSub,
+            nodes: parentNodes,
+            edges: parentEdges,
+            interface: parentSub?.interface ?? { inputs: [], outputs: [] },
+          },
+        },
+        ...selectionFromIds([groupId]),
+      });
+    }
+    flushFlowSimulationPins(get);
+  },
+  enterGroup: (groupId: string) => {
+    const s = get();
+    const sub = s.subgraphs[groupId];
+    if (sub == null) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const persisted = persistActiveGraphBuffer(s);
+    const nextStack =
+      persisted.activeGraphId === STUDIO_ROOT_GRAPH_ID
+        ? [STUDIO_ROOT_GRAPH_ID, groupId]
+        : [...persisted.graphStack, groupId];
+    set({
+      ...persisted,
+      activeGraphId: groupId,
+      graphStack: nextStack,
+      nodes: attachConfigErrorsWithModelChildRegistry(sub.nodes as FlowGraphNode[], sub.edges),
+      edges: sub.edges,
+      selectedNodeId: null,
+      selectedNodeIds: [],
+    });
+  },
+  exitGroup: () => {
+    const s = get();
+    if (s.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const persisted = persistActiveGraphBuffer(s);
+    const stack = [...persisted.graphStack];
+    stack.pop();
+    const parentId = stack[stack.length - 1] ?? STUDIO_ROOT_GRAPH_ID;
+    let nodes: FlowGraphNode[];
+    let edges: Edge[];
+    if (parentId === STUDIO_ROOT_GRAPH_ID) {
+      nodes = persisted.rootNodes;
+      edges = persisted.rootEdges;
+    } else {
+      const parentSub = persisted.subgraphs[parentId];
+      nodes = (parentSub?.nodes as FlowGraphNode[]) ?? [];
+      edges = parentSub?.edges ?? [];
+    }
+    set({
+      ...persisted,
+      activeGraphId: parentId,
+      graphStack: stack,
+      nodes: attachConfigErrorsWithModelChildRegistry(nodes, edges),
+      edges,
+      selectedNodeId: null,
+      selectedNodeIds: [],
+    });
+  },
+  jumpToGraph: (graphId: StudioGraphId) => {
+    const s = get();
+    if (graphId === s.activeGraphId) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const persisted = persistActiveGraphBuffer(s);
+    let nodes: FlowGraphNode[];
+    let edges: Edge[];
+    if (graphId === STUDIO_ROOT_GRAPH_ID) {
+      nodes = persisted.rootNodes;
+      edges = persisted.rootEdges;
+    } else {
+      const sub = persisted.subgraphs[graphId];
+      if (sub == null) {
+        return;
+      }
+      nodes = sub.nodes as FlowGraphNode[];
+      edges = sub.edges;
+    }
+    const stackIndex = persisted.graphStack.indexOf(graphId);
+    const nextStack =
+      graphId === STUDIO_ROOT_GRAPH_ID
+        ? []
+        : stackIndex >= 0
+          ? persisted.graphStack.slice(0, stackIndex + 1)
+          : [STUDIO_ROOT_GRAPH_ID, graphId];
+    set({
+      ...persisted,
+      activeGraphId: graphId,
+      graphStack: nextStack,
+      nodes: attachConfigErrorsWithModelChildRegistry(nodes, edges),
+      edges,
+      selectedNodeId: null,
+      selectedNodeIds: [],
+    });
+  },
   deleteSelection: () => {
     const st = get();
-    const fromRf = st.nodes.filter((n) => n.selected).map((n) => n.id);
+    const fromRf = st.nodes
+      .filter(
+        (n) =>
+          n.selected &&
+          n.type !== "studio-group-input" &&
+          n.type !== "studio-group-output",
+      )
+      .map((n) => n.id);
     const ids =
       fromRf.length > 0
         ? new Set(fromRf)
@@ -1974,6 +2268,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
     get().pushUndoSnapshot();
+    const removedGroupIds = [...ids].filter((id) => {
+      const node = st.nodes.find((n) => n.id === id);
+      return isStudioNodeGroupNode(node);
+    });
     const frameIds = [...ids].filter(
       (id) => get().nodes.find((n) => n.id === id)?.type === "studio-frame",
     );
@@ -1983,8 +2281,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       workingNodes = dissolved.nodes;
     }
     const removed = removeFlowNodesFromGraph([...ids], workingNodes, st.edges);
-    const nextNodes = removed.nodes;
+    let nextNodes = removed.nodes;
     const nextEdges = removed.edges;
+    let nextSubgraphs = { ...st.subgraphs };
+    for (const groupId of removedGroupIds) {
+      const node = st.nodes.find((n) => n.id === groupId);
+      const subKey = isStudioNodeGroupNode(node) ? (node.data.subgraphId ?? groupId) : groupId;
+      delete nextSubgraphs[subKey];
+    }
     const priorSelection =
       st.selectedNodeIds.length > 0
         ? st.selectedNodeIds
@@ -1994,9 +2298,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const survivingSelectedIds = priorSelection.filter((id) =>
       nextNodes.some((n) => n.id === id),
     );
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(nextNodes, nextEdges);
+    const committed = commitActiveGraphMutation(
+      { ...st, subgraphs: nextSubgraphs },
+      attachedNodes,
+      nextEdges,
+    );
     set({
-      nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, nextEdges),
-      edges: nextEdges,
+      ...committed,
+      nodes: attachedNodes,
       ...selectionFromIds(survivingSelectedIds),
     });
     flushFlowSimulationPins(get);
@@ -2094,7 +2404,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
   },
   onConnect: (connection) => {
-    if (!canConnect(connection, get().nodes)) {
+    const st = get();
+    if (!canConnect(connection, st.nodes, st.subgraphs)) {
       return;
     }
     const hasDuplicate = get().edges.some(
@@ -2110,7 +2421,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const sourceNode = get().nodes.find((n) => n.id === connection.source);
     const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
     const label =
-      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle) : "";
+      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle, get().subgraphs) : "";
     get().pushUndoSnapshot();
     set((state) => {
       const nextEdges = addEdge(
@@ -2407,6 +2718,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     set({
       nodes: [],
       edges: [],
+      ...initialSubgraphStoreSlice(),
       selectedNodeId: null,
       selectedNodeIds: [],
     });
@@ -3196,7 +3508,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
   },
   tickSimulation: () => {
-    const { nodes, edges } = get();
+    const state = get();
+    const { nodes, edges } = resolveEvaluationGraph(state);
     if (nodes.length === 0) {
       return;
     }

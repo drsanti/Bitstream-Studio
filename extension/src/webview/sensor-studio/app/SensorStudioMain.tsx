@@ -16,6 +16,7 @@ import { readStoredFlowCanvasPreferences } from "../features/editor/components/f
 import { useFlowCanvasPreferences } from "../features/editor/components/use-flow-canvas-preferences";
 import { coerceFlowCanvasPreferences } from "../persistence/flow-canvas-preferences";
 import {
+  type FlowGraphNode,
   type StudioDemoTemplateId,
   type StudioNode,
   STUDIO_HANDLE_IN,
@@ -161,6 +162,9 @@ export function SensorStudioMain() {
   const duplicateSelection = useFlowEditorStore((s) => s.duplicateSelection);
   const copyFlowSelectionToClipboard = useFlowEditorStore((s) => s.copyFlowSelectionToClipboard);
   const pasteFlowFromClipboard = useFlowEditorStore((s) => s.pasteFlowFromClipboard);
+  const createGroupFromSelection = useFlowEditorStore((s) => s.createGroupFromSelection);
+  const enterGroup = useFlowEditorStore((s) => s.enterGroup);
+  const exitGroup = useFlowEditorStore((s) => s.exitGroup);
   const deleteSelection = useFlowEditorStore((s) => s.deleteSelection);
   const selectAllNodes = useFlowEditorStore((s) => s.selectAllNodes);
   const clearNodeSelection = useFlowEditorStore((s) => s.clearNodeSelection);
@@ -261,11 +265,17 @@ export function SensorStudioMain() {
       const st = useFlowEditorStore.getState();
       writePersistedFlowDocument({
         version: 1,
-        nodes: st.nodes,
-        edges: st.edges,
+        nodes:
+          st.activeGraphId === "__root__" || st.rootNodes.length === 0 ? st.nodes : st.rootNodes,
+        edges:
+          st.activeGraphId === "__root__" || st.rootEdges.length === 0 ? st.edges : st.rootEdges,
         selectedNodeId: st.selectedNodeId,
         selectedNodeIds:
           st.selectedNodeIds.length > 0 ? st.selectedNodeIds : undefined,
+        ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
+        ...(st.activeGraphId !== "__root__" ? { activeGraphId: st.activeGraphId } : {}),
+        ...(st.graphStack.length > 0 ? { graphStack: st.graphStack } : {}),
+        ...(st.rootNodes.length > 0 ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
         viewport: viewportPersistRef.current ?? undefined,
         canvasPreferences: flowCanvasPrefsRef.current,
       });
@@ -685,6 +695,9 @@ export function SensorStudioMain() {
       duplicateSelection,
       copyFlowSelectionToClipboard,
       pasteFlowFromClipboard,
+      createGroupFromSelection,
+      enterGroup,
+      exitGroup,
       undo,
       redo,
       clearNow,
@@ -701,6 +714,9 @@ export function SensorStudioMain() {
       duplicateSelection,
       copyFlowSelectionToClipboard,
       pasteFlowFromClipboard,
+      createGroupFromSelection,
+      enterGroup,
+      exitGroup,
       undo,
       redo,
       clearNow,
@@ -724,6 +740,11 @@ export function SensorStudioMain() {
         edges: raw.edges as Edge[],
         selectedNodeId: raw.selectedNodeId,
         selectedNodeIds: raw.selectedNodeIds,
+        ...(raw.subgraphs != null ? { subgraphs: raw.subgraphs } : {}),
+        ...(raw.activeGraphId != null ? { activeGraphId: raw.activeGraphId } : {}),
+        ...(raw.graphStack != null ? { graphStack: raw.graphStack } : {}),
+        ...(raw.rootNodes != null ? { rootNodes: raw.rootNodes as FlowGraphNode[] } : {}),
+        ...(raw.rootEdges != null ? { rootEdges: raw.rootEdges as Edge[] } : {}),
       });
       persistFingerprintRef.current = flowStructureFingerprint(
         raw.nodes as StudioNode[],

@@ -10,6 +10,9 @@ export type FlowKeyboardShortcutActions = {
   duplicateSelection: () => void;
   copyFlowSelectionToClipboard: () => Promise<boolean>;
   pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
+  createGroupFromSelection: () => void;
+  enterGroup: (groupId: string) => void;
+  exitGroup: () => void;
   undo: () => void;
   redo: () => void;
   clearNow: () => void;
@@ -74,6 +77,23 @@ export function handleFlowKeyboardShortcut(
   if (mod && !event.shiftKey && (key === "v" || key === "V")) {
     void ctx.pasteFlowFromClipboard();
     return true;
+  }
+
+  if (mod && !event.shiftKey && (key === "g" || key === "G")) {
+    ctx.createGroupFromSelection();
+    return true;
+  }
+
+  if (key === "Tab" && !mod && !event.altKey) {
+    if (event.shiftKey) {
+      ctx.exitGroup();
+      return true;
+    }
+    const selectedGroupId = ctx.flowCanvasGraphRef.current?.getSelectedNodeGroupId?.();
+    if (selectedGroupId != null) {
+      ctx.enterGroup(selectedGroupId);
+      return true;
+    }
   }
 
   if (mod && event.shiftKey && (key === "f" || key === "F")) {

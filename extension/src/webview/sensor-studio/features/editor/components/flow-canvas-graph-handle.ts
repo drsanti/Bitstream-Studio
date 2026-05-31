@@ -6,4 +6,6 @@ export type FlowCanvasGraphHandle = {
   closeAddNodeMenu: () => void;
   openAddNodeMenuAt: (anchor: ScreenPoint) => void;
   toggleAddNodeMenu: () => void;
+  /** When exactly one `studio-node-group` is selected, returns its subgraph id for Tab drill-in. */
+  getSelectedNodeGroupId: () => string | null;
 };

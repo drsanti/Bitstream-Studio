@@ -81,7 +81,8 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-31** — **Sensor Studio — node-animator Phase 3 (layout nodes):** reroute / split / frame / note RF types, **R** shortcut (`reactFlowRef`, fixes React Flow #001), Layout add-menu section + inspector, simulation passthrough; **`layout-flow-nodes.test.ts`**.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 2 (keyboard + palette):** central **`flow-keyboard-shortcuts.ts`**, recent nodes in **`FlowAddNodeMenu`**, **`nodePaletteLayout`** from runtime defaults + Library switcher, **`palette-display-meta.ts`** 9-group add menu taxonomy.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 1 (Shift+A add menu):** **`FlowAddNodeMenu`** (search + category browse), pointer anchor, right-click spawn, Esc priority; parity doc **`NODE_ANIMATOR_PARITY.md`**.
-- **2026-05-31** — **Sensor Studio flow domains — Phase 4 multi-clip playback (slice 4):** **GLB Animation Bundle** **`animationPlaybackMode`** (**per-clip** / **parallel-all** / **sequence**); inspector playback select; preview sequence advance + parallel merge.
+- **2026-05-31** — **Sensor Studio GLB drives polish (slice 1):** **`glbPartDriveMode`** visibility vs opacity on part drives; **PBR channel** picker on **`number-constant`** material GLB rows; unit tests.
+- **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 1):** **`studio-node-group`**, **Ctrl+G**, **Tab** / double-click drill-in, breadcrumb, **`flattenFlowGraphForEvaluation`** for simulation; **`FLOW_SUBGRAPHS.md`**. **GLB Animation Bundle** **`animationPlaybackMode`** (**per-clip** / **parallel-all** / **sequence**); inspector playback select; preview sequence advance + parallel merge.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 demo template:** **`material-glb-drives`** (Model Viewer + material param + texture on robot GLB).
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material texture swap (slice 2):** **`glb-material-texture`** node (map slots); GLB **Materials → Tex** spawn; preview texture apply.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material params (slice 1):** **`glb-material-param`** node (emissive / roughness / metalness / opacity); GLB **Materials** spawn; PBR preview apply.
@@ -392,7 +393,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Sensor Studio — node-animator editor parity (Phase 9+)** — Phases 1–8 **shipped 2026-05-31**. Plan: **[`NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md)**. Next: subgraph clipboard, group drill-in.
+- **Sensor Studio — node-animator editor parity (Phase 9+)** — Phases 1–8 **shipped 2026-05-31**; **Phase 9 slice 1** (node groups, Ctrl+G, Tab drill-in, eval flatten) **shipped 2026-05-31**. Plan: **[`NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md)**, **[`FLOW_SUBGRAPHS.md`](../src/webview/sensor-studio/docs/FLOW_SUBGRAPHS.md)**. Next: subgraph clipboard, ungroup, Group Sockets inspector.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)
@@ -423,8 +424,8 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
   - [ ] Optional: toolbar “Open COM” / metrics-based reconnect (no full HostSession cycle)
 - **Sensor Studio — GLB drives (polish)** — checklist:
   - [x] **Camera / orbit handoff** when a GLB camera drive turns off (same-frame restore to **`scene3d`** camera + target — **`RotationPreviewPanelV4`**, **2026-05-14**).
-  - [ ] **Part** drive modes (opacity vs visibility-only).
-  - [ ] **Material** channels beyond **emissiveIntensity** (e.g. metal/roughness).
+  - [x] **Part** drive modes (opacity vs visibility-only) — **`glbPartDriveMode`** on part GLB drives; inspector on number-constant + event part nodes; preview uses existing 0–1 opacity path (**2026-05-31**).
+  - [x] **Material** channels beyond **emissiveIntensity** on **`number-constant`** GLB material rows — **PBR channel** picker in Number inspector (**2026-05-31**; **`glb-material-param`** node already shipped).
   - [ ] **Multi-camera** weighting / blend (product feedback).
   - [ ] **Manual QA** on real GLBs (camera names, rig strip, animation mixer).
 - **Bitstream — sensor `cfg` NVM on MCU** (*deferred*): When **TESAIoT** implements **NVM-backed** sensor configuration, revisit host/webview copy about “RAM-only” and extend cold sync / persistence tests for power-cycle truth. **Wi‑Fi NVM** remains independent — do not regress Wi‑Fi storage behavior.
