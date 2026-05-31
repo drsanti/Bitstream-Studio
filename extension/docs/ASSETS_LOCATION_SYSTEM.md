@@ -1,6 +1,6 @@
 # Assets location system
 
-This document explains **how the extension decides where assets live on disk** and **how those locations map to URLs** in the webview, the browser dev app, and the Model Downloader bridge. It is the conceptual map; for day-to-day paths and backups, see [Managing downloaded assets](./MANAGING_DOWNLOADED_ASSETS.md). For a **tabular directory checklist** (models, free pack, legacy roots), see **[Global asset directories](./GLOBAL_ASSET_DIRECTORIES.md)**. For WebSocket bridge wiring, see [BRIDGE.md](./BRIDGE.md).
+This document explains **how the extension decides where assets live on disk** and **how those locations map to URLs** in the webview, the browser dev app, and the Model Downloader bridge. It is the conceptual map; for day-to-day paths and backups, see [Managing downloaded assets](./MANAGING_DOWNLOADED_ASSETS.md). For a **tabular directory checklist** (models, free pack, legacy roots), see **[Global asset directories](./GLOBAL_ASSET_DIRECTORIES.md)**. For **GitHub online layout** (`ternion-3d-assets-free`), see **[Online assets repo](./ASSETS_ONLINE_REPO.md)**. For WebSocket bridge wiring, see [BRIDGE.md](./BRIDGE.md).
 
 ## Why it feels complicated
 
@@ -93,7 +93,7 @@ At runtime this is injected as `window.ASSET_SOURCE_STRATEGY` and can also be pa
 Current intent:
 
 - `local-first` prefers free/user mirrors under globalStorage; falls back to online when local roots are unavailable.
-- `online-only` prefers `ONLINE_ASSETS_BASE_URI` first.
+- `online-only` prefers `ONLINE_ASSETS_BASE_URI` first (default free pack base: `.../ternion-3d-assets-free/main/assets` — see [Online assets repo](./ASSETS_ONLINE_REPO.md)).
 - `local-only` avoids online-first resolution and keeps loads on local roots.
 
 ### Vite dev server (logical path → URL)
@@ -150,6 +150,7 @@ That function respects **`window.FREE_ASSETS_BASE_URI`**, **`LOCAL_ASSETS_BASE_U
 
 ## Related documents
 
+- **[Online assets repo](./ASSETS_ONLINE_REPO.md)** — **`ternion-3d-assets-free`**: use **`main/assets`**, URL building, sync mapping, maintainer checklist.
 - [Global asset directories](./GLOBAL_ASSET_DIRECTORIES.md) — **canonical table**: where models, free pack, and legacy trees live (`src/assets` vs `globalStorage/assets`).
 - [Global Directories panel design](./GLOBAL_DIRECTORIES_PANEL_DESIGN.md) — **UI design** (read-only panel, hooks, phases) aligned with the directory reference.
 - [Managing downloaded assets](./MANAGING_DOWNLOADED_ASSETS.md) — where files are written, backups, UI “Open folder”.

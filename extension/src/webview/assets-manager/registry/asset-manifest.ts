@@ -5,6 +5,8 @@
  * Override with `window.STUDIO_ASSET_MANIFEST_URL`. The webview merges remote over the bundled
  * `studio-asset-manifest.v1.json` (by `id`) and refreshes when downloads change or `bumpRefresh()` runs.
  *
+ * **Online repo layout:** `extension/docs/ASSETS_ONLINE_REPO.md` — base is `.../main/assets`, not repo root.
+ *
  * Publish the canonical JSON to **`ternion-3d-assets-free`** with **`npm run publish:studio-asset-manifest`**
  * (requires `GITHUB_TOKEN` with `repo` scope).
  */

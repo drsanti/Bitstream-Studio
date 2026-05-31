@@ -32,6 +32,7 @@ Runbook: **[`../HOW_TO_RUN.md`](../HOW_TO_RUN.md)**. Agent handoff: **[`../../AG
 
 | Document | Purpose |
 |----------|---------|
+| [`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md) | **GitHub free pack** — `main/assets` vs repo root, URL rules, sync, publish |
 | [`ASSETS_LOCATION_SYSTEM.md`](./ASSETS_LOCATION_SYSTEM.md) | Path and URL mapping |
 | [`GLOBAL_ASSET_DIRECTORIES.md`](./GLOBAL_ASSET_DIRECTORIES.md) | Directory checklist |
 | [`MANAGING_DOWNLOADED_ASSETS.md`](./MANAGING_DOWNLOADED_ASSETS.md) | Backups and layout |

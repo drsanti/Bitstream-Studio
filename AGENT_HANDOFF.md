@@ -63,6 +63,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | **`extension/src/webview/shared/webgl/README.md`** | WebGL Canvas transition gate + Vite chunks |
 | **`extension/docs/APPLICATION_MIGRATION_PLAN.md`** | E84 / ABB / vehicle sim port from `ternion-t3d` (R3F, phased) |
 | **`extension/docs/README.md`** | Docs index (BS2, bridge, assets, Sensor Studio) |
+| **`extension/docs/ASSETS_ONLINE_REPO.md`** | GitHub free pack — **`main/assets`** base URL, sync, publish (read before any online asset work) |
 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** | Bitstream vs Simulator exclusivity (A+B) |
 | **`AGENT_HANDOFF.md`** | This file |
 

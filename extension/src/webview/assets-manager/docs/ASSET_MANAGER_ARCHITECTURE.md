@@ -1,7 +1,7 @@
 # Asset Manager — architecture (self-contained module + hooks)
 
 **Status:** design (implementation follows in phases).  
-**Related:** [Global asset directories](../../../../docs/GLOBAL_ASSET_DIRECTORIES.md) (where bytes live on disk), [Assets location system](../../../../docs/ASSETS_LOCATION_SYSTEM.md), [Managing downloaded assets](../../../../docs/MANAGING_DOWNLOADED_ASSETS.md), [BRIDGE](../../../../docs/BRIDGE.md).
+**Related:** [Global asset directories](../../../../docs/GLOBAL_ASSET_DIRECTORIES.md) (where bytes live on disk), [Online assets repo](../../../../docs/ASSETS_ONLINE_REPO.md) (GitHub `ternion-3d-assets-free` layout), [Assets location system](../../../../docs/ASSETS_LOCATION_SYSTEM.md), [Managing downloaded assets](../../../../docs/MANAGING_DOWNLOADED_ASSETS.md), [BRIDGE](../../../../docs/BRIDGE.md).
 
 ## Goals
 

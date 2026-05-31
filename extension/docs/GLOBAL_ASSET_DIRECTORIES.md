@@ -4,13 +4,15 @@ This document is the **single checklist** for **where models and other assets ar
 
 **Visual overview (Mermaid):** [Asset storage diagram](./ASSET_STORAGE_DIAGRAM.md) — physical trees, Free Loader vs Model Loader, and webview URL bases.
 
+**Online GitHub (`ternion-3d-assets-free`):** [Online assets repo](./ASSETS_ONLINE_REPO.md) — canonical base is **`.../main/assets`** (not repo root).
+
 ## Pack layout (same shape for both trees)
 
 Under **`…/assets/`** (VS Code `globalStorage` or monorepo **`ternion-t3d/assets`**), there are two **packs** with parallel folders:
 
 | Pack | Typical subtrees | Primary role |
 | ---- | ------------------ | -------------- |
-| **Free** | `free/models/`, `free/textures/`, … | GitHub **ternion-3d-assets-free** mirror |
+| **Free** | `free/models/`, `free/textures/`, … | GitHub **[ternion-3d-assets-free](https://github.com/drsanti/ternion-3d-assets-free)** mirror — online tree is **`assets/`** on `main` ([details](./ASSETS_ONLINE_REPO.md)) |
 | **Tesaiot** | `tesaiot/models/`, `tesaiot/textures/`, … | Model Loader / API downloads + optional Tesaiot-side textures |
 
 Logical web keys mirror disk segments (for example `free/models/…`, `tesaiot/models/…`, `tesaiot/textures/…`). VS Code helpers: **`getFreeGithubMirrorRootUri`** (`free/`), **`getModelDownloadsRootUri`** (`tesaiot/models/`), **`getTesaiotTexturesRootUri`** (`tesaiot/textures/`).
@@ -82,6 +84,8 @@ Constants: `BROWSER_USER_MODELS_HTTP_PATH_PREFIX`, `BROWSER_USER_FREE_HTTP_PATH_
 ## Webview URL bases (not directories — but tied to the above)
 
 The host injects **`window.LOCAL_ASSETS_BASE_URI`**, **`window.FREE_ASSETS_BASE_URI`**, **`window.TESAIOT_TEXTURES_BASE_URI`**, **`window.ONLINE_ASSETS_BASE_URI`**. Logical paths such as `textures/cubemap/Yokohama/posx.jpg` or `tesaiot/textures/...` are turned into fetchable URLs by **`resolveWebviewModelAssetUrl`** and **`resolveTesaiotTexturesToFetchableUrl`** (`src/webview/logical-asset-url.ts`), **not** by concatenating disk paths in UI code.
+
+**Online free pack:** `ONLINE_ASSETS_BASE_URI` defaults to `.../ternion-3d-assets-free/main/assets` — see **[Online assets repo](./ASSETS_ONLINE_REPO.md)**.
 
 Details: [Assets location system](./ASSETS_LOCATION_SYSTEM.md).
 

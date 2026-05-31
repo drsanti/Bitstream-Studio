@@ -2,6 +2,8 @@
 
 Diagrams complement the canonical tables in **[Global asset directories](./GLOBAL_ASSET_DIRECTORIES.md)** and the operator notes in **[Managing downloaded assets](./MANAGING_DOWNLOADED_ASSETS.md)**. **Disk paths** and **webview base URIs** are related but not the same thing.
 
+**Online GitHub layout (`ternion-3d-assets-free`):** see **[Online assets repo](./ASSETS_ONLINE_REPO.md)** — Bitstream uses **`main/assets`**, not repository root **`main`**.
+
 ---
 
 ## Physical trees (where bytes live on disk)
@@ -53,7 +55,7 @@ flowchart LR
   P -->|"Env override"| E["TERNION BRIDGE FREE ASSETS OUTPUT DIR"]
 ```
 
-GitHub source layout for the pack: [`ternion-3d-assets-free` / `assets`](https://github.com/drsanti/ternion-3d-assets-free/tree/main/assets). The sync strips the leading `assets/` segment and writes the remainder under the chosen **output root** (see `syncTernionFreeAssets` in `src/asset-sync/syncTernionFreeAssets.ts`).
+GitHub source layout for the pack: **[Online assets repo](./ASSETS_ONLINE_REPO.md)** ([`tree/main/assets`](https://github.com/drsanti/ternion-3d-assets-free/tree/main/assets)). The sync strips the leading `assets/` segment and writes the remainder under the chosen **output root** (see `syncTernionFreeAssets` in `src/asset-sync/syncTernionFreeAssets.ts`).
 
 ---
 

@@ -2,6 +2,8 @@
  * Download all blobs under `assets/` from drsanti/ternion-3d-assets-free (GitHub)
  * into a local directory (monorepo **ternion-t3d/assets/free** or **TERNION_BRIDGE_FREE_ASSETS_OUTPUT_DIR**).
  * Node-only; safe path join (rejects `..` segments).
+ *
+ * Layout: `extension/docs/ASSETS_ONLINE_REPO.md`
  */
 
 import * as fs from "node:fs";

@@ -2,6 +2,8 @@
  * Uploads `src/webview/assets-manager/registry/studio-asset-manifest.v1.json`
  * to GitHub: `drsanti/ternion-3d-assets-free` → `assets/studio-asset-manifest.v1.json` on `main`.
  *
+ * Layout: `extension/docs/ASSETS_ONLINE_REPO.md`
+ *
  * Requirements:
  * - `GITHUB_TOKEN` with **repo** (Contents: write) for that repository.
  *

@@ -73,6 +73,8 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **`ternion-3d-assets-free` upstream cleanup (shipped):** removed legacy repo-root `models/`, `textures/`, duplicate manifest; **`robot-4w`** moved to **`assets/models/`**; README + **`docs/LAYOUT.md`**; feed revision **`2026-05-31T08:00:00Z`** — commit **`b2cc826`** on GitHub. Bitstream contract: **`ASSETS_ONLINE_REPO.md`**.
+- **2026-05-31** — **Docs — online assets repo (`ternion-3d-assets-free`):** canonical **`extension/docs/ASSETS_ONLINE_REPO.md`** — Bitstream uses **`main/assets`** (not repo root); URL rules, sync mapping, consumer matrix, upstream cleanup checklist; cross-linked from asset docs index + `GlobalConfig` / manifest comments.
 - **2026-05-31** — **Canvas inspector per-sensor decode rows:** **`BitstreamSensorSampleRxBadge`** **`panelSensorRows="perSensor"`** — one bordered freshness row per hint (SHT40/DPS368/BMM350/BMI270) with tier colors; Canvas **Telemetry** tab uses split layout + session summary footer (aggregate + diagnostics grid unchanged elsewhere).
 - **2026-05-31** — **Sensor Studio Canvas inspector tabs:** empty selection → **Canvas / Telemetry / Document** tab bar (TRN inspector chrome, emerald accent on Telemetry); **CanvasInspectorContextBar** with graph stats + health pills; telemetry tab uses RX **panel** + graph sensor list; tab persisted via **`canvas-inspector-ui-persistence`**.
 - **2026-05-31** — **Sensor Studio Canvas prefs v0.3:** **`autoFitViewOnReplace`** (template / import without viewport), **edge routing** (bezier / smoothstep / step / straight) on all wires + new connections; **`canvasPreferences`** in flow JSON export/import and **`sensor-studio:flow-graph:v1`** auto-save; shared types in **`persistence/flow-canvas-preferences.ts`**.
@@ -378,6 +380,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
   - [ ] Phase 4 — GLB animation depth (merge utility, drive polish)
   - [ ] Phase 5 — material parameter nodes (PBR v1)
   - [ ] Phase 6 — optional geometry / full shader DAG
+- **`ternion-3d-assets-free` upstream cleanup** — **Done 2026-05-31** ([`b2cc826`](https://github.com/drsanti/ternion-3d-assets-free/commit/b2cc826)): legacy root duplicates removed; **`docs/LAYOUT.md`** on GitHub. Bitstream contract: **[`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md)**.
 - **Digital Twin simulations (from `ternion-t3d`)** — canonical plan **[`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md)**. Order: **Phase 0** shared R3F shell → **Phase 1** E84 → **Phase 2** ABB → **Phase 3** vehicle (Jolt).
   - [x] Phase 0 — `webview/simulations/**`, catalog, hub, landing cards (2026-05-30)
   - [ ] Phase 0 smoke — GLB loads in dev/VSIX with free pack

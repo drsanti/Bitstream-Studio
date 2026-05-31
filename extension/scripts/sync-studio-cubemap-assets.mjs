@@ -18,6 +18,8 @@
  * Default raw root (no trailing slash):
  *   https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets
  *
+ * See `extension/docs/ASSETS_ONLINE_REPO.md`.
+ *
  * Usage:
  *   npm run sync:studio-cubemap-assets
  *   npm run sync:studio-cubemap-assets -- --discover-all
