@@ -45,6 +45,10 @@ export type TRNSidePanelProps = {
   mode?: Mode;
   variant?: Variant;
   title?: ReactNode;
+  /** Muted one-line summary under {@link title} in the expanded header. */
+  subtitle?: ReactNode;
+  /** Label on the floating collapsed expand control (defaults to string `title`). */
+  collapsedFloatingLabel?: string;
   actions?: ReactNode;
   footer?: ReactNode;
   /** When true, shows width × height (px) of the panel chrome in the footer while expanded. */
@@ -269,6 +273,8 @@ export function TRNSidePanel(props: TRNSidePanelProps) {
     mode = "docked",
     variant = "default",
     title,
+    subtitle,
+    collapsedFloatingLabel,
     actions,
     footer,
     showDimensionsFooter = false,
@@ -908,12 +914,21 @@ export function TRNSidePanel(props: TRNSidePanelProps) {
   const showFooterStrip =
     !effectiveCollapsed && (footer != null || showDimensionsFooter);
 
+  const expandPanelLabel =
+    collapsedFloatingLabel ??
+    (typeof title === "string" ? title : undefined);
+
   return (
     <>
       {showFloatingOnlyTrigger ? (
         <button
           type="button"
-          className="pointer-events-auto group absolute inline-flex items-center justify-center border-0 bg-transparent p-0 shadow-none outline-none transition-colors duration-150 ease-out focus-visible:ring-2 focus-visible:ring-zinc-500/60 focus-visible:ring-offset-0"
+          className={
+            "pointer-events-auto group absolute inline-flex items-center gap-1.5 rounded-md border border-zinc-700/80 bg-zinc-950/90 px-2 py-1.5 shadow-lg outline-none transition-colors duration-150 ease-out hover:border-zinc-600/80 hover:bg-zinc-900/95 focus-visible:ring-2 focus-visible:ring-zinc-500/60 focus-visible:ring-offset-0 " +
+            (side === "right"
+              ? "flex-row-reverse "
+              : "")
+          }
           style={{
             ...floatingAnchorStyle,
             marginTop: floatingAnchorCorrection.top,
@@ -923,16 +938,30 @@ export function TRNSidePanel(props: TRNSidePanelProps) {
               collapsedFloatingZIndex ??
               (mode === "overlay" ? overlayZIndex + 1 : 10),
           }}
-          aria-label="Expand panel"
+          aria-label={
+            expandPanelLabel != null
+              ? `Expand ${expandPanelLabel}`
+              : "Expand panel"
+          }
           onClick={() => setCollapsed(false, "button")}
         >
-          <span className="trn-side-panel-expand-icon inline-flex text-zinc-400 transition-colors duration-150 group-hover:text-zinc-200">
+          <span className="trn-side-panel-expand-icon inline-flex shrink-0 text-zinc-400 transition-colors duration-150 group-hover:text-zinc-200">
             {side === "right" ? (
               <PanelRightOpen className="h-4 w-4" aria-hidden />
             ) : (
               <PanelLeftOpen className="h-4 w-4" aria-hidden />
             )}
           </span>
+          {expandPanelLabel != null && expandPanelLabel.length > 0 ? (
+            <span
+              className={
+                "max-w-[7.5rem] truncate text-[10px] font-semibold leading-tight text-zinc-300 transition-colors duration-150 group-hover:text-zinc-100 " +
+                (side === "right" ? "text-right" : "text-left")
+              }
+            >
+              {expandPanelLabel}
+            </span>
+          ) : null}
         </button>
       ) : null}
       {mode === "overlay" && resolvedBackdrop !== "none" ? (
@@ -985,8 +1014,15 @@ export function TRNSidePanel(props: TRNSidePanelProps) {
               panelHeaderClassName + headerClassName
             }
           >
-            <div className={panelTitleClassName}>
-              {title ?? (side === "right" ? "Side Panel" : "Panel")}
+            <div className="flex min-w-0 flex-1 flex-col justify-center">
+              <div className={panelTitleClassName}>
+                {title ?? (side === "right" ? "Side Panel" : "Panel")}
+              </div>
+              {subtitle != null ? (
+                <div className="truncate text-[10px] font-normal leading-tight text-zinc-400">
+                  {subtitle}
+                </div>
+              ) : null}
             </div>
             <div className="ml-auto flex items-center gap-1">
               {actions}

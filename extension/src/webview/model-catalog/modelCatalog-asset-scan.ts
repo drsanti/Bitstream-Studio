@@ -1,6 +1,7 @@
 import type { ModelEntry } from './modelCatalog-types';
-import { DEV_GLOB_PATH_MARKERS } from '../../assetLayout';
+import { DEV_GLOB_PATH_MARKERS, REPO_ASSET_STATIC_SCAN_ENABLED } from '../../assetLayout';
 import { resolveCatalogModelPreviewUrl } from './resolve-catalog-model-preview-url';
+import { resolveModelCatalogEntryLabels } from './modelCatalogEntryLabels.js';
 
 /** Normalize glob path to project-relative posix path starting with src/assets/ */
 function globPathToProjectRelative(filePath: string): string {
@@ -69,6 +70,9 @@ function jsonModuleToObject(value: unknown): unknown {
  * New folders after build are merged at runtime via extension or bridge listing.
  */
 export function scanModelCatalogAssets(): ModelEntry[] {
+  if (!REPO_ASSET_STATIC_SCAN_ENABLED) {
+    return [];
+  }
   const freeModelFiles = import.meta.glob(
     '../../assets/free/models/**/*.{glb,gltf}',
     {
@@ -180,18 +184,19 @@ export function scanModelCatalogAssets(): ModelEntry[] {
         .trim();
 
       const fallbackName =
-        parentDir && parentDir.length > 0
-          ? parentDir
-          : nameWithoutExt || fileNameCandidate;
+        nameWithoutExt || parentDir || fileNameCandidate;
 
       const directory = filePath
         .replace(/\\/g, '/')
         .split('/')
         .slice(0, -1)
         .join('/');
-      const modelCategory =
-        categoryByDirectory.get(directory) ?? 'Uncategorized';
-      const name = nameByDirectory.get(directory) ?? fallbackName;
+      const { name, modelCategory } = resolveModelCatalogEntryLabels({
+        metadataName: nameByDirectory.get(directory),
+        metadataCategory: categoryByDirectory.get(directory),
+        nameWithoutExt: nameWithoutExt || fallbackName,
+        parentDir,
+      });
 
       return {
         id: url,

@@ -2,11 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { Globe } from 'lucide-react';
 import { getEngineEnvironmentCubeMaps } from "@/engine-environment/t3dEngineEnvironment";
 import {
-  ButtonGroup,
-  CollapsibleCard,
-  LabeledSlider,
-  LabeledSwitch,
-} from '../../ui/catalog/index.js';
+  TRNCard,
+  TRNChipButtonGroup,
+  TRNFormField,
+  TRNFormSection,
+  TRNInlineToggleRow,
+  TRNParameterSlider,
+} from '../../ui/TRN/index.js';
 
 export interface PreviewMainEnvironmentSettingsCardProps {
   envPresetIndex: number;
@@ -20,7 +22,7 @@ export interface PreviewMainEnvironmentSettingsCardProps {
   onEnvEnablePBRChange: (value: boolean) => void;
   onSolidBackgroundColorChange: (value: string) => void;
   defaultExpanded?: boolean;
-  /** When true, render only the inner content without CollapsibleCard wrapper (for use in SortableCardList) */
+  /** When true, render only the inner content without TRNCard wrapper (for use in sortable list) */
   contentOnly?: boolean;
 }
 
@@ -63,76 +65,63 @@ export function PreviewMainEnvironmentSettingsCard({
 
   const content = (
     <div className="space-y-3">
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/2 p-3">
-          <ButtonGroup
-            label="HDRI Environment"
-            value={envPresetIndex}
-            onChange={handlePresetChange}
-            options={presetOptions}
-            disabled={false}
-            buttonPadding="sm"
-          />
-        </div>
+      <TRNFormSection title="HDRI preset">
+        <TRNChipButtonGroup
+          value={envPresetIndex}
+          onChange={handlePresetChange}
+          options={presetOptions}
+          columns={3}
+          ariaLabel="HDRI environment preset"
+        />
+      </TRNFormSection>
 
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/2 p-3">
-          <LabeledSlider
-            label="Environment Intensity"
-            value={envIntensity}
-            min={0}
-            max={5}
-            step={0.1}
-            onChange={onEnvIntensityChange}
-            disabled={false}
-            formatValue={(value) => value.toFixed(2)}
-          />
-        </div>
+      <TRNParameterSlider
+        name="Environment intensity"
+        value={envIntensity}
+        min={0}
+        max={5}
+        step={0.1}
+        onChange={onEnvIntensityChange}
+        valueFormatter={(value) => value.toFixed(2)}
+      />
 
-        <div className="space-y-3 rounded-lg border border-white/10 bg-white/2 p-3">
-          <LabeledSwitch
-            label="Enable HDRI Background"
-            checked={envEnableHDRI}
-            onChange={onEnvEnableHDRIChange}
-            disabled={false}
-          />
-        </div>
+      <TRNInlineToggleRow
+        label="Enable HDRI background"
+        checked={envEnableHDRI}
+        onCheckedChange={onEnvEnableHDRIChange}
+      />
 
-        {!envEnableHDRI && (
-          <div className="space-y-3 rounded-lg border border-white/10 bg-white/2 p-3">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-300">
-                Background Color
-              </label>
-              <input
-                type="color"
-                value={solidBackgroundColor}
-                onChange={(e) => onSolidBackgroundColorChange(e.target.value)}
-                className="h-8 w-14 rounded border border-gray-500/50 bg-transparent p-0.5 cursor-pointer"
-                title="Pick solid background color when HDRI is disabled"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="space-y-3 rounded-lg border border-white/10 bg-white/2 p-3">
-          <LabeledSwitch
-            label="Enable PBR Lighting"
-            checked={envEnablePBR}
-            onChange={onEnvEnablePBRChange}
-            disabled={false}
+      {!envEnableHDRI && (
+        <TRNFormField label="Background color">
+          <input
+            type="color"
+            value={solidBackgroundColor}
+            onChange={(e) => onSolidBackgroundColorChange(e.target.value)}
+            className="h-8 w-full max-w-[5.5rem] cursor-pointer rounded border border-zinc-700/80 bg-transparent p-0.5"
+            title="Pick solid background color when HDRI is disabled"
           />
-        </div>
-      </div>
+        </TRNFormField>
+      )}
+
+      <TRNInlineToggleRow
+        label="Enable PBR lighting"
+        checked={envEnablePBR}
+        onCheckedChange={onEnvEnablePBRChange}
+      />
+    </div>
   );
 
   if (contentOnly) return content;
 
   return (
-    <CollapsibleCard
+    <TRNCard
       title="Environment Settings"
-      icon={Globe}
+      icon={<Globe className="h-4 w-4" />}
       defaultExpanded={defaultExpanded}
+      glass
+      glassPreset="soft"
     >
       {content}
-    </CollapsibleCard>
+    </TRNCard>
   );
 }

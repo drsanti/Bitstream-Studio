@@ -13,6 +13,8 @@ import {
   type ModelPreviewSettings,
   type PreviewClickTargetMode,
   type PreviewFovSourceMode,
+  type PreviewSelectionHighlightMode,
+  type PreviewModelDisplayMode,
   type AnimationBlendMode,
   type AnimationClipLoop,
 } from './persisted-settings';
@@ -25,14 +27,64 @@ import {
 import { useModelPreviewAnimationCallbacks } from './hooks';
 import { Button } from '../ui/components/Button';
 import { IconMenu, type IconMenuItem } from '../ui/components/IconMenu';
+import { TRNWindow, TRNSidePanel, type TRNWindowRect } from '../ui/TRN';
 import {
-  CollapsiblePanelCard,
   ModelPreviewSettingsCards,
   PreviewDebugPanel,
   type CameraDebugSnapshot,
+  type SelectedObjectTransformSnapshot,
 } from './components';
 import { buildGlobalDirectoryFallbackOptions } from '../asset-resolution/global-directory-online-fallback';
 import { preflightModelPreviewUrlWithGlobalDirectoryFallback } from '../model-loader/ui/preflightModelPreviewUrl.js';
+import {
+  ModelPreviewSelectionHighlight,
+  PREVIEW_SELECTION_HIGHLIGHT_LABELS,
+} from './model-preview-selection-highlight';
+import {
+  ModelPreviewModelDisplay,
+  PREVIEW_MODEL_DISPLAY_LABELS,
+} from './model-preview-model-display';
+
+function snapshotSelectedObjectTransform(
+  obj: THREE.Object3D,
+): SelectedObjectTransformSnapshot {
+  const worldPos = new THREE.Vector3();
+  const worldQuat = new THREE.Quaternion();
+  const worldScale = new THREE.Vector3();
+  obj.getWorldPosition(worldPos);
+  obj.getWorldQuaternion(worldQuat);
+  obj.getWorldScale(worldScale);
+  const worldEuler = new THREE.Euler().setFromQuaternion(worldQuat, 'XYZ');
+
+  const toVec3 = (v: THREE.Vector3) => ({ x: v.x, y: v.y, z: v.z });
+  const toRotDeg = (euler: THREE.Euler) => ({
+    x: THREE.MathUtils.radToDeg(euler.x),
+    y: THREE.MathUtils.radToDeg(euler.y),
+    z: THREE.MathUtils.radToDeg(euler.z),
+  });
+
+  return {
+    world: {
+      position: toVec3(worldPos),
+      rotationDeg: toRotDeg(worldEuler),
+      scale: toVec3(worldScale),
+    },
+    local: {
+      position: toVec3(obj.position),
+      rotationDeg: toRotDeg(obj.rotation),
+      scale: toVec3(obj.scale),
+    },
+  };
+}
+function resolveInitialModelDisplayMode(
+  settings: ModelPreviewSettings,
+): PreviewModelDisplayMode {
+  const highlight = settings.selectionHighlightMode ?? 'emissive';
+  if (highlight !== 'off') {
+    return 'shaded';
+  }
+  return settings.modelDisplayMode ?? 'shaded';
+}
 
 export interface ModelPreviewModalProps {
   open: boolean;
@@ -71,6 +123,8 @@ export function ModelPreviewModal({
   const [selectedObjectName, setSelectedObjectName] = useState<string | null>(
     null
   );
+  const [selectedObjectTransform, setSelectedObjectTransform] =
+    useState<SelectedObjectTransformSnapshot | null>(null);
   const [referenceObjectName, setReferenceObjectName] = useState<string | null>(
     null
   );
@@ -99,10 +153,24 @@ export function ModelPreviewModal({
   const clickTargetModeRef = useRef<PreviewClickTargetMode>(
     initialPreviewSettings.clickTargetMode
   );
-  const [lastHitPoint, setLastHitPoint] = useState<THREE.Vector3 | null>(null);
-  const [lastObjectOrigin, setLastObjectOrigin] = useState<THREE.Vector3 | null>(
-    null
+  const [selectionHighlightMode, setSelectionHighlightMode] =
+    useState<PreviewSelectionHighlightMode>(
+      initialPreviewSettings.selectionHighlightMode ?? 'emissive',
+    );
+  const selectionHighlightModeRef = useRef<PreviewSelectionHighlightMode>(
+    initialPreviewSettings.selectionHighlightMode ?? 'emissive',
   );
+  const selectionHighlightApiRef = useRef<ModelPreviewSelectionHighlight | null>(
+    null,
+  );
+  const [modelDisplayMode, setModelDisplayMode] = useState<PreviewModelDisplayMode>(
+    () => resolveInitialModelDisplayMode(initialPreviewSettings),
+  );
+  const modelDisplayModeRef = useRef<PreviewModelDisplayMode>(
+    resolveInitialModelDisplayMode(initialPreviewSettings),
+  );
+  const modelDisplayApiRef = useRef<ModelPreviewModelDisplay | null>(null);
+  const [lastHitPoint, setLastHitPoint] = useState<THREE.Vector3 | null>(null);
   const [envPresetIndex, setEnvPresetIndex] = useState(
     initialPreviewSettings.envPresetIndex
   );
@@ -184,9 +252,12 @@ export function ModelPreviewModal({
   const targetNearRef = useRef<number | null>(null);
   const targetFarRef = useRef<number | null>(null);
   const targetAspectRef = useRef<number | null>(null);
+  /** Set on first OrbitControls `start` — debug pose rows switch from OK/Fail to DIFF. */
+  const cameraOrbitStartedRef = useRef(false);
 
   // Throttle overlay updates to avoid re-rendering every frame.
   const lastDebugUpdateRef = useRef<number>(0);
+  const selectedObjectRef = useRef<THREE.Object3D | null>(null);
   const triggerCaptureThumbnail = useCallback(async () => {
     if (!onCaptureThumbnail) {
       return;
@@ -294,6 +365,19 @@ export function ModelPreviewModal({
     clickTargetModeRef.current = clickTargetMode;
   }, [clickTargetMode]);
   useEffect(() => {
+    selectionHighlightModeRef.current = selectionHighlightMode;
+    selectionHighlightApiRef.current?.setMode(selectionHighlightMode);
+  }, [selectionHighlightMode]);
+  useEffect(() => {
+    if (selectionHighlightMode !== 'off') {
+      setModelDisplayMode('shaded');
+    }
+  }, [selectionHighlightMode]);
+  useEffect(() => {
+    modelDisplayModeRef.current = modelDisplayMode;
+    modelDisplayApiRef.current?.setMode(modelDisplayMode);
+  }, [modelDisplayMode]);
+  useEffect(() => {
     envPresetIndexRef.current = envPresetIndex;
     reloadEnvironmentRef.current?.();
   }, [envPresetIndex]);
@@ -332,6 +416,8 @@ export function ModelPreviewModal({
       previewFov: fovToPersist,
       previewFovSource,
       clickTargetMode,
+      selectionHighlightMode,
+      modelDisplayMode,
       leftPanelOpen,
       rightPanelOpen,
       pivotRetargetDurationMs,
@@ -351,6 +437,8 @@ export function ModelPreviewModal({
     previewFov,
     previewFovSource,
     clickTargetMode,
+    selectionHighlightMode,
+    modelDisplayMode,
     leftPanelOpen,
     rightPanelOpen,
     pivotRetargetDurationMs,
@@ -370,7 +458,11 @@ export function ModelPreviewModal({
   useEffect(() => {
     if (!open) {
       setLastHitPoint(null);
-      setLastObjectOrigin(null);
+      selectedObjectRef.current = null;
+      setSelectedObjectName(null);
+      setSelectedObjectTransform(null);
+      selectionHighlightApiRef.current?.clear();
+      modelDisplayApiRef.current?.dispose();
       applyEnvironmentToSceneRef.current = null;
       reloadEnvironmentRef.current = null;
       applyPreviewFovRef.current = null;
@@ -420,6 +512,11 @@ export function ModelPreviewModal({
     targetNearRef.current = null;
     targetFarRef.current = null;
     targetAspectRef.current = null;
+    cameraOrbitStartedRef.current = false;
+    selectedObjectRef.current = null;
+    setSelectedObjectName(null);
+    setSelectedObjectTransform(null);
+    setLastHitPoint(null);
     setCameraDebug(null);
     lastDebugUpdateRef.current = 0;
 
@@ -438,6 +535,21 @@ export function ModelPreviewModal({
     animationActionsRef.current.clear();
 
     const scene = new THREE.Scene();
+    const selectionHighlight = new ModelPreviewSelectionHighlight(scene);
+    selectionHighlight.setMode(selectionHighlightModeRef.current);
+    selectionHighlightApiRef.current = selectionHighlight;
+
+    const modelDisplay = new ModelPreviewModelDisplay();
+    modelDisplay.setMode(modelDisplayModeRef.current);
+    modelDisplayApiRef.current = modelDisplay;
+
+    const clearObjectSelection = () => {
+      selectedObjectRef.current = null;
+      setSelectedObjectName(null);
+      setSelectedObjectTransform(null);
+      setLastHitPoint(null);
+      selectionHighlight.clear();
+    };
     const ambient = new THREE.AmbientLight(0xffffff, 0.7);
     scene.add(ambient);
 
@@ -519,6 +631,10 @@ export function ModelPreviewModal({
     controls.dampingFactor = 0.08;
     controls.target.set(0, 0, 0);
     controls.update();
+    const onOrbitControlsStart = () => {
+      cameraOrbitStartedRef.current = true;
+    };
+    controls.addEventListener('start', onOrbitControlsStart);
     captureRendererRef.current = renderer;
     captureSceneRef.current = scene;
     captureCameraRef.current = camera;
@@ -672,6 +788,7 @@ export function ModelPreviewModal({
         const root = gltf.scene;
         currentRoot = root;
         scene.add(root);
+        modelDisplay.setRoot(root);
 
         scene.updateMatrixWorld(true);
 
@@ -995,6 +1112,11 @@ export function ModelPreviewModal({
           );
 
           const posDiff = camera.position.distanceTo(tPos);
+          const posDiffAxis = {
+            x: camera.position.x - tPos.x,
+            y: camera.position.y - tPos.y,
+            z: camera.position.z - tPos.z,
+          };
           const quatDiffDeg = THREE.MathUtils.radToDeg(
             tQuat.angleTo(camera.quaternion)
           );
@@ -1056,19 +1178,27 @@ export function ModelPreviewModal({
             target: targetPose,
             current: currentPose,
             posDiff,
+            posDiffAxis,
             quatDiffDeg,
             posOk,
             quatOk,
+            poseCheckMode: cameraOrbitStartedRef.current ? 'drift' : 'load',
             canvasW: w,
             canvasH: h,
             canvasAspect: w / Math.max(1, h),
           });
+        }
+
+        const selectedObj = selectedObjectRef.current;
+        if (selectedObj) {
+          setSelectedObjectTransform(snapshotSelectedObjectTransform(selectedObj));
         }
       }
 
       const controlsEnabled =
         (controls as unknown as { enabled?: boolean }).enabled ?? true;
       if (controlsEnabled) controls.update();
+      selectionHighlight.update();
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(animate);
     };
@@ -1109,19 +1239,18 @@ export function ModelPreviewModal({
       raycaster.setFromCamera(pointerNdc, camera);
       const hits = raycaster.intersectObject(root, true);
       if (hits.length === 0) {
-        // Empty-space click: stop any in-progress pivot animation.
         cancelPivotTween();
+        clearObjectSelection();
         return;
       }
 
       const hit = hits[0];
       const obj = hit.object;
+      selectedObjectRef.current = obj;
       setSelectedObjectName(obj.name?.trim() ? obj.name : obj.type);
       setLastHitPoint(hit.point.clone());
-
-      const objectOrigin = new THREE.Vector3();
-      obj.getWorldPosition(objectOrigin);
-      setLastObjectOrigin(objectOrigin.clone());
+      setSelectedObjectTransform(snapshotSelectedObjectTransform(obj));
+      selectionHighlight.apply(obj);
 
       // Do not start a new animation; only stop if one was playing (handled in onPointerDown).
     }
@@ -1141,6 +1270,14 @@ export function ModelPreviewModal({
       applyEnvironmentToSceneRef.current = null;
       reloadEnvironmentRef.current = null;
       applyPreviewFovRef.current = null;
+      selectionHighlight.dispose();
+      if (selectionHighlightApiRef.current === selectionHighlight) {
+        selectionHighlightApiRef.current = null;
+      }
+      modelDisplay.dispose();
+      if (modelDisplayApiRef.current === modelDisplay) {
+        modelDisplayApiRef.current = null;
+      }
       if (environmentTexture) {
         environmentTexture.dispose();
         environmentTexture = null;
@@ -1149,6 +1286,7 @@ export function ModelPreviewModal({
         cancelAnimationFrame(animationFrameId);
       }
 
+      controls.removeEventListener('start', onOrbitControlsStart);
       controls.dispose?.();
       animationMixerRef.current = null;
       animationClipsRef.current = [];
@@ -1253,74 +1391,105 @@ export function ModelPreviewModal({
     [onClose, previewUIMode],
   );
 
-  if (!open) return null;
+  const windowTitle = useMemo(() => {
+    const modeLabel =
+      previewUIMode === 'viewer' ? 'Model Viewer' : 'Thumbnail Renderer';
+    const suffix =
+      modelName != null && modelName.trim() !== ''
+        ? ` (${modelName.trim()})`
+        : '';
+    return `${modeLabel}${suffix}`;
+  }, [previewUIMode, modelName]);
+
+  const prefixIcon = useMemo(
+    () =>
+      previewUIMode === 'viewer' ? (
+        <Box className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      ) : (
+        <ImageIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      ),
+    [previewUIMode],
+  );
+
+  const initialPreviewRect = useMemo((): Partial<TRNWindowRect> => {
+    if (typeof window === 'undefined') {
+      return { x: 64, y: 56, width: 1160, height: 972 };
+    }
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const width = Math.max(480, Math.round(vw * 0.9));
+    const height = Math.max(360, Math.round(vh * 0.9));
+    return {
+      x: Math.round((vw - width) / 2),
+      y: Math.round((vh - height) / 2),
+      width,
+      height,
+    };
+  }, [open]);
+
+  const previewHeaderActions = useMemo(
+    () => (
+      <div
+        className="flex shrink-0 items-center gap-2"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        {previewUIMode === 'thumbnail' && (
+          <Button
+            variant="secondary"
+            disabled={viewStatus.status !== 'ready' || !onCaptureThumbnail}
+            title="Update stored thumbnail from current view (Ctrl/Cmd+Shift+S)"
+            onClick={() => {
+              void triggerCaptureThumbnail();
+            }}
+            className="h-7 shrink-0 inline-flex items-center justify-center gap-1.5 border border-emerald-300/25 bg-emerald-500/6! px-2.5 py-0 text-xs font-medium leading-none text-emerald-50! shadow-sm shadow-black/20 backdrop-blur-md hover:bg-emerald-500/12! disabled:pointer-events-none disabled:opacity-40"
+          >
+            <ImageIcon className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
+            Update Thumbnail
+          </Button>
+        )}
+        <IconMenu
+          open={headerMenuOpen}
+          onOpenChange={setHeaderMenuOpen}
+          triggerIcon={<Menu className="h-5 w-5 shrink-0" />}
+          triggerTitle="Open model preview menu (mode, close)"
+          items={previewHeaderMenuItems}
+        />
+      </div>
+    ),
+    [
+      previewUIMode,
+      viewStatus.status,
+      onCaptureThumbnail,
+      triggerCaptureThumbnail,
+      headerMenuOpen,
+      previewHeaderMenuItems,
+    ],
+  );
 
   return (
-    <div
-      className="t3d-shell-overlay fixed inset-0 z-50 bg-black/70 flex items-center justify-center"
-      onMouseDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        onClose();
-      }}
+    <TRNWindow
+      open={open}
+      onClose={onClose}
+      title={windowTitle}
+      prefixIcon={prefixIcon}
+      headerActions={previewHeaderActions}
+      initialRect={initialPreviewRect}
+      minWidth={480}
+      minHeight={360}
+      modal
+      modalBackdropCloses
+      zIndex={250}
+      heightMode="fixed"
+      reopenStrategy="normalize"
+      showFooter={false}
+      showMaximize
+      glass
+      glassPreset="medium"
+      persistRectStorageKey="ternion:model-preview:window"
+      contentClassName="relative flex min-h-0 flex-1 flex-col overflow-hidden p-0"
+      contentStyle={{ flex: '1 1 0%', minHeight: 0 }}
     >
-      <div
-        className="w-[90%] h-[90%] rounded-lg border border-border/50 bg-card/65 backdrop-blur-xl shadow-2xl shadow-black/35 overflow-hidden flex flex-col"
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
-      >
-        <div className="flex items-center justify-between gap-3 px-4 py-[8px] border-b border-border/50 bg-white/5">
-          <div className="min-w-0">
-            <div className="font-semibold truncate flex items-center gap-2 min-w-0">
-              {previewUIMode === 'viewer' ? (
-                <Box
-                  className="h-5 w-5 shrink-0 text-gray-200"
-                  aria-hidden
-                />
-              ) : (
-                <ImageIcon
-                  className="h-5 w-5 shrink-0 text-gray-200"
-                  aria-hidden
-                />
-              )}
-              <span className="min-w-0 truncate">
-                {previewUIMode === 'viewer'
-                  ? 'Model Viewer'
-                  : 'Thumbnail Renderer'}
-                {modelName != null && modelName.trim() !== ''
-                  ? ` (${modelName.trim()})`
-                  : ''}
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {previewUIMode === 'thumbnail' && (
-              <Button
-                variant="secondary"
-                disabled={
-                  viewStatus.status !== 'ready' || !onCaptureThumbnail
-                }
-                title="Update stored thumbnail from current view (Ctrl/Cmd+Shift+S)"
-                onClick={() => {
-                  void triggerCaptureThumbnail();
-                }}
-                className="h-7 shrink-0 inline-flex items-center justify-center gap-1.5 border border-emerald-300/25 bg-emerald-500/6! px-2.5 py-0 text-xs font-medium leading-none text-emerald-50! shadow-sm shadow-black/20 backdrop-blur-md hover:bg-emerald-500/12! disabled:pointer-events-none disabled:opacity-40"
-              >
-                <ImageIcon className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-                Update Thumbnail
-              </Button>
-            )}
-            <IconMenu
-              open={headerMenuOpen}
-              onOpenChange={setHeaderMenuOpen}
-              triggerIcon={<Menu className="h-5 w-5 shrink-0" />}
-              triggerTitle="Open model preview menu (mode, close)"
-              items={previewHeaderMenuItems}
-            />
-          </div>
-        </div>
-
-        <div className="p-4 flex-1 min-h-0 relative flex flex-col">
+      <div className="relative flex min-h-0 flex-1 flex-col">
           {/* Canvas: full area (viewer) or centered square (thumbnail renderer) */}
           <div
             className={
@@ -1334,7 +1503,7 @@ export function ModelPreviewModal({
               className={
                 previewUIMode === 'thumbnail'
                   ? 'min-h-0 min-w-0 shrink-0 rounded-md bg-gray-900/30 border border-border overflow-hidden shadow-inner'
-                  : 'absolute inset-0 rounded-md bg-gray-900/30 border border-border overflow-hidden'
+                  : 'absolute inset-0 overflow-hidden bg-gray-900/30'
               }
             >
             {viewStatus.status !== 'ready' && (
@@ -1351,17 +1520,30 @@ export function ModelPreviewModal({
             </div>
           </div>
 
-          {/* Left panel - overlays on left */}
-          <div
-            className={`absolute left-0 top-0 bottom-0 z-10 ${
-              leftPanelOpen ? 'w-[340px]' : 'w-0'
-            }`}
-          >
-            <CollapsiblePanelCard
-              title="Settings"
-              open={leftPanelOpen}
-              onToggle={() => setLeftPanelOpen((v) => !v)}
+          {/* Side panels — overlay (preview controls left, scene inspector right) */}
+          <div className="pointer-events-none absolute inset-0 z-10">
+            <TRNSidePanel
               side="left"
+              mode="overlay"
+              variant="settings"
+              title="Preview Controls"
+              subtitle="Environment, camera, orbit, and display"
+              collapsedFloatingLabel="Preview Controls"
+              collapsedFloatingAnchor={{ top: 8, left: 8 }}
+              collapsedFloatingSize={140}
+              backdrop="none"
+              glass
+              defaultWidth={340}
+              minWidth={260}
+              maxWidth={520}
+              collapsible
+              resizable
+              collapsedPresentation="floating-only"
+              collapsed={!leftPanelOpen}
+              onCollapsedChange={(collapsed) => setLeftPanelOpen(!collapsed)}
+              contentClassName="p-3 scrollbar-hide"
+              className="pointer-events-auto"
+              overlayOffset={{ top: 0, bottom: 0, left: 0 }}
             >
               <ModelPreviewSettingsCards
                 panelId="model-preview-settings"
@@ -1392,6 +1574,10 @@ export function ModelPreviewModal({
                 }}
                 clickTargetMode={clickTargetMode}
                 onClickTargetModeChange={setClickTargetMode}
+                selectionHighlightMode={selectionHighlightMode}
+                onSelectionHighlightModeChange={setSelectionHighlightMode}
+                modelDisplayMode={modelDisplayMode}
+                onModelDisplayModeChange={setModelDisplayMode}
                 pivotRetargetDurationMs={pivotRetargetDurationMs}
                 onPivotRetargetDurationMsChange={setPivotRetargetDurationMs}
                 hasAnimations={hasAnimations}
@@ -1409,33 +1595,48 @@ export function ModelPreviewModal({
                 animationBlendCompactView={animationBlendCompactView}
                 animationCallbacks={animationCallbacks}
               />
-            </CollapsiblePanelCard>
-          </div>
+            </TRNSidePanel>
 
-          {/* Right panel - overlays on right */}
-          <div
-            className={`absolute right-0 top-0 bottom-0 z-10 ${
-              rightPanelOpen ? 'w-[360px]' : 'w-0'
-            }`}
-          >
-            <CollapsiblePanelCard
-              title="Debug"
-              open={rightPanelOpen}
-              onToggle={() => setRightPanelOpen((v) => !v)}
+            <TRNSidePanel
               side="right"
+              mode="overlay"
+              variant="inspector"
+              title="Scene Inspector"
+              subtitle="Selection, camera pose, and viewport"
+              collapsedFloatingLabel="Scene Inspector"
+              collapsedFloatingAnchor={{ top: 8, right: 8 }}
+              collapsedFloatingSize={132}
+              backdrop="none"
+              glass
+              defaultWidth={360}
+              minWidth={280}
+              maxWidth={560}
+              collapsible
+              resizable
+              collapsedPresentation="floating-only"
+              collapsed={!rightPanelOpen}
+              onCollapsedChange={(collapsed) => setRightPanelOpen(!collapsed)}
+              contentClassName="p-3 scrollbar-hide"
+              className="pointer-events-auto"
+              overlayOffset={{ top: 0, bottom: 0, right: 0 }}
             >
               <PreviewDebugPanel
                 cameraDebug={cameraDebug}
                 selectedObjectName={selectedObjectName}
                 referenceObjectName={referenceObjectName}
-                lastObjectOrigin={lastObjectOrigin}
+                selectedObjectTransform={selectedObjectTransform}
+                selectionHighlightMode={
+                  PREVIEW_SELECTION_HIGHLIGHT_LABELS[selectionHighlightMode]
+                }
+                modelDisplayMode={
+                  PREVIEW_MODEL_DISPLAY_LABELS[modelDisplayMode]
+                }
                 lastHitPoint={lastHitPoint}
               />
-            </CollapsiblePanelCard>
+            </TRNSidePanel>
           </div>
         </div>
-      </div>
-    </div>
+    </TRNWindow>
   );
 }
 

@@ -10,6 +10,12 @@ export type { PreviewFovSourceControlProps } from './PreviewFovSourceControl';
 export { PreviewClickTargetModeControl } from './PreviewClickTargetModeControl';
 export type { PreviewClickTargetModeControlProps } from './PreviewClickTargetModeControl';
 
+export { PreviewSelectionHighlightControl } from './PreviewSelectionHighlightControl';
+export type { PreviewSelectionHighlightControlProps } from './PreviewSelectionHighlightControl';
+
+export { PreviewModelDisplayControl } from './PreviewModelDisplayControl';
+export type { PreviewModelDisplayControlProps } from './PreviewModelDisplayControl';
+
 export { PreviewEnvironmentSettingsCard } from './PreviewEnvironmentSettingsCard';
 export type { PreviewEnvironmentSettingsCardProps } from './PreviewEnvironmentSettingsCard';
 
@@ -28,7 +34,9 @@ export { PreviewDebugPanel } from './PreviewDebugPanel';
 export type {
   PreviewDebugPanelProps,
   CameraDebugSnapshot,
-} from './PreviewDebugPanel';
+  SelectedObjectTransformSnapshot,
+  ObjectTransformSpace,
+} from './PreviewDebugPanel.types';
 
 export { DraggableCard } from './DraggableCard';
 export type { DraggableCardProps } from './DraggableCard';

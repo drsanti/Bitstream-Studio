@@ -6,9 +6,7 @@ import {
   RotateCcw,
   Check,
   ChevronDown,
-  ChevronRight,
   Layers,
-  GripVertical,
 } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import {
@@ -18,16 +16,18 @@ import {
   TRNMenuPanel,
 } from "../../ui/TRN/TRNMenu.js";
 import {
-  CollapsibleCard,
-  LabeledSlider,
-  LabeledSwitch,
-} from "../../ui/catalog/index.js";
-import { Button } from "../../ui/components/Button";
+  TRNButton,
+  TRNCard,
+  TRNFormField,
+  TRNIconOptionGroup,
+  TRNInlineToggleRow,
+  TRNInteractiveCard,
+  TRNParameterSlider,
+} from "../../ui/TRN/index.js";
 import type {
   AnimationBlendMode,
   AnimationClipLoop,
 } from "../persisted-settings";
-import { OptionButtonGroup } from "../../ui/components/OptionButtonGroup";
 
 export interface ClipInfo {
   name: string;
@@ -413,201 +413,102 @@ function ClipDropdown({
   );
 }
 
-interface DraggableClipControlCardProps {
-  i: number;
+interface BlendClipControlCardProps {
+  index: number;
   clipName: string;
   clipDuration: number;
   blendCompactView: boolean;
-  expanded: boolean;
-  showCompactSummary: boolean;
+  expandedClipIndex: number | null;
+  setExpandedClipIndex: React.Dispatch<React.SetStateAction<number | null>>;
   speed: number;
   weight: number;
   loopValue: AnimationClipLoop;
   clipScrubTime: number;
-  expandedClipIndex: number | null;
-  setExpandedClipIndex: React.Dispatch<React.SetStateAction<number | null>>;
   onClipSpeedChange: (index: number, speed: number) => void;
   onClipWeightChange: (index: number, weight: number) => void;
   onClipLoopChange: (index: number, loop: AnimationClipLoop) => void;
   onClipScrubChange: (index: number, normalized: number | null) => void;
-  children: React.ReactNode;
 }
 
-function DraggableClipControlCard({
-  i,
+function BlendClipControlCard({
+  index,
   clipName,
   clipDuration,
   blendCompactView,
-  expanded,
-  showCompactSummary,
+  expandedClipIndex,
+  setExpandedClipIndex,
   speed,
   weight,
   loopValue,
   clipScrubTime,
-  expandedClipIndex,
-  setExpandedClipIndex,
   onClipSpeedChange,
   onClipWeightChange,
   onClipLoopChange,
   onClipScrubChange,
-}: DraggableClipControlCardProps) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const dragRef = React.useRef({
-    active: false,
-    pointerId: -1,
-    startClientX: 0,
-    startClientY: 0,
-    startX: 0,
-    startY: 0,
-    moved: false,
-  });
-
-  const onDragPointerDown: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    const el = e.currentTarget;
-    el.setPointerCapture(e.pointerId);
-
-    dragRef.current = {
-      active: true,
-      pointerId: e.pointerId,
-      startClientX: e.clientX,
-      startClientY: e.clientY,
-      startX: position.x,
-      startY: position.y,
-      moved: false,
-    };
-  };
-
-  const onDragPointerMove: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!dragRef.current.active) return;
-    const dx = e.clientX - dragRef.current.startClientX;
-    const dy = e.clientY - dragRef.current.startClientY;
-
-    if (!dragRef.current.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
-      dragRef.current.moved = true;
-    }
-
-    setPosition({
-      x: dragRef.current.startX + dx,
-      y: dragRef.current.startY + dy,
-    });
-  };
-
-  const onDragPointerUp: React.PointerEventHandler<HTMLDivElement> = (e) => {
-    if (!dragRef.current.active) return;
-    dragRef.current.active = false;
-    try {
-      (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
-  };
+}: BlendClipControlCardProps) {
+  const collapsed = blendCompactView && expandedClipIndex !== index;
+  const showCompactSummary = blendCompactView && collapsed;
 
   return (
-    <div
-      className="rounded-lg border border-white/10 bg-white/2 overflow-hidden"
-      style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
-    >
-      <button
-        type="button"
-        className="w-full flex items-center gap-2 px-3 py-1 text-left text-sm hover:bg-white/10"
-        onClick={() => {
-          if (dragRef.current.moved) {
-            // If user dragged, don't toggle accordion.
-            dragRef.current.moved = false;
-            return;
-          }
-          setExpandedClipIndex(
-            blendCompactView ? (expandedClipIndex === i ? null : i) : i,
-          );
-        }}
-      >
-        {blendCompactView ? (
-          expanded ? (
-            <ChevronDown className="h-4 w-4 shrink-0 text-gray-200" />
-          ) : (
-            <ChevronRight className="h-4 w-4 shrink-0 text-gray-200" />
-          )
-        ) : null}
-
-        <div
-          role="button"
-          aria-label="Drag clip card"
-          title="Drag"
-          className="cursor-move select-none inline-flex items-center justify-center rounded border border-white/10 bg-white/5 px-1.5 py-0.5"
-          onPointerDown={onDragPointerDown}
-          onPointerMove={onDragPointerMove}
-          onPointerUp={onDragPointerUp}
-          onClick={(e) => {
-            // Prevent accidental accordion toggle when clicking the handle.
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-        >
-          <GripVertical className="h-3.5 w-3.5 text-gray-300" />
-        </div>
-
-        <span className="flex-1 truncate">
-          {clipName} ({formatDuration(clipDuration)})
-        </span>
-
-        {showCompactSummary && !expanded && (
-          <span className="text-xs text-gray-200">
-            {speed.toFixed(1)}x, {Math.round((weight ?? 0) * 100)}%
+    <TRNInteractiveCard
+      title={`${clipName} (${formatDuration(clipDuration)})`}
+      titleTrailingSlot={
+        showCompactSummary ? (
+          <span className="text-[11px] tabular-nums text-zinc-400">
+            {speed.toFixed(1)}x, {Math.round(weight * 100)}%
           </span>
-        )}
-      </button>
+        ) : null
+      }
+      collapsible={blendCompactView}
+      collapsed={blendCompactView ? collapsed : false}
+      onCollapsedChange={(nextCollapsed) => {
+        if (!blendCompactView) {
+          return;
+        }
+        setExpandedClipIndex(nextCollapsed ? null : index);
+      }}
+      contentClassName="space-y-2 border-t border-zinc-700/60 pt-2"
+    >
+      <TRNFormField label="Loop">
+        <LoopDropdown
+          value={loopValue}
+          onChange={(v) => onClipLoopChange(index, v)}
+        />
+      </TRNFormField>
 
-      {expanded && (
-        <div className="space-y-2 p-3 pt-2 border-t border-white/10">
-          {/** Loop */}
-          <div className="space-y-1.5">
-            <label className="block text-xs text-gray-400">Loop</label>
-            <LoopDropdown
-              value={loopValue}
-              onChange={(v) => onClipLoopChange(i, v)}
-            />
-          </div>
+      <TRNParameterSlider
+        name="Speed"
+        value={speed}
+        min={-2}
+        max={4}
+        step={0.1}
+        onChange={(v) => onClipSpeedChange(index, v)}
+        valueFormatter={(v) => `${v.toFixed(1)}x`}
+      />
 
-          {/** Speed */}
-          <LabeledSlider
-            label="Speed"
-            value={speed}
-            min={-2}
-            max={4}
-            step={0.1}
-            onChange={(v) => onClipSpeedChange(i, v)}
-            formatValue={(v) => `${v.toFixed(1)}x`}
-          />
+      <TRNParameterSlider
+        name="Weight"
+        value={weight}
+        min={0}
+        max={1}
+        step={0.05}
+        onChange={(v) => onClipWeightChange(index, v)}
+        valueFormatter={(v) => `${Math.round(v * 100)}%`}
+      />
 
-          {/** Weight */}
-          <LabeledSlider
-            label="Weight"
-            value={weight}
-            min={0}
-            max={1}
-            step={0.05}
-            onChange={(v) => onClipWeightChange(i, v)}
-            formatValue={(v) => `${Math.round(v * 100)}%`}
-          />
-
-          <LabeledSlider
-            label="Playhead"
-            value={clipScrubTime}
-            min={0}
-            max={1}
-            step={0.01}
-            onChange={(v) => onClipScrubChange(i, v)}
-            formatValue={(v) => {
-              const d = clipDuration ?? 0;
-              return `${((v ?? 0) * d).toFixed(2)}s`;
-            }}
-          />
-        </div>
-      )}
-    </div>
+      <TRNParameterSlider
+        name="Playhead"
+        value={clipScrubTime}
+        min={0}
+        max={1}
+        step={0.01}
+        onChange={(v) => onClipScrubChange(index, v)}
+        valueFormatter={(v) => {
+          const d = clipDuration ?? 0;
+          return `${((v ?? 0) * d).toFixed(2)}s`;
+        }}
+      />
+    </TRNInteractiveCard>
   );
 }
 
@@ -639,8 +540,6 @@ export function PreviewAnimationCard({
   contentOnly = false,
 }: PreviewAnimationCardProps) {
   const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(0);
-  const actionButtonClass =
-    'gap-2 border border-emerald-300/25 bg-emerald-500/6! text-emerald-50 hover:bg-emerald-500/12!';
   const clips: ClipInfo[] = clipNames.map((name, i) => ({
     name: name || `Clip ${i + 1}`,
     duration: clipDurations[i] ?? 0,
@@ -651,15 +550,16 @@ export function PreviewAnimationCard({
   const singleModeContent = (
     <div className="space-y-3">
       <div className="space-y-2">
-        <label className="text-xs font-medium text-gray-400">Clip</label>
-        <ClipDropdown
-          value={currentClipIndex}
-          options={clips.map((c, i) => ({
-            value: i,
-            label: `${c.name} (${formatDuration(c.duration)})`,
-          }))}
-          onChange={onClipChange}
-        />
+        <TRNFormField label="Clip">
+          <ClipDropdown
+            value={currentClipIndex}
+            options={clips.map((c, i) => ({
+              value: i,
+              label: `${c.name} (${formatDuration(c.duration)})`,
+            }))}
+            onChange={onClipChange}
+          />
+        </TRNFormField>
       </div>
       <div className="space-y-1.5">
         <label className="block text-xs text-gray-400">Loop</label>
@@ -668,127 +568,103 @@ export function PreviewAnimationCard({
           onChange={(v) => onClipLoopChange(currentClipIndex, v)}
         />
       </div>
-      <LabeledSlider
-        label="Speed"
+      <TRNParameterSlider
+        name="Speed"
         value={clipSpeeds[currentClipIndex] ?? 1}
         min={-2}
         max={4}
         step={0.1}
         onChange={(v) => onClipSpeedChange(currentClipIndex, v)}
-        formatValue={(v) => `${v.toFixed(1)}x`}
+        valueFormatter={(v) => `${v.toFixed(1)}x`}
       />
-      <LabeledSlider
-        label="Crossfade duration"
+      <TRNParameterSlider
+        name="Crossfade duration"
         value={crossfadeDuration}
         min={0.2}
         max={1}
         step={0.1}
         onChange={onCrossfadeDurationChange}
-        formatValue={(v) => `${v.toFixed(1)}s`}
+        valueFormatter={(v) => `${v.toFixed(1)}s`}
       />
-      <LabeledSlider
-        label="Timeline"
+      <TRNParameterSlider
+        name="Timeline"
         value={currentScrub ?? 0}
         min={0}
         max={1}
         step={0.01}
         onChange={(v) => onScrubChange(v)}
-        formatValue={(v) => {
+        valueFormatter={(v) => {
           const d = clipDurations[currentClipIndex] ?? 0;
           return `${((v ?? 0) * d).toFixed(2)}s`;
         }}
       />
       <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
+        <TRNButton
           size="compact"
           onClick={() => onPlayPause(!isPlaying)}
-          className={actionButtonClass}
-        >
-          {isPlaying ? (
-            <>
+          prefixIcon={
+            isPlaying ? (
               <Pause className="h-4 w-4" />
-              Pause
-            </>
-          ) : (
-            <>
+            ) : (
               <Play className="h-4 w-4" />
-              Play
-            </>
-          )}
-        </Button>
+            )
+          }
+        >
+          {isPlaying ? "Pause" : "Play"}
+        </TRNButton>
       </div>
     </div>
   );
 
   const blendModeContent = (
     <div className="space-y-3">
-      <div className="space-y-3 rounded-lg border border-white/10 bg-white/2 p-3">
-        <LabeledSwitch
-          label="Compact View"
-          checked={blendCompactView}
-          onChange={onBlendCompactViewChange}
-        />
-      </div>
+      <TRNInlineToggleRow
+        label="Compact view"
+        checked={blendCompactView}
+        onCheckedChange={onBlendCompactViewChange}
+      />
       <div className="space-y-2">
-        {clips.map((c, i) => {
-          const isExpanded = !blendCompactView || expandedClipIndex === i;
-          const weight = clipWeights[i] ?? 0;
-          const speed = clipSpeeds[i] ?? 1;
-          return (
-            <DraggableClipControlCard
-              key={i}
-              i={i}
-              clipName={c.name}
-              clipDuration={c.duration}
-              blendCompactView={blendCompactView}
-              expanded={isExpanded}
-              expandedClipIndex={expandedClipIndex}
-              setExpandedClipIndex={setExpandedClipIndex}
-              showCompactSummary={blendCompactView && !isExpanded}
-              speed={speed}
-              weight={weight}
-              loopValue={clipLoops[i]}
-              clipScrubTime={clipScrubTimes[i] ?? 0}
-              onClipSpeedChange={onClipSpeedChange}
-              onClipWeightChange={onClipWeightChange}
-              onClipLoopChange={onClipLoopChange}
-              onClipScrubChange={onClipScrubChange}
-            >
-              {/** children intentionally unused; all UI is in this component **/}
-              null
-            </DraggableClipControlCard>
-          );
-        })}
+        {clips.map((c, i) => (
+          <BlendClipControlCard
+            key={i}
+            index={i}
+            clipName={c.name}
+            clipDuration={c.duration}
+            blendCompactView={blendCompactView}
+            expandedClipIndex={expandedClipIndex}
+            setExpandedClipIndex={setExpandedClipIndex}
+            speed={clipSpeeds[i] ?? 1}
+            weight={clipWeights[i] ?? 0}
+            loopValue={clipLoops[i]}
+            clipScrubTime={clipScrubTimes[i] ?? 0}
+            onClipSpeedChange={onClipSpeedChange}
+            onClipWeightChange={onClipWeightChange}
+            onClipLoopChange={onClipLoopChange}
+            onClipScrubChange={onClipScrubChange}
+          />
+        ))}
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="secondary"
+        <TRNButton
           size="compact"
           onClick={() => onPlayPause(!isPlaying)}
-          className={actionButtonClass}
-        >
-          {isPlaying ? (
-            <>
+          prefixIcon={
+            isPlaying ? (
               <Pause className="h-4 w-4" />
-              Pause
-            </>
-          ) : (
-            <>
+            ) : (
               <Play className="h-4 w-4" />
-              Play
-            </>
-          )}
-        </Button>
-        <Button
-          variant="outline"
+            )
+          }
+        >
+          {isPlaying ? "Pause" : "Play"}
+        </TRNButton>
+        <TRNButton
           size="compact"
           onClick={onReset}
-          className={actionButtonClass}
+          prefixIcon={<RotateCcw className="h-4 w-4" />}
         >
-          <RotateCcw className="h-4 w-4" />
           Reset
-        </Button>
+        </TRNButton>
       </div>
     </div>
   );
@@ -797,28 +673,26 @@ export function PreviewAnimationCard({
     <div className="space-y-3">
       {clipNames.length > 0 ? (
         <>
-          <div className="space-y-2">
-            <label className="text-xs font-medium text-gray-400">Mode</label>
-            <OptionButtonGroup
-              value={blendMode}
-              layout="row"
-              options={[
-                {
-                  value: "single",
-                  label: "Single",
-                  title: "Single clip mode",
-                  icon: Play,
-                },
-                {
-                  value: "blend",
-                  label: "Blend",
-                  title: "Blend multiple clips",
-                  icon: Layers,
-                },
-              ]}
-              onChange={(v) => onBlendModeChange(v as AnimationBlendMode)}
-            />
-          </div>
+          <TRNIconOptionGroup
+            label="Mode"
+            value={blendMode}
+            layout="row"
+            options={[
+              {
+                value: "single",
+                label: "Single",
+                title: "Single clip mode",
+                icon: Play,
+              },
+              {
+                value: "blend",
+                label: "Blend",
+                title: "Blend multiple clips",
+                icon: Layers,
+              },
+            ]}
+            onChange={(v) => onBlendModeChange(v as AnimationBlendMode)}
+          />
           {blendMode === "single" ? singleModeContent : blendModeContent}
         </>
       ) : (
@@ -830,12 +704,14 @@ export function PreviewAnimationCard({
   if (contentOnly) return content;
 
   return (
-    <CollapsibleCard
+    <TRNCard
       title="Animation"
-      icon={Play}
+      icon={<Play className="h-4 w-4" />}
       defaultExpanded={defaultExpanded}
+      glass
+      glassPreset="soft"
     >
       {content}
-    </CollapsibleCard>
+    </TRNCard>
   );
 }

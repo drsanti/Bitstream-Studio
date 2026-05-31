@@ -73,6 +73,11 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Model Preview Scene Inspector:** **`Preview Controls`** / **`Scene Inspector`** side panels; debug cards (scene, camera load check, camera compare); mesh selection highlight modes; whole-model wireframe display; **`TRNSidePanel`** subtitle + labeled collapsed tabs; **`TRNAxisReadout`**.
+- **2026-05-31** — **Model Preview side panels — TRNSidePanel:** Settings/Debug overlays in **`ModelPreviewModal`** use **`TRNSidePanel`** (overlay, glass, resize, floating collapse); **`CollapsiblePanelCard`** is now a TRN adapter for Model Loader.
+- **2026-05-31** — **Model Preview settings — TRN migration:** settings stack uses **`TRNSortableSettingsCardList`**, **`TRNParameterSlider`**, **`TRNInlineToggleRow`**, **`TRNChipButtonGroup`**, **`TRNIconOptionGroup`**; new TRN primitives under `ui/TRN/`; card order/expand persistence unchanged (`t3d-card-order-*`).
+- **2026-05-31** — **Asset catalog — globalStorage only:** `REPO_ASSET_STATIC_SCAN_ENABLED = false` in `assetLayout.ts`; no Vite globs over `src/assets/models|free|tesaiot`; Asset Registry + rotation preview use extension host / bridge scans + manifest; `src/assets/README.md` updated.
+- **2026-05-31** — **Asset Manager Phase 2:** legacy **Model Catalog** modal removed; **Browse → Models** is canonical (`openAssetManagerBrowseModels`); quick command / Storage **Browse models** / Model Loader menu wired; **Preview 3D** on browse panel via **`ModelPreviewModal`**.
 - **2026-05-29** — **Sensor Telemetry UI labels:** workbench panes **Sensor Config · 3D Orientation · Telemetry Deck · Activity Log**; **`SENSOR_CFG_UI`** title case; 3D preview **3D Orientation** headers; docs **`CONFIGURATION_PANE_IMPROVEMENT_PLAN.md`**, **`SENSOR_DECK_VIEWER_CONVENTIONS.md`**, **`ROTATION_3D_PREVIEW.md`**.
 - **2026-05-29** — **Telemetry source UX:** removed **Auto** backend; toolbar **Bitstream** (`uart`) vs **Simulator**; config lock banner removed (reason logged to **Activity Log** on Refresh); port admin copy/status helpers.
 - **2026-05-30** — **Removed `dev:bitstream2-loopback`**: canonical browser dev is **`start:bridge`** + **`dev:webview`** (two terminals); deleted `scripts/dev-bitstream2-loopback.mjs`.

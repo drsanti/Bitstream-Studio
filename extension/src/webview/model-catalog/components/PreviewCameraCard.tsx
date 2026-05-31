@@ -1,6 +1,6 @@
 import React from 'react';
 import { Camera } from 'lucide-react';
-import { CollapsibleCard, LabeledSlider } from '../../ui/catalog/index.js';
+import { TRNCard, TRNParameterSlider } from '../../ui/TRN/index.js';
 import { PreviewFovSourceControl } from './PreviewFovSourceControl';
 import type { PreviewFovSourceMode } from '../persisted-settings';
 
@@ -10,7 +10,7 @@ export interface PreviewCameraCardProps {
   onPreviewFovChange: (value: number) => void;
   onPreviewFovSourceChange: (value: PreviewFovSourceMode) => void;
   defaultExpanded?: boolean;
-  /** When true, render only the inner content without CollapsibleCard wrapper (for use in SortableCardList) */
+  /** When true, render only the inner content without TRNCard wrapper (for use in sortable list) */
   contentOnly?: boolean;
 }
 
@@ -24,33 +24,33 @@ export function PreviewCameraCard({
 }: PreviewCameraCardProps) {
   const content = (
     <div className="space-y-3">
-        <PreviewFovSourceControl
-          value={previewFovSource}
-          onChange={onPreviewFovSourceChange}
-        />
-        <div className="space-y-2 rounded-lg border border-white/10 bg-white/2 p-3">
-          <LabeledSlider
-            label="FOV"
-            value={previewFov}
-            min={5}
-            max={140}
-            step={0.1}
-            onChange={onPreviewFovChange}
-            formatValue={(v) => v.toFixed(1)}
-          />
-        </div>
-      </div>
+      <PreviewFovSourceControl
+        value={previewFovSource}
+        onChange={onPreviewFovSourceChange}
+      />
+      <TRNParameterSlider
+        name="FOV"
+        value={previewFov}
+        min={5}
+        max={140}
+        step={0.1}
+        onChange={onPreviewFovChange}
+        valueFormatter={(v) => v.toFixed(1)}
+      />
+    </div>
   );
 
   if (contentOnly) return content;
 
   return (
-    <CollapsibleCard
+    <TRNCard
       title="Camera"
-      icon={Camera}
+      icon={<Camera className="h-4 w-4" />}
       defaultExpanded={defaultExpanded}
+      glass
+      glassPreset="soft"
     >
       {content}
-    </CollapsibleCard>
+    </TRNCard>
   );
 }

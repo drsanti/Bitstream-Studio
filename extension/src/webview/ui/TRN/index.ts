@@ -244,8 +244,45 @@ export type {
   TRNVector3FieldProps,
   TRNVector3,
 } from "./TRNVector3Field.js";
+export { TRNChipButtonGroup } from "./TRNChipButtonGroup.js";
+export type {
+  TRNChipButtonGroupOption,
+  TRNChipButtonGroupProps,
+} from "./TRNChipButtonGroup.js";
+
+export { TRNIconOptionGroup } from "./TRNIconOptionGroup.js";
+export type {
+  TRNIconOptionGroupOption,
+  TRNIconOptionGroupProps,
+} from "./TRNIconOptionGroup.js";
+
+export { TRNSortableSettingsCardList } from "./TRNSortableSettingsCardList.js";
+export type {
+  TRNSortableSettingsCardItem,
+  TRNSortableSettingsCardListProps,
+} from "./TRNSortableSettingsCardList.js";
+
+export {
+  TRN_SORTABLE_SETTINGS_CARD_STORAGE_PREFIX,
+  getTrnSortableSettingsCardStorageKey,
+  loadTrnSortableSettingsCardData,
+  saveTrnSortableSettingsCardData,
+} from "./trnSortableSettingsCardStorage.js";
+export type { TRNSortableSettingsCardStorageData } from "./trnSortableSettingsCardStorage.js";
+
+export {
+  TRN_AXIS_VALUE_CLASS,
+  TRNAxisVectorReadout,
+  TRNKeyValueRow,
+  TRNPoseCompareBlock,
+  TRNPoseCompareStack,
+  formatTrnAxisNumber,
+} from "./TRNAxisReadout.js";
+export type { TRNAxis, TRNPoseCompareRow } from "./TRNAxisReadout.js";
+
 export { TRNTransformSection } from "./TRNTransformSection.js";
 export type {
   TRNTransformSectionProps,
   TRNTransformSectionValue,
 } from "./TRNTransformSection.js";
+

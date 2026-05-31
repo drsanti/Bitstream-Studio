@@ -1,8 +1,15 @@
 import React, { useMemo } from 'react';
-import { Globe, Camera, MousePointer, Crosshair, Play } from 'lucide-react';
-import { LabeledSlider, SortableCardList, type SortableCardItem } from '../../ui/catalog/index.js';
+import { Globe, Camera, MousePointer, Crosshair, Play, Sparkles, Grid3x3 } from 'lucide-react';
+import {
+  TRNHintTooltip,
+  TRNParameterSlider,
+  TRNSortableSettingsCardList,
+  type TRNSortableSettingsCardItem,
+} from '../../ui/TRN/index.js';
 import type {
   PreviewClickTargetMode,
+  PreviewSelectionHighlightMode,
+  PreviewModelDisplayMode,
   AnimationClipLoop,
 } from '../persisted-settings';
 import type { ModelPreviewAnimationCallbacks } from '../hooks';
@@ -10,6 +17,8 @@ import { PreviewAnimationCard } from './PreviewAnimationCard';
 import { PreviewCameraCard } from './PreviewCameraCard';
 import { PreviewClickTargetModeControl } from './PreviewClickTargetModeControl';
 import { PreviewMainEnvironmentSettingsCard } from './PreviewMainEnvironmentSettingsCard';
+import { PreviewSelectionHighlightControl } from './PreviewSelectionHighlightControl';
+import { PreviewModelDisplayControl } from './PreviewModelDisplayControl';
 
 export interface ModelPreviewSettingsCardsProps {
   panelId: string;
@@ -29,6 +38,10 @@ export interface ModelPreviewSettingsCardsProps {
   onPreviewFovSourceChange: (value: 'saved' | 'model') => void;
   clickTargetMode: PreviewClickTargetMode;
   onClickTargetModeChange: (value: PreviewClickTargetMode) => void;
+  selectionHighlightMode: PreviewSelectionHighlightMode;
+  onSelectionHighlightModeChange: (value: PreviewSelectionHighlightMode) => void;
+  modelDisplayMode: PreviewModelDisplayMode;
+  onModelDisplayModeChange: (value: PreviewModelDisplayMode) => void;
   pivotRetargetDurationMs: number;
   onPivotRetargetDurationMsChange: (ms: number) => void;
   hasAnimations: boolean;
@@ -65,6 +78,10 @@ export function ModelPreviewSettingsCards({
   onPreviewFovSourceChange,
   clickTargetMode,
   onClickTargetModeChange,
+  selectionHighlightMode,
+  onSelectionHighlightModeChange,
+  modelDisplayMode,
+  onModelDisplayModeChange,
   pivotRetargetDurationMs,
   onPivotRetargetDurationMsChange,
   hasAnimations,
@@ -82,12 +99,17 @@ export function ModelPreviewSettingsCards({
   animationBlendCompactView,
   animationCallbacks,
 }: ModelPreviewSettingsCardsProps) {
-  const items: SortableCardItem[] = useMemo(
+  const selectionHighlightActive = selectionHighlightMode !== 'off';
+  const modelDisplayIconHint = selectionHighlightActive
+    ? 'Whole-model wireframe is disabled while a selection highlight is active — model view stays Shaded.'
+    : 'Applies to the full GLB. Skinned meshes stay shaded-only in "Both" mode.';
+
+  const items: TRNSortableSettingsCardItem[] = useMemo(
     () => [
       {
         id: 'environment',
         title: 'Environment Settings',
-        icon: Globe,
+        icon: <Globe className="h-4 w-4" />,
         content: (
           <PreviewMainEnvironmentSettingsCard
             envPresetIndex={envPresetIndex}
@@ -107,7 +129,7 @@ export function ModelPreviewSettingsCards({
       {
         id: 'camera',
         title: 'Camera',
-        icon: Camera,
+        icon: <Camera className="h-4 w-4" />,
         content: (
           <PreviewCameraCard
             previewFov={previewFov}
@@ -123,7 +145,7 @@ export function ModelPreviewSettingsCards({
             {
               id: 'animation',
               title: 'Animation',
-              icon: Play,
+              icon: <Play className="h-4 w-4" />,
               content: (
                 <PreviewAnimationCard
                   clipNames={animationClipNames}
@@ -156,13 +178,13 @@ export function ModelPreviewSettingsCards({
                   contentOnly
                 />
               ),
-            } as SortableCardItem,
+            } as TRNSortableSettingsCardItem,
           ]
         : []),
       {
         id: 'click-target',
         title: 'Click Target Mode',
-        icon: MousePointer,
+        icon: <MousePointer className="h-4 w-4" />,
         content: (
           <PreviewClickTargetModeControl
             value={clickTargetMode}
@@ -171,26 +193,54 @@ export function ModelPreviewSettingsCards({
         ),
       },
       {
+        id: 'model-display',
+        title: 'Model Display',
+        icon: (
+          <TRNHintTooltip
+            trigger={<Grid3x3 className="h-4 w-4" />}
+            content={modelDisplayIconHint}
+            triggerAriaLabel="About Model Display"
+            placement="top-start"
+          />
+        ),
+        content: (
+          <PreviewModelDisplayControl
+            value={modelDisplayMode}
+            onChange={onModelDisplayModeChange}
+            selectionHighlightActive={selectionHighlightActive}
+          />
+        ),
+      },
+      {
+        id: 'selection-highlight',
+        title: 'Selection Highlight',
+        icon: <Sparkles className="h-4 w-4" />,
+        content: (
+          <PreviewSelectionHighlightControl
+            value={selectionHighlightMode}
+            onChange={onSelectionHighlightModeChange}
+          />
+        ),
+      },
+      {
         id: 'raycast',
         title: 'Raycast Retarget',
-        icon: Crosshair,
+        icon: <Crosshair className="h-4 w-4" />,
         content: (
-          <div className="space-y-2 rounded-lg border border-white/10 bg-white/2 p-3">
-            <LabeledSlider
-              label="Raycast retarget duration (seconds)"
-              value={pivotRetargetDurationMs / 1000}
-              min={0.5}
-              max={5}
-              step={0.6}
-              onChange={(sec) => {
-                if (!Number.isFinite(sec)) return;
-                onPivotRetargetDurationMsChange(
-                  Math.max(0, Math.round(sec * 1000))
-                );
-              }}
-              formatValue={(v) => `${v.toFixed(2)}s`}
-            />
-          </div>
+          <TRNParameterSlider
+            name="Raycast retarget duration"
+            value={pivotRetargetDurationMs / 1000}
+            min={0.5}
+            max={5}
+            step={0.6}
+            onChange={(sec) => {
+              if (!Number.isFinite(sec)) return;
+              onPivotRetargetDurationMsChange(
+                Math.max(0, Math.round(sec * 1000))
+              );
+            }}
+            valueFormatter={(v) => `${v.toFixed(2)}s`}
+          />
         ),
       },
     ],
@@ -211,6 +261,12 @@ export function ModelPreviewSettingsCards({
       onPreviewFovSourceChange,
       clickTargetMode,
       onClickTargetModeChange,
+      selectionHighlightMode,
+      selectionHighlightActive,
+      modelDisplayIconHint,
+      onSelectionHighlightModeChange,
+      modelDisplayMode,
+      onModelDisplayModeChange,
       pivotRetargetDurationMs,
       onPivotRetargetDurationMsChange,
       hasAnimations,
@@ -229,5 +285,5 @@ export function ModelPreviewSettingsCards({
     ]
   );
 
-  return <SortableCardList items={items} panelId={panelId} />;
+  return <TRNSortableSettingsCardList items={items} panelId={panelId} />;
 }

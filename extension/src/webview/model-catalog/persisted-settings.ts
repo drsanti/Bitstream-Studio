@@ -12,6 +12,14 @@ export const SETTINGS_KEYS = {
 
 export type PreviewClickTargetMode = 'object-origin' | 'hit-point';
 export type PreviewFovSourceMode = 'model' | 'saved';
+export type PreviewSelectionHighlightMode =
+  | 'off'
+  | 'emissive'
+  | 'edges'
+  | 'wireframe'
+  | 'box'
+  | 'outline';
+export type PreviewModelDisplayMode = 'shaded' | 'wireframe' | 'shaded-wireframe';
 export type AnimationBlendMode = 'single' | 'blend';
 export type AnimationClipLoop = 'loop' | 'once' | number;
 
@@ -26,6 +34,8 @@ export interface ModelPreviewSettings {
   previewFov: number;
   previewFovSource: PreviewFovSourceMode;
   clickTargetMode: PreviewClickTargetMode;
+  selectionHighlightMode: PreviewSelectionHighlightMode;
+  modelDisplayMode: PreviewModelDisplayMode;
   leftPanelOpen: boolean;
   rightPanelOpen: boolean;
   pivotRetargetDurationMs: number;
@@ -57,6 +67,8 @@ export function getModelPreviewDefaults(): ModelPreviewSettings {
     previewFov: 40,
     previewFovSource: 'saved',
     clickTargetMode: 'object-origin',
+    selectionHighlightMode: 'emissive',
+    modelDisplayMode: 'shaded',
     leftPanelOpen: true,
     rightPanelOpen: true,
     pivotRetargetDurationMs: 2000,
