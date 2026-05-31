@@ -163,6 +163,7 @@ export function SensorStudioMain() {
   const copyFlowSelectionToClipboard = useFlowEditorStore((s) => s.copyFlowSelectionToClipboard);
   const pasteFlowFromClipboard = useFlowEditorStore((s) => s.pasteFlowFromClipboard);
   const createGroupFromSelection = useFlowEditorStore((s) => s.createGroupFromSelection);
+  const ungroupSelection = useFlowEditorStore((s) => s.ungroupSelection);
   const enterGroup = useFlowEditorStore((s) => s.enterGroup);
   const exitGroup = useFlowEditorStore((s) => s.exitGroup);
   const deleteSelection = useFlowEditorStore((s) => s.deleteSelection);
@@ -696,6 +697,7 @@ export function SensorStudioMain() {
       copyFlowSelectionToClipboard,
       pasteFlowFromClipboard,
       createGroupFromSelection,
+      ungroupSelection,
       enterGroup,
       exitGroup,
       undo,
@@ -715,6 +717,7 @@ export function SensorStudioMain() {
       copyFlowSelectionToClipboard,
       pasteFlowFromClipboard,
       createGroupFromSelection,
+      ungroupSelection,
       enterGroup,
       exitGroup,
       undo,

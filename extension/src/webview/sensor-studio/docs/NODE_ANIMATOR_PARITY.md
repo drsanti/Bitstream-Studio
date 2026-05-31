@@ -133,13 +133,15 @@ Drag a **studio** node onto a **frame** and release — it becomes a child and m
 - `features/editor/components/inspector/FrameLayoutInspectorSection.tsx`
 - `features/editor/store/flow-editor.store.ts` — `fitSelectedFramesToContents`, `dissolveSelectedFrames`
 
-## Phase 9 — Shipped (slice 1)
+## Phase 9 — Shipped (slices 1–2)
 
 | Feature | Reference | Sensor Studio |
 |---------|-----------|---------------|
 | Group selection | **Ctrl+G** | `createGroupFromSelection` |
+| Ungroup selection | **Ctrl+Shift+G** | `ungroupSelection` / `dissolveStudioNodeGroupInParent` |
 | Node group shell | `nodeGroup` | `studio-node-group` + boundary nodes |
 | Drill-in | **Tab** / double-click | `enterGroup`, breadcrumb, **Shift+Tab** exit |
+| Subgraph clipboard | `subgraphs` in payload | `buildFlowClipboardPayload` + `attachSubgraphsForPastedNodeGroups` |
 | Eval flatten | `flattenGraphForEvaluation` | `flattenFlowGraphForEvaluation` in `tickSimulation` |
 
 Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
@@ -153,9 +155,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 ## Phase 9+ — Planned
 
-- Subgraph-aware clipboard (when paste clones inner graphs)
-- Ungroup (**Ctrl+Shift+G**)
-- Group Sockets inspector
+- Group Sockets inspector (+/−, reorder, relabel)
 
 ## Shortcuts (current)
 
@@ -172,6 +172,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 | **Ctrl+C** | Copy selection (or full graph if none selected) |
 | **Ctrl+V** | Paste from clipboard |
 | **Ctrl+G** | Group selection into node group |
+| **Ctrl+Shift+G** | Ungroup selected node group |
 | **Tab** | Enter selected node group |
 | **Shift+Tab** | Exit to parent graph |
 | **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** | Undo / redo |

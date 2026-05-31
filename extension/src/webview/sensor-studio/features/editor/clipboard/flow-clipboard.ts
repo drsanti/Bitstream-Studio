@@ -1,5 +1,7 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { FlowGraphNode } from "../store/flow-editor.store";
+import type { StudioNodeGroupData, StudioSubgraphDocument } from "../subgraphs/studio-subgraph.types";
+import { isStudioNodeGroupNode } from "../subgraphs/studio-subgraph.types";
 
 export const FLOW_CLIPBOARD_MARKER = "sensor-studio-flow-clipboard";
 export const FLOW_CLIPBOARD_VERSION = 1 as const;
@@ -9,6 +11,8 @@ export interface FlowClipboardPayload {
   version: typeof FLOW_CLIPBOARD_VERSION;
   nodes: FlowGraphNode[];
   edges: Edge[];
+  /** Nested group graphs (keys = subgraphId / host id at copy time). */
+  subgraphs?: Record<string, StudioSubgraphDocument>;
 }
 
 export interface FlowPasteResult {
@@ -36,6 +40,7 @@ function cloneEdgeForExport(edge: Edge): Edge {
 export function buildFlowClipboardPayload(
   nodes: FlowGraphNode[],
   edges: Edge[],
+  subgraphs?: Record<string, StudioSubgraphDocument>,
 ): FlowClipboardPayload {
   const selected = nodes.filter((n) => n.selected);
   const exportNodes = (selected.length > 0 ? selected : nodes).map(cloneNodeForExport);
@@ -44,11 +49,32 @@ export function buildFlowClipboardPayload(
     .filter((e) => idSet.has(e.source) && e.target != null && idSet.has(e.target))
     .map(cloneEdgeForExport);
 
+  let exportedSubgraphs: Record<string, StudioSubgraphDocument> | undefined;
+  if (subgraphs != null) {
+    const subIds = new Set<string>();
+    for (const node of exportNodes) {
+      if (isStudioNodeGroupNode(node)) {
+        const data = node.data as StudioNodeGroupData;
+        subIds.add(data.subgraphId ?? node.id);
+      }
+    }
+    if (subIds.size > 0) {
+      exportedSubgraphs = {};
+      for (const subId of subIds) {
+        const doc = subgraphs[subId];
+        if (doc != null) {
+          exportedSubgraphs[subId] = structuredClone(doc);
+        }
+      }
+    }
+  }
+
   return {
     marker: FLOW_CLIPBOARD_MARKER,
     version: FLOW_CLIPBOARD_VERSION,
     nodes: exportNodes,
     edges: exportEdges,
+    ...(exportedSubgraphs != null ? { subgraphs: exportedSubgraphs } : {}),
   };
 }
 
@@ -65,11 +91,18 @@ export function parseFlowClipboard(text: string): FlowClipboardPayload | null {
     if (!Array.isArray(raw.nodes) || !Array.isArray(raw.edges)) {
       return null;
     }
+    const subgraphs =
+      raw.subgraphs != null &&
+      typeof raw.subgraphs === "object" &&
+      !Array.isArray(raw.subgraphs)
+        ? (raw.subgraphs as Record<string, StudioSubgraphDocument>)
+        : undefined;
     return {
       marker: FLOW_CLIPBOARD_MARKER,
       version: FLOW_CLIPBOARD_VERSION,
       nodes: raw.nodes as FlowGraphNode[],
       edges: raw.edges as Edge[],
+      ...(subgraphs != null ? { subgraphs } : {}),
     };
   } catch {
     return null;

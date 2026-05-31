@@ -41,6 +41,8 @@ import {
   serializeFlowClipboard,
 } from "../clipboard/flow-clipboard";
 import { createStudioNodeGroupFromSelection } from "../subgraphs/create-studio-node-group";
+import { dissolveStudioNodeGroupInParent } from "../subgraphs/dissolve-studio-node-group";
+import { attachSubgraphsForPastedNodeGroups } from "../subgraphs/paste-subgraph-groups";
 import { rewireParentGraphForStudioGroup } from "../subgraphs/rewire-parent-graph-for-group";
 import {
   commitActiveGraphMutation,
@@ -491,6 +493,7 @@ type FlowEditorState = {
   copyFlowSelectionToClipboard: () => Promise<boolean>;
   pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
   createGroupFromSelection: () => void;
+  ungroupSelection: () => void;
   enterGroup: (groupId: string) => void;
   exitGroup: () => void;
   jumpToGraph: (graphId: StudioGraphId) => void;
@@ -1989,7 +1992,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       };
     });
     const newNodes = remapSourceModelNodeIdAfterDuplicate(newNodesRaw as StudioNode[], idMap);
-    for (const nn of newNodes) {
+    const { nodes: dupNodesWithSubs, subgraphs: dupSubgraphs } = attachSubgraphsForPastedNodeGroups(
+      newNodes as FlowGraphNode[],
+      st.subgraphs,
+      undefined,
+      idMap,
+    );
+    for (const nn of dupNodesWithSubs) {
       nn.selected = true;
     }
     const dupEdges: Edge[] = [];
@@ -2004,10 +2013,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       }
       const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
       const sourceStub =
-        newNodes.find((n) => n.id === srcNew) ??
+        dupNodesWithSubs.find((n) => n.id === srcNew) ??
         st.nodes.find((n) => n.id === e.source);
       const label =
-        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, st.subgraphs) : "";
+        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, dupSubgraphs) : "";
       dupEdges.push({
         ...e,
         id: `studio-edge-${studioDupNodeId()}`,
@@ -2023,12 +2032,19 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     get().pushUndoSnapshot();
     const mergedNodes = [
       ...st.nodes.map((n) => ({ ...n, selected: false })),
-      ...newNodes,
+      ...dupNodesWithSubs,
     ];
-    const dupIds = newNodes.map((n) => n.id);
+    const dupIds = dupNodesWithSubs.map((n) => n.id);
     const mergedEdges = [...st.edges, ...dupEdges];
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges);
+    const committed = commitActiveGraphMutation(
+      { ...st, subgraphs: dupSubgraphs },
+      attachedNodes,
+      mergedEdges,
+    );
     set({
-      nodes: attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges),
+      ...committed,
+      nodes: attachedNodes,
       edges: mergedEdges,
       ...selectionFromIds(dupIds),
     });
@@ -2039,7 +2055,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (st.nodes.length === 0) {
       return false;
     }
-    const payload = buildFlowClipboardPayload(st.nodes, st.edges);
+    const payload = buildFlowClipboardPayload(st.nodes, st.edges, st.subgraphs);
     if (payload.nodes.length === 0) {
       return false;
     }
@@ -2073,13 +2089,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       pastedNodesRaw as StudioNode[],
       idMap,
     ) as FlowGraphNode[];
-    for (const nn of pastedNodes) {
+    const { nodes: pastedWithGroups, subgraphs: mergedSubgraphs } = attachSubgraphsForPastedNodeGroups(
+      pastedNodes,
+      st.subgraphs,
+      payload.subgraphs,
+      idMap,
+    );
+    for (const nn of pastedWithGroups) {
       nn.selected = true;
     }
     const pastedEdges: Edge[] = pastedEdgesRaw.map((e) => {
       const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
-      const sourceStub = pastedNodes.find((n) => n.id === e.source);
-      const label = sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, st.subgraphs) : "";
+      const sourceStub = pastedWithGroups.find((n) => n.id === e.source);
+      const label =
+        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs) : "";
       return {
         ...e,
         animated: true,
@@ -2089,12 +2112,19 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     });
     const mergedNodes = [
       ...st.nodes.map((n) => ({ ...n, selected: false })),
-      ...pastedNodes,
+      ...pastedWithGroups,
     ];
-    const pastedIds = pastedNodes.map((n) => n.id);
+    const pastedIds = pastedWithGroups.map((n) => n.id);
     const mergedEdges = [...st.edges, ...pastedEdges];
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges);
+    const committed = commitActiveGraphMutation(
+      { ...st, subgraphs: mergedSubgraphs },
+      attachedNodes,
+      mergedEdges,
+    );
     set({
-      nodes: attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges),
+      ...committed,
+      nodes: attachedNodes,
       edges: mergedEdges,
       ...selectionFromIds(pastedIds),
     });
@@ -2157,6 +2187,44 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ...selectionFromIds([groupId]),
       });
     }
+    flushFlowSimulationPins(get);
+  },
+  ungroupSelection: () => {
+    const s = get();
+    const selectedGroups = s.nodes.filter((n) => n.selected && isStudioNodeGroupNode(n));
+    if (selectedGroups.length !== 1) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const groupNode = selectedGroups[0]!;
+    const rootNodesForCount =
+      s.activeGraphId === STUDIO_ROOT_GRAPH_ID ? s.nodes : s.rootNodes;
+    const result = dissolveStudioNodeGroupInParent(
+      s.nodes,
+      s.edges,
+      groupNode,
+      s.subgraphs,
+      rootNodesForCount,
+    );
+    if (result == null) {
+      return;
+    }
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      result.nodes as FlowGraphNode[],
+      result.edges,
+    );
+    const expandedIds = result.nodes.filter((n) => n.selected).map((n) => n.id);
+    const committed = commitActiveGraphMutation(
+      { ...s, subgraphs: result.subgraphs },
+      attachedNodes,
+      result.edges,
+    );
+    set({
+      ...committed,
+      nodes: attachedNodes,
+      edges: result.edges,
+      ...selectionFromIds(expandedIds),
+    });
     flushFlowSimulationPins(get);
   },
   enterGroup: (groupId: string) => {

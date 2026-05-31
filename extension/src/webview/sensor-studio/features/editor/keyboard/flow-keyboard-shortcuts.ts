@@ -11,6 +11,7 @@ export type FlowKeyboardShortcutActions = {
   copyFlowSelectionToClipboard: () => Promise<boolean>;
   pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
   createGroupFromSelection: () => void;
+  ungroupSelection: () => void;
   enterGroup: (groupId: string) => void;
   exitGroup: () => void;
   undo: () => void;
@@ -81,6 +82,11 @@ export function handleFlowKeyboardShortcut(
 
   if (mod && !event.shiftKey && (key === "g" || key === "G")) {
     ctx.createGroupFromSelection();
+    return true;
+  }
+
+  if (mod && event.shiftKey && (key === "g" || key === "G")) {
+    ctx.ungroupSelection();
     return true;
   }
 
