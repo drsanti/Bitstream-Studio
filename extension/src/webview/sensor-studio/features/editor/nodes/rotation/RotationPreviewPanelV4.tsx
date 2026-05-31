@@ -34,17 +34,22 @@ import {
   type Scene3DConfigV1,
   type StudioDirectionalLightV1,
 } from "./scene3d-config";
+import type { GlbMaterialPbrDriveRow } from "../../gltf/studio-glb-material-param";
+import type { GlbMaterialTextureDriveRow } from "../../gltf/studio-glb-material-texture";
 import {
   applyGlbLightIntensityOverrides,
-  applyGlbMaterialEmissiveByName,
+  applyGlbMaterialPbrByName,
+  applyGlbMaterialTexturesByName,
   applyGlbMorphWeightsToModelRoot,
   applyGlbPartVisibilityByPathMap,
   applyStudioCameraFromBlendedGlbCameras,
   buildStudioGlbPathIndex,
-  resetGlbMaterialEmissiveDriveState,
+  resetGlbMaterialPbrDriveState,
+  resetGlbMaterialTextureDriveState,
   resetGlbPartVisibilityDriveState,
   resolveGlbCameraBlendWeights,
-  type GlbMaterialEmissiveDriveState,
+  type GlbMaterialPbrDriveState,
+  type GlbMaterialTextureDriveState,
   type GlbPartVisibilityDriveState,
 } from "../../gltf/studio-glb-preview-runtime";
 import {
@@ -346,7 +351,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const glbAnimWeightsRef = useRef<Record<string, number>>({});
   const glbAnimDrivesRef = useRef<Record<string, GlbAnimationClipPreviewDrive>>({});
   const glbPartsRef = useRef<Record<string, number>>({});
-  const glbMaterialsRef = useRef<Record<string, number>>({});
+  const glbMaterialPbrRef = useRef<Record<string, GlbMaterialPbrDriveRow>>({});
+  const glbMaterialTexturesRef = useRef<Record<string, GlbMaterialTextureDriveRow>>({});
   const glbCamerasRef = useRef<Record<string, number>>({});
   const scenePropsGlb = props.sceneProps as RotationPreviewSceneProps & {
     glbMorphWeights?: Record<string, number>;
@@ -357,7 +363,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     glbAnimationWeightByClipName?: Record<string, number>;
     glbAnimationClipDrivesByName?: Record<string, GlbAnimationClipPreviewDrive>;
     glbPartVisibilityByPath?: Record<string, number>;
-    glbMaterialEmissiveByName?: Record<string, number>;
+    glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
+    glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
     glbCameraDriveByName?: Record<string, number>;
   };
   glbMorphRef.current = scenePropsGlb.glbMorphWeights ?? {};
@@ -368,7 +375,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbAnimWeightsRef.current = scenePropsGlb.glbAnimationWeightByClipName ?? {};
   glbAnimDrivesRef.current = scenePropsGlb.glbAnimationClipDrivesByName ?? {};
   glbPartsRef.current = scenePropsGlb.glbPartVisibilityByPath ?? {};
-  glbMaterialsRef.current = scenePropsGlb.glbMaterialEmissiveByName ?? {};
+  glbMaterialPbrRef.current = scenePropsGlb.glbMaterialPbrByName ?? {};
+  glbMaterialTexturesRef.current = scenePropsGlb.glbMaterialTexturesByName ?? {};
   glbCamerasRef.current = scenePropsGlb.glbCameraDriveByName ?? {};
 
   const quatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
@@ -877,7 +885,11 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         materialOpacityBaseline: new Map(),
         materialTransparentBaseline: new Map(),
       };
-      const materialEmissiveDriveState: GlbMaterialEmissiveDriveState = {
+      const materialPbrDriveState: GlbMaterialPbrDriveState = {
+        baseline: new Map(),
+        lastMaterialNames: new Set(),
+      };
+      const materialTextureDriveState: GlbMaterialTextureDriveState = {
         baseline: new Map(),
         lastMaterialNames: new Set(),
       };
@@ -905,7 +917,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         inflightModelKey = reasonKey;
         resetAnimationMixer();
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
-        resetGlbMaterialEmissiveDriveState(materialEmissiveDriveState);
+        resetGlbMaterialPbrDriveState(materialPbrDriveState);
+        resetGlbMaterialTextureDriveState(materialTextureDriveState);
         glbPathIndex = null;
         if (modelRoot != null) {
           root.remove(modelRoot);
@@ -1083,7 +1096,12 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
 
         applyGlbPartVisibilityByPathMap(glbPathIndex, glbPartsRef.current, partVisibilityDriveState);
         applyGlbMorphWeightsToModelRoot(modelRoot, glbMorphRef.current);
-        applyGlbMaterialEmissiveByName(modelRoot, glbMaterialsRef.current, materialEmissiveDriveState);
+        applyGlbMaterialPbrByName(modelRoot, glbMaterialPbrRef.current, materialPbrDriveState);
+        applyGlbMaterialTexturesByName(
+          modelRoot,
+          glbMaterialTexturesRef.current,
+          materialTextureDriveState,
+        );
         applyGlbLightIntensityOverrides(modelRoot, glbLightsRef.current);
         if (animationMixer != null && clipActions.size > 0) {
           const structuredDrives = glbAnimDrivesRef.current;
@@ -1229,7 +1247,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         controls.dispose();
         resetAnimationMixer();
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
-        resetGlbMaterialEmissiveDriveState(materialEmissiveDriveState);
+        resetGlbMaterialPbrDriveState(materialPbrDriveState);
+        resetGlbMaterialTextureDriveState(materialTextureDriveState);
         glbPathIndex = null;
         if (modelRoot != null) {
           root.remove(modelRoot);

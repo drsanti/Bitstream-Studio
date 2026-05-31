@@ -28,6 +28,15 @@ import {
 } from "../features/asset-browser/studio-model-scene-bindings";
 import { useStudioAssetDescriptors } from "../features/asset-browser/useStudioAssetDescriptors";
 import {
+  defaultGlbMaterialParamValue,
+  STUDIO_GLB_MATERIAL_PARAM_KEY,
+} from "../features/editor/gltf/studio-glb-material-param";
+import {
+  STUDIO_GLB_MATERIAL_TEXTURE_SLOT_KEY,
+  STUDIO_TEXTURE_ASSET_ID_KEY,
+  STUDIO_TEXTURE_URL_KEY,
+} from "../features/editor/gltf/studio-glb-material-texture";
+import {
   catalogEntrySpawnsLinkedToModel,
   resolveSingleModelSelectParentId,
   STUDIO_GLB_EXTRACT_KIND_KEY,
@@ -318,6 +327,8 @@ export function SensorStudioMain() {
     (
       catalogNodeId:
         | "number-constant"
+        | "glb-material-param"
+        | "glb-material-texture"
         | "event-toggle-glb-part"
         | "event-set-glb-part"
         | "event-trigger-glb-anim",
@@ -340,6 +351,13 @@ export function SensorStudioMain() {
       };
       if (catalogNodeId === "number-constant") {
         mergeDefaultConfig.value = 0;
+      } else if (catalogNodeId === "glb-material-param") {
+        mergeDefaultConfig[STUDIO_GLB_MATERIAL_PARAM_KEY] = "emissive";
+        mergeDefaultConfig.value = defaultGlbMaterialParamValue("emissive");
+      } else if (catalogNodeId === "glb-material-texture") {
+        mergeDefaultConfig[STUDIO_GLB_MATERIAL_TEXTURE_SLOT_KEY] = "map";
+        mergeDefaultConfig[STUDIO_TEXTURE_URL_KEY] = "";
+        mergeDefaultConfig[STUDIO_TEXTURE_ASSET_ID_KEY] = "";
       } else if (catalogNodeId === "event-toggle-glb-part") {
         mergeDefaultConfig.value = 1;
       } else if (catalogNodeId === "event-set-glb-part") {
@@ -360,11 +378,22 @@ export function SensorStudioMain() {
     [addNodeFromCatalogLinkedToModel, catalog],
   );
 
-  const spawnGlbLinkedNumberConstant = useCallback(
+  const spawnGlbLinkedScalarDrive = useCallback(
     (parentModelFlowNodeId: string, row: StudioGltfExtractRow, position: { x: number; y: number }) => {
+      if (row.kind === "material") {
+        spawnGlbLinkedCatalogNode("glb-material-param", parentModelFlowNodeId, row, position);
+        return;
+      }
       spawnGlbLinkedCatalogNode("number-constant", parentModelFlowNodeId, row, position);
     },
     [spawnGlbLinkedCatalogNode],
+  );
+
+  const spawnGlbLinkedNumberConstant = useCallback(
+    (parentModelFlowNodeId: string, row: StudioGltfExtractRow, position: { x: number; y: number }) => {
+      spawnGlbLinkedScalarDrive(parentModelFlowNodeId, row, position);
+    },
+    [spawnGlbLinkedScalarDrive],
   );
 
   const onSpawnGlbExtract = useCallback(
@@ -408,6 +437,22 @@ export function SensorStudioMain() {
           ? { x: parent.position.x + 300, y: parent.position.y + 72 }
           : { x: 120, y: 192 };
       spawnGlbLinkedCatalogNode("event-trigger-glb-anim", args.parentModelFlowNodeId, args.row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
+  );
+
+  const onSpawnGlbMaterialTextureExtract = useCallback(
+    (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
+      if (args.row.kind !== "material") {
+        return;
+      }
+      const st = useFlowEditorStore.getState();
+      const parent = st.nodes.find((n) => n.id === args.parentModelFlowNodeId);
+      const position =
+        parent != null
+          ? { x: parent.position.x + 300, y: parent.position.y + 144 }
+          : { x: 120, y: 264 };
+      spawnGlbLinkedCatalogNode("glb-material-texture", args.parentModelFlowNodeId, args.row, position);
     },
     [spawnGlbLinkedCatalogNode],
   );
@@ -883,6 +928,7 @@ export function SensorStudioMain() {
         onFlowPanePointerEvent={onFlowPanePointerEvent}
         onDropPaletteCatalogNode={onDropPaletteCatalogNode}
         onSpawnGlbExtract={onSpawnGlbExtract}
+        onSpawnGlbMaterialTextureExtract={onSpawnGlbMaterialTextureExtract}
         onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
         onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
         onDropGlbExtract={onDropGlbExtract}

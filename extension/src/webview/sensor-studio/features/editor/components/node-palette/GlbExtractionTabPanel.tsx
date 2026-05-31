@@ -35,6 +35,11 @@ export type GlbExtractionTabPanelProps = {
     parentModelFlowNodeId: string;
     row: StudioGltfExtractRow;
   }) => void;
+  /** Materials only: spawn **GLB Material Texture** linked to the Model. */
+  onSpawnGlbMaterialTextureExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
   /** Row keys (`kind:ref`) already present as linked GLB placeholders on the flow graph. */
   placedRowKeys?: ReadonlySet<string>;
 };
@@ -75,6 +80,7 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     onSpawnGlbExtract,
     onSpawnGlbEventPartExtract,
     onSpawnGlbEventAnimExtract,
+    onSpawnGlbMaterialTextureExtract,
     placedRowKeys,
   } = props;
 
@@ -123,6 +129,21 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     onSpawnGlbEventAnimExtract({ parentModelFlowNodeId, row });
   };
 
+  const spawnMaterialTexture = (row: StudioGltfExtractRow) => {
+    if (
+      parentModelFlowNodeId == null ||
+      onSpawnGlbMaterialTextureExtract == null ||
+      row.kind !== "material"
+    ) {
+      return;
+    }
+    onSpawnGlbMaterialTextureExtract({ parentModelFlowNodeId, row });
+  };
+
+  const textureSpawnButtonClass = dense
+    ? "shrink-0 rounded border border-cyan-900/50 bg-cyan-950/25 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-cyan-100/90 transition-colors hover:border-cyan-500/40 hover:bg-cyan-950/45"
+    : "shrink-0 rounded border border-cyan-900/50 bg-cyan-950/25 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-100/90 transition-colors hover:border-cyan-500/40 hover:bg-cyan-950/45";
+
   const eventSpawnButtonClass = dense
     ? "shrink-0 rounded border border-amber-900/50 bg-amber-950/25 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-amber-100/90 transition-colors hover:border-amber-500/40 hover:bg-amber-950/45"
     : "shrink-0 rounded border border-amber-900/50 bg-amber-950/25 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100/90 transition-colors hover:border-amber-500/40 hover:bg-amber-950/45";
@@ -164,25 +185,19 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
       {state === "ok" && totalRows > 0 ? (
         <>
           <TRNHintText tone="muted" className={dense ? "text-[10px] leading-snug" : "text-[11px]"}>
-            Click a row to add a linked <span className="font-medium text-zinc-300">Number</span>{" "}
-            block (placeholder value 0) tagged with this GLB reference, or drag onto the canvas.
-            For <span className="font-medium text-zinc-300">Parts</span>, use{" "}
+            Click a row to add a linked drive block tagged with this GLB reference, or drag onto
+            the canvas. <span className="font-medium text-zinc-300">Materials</span> spawn{" "}
+            <span className="font-medium text-zinc-300">GLB Material Param</span> (PBR scalars); use{" "}
+            <span className="font-medium text-cyan-200/90">Tex</span> for{" "}
+            <span className="font-medium text-zinc-300">GLB Material Texture</span> (map swap). For{" "}
+            <span className="font-medium text-zinc-300">Parts</span>, use{" "}
             <span className="font-medium text-amber-200/90">Evt</span> for{" "}
             <span className="font-medium text-zinc-300">Toggle GLB Part</span>; for{" "}
             <span className="font-medium text-zinc-300">Animations</span>, **Evt** adds{" "}
-            <span className="font-medium text-zinc-300">Trigger GLB Anim</span>.
-            With a linked <span className="font-medium text-zinc-300">Model viewer</span> (same
-            Model), live values drive{" "}
-            <span className="font-medium text-zinc-300">morph</span>,{" "}
-            <span className="font-medium text-zinc-300">light</span>,{" "}
-            <span className="font-medium text-zinc-300">animation</span>,{" "}
-            <span className="font-medium text-zinc-300">part</span> visibility (&gt; 0.5),{" "}
-            <span className="font-medium text-zinc-300">material</span> emissive intensity, and{" "}
-            <span className="font-medium text-zinc-300">camera</span> pose (strongest drive &gt;
-            0.5) in the preview; dropping below 0.5 restores the saved studio camera.{" "}
-            <span className="font-medium text-zinc-300">Hybrid</span> /{" "}
-            <span className="font-medium text-zinc-300">Strip</span> rig removes embedded GLB
-            cameras—use <span className="font-medium text-zinc-300">Keep</span> for camera drives.
+            <span className="font-medium text-zinc-300">Trigger GLB Anim</span>. With a linked{" "}
+            <span className="font-medium text-zinc-300">Model viewer</span> (same Model), live
+            values drive morph, light, animation, part visibility (&gt; 0.5), material PBR +
+            texture maps, and camera pose (strongest drive &gt; 0.5) in the preview.
           </TRNHintText>
           {searchQuery.trim().length > 0 && filteredTotal === 0 ? (
             <p className="text-center text-[11px] text-zinc-500">No GLB entries match this search.</p>
@@ -210,6 +225,9 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                     const hasEventSpawn =
                       (row.kind === "part" && onSpawnGlbEventPartExtract != null) ||
                       (row.kind === "animation" && onSpawnGlbEventAnimExtract != null);
+                    const hasTextureSpawn =
+                      row.kind === "material" && onSpawnGlbMaterialTextureExtract != null;
+                    const hasSideSpawn = hasEventSpawn || hasTextureSpawn;
                     return (
                       <div key={rowKey} className="min-w-0">
                         <div className="flex min-w-0 items-stretch gap-1">
@@ -219,7 +237,7 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                             className={
                               rowButtonClass +
                               (placed ? " border-emerald-900/50 bg-emerald-950/15" : "") +
-                              (hasEventSpawn ? " flex-1" : " w-full")
+                              (hasSideSpawn ? " flex-1" : " w-full")
                             }
                             style={{ borderColor }}
                             onClick={() => {
@@ -250,6 +268,19 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                               </span>
                             </span>
                           </button>
+                          {row.kind === "material" && onSpawnGlbMaterialTextureExtract != null ? (
+                            <button
+                              type="button"
+                              className={textureSpawnButtonClass}
+                              style={{ borderColor }}
+                              title="Add GLB Material Texture drive for this material"
+                              onClick={() => {
+                                spawnMaterialTexture(row);
+                              }}
+                            >
+                              Tex
+                            </button>
+                          ) : null}
                           {row.kind === "part" && onSpawnGlbEventPartExtract != null ? (
                             <button
                               type="button"

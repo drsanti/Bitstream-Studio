@@ -223,6 +223,27 @@ test("quaternion splitter feeds W into low-pass", () => {
   useFlowEditorStore.getState().resetCanvas();
 });
 
+test("runDemoTemplate material-glb-drives wires model viewer and material drives", () => {
+  const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
+
+  runDemoTemplate("material-glb-drives", NODE_CATALOG_DEFAULTS.payload.nodes);
+  const built = useFlowEditorStore.getState();
+  assert.equal(built.nodes.length, 4);
+  assert.equal(built.edges.length, 1);
+  assert.ok(
+    built.edges.some(
+      (e) => e.source === "demo-model-select" && e.target === "demo-model-viewer",
+    ),
+  );
+  assert.equal(built.selectedNodeId, "demo-model-viewer");
+  const param = built.nodes.find((n) => n.id === "demo-mat-param");
+  assert.equal(param?.data.nodeId, "glb-material-param");
+  const tex = built.nodes.find((n) => n.id === "demo-mat-tex");
+  assert.equal(tex?.data.nodeId, "glb-material-texture");
+
+  resetCanvas();
+});
+
 test("runDemoTemplate rotation-glb-anim wires euler, bundle anim, and click trigger", () => {
   const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
 

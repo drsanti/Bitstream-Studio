@@ -3,11 +3,20 @@ import {
   resolveStudioModelScopeNodeId,
   type StudioFlowEdgeLike,
 } from "../model/model-generated-bindings";
-import { collectGlbScalarDrivesForModel } from "./studio-glb-flow-drives";
+import { glbMaterialPbrRowHasValues } from "./studio-glb-material-param";
+import { glbMaterialTextureRowHasValues } from "./studio-glb-material-texture";
+import {
+  collectGlbMaterialTextureDrivesForModel,
+  collectGlbScalarDrivesForModel,
+} from "./studio-glb-flow-drives";
 
 type FlowNodeLike = {
   id: string;
-  data: { nodeId: string; defaultConfig: Record<string, unknown> };
+  data: {
+    nodeId: string;
+    defaultConfig: Record<string, unknown>;
+    liveValue?: unknown;
+  };
 };
 
 export type GlbScalarPreviewSceneProps = Pick<
@@ -15,11 +24,12 @@ export type GlbScalarPreviewSceneProps = Pick<
   | "glbMorphWeights"
   | "glbLightIntensityByName"
   | "glbPartVisibilityByPath"
-  | "glbMaterialEmissiveByName"
+  | "glbMaterialPbrByName"
+  | "glbMaterialTexturesByName"
   | "glbCameraDriveByName"
 >;
 
-/** GLB scalar drive maps (morph, part opacity/visibility, material, camera, light) for 3D previews. */
+/** GLB scalar drive maps (morph, part opacity/visibility, material PBR, camera, light) for 3D previews. */
 export function buildGlbScalarPreviewSceneProps(args: {
   nodes: readonly FlowNodeLike[];
   edges?: readonly StudioFlowEdgeLike[];
@@ -36,17 +46,30 @@ export function buildGlbScalarPreviewSceneProps(args: {
   });
 
   const glbDrives = collectGlbScalarDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
+  const glbTextureDrives = collectGlbMaterialTextureDrivesForModel(
+    args.nodes,
+    sourceModelNodeId,
+    args.edges,
+  );
   const morphKeys = Object.keys(glbDrives.morphs);
   const lightKeys = Object.keys(glbDrives.lights);
   const partKeys = Object.keys(glbDrives.parts);
-  const materialKeys = Object.keys(glbDrives.materials);
+  const materialPbrKeys = Object.keys(glbDrives.materialPbr).filter((k) =>
+    glbMaterialPbrRowHasValues(glbDrives.materialPbr[k]),
+  );
+  const materialTextureKeys = Object.keys(glbTextureDrives).filter((k) =>
+    glbMaterialTextureRowHasValues(glbTextureDrives[k]),
+  );
   const cameraKeys = Object.keys(glbDrives.cameras);
 
   return {
     glbMorphWeights: morphKeys.length > 0 ? glbDrives.morphs : undefined,
     glbLightIntensityByName: lightKeys.length > 0 ? glbDrives.lights : undefined,
     glbPartVisibilityByPath: partKeys.length > 0 ? glbDrives.parts : undefined,
-    glbMaterialEmissiveByName: materialKeys.length > 0 ? glbDrives.materials : undefined,
+    glbMaterialPbrByName:
+      materialPbrKeys.length > 0 ? glbDrives.materialPbr : undefined,
+    glbMaterialTexturesByName:
+      materialTextureKeys.length > 0 ? glbTextureDrives : undefined,
     glbCameraDriveByName: cameraKeys.length > 0 ? glbDrives.cameras : undefined,
   };
 }

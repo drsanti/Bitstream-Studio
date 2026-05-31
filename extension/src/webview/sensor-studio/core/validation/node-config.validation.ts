@@ -32,6 +32,10 @@ export function validateStudioNodeConfig(nodeId: string, cfg: Record<string, unk
       return validateBooleanConstant(safeCfg);
     case "number-constant":
       return validateNumberConstant(safeCfg);
+    case "glb-material-param":
+      return validateNumberConstant(safeCfg);
+    case "glb-material-texture":
+      return validateGlbMaterialTexture(safeCfg);
     case "glb-animation-bundle":
       return validateGlbAnimationBundle(safeCfg);
     case "model-select":
@@ -220,6 +224,24 @@ function validateBooleanConstant(cfg: Record<string, unknown>): string[] {
   const schema = z.object({
     value: z.boolean().optional(),
   });
+  const r = schema.safeParse(cfg);
+  const out: string[] = [];
+  if (!r.success) {
+    pushIssues(out, r.error.issues);
+  }
+  return out;
+}
+
+function validateGlbMaterialTexture(cfg: Record<string, unknown>): string[] {
+  const schema = z
+    .object({
+      glbMaterialTextureSlot: z
+        .enum(["map", "normalMap", "roughnessMap", "metalnessMap", "emissiveMap", "aoMap"])
+        .optional(),
+      textureUrl: z.string().optional(),
+      selectedStudioTextureAssetId: z.string().optional(),
+    })
+    .passthrough();
   const r = schema.safeParse(cfg);
   const out: string[] = [];
   if (!r.success) {

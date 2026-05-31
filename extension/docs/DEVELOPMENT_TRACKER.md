@@ -73,7 +73,9 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
-- **2026-05-31** — **Sensor Studio flow domains — Phase 4 GLB drives polish (slice 3):** part opacity 0–1, multi-camera blend, scalar GLB drives on **3D Rotation** via **`buildGlbScalarPreviewSceneProps`**.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 5 demo template:** **`material-glb-drives`** (Model Viewer + material param + texture on robot GLB).
+- **2026-05-31** — **Sensor Studio flow domains — Phase 5 material texture swap (slice 2):** **`glb-material-texture`** node (map slots); GLB **Materials → Tex** spawn; preview texture apply.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 5 material params (slice 1):** **`glb-material-param`** node (emissive / roughness / metalness / opacity); GLB **Materials** spawn; PBR preview apply.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 4 demo template:** **`rotation-glb-anim`** starter graph (BMI270 Euler + bundle **`anim`** + click trigger) in Canvas **Document → Run template**.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 4 animation merge (slice 1):** **`mergeGlbAnimationClipDrivesForPreview`** (scalar + bundle wire + event triggers); **Model Viewer** uses shared merge; unit tests.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 3 polish:** **Model** input on GLB event nodes, inspector linked-model catalog label, clip binding sync on re-wire, clip picker UX.
@@ -375,7 +377,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- **Sensor Studio — flow domains Phase 4** — GLB drives polish shipped (slice 3); Phase 4 largely complete.
+- **Sensor Studio — flow domains Phase 5** — material v1 complete (PBR + texture + demo template); full shader graph backlog.
 
 ---
 
@@ -387,7 +389,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
   - [x] Phase 2 — **`FlowWireTransformV1`** + model-viewer / rotation **`xf`** consumer (**2026-05-31**)
   - [x] Phase 3 — event layer (**slice 1–4 shipped 2026-05-31**: On Key/Click, Toggle/Set Boolean, GLB part visibility, animation trigger)
   - [x] Phase 4 — GLB animation depth (**slices 1–3 2026-05-31**; multi-clip modes backlog)
-  - [ ] Phase 5 — material parameter nodes (PBR v1)
+  - [x] Phase 5 — material parameter nodes (**slices 1–3 2026-05-31**; full shader graph → Phase 6)
   - [ ] Phase 6 — optional geometry / full shader DAG
 - **`ternion-3d-assets-free` upstream cleanup** — **Done 2026-05-31** ([`b2cc826`](https://github.com/drsanti/ternion-3d-assets-free/commit/b2cc826)): legacy root duplicates removed; **`docs/LAYOUT.md`** on GitHub. Bitstream contract: **[`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md)**.
 - **Digital Twin simulations (from `ternion-t3d`)** — canonical plan **[`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md)**. Order: **Phase 0** shared R3F shell → **Phase 1** E84 → **Phase 2** ABB → **Phase 3** vehicle (Jolt).

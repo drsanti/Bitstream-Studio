@@ -17,6 +17,8 @@ import {
   ROTATION_PREVIEW_ORBIT_MAX_DISTANCE,
 } from "./rotationPreviewConstants.js";
 import type { GlbAnimationClipPreviewDrive } from "../../../../sensor-studio/features/editor/gltf/studio-glb-animation-preview-mixer";
+import type { GlbMaterialPbrDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-param";
+import type { GlbMaterialTextureDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-texture";
 
 export type RotationPreviewSceneProps = {
   qw: number;
@@ -57,7 +59,11 @@ export type RotationPreviewSceneProps = {
   glbAnimationClipDrivesByName?: Record<string, GlbAnimationClipPreviewDrive>;
   /** Optional part visibility by object path (`> 0.5` visible), matching GLB extraction part refs. */
   glbPartVisibilityByPath?: Record<string, number>;
-  /** Optional material emissive intensity by material **name** (non‑negative). */
+  /** Optional material PBR scalars by material **name** (emissive, roughness, metalness, opacity). */
+  glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
+  /** Optional material texture URLs by material **name** and map slot. */
+  glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
+  /** @deprecated Prefer {@link glbMaterialPbrByName}. Emissive-only legacy map. */
   glbMaterialEmissiveByName?: Record<string, number>;
   /**
    * Optional embedded GLB camera drives by object **name**. Strongest value **> 0.5** wins and

@@ -160,8 +160,10 @@ Material compile →  Shader / PBR DAG    (on edit or bake — not every UART fr
 
 ### Phase 5 — Material parameters (Domain D v1)
 
-- [ ] PBR **parameter** nodes bound to GLB material slots
-- [ ] No full shader graph until v1 proves value
+- [x] PBR **parameter** nodes — **`glb-material-param`** (emissive, roughness, metalness, opacity) + preview apply (**2026-05-31** slice 1)
+- [x] **Texture swap** — **`glb-material-texture`** + Library **Materials → Tex** + preview map apply (**2026-05-31** slice 2)
+- [x] Demo template **`material-glb-drives`** — Model Viewer + param + texture (**2026-05-31** slice 3)
+- [ ] Full shader graph (backlog)
 
 ### Phase 6 — Geometry / full shader (optional, far)
 

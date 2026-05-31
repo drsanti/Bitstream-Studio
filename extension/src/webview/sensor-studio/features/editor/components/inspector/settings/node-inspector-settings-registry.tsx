@@ -3,8 +3,10 @@ import type { NodeInspectorSettingsSectionProps } from "./node-inspector-setting
 import { BooleanConstantSettingsSection } from "./sections/BooleanConstantSettingsSection";
 import { ClampSettingsSection } from "./sections/ClampSettingsSection";
 import { EnvironmentSettingsSection } from "./sections/EnvironmentSettingsSection";
-import { GlbAnimationBundleSettingsSection } from "./sections/GlbAnimationBundleSettingsSection";
 import { GaugeSettingsSection } from "./sections/GaugeSettingsSection";
+import { GlbMaterialTextureSettingsSection } from "./sections/GlbMaterialTextureSettingsSection";
+import { GlbAnimationBundleSettingsSection } from "./sections/GlbAnimationBundleSettingsSection";
+import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
 import { NumberConstantSettingsSection } from "./sections/NumberConstantSettingsSection";
@@ -43,6 +45,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "glb-animation-bundle": GlbAnimationBundleSettingsSection,
   "boolean-constant": BooleanConstantSettingsSection,
   "number-constant": NumberConstantSettingsSection,
+  "glb-material-param": GlbMaterialParamSettingsSection,
+  "glb-material-texture": GlbMaterialTextureSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,

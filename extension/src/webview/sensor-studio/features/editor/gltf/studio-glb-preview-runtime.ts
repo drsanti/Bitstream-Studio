@@ -138,30 +138,91 @@ export function applyGlbPartVisibilityByPathMap(
   st.lastKeys = next;
 }
 
-export type GlbMaterialEmissiveDriveState = {
-  baseline: Map<string, number>;
+import type { GlbMaterialPbrDriveRow } from "./studio-glb-material-param";
+import type {
+  GlbMaterialTextureDriveRow,
+  StudioGlbMaterialTextureSlotV1,
+} from "./studio-glb-material-texture";
+import { STUDIO_GLB_MATERIAL_TEXTURE_SLOTS } from "./studio-glb-material-texture";
+
+export type GlbMaterialPbrBaseline = {
+  emissiveIntensity: number;
+  roughness: number;
+  metalness: number;
+  opacity: number;
+  transparent: boolean;
+};
+
+export type GlbMaterialPbrDriveState = {
+  baseline: Map<string, GlbMaterialPbrBaseline>;
   lastMaterialNames: Set<string>;
 };
 
-export function resetGlbMaterialEmissiveDriveState(st: GlbMaterialEmissiveDriveState): void {
+export function resetGlbMaterialPbrDriveState(st: GlbMaterialPbrDriveState): void {
   st.baseline.clear();
   st.lastMaterialNames.clear();
 }
 
+function captureMaterialPbrBaseline(mat: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial): GlbMaterialPbrBaseline {
+  return {
+    emissiveIntensity: mat.emissiveIntensity,
+    roughness: mat.roughness,
+    metalness: mat.metalness,
+    opacity: mat.opacity,
+    transparent: mat.transparent,
+  };
+}
+
+function restoreMaterialPbrBaseline(
+  mat: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial,
+  base: GlbMaterialPbrBaseline,
+): void {
+  mat.emissiveIntensity = base.emissiveIntensity;
+  mat.roughness = base.roughness;
+  mat.metalness = base.metalness;
+  mat.opacity = base.opacity;
+  mat.transparent = base.transparent;
+  mat.needsUpdate = true;
+}
+
+function applyMaterialPbrRowToMat(
+  mat: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial,
+  row: GlbMaterialPbrDriveRow,
+  st: GlbMaterialPbrDriveState,
+): void {
+  if (!st.baseline.has(mat.uuid)) {
+    st.baseline.set(mat.uuid, captureMaterialPbrBaseline(mat));
+  }
+  if (row.emissive != null && Number.isFinite(row.emissive)) {
+    mat.emissiveIntensity = Math.max(0, row.emissive);
+  }
+  if (row.roughness != null && Number.isFinite(row.roughness)) {
+    mat.roughness = Math.min(1, Math.max(0, row.roughness));
+  }
+  if (row.metalness != null && Number.isFinite(row.metalness)) {
+    mat.metalness = Math.min(1, Math.max(0, row.metalness));
+  }
+  if (row.opacity != null && Number.isFinite(row.opacity)) {
+    const opacity = Math.min(1, Math.max(0, row.opacity));
+    mat.opacity = opacity;
+    mat.transparent = opacity < 1;
+  }
+  mat.needsUpdate = true;
+}
+
 /**
- * Material rows: drive **emissiveIntensity** on Standard/Physical materials whose **name** matches
- * the GLB extraction ref. Values are clamped ≥ 0. When a drive disappears, intensity restores
- * from the first-seen baseline captured per material **uuid**.
+ * Material rows: drive PBR scalars on Standard/Physical materials whose **name** matches the GLB
+ * extraction ref. When a drive disappears, properties restore from first-seen baselines per uuid.
  */
-export function applyGlbMaterialEmissiveByName(
+export function applyGlbMaterialPbrByName(
   root: THREE.Object3D | null,
-  intensities: Record<string, number> | undefined,
-  st: GlbMaterialEmissiveDriveState,
+  drives: Record<string, GlbMaterialPbrDriveRow> | undefined,
+  st: GlbMaterialPbrDriveState,
 ): void {
   if (root == null) {
     return;
   }
-  const nextNames = new Set(Object.keys(intensities ?? {}));
+  const nextNames = new Set(Object.keys(drives ?? {}));
   for (const name of st.lastMaterialNames) {
     if (!nextNames.has(name)) {
       root.traverse((obj) => {
@@ -179,17 +240,16 @@ export function applyGlbMaterialEmissiveByName(
               continue;
             }
             const base = st.baseline.get(mat.uuid);
-            if (typeof base === "number" && Number.isFinite(base)) {
-              mat.emissiveIntensity = base;
+            if (base != null) {
+              restoreMaterialPbrBaseline(mat, base);
             }
-            mat.needsUpdate = true;
           }
         }
       });
     }
   }
   st.lastMaterialNames = nextNames;
-  if (intensities == null || Object.keys(intensities).length === 0) {
+  if (drives == null || Object.keys(drives).length === 0) {
     return;
   }
   root.traverse((obj) => {
@@ -205,18 +265,204 @@ export function applyGlbMaterialEmissiveByName(
         continue;
       }
       const nm = typeof mat.name === "string" ? mat.name.trim() : "";
-      if (nm.length === 0 || intensities[nm] === undefined) {
+      if (nm.length === 0) {
         continue;
       }
-      const v = intensities[nm];
-      if (typeof v !== "number" || !Number.isFinite(v)) {
+      const row = drives[nm];
+      if (row == null) {
         continue;
       }
-      if (!st.baseline.has(mat.uuid)) {
-        st.baseline.set(mat.uuid, mat.emissiveIntensity);
+      applyMaterialPbrRowToMat(mat, row, st);
+    }
+  });
+}
+
+/** @deprecated Use {@link applyGlbMaterialPbrByName}. Emissive-only map for legacy callers. */
+export function applyGlbMaterialEmissiveByName(
+  root: THREE.Object3D | null,
+  intensities: Record<string, number> | undefined,
+  st: GlbMaterialPbrDriveState,
+): void {
+  if (intensities == null || Object.keys(intensities).length === 0) {
+    applyGlbMaterialPbrByName(root, undefined, st);
+    return;
+  }
+  const drives: Record<string, GlbMaterialPbrDriveRow> = {};
+  for (const [name, v] of Object.entries(intensities)) {
+    drives[name] = { emissive: v };
+  }
+  applyGlbMaterialPbrByName(root, drives, st);
+}
+
+type MatWithTextureMaps = THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial;
+
+export type GlbMaterialTextureBaseline = Partial<
+  Record<StudioGlbMaterialTextureSlotV1, THREE.Texture | null>
+>;
+
+export type GlbMaterialTextureDriveState = {
+  baseline: Map<string, GlbMaterialTextureBaseline>;
+  lastMaterialNames: Set<string>;
+};
+
+export function resetGlbMaterialTextureDriveState(st: GlbMaterialTextureDriveState): void {
+  st.baseline.clear();
+  st.lastMaterialNames.clear();
+}
+
+const glbDriveTextureCache = new Map<string, THREE.Texture>();
+const glbDriveTexturePending = new Set<string>();
+let glbDriveTextureLoader: THREE.TextureLoader | null = null;
+
+function ensureGlbDriveTextureLoader(): THREE.TextureLoader {
+  if (glbDriveTextureLoader == null) {
+    glbDriveTextureLoader = new THREE.TextureLoader();
+  }
+  return glbDriveTextureLoader;
+}
+
+/** Shared cache — returns null until the first load completes. */
+export function resolveGlbDriveTexture(url: string): THREE.Texture | null {
+  const trimmed = url.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  const cached = glbDriveTextureCache.get(trimmed);
+  if (cached != null) {
+    return cached;
+  }
+  if (glbDriveTexturePending.has(trimmed)) {
+    return null;
+  }
+  glbDriveTexturePending.add(trimmed);
+  ensureGlbDriveTextureLoader().load(
+    trimmed,
+    (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      glbDriveTextureCache.set(trimmed, tex);
+      glbDriveTexturePending.delete(trimmed);
+    },
+    undefined,
+    () => {
+      glbDriveTexturePending.delete(trimmed);
+    },
+  );
+  return null;
+}
+
+function captureMaterialTextureBaseline(mat: MatWithTextureMaps): GlbMaterialTextureBaseline {
+  const base: GlbMaterialTextureBaseline = {};
+  for (const slot of STUDIO_GLB_MATERIAL_TEXTURE_SLOTS) {
+    base[slot] = mat[slot] ?? null;
+  }
+  return base;
+}
+
+function restoreMaterialTextureBaseline(
+  mat: MatWithTextureMaps,
+  base: GlbMaterialTextureBaseline,
+): void {
+  for (const slot of STUDIO_GLB_MATERIAL_TEXTURE_SLOTS) {
+    if (Object.prototype.hasOwnProperty.call(base, slot)) {
+      mat[slot] = base[slot] ?? null;
+    }
+  }
+  mat.needsUpdate = true;
+}
+
+function applyMaterialTextureRowToMat(
+  mat: MatWithTextureMaps,
+  row: GlbMaterialTextureDriveRow,
+  st: GlbMaterialTextureDriveState,
+): void {
+  if (!st.baseline.has(mat.uuid)) {
+    st.baseline.set(mat.uuid, captureMaterialTextureBaseline(mat));
+  }
+  for (const slot of STUDIO_GLB_MATERIAL_TEXTURE_SLOTS) {
+    const url = row[slot];
+    if (typeof url !== "string" || url.trim().length === 0) {
+      continue;
+    }
+    const tex = resolveGlbDriveTexture(url);
+    if (tex == null) {
+      continue;
+    }
+    const bound =
+      slot === "map" || slot === "emissiveMap"
+        ? tex
+        : (() => {
+            const linear = tex.clone();
+            linear.colorSpace = THREE.LinearSRGBColorSpace;
+            return linear;
+          })();
+    mat[slot] = bound;
+    mat.needsUpdate = true;
+  }
+}
+
+/**
+ * Swap GLB material map slots by material **name**. Restores baselines when drives are removed.
+ */
+export function applyGlbMaterialTexturesByName(
+  root: THREE.Object3D | null,
+  drives: Record<string, GlbMaterialTextureDriveRow> | undefined,
+  st: GlbMaterialTextureDriveState,
+): void {
+  if (root == null) {
+    return;
+  }
+  const nextNames = new Set(Object.keys(drives ?? {}));
+  for (const name of st.lastMaterialNames) {
+    if (!nextNames.has(name)) {
+      root.traverse((obj) => {
+        if (!(obj instanceof THREE.Mesh)) {
+          return;
+        }
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const mat of mats) {
+          if (
+            !(mat instanceof THREE.MeshStandardMaterial) &&
+            !(mat instanceof THREE.MeshPhysicalMaterial)
+          ) {
+            continue;
+          }
+          const nm = typeof mat.name === "string" ? mat.name.trim() : "";
+          if (nm !== name) {
+            continue;
+          }
+          const base = st.baseline.get(mat.uuid);
+          if (base != null) {
+            restoreMaterialTextureBaseline(mat, base);
+          }
+        }
+      });
+    }
+  }
+  st.lastMaterialNames = nextNames;
+  if (drives == null || Object.keys(drives).length === 0) {
+    return;
+  }
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) {
+      return;
+    }
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    for (const mat of mats) {
+      if (
+        !(mat instanceof THREE.MeshStandardMaterial) &&
+        !(mat instanceof THREE.MeshPhysicalMaterial)
+      ) {
+        continue;
       }
-      mat.emissiveIntensity = Math.max(0, v);
-      mat.needsUpdate = true;
+      const nm = typeof mat.name === "string" ? mat.name.trim() : "";
+      if (nm.length === 0) {
+        continue;
+      }
+      const row = drives[nm];
+      if (row == null) {
+        continue;
+      }
+      applyMaterialTextureRowToMat(mat, row, st);
     }
   });
 }

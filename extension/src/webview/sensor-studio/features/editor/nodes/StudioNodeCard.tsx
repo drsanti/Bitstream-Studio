@@ -34,6 +34,7 @@ import { socketLivePreviewForOutputHandle } from "./flow-node/socket-live-previe
 import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
+import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import {
   BooleanConstantNodePanel,
@@ -784,8 +785,11 @@ export function StudioNodeCard(props: NodeProps) {
           {data.nodeId === "event-trigger-glb-anim" ? (
             <EventTriggerGlbAnimNodePanel defaultConfig={data.defaultConfig} />
           ) : null}
-          {data.nodeId === "number-constant" ? (
+          {data.nodeId === "number-constant" || data.nodeId === "glb-material-param" ? (
             <NumberConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "glb-material-texture" ? (
+            <GlbMaterialTextureNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel
@@ -927,6 +931,8 @@ export function StudioNodeCard(props: NodeProps) {
           data.nodeId !== "event-set-glb-part" &&
           data.nodeId !== "event-trigger-glb-anim" &&
           data.nodeId !== "number-constant" &&
+          data.nodeId !== "glb-material-param" &&
+          data.nodeId !== "glb-material-texture" &&
           data.nodeId !== "environment" &&
           data.nodeId !== "camera-view" &&
           data.nodeId !== "object-transform" &&

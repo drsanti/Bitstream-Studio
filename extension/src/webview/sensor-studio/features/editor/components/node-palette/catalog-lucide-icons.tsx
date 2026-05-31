@@ -18,6 +18,8 @@ import {
   Magnet,
   Orbit,
   Package,
+  Palette,
+  Image,
   Plug,
   RotateCw,
   ScanLine,
@@ -60,6 +62,8 @@ const CATALOG_LUCIDE_BY_SLUG: Record<string, LucideIcon> = {
   keyboard: Keyboard,
   "mouse-pointer-click": MousePointerClick,
   hash: Hash,
+  palette: Palette,
+  image: Image,
   eye: Eye,
 };
 

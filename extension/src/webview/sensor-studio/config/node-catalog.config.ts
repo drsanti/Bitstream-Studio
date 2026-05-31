@@ -807,6 +807,37 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
         outputPorts: [{ id: "out", portType: "number", label: "Out" }],
       },
+      {
+        id: "glb-material-param",
+        category: "generator",
+        title: "GLB Material Param",
+        description:
+          "Drive a PBR channel (emissive, roughness, metalness, opacity) on a named GLB material. Spawn from Library **GLB → Materials** or bind `glbExtractKind: material` manually. Preview updates on Model Viewer / 3D Rotation nodes linked to the same Model.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          value: 0,
+          numberMode: "float",
+          cardValueControl: "input",
+          glbMaterialParam: "emissive",
+        },
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
+        id: "glb-material-texture",
+        category: "generator",
+        title: "GLB Material Texture",
+        description:
+          "Swap a texture map (base color, normal, roughness, etc.) on a named GLB material. Spawn from Library **GLB → Materials → Tex** or bind `glbExtractKind: material` manually. Pick a 2D texture on the node card.",
+        icon: "image",
+        defaultVisible: true,
+        defaultConfig: {
+          glbMaterialTextureSlot: "map",
+          textureUrl: "",
+          selectedStudioTextureAssetId: "",
+        },
+        outputPorts: [{ id: "out", portType: "string", label: "Texture URL" }],
+      },
     ],
   },
 };

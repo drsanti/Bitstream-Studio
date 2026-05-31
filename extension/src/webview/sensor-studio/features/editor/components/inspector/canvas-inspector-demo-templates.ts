@@ -9,6 +9,12 @@ export type CanvasDemoTemplateOption = {
 /** Built-in flow presets (same ids as `runDemoTemplate`). */
 export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] = [
   {
+    value: "material-glb-drives",
+    label: "Material GLB drives",
+    hint:
+      "Studio Model (robot) → **Model Viewer** + linked **GLB Material Param** (roughness slider) and **GLB Material Texture** (sample bridge face on **map**). Re-bind material names via Library **GLB → Materials** if your GLB uses different refs.",
+  },
+  {
     value: "rotation-glb-anim",
     label: "Rotation + GLB anim",
     hint:

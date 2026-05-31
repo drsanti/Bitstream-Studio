@@ -81,6 +81,11 @@ export type StudioLayoutProps = {
   ) => void;
   /** GLB Library tab: spawn a linked placeholder node for an extracted row. */
   onSpawnGlbExtract?: (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => void;
+  /** GLB Library **Materials** tab: spawn **GLB Material Texture** for a material row. */
+  onSpawnGlbMaterialTextureExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
   /** GLB Library **Parts** tab: spawn **Toggle GLB Part** event action for a part row. */
   onSpawnGlbEventPartExtract?: (args: {
     parentModelFlowNodeId: string;

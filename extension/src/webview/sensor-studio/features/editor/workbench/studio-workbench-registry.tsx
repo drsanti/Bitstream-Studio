@@ -17,6 +17,7 @@ export function WorkbenchLibraryPanel() {
       entries={p.entries}
       onAddNode={p.onAddNode}
       onSpawnGlbExtract={p.onSpawnGlbExtract}
+      onSpawnGlbMaterialTextureExtract={p.onSpawnGlbMaterialTextureExtract}
       onSpawnGlbEventPartExtract={p.onSpawnGlbEventPartExtract}
       onSpawnGlbEventAnimExtract={p.onSpawnGlbEventAnimExtract}
     />

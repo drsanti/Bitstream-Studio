@@ -94,6 +94,16 @@ import {
 } from "../nodes/environment/environment-node-inputs";
 import { coerceNumberConstantValue } from "../nodes/constants/number-constant-helpers";
 import {
+  readGlbMaterialTextureUrl,
+  STUDIO_GLB_MATERIAL_TEXTURE_SLOT_KEY,
+  STUDIO_TEXTURE_ASSET_ID_KEY,
+  STUDIO_TEXTURE_URL_KEY,
+} from "../gltf/studio-glb-material-texture";
+import {
+  defaultGlbMaterialParamValue,
+  STUDIO_GLB_MATERIAL_PARAM_KEY,
+} from "../gltf/studio-glb-material-param";
+import {
   readSourceModelNodeId,
   reconcileStudioModelGeneratedChildIds,
   remapSourceModelNodeIdAfterDuplicate,
@@ -308,7 +318,8 @@ export type StudioDemoTemplateId =
   | "gauge-monitor"
   | "signal-chain"
   | "bmi270-gauge-z"
-  | "rotation-glb-anim";
+  | "rotation-glb-anim"
+  | "material-glb-drives";
 
 export type FlowSnapshot = {
   nodes: StudioNode[];
@@ -2148,6 +2159,85 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       };
     };
 
+    if (templateId === "material-glb-drives") {
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
+      const paramEntry = catalog.find((entry) => entry.id === "glb-material-param");
+      const texEntry = catalog.find((entry) => entry.id === "glb-material-texture");
+      if (modelEntry == null || viewerEntry == null || paramEntry == null || texEntry == null) {
+        return;
+      }
+
+      const modelFlowId = "demo-model-select";
+      const matRef = "Material";
+
+      const modelNode = makeNode(modelEntry, modelFlowId, 72, 280);
+      modelNode.data.label = "Studio Model (robot)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: "model.robot-4th-project",
+        selectedModelUrl: "models/robot-4th-project/robot-4th-project.glb",
+        generatedChildNodeIds: ["demo-mat-param", "demo-mat-tex"],
+      };
+
+      const viewerNode = makeNode(viewerEntry, "demo-model-viewer", 420, 120);
+      viewerNode.data.label = "Model Viewer (material drives)";
+      viewerNode.data.defaultConfig = {
+        ...viewerNode.data.defaultConfig,
+        showGrid: true,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      };
+      viewerNode.data.ui = { resizable: true };
+
+      const paramNode = makeNode(paramEntry, "demo-mat-param", 420, 320);
+      paramNode.data.label = "Roughness drive";
+      paramNode.data.defaultConfig = {
+        ...paramNode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        [STUDIO_GLB_EXTRACT_KIND_KEY]: "material",
+        [STUDIO_GLB_EXTRACT_REF_KEY]: matRef,
+        [STUDIO_GLB_MATERIAL_PARAM_KEY]: "roughness",
+        value: defaultGlbMaterialParamValue("roughness"),
+        numberMode: "float",
+        cardValueControl: "slider",
+      };
+
+      const texNode = makeNode(texEntry, "demo-mat-tex", 420, 480);
+      texNode.data.label = "Base color texture";
+      texNode.data.defaultConfig = {
+        ...texNode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        [STUDIO_GLB_EXTRACT_KIND_KEY]: "material",
+        [STUDIO_GLB_EXTRACT_REF_KEY]: matRef,
+        [STUDIO_GLB_MATERIAL_TEXTURE_SLOT_KEY]: "map",
+        [STUDIO_TEXTURE_ASSET_ID_KEY]: "texture.cubemap.bridge.posx",
+        [STUDIO_TEXTURE_URL_KEY]: "textures/cubemap/bridge/posx.jpg",
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-mat-e1",
+          source: modelNode.id,
+          target: viewerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection([modelNode, viewerNode, paramNode, texNode], [viewerNode.id]),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([viewerNode.id]),
+      });
+      return;
+    }
+
     if (templateId === "rotation-glb-anim") {
       const eulerTapEntry = catalog.find((entry) => entry.id === "bmi270-tap-euler");
       const rotEulerEntry = catalog.find((entry) => entry.id === "rotation-3d-euler");
@@ -2970,10 +3060,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId === "number-constant") {
+        if (node.data.nodeId === "number-constant" || node.data.nodeId === "glb-material-param") {
           const dc = node.data.defaultConfig as Record<string, unknown>;
           const v = coerceNumberConstantValue(dc, dc.value);
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
+          continue;
+        }
+
+        if (node.data.nodeId === "glb-material-texture") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const url = readGlbMaterialTextureUrl(dc);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), url);
           continue;
         }
 
