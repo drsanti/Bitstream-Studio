@@ -34,14 +34,14 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 - `features/editor/keyboard/resolve-add-node-menu-anchor.ts`
 - `app/SensorStudioMain.tsx` — Shift+A, Esc priority
 
-## Phase 2 — Planned
+## Phase 2 — Shipped
 
-- Central `flow-keyboard-shortcuts.ts` registry (move remaining shortcuts out of `SensorStudioMain`)
-- Recent nodes in add menu (localStorage)
-- Wire `nodePaletteLayout` from runtime defaults
-- `palette-display-meta.ts` display taxonomy (optional 9-group labels)
+- Central `flow-keyboard-shortcuts.ts` registry + `useFlowKeyboardShortcuts` hook
+- Recent nodes in add menu (`sensor-studio:recent-nodes` localStorage)
+- `nodePaletteLayout` wired from runtime defaults + Library layout switcher
+- `palette-display-meta.ts` — 9-group display taxonomy in Shift+A menu
 
-## Phase 3 — Layout nodes
+## Phase 3 — Planned
 
 - `reroute` (+ **R** at pointer)
 - `frame`, `note`, `split`

@@ -16,6 +16,7 @@ export function WorkbenchLibraryPanel() {
       categoryColors={p.minimapCategoryColors}
       entries={p.entries}
       onAddNode={p.onAddNode}
+      defaultPaletteLayout={p.defaultPaletteLayout}
       onSpawnGlbExtract={p.onSpawnGlbExtract}
       onSpawnGlbMaterialTextureExtract={p.onSpawnGlbMaterialTextureExtract}
       onSpawnGlbEventPartExtract={p.onSpawnGlbEventPartExtract}

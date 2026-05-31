@@ -130,6 +130,7 @@ export function StudioLayout(props: StudioLayoutProps) {
     applyFlowViewport,
     applyFlowViewportNonce,
     onDropPaletteCatalogNode,
+    defaultPaletteLayout,
   } = props;
   const [leftCollapsed, setLeftCollapsed] = useState(() =>
     readPersistedPanelCollapsed("sensor-studio:overlay:left", false),
@@ -246,6 +247,9 @@ export function StudioLayout(props: StudioLayoutProps) {
               panelColor={panelBackgroundColor}
               entries={entries}
               onAddNode={onAddNode}
+              categoryColors={minimapCategoryColors}
+              mutedTextColor={secondaryTextColor}
+              defaultPaletteLayout={defaultPaletteLayout}
             />
           </TRNSidePanel>
 

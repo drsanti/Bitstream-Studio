@@ -2,6 +2,7 @@
  * Persists Library (node palette) UI preferences in localStorage.
  */
 
+import type { NodePaletteLayoutMode } from "../../../../core/config/config-types";
 import type { PaletteSensorSubgroup } from "./palette-entry-meta";
 import type { SensorFamilyTreeLayout } from "./sensor-family-tree-layout";
 
@@ -10,6 +11,7 @@ export type { SensorFamilyTreeLayout };
 const DENSITY_KEY = "ternion.sensor-studio.nodePalette.density.v1";
 const COLLAPSED_KEY = "ternion.sensor-studio.nodePalette.collapsedSubgroups.v1";
 const TREE_LAYOUT_KEY = "ternion.sensor-studio.nodePalette.sensorTreeLayout.v1";
+const LAYOUT_KEY = "ternion.sensor-studio.nodePalette.layout.v1";
 
 export type NodePaletteDensity = "comfortable" | "dense";
 
@@ -86,4 +88,23 @@ export function readStoredPaletteSensorTreeLayout(): SensorFamilyTreeLayout {
 
 export function writeStoredPaletteSensorTreeLayout(next: SensorFamilyTreeLayout): void {
   safeSet(TREE_LAYOUT_KEY, next);
+}
+
+const VALID_LAYOUTS = new Set<NodePaletteLayoutMode>([
+  "classic",
+  "sectioned",
+  "two-line",
+  "accordion",
+]);
+
+export function readStoredPaletteLayout(fallback: NodePaletteLayoutMode): NodePaletteLayoutMode {
+  const raw = safeGet(LAYOUT_KEY);
+  if (raw != null && VALID_LAYOUTS.has(raw as NodePaletteLayoutMode)) {
+    return raw as NodePaletteLayoutMode;
+  }
+  return fallback;
+}
+
+export function writeStoredPaletteLayout(next: NodePaletteLayoutMode): void {
+  safeSet(LAYOUT_KEY, next);
 }

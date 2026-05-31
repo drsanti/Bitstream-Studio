@@ -1,6 +1,6 @@
 import { BookOpen, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { NodeCatalogEntry } from "../../../core/config/config-types";
+import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../../core/config/config-types";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { resolveSingleModelSelectParentId, readGlbExtractTag, readSourceModelNodeId } from "../model/model-generated-bindings";
 import { studioGlbExtractRowKey } from "../gltf/studio-gltf-extract";
@@ -34,14 +34,21 @@ import {
 import {
   readStoredPaletteCollapsedSubgroups,
   readStoredPaletteDensity,
+  readStoredPaletteLayout,
   readStoredPaletteSensorTreeLayout,
   writeStoredPaletteCollapsedSubgroups,
   writeStoredPaletteDensity,
+  writeStoredPaletteLayout,
   writeStoredPaletteSensorTreeLayout,
   type NodePaletteDensity,
   type SensorFamilyTreeLayout,
 } from "./node-palette/node-palette-ui-persistence";
 import { NODE_PALETTE_FONT_CLASS } from "./node-palette/node-palette-font";
+import { NodePaletteClassic } from "./node-palette/NodePaletteClassic";
+import { NodePaletteSectioned } from "./node-palette/NodePaletteSectioned";
+import { NodePaletteTwoLine } from "./node-palette/NodePaletteTwoLine";
+import { NodePaletteAccordion } from "./node-palette/NodePaletteAccordion";
+import { PaletteLayoutSwitcher } from "./node-palette/PaletteLayoutSwitcher";
 
 type NodePaletteTabId = "nodes" | "simulation" | "glb";
 
@@ -94,6 +101,7 @@ type NodePaletteProps = {
   panelColor: string;
   entries: NodeCatalogEntry[];
   onAddNode: (entry: NodeCatalogEntry) => void;
+  defaultPaletteLayout?: NodePaletteLayoutMode;
   /** Spawn a number-constant linked to the Model, tagged with GLB extraction metadata. */
   onSpawnGlbExtract?: (args: {
     parentModelFlowNodeId: string;
@@ -122,7 +130,19 @@ type NodePaletteProps = {
 
 
 export function NodePalette(props: NodePaletteProps) {
-  const { borderColor, panelColor, entries, onAddNode, onSpawnGlbExtract, onSpawnGlbEventPartExtract, onSpawnGlbEventAnimExtract, onSpawnGlbMaterialTextureExtract, categoryColors, mutedTextColor } = props;
+  const {
+    borderColor,
+    panelColor,
+    entries,
+    onAddNode,
+    defaultPaletteLayout = "sectioned",
+    onSpawnGlbExtract,
+    onSpawnGlbEventPartExtract,
+    onSpawnGlbEventAnimExtract,
+    onSpawnGlbMaterialTextureExtract,
+    categoryColors,
+    mutedTextColor,
+  } = props;
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<NodePaletteTabId>("nodes");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
@@ -133,6 +153,9 @@ export function NodePalette(props: NodePaletteProps) {
   );
   const [sensorTreeLayout, setSensorTreeLayout] = useState<SensorFamilyTreeLayout>(() =>
     readStoredPaletteSensorTreeLayout(),
+  );
+  const [paletteLayout, setPaletteLayout] = useState<NodePaletteLayoutMode>(() =>
+    readStoredPaletteLayout(defaultPaletteLayout),
   );
 
   const parentModelFlowNodeId = useFlowEditorStore((s) => resolveSingleModelSelectParentId(s));
@@ -190,6 +213,12 @@ export function NodePalette(props: NodePaletteProps) {
   useEffect(() => {
     writeStoredPaletteSensorTreeLayout(sensorTreeLayout);
   }, [sensorTreeLayout]);
+
+  useEffect(() => {
+    writeStoredPaletteLayout(paletteLayout);
+  }, [paletteLayout]);
+
+  const secondaryTextColor = mutedTextColor ?? "#a1a1aa";
 
   const dense = density === "dense";
 
@@ -614,6 +643,27 @@ export function NodePalette(props: NodePaletteProps) {
 
   const showCategoryRail = tab === "nodes";
 
+  const renderLegacyPaletteLayout = (list: NodeCatalogEntry[]) => {
+    const shared = {
+      borderColor,
+      secondaryTextColor,
+      entries: list,
+      onAddNode,
+    };
+    if (paletteLayout === "classic") {
+      return <NodePaletteClassic {...shared} />;
+    }
+    if (paletteLayout === "two-line") {
+      return <NodePaletteTwoLine {...shared} />;
+    }
+    if (paletteLayout === "accordion") {
+      return <NodePaletteAccordion {...shared} />;
+    }
+    return <NodePaletteSectioned {...shared} />;
+  };
+
+  const useRichLibraryLayout = paletteLayout === "sectioned";
+
   return (
     <section
       className={`flex h-full min-h-0 flex-col overflow-hidden rounded-lg ring-1 ring-zinc-800/80 ${NODE_PALETTE_FONT_CLASS}`}
@@ -685,6 +735,14 @@ export function NodePalette(props: NodePaletteProps) {
                 {opt.label}
               </button>
             ))}
+          </div>
+          <div className="hidden min-[420px]:block w-28 shrink-0">
+            <PaletteLayoutSwitcher
+              value={paletteLayout}
+              onChange={setPaletteLayout}
+              borderColor={borderColor}
+              secondaryTextColor={secondaryTextColor}
+            />
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             <span
@@ -979,16 +1037,22 @@ export function NodePalette(props: NodePaletteProps) {
             </div>
           ) : tab === "simulation" ? (
             <div className={dense ? "space-y-1 pt-2" : "space-y-2 pt-3"}>
-              {activeList.map((entry) => (
-                <LibraryEntryRow
-                  key={entry.id}
-                  entry={entry}
-                  borderColor={borderColor}
-                  onAddNode={onAddNode}
-                  categoryAccent={entryAccent(entry)}
-                />
-              ))}
+              {useRichLibraryLayout ? (
+                activeList.map((entry) => (
+                  <LibraryEntryRow
+                    key={entry.id}
+                    entry={entry}
+                    borderColor={borderColor}
+                    onAddNode={onAddNode}
+                    categoryAccent={entryAccent(entry)}
+                  />
+                ))
+              ) : (
+                renderLegacyPaletteLayout(activeList)
+              )}
             </div>
+          ) : !useRichLibraryLayout ? (
+            <div className={dense ? "pt-2" : "pt-3"}>{renderLegacyPaletteLayout(activeList)}</div>
           ) : categoryFilter === "all" ? (
             <div className={dense ? "space-y-4 pt-2" : "space-y-6 pt-3"}>
               {CATEGORY_ORDER.map((c) => renderCategoryBlock(c))}

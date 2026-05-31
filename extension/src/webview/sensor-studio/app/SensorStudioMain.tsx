@@ -2,7 +2,6 @@ import type { Edge, Viewport } from "@xyflow/react";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  dispatchFlowKeyboardEventFromDom,
   dispatchFlowPanePointerEventFromDom,
 } from "./flow-event-dispatch";
 import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickScheduler";
@@ -10,7 +9,8 @@ import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
 import type { FlowCanvasGraphHandle } from "../features/editor/components/flow-canvas-graph-handle";
-import { isFlowKeyboardTarget } from "../features/editor/keyboard/is-flow-keyboard-target";
+import { useFlowKeyboardShortcuts } from "../features/editor/keyboard/use-flow-keyboard-shortcuts";
+import { pushRecentCatalogNodeId } from "../features/editor/keyboard/recent-catalog-nodes";
 import { snapFlowPoint } from "../features/editor/components/snap-flow-position";
 import { readStoredFlowCanvasPreferences } from "../features/editor/components/flow-canvas-ui-persistence";
 import { useFlowCanvasPreferences } from "../features/editor/components/use-flow-canvas-preferences";
@@ -165,6 +165,7 @@ export function SensorStudioMain() {
 
   const onAddNode = useCallback(
     (entry: NodeCatalogEntry) => {
+      pushRecentCatalogNodeId(entry.id);
       const st = useFlowEditorStore.getState();
       const parentId = resolveSingleModelSelectParentId(st);
       if (parentId != null && catalogEntrySpawnsLinkedToModel(entry.id)) {
@@ -309,6 +310,7 @@ export function SensorStudioMain() {
 
   const onDropPaletteCatalogNode = useCallback(
     (catalogNodeId: string, flowPosition: { x: number; y: number }) => {
+      pushRecentCatalogNodeId(catalogNodeId);
       const snapped = snapDropPosition(flowPosition);
       const entry = catalog.find((n) => n.id === catalogNodeId);
       if (entry == null) {
@@ -673,6 +675,39 @@ export function SensorStudioMain() {
     schedulePersistToStorage();
   }, [flowCanvasPreferences, schedulePersistToStorage]);
 
+  const flowKeyboardContext = useMemo(
+    () => ({
+      flowCanvasGraphRef,
+      clearNodeSelection,
+      selectAllNodes,
+      duplicateSelection,
+      undo,
+      redo,
+      clearNow,
+      runTemplateNow,
+      runSpecificTemplate,
+      onExportFlow,
+      onImportFlowPick,
+      requestFitView,
+      setTemplateId,
+    }),
+    [
+      clearNodeSelection,
+      selectAllNodes,
+      duplicateSelection,
+      undo,
+      redo,
+      clearNow,
+      runTemplateNow,
+      runSpecificTemplate,
+      onExportFlow,
+      onImportFlowPick,
+      requestFitView,
+    ],
+  );
+
+  useFlowKeyboardShortcuts(flowKeyboardContext);
+
   useEffect(() => {
     const raw = persistedBootstrapRef.current;
     viewportPersistRef.current = bootViewport;
@@ -715,169 +750,6 @@ export function SensorStudioMain() {
       window.clearTimeout(persistTimerRef.current);
     };
   }, [bootViewport, hydrateFlowDocument, schedulePersistToStorage]);
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (isFlowKeyboardTarget(event.target)) {
-        return;
-      }
-
-      if (event.key === "Escape") {
-        if (flowCanvasGraphRef.current?.isAddNodeMenuOpen()) {
-          event.preventDefault();
-          flowCanvasGraphRef.current.closeAddNodeMenu();
-          return;
-        }
-        event.preventDefault();
-        clearNodeSelection();
-        return;
-      }
-
-      if (
-        event.shiftKey &&
-        !event.ctrlKey &&
-        !event.metaKey &&
-        !event.altKey &&
-        (event.key === "a" || event.key === "A")
-      ) {
-        event.preventDefault();
-        flowCanvasGraphRef.current?.toggleAddNodeMenu();
-        return;
-      }
-
-      if (event.ctrlKey && !event.shiftKey && (event.key === "a" || event.key === "A")) {
-        event.preventDefault();
-        selectAllNodes();
-        return;
-      }
-
-      if (event.ctrlKey && !event.shiftKey && (event.key === "d" || event.key === "D")) {
-        event.preventDefault();
-        duplicateSelection();
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && (event.key === "f" || event.key === "F")) {
-        event.preventDefault();
-        requestFitView();
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && event.key === "1") {
-        event.preventDefault();
-        runSpecificTemplate("basic-indicator");
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && event.key === "2") {
-        event.preventDefault();
-        runSpecificTemplate("gauge-monitor");
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && event.key === "3") {
-        event.preventDefault();
-        runSpecificTemplate("signal-chain");
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && event.key === "4") {
-        event.preventDefault();
-        runSpecificTemplate("bmi270-gauge-z");
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && (event.key === "e" || event.key === "E")) {
-        event.preventDefault();
-        onExportFlow();
-        return;
-      }
-
-      if (event.ctrlKey && event.shiftKey && (event.key === "i" || event.key === "I")) {
-        event.preventDefault();
-        onImportFlowPick();
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "z" && !event.shiftKey) {
-        event.preventDefault();
-        undo();
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "z" && event.shiftKey) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-
-      if (event.ctrlKey && (event.key === "y" || event.key === "Y")) {
-        event.preventDefault();
-        redo();
-        return;
-      }
-
-      if (event.ctrlKey && !event.shiftKey && event.key === "1") {
-        event.preventDefault();
-        runTemplateNow();
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "Backspace") {
-        event.preventDefault();
-        clearNow();
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "2") {
-        event.preventDefault();
-        setTemplateId("gauge-monitor");
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "3") {
-        event.preventDefault();
-        setTemplateId("signal-chain");
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "4") {
-        event.preventDefault();
-        setTemplateId("basic-indicator");
-        return;
-      }
-
-      if (event.ctrlKey && event.key === "5") {
-        event.preventDefault();
-        setTemplateId("bmi270-gauge-z");
-        return;
-      }
-
-      if (dispatchFlowKeyboardEventFromDom(event)) {
-        event.preventDefault();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [
-    templateId,
-    catalog,
-    onRunTemplate,
-    onClearCanvas,
-    runSpecificTemplate,
-    runTemplateNow,
-    clearNow,
-    undo,
-    redo,
-    onExportFlow,
-    onImportFlowPick,
-    duplicateSelection,
-    selectAllNodes,
-    clearNodeSelection,
-    requestFitView,
-  ]);
 
   return (
     <>
@@ -954,6 +826,7 @@ export function SensorStudioMain() {
         onDropStudioAsset={onDropStudioAsset}
         flowCanvasGraphRef={flowCanvasGraphRef}
         onAddCatalogEntryAtFlowPosition={onAddCatalogEntryAtFlowPosition}
+        defaultPaletteLayout={runtimeDefaults.nodePaletteLayout}
       />
     </>
   );

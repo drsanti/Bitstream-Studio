@@ -6,7 +6,7 @@ import type {
   Viewport,
 } from "@xyflow/react";
 import type { RefObject } from "react";
-import type { NodeCatalogEntry } from "../../core/config/config-types";
+import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../core/config/config-types";
 import type { StudioGltfExtractRow } from "./gltf/studio-gltf-extract";
 import type { StudioAssetDragPayloadV1 } from "../asset-browser/studio-asset-drag";
 import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/glb-extract-drag";
@@ -114,4 +114,6 @@ export type StudioLayoutProps = {
     payload: StudioAssetDragPayloadV1,
     flowPosition: { x: number; y: number },
   ) => void;
+  /** Runtime default for Library palette layout (`runtime-defaults.config.ts`). */
+  defaultPaletteLayout?: NodePaletteLayoutMode;
 };
