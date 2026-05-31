@@ -31,10 +31,12 @@ export type StudioGlbAnimationMixerState = {
   lastDrives: Record<string, GlbAnimationClipPreviewDrive>;
   /** Last seen {@link GlbAnimationClipPreviewDrive.restartNonce} per clip. */
   lastRestartNonceByClip: Record<string, number>;
+  /** Avoid calling {@link THREE.AnimationAction.setLoop} every frame (can stutter). */
+  lastLoopModeByClip: Record<string, GlbAnimationClipPreviewDrive["loopMode"]>;
 };
 
 export function createStudioGlbAnimationMixerState(): StudioGlbAnimationMixerState {
-  return { prevActive: new Set(), lastDrives: {}, lastRestartNonceByClip: {} };
+  return { prevActive: new Set(), lastDrives: {}, lastRestartNonceByClip: {}, lastLoopModeByClip: {} };
 }
 
 function resolveTrimRange(
@@ -133,24 +135,46 @@ export function applyStudioGlbAnimationMixerDrives(args: {
 
     ac.enabled = true;
     ac.timeScale = speed;
-    applyLoopMode(ac, drive.loopMode);
-    if (!wasActive || holdTime) {
-      ac.time = timeS;
+    const prevLoop = state.lastLoopModeByClip[nm];
+    if (prevLoop !== drive.loopMode) {
+      applyLoopMode(ac, drive.loopMode);
+      state.lastLoopModeByClip[nm] = drive.loopMode;
     }
 
-    if (!wasActive) {
-      ac.reset();
-      ac.time = timeS;
-      ac.play();
-      if (drive.fadeInS > 1e-6) {
-        ac.setEffectiveWeight(0);
-        ac.fadeIn(drive.fadeInS);
+    if (holdTime) {
+      /** Scrub / inspector playhead — pin time; do not let mixer.update advance this action. */
+      if (!wasActive) {
+        ac.reset();
+        ac.play();
+        if (drive.fadeInS > 1e-6) {
+          ac.setEffectiveWeight(0);
+          ac.fadeIn(drive.fadeInS);
+        } else {
+          ac.setEffectiveWeight(targetWeight);
+        }
       } else {
         ac.setEffectiveWeight(targetWeight);
       }
+      ac.time = timeS;
+      ac.paused = true;
     } else {
-      ac.paused = false;
-      ac.setEffectiveWeight(targetWeight);
+      if (!wasActive || forceRestart) {
+        ac.time = timeS;
+      }
+      if (!wasActive) {
+        ac.reset();
+        ac.time = timeS;
+        ac.play();
+        if (drive.fadeInS > 1e-6) {
+          ac.setEffectiveWeight(0);
+          ac.fadeIn(drive.fadeInS);
+        } else {
+          ac.setEffectiveWeight(targetWeight);
+        }
+      } else {
+        ac.paused = false;
+        ac.setEffectiveWeight(targetWeight);
+      }
     }
   }
 

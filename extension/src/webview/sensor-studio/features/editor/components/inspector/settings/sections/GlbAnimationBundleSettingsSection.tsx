@@ -1,13 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Clapperboard } from "lucide-react";
-import {
-  TRNFormField,
-  TRNHintText,
-  TRNSortableCard,
-  TRNSortableContainer,
-  TRNSelect,
-  type TRNSelectOption,
-} from "../../../../../../../ui/TRN";
+import { TRNHintText } from "../../../../../../../ui/TRN";
 import { useStudioAssetDescriptors } from "../../../../../asset-browser/useStudioAssetDescriptors";
 import { useStudioGltfExtraction } from "../../../../gltf/useStudioGltfExtraction";
 import { InspectorSettingsSectionFrame } from "../../InspectorSettingsSectionFrame";
@@ -22,14 +14,8 @@ import {
   type FlowWireAnimationClipV1,
   type StudioGlbAnimationLoopModeV1,
 } from "../../../../nodes/animation/flow-wire-animation";
-import { GlbAnimationClipInspectorCard } from "./GlbAnimationClipInspectorCard";
-import {
-  STUDIO_ANIMATION_PLAYBACK_MODE_KEY,
-  STUDIO_GLB_ANIMATION_PLAYBACK_MODES,
-  playbackModeLabel,
-  readStudioGlbAnimationPlaybackMode,
-  type StudioGlbAnimationPlaybackModeV1,
-} from "../../../../gltf/studio-glb-animation-playback-mode";
+import { readStudioGlbAnimationPlaybackMode } from "../../../../gltf/studio-glb-animation-playback-mode";
+import { GlbBundleAnimationControlPanel } from "./GlbBundleAnimationControlPanel";
 
 const ANIMATION_CLIP_CARD_ORDER_KEY = "animationClipCardOrder" as const;
 const ANIMATION_SOLO_CLIP_REF_KEY = "animationSoloClipRef" as const;
@@ -62,24 +48,6 @@ function mergeAnimationClipCardOrder(
     }
   }
   return out;
-}
-
-const PLAYBACK_MODE_OPTIONS: TRNSelectOption[] = STUDIO_GLB_ANIMATION_PLAYBACK_MODES.map((mode) => ({
-  value: mode,
-  label: playbackModeLabel(mode),
-}));
-
-function playbackModeHint(mode: StudioGlbAnimationPlaybackModeV1): string {
-  switch (mode) {
-    case "per-clip":
-      return "Solo on a clip card limits preview to that clip only.";
-    case "parallel-all":
-      return "All enabled clips play together in the linked Model Viewer. Solo is ignored.";
-    case "sequence":
-      return "Plays one enabled clip at a time in card order; advances when a once clip reaches trim end.";
-    default:
-      return "";
-  }
 }
 
 function readClipMap(dc: Record<string, unknown> | undefined): Record<string, unknown> {
@@ -125,6 +93,14 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
     return m;
   }, [animationRows]);
 
+  const labelByRef = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of animationRows) {
+      m.set(r.ref, r.label);
+    }
+    return m;
+  }, [animationRows]);
+
   const clipIdsOrdered = useMemo(() => {
     const canonical = animationRows.map((r) => r.ref);
     const dc = bundleFromStore?.data.defaultConfig as Record<string, unknown> | undefined;
@@ -134,11 +110,6 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
       : undefined;
     return mergeAnimationClipCardOrder(stored, canonical);
   }, [animationRows, bundleFromStore?.data.defaultConfig]);
-
-  const animByRef = useMemo(() => {
-    const m = new Map(animationRows.map((r) => [r.ref, r] as const));
-    return m;
-  }, [animationRows]);
 
   const defaultConfig = bundleFromStore?.data.defaultConfig as Record<string, unknown> | undefined;
   const clipMap = useMemo(() => readClipMap(defaultConfig), [defaultConfig]);
@@ -150,7 +121,6 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
   const playbackMode = readStudioGlbAnimationPlaybackMode(defaultConfig);
 
   const [playingRefs, setPlayingRefs] = useState<readonly string[]>([]);
-  const playingSet = useMemo(() => new Set(playingRefs), [playingRefs]);
   const pingPongDirRef = useRef<Map<string, 1 | -1>>(new Map());
 
   const targetNodeLabel = useMemo(() => {
@@ -234,7 +204,22 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
   );
 
   useEffect(() => {
-    if (playingRefs.length === 0) {
+    if (!showClipCards || clipIdsOrdered.length === 0) {
+      return;
+    }
+    const missing = clipIdsOrdered.filter((ref) => clipMap[ref] == null);
+    if (missing.length === 0) {
+      return;
+    }
+    let next = readClipMap(defaultConfig);
+    for (const ref of missing) {
+      next = mergeGlbBundleClipState(next, ref, { enabled: true });
+    }
+    void onUpdateConfigField("clips", next);
+  }, [clipIdsOrdered, clipMap, defaultConfig, onUpdateConfigField, showClipCards]);
+
+  useEffect(() => {
+    if (playingRefs.length === 0 || playbackMode !== "per-clip") {
       return;
     }
     const bundleId = selectedNode.id;
@@ -303,61 +288,7 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
     };
     raf = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(raf);
-  }, [playingRefs, selectedNode.id, durationByRef]);
-
-  const togglePlay = useCallback(
-    (ref: string) => {
-      setPlayingRefs((prev) => {
-        if (prev.includes(ref)) {
-          return prev.filter((x) => x !== ref);
-        }
-        pingPongDirRef.current.set(ref, 1);
-        void onUpdateConfigField("clips", mergeGlbBundleClipState(clipMap, ref, { enabled: true }));
-        return [...prev, ref];
-      });
-    },
-    [clipMap, onUpdateConfigField],
-  );
-
-  const stopToTrim = useCallback(
-    (ref: string) => {
-      setPlayingRefs((prev) => prev.filter((x) => x !== ref));
-      const c = mergeGlbBundleClipState(clipMap, ref, {})[ref]!;
-      const dur = durationByRef.get(ref) ?? 0;
-      const { trimStartS } = resolveFlowWireClipTrimRange(c, dur);
-      commitClipPatch(ref, { timeS: trimStartS, enabled: true });
-    },
-    [clipMap, commitClipPatch, durationByRef],
-  );
-
-  const stepFrame = useCallback(
-    (ref: string, deltaSec: number) => {
-      const c = mergeGlbBundleClipState(clipMap, ref, {})[ref]!;
-      const dur = durationByRef.get(ref) ?? 0;
-      const { trimStartS: start, trimEndS: end } = resolveFlowWireClipTrimRange(c, dur);
-      let t = c.timeS + deltaSec;
-      t = Math.min(end, Math.max(start, t));
-      commitClipPatch(ref, { timeS: t, enabled: true });
-    },
-    [clipMap, commitClipPatch, durationByRef],
-  );
-
-  const toggleSolo = useCallback(
-    (ref: string) => {
-      if (soloClipRef === ref) {
-        void onUpdateConfigField(ANIMATION_SOLO_CLIP_REF_KEY, "");
-      } else {
-        void onUpdateConfigField(ANIMATION_SOLO_CLIP_REF_KEY, ref);
-        const c = mergeGlbBundleClipState(clipMap, ref, {})[ref]!;
-        if (c.restartOnSolo === true) {
-          const dur = durationByRef.get(ref) ?? 0;
-          const { trimStartS } = resolveFlowWireClipTrimRange(c, dur);
-          commitClipPatch(ref, { timeS: trimStartS, enabled: true });
-        }
-      }
-    },
-    [soloClipRef, clipMap, onUpdateConfigField, commitClipPatch, durationByRef],
-  );
+  }, [playingRefs, selectedNode.id, durationByRef, playbackMode]);
 
   return (
     <InspectorSettingsSectionFrame title="Target" fillAvailableHeight={refStatus.status === "ok"}>
@@ -378,80 +309,22 @@ export function GlbAnimationBundleSettingsSection(props: NodeInspectorSettingsSe
           </div>
 
           {showClipCards ? (
-            <>
-              <TRNFormField label="Playback mode" id="glb-bundle-playback-mode" className="shrink-0 space-y-1.5">
-                <TRNSelect
-                  ariaLabel="Animation playback mode"
-                  value={playbackMode}
-                  options={PLAYBACK_MODE_OPTIONS}
-                  size="sm"
-                  className="min-w-0"
-                  buttonClassName="min-h-7 text-[10px]"
-                  panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
-                  onValueChange={(next) => {
-                    onUpdateConfigField(STUDIO_ANIMATION_PLAYBACK_MODE_KEY, next);
-                  }}
-                />
-                <TRNHintText>{playbackModeHint(playbackMode)}</TRNHintText>
-              </TRNFormField>
-
-              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-              <div className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-                Animation clips
-              </div>
-              <TRNSortableContainer
-                itemIds={clipIdsOrdered}
-                onReorder={(next) => {
-                  void onUpdateConfigField(ANIMATION_CLIP_CARD_ORDER_KEY, next);
-                }}
-                className="scrollbar-hide nodrag flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-0.5"
-              >
-                {clipIdsOrdered.map((ref) => {
-                  const row = animByRef.get(ref);
-                  if (row == null) {
-                    return null;
-                  }
-                  const clipState = mergeGlbBundleClipState(clipMap, ref, {})[ref]!;
-                  const dur = durationByRef.get(ref) ?? 0.001;
-                  return (
-                    <TRNSortableCard
-                      key={ref}
-                      id={ref}
-                      title={row.label}
-                      mode="animated"
-                      collapsible
-                      defaultExpanded={false}
-                      glass
-                      glassPreset="soft"
-                      dragFx="tilt"
-                      sortableClassName="nodrag"
-                      className="border-zinc-700/70 bg-zinc-950/45"
-                      headerClassName="min-h-0"
-                      contentClassName="px-2 pb-2 pt-0 text-[10px] text-zinc-400"
-                      icon={<Clapperboard className="size-3.5 shrink-0 text-zinc-400" strokeWidth={2} aria-hidden />}
-                    >
-                      <GlbAnimationClipInspectorCard
-                        durationS={dur}
-                        clip={clipState}
-                        onCommitClipPatch={(patch) => {
-                          if (playingSet.has(ref) && (patch.timeS !== undefined || patch.enabled === false)) {
-                            setPlayingRefs((p) => p.filter((x) => x !== ref));
-                          }
-                          commitClipPatch(ref, patch);
-                        }}
-                        playing={playingSet.has(ref)}
-                        onTogglePlay={() => togglePlay(ref)}
-                        soloActive={soloClipRef === ref}
-                        onToggleSolo={() => toggleSolo(ref)}
-                        onStepFrame={(d) => stepFrame(ref, d)}
-                        onStopToTrimStart={() => stopToTrim(ref)}
-                      />
-                    </TRNSortableCard>
-                  );
-                })}
-              </TRNSortableContainer>
+            <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+              <GlbBundleAnimationControlPanel
+              clipIdsOrdered={clipIdsOrdered}
+              clipMap={clipMap}
+              defaultConfig={defaultConfig}
+              durationByRef={durationByRef}
+              labelByRef={labelByRef}
+              playbackMode={playbackMode}
+              soloClipRef={soloClipRef}
+              playingRefs={playingRefs}
+              onUpdateConfigField={onUpdateConfigField}
+              onCommitClipPatch={commitClipPatch}
+              onLiveClipPatch={liveClipPatch}
+              onSetPlayingRefs={setPlayingRefs}
+            />
             </div>
-            </>
           ) : refStatus.status === "ok" &&
             extraction.state === "ok" &&
             extraction.result != null &&

@@ -339,6 +339,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           clips: {},
           animationPlaybackMode: "per-clip",
+          animationBlendCompactView: true,
+          animationCrossfadeS: 0.3,
         },
         outputPorts: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
       },

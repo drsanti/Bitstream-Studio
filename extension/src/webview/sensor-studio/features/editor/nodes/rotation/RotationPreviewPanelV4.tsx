@@ -923,7 +923,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         animationMixerState.prevActive.clear();
         animationMixerState.lastDrives = {};
         animationMixerState.lastRestartNonceByClip = {};
+        animationMixerState.lastLoopModeByClip = {};
       };
+      let loopPlaybackMode: StudioGlbAnimationPlaybackModeV1 = "per-clip";
       let loadedModelKey = "";
       let inflightModelKey: string | null = null;
       const modelLoader = new GLTFLoader();
@@ -1128,6 +1130,11 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           const driveKeys = Object.keys(structuredDrives);
           if (driveKeys.length > 0) {
             const playbackMode = glbAnimPlaybackModeRef.current;
+            if (playbackMode !== loopPlaybackMode) {
+              animationMixerState.prevActive.clear();
+              animationMixerState.lastLoopModeByClip = {};
+              loopPlaybackMode = playbackMode;
+            }
             const clipOrder = glbAnimClipOrderRef.current;
             const drivesForMixer = filterGlbAnimationDrivesForPreview({
               drives: structuredDrives,

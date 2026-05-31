@@ -72,6 +72,14 @@ export function filterGlbAnimationDrivesForPreview(args: {
   clipOrder: readonly string[];
   sequenceState: GlbAnimationSequencePlaybackState;
 }): Record<string, GlbAnimationClipPreviewDrive> {
+  if (args.playbackMode === "parallel-all") {
+    /** Blend-style playback: let the mixer advance time (model-catalog **Blend** mode). */
+    const out: Record<string, GlbAnimationClipPreviewDrive> = {};
+    for (const [name, src] of Object.entries(args.drives)) {
+      out[name] = { ...src, holdTime: false };
+    }
+    return out;
+  }
   if (args.playbackMode !== "sequence") {
     return args.drives;
   }

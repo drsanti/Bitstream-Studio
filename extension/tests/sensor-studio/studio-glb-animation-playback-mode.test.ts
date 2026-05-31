@@ -38,7 +38,7 @@ test("pickInitialSequenceClipName respects clip order", () => {
   assert.equal(pickInitialSequenceClipName(["missing"], drives), null);
 });
 
-test("filterGlbAnimationDrivesForPreview passes through non-sequence modes", () => {
+test("filterGlbAnimationDrivesForPreview parallel-all lets mixer advance time", () => {
   const drives = { walk: drive(), run: drive() };
   const filtered = filterGlbAnimationDrivesForPreview({
     drives,
@@ -46,7 +46,8 @@ test("filterGlbAnimationDrivesForPreview passes through non-sequence modes", () 
     clipOrder: ["walk", "run"],
     sequenceState: { activeClipName: null },
   });
-  assert.deepEqual(filtered, drives);
+  assert.equal(filtered.walk?.holdTime, false);
+  assert.equal(filtered.run?.holdTime, false);
 });
 
 test("filterGlbAnimationDrivesForPreview sequence exposes one clip with holdTime false", () => {

@@ -73,6 +73,7 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Sensor Studio — node-animator Phase 1 (Shift+A add menu):** **`FlowAddNodeMenu`** (search + category browse), pointer anchor, right-click spawn, Esc priority; parity doc **`NODE_ANIMATOR_PARITY.md`**.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 4 multi-clip playback (slice 4):** **GLB Animation Bundle** **`animationPlaybackMode`** (**per-clip** / **parallel-all** / **sequence**); inspector playback select; preview sequence advance + parallel merge.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 demo template:** **`material-glb-drives`** (Model Viewer + material param + texture on robot GLB).
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material texture swap (slice 2):** **`glb-material-texture`** node (map slots); GLB **Materials → Tex** spawn; preview texture apply.
@@ -384,6 +385,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
+- **Sensor Studio — node-animator editor parity (Phase 2+)** — Phase 1 **shipped 2026-05-31** (Shift+A, add menu, right-click). Plan: **[`NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md)**. Next: keyboard registry refactor, recent nodes, layout nodes (reroute/frame/note), colored connect preview.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)

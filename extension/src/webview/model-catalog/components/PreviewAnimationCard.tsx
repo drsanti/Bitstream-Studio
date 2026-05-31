@@ -60,6 +60,8 @@ export interface PreviewAnimationCardProps {
   onReset: () => void;
   defaultExpanded?: boolean;
   contentOnly?: boolean;
+  /** When true, skip the Single / Blend mode row (host supplies playback mode elsewhere). */
+  hideModeSelector?: boolean;
 }
 
 function formatDuration(sec: number): string {
@@ -538,6 +540,7 @@ export function PreviewAnimationCard({
   onReset,
   defaultExpanded = true,
   contentOnly = false,
+  hideModeSelector = false,
 }: PreviewAnimationCardProps) {
   const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(0);
   const clips: ClipInfo[] = clipNames.map((name, i) => ({
@@ -673,26 +676,28 @@ export function PreviewAnimationCard({
     <div className="space-y-3">
       {clipNames.length > 0 ? (
         <>
-          <TRNIconOptionGroup
-            label="Mode"
-            value={blendMode}
-            layout="row"
-            options={[
-              {
-                value: "single",
-                label: "Single",
-                title: "Single clip mode",
-                icon: Play,
-              },
-              {
-                value: "blend",
-                label: "Blend",
-                title: "Blend multiple clips",
-                icon: Layers,
-              },
-            ]}
-            onChange={(v) => onBlendModeChange(v as AnimationBlendMode)}
-          />
+          {!hideModeSelector ? (
+            <TRNIconOptionGroup
+              label="Mode"
+              value={blendMode}
+              layout="row"
+              options={[
+                {
+                  value: "single",
+                  label: "Single",
+                  title: "Single clip mode",
+                  icon: Play,
+                },
+                {
+                  value: "blend",
+                  label: "Blend",
+                  title: "Blend multiple clips",
+                  icon: Layers,
+                },
+              ]}
+              onChange={(v) => onBlendModeChange(v as AnimationBlendMode)}
+            />
+          ) : null}
           {blendMode === "single" ? singleModeContent : blendModeContent}
         </>
       ) : (

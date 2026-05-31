@@ -278,6 +278,8 @@ function validateGlbAnimationBundle(cfg: Record<string, unknown>): string[] {
     animationClipCardOrder: z.array(z.string()).optional(),
     animationSoloClipRef: z.string().optional(),
     animationPlaybackMode: z.enum(["per-clip", "parallel-all", "sequence"]).optional(),
+    animationBlendCompactView: z.boolean().optional(),
+    animationCrossfadeS: z.number().finite().nonnegative().optional(),
   });
   const r = schema.safeParse(cfg);
   const out: string[] = [];
