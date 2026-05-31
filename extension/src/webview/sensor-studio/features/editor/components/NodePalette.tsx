@@ -13,8 +13,8 @@ import { paletteEntryDnDProps } from "./node-palette/palette-entry-dnd-props";
 import {
   getPaletteEntryMeta,
   getSubgroupLabel,
-  PALETTE_INPUT_SUBGROUP_ORDER,
-  type PaletteInputSubgroup,
+  PALETTE_SENSOR_SUBGROUP_ORDER,
+  type PaletteSensorSubgroup,
 } from "./node-palette/palette-entry-meta";
 import { PaletteDensityProvider, usePaletteDensity } from "./node-palette/palette-density-context";
 import { PalettePreviewAffix } from "./node-palette/PalettePreviewAffix";
@@ -31,6 +31,7 @@ type NodePaletteTabId = "nodes" | "simulation" | "glb";
 type CategoryFilter = "all" | NodeCatalogEntry["category"];
 
 const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
+  "sensor",
   "input",
   "transform",
   "logic",
@@ -40,6 +41,7 @@ const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
 ];
 
 const CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string> = {
+  sensor: "Sensors",
   input: "Input",
   transform: "Transform",
   logic: "Logic",
@@ -372,7 +374,7 @@ export function NodePalette(props: NodePaletteProps) {
     setCategoryFilter("all");
   }, []);
 
-  const inputSubgroupDot = categoryColors?.input ?? "#52525b";
+  const sensorSubgroupDot = categoryColors?.sensor ?? "#52525b";
 
   const standardNodes = useMemo(() => {
     const q = query.trim();
@@ -417,26 +419,26 @@ export function NodePalette(props: NodePaletteProps) {
     return m;
   }, [activeList]);
 
-  const inputNodes = groupedByCategory.get("input") ?? [];
-  const inputBySubgroup = useMemo(() => {
-    const map = new Map<PaletteInputSubgroup, NodeCatalogEntry[]>();
-    for (const sg of PALETTE_INPUT_SUBGROUP_ORDER) {
+  const sensorNodes = groupedByCategory.get("sensor") ?? [];
+  const sensorBySubgroup = useMemo(() => {
+    const map = new Map<PaletteSensorSubgroup, NodeCatalogEntry[]>();
+    for (const sg of PALETTE_SENSOR_SUBGROUP_ORDER) {
       map.set(sg, []);
     }
-    for (const entry of inputNodes) {
+    for (const entry of sensorNodes) {
       const meta = getPaletteEntryMeta(entry);
-      const sg = meta.inputSubgroup;
+      const sg = meta.sensorSubgroup;
       if (sg != null) {
         map.get(sg)?.push(entry);
       }
     }
     return map;
-  }, [inputNodes]);
+  }, [sensorNodes]);
 
-  const renderInputSections = () => (
+  const renderSensorSections = () => (
     <>
-      {PALETTE_INPUT_SUBGROUP_ORDER.map((sg) => {
-        const list = inputBySubgroup.get(sg) ?? [];
+      {PALETTE_SENSOR_SUBGROUP_ORDER.map((sg) => {
+        const list = sensorBySubgroup.get(sg) ?? [];
         if (list.length === 0) {
           return null;
         }
@@ -450,7 +452,7 @@ export function NodePalette(props: NodePaletteProps) {
             >
               <span
                 className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
-                style={{ backgroundColor: inputSubgroupDot }}
+                style={{ backgroundColor: sensorSubgroupDot }}
                 aria-hidden
               />
               {getSubgroupLabel(sg)}
@@ -481,13 +483,13 @@ export function NodePalette(props: NodePaletteProps) {
     if (nodes.length === 0) {
       return null;
     }
-    if (category === "input") {
-      if (inputNodes.length === 0) {
+    if (category === "sensor") {
+      if (sensorNodes.length === 0) {
         return null;
       }
-      const stripe = categoryColors?.input;
+      const stripe = categoryColors?.sensor;
       return (
-        <section key="input" className={dense ? "space-y-1.5" : "space-y-2"}>
+        <section key="sensor" className={dense ? "space-y-1.5" : "space-y-2"}>
           <h3
             className={`sticky top-0 z-10 -mx-2 mb-1 border-b border-zinc-800/80 px-2 font-semibold uppercase tracking-wide text-zinc-200 ${
               dense ? "py-1.5 text-[10px]" : "py-2 text-[11px]"
@@ -497,9 +499,9 @@ export function NodePalette(props: NodePaletteProps) {
               ...(stripe != null ? { boxShadow: `inset 3px 0 0 0 ${stripe}` } : {}),
             }}
           >
-            Input
+            Sensors
           </h3>
-          {renderInputSections()}
+          {renderSensorSections()}
         </section>
       );
     }
@@ -822,8 +824,8 @@ export function NodePalette(props: NodePaletteProps) {
             <div className={dense ? "space-y-4 pt-2" : "space-y-6 pt-3"}>
               {CATEGORY_ORDER.map((c) => renderCategoryBlock(c))}
             </div>
-          ) : categoryFilter === "input" ? (
-            <div className={dense ? "space-y-1.5 pt-2" : "space-y-2 pt-3"}>{renderInputSections()}</div>
+          ) : categoryFilter === "sensor" ? (
+            <div className={dense ? "space-y-1.5 pt-2" : "space-y-2 pt-3"}>{renderSensorSections()}</div>
           ) : (
             <div className={dense ? "space-y-0.5 pt-2" : "space-y-1 pt-3"}>
               {(groupedByCategory.get(categoryFilter) ?? []).map((entry) => (

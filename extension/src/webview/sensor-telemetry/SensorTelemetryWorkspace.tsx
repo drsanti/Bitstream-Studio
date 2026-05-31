@@ -15,7 +15,6 @@ import { StandaloneWorkbench, type StandaloneWorkbenchHandle } from "../ui/workb
 import "../ui/workbench/workbench.css";
 import { DEFAULT_TELEMETRY_WORKBENCH_LAYOUT } from "./workbench/default-telemetry-workbench-layout";
 import { TELEMETRY_WORKBENCH_REGISTRY } from "./workbench/telemetry-workbench-registry";
-import { useBmi270FirmwareExtrasDraftStore } from "../bitstream-app/state/bmi270FirmwareExtrasDraft.store.js";
 import { appendTelemetryActivity } from "./store/telemetryActivity.store.js";
 import { useTelemetryWorkbenchUiStore } from "./store/telemetryWorkbenchUi.store.js";
 
@@ -36,15 +35,6 @@ export function SensorTelemetryWorkspace()
       setResetLayoutHandler(null);
     };
   }, [setResetLayoutHandler]);
-
-  /* Keep draft-until-Apply for BMI270 mode/feed for the whole Sensor Telemetry session. */
-  useEffect(() => {
-    useBmi270FirmwareExtrasDraftStore.getState().setDeferFirmwareApply(true);
-    return () => {
-      useBmi270FirmwareExtrasDraftStore.getState().setDeferFirmwareApply(false);
-      useBmi270FirmwareExtrasDraftStore.getState().resetBaselines();
-    };
-  }, []);
 
   return (
     <div

@@ -9,6 +9,12 @@ export type FlowNodeSocketRowProps = HTMLAttributes<HTMLDivElement> & {
   label: ReactNode;
   /** Typically `<Handle />` optionally wrapped by `FlowNodeSocketDot`. */
   socket: ReactNode;
+  /**
+   * Output rows only: compact live readout before the port label (right-aligned toward the label).
+   */
+  leadingPreview?: ReactNode;
+  /** Share label column width across rows via parent subgrid ({@link FlowNodeSocketRegion}). */
+  alignedOutputColumns?: boolean;
 };
 
 /**
@@ -17,17 +23,61 @@ export type FlowNodeSocketRowProps = HTMLAttributes<HTMLDivElement> & {
  * so the handle aligns to this row (see `StudioNodeCard`).
  */
 export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
-  const { variant, label, socket, className, ...rest } = props;
+  const {
+    variant,
+    label,
+    socket,
+    leadingPreview,
+    alignedOutputColumns = false,
+    className,
+    ...rest
+  } = props;
+
+  if (variant === "output" && alignedOutputColumns) {
+    return (
+      <div
+        className={twMerge(
+          "relative col-span-full grid w-full min-h-[24px] grid-cols-subgrid items-center overflow-visible",
+          className,
+        )}
+        {...rest}
+      >
+        <div className="nodrag flex min-w-0 justify-end">{leadingPreview ?? null}</div>
+        <div className="whitespace-nowrap pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300">
+          {label}
+        </div>
+        <div className="relative flex h-6 w-0 shrink-0 items-center justify-center">{socket}</div>
+      </div>
+    );
+  }
+
   const row =
     variant === "input" ? (
       <div className="flex min-h-[24px] w-fit max-w-full min-w-0 items-center gap-2">
-        <div className="relative flex h-6 w-5 shrink-0 items-center justify-start">{socket}</div>
+        <div className="relative flex h-6 w-0 shrink-0 items-center justify-center">{socket}</div>
         <div className="min-w-0 text-[11px] leading-tight text-zinc-300">{label}</div>
       </div>
     ) : (
-      <div className="flex min-h-[24px] w-fit max-w-full min-w-0 items-center gap-2">
-        <div className="min-w-0 shrink text-right text-[11px] leading-tight text-zinc-300">{label}</div>
-        <div className="relative flex h-6 w-5 shrink-0 items-center justify-end">{socket}</div>
+      <div
+        className={
+          leadingPreview != null
+            ? "flex min-h-[24px] w-full min-w-0 max-w-full items-center gap-0.5"
+            : "flex min-h-[24px] w-fit max-w-full min-w-0 items-center gap-1"
+        }
+      >
+        {leadingPreview != null ? (
+          <div className="nodrag flex min-w-0 flex-1 justify-end">{leadingPreview}</div>
+        ) : null}
+        <div
+          className={
+            leadingPreview != null
+              ? "min-w-0 shrink-0 pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
+              : "min-w-0 flex-1 truncate pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
+          }
+        >
+          {label}
+        </div>
+        <div className="relative flex h-6 w-0 shrink-0 items-center justify-center">{socket}</div>
       </div>
     );
 
@@ -35,7 +85,11 @@ export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
     <div
       className={twMerge(
         "relative",
-        variant === "output" ? "self-end" : "self-start",
+        variant === "output"
+          ? leadingPreview != null
+            ? "w-full self-stretch"
+            : "self-end"
+          : "self-start",
         className,
       )}
       {...rest}

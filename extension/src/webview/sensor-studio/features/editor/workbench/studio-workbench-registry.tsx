@@ -1,6 +1,6 @@
 import { BookOpen, GitBranch, Layers, SlidersHorizontal } from "lucide-react";
 import type { WorkbenchRegistry } from "../../../../ui/workbench";
-import { AssetBrowserPanel } from "../../asset-browser/AssetBrowserPanel";
+import { AssetBrowsePanel } from "../../../../assets-manager/browse/AssetBrowsePanel.js";
 import { FlowCanvas } from "../components/FlowCanvas";
 import { NodeInspector } from "../components/NodeInspector";
 import { NodePalette } from "../components/NodePalette";
@@ -59,7 +59,14 @@ export function WorkbenchFlowPanel() {
 
 export function WorkbenchAssetsPanel() {
   const p = useStudioWorkbenchShell();
-  return <AssetBrowserPanel borderColor={p.borderColor} panelColor={p.panelBackgroundColor} />;
+  return (
+    <AssetBrowsePanel
+      borderColor={p.borderColor}
+      panelColor={p.panelBackgroundColor}
+      variant="embedded"
+      showOpenManagerLink
+    />
+  );
 }
 
 export function WorkbenchInspectorPanel() {
@@ -70,7 +77,6 @@ export function WorkbenchInspectorPanel() {
       panelColor={p.panelBackgroundColor}
       selectedNode={p.selectedNode}
       orderedSelectedNodes={p.orderedSelectedNodes}
-      onOpenDeviceSensorSettings={p.onOpenDeviceSensorSettings}
       catalogEntries={p.entries}
       categoryColors={p.minimapCategoryColors}
       onUpdateLabel={p.onUpdateLabel}

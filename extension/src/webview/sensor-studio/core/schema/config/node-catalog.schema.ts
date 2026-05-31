@@ -16,7 +16,7 @@ const studioPortTypeEnum = z.enum([
 
 const catalogNodeBaseSchema = z.object({
   id: z.string().min(1),
-  category: z.enum(["input", "transform", "logic", "output", "utility", "generator"]),
+  category: z.enum(["sensor", "input", "transform", "logic", "output", "utility", "generator"]),
   title: z.string().min(1),
   description: z.string().min(1),
   icon: z.string().min(1),

@@ -49,7 +49,7 @@ export function AssetManagerMain({
         <FolderOpen className="h-3.5 w-3.5 text-cyan-400/90" aria-hidden />
       }
       onClose={closePanel}
-      initialRect={{ x: 56, y: 88, width: 420, height: 560 }}
+      initialRect={{ x: 56, y: 88, width: 440, height: 620 }}
       minWidth={360}
       minHeight={320}
       heightMode="fixed"

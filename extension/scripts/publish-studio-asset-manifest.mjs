@@ -1,5 +1,5 @@
 /**
- * Uploads `src/webview/sensor-studio/features/asset-browser/studio-asset-manifest.v1.json`
+ * Uploads `src/webview/assets-manager/registry/studio-asset-manifest.v1.json`
  * to GitHub: `drsanti/ternion-3d-assets-free` → `assets/studio-asset-manifest.v1.json` on `main`.
  *
  * Requirements:
@@ -21,7 +21,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const MANIFEST_PATH = join(
   ROOT,
-  "src/webview/sensor-studio/features/asset-browser/studio-asset-manifest.v1.json",
+  "src/webview/assets-manager/registry/studio-asset-manifest.v1.json",
 );
 
 const OWNER = process.env.GITHUB_MANIFEST_OWNER?.trim() || "drsanti";

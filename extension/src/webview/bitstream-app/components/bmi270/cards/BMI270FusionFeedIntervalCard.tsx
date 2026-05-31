@@ -36,6 +36,13 @@ export function BMI270FusionFeedIntervalCard(props: {
       onToggleCollapsed={onToggleCollapsed}
       onIntervalMsChange={onFusionFeedIntervalChange}
       cardApply={cardApply}
+      rateField={
+        controlsDisabled
+          ? {
+              hint: "Switch stream mode to Fusion or Hybrid to edit the BSX fusion feed rate.",
+            }
+          : undefined
+      }
     />
   );
 }

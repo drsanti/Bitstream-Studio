@@ -240,10 +240,10 @@ export function useBitstreamShellQuickCommands(
 
     registerCommand({
       id: "bitstream-model-catalog",
-      label: "Open Model Catalog",
+      label: "Browse Models",
       category: "Assets",
       icon: Package,
-      keywords: ["catalog", "library", "models", "assets"],
+      keywords: ["catalog", "library", "models", "assets", "browse"],
       action: () => {
         openModelCatalog();
       },

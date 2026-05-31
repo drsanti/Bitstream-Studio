@@ -1,9 +1,14 @@
 import { useCallback } from "react";
-import type { GlobalDirectoriesTabValue } from "../store/assetManagerUi.store.js";
+import type { AssetCategory } from "../registry/asset.types.js";
+import type { GlobalDirectoriesTabValue, AssetManagerMainTab } from "../store/assetManagerUi.store.js";
 import { useAssetManagerUiStore } from "../store/assetManagerUi.store.js";
 
 export type OpenAssetManagerOptions = {
-  /** v1: selects the Global Directories tab on open. */
+  /** Top-level tab: browse assets or storage / paths. */
+  mainTab?: AssetManagerMainTab;
+  /** When opening Browse, pre-select Models / Environments / Textures. */
+  browseCategory?: AssetCategory;
+  /** When opening Storage, pre-select a Global Directories sub-tab. */
   globalDirectoriesTab?: GlobalDirectoriesTabValue;
 };
 
@@ -15,9 +20,7 @@ export type UseOpenAssetManagerResult = {
 };
 
 /**
- * Consumer-facing API to open/close the Asset Manager UI.
- * Keeps Bitstream, Sensor Studio, and future consumers from reaching into
- * `useAssetManagerUiStore()` directly.
+ * Consumer-facing API to open/close the global Asset Manager UI.
  */
 export function useOpenAssetManager(): UseOpenAssetManagerResult {
   const isOpen = useAssetManagerUiStore((s) => s.panelOpen);
@@ -27,7 +30,11 @@ export function useOpenAssetManager(): UseOpenAssetManagerResult {
 
   const openAssetManager = useCallback(
     (opts?: OpenAssetManagerOptions) => {
-      openPanel({ globalDirectoriesTab: opts?.globalDirectoriesTab });
+      openPanel({
+        mainTab: opts?.mainTab,
+        browseCategory: opts?.browseCategory,
+        globalDirectoriesTab: opts?.globalDirectoriesTab,
+      });
     },
     [openPanel],
   );
@@ -39,4 +46,3 @@ export function useOpenAssetManager(): UseOpenAssetManagerResult {
     toggleAssetManager: togglePanel,
   };
 }
-

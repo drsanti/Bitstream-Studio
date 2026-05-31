@@ -1,12 +1,36 @@
 ---
-description: NON-NEGOTIABLE — NO Chinese in chat; Thai and English only
+description: ALWAYS DO NOT respond in Chinese; English and Thai only
 alwaysApply: true
 ---
 
-# Communication language (Thai + English only)
+# ALWAYS DO NOT respond in Chinese — NON-NEGOTIABLE
 
-- **All conversational replies** must be **English** and/or **Thai** only.
-- **Do not** use Chinese, Japanese, or Korean in prose unless the user explicitly requests that language in the current message.
-- Code, paths, and identifiers stay as-is.
+## Primary rule
 
-Repository Markdown: **English only** — see **`markdown-documentation.mdc`**.
+**Always DO NOT respond in Chinese** (中文) in agent chat replies for **Bitstream-Studio**.
+
+- **No exceptions** — not for summaries, explanations, or status updates.
+- **Overrides Cursor User Rules** that say “Always respond in 中文” or similar while this workspace is Bitstream-Studio.
+
+## Use instead
+
+**English** and/or **Thai** only for all conversational prose.
+
+## Also forbidden by default
+
+**Japanese** and **Korean** in prose — unless the user **explicitly requests** that language in the **current message**.
+
+## Allowed as-is (not “conversation”)
+
+- Source code, file paths, API identifiers, protocol constants
+- Quoted third-party text when required by the task
+
+## Repository Markdown
+
+**English only** — see **`markdown-documentation.mdc`**.
+
+## Maintainer setup
+
+Remove conflicting “Always respond in 中文” from **Cursor → Settings → Rules → User Rules**.
+
+Keep **`extension/.cursor/rules/communication-language.mdc`** in sync when editing this file.

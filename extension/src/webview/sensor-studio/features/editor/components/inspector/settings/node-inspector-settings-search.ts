@@ -1,6 +1,6 @@
 const TYPED_SECTION_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   threshold: ["threshold", "operator", "compare", "value"],
-  "map-range": ["map", "range", "remap", "in", "out", "scale"],
+  "map-range": ["map", "range", "remap", "in", "out", "scale", "clamp"],
   clamp: ["clamp", "min", "max", "limit"],
   "low-pass": ["low", "pass", "filter", "alpha", "smooth"],
   gauge: ["gauge", "unit", "decimals", "digits"],
@@ -52,6 +52,28 @@ const ROTATION_SEARCH = [
   "mesh",
 ];
 
+const SHARED_DEVICE_SEARCH = [
+  "shared",
+  "device",
+  "cfg",
+  "config",
+  "enabled",
+  "telemetry",
+  "sample",
+  "publish",
+  "delta",
+  "hardware",
+  "firmware",
+  "broker",
+  "bmi270",
+  "fusion",
+  "feed",
+  "bsx",
+  "dps368",
+  "sht40",
+  "bmm350",
+];
+
 const JSON_SEARCH = ["json", "config", "raw", "default", "advanced"];
 
 function tokens(query: string): string[] {
@@ -98,6 +120,15 @@ export function shouldShowRotation3dSettings(query: string): boolean {
   }
   const hay = ROTATION_SEARCH.join(" ");
   return toks.some((t) => hay.includes(t) || ROTATION_SEARCH.some((k) => k.includes(t)));
+}
+
+export function shouldShowSharedDeviceSettings(query: string): boolean {
+  const toks = tokens(query);
+  if (toks.length === 0) {
+    return true;
+  }
+  const hay = SHARED_DEVICE_SEARCH.join(" ");
+  return toks.some((t) => hay.includes(t) || SHARED_DEVICE_SEARCH.some((k) => k.includes(t)));
 }
 
 export function shouldShowJsonConfigSection(query: string): boolean {

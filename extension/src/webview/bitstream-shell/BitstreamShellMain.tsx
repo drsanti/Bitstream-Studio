@@ -1,6 +1,5 @@
 import { SensorStudioApp } from "../sensor-studio/app/SensorStudioApp.tsx";
 import { FreeAssetsLoaderDashboard } from "../free-assets-loader/FreeAssetsLoaderDashboard";
-import { ModelCatalogDashboard } from "../model-catalog/ModelCatalogDashboard";
 import { ModelLoaderDashboard } from "../model-loader/ModelLoaderDashboard";
 import { TRNMessageDialog } from "../ui/TRN";
 import { GlobalShellOverlays } from "../GlobalShellOverlays";
@@ -13,7 +12,7 @@ import { BitstreamSensorWorkspaceView } from "../bitstream-app/workspace/Bitstre
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useBitstreamWorkspaceModeStore } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
-import { AssetManagerProvider, useOpenAssetManager } from "../assets-manager";
+import { AssetManagerProvider, AssetRegistryProvider, openAssetManagerBrowseModels, useOpenAssetManager } from "../assets-manager";
 
 export function BitstreamShellMain()
 {
@@ -44,17 +43,12 @@ export function BitstreamShellMain()
   const setModelLoaderOpen = usePreviewMeshMissingUiStore(
     (s) => s.setModelLoaderOpen,
   );
-  const modelCatalogOpen = usePreviewMeshMissingUiStore(
-    (s) => s.modelCatalogOpen,
-  );
-  const setModelCatalogOpen = usePreviewMeshMissingUiStore(
-    (s) => s.setModelCatalogOpen,
-  );
 
   const { openAssetManager } = useOpenAssetManager();
 
   return (
     <AssetManagerProvider>
+      <AssetRegistryProvider>
       <TelemetryRxMetricsProvider>
         <>
           <BitstreamShellRoot>
@@ -81,7 +75,7 @@ export function BitstreamShellMain()
             primaryAction={{
               label: "Open Asset Manager",
               onClick: () => {
-                openAssetManager({ globalDirectoriesTab: "actions" });
+                openAssetManager({ mainTab: "storage", globalDirectoriesTab: "actions" });
                 closeMeshMissingDialog();
               },
             }}
@@ -114,13 +108,8 @@ export function BitstreamShellMain()
               setModelLoaderOpen(false);
             }}
             onOpenModelCatalog={() => {
-              setModelCatalogOpen(true);
-            }}
-          />
-          <ModelCatalogDashboard
-            open={modelCatalogOpen}
-            onClose={() => {
-              setModelCatalogOpen(false);
+              setModelLoaderOpen(false);
+              openAssetManagerBrowseModels();
             }}
           />
 
@@ -139,6 +128,7 @@ export function BitstreamShellMain()
           />
         </>
       </TelemetryRxMetricsProvider>
+      </AssetRegistryProvider>
     </AssetManagerProvider>
   );
 }

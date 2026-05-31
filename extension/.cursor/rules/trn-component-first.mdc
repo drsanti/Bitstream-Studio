@@ -16,3 +16,7 @@ When **adding a new UI component** or **non-trivial panel section** under **`src
 4. **T3D library** — UI inside **`../T3D`** (`@ternion/t3d`) follows that package’s components; this rule targets **extension webview** code under **`src/webview/`** (i.e. **`t3d-extension/src/webview/`** when the repo root is **`ternion-t3d`**).
 
 5. **Monorepo root** — When the workspace root is **`ternion-t3d`**, the same policy is mirrored at **`.cursor/rules/trn-component-first.mdc`** (repo root). Update both files if you change this guidance.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

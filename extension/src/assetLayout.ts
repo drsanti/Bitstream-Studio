@@ -99,6 +99,13 @@ export const BROWSER_USER_TESAIOT_TEXTURES_URL_RELATIVE_PREFIX =
 export const FREE_MODELS_WEB_PREFIX = "free/models/" as const;
 
 /**
+ * When `false`, the webview catalog and Asset Registry do not enumerate GLBs/textures
+ * from repo `src/assets/**` via Vite globs. Lists come from globalStorage scans
+ * (extension host / model-downloader bridge) plus the curated manifest overlay.
+ */
+export const REPO_ASSET_STATIC_SCAN_ENABLED = false;
+
+/**
  * Mirror of the **literal** `import.meta.glob` patterns in
  * `webview/model-catalog/modelCatalog-asset-scan.ts` (Vite only accepts string literals there).
  * Paths are relative to `src/webview/model-catalog/`.

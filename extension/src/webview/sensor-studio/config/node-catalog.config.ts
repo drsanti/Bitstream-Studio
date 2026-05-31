@@ -24,7 +24,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
     nodes: [
       {
         id: "bmi270-input",
-        category: "input",
+        category: "sensor",
         title: "BMI270",
         description:
           "Bosch BMI270: IMU vectors, temperature, fusion Euler (rad: roll, pitch, heading on x,y,z), and quaternion when published.",
@@ -34,7 +34,6 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [
           { id: "accel", portType: "vector3", label: "Accel (m/s²)" },
           { id: "gyro", portType: "vector3", label: "Gyro (rad/s)" },
-          { id: "temp", portType: "number", label: "Temperature (°C)" },
           {
             id: "euler",
             portType: "vector3",
@@ -45,11 +44,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             portType: "quaternion",
             label: "Quaternion",
           },
+          { id: "temp", portType: "number", label: "Temp (°C)" },
         ],
       },
       {
         id: "bmi270-tap-quaternion",
-        category: "input",
+        category: "sensor",
         title: "Quaternion",
         description:
           "Fusion quaternion only — same stream as the BMI270 node.",
@@ -60,7 +60,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "bmi270-tap-euler",
-        category: "input",
+        category: "sensor",
         title: "Euler",
         description: "Fusion Euler vector only (rad) from the live BMI270 stream.",
         icon: "compass",
@@ -70,7 +70,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "bmi270-tap-accel",
-        category: "input",
+        category: "sensor",
         title: "Acceleration",
         description: "Acceleration vector (m/s²) from the live BMI270 stream.",
         icon: "arrow-down",
@@ -80,7 +80,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "bmi270-tap-gyro",
-        category: "input",
+        category: "sensor",
         title: "Gyroscope",
         description: "Gyro vector (rad/s) from the live BMI270 stream.",
         icon: "rotate-cw",
@@ -90,7 +90,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "dps368-input",
-        category: "input",
+        category: "sensor",
         title: "DPS368",
         description:
           "Bosch DPS368: barometric pressure (hPa) and temperature (°C) from the live bitstream.",
@@ -99,12 +99,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "pressure", portType: "number", label: "Pressure (hPa)" },
-          { id: "temp", portType: "number", label: "Temperature (°C)" },
+          { id: "temp", portType: "number", label: "Temp (°C)" },
         ],
       },
       {
         id: "sht40-input",
-        category: "input",
+        category: "sensor",
         title: "SHT40",
         description:
           "Sensirion SHT40: relative humidity (%RH) and temperature (°C) from the live bitstream.",
@@ -113,12 +113,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "humidity", portType: "number", label: "Humidity (%RH)" },
-          { id: "temp", portType: "number", label: "Temperature (°C)" },
+          { id: "temp", portType: "number", label: "Temp (°C)" },
         ],
       },
       {
         id: "bmm350-input",
-        category: "input",
+        category: "sensor",
         title: "BMM350",
         description:
           "Bosch BMM350: magnetic field vector (µT) and temperature (°C) from the live bitstream.",
@@ -127,12 +127,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "magnetic", portType: "vector3", label: "Magnetic (µT)" },
-          { id: "temp", portType: "number", label: "Temperature (°C)" },
+          { id: "temp", portType: "number", label: "Temp (°C)" },
         ],
       },
       {
         id: "dps368-tap-pressure",
-        category: "input",
+        category: "sensor",
         title: "Pressure",
         description:
           "DPS368 barometric pressure (hPa) only — same stream as the DPS368 node.",
@@ -143,7 +143,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "dps368-tap-temp",
-        category: "input",
+        category: "sensor",
         title: "Temperature",
         description:
           "DPS368 temperature (°C) only — same stream as the DPS368 node.",
@@ -154,7 +154,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "sht40-tap-humidity",
-        category: "input",
+        category: "sensor",
         title: "Humidity",
         description:
           "SHT40 relative humidity (%RH) only — same stream as the SHT40 node.",
@@ -165,7 +165,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "sht40-tap-temp",
-        category: "input",
+        category: "sensor",
         title: "Temperature",
         description:
           "SHT40 temperature (°C) only — same stream as the SHT40 node.",
@@ -176,7 +176,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "bmm350-tap-magnetic",
-        category: "input",
+        category: "sensor",
         title: "Magnetic",
         description:
           "BMM350 magnetic vector (µT) only — same stream as the BMM350 node.",
@@ -187,7 +187,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "bmm350-tap-temp",
-        category: "input",
+        category: "sensor",
         title: "Temperature",
         description:
           "BMM350 temperature (°C) only — same stream as the BMM350 node.",
@@ -315,6 +315,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           inMax: 1,
           outMin: -1,
           outMax: 1,
+          clamp: true,
         },
       },
       {

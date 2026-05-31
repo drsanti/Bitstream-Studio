@@ -52,3 +52,7 @@ Treat **Bitstream** (real COM / BS-framed firmware) and **Simulation** (external
 ## Related
 
 - **`AGENT_HANDOFF.md`** (repo root), **`bs2-protocol-change.mdc`**, **`bitstream-app-conventions.mdc`**, **`HOW_TO_RUN.md`**
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

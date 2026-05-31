@@ -12,3 +12,7 @@ See repo root **`.cursor/rules/bitstream-simulator-app-path.mdc`** for full poli
 **Bridge:** `src/serialport-bridge/SerialPortWebSocketBridge.ts` — no in-bridge loopback.
 
 **Skill:** `.cursor/skills/bitstream-simulator-app/SKILL.md`
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

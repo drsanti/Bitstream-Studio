@@ -10,11 +10,12 @@ import type { StudioNodeData } from "../store/flow-editor.store";
 import {
   isStudioSensorTapNodeId,
   STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID,
+  isStudioAlignedOutputSocketColumnsNodeId,
+  isStudioSensorSocketPreviewNodeId,
 } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { studioPortAccent } from "./port-accent";
 import {
-  Bmi270AlignedReadings,
   FlowNodeBody,
   FlowNodeHeader,
   FlowNodeResizeControl,
@@ -29,6 +30,8 @@ import {
   ReadingNumber,
   Vec3ReadingRow,
 } from "./flow-node";
+import { socketLivePreviewForOutputHandle } from "./flow-node/socket-live-preview-for-handle";
+import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import { readSourceModelNodeId } from "../model/model-generated-bindings";
@@ -58,23 +61,10 @@ import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 
 const handleBaseClass =
-  "!h-2.5 !w-2.5 !border-2 !bg-zinc-900 [&.react-flow__handle]:pointer-events-auto";
+  "!z-20 !h-2.5 !w-2.5 !border-2 !bg-zinc-900 [&.react-flow__handle]:pointer-events-auto";
 
-const TAP_VEC_PANEL_LABEL: Record<string, string> = {
-  "bmi270-tap-euler": "Euler",
-  "bmi270-tap-accel": "Acceleration",
-  "bmi270-tap-gyro": "Gyroscope",
-  "bmm350-tap-magnetic": "Magnetic (µT)",
-};
-
-/** Single-number environment tap nodes: label includes unit (matches multi-out panels). */
-const TAP_SCALAR_PANEL_LABEL: Record<string, string> = {
-  "dps368-tap-pressure": "Pressure (hPa)",
-  "dps368-tap-temp": "Temperature (°C)",
-  "sht40-tap-humidity": "Humidity (%RH)",
-  "sht40-tap-temp": "Temperature (°C)",
-  "bmm350-tap-temp": "Temperature (°C)",
-};
+const handleDotClass =
+  "relative flex h-6 w-0 items-center justify-center overflow-visible";
 
 const AGE_BADGE_LIVE_MAX_SEC = 1;
 const AGE_BADGE_STALE_MAX_SEC = 3.5;
@@ -244,8 +234,15 @@ export function StudioNodeCard(props: NodeProps) {
 
   const sensorFamilyTagLabel =
     STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID[data.nodeId];
+  const labelNorm = data.label.trim().toLowerCase();
+  const tagNorm = sensorFamilyTagLabel?.trim().toLowerCase();
+  const showSensorFamilyTag =
+    sensorFamilyTagLabel != null &&
+    tagNorm != null &&
+    tagNorm.length > 0 &&
+    labelNorm !== tagNorm;
   const sensorFamilyTag =
-    sensorFamilyTagLabel != null ? (
+    showSensorFamilyTag ? (
       <span className="rounded border border-cyan-500/45 bg-cyan-950/35 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-cyan-200/90">
         {sensorFamilyTagLabel}
       </span>
@@ -269,11 +266,11 @@ export function StudioNodeCard(props: NodeProps) {
 
   const utilityBodyFitsContent =
     (data.nodeId === "environment" && !environmentControlsExpanded) ||
-    (data.nodeId === "camera-view" && !cameraViewControlsExpanded);
+    (data.nodeId === "camera-view" && !cameraViewControlsExpanded) ||
+    isStudioSensorSocketPreviewNodeId(data.nodeId);
 
   useLayoutEffect(() => {
-    if (data.nodeId === "camera-view" || data.nodeId === "environment")
-    {
+    if (data.nodeId === "camera-view" || data.nodeId === "environment") {
       updateNodeInternals(id);
     }
   }, [
@@ -371,15 +368,13 @@ export function StudioNodeCard(props: NodeProps) {
             variant="input"
             label={<span className="text-zinc-400">{h.label}</span>}
             socket={
-              <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+              <FlowNodeSocketDot className={handleDotClass}>
                 <Handle
                   id={h.id}
                   type="target"
                   position={Position.Left}
                   className={handleBaseClass}
-                  style={{
-                    borderColor: studioPortAccent(h.portType),
-                  }}
+                  style={flowNodeHandleStyle("left", studioPortAccent(h.portType))}
                 />
               </FlowNodeSocketDot>
             }
@@ -396,15 +391,13 @@ export function StudioNodeCard(props: NodeProps) {
                 </span>
               }
               socket={
-                <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+                <FlowNodeSocketDot className={handleDotClass}>
                   <Handle
                     id="in"
                     type="target"
                     position={Position.Left}
                     className={handleBaseClass}
-                    style={{
-                      borderColor: studioPortAccent(data.inputType),
-                    }}
+                    style={flowNodeHandleStyle("left", studioPortAccent(data.inputType))}
                   />
                 </FlowNodeSocketDot>
               }
@@ -412,51 +405,62 @@ export function StudioNodeCard(props: NodeProps) {
           ]
         : [];
 
+  const alignedOutputSocketColumns = isStudioAlignedOutputSocketColumnsNodeId(data.nodeId);
+
   const outputSockets =
     data.outputHandles != null && data.outputHandles.length > 0
-      ? data.outputHandles.map((h) => (
+      ? data.outputHandles.map((h) => {
+          const preview = socketLivePreviewForOutputHandle(data, h.id, h.portType);
+          return (
           <FlowNodeSocketRow
             key={h.id}
             variant="output"
+            alignedOutputColumns={alignedOutputSocketColumns}
+            leadingPreview={preview ?? undefined}
             label={<span className="text-zinc-400">{h.label}</span>}
             socket={
-              <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+              <FlowNodeSocketDot className={handleDotClass}>
                 <Handle
                   id={h.id}
                   type="source"
                   position={Position.Right}
                   className={handleBaseClass}
-                  style={{
-                    borderColor: studioPortAccent(h.portType),
-                  }}
+                  style={flowNodeHandleStyle("right", studioPortAccent(h.portType))}
                 />
               </FlowNodeSocketDot>
             }
           />
-        ))
+          );
+        })
       : data.outputType != null
-        ? [
+        ? (() => {
+            const preview = socketLivePreviewForOutputHandle(
+              data,
+              "out",
+              data.outputType,
+            );
+            return [
             <FlowNodeSocketRow
               key="out"
               variant="output"
+              leadingPreview={preview ?? undefined}
               label={
                 <span className="text-zinc-400">Out · {data.outputType}</span>
               }
               socket={
-                <FlowNodeSocketDot className="relative flex h-full w-full items-center justify-center">
+                <FlowNodeSocketDot className={handleDotClass}>
                   <Handle
                     id="out"
                     type="source"
                     position={Position.Right}
                     className={handleBaseClass}
-                    style={{
-                      borderColor: studioPortAccent(data.outputType),
-                    }}
+                    style={flowNodeHandleStyle("right", studioPortAccent(data.outputType))}
                   />
                 </FlowNodeSocketDot>
               }
             />,
-          ]
+          ];
+          })()
         : [];
 
   const rotationShowGrid =
@@ -566,8 +570,13 @@ export function StudioNodeCard(props: NodeProps) {
 
         {hasSocketRegion ? (
           <FlowNodeSocketRegion
+            alignedOutputColumns={alignedOutputSocketColumns}
             className={
-              data.nodeId === "oscilloscope" ? "pb-0 pt-1.5" : undefined
+              data.nodeId === "oscilloscope"
+                ? "pb-0 pt-1.5"
+                : alignedOutputSocketColumns
+                  ? "w-full max-w-full"
+                  : undefined
             }
           >
             {inputSockets}
@@ -604,139 +613,6 @@ export function StudioNodeCard(props: NodeProps) {
               : "space-y-0"
           }
         >
-          {data.nodeId === "bmi270-input" &&
-          data.liveVector3ByHandle != null ? (
-            <ReadingPanel className="space-y-0">
-              <Bmi270AlignedReadings
-                accel={data.liveVector3ByHandle.accel}
-                gyro={data.liveVector3ByHandle.gyro}
-                euler={data.liveVector3ByHandle.euler}
-                quaternion={
-                  data.liveQuaternionWire ?? { w: 1, x: 0, y: 0, z: 0 }
-                }
-                temp={data.liveNumberByHandle?.temp}
-              />
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "dps368-input" && data.liveNumberByHandle != null ? (
-            <ReadingPanel className="text-[11px] leading-tight">
-              <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(5.25rem,auto)] gap-x-2 gap-y-1.5">
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge("Pressure (hPa)", "pressure")}
-                </span>
-                <div
-                  className="justify-self-end tabular-nums"
-                  title={lastValidTitle("pressure")}
-                >
-                  <ReadingNumber
-                    value={data.liveNumberByHandle.pressure ?? Number.NaN}
-                    fractionDigits={2}
-                  />
-                </div>
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge("Temperature (°C)", "temp")}
-                </span>
-                <div
-                  className="justify-self-end tabular-nums"
-                  title={lastValidTitle("temp")}
-                >
-                  <ReadingNumber
-                    value={data.liveNumberByHandle.temp ?? Number.NaN}
-                    fractionDigits={2}
-                  />
-                </div>
-              </div>
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "sht40-input" && data.liveNumberByHandle != null ? (
-            <ReadingPanel className="text-[11px] leading-tight">
-              <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(5.25rem,auto)] gap-x-2 gap-y-1.5">
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge("Humidity (%RH)", "humidity")}
-                </span>
-                <div
-                  className="justify-self-end tabular-nums"
-                  title={lastValidTitle("humidity")}
-                >
-                  <ReadingNumber
-                    value={data.liveNumberByHandle.humidity ?? Number.NaN}
-                    fractionDigits={2}
-                  />
-                </div>
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge("Temperature (°C)", "temp")}
-                </span>
-                <div
-                  className="justify-self-end tabular-nums"
-                  title={lastValidTitle("temp")}
-                >
-                  <ReadingNumber
-                    value={data.liveNumberByHandle.temp ?? Number.NaN}
-                    fractionDigits={2}
-                  />
-                </div>
-              </div>
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "bmm350-input" &&
-          data.liveVector3ByHandle != null &&
-          data.liveNumberByHandle != null ? (
-            <ReadingPanel className="text-[11px] leading-tight">
-              {/*
-              Excel-like grid: label column + three numeric columns (X,Y,Z). Temperature sits under Z
-              so the scalar aligns with the right-hand column (same as magnetic Z).
-            */}
-              <div className="grid w-full grid-cols-[minmax(0,1fr)_repeat(3,minmax(3.35rem,auto))] gap-x-1.5 gap-y-1 items-baseline">
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge("Magnetic (µT)", "magnetic")}
-                </span>
-                <div
-                  className="justify-self-end"
-                  title={lastValidTitle("magnetic")}
-                >
-                  <ReadingAxisNumber
-                    axis="x"
-                    value={data.liveVector3ByHandle.magnetic?.x}
-                    fractionDigits={2}
-                  />
-                </div>
-                <div
-                  className="justify-self-end"
-                  title={lastValidTitle("magnetic")}
-                >
-                  <ReadingAxisNumber
-                    axis="y"
-                    value={data.liveVector3ByHandle.magnetic?.y}
-                    fractionDigits={2}
-                  />
-                </div>
-                <div
-                  className="justify-self-end"
-                  title={lastValidTitle("magnetic")}
-                >
-                  <ReadingAxisNumber
-                    axis="z"
-                    value={data.liveVector3ByHandle.magnetic?.z}
-                    fractionDigits={2}
-                  />
-                </div>
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge("Temperature (°C)", "temp")}
-                </span>
-                <div aria-hidden className="min-h-0 min-w-0" />
-                <div aria-hidden className="min-h-0 min-w-0" />
-                <div
-                  className="justify-self-end tabular-nums"
-                  title={lastValidTitle("temp")}
-                >
-                  <ReadingNumber
-                    value={data.liveNumberByHandle.temp ?? Number.NaN}
-                    fractionDigits={2}
-                  />
-                </div>
-              </div>
-            </ReadingPanel>
-          ) : null}
           {data.nodeId === "vector-splitter" &&
           data.liveNumberByHandle != null ? (
             <ReadingPanel>
@@ -765,19 +641,6 @@ export function StudioNodeCard(props: NodeProps) {
             </ReadingPanel>
           ) : null}
           {data.nodeId === "quat-input" && data.liveQuaternionWire != null ? (
-            <ReadingPanel>
-              <ReadingLabel className="mb-1 block">Quaternion</ReadingLabel>
-              <QuaternionScalarsGrid
-                w={data.liveQuaternionWire.w}
-                x={data.liveQuaternionWire.x}
-                y={data.liveQuaternionWire.y}
-                z={data.liveQuaternionWire.z}
-                fractionDigits={3}
-              />
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "bmi270-tap-quaternion" &&
-          data.liveQuaternionWire != null ? (
             <ReadingPanel>
               <ReadingLabel className="mb-1 block">Quaternion</ReadingLabel>
               <QuaternionScalarsGrid
@@ -851,38 +714,6 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "camera-view" && cameraViewControlsExpanded ? (
             <CameraViewNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.liveVector3Wire != null &&
-          TAP_VEC_PANEL_LABEL[data.nodeId] != null ? (
-            <ReadingPanel>
-              <ReadingLabel className="mb-1 block">
-                {TAP_VEC_PANEL_LABEL[data.nodeId]}
-              </ReadingLabel>
-              <Vec3ReadingRow
-                vector={data.liveVector3Wire}
-                fractionDigits={data.nodeId === "bmm350-tap-magnetic" ? 2 : 3}
-              />
-            </ReadingPanel>
-          ) : null}
-          {TAP_SCALAR_PANEL_LABEL[data.nodeId] != null &&
-          typeof data.liveValue === "number" &&
-          Number.isFinite(data.liveValue) ? (
-            <ReadingPanel className="text-[11px] leading-tight">
-              <div className="grid w-full grid-cols-[minmax(0,1fr)_minmax(5.25rem,auto)] gap-x-2 gap-y-1">
-                <span className="min-w-0 text-zinc-500">
-                  {renderLabelWithAge(
-                    TAP_SCALAR_PANEL_LABEL[data.nodeId],
-                    "out",
-                  )}
-                </span>
-                <div
-                  className="justify-self-end tabular-nums"
-                  title={lastValidTitle("out")}
-                >
-                  <ReadingNumber value={data.liveValue} fractionDigits={2} />
-                </div>
-              </div>
-            </ReadingPanel>
           ) : null}
           {data.nodeId === "indicator" ? (
             <ReadingPanel className="flex items-center gap-2 text-xs">

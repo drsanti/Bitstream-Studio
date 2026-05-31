@@ -10,8 +10,18 @@
  *
  *******************************************************************************/
 
+import { Activity, Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { TRNTabs, TRNTabsContent, TRNTabsList, TRNTabsTrigger } from "../../../ui/TRN";
+import {
+  TRNTabs,
+  TRNTabsContent,
+  TRNTabsList,
+  TRNTabsTrigger,
+  TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
+  TRN_INSPECTOR_TAB_LIST_CLASS,
+  TRN_INSPECTOR_TAB_TRIGGER_CLASS,
+  trnInspectorTabActiveClassName,
+} from "../../../ui/TRN";
 import { SensorTelemetryDeckView } from "../../../bitstream-app/components/telemetry/SensorTelemetryDeckView.js";
 import { BitstreamRealtimeTelemetryUiSettingsWindow } from "../../../bitstream-app/components/telemetry/BitstreamRealtimeTelemetryUiSettingsWindow.js";
 import {
@@ -108,7 +118,7 @@ export function TelemetryLivePanel()
   const mergedBmi270Sample = bmi270CacheRef.current?.sample ?? null;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden p-1">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <TRNTabs
         value={activeTab}
         onValueChange={(next) =>
@@ -119,18 +129,23 @@ export function TelemetryLivePanel()
           }
         }}
         lazyMount
-        className="flex h-full min-h-0 flex-col gap-1"
+        className="flex h-full min-h-0 flex-col"
+        activeTriggerClassName={trnInspectorTabActiveClassName(activeTab, "telemetry-data")}
       >
-        <TRNTabsList className="inline-flex w-full shrink-0 gap-1">
-          <TRNTabsTrigger value="telemetry-data" className="flex-1">
-            Telemetry Data
-          </TRNTabsTrigger>
-          <TRNTabsTrigger value="telemetry-settings" className="flex-1">
-            Settings
-          </TRNTabsTrigger>
-        </TRNTabsList>
+        <div className={TRN_INSPECTOR_TAB_BAR_WRAP_CLASS}>
+          <TRNTabsList className={TRN_INSPECTOR_TAB_LIST_CLASS}>
+            <TRNTabsTrigger value="telemetry-data" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <Activity className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />
+              Telemetry Data
+            </TRNTabsTrigger>
+            <TRNTabsTrigger value="telemetry-settings" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <Settings className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />
+              Settings
+            </TRNTabsTrigger>
+          </TRNTabsList>
+        </div>
 
-        <TRNTabsContent value="telemetry-data" className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <TRNTabsContent value="telemetry-data" className="min-h-0 min-w-0 flex-1 overflow-hidden p-1 pt-1">
           <div className="flex h-full min-h-0 min-w-0 flex-col overflow-y-auto">
             <SensorTelemetryDeckView
               telemetryMeta={{
@@ -163,7 +178,7 @@ export function TelemetryLivePanel()
           </div>
         </TRNTabsContent>
 
-        <TRNTabsContent value="telemetry-settings" className="min-h-0 min-w-0 flex-1 overflow-hidden">
+        <TRNTabsContent value="telemetry-settings" className="min-h-0 min-w-0 flex-1 overflow-hidden p-1 pt-1">
           <BitstreamRealtimeTelemetryUiSettingsWindow />
         </TRNTabsContent>
       </TRNTabs>

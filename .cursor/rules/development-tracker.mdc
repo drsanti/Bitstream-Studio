@@ -39,3 +39,7 @@ Follow **`.cursor/rules/bs2-protocol-change.mdc`** and skill **`bs2-protocol-cha
 ## Conflicts
 
 **User chat instructions** override this rule for that task; still update tracker after shipped work or new requirements.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

@@ -1,7 +1,7 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
 
-/** Sensor grouping for INPUT palette rows only (non-input categories omit subgroup). */
-export type PaletteInputSubgroup =
+/** Sensor grouping for SENSOR palette rows only (non-sensor categories omit subgroup). */
+export type PaletteSensorSubgroup =
   | "general"
   | "bmi270"
   | "dps368"
@@ -9,8 +9,8 @@ export type PaletteInputSubgroup =
   | "bmm350"
   | "quaternion";
 
-/** Order of sections within INPUT when using sectioned / accordion layouts. */
-export const PALETTE_INPUT_SUBGROUP_ORDER: PaletteInputSubgroup[] = [
+/** Order of sections within Sensors when using sectioned / accordion layouts. */
+export const PALETTE_SENSOR_SUBGROUP_ORDER: PaletteSensorSubgroup[] = [
   "general",
   "bmi270",
   "dps368",
@@ -19,7 +19,7 @@ export const PALETTE_INPUT_SUBGROUP_ORDER: PaletteInputSubgroup[] = [
   "quaternion",
 ];
 
-const SUBGROUP_LABEL: Record<PaletteInputSubgroup, string> = {
+const SUBGROUP_LABEL: Record<PaletteSensorSubgroup, string> = {
   general: "General",
   bmi270: "BMI270",
   dps368: "DPS368",
@@ -29,7 +29,7 @@ const SUBGROUP_LABEL: Record<PaletteInputSubgroup, string> = {
 };
 
 /** Short chip text for narrow palettes. */
-const SUBGROUP_CHIP: Record<PaletteInputSubgroup, string> = {
+const SUBGROUP_CHIP: Record<PaletteSensorSubgroup, string> = {
   general: "GEN",
   bmi270: "BMI",
   dps368: "DPS",
@@ -38,7 +38,7 @@ const SUBGROUP_CHIP: Record<PaletteInputSubgroup, string> = {
   quaternion: "QUAT",
 };
 
-function inputSubgroupFromId(id: string): PaletteInputSubgroup {
+function sensorSubgroupFromId(id: string): PaletteSensorSubgroup {
   if (id === "sensor-input") {
     return "general";
   }
@@ -61,38 +61,54 @@ function inputSubgroupFromId(id: string): PaletteInputSubgroup {
 }
 
 export type PaletteEntryMeta = {
-  /** Short tag for chips (INPUT nodes); null for transform/output/utility. */
+  /** Short tag for chips (sensor nodes); null for transform/output/utility. */
   chip: string | null;
-  /** INPUT-only subgroup; null when `entry.category !== "input"`. */
-  inputSubgroup: PaletteInputSubgroup | null;
+  /** SENSOR-only subgroup; null when `entry.category !== "sensor"`. */
+  sensorSubgroup: PaletteSensorSubgroup | null;
   /** Human header for section / accordion. */
   subgroupLabel: string;
   /** Second line for “two-line” layout. */
   subtitle: string;
 };
 
-export function getSubgroupLabel(subgroup: PaletteInputSubgroup): string {
+export function getSubgroupLabel(subgroup: PaletteSensorSubgroup): string {
   return SUBGROUP_LABEL[subgroup];
 }
 
+export const PALETTE_CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string> = {
+  sensor: "Sensors",
+  input: "Input",
+  transform: "Transform",
+  logic: "Logic",
+  output: "Output",
+  utility: "Utility",
+  generator: "Generator",
+};
+
+/** @deprecated Use {@link PaletteSensorSubgroup} */
+export type PaletteInputSubgroup = PaletteSensorSubgroup;
+
+/** @deprecated Use {@link PALETTE_SENSOR_SUBGROUP_ORDER} */
+export const PALETTE_INPUT_SUBGROUP_ORDER = PALETTE_SENSOR_SUBGROUP_ORDER;
+
 export function getPaletteEntryMeta(entry: NodeCatalogEntry): PaletteEntryMeta {
-  if (entry.category !== "input") {
+  if (entry.category !== "sensor") {
     return {
       chip: null,
-      inputSubgroup: null,
+      sensorSubgroup: null,
       subgroupLabel: "",
       subtitle: entry.description,
     };
   }
 
-  const inputSubgroup = inputSubgroupFromId(entry.id);
-  const subgroupLabel = SUBGROUP_LABEL[inputSubgroup];
-  const chip = SUBGROUP_CHIP[inputSubgroup];
+  const sensorSubgroup = sensorSubgroupFromId(entry.id);
+  const subgroupLabel = SUBGROUP_LABEL[sensorSubgroup];
+  const chip = SUBGROUP_CHIP[sensorSubgroup];
   const subtitle = `${subgroupLabel} · ${entry.title}`;
 
   return {
     chip,
-    inputSubgroup,
+    sensorSubgroup,
     subgroupLabel,
     subtitle,
   };

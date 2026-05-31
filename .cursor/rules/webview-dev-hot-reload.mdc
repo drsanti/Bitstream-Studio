@@ -32,3 +32,7 @@ npm run dev:webview           # http://localhost:5173/?app=bitstream
 ```
 
 Hard-reload the browser tab after **`vite.config.ts`** changes or stale HMR.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { AssetCategory } from "../registry/asset.types.js";
 
 const GLOBAL_DIRECTORIES_TAB_VALUES = [
   "overview",
@@ -10,6 +11,8 @@ const GLOBAL_DIRECTORIES_TAB_VALUES = [
 export type GlobalDirectoriesTabValue =
   (typeof GLOBAL_DIRECTORIES_TAB_VALUES)[number];
 
+export type AssetManagerMainTab = "browse" | "storage";
+
 function isGlobalDirectoriesTabValue(v: unknown): v is GlobalDirectoriesTabValue {
   return (
     typeof v === "string" &&
@@ -17,23 +20,47 @@ function isGlobalDirectoriesTabValue(v: unknown): v is GlobalDirectoriesTabValue
   );
 }
 
+function isAssetManagerMainTab(v: unknown): v is AssetManagerMainTab {
+  return v === "browse" || v === "storage";
+}
+
+function isAssetCategory(v: unknown): v is AssetCategory {
+  return v === "model" || v === "environment" || v === "texture";
+}
+
+export type OpenAssetManagerPanelOptions = {
+  mainTab?: AssetManagerMainTab;
+  browseCategory?: AssetCategory;
+  globalDirectoriesTab?: GlobalDirectoriesTabValue;
+};
+
 export type AssetManagerUiState = {
   panelOpen: boolean;
-  /** When set, Global Directories will switch to this tab on next open. */
+  requestedMainTab: AssetManagerMainTab | null;
+  requestedBrowseCategory: AssetCategory | null;
   requestedGlobalDirectoriesTab: GlobalDirectoriesTabValue | null;
-  openPanel: (opts?: { globalDirectoriesTab?: GlobalDirectoriesTabValue }) => void;
+  openPanel: (opts?: OpenAssetManagerPanelOptions) => void;
   closePanel: () => void;
   togglePanel: () => void;
-  /** Internal: called by Global Directories to consume a one-shot request. */
+  consumeRequestedMainTab: () => AssetManagerMainTab | null;
+  consumeRequestedBrowseCategory: () => AssetCategory | null;
   consumeRequestedGlobalDirectoriesTab: () => GlobalDirectoriesTabValue | null;
 };
 
 export const useAssetManagerUiStore = create<AssetManagerUiState>((set) => ({
   panelOpen: false,
+  requestedMainTab: null,
+  requestedBrowseCategory: null,
   requestedGlobalDirectoriesTab: null,
   openPanel: (opts) =>
     set({
       panelOpen: true,
+      requestedMainTab:
+        opts?.mainTab && isAssetManagerMainTab(opts.mainTab) ? opts.mainTab : null,
+      requestedBrowseCategory:
+        opts?.browseCategory && isAssetCategory(opts.browseCategory)
+          ? opts.browseCategory
+          : null,
       requestedGlobalDirectoriesTab:
         opts?.globalDirectoriesTab && isGlobalDirectoriesTabValue(opts.globalDirectoriesTab)
           ? opts.globalDirectoriesTab
@@ -41,6 +68,22 @@ export const useAssetManagerUiStore = create<AssetManagerUiState>((set) => ({
     }),
   closePanel: () => set({ panelOpen: false }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
+  consumeRequestedMainTab: () => {
+    let next: AssetManagerMainTab | null = null;
+    set((s) => {
+      next = s.requestedMainTab;
+      return { requestedMainTab: null };
+    });
+    return next;
+  },
+  consumeRequestedBrowseCategory: () => {
+    let next: AssetCategory | null = null;
+    set((s) => {
+      next = s.requestedBrowseCategory;
+      return { requestedBrowseCategory: null };
+    });
+    return next;
+  },
   consumeRequestedGlobalDirectoriesTab: () => {
     let next: GlobalDirectoriesTabValue | null = null;
     set((s) => {

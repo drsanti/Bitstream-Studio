@@ -166,7 +166,8 @@ export function SensorStudioMain() {
 
   const minimapCategoryColors = useMemo(
     (): Record<NodeCatalogEntry["category"], string> => ({
-      input: "#34d399",
+      sensor: "#34d399",
+      input: "#64748b",
       transform: "#fbbf24",
       logic: "#a78bfa",
       output: "#22d3ee",

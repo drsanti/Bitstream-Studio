@@ -45,3 +45,7 @@ Decoupling complete (2026-05-30). Local **`ui/catalog/`**, **`extension-bridge/`
 ## Related rules
 
 - **`bitstream-studio-handoff.mdc`**, **`bs2-protocol-change.mdc`**, **`bitstream-dual-runtime.mdc`**, **`bitstream-simulator-app-path.mdc`**, **`tesaiot-firmware-bitstream-paths.mdc`**
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

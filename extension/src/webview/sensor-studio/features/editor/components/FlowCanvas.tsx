@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, type DragEvent } from "react";
 import "@xyflow/react/dist/style.css";
+import "../nodes/flow-node/flow-node-handles.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import type { StudioNode } from "../store/flow-editor.store";

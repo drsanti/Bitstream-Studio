@@ -21,4 +21,4 @@ Firmware on-wire implementation is **not** vendored in Bitstream-Studio. When th
 
 After wire changes: **`.cursor/rules/bs2-protocol-change.mdc`** (spec → host code → tests → firmware → sim).
 
-Communication: **Thai and/or English** only.
+**Always DO NOT respond in Chinese.** Chat: **English** and/or **Thai** only — **`communication-language.mdc`**.

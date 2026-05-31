@@ -54,10 +54,9 @@ import {
 } from "./orientationPreviewMath.js";
 import {
   devViteModelUrlFromCanonicalDedupeKey,
-  mergeCatalogModels,
 } from "../../../../model-catalog/modelCatalogMerge.js";
-import { scanModelCatalogAssets } from "../../../../model-catalog/modelCatalog-asset-scan.js";
 import { formatModelDisplayName } from "../../../../model-catalog/formatModelDisplayName.js";
+import { useAssetRegistry } from "../../../../assets-manager/registry/AssetRegistryProvider.js";
 import { resolveDefaultPreviewMeshGlbUrl } from "./resolveWebviewModelAssetUrl.js";
 import {
   ROTATION_PREVIEW_SHARED_KEYS,
@@ -243,12 +242,14 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
   const [envMenuOpen, setEnvMenuOpen] = useState(false);
   const envMenuRef = useRef<HTMLDivElement>(null);
 
+  const { catalogModelEntries } = useAssetRegistry();
+
   const catalogModels = useMemo(
     () =>
-      [...mergeCatalogModels(scanModelCatalogAssets(), [])].sort((a, b) =>
+      [...catalogModelEntries].sort((a, b) =>
         formatModelDisplayName(a.name).localeCompare(formatModelDisplayName(b.name)),
       ),
-    [],
+    [catalogModelEntries],
   );
 
   const [previewBodyModelId, setPreviewBodyModelId] = useState<string>(() =>

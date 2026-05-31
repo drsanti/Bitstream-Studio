@@ -4,9 +4,12 @@
  */
 export { useAssetManagerAltMShortcut } from "./useAssetManagerAltMShortcut.js";
 export { AssetManagerProvider } from "../components/AssetManagerProvider.js";
+export { AssetRegistryProvider, useAssetRegistry } from "../registry/AssetRegistryProvider.js";
+export type { AssetRegistryContextValue } from "../registry/AssetRegistryProvider.js";
 export { useAssetRuntimeConfig } from "./useAssetRuntimeConfig.js";
 export type { AssetRuntimeConfig } from "./useAssetRuntimeConfig.js";
 export { useOpenAssetManager } from "./useOpenAssetManager.js";
+export { openAssetManagerBrowseModels } from "./openAssetManagerBrowseModels.js";
 export type {
   OpenAssetManagerOptions,
   UseOpenAssetManagerResult,

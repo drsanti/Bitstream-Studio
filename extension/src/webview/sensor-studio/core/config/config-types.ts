@@ -56,7 +56,7 @@ export type NodeCatalogOutputPort = {
 
 export type NodeCatalogEntry = {
   id: string;
-  category: "input" | "transform" | "logic" | "output" | "utility" | "generator";
+  category: "sensor" | "input" | "transform" | "logic" | "output" | "utility" | "generator";
   title: string;
   description: string;
   icon: string;

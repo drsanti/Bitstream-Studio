@@ -140,6 +140,54 @@ export function isStudioSensorTapNodeId(nodeId: string): boolean {
   return BMI270_TAP_NODE_ID_SET.has(nodeId) || ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(nodeId);
 }
 
+/** Multi-pin live sensor sources with aligned inspector Live readings matrix. */
+export const STUDIO_LIVE_READINGS_INPUT_NODE_IDS = [
+  "bmi270-input",
+  "bmm350-input",
+  "dps368-input",
+  "sht40-input",
+] as const;
+
+export type StudioLiveReadingsInputNodeId =
+  (typeof STUDIO_LIVE_READINGS_INPUT_NODE_IDS)[number];
+
+const STUDIO_LIVE_READINGS_INPUT_NODE_ID_SET = new Set<string>(
+  STUDIO_LIVE_READINGS_INPUT_NODE_IDS,
+);
+
+export function isStudioLiveReadingsInputNodeId(nodeId: string): boolean {
+  return STUDIO_LIVE_READINGS_INPUT_NODE_ID_SET.has(nodeId);
+}
+
+/** Multi-output sensor sources — shared subgrid label column on socket rows. */
+export const STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_IDS = [
+  "bmi270-input",
+  "bmm350-input",
+  "dps368-input",
+  "sht40-input",
+] as const;
+
+const STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_ID_SET = new Set<string>(
+  STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_IDS,
+);
+
+export function isStudioAlignedOutputSocketColumnsNodeId(nodeId: string): boolean {
+  return STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_ID_SET.has(nodeId);
+}
+
+/** Live hardware / tap sensor nodes — previews on output socket rows, no card ReadingPanel. */
+export function isStudioSensorSocketPreviewNodeId(nodeId: string): boolean {
+  return (
+    isStudioAlignedOutputSocketColumnsNodeId(nodeId) ||
+    isStudioSensorTapNodeId(nodeId)
+  );
+}
+
+/** Sensor nodes with a dedicated **Live readings** card in the Node Inspector Live tab. */
+export function isStudioLiveInspectorReadingsNodeId(nodeId: string): boolean {
+  return isStudioSensorSocketPreviewNodeId(nodeId);
+}
+
 /** Header chip label for sensor source nodes (BMI270 family + environment sensors). */
 export const STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID: Record<string, string> = {
   "bmi270-input": "BMI270",
@@ -486,7 +534,7 @@ function inferPortTypes(entry: NodeCatalogEntry): {
   if (entry.id === "gauge" || entry.id === "sparkline") {
     return { inputType: "number" };
   }
-  if (entry.category === "input") {
+  if (entry.category === "input" || entry.category === "sensor") {
     return { outputType: "number" };
   }
   if (entry.category === "output") {
@@ -519,6 +567,7 @@ function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
     data: {
       ...node.data,
       ...inferred,
+      category: entry.category,
     },
   };
 }
@@ -2656,6 +2705,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const inMax = asFiniteNumber(node.data.defaultConfig.inMax, 1);
           const outMin = asFiniteNumber(node.data.defaultConfig.outMin, -1);
           const outMax = asFiniteNumber(node.data.defaultConfig.outMax, 1);
+          const clampResult = node.data.defaultConfig.clamp !== false;
           const numericIncoming = narrowNumber(incomingValue);
           const inSpan = inMax - inMin;
           if (Math.abs(inSpan) < 1e-9) {
@@ -2663,7 +2713,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             continue;
           }
           const normalized = (numericIncoming - inMin) / inSpan;
-          const mapped = outMin + normalized * (outMax - outMin);
+          let mapped = outMin + normalized * (outMax - outMin);
+          if (clampResult) {
+            const lo = Math.min(outMin, outMax);
+            const hi = Math.max(outMin, outMax);
+            mapped = clampNumber(mapped, lo, hi);
+          }
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), mapped);
           continue;
         }

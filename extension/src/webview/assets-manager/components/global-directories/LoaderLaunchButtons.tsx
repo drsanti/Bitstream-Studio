@@ -37,7 +37,7 @@ function UnavailableLauncherWrap(props: {
 }
 
 /**
- * Presentational row for opening Model Loader, Free loader, and optional Model Catalog.
+ * Presentational row for opening Model Loader, Free loader, and Browse models (Asset Manager).
  * @see ../../../../docs/GLOBAL_DIRECTORIES_PANEL_DESIGN.md (Launchers)
  */
 export function LoaderLaunchButtons(props: LoaderLaunchButtonsProps) {
@@ -102,7 +102,7 @@ export function LoaderLaunchButtons(props: LoaderLaunchButtonsProps) {
       onClick={() => onOpenModelCatalog?.()}
     >
       <Package className={iconClass} aria-hidden />
-      Model catalog
+      Browse models
     </TRNButton>
   );
 

@@ -7,9 +7,22 @@ const PREFIX = "ternion.sensor-studio.nodeInspector.";
 const KEYS = {
   activeTab: `${PREFIX}activeTab`,
   settingsJsonAccordion: `${PREFIX}settingsJsonAccordion`,
+  /** @deprecated migrated to settingsSharedDeviceCollapsed */
   detailsSharedDeviceAccordion: `${PREFIX}detailsSharedDeviceAccordion`,
+  settingsSharedDeviceCollapsed: `${PREFIX}settingsSharedDeviceCollapsed.v1`,
+  detailsSectionOrder: `${PREFIX}detailsSectionOrder.v1`,
+  detailsSectionCollapsed: `${PREFIX}detailsSectionCollapsed.v1`,
   rotationRailByNodeId: `${PREFIX}rotationRailByNodeId.v1`,
 } as const;
+
+export type DetailsInspectorSectionId = "specs" | "ports";
+
+export const DEFAULT_DETAILS_SECTION_ORDER: readonly DetailsInspectorSectionId[] = [
+  "ports",
+  "specs",
+];
+
+const DETAILS_SECTION_IDS = new Set<string>(DEFAULT_DETAILS_SECTION_ORDER);
 
 const ROTATION_RAIL_IDS = new Set<string>([
   "model",
@@ -82,24 +95,173 @@ export function writeSettingsJsonAccordionValue(
   safeLocalStorageRemove(KEYS.settingsJsonAccordion);
 }
 
-export const DETAILS_SHARED_DEVICE_ACCORDION_VALUE = "shared-device" as const;
+const LEGACY_DETAILS_SHARED_DEVICE_ACCORDION_VALUE = "shared-device" as const;
 
-export function readDetailsSharedDeviceAccordionValue(): string | undefined {
+function readLegacyDetailsSharedDeviceExpanded(): boolean | undefined {
   const raw = safeLocalStorageGet(KEYS.detailsSharedDeviceAccordion);
-  if (raw === DETAILS_SHARED_DEVICE_ACCORDION_VALUE) {
-    return DETAILS_SHARED_DEVICE_ACCORDION_VALUE;
+  if (raw === LEGACY_DETAILS_SHARED_DEVICE_ACCORDION_VALUE) {
+    return true;
+  }
+  if (raw != null && raw.length > 0) {
+    return false;
   }
   return undefined;
 }
 
-export function writeDetailsSharedDeviceAccordionValue(
-  next: string | undefined,
-): void {
-  if (next === DETAILS_SHARED_DEVICE_ACCORDION_VALUE) {
-    safeLocalStorageSet(KEYS.detailsSharedDeviceAccordion, next);
-    return;
+function readLegacyDetailsSharedDeviceCollapsed(): boolean | undefined {
+  const raw = safeLocalStorageGet(KEYS.detailsSectionCollapsed);
+  if (raw == null || raw.length === 0) {
+    return undefined;
   }
-  safeLocalStorageRemove(KEYS.detailsSharedDeviceAccordion);
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return undefined;
+    }
+    const value = (parsed as Record<string, unknown>)["shared-device"];
+    return typeof value === "boolean" ? value : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Shared device card on Settings tab — default expanded. */
+export function readSettingsSharedDeviceCollapsed(): boolean {
+  const raw = safeLocalStorageGet(KEYS.settingsSharedDeviceCollapsed);
+  if (raw === "true") {
+    return true;
+  }
+  if (raw === "false") {
+    return false;
+  }
+  const legacyExpanded = readLegacyDetailsSharedDeviceExpanded();
+  if (legacyExpanded != null) {
+    return !legacyExpanded;
+  }
+  const legacyCollapsed = readLegacyDetailsSharedDeviceCollapsed();
+  if (legacyCollapsed != null) {
+    return legacyCollapsed;
+  }
+  return false;
+}
+
+export function writeSettingsSharedDeviceCollapsed(collapsed: boolean): void {
+  safeLocalStorageSet(KEYS.settingsSharedDeviceCollapsed, collapsed ? "true" : "false");
+}
+
+function isDetailsSectionId(value: string): value is DetailsInspectorSectionId {
+  return DETAILS_SECTION_IDS.has(value) || value === "about" || value === "shared-device";
+}
+
+function stripLegacyDetailsSectionIds(
+  order: readonly DetailsInspectorSectionId[],
+): DetailsInspectorSectionId[] {
+  return order.filter((id) => id !== "shared-device");
+}
+
+function detailsSectionOrderWithSpecsLast(
+  order: readonly DetailsInspectorSectionId[],
+): DetailsInspectorSectionId[] {
+  if (!order.includes("specs")) {
+    return [...order];
+  }
+  return [...order.filter((id) => id !== "specs"), "specs"];
+}
+
+export function readDetailsSectionOrder(): DetailsInspectorSectionId[] {
+  const raw = safeLocalStorageGet(KEYS.detailsSectionOrder);
+  if (raw == null || raw.length === 0) {
+    return [...DEFAULT_DETAILS_SECTION_ORDER];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [...DEFAULT_DETAILS_SECTION_ORDER];
+    }
+    const out: DetailsInspectorSectionId[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string") {
+        const id =
+          item === "about"
+            ? "specs"
+            : item === "shared-device"
+              ? null
+              : item;
+        if (
+          id != null &&
+          isDetailsSectionId(id) &&
+          id !== "shared-device" &&
+          !out.includes(id)
+        ) {
+          out.push(id);
+        }
+      }
+    }
+    for (const id of DEFAULT_DETAILS_SECTION_ORDER) {
+      if (!out.includes(id)) {
+        out.push(id);
+      }
+    }
+    return detailsSectionOrderWithSpecsLast(stripLegacyDetailsSectionIds(out));
+  } catch {
+    return [...DEFAULT_DETAILS_SECTION_ORDER];
+  }
+}
+
+export function writeDetailsSectionOrder(order: readonly DetailsInspectorSectionId[]): void {
+  safeLocalStorageSet(KEYS.detailsSectionOrder, JSON.stringify([...order]));
+}
+
+export function mergeDetailsSectionOrder(
+  stored: readonly DetailsInspectorSectionId[],
+  visible: readonly DetailsInspectorSectionId[],
+): DetailsInspectorSectionId[] {
+  const visibleSet = new Set(visible);
+  const ordered = stored.filter((id) => visibleSet.has(id));
+  for (const id of visible) {
+    if (!ordered.includes(id)) {
+      ordered.push(id);
+    }
+  }
+  const hiddenTail = stored.filter((id) => !visibleSet.has(id));
+  return [...ordered, ...hiddenTail];
+}
+
+export function readDetailsSectionCollapsed(): Record<DetailsInspectorSectionId, boolean> {
+  const defaults: Record<DetailsInspectorSectionId, boolean> = {
+    specs: true,
+    ports: false,
+  };
+  const raw = safeLocalStorageGet(KEYS.detailsSectionCollapsed);
+  if (raw == null || raw.length === 0) {
+    return defaults;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return defaults;
+    }
+    const legacy = parsed as Record<string, unknown>;
+    const out = { ...defaults };
+    for (const id of DEFAULT_DETAILS_SECTION_ORDER) {
+      const value = legacy[id];
+      if (typeof value === "boolean") {
+        out[id] = value;
+      }
+    }
+    if (typeof legacy.about === "boolean" && legacy.specs === undefined) {
+      out.specs = legacy.about;
+    }
+    return out;
+  } catch {
+    return defaults;
+  }
+}
+
+export function writeDetailsSectionCollapsed(
+  next: Record<DetailsInspectorSectionId, boolean>,
+): void {
+  safeLocalStorageSet(KEYS.detailsSectionCollapsed, JSON.stringify(next));
 }
 
 export type RotationInspectorRailPanelId =

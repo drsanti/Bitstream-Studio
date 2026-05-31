@@ -1,5 +1,7 @@
 export * from "./store";
 export * from "./hooks";
+export * from "./registry/index.js";
+export * from "./browse/index.js";
 export { AssetManagerMain } from "./components/AssetManagerMain.js";
 export type { AssetManagerMainProps } from "./components/AssetManagerMain.js";
 /** Embed inline (workbench pane, drawer): same body as {@link AssetManagerMain} without `TRNWindow`. */

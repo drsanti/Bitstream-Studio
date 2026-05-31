@@ -28,17 +28,36 @@ export function SensorCfgApplyBar(props: {
   onRevert: () => void;
   onApply: () => void;
   applyAck?: SensorConfigAckState;
+  /** When set, dirty count reflects this sensor only (embedded Inspector deck). */
+  scopeSourceId?: number;
+  scopeDirty?: boolean;
 })
 {
-  const { canControl, busy, onRefresh, onRevert, onApply, applyAck } = props;
+  const {
+    canControl,
+    busy,
+    onRefresh,
+    onRevert,
+    onApply,
+    applyAck,
+    scopeSourceId,
+    scopeDirty,
+  } = props;
   const dirtyIds = useConfigPaneDirtySourceIds();
   const truthReady = useBitstreamDeviceSensorConfigStore((s) => s.sensorCfgTruthReady);
-  const dirtyCount = dirtyIds.length;
+  const dirtyCount =
+    scopeDirty != null
+      ? scopeDirty
+        ? 1
+        : 0
+      : dirtyIds.length;
 
   const pendingLabel =
     applyAck?.state === "pending" && applyAck.sourceId != null
       ? getSensorSourceDisplayLabel(applyAck.sourceId)
-      : null;
+      : scopeSourceId != null
+        ? getSensorSourceDisplayLabel(scopeSourceId)
+        : null;
 
   const refreshDisabled = busy;
   const controlsLocked = !canControl || busy;

@@ -7,6 +7,7 @@ import {
   TRNAccordionTrigger,
   TRNHighlightedJsonTextarea,
 } from "../../../../../ui/TRN";
+import { InspectorSensorCfgSection } from "../../../../../sensor-telemetry/components/sensor-cfg-deck/InspectorSensorCfgSection";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { Rotation3DInspectorCards } from "../rotation/Rotation3DInspectorCards";
 import {
@@ -20,6 +21,7 @@ import type { NodeInspectorSettingsSectionProps } from "./settings/node-inspecto
 import {
   shouldShowJsonConfigSection,
   shouldShowRotation3dSettings,
+  shouldShowSharedDeviceSettings,
   shouldShowTypedSettingsSection,
 } from "./settings/node-inspector-settings-search";
 import {
@@ -33,6 +35,7 @@ export type NodeInspectorSettingsTabProps = {
   /** Catalog definition title for search + context (may be empty). */
   catalogDefinitionTitle: string;
   isRotation3DNode: boolean;
+  deviceSourceId: number | null;
   /** When true (multi-select, same `nodeId`), hide JSON — store rejects multi JSON apply. */
   suppressDefaultConfigJson?: boolean;
   onUpdateLabel: (nextLabel: string) => void;
@@ -55,6 +58,7 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
     selectedNode,
     catalogDefinitionTitle,
     isRotation3DNode,
+    deviceSourceId,
     suppressDefaultConfigJson = false,
     onUpdateLabel,
     onUpdateConfigField,
@@ -114,6 +118,9 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
 
   const showJsonSection = shouldShowJsonConfigSection(settingsSearch);
 
+  const showSharedDeviceCard =
+    deviceSourceId != null && shouldShowSharedDeviceSettings(settingsSearch);
+
   const scrollColumnUsesRotationFlex =
     isRotation3DNode && showRotationBlock;
 
@@ -162,6 +169,10 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
             onChange={(event) => onUpdateLabel(event.target.value)}
           />
         </InspectorPropertyRow>
+
+        {showSharedDeviceCard && deviceSourceId != null ? (
+          <InspectorSensorCfgSection sourceId={deviceSourceId} />
+        ) : null}
 
         {showTypedSection && CatalogSection != null ? (
           selectedNode.data.nodeId === "glb-animation-bundle" ? (

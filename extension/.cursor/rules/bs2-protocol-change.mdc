@@ -53,3 +53,7 @@ Wire byte changes: `npm run bitstream2:golden:gen`. MCU: skill **`bs2-uart-bring
 Update `docs/DEVELOPMENT_TRACKER.md` and root **`AGENT_HANDOFF.md`** when shipping.
 
 See root **`.cursor/rules/bs2-protocol-change.mdc`** for full checklist and **`bitstream-dual-runtime.mdc`** for telemetry parity.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

@@ -38,7 +38,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
 const MANIFEST_PATH = join(
   ROOT,
-  "src/webview/sensor-studio/features/asset-browser/studio-asset-manifest.v1.json",
+  "src/webview/assets-manager/registry/studio-asset-manifest.v1.json",
 );
 
 const CUBEMAP_FACES = ["posx.jpg", "negx.jpg", "posy.jpg", "negy.jpg", "posz.jpg", "negz.jpg"];

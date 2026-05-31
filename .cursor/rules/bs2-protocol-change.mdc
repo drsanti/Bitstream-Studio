@@ -66,3 +66,7 @@ If wire or SENSOR_CFG behavior changes, sync **`bitstream-simulator`** (separate
 ## Dual-runtime
 
 Bitstream (**uart**) and **Simulator** must stay mutually exclusive and parity-safe — see **`bitstream-dual-runtime.mdc`**.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

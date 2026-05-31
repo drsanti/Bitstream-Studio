@@ -442,13 +442,13 @@ export function ModelLoaderDashboard({
     () => [
       {
         id: "model-catalog",
-        label: "Model Catalog",
+        label: "Browse models",
         icon: <Package className="h-3.5 w-3.5 shrink-0" />,
         onSelect: () => {
           onClose();
           onOpenModelCatalog?.();
         },
-        title: "Open Model Catalog",
+        title: "Open Asset Manager — Browse models",
       },
       {
         id: "credentials",

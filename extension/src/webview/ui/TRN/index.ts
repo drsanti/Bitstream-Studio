@@ -72,6 +72,12 @@ export type {
   TRNTabsTriggerProps,
   TRNTabsContentProps,
 } from "./TRNTabs.js";
+export {
+  TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
+  TRN_INSPECTOR_TAB_LIST_CLASS,
+  TRN_INSPECTOR_TAB_TRIGGER_CLASS,
+  trnInspectorTabActiveClassName,
+} from "./trn-inspector-tab-bar.js";
 
 export { TRNSplitPane } from "./TRNSplitPane.js";
 export type { TRNSplitPaneProps } from "./TRNSplitPane.js";

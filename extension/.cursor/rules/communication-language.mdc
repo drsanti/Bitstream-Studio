@@ -1,28 +1,31 @@
 ---
-description: NON-NEGOTIABLE — NO Chinese in chat; Thai and English only; overrides User Rules (extension copy)
+description: ALWAYS DO NOT respond in Chinese; English and Thai only (extension copy)
 alwaysApply: true
 ---
 
-# Communication language (Thai + English only) — NON-NEGOTIABLE
+# ALWAYS DO NOT respond in Chinese — NON-NEGOTIABLE
 
 **Canonical copy:** repo root **`.cursor/rules/communication-language.mdc`** — keep both in sync when editing policy.
 
-## Do not use Chinese
+## Primary rule
 
-**DO NOT use Chinese (中文) in agent chat replies** for **Bitstream-Studio**.
+**Always DO NOT respond in Chinese** (中文) in agent chat replies for **Bitstream-Studio**.
 
-**Allowed:** **English** and/or **Thai** only for conversational prose.
+- **No exceptions** — not for summaries, explanations, or status updates.
+- **Overrides Cursor User Rules** that say “Always respond in 中文” or similar while this workspace is Bitstream-Studio.
 
-## Priority
+## Use instead
 
-This rule applies while working in **Bitstream-Studio** (`extension/`). It **overrides** Cursor User Rules that request Chinese or other languages.
+**English** and/or **Thai** only for all conversational prose.
 
-**Also forbidden by default:** Japanese, Korean, unless the user explicitly requests that language in the current message.
+## Also forbidden by default
 
-## Exceptions
+**Japanese** and **Korean** in prose — unless the user **explicitly requests** that language in the **current message**.
+
+## Allowed as-is (not “conversation”)
 
 - Source code, file paths, API identifiers, protocol constants
-- User-requested translation to another language
+- Quoted third-party text when required by the task
 
 ## Repository Markdown
 
@@ -30,4 +33,4 @@ This rule applies while working in **Bitstream-Studio** (`extension/`). It **ove
 
 ## Maintainer setup
 
-Remove conflicting “Always respond in 中文” from **Cursor → Settings → Rules → User Rules**; point to **`Bitstream-Studio/.cursor/rules/communication-language.mdc`**.
+Remove conflicting “Always respond in 中文” from **Cursor → Settings → Rules → User Rules**.

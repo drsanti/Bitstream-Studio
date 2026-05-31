@@ -33,7 +33,7 @@ import { TRNAlertOverlay } from "../ui/TRN/TRNAlertOverlay.js";
 import { TRNContainer } from "../ui/TRN/TRNContainer.js";
 import { TRNScrollableEdgeHints } from "../ui/TRN/TRNScrollableEdgeHints.js";
 import { BitstreamMainToolbar } from "./ui/BitstreamMainToolbar";
-import { AssetManagerMain, useAssetManagerAltMShortcut } from "../assets-manager";
+import { AssetManagerMain, openAssetManagerBrowseModels, useAssetManagerAltMShortcut } from "../assets-manager";
 import { SensorStudioAssistantShell } from "./ui/SensorStudioAssistantShell";
 import { BitstreamHeaderMenuPanel } from "./ui/shell/BitstreamHeaderMenuPanel";
 import {
@@ -207,7 +207,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
     usePreviewMeshMissingUiStore.getState().setFreeAssetsLoaderOpen(true);
   }, []);
   const openModelCatalogFromAssetManager = useCallback(() => {
-    usePreviewMeshMissingUiStore.getState().setModelCatalogOpen(true);
+    openAssetManagerBrowseModels();
   }, []);
 
   useAssetManagerAltMShortcut();

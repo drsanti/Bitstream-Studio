@@ -19,7 +19,7 @@ alwaysApply: true
 
 ## Agent behavior
 
-- When **creating or editing** Markdown documentation in `t3d-extension`, write and maintain it in **English**.
+- When **creating or editing** Markdown documentation in **`extension/`**, write and maintain it in **English**.
 - If an existing `*.md` file mixes another language into prose, **translate the prose to English** when editing that file, unless the user asked to keep a specific section.
 - This rule applies to **repository artifacts**, not to chat replies (see `communication-language.mdc` for conversational language with the user).
 
@@ -29,5 +29,5 @@ Keep technical documentation consistent for the team, search, diffs, and tooling
 
 ## Relationship to other rules
 
-- **Conversational replies** to the user may still be **Thai and/or English** per `communication-language.mdc`.
+- **Always DO NOT respond in Chinese** in chat — use **English** and/or **Thai** only per **`communication-language.mdc`**.
 - **Repository Markdown** is **English only** per this rule.

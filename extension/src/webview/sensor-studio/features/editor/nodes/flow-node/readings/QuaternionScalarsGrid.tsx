@@ -8,18 +8,54 @@ export type QuaternionScalarsGridProps = {
   fractionDigits?: number;
   /** Merged per component; axis default tints apply when omitted. */
   valueClassName?: string;
+  /** Tighter gaps for socket-row live previews. */
+  compact?: boolean;
 };
 
 /** Four quaternion components in one row (aligns with BMI270 quaternion column order: w, x, y, z). */
 export function QuaternionScalarsGrid(props: QuaternionScalarsGridProps) {
-  const { w, x, y, z, fractionDigits = 3, valueClassName } = props;
+  const { w, x, y, z, fractionDigits = 3, valueClassName, compact = false } = props;
 
   return (
-    <div className="grid w-max max-w-full grid-cols-4 items-baseline justify-items-end gap-x-2 text-[10px]">
-      <ReadingAxisNumber axis="w" value={w} fractionDigits={fractionDigits} className={valueClassName} />
-      <ReadingAxisNumber axis="x" value={x} fractionDigits={fractionDigits} className={valueClassName} />
-      <ReadingAxisNumber axis="y" value={y} fractionDigits={fractionDigits} className={valueClassName} />
-      <ReadingAxisNumber axis="z" value={z} fractionDigits={fractionDigits} className={valueClassName} />
+    <div
+      className={
+        compact
+          ? "flex max-w-full items-baseline justify-end gap-x-1 text-[10px]"
+          : "grid w-max max-w-full grid-cols-4 items-baseline justify-items-end gap-x-2 text-[10px]"
+      }
+    >
+      <ReadingAxisNumber
+        axis="w"
+        compact={compact}
+        socketFixedCell={compact}
+        value={w}
+        fractionDigits={fractionDigits}
+        className={valueClassName}
+      />
+      <ReadingAxisNumber
+        axis="x"
+        compact={compact}
+        socketFixedCell={compact}
+        value={x}
+        fractionDigits={fractionDigits}
+        className={valueClassName}
+      />
+      <ReadingAxisNumber
+        axis="y"
+        compact={compact}
+        socketFixedCell={compact}
+        value={y}
+        fractionDigits={fractionDigits}
+        className={valueClassName}
+      />
+      <ReadingAxisNumber
+        axis="z"
+        compact={compact}
+        socketFixedCell={compact}
+        value={z}
+        fractionDigits={fractionDigits}
+        className={valueClassName}
+      />
     </div>
   );
 }

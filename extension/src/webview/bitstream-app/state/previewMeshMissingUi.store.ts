@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { openAssetManagerBrowseModels } from "../../assets-manager/hooks/openAssetManagerBrowseModels.js";
 
 const SESSION_MISSING_DIALOG_PREFIX = "ternion:missing-asset-dialog:";
 
@@ -140,6 +141,12 @@ export const usePreviewMeshMissingUiStore = create<PreviewMeshMissingUiState>(
 
     setFreeAssetsLoaderOpen: (open) => set({ freeAssetsLoaderOpen: open }),
     setModelLoaderOpen: (open) => set({ modelLoaderOpen: open }),
-    setModelCatalogOpen: (open) => set({ modelCatalogOpen: open }),
+    /** @deprecated Model Catalog modal removed — opens Asset Manager Browse → Models when `open === true`. */
+    setModelCatalogOpen: (open) => {
+      if (open) {
+        openAssetManagerBrowseModels();
+      }
+      set({ modelCatalogOpen: false });
+    },
   }),
 );

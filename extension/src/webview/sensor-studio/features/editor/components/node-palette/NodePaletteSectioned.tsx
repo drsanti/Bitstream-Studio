@@ -2,8 +2,9 @@ import type { NodeCatalogEntry } from "../../../../core/config/config-types";
 import {
   getPaletteEntryMeta,
   getSubgroupLabel,
-  PALETTE_INPUT_SUBGROUP_ORDER,
-  type PaletteInputSubgroup,
+  PALETTE_CATEGORY_LABEL,
+  PALETTE_SENSOR_SUBGROUP_ORDER,
+  type PaletteSensorSubgroup,
 } from "./palette-entry-meta";
 import { PaletteCatalogIcon } from "./PaletteCatalogIcon";
 import { paletteEntryDnDProps } from "./palette-entry-dnd-props";
@@ -57,16 +58,16 @@ export function NodePaletteSectioned(props: NodePaletteSectionedProps) {
     grouped.set(entry.category, list);
   }
 
-  const inputNodes = grouped.get("input") ?? [];
-  const inputBySubgroup = new Map<PaletteInputSubgroup, NodeCatalogEntry[]>();
-  for (const sg of PALETTE_INPUT_SUBGROUP_ORDER) {
-    inputBySubgroup.set(sg, []);
+  const sensorNodes = grouped.get("sensor") ?? [];
+  const sensorBySubgroup = new Map<PaletteSensorSubgroup, NodeCatalogEntry[]>();
+  for (const sg of PALETTE_SENSOR_SUBGROUP_ORDER) {
+    sensorBySubgroup.set(sg, []);
   }
-  for (const entry of inputNodes) {
+  for (const entry of sensorNodes) {
     const meta = getPaletteEntryMeta(entry);
-    const sg = meta.inputSubgroup;
+    const sg = meta.sensorSubgroup;
     if (sg != null) {
-      inputBySubgroup.get(sg)?.push(entry);
+      sensorBySubgroup.get(sg)?.push(entry);
     }
   }
 
@@ -78,13 +79,13 @@ export function NodePaletteSectioned(props: NodePaletteSectionedProps) {
             className="text-[11px] font-semibold uppercase tracking-wide"
             style={{ color: secondaryTextColor }}
           >
-            {category}
+            {PALETTE_CATEGORY_LABEL[category]}
           </div>
 
-          {category === "input" ? (
+          {category === "sensor" ? (
             <>
-              {PALETTE_INPUT_SUBGROUP_ORDER.map((sg) => {
-                const list = inputBySubgroup.get(sg) ?? [];
+              {PALETTE_SENSOR_SUBGROUP_ORDER.map((sg) => {
+                const list = sensorBySubgroup.get(sg) ?? [];
                 if (list.length === 0) {
                   return null;
                 }

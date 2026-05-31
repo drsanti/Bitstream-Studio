@@ -1,0 +1,20 @@
+/**
+ * Studio flow sockets — centered on the node border, above card chrome.
+ * Requires handle anchor column `w-0` at the shell edge (see FlowNodeSocketRegion `pr-0`).
+ */
+.react-flow__node.react-flow__node-studio .react-flow__handle-left,
+.react-flow__node.react-flow__node-studio .react-flow__handle-left:hover {
+  transform: translate(-50%, -50%) !important;
+  z-index: 20;
+}
+
+.react-flow__node.react-flow__node-studio .react-flow__handle-right,
+.react-flow__node.react-flow__node-studio .react-flow__handle-right:hover {
+  transform: translate(50%, -50%) !important;
+  z-index: 20;
+}
+
+.react-flow__node.react-flow__node-studio .react-flow__handle.connectionindicator,
+.react-flow__node.react-flow__node-studio .react-flow__handle.connectingfrom {
+  pointer-events: all;
+}

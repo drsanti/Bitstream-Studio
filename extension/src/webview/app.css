@@ -133,7 +133,8 @@ body.webview-digital-twin-shell::after {
 }
 
 /* Full-screen modals under #root (Model Catalog / Loader / Free Loader, alerts, …). */
-#root .t3d-shell-overlay {
+#root .t3d-shell-overlay,
+body > .t3d-shell-overlay {
   pointer-events: auto;
 }
 

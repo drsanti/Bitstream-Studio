@@ -11,4 +11,6 @@ Project skills live under **`.cursor/skills/`**. Cursor discovers them when the 
 
 Rules: **`.cursor/rules/`** — start with **`bitstream-studio-handoff.mdc`** and **`bs2-protocol-change.mdc`**.
 
+**Always DO NOT respond in Chinese.** Chat: **English** and/or **Thai** only — **`communication-language.mdc`**.
+
 Doc index: **`extension/docs/BS2_PROTOCOL_INDEX.md`**.

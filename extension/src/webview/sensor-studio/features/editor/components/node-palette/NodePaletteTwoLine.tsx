@@ -1,5 +1,5 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
-import { getPaletteEntryMeta } from "./palette-entry-meta";
+import { getPaletteEntryMeta, PALETTE_CATEGORY_LABEL } from "./palette-entry-meta";
 import { PaletteCatalogIcon } from "./PaletteCatalogIcon";
 import { paletteEntryDnDProps } from "./palette-entry-dnd-props";
 import { PalettePreviewAffix } from "./PalettePreviewAffix";
@@ -28,10 +28,12 @@ function PaletteRowTwoLine(props: {
         {meta.chip}
       </span>
     ) : (
-      <span className="shrink-0 text-[9px] uppercase tracking-wide text-zinc-600">{category}</span>
+      <span className="shrink-0 text-[9px] uppercase tracking-wide text-zinc-600">
+        {PALETTE_CATEGORY_LABEL[category]}
+      </span>
     );
   const sub =
-    entry.category === "input" && meta.subtitle.length > 0 ? meta.subtitle : entry.description;
+    entry.category === "sensor" && meta.subtitle.length > 0 ? meta.subtitle : entry.description;
   return (
     <button
       type="button"
@@ -76,7 +78,7 @@ export function NodePaletteTwoLine(props: NodePaletteTwoLineProps) {
             className="text-[11px] font-semibold uppercase tracking-wide"
             style={{ color: secondaryTextColor }}
           >
-            {category}
+            {PALETTE_CATEGORY_LABEL[category]}
           </div>
           {nodes.map((entry) => (
             <PaletteRowTwoLine

@@ -273,14 +273,11 @@ export function BMI270ControlPanel(props: {
     }
     let ids = cardOrder;
     ids = ids.filter((id) => id !== "telemetryChannels");
-    if (!showFusionFeedCard) {
-      ids = ids.filter((id) => id !== "fusionFeed");
-    }
     if (isPeriodicMode) {
       ids = ids.filter((id) => id !== "delta" && id !== "minPublish");
     }
     return ids;
-  }, [enabled, isPeriodicMode, cardOrder, showFusionFeedCard]);
+  }, [enabled, isPeriodicMode, cardOrder]);
 
   return (
     <TRNSortableContainer
@@ -322,7 +319,7 @@ export function BMI270ControlPanel(props: {
           ) : cardId === "fusionFeed" ? (
             <BMI270FusionFeedIntervalCard
               collapsed={collapsedCards.fusionFeed}
-              controlsDisabled={false}
+              controlsDisabled={!showFusionFeedCard}
               ack={cardAckForDraftMode(draftUntilApply, cardAck.fusionFeed)}
               fusionFeedIntervalMs={fusionFeedIntervalMs}
               onToggleCollapsed={() => toggleCardCollapsed("fusionFeed")}

@@ -12,3 +12,7 @@ When adding UI under **`extension/src/webview/`**:
 3. **Catalog widgets** — shared non-TRN pieces live in **`extension/src/webview/ui/catalog/`** (Phase 3 decoupling complete; no `@ternion/t3d`).
 
 Scrollable lists: **`trn-glass-dropdown-scrollbars.mdc`**.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

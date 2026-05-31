@@ -10,3 +10,7 @@ Paths relative to **`extension/`**. Full policy: repo root **`.cursor/rules/deve
 Read **`docs/DEVELOPMENT_TRACKER.md`** before substantial feature work. For BS2 protocol tasks, also read **`docs/BS2_PROTOCOL_INDEX.md`**.
 
 Update **Recently completed** when shipping; follow **`bs2-protocol-change.mdc`** for wire changes.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.
