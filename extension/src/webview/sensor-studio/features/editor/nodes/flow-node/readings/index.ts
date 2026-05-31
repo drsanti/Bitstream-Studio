@@ -6,6 +6,14 @@ export { ReadingNumber } from "./ReadingNumber";
 export type { ReadingAxis, ReadingAxisNumberProps } from "./ReadingAxisNumber";
 export { ReadingAxisNumber } from "./ReadingAxisNumber";
 export {
+  getLiveScalarReadingColorClass,
+  resolveLiveReadingStreamTone,
+  resolveLiveScalarReadingKind,
+  type LiveReadingStreamTone,
+  type LiveScalarReadingColorHints,
+  type LiveScalarReadingKind,
+} from "./live-reading-colors";
+export {
   READING_PARAM_AXIS_VALUE_CLASS,
   readingParamAxisValueClass,
 } from "./param-axis-classes";

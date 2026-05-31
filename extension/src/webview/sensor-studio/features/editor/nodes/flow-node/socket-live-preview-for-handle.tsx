@@ -5,6 +5,7 @@ import {
   isStudioLiveReadingsInputNodeId,
   isStudioSensorTapNodeId,
 } from "../../store/flow-editor.store";
+import { resolveLiveReadingStreamTone } from "./readings/live-reading-colors";
 import { SocketLivePreview } from "./SocketLivePreview";
 
 function vector3PreviewHandleIdForTapNode(nodeId: string, handleId: string): string {
@@ -22,11 +23,32 @@ function vector3PreviewHandleIdForTapNode(nodeId: string, handleId: string): str
   }
 }
 
+function scalarSocketPreviewProps(
+  data: StudioNodeData,
+  handleId: string,
+  scalar: number | null | undefined,
+  portLabel?: string,
+) {
+  return {
+    portType: "number" as const,
+    handleId,
+    nodeId: data.nodeId,
+    portLabel,
+    scalar,
+    streamMode: resolveLiveReadingStreamTone({
+      sensorHealth: data.sensorHealth,
+      lastValidAtIso: data.sensorLastValidAtByHandle?.[handleId],
+      value: scalar,
+    }),
+  };
+}
+
 /** Live readout for an output handle on sensor source / tap nodes. */
 export function socketLivePreviewForOutputHandle(
   data: StudioNodeData,
   handleId: string,
   portType: StudioPortType,
+  portLabel?: string,
 ) {
   const { nodeId } = data;
 
@@ -58,9 +80,7 @@ export function socketLivePreviewForOutputHandle(
 
     if (portType === "number") {
       const scalar = data.liveNumberByHandle?.[handleId];
-      return (
-        <SocketLivePreview portType="number" handleId={handleId} scalar={scalar} />
-      );
+      return <SocketLivePreview {...scalarSocketPreviewProps(data, handleId, scalar, portLabel)} />;
     }
 
     return null;
@@ -98,9 +118,7 @@ export function socketLivePreviewForOutputHandle(
 
   if (portType === "number") {
     const scalar = typeof data.liveValue === "number" ? data.liveValue : undefined;
-    return (
-      <SocketLivePreview portType="number" handleId={handleId} scalar={scalar} />
-    );
+    return <SocketLivePreview {...scalarSocketPreviewProps(data, handleId, scalar, portLabel)} />;
   }
 
   return null;

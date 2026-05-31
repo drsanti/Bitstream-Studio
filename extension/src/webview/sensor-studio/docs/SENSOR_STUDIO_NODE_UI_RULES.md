@@ -135,6 +135,7 @@ Follow **node-animator** `socketGridLayout` / `SocketHandle` — zero-width anch
 | **`flow-node/flow-node-handles.css`**     | Border-centered handle transform + z-index    |
 | **`flow-node/flow-node-handle-style.ts`** | Port accent inline style                      |
 | **`flow-node/SocketLivePreview.tsx`**     | Compact vec3 / quat / scalar preview          |
+| **`flow-node/readings/live-reading-colors.ts`** | Scalar semantic tint + live/idle stream tone |
 | **`StudioNodeCard.tsx`**                  | Wires handles, previews, **`handleDotClass`** |
 
 ---
@@ -164,11 +165,60 @@ Default UI font is **Inter** (bundled via **`@fontsource-variable/inter`**, Tail
 | **Node header subtitle** (linked model, etc.) | **`text-[11px] uppercase tracking-wide text-zinc-400`** | 11px |
 | **Socket port label** | **`text-[11px] leading-tight text-zinc-300`** (+ muted span **`text-zinc-400`**) | 11px |
 | **Socket live preview** | **`SOCKET_LIVE_VALUE_TYPOGRAPHY`** — `font-sans text-[11px] leading-tight tabular-nums` | 11px |
+| **Socket live preview tint** | Semantic scalar colors via **`getLiveScalarReadingColorClass`** — see **Live reading semantic colors** | — |
 | **Inspector `nodeId`, wire dumps** | **`font-mono`** | context-specific |
 
 **Do not** use **`font-mono`** on socket-row live previews — match port labels (Inter). Use **`font-mono`** only for ids, JSON, and diagnostic monospace blocks.
 
 **New nodes:** reuse the title row classes in **`StudioNodeCard`** (`primary` slot); do not introduce alternate title sizes without updating this table.
+
+---
+
+## Live reading semantic colors
+
+One module drives **scalar** tint on flow socket rows, node-library live previews, and (when wired) inspector matrices. **Do not** hardcode `text-zinc-100` / `text-orange-400` on live sensor values in new UI.
+
+### Source of truth
+
+| Module | Role |
+| ------ | ---- |
+| **`flow-node/readings/live-reading-colors.ts`** | **`resolveLiveScalarReadingKind`**, **`getLiveScalarReadingColorClass`**, **`resolveLiveReadingStreamTone`** |
+| **`flow-node/readings/param-axis-classes.ts`** | Vector / quaternion component tints (x/y/z/w) — unchanged |
+| **`node-palette/palette-scalar-reading-styles.ts`** | Re-exports scalar helpers for library rows (same tints) |
+
+Keep **`ReadingNumber`** presentational (formatting only). Pass tint via **`className`** from the color helpers — do not embed semantics inside **`ReadingNumber`**.
+
+### Scalar tint map (live stream)
+
+| Kind | Tailwind class | Resolved from |
+| ---- | -------------- | ------------- |
+| **Temperature** | **`text-orange-400/95`** | handle **`temp`** / **`temperature`**; tap **`…-tap-temp`**; unit **`°C`**; label contains **`temp`** |
+| **Humidity** | **`text-cyan-400/95`** | handle **`humidity`** / **`rh`**; tap **`…-tap-humidity`**; unit **`%RH`**; label contains **`humid`** |
+| **Pressure** | **`text-purple-400/95`** | handle **`pressure`** / **`pr`**; tap **`…-tap-pressure`**; unit **`hPa`**; label contains **`pressure`** |
+| **Neutral** | **`text-zinc-100`** | Generic scalars (math, constants, unclassified) |
+| **Idle stream** | **`text-zinc-500`** | When **`resolveLiveReadingStreamTone`** returns **`idle`** (no recent valid sample / stream off) |
+
+Resolution order: **`handleId`** → catalog **`nodeId`** (tap nodes use handle **`out`**) → **unit** / **label**.
+
+### Vector / quaternion sockets
+
+| Data | Component | Tint |
+| ---- | --------- | ---- |
+| **vector3** (accel, gyro, magnetic, euler) | **`ReadingAxisNumber`** + **`socketFixedCell`** | **`readingParamAxisValueClass`** — x red, y emerald, z sky |
+| **quaternion** | **`QuaternionScalarsGrid`** | Same axis map (w pink) |
+
+No scalar color helper on vec3/quat rows — axis colors are separate by design.
+
+### Wiring on flow nodes
+
+| Path | Rule |
+| ---- | ---- |
+| **Output socket preview** | **`socketLivePreviewForOutputHandle`** → **`SocketLivePreview`** — pass **`nodeId`**, **`handleId`**, port **label**, **`streamMode`** from node data |
+| **New scalar port** | Use a resolvable **`handleId`** (`temp`, `humidity`, `pressure`) or a tap **`nodeId`** suffix; set catalog **label** with unit text when handle id is generic |
+| **Library preview** | **`getPaletteScalarReadingColorClass(streamMode, { unit, label, handleId, nodeId })`** on **`ReadingNumber`** |
+| **Inspector matrix** | Prefer **`getLiveScalarReadingColorClass`** on value cells (aligned readings still migrating) |
+
+**Do not** duplicate tint tables in palette or card code — extend **`live-reading-colors.ts`** when adding a new semantic scalar family.
 
 ---
 
@@ -197,10 +247,11 @@ Default UI font is **Inter** (bundled via **`@fontsource-variable/inter`**, Tail
 
 1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temp (°C)`** last on BMI270).
 2. **Typography** — follow **Typography** (Inter; node title **`text-[13px]`**, socket labels/previews **`11px`**).
-3. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
-4. Optional **Settings** section + registry entry.
-5. Optional on-card panel — only if operators need at-a-glance control.
-6. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
+3. **Live reading colors** — follow **Live reading semantic colors**; socket previews must use **`socketLivePreviewForOutputHandle`** (or **`getLiveScalarReadingColorClass`** / **`ReadingAxisNumber`** for custom readouts).
+4. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
+5. Optional **Settings** section + registry entry.
+6. Optional on-card panel — only if operators need at-a-glance control.
+7. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
 
 ### Live multi-pin input node (BMI270 / BMM350 / DPS368 / SHT40)
 
@@ -212,16 +263,16 @@ When adding a multi-output sensor source:
 4. **Do not** add a card **`ReadingPanel`**.
 5. **Inspector → Live** — extend **`LiveSensorInspectorReadings`** (multi-output: aligned matrix; taps: **`SensorTapInspectorReadings`**). Register via **`isStudioLiveInspectorReadingsNodeId`**.
 6. **Socket rows** — follow **Output socket row layout** (subgrid, fixed-width cells, border handles, label padding).
-7. On hydrate/import, **`refreshCatalogOutputHandles`** syncs port defs and **`data.category`** from catalog (migrates old graphs that stored hardware under **`input`**).
+7. **Semantic colors** — scalar ports use stable **`handleId`** names (`temp`, `humidity`, `pressure`) so **`SocketLivePreview`** picks up tints automatically; library rows pass the same hints.
+8. On hydrate/import, **`refreshCatalogOutputHandles`** syncs port defs and **`data.category`** from catalog (migrates old graphs that stored hardware under **`input`**).
 
 ### Single-output sensor tap node
 
 1. Register in **`BMI270_TAP_NODE_IDS`** or **`ENVIRONMENT_SENSOR_TAP_NODE_IDS`** (**`isStudioSensorTapNodeId`**).
 2. Single **`out`** port in catalog with correct **`portType`**.
 3. Simulation must populate **`liveQuaternionWire`**, **`liveVector3Wire`**, or **`liveValue`** (existing tap tick paths).
-4. **No card body panel** — preview on the socket row only.
-
-### Resizable panel nodes (oscilloscope, model-viewer, …)
+4. **Catalog `nodeId`** must follow **`…-tap-temp`**, **`…-tap-humidity`**, or **`…-tap-pressure`** (or extend **`live-reading-colors.ts`**) so scalar taps tint correctly with handle **`out`**.
+5. **No card body panel** — preview on the socket row only.
 
 ### Resizable panel nodes (oscilloscope, model-viewer, …)
 

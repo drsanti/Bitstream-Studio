@@ -411,7 +411,7 @@ export function StudioNodeCard(props: NodeProps) {
   const outputSockets =
     data.outputHandles != null && data.outputHandles.length > 0
       ? data.outputHandles.map((h) => {
-          const preview = socketLivePreviewForOutputHandle(data, h.id, h.portType);
+          const preview = socketLivePreviewForOutputHandle(data, h.id, h.portType, h.label);
           return (
           <FlowNodeSocketRow
             key={h.id}
