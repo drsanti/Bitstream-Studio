@@ -5,7 +5,8 @@ const TYPED_SECTION_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   "low-pass": ["low", "pass", "filter", "alpha", "smooth"],
   gauge: ["gauge", "unit", "decimals", "digits"],
   sparkline: ["sparkline", "history", "buffer", "samples"],
-  oscilloscope: ["oscilloscope", "scope", "channel", "timebase", "sample"],
+  plotter: ["plotter", "trend", "chart", "trace", "channel", "history"],
+  oscilloscope: ["oscilloscope", "scope", "plotter"],
   "sensor-input": ["sensor", "source", "sourcekey", "hardware", "bmi270"],
   environment: [
     "environment",

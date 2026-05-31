@@ -1,6 +1,7 @@
 import type { PalettePreviewStreamTone } from "./palette-live-preview";
 import {
   getLiveScalarReadingColorClass,
+  resolveLiveScalarReadingFractionDigits,
   resolveLiveScalarReadingKind,
   type LiveScalarReadingKind,
 } from "../../nodes/flow-node/readings/live-reading-colors";
@@ -9,6 +10,7 @@ import {
 export type PaletteScalarReadingKind = LiveScalarReadingKind;
 
 export { resolveLiveScalarReadingKind as resolvePaletteScalarReadingKind };
+export { resolveLiveScalarReadingFractionDigits as resolvePaletteScalarReadingFractionDigits };
 
 export function getPaletteScalarReadingColorClass(
   streamMode: PalettePreviewStreamTone,

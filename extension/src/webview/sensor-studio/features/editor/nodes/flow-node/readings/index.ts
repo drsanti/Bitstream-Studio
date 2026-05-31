@@ -8,6 +8,7 @@ export { ReadingAxisNumber } from "./ReadingAxisNumber";
 export {
   getLiveScalarReadingColorClass,
   resolveLiveReadingStreamTone,
+  resolveLiveScalarReadingFractionDigits,
   resolveLiveScalarReadingKind,
   type LiveReadingStreamTone,
   type LiveScalarReadingColorHints,

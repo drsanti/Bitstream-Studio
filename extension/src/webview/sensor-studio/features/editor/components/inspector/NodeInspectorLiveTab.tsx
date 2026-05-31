@@ -43,7 +43,7 @@ export function NodeInspectorLiveTab(props: NodeInspectorLiveTabProps) {
   const histTail = hist.slice(-24);
   const nums = d.liveNumberByHandle;
   const vec3h = d.liveVector3ByHandle;
-  const scope = d.liveScopeHistory;
+  const plotter = d.livePlotHistory;
 
   const hasSensorIssue =
     (d.sensorInvalidReason != null && d.sensorInvalidReason.length > 0) ||
@@ -133,10 +133,10 @@ export function NodeInspectorLiveTab(props: NodeInspectorLiveTabProps) {
         </InspectorSection>
       ) : null}
 
-      {scope != null && Object.keys(scope).length > 0 ? (
-        <InspectorSection title="Oscilloscope channels" collapsible defaultExpanded={false}>
+      {plotter != null && Object.keys(plotter).length > 0 ? (
+        <InspectorSection title="Plotter channels" collapsible defaultExpanded={false}>
           <dl className="space-y-1 font-mono text-[10px] text-zinc-200">
-            {Object.entries(scope).map(([ch, series]) => {
+            {Object.entries(plotter).map(([ch, series]) => {
               const last = series.length > 0 ? series[series.length - 1] : Number.NaN;
               return (
                 <div

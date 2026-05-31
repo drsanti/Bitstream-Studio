@@ -398,11 +398,11 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
       },
       {
-        id: "oscilloscope",
+        id: "plotter",
         category: "output",
-        title: "Oscilloscope",
+        title: "Plotter",
         description:
-          "Lab-style multi-channel scope: shared timebase and vertical amplifier; plot Euler components, quaternion scalars, or any wired numbers.",
+          "Multi-channel trend chart: one point per flow update (typically each telemetry frame). Wire scalars to Ch 1–4.",
         icon: "activity",
         defaultVisible: true,
         inputPorts: [
@@ -412,7 +412,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "ch4", portType: "number", label: "Ch 4" },
         ],
         defaultConfig: {
-          sampleCount: 256,
+          historyLength: 256,
           verticalGain: 1,
           verticalOffset: 0,
           autoScale: true,

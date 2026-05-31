@@ -80,7 +80,7 @@ export function SensorTapInspectorReadings(props: SensorTapInspectorReadingsProp
       return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;
     case "dps368-tap-pressure":
       return (
-        <ScalarTapRow label="Pressure (hPa)" value={scalar} fractionDigits={2} />
+        <ScalarTapRow label="Pressure (hPa)" value={scalar} fractionDigits={1} />
       );
     case "dps368-tap-temp":
       return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;

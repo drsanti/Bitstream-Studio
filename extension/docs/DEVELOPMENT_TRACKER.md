@@ -94,6 +94,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-31** — **Sensor Studio Inspector instrument panel v1:** neutral zinc shell; **`InspectorContextBar`** (title, meta, stream chips, live pulse); flat **`InspectorSection`** for Live tab; readings column headers + row dividers; history collapsed by default.
 - **2026-05-31** — **Sensor Studio Inspector Live readings (all sensors):** **`LiveSensorInspectorReadings`** for DPS368/SHT40 matrices + all tap nodes (**`SensorTapInspectorReadings`**); **`NodeInspectorLiveTab`** dedupes generic pin/wire blocks; **`isStudioLiveInspectorReadingsNodeId`**.
 - **2026-05-31** — **Sensor Studio socket previews on all sensor nodes:** tap nodes (BMI270 quaternion/euler/accel/gyro, DPS368/SHT40/BMM350 taps) + **DPS368/SHT40** inputs use socket-row live previews; card **`ReadingPanel`** removed; **`isStudioSensorSocketPreviewNodeId`** / **`isStudioAlignedOutputSocketColumnsNodeId`**.
+- **2026-05-31** — **Sensor Studio Plotter (rename from Oscilloscope):** catalog **`plotter`**, **`historyLength`** buffer, **`livePlotHistory`**, hydrate migration from **`oscilloscope`** / **`sampleCount`**; docs in **`SENSOR_STUDIO_NODE_UI_RULES.md`** (Plotter + flow execution model).
 - **2026-05-31** — **Sensor Studio live reading semantic colors:** shared **`live-reading-colors.ts`** (temp / humidity / pressure + idle tone); wired **`SocketLivePreview`** + palette re-export; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`** (node creation checklist).
 - **2026-05-31** — **Sensor Studio output socket row rules:** border-centered handles (`flow-node-handles.css`, `w-0` anchor, `overflow-visible` shell); label **`pl-2 pr-3`**; fixed-width live cells (`6ch`); BMI270 port order + **`Temp (°C)`**; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
 - **2026-05-31** — **Sensor Studio live sensor nodes — socket previews + inspector matrix:** BMI270/BMM350 output rows show **left-aligned** live previews (`FlowNodeSocketRow.leadingPreview`); card `ReadingPanel` removed; full grid in inspector **Live** tab (`LiveSensorInspectorReadings`); redundant family chip hidden when label matches catalog title.
@@ -369,6 +370,14 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
+- **Sensor Studio — flow domains (multi-evaluator epic)** — **Planned; do not start implementation until explicitly requested.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (exec or event runner), (D) **material / PBR** (parameter wiring first, full shader graph later). Captured from product review **2026-05-31**.
+  - [x] Phase 0 — design doc + tracker entry (**2026-05-31**)
+  - [ ] Phase 1 — frame loop for 3D (decouple rAF from `sampleCount`)
+  - [ ] Phase 2 — **`FlowWireTransformV1`** + model-viewer consumer (extends *Model Viewer composable wires* **P2**)
+  - [ ] Phase 3 — event layer (key/mouse source nodes + runner)
+  - [ ] Phase 4 — GLB animation depth (merge utility, drive polish)
+  - [ ] Phase 5 — material parameter nodes (PBR v1)
+  - [ ] Phase 6 — optional geometry / full shader DAG
 - **Digital Twin simulations (from `ternion-t3d`)** — canonical plan **[`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md)**. Order: **Phase 0** shared R3F shell → **Phase 1** E84 → **Phase 2** ABB → **Phase 3** vehicle (Jolt).
   - [x] Phase 0 — `webview/simulations/**`, catalog, hub, landing cards (2026-05-30)
   - [ ] Phase 0 smoke — GLB loads in dev/VSIX with free pack
@@ -541,6 +550,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 | Logged `YYYY-MM-DD` | Source | Requirement | Status |
 |---------------------|--------|--------------|--------|
+| **2026-05-31** | User / Sensor Studio | **Multi-domain flow editor:** Support keyboard/mouse events and Blender-like goals (geometry/shader parity targets) — 3D transforms, GLB animations, PBR materials — via **separate evaluators** on one canvas; plan in **`FLOW_DOMAINS.md`**; **implementation gated** until user says start. | `accepted` |
 | **2026-05-31** | User / extension | **Unified configurable Bitstream broker port:** Expert Connection **Broker URL** should eventually align with bridge listen port (**`ternion.ws.brokerPort`** / dev **`T3D_WS_PORT`**), not only **`ws-client-store`**. Single setting for webview + extension spawn + external sim + diagnostics. | `accepted` |
 | **2026-05-30** | User / extension | **Migrate Digital Twin sims** (E84 rotation, ABB robot, vehicle physics) from `ternion-t3d` welcome cards into Bitstream Studio without `@ternion/t3d` (R3F + mqtt; Jolt for vehicle). Track in **`APPLICATION_MIGRATION_PLAN.md`**. | `accepted` |
 | **2026-05-12** | User / extension | **Bitstream sensor `cfg` reload truth**: On browser reload, left sensor deck must show **MCU-actual** values for **`enabled`**, **`publishMode`**, **`samplingIntervalMs`**, **`deltaX100`**, **`minPublishIntervalMs`**. Backend/bridge should converge on firmware truth at startup (cold **`sensor.cfg.get`** and/or persisted **`RUNTIME_SNAPSHOT.sensorConfigs`**); avoid republishing seeded defaults as truth. | `accepted` |

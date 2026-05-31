@@ -62,7 +62,7 @@ export type NodeCatalogEntry = {
   icon: string;
   defaultVisible: boolean;
   defaultConfig: Record<string, unknown>;
-  /** Multi-input node (e.g. oscilloscope): target handle id per entry. */
+  /** Multi-input node (e.g. plotter): target handle id per entry. */
   inputPorts?: NodeCatalogOutputPort[];
   /** Multi-output node: one pin per entry (id becomes React Flow handle id). */
   outputPorts?: NodeCatalogOutputPort[];

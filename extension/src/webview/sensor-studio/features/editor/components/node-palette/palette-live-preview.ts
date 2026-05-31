@@ -193,7 +193,13 @@ function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PaletteP
   switch (nodeId) {
     case "dps368-tap-pressure": {
       const b = computeDps368PinBundle(latestByHint);
-      return scalarPreview(b.pressureHpa, "hPa", b.streamLive ? "live" : "idle");
+      return scalarPreview(
+        b.pressureHpa,
+        "hPa",
+        b.streamLive ? "live" : "idle",
+        false,
+        1,
+      );
     }
     case "dps368-tap-temp": {
       const b = computeDps368PinBundle(latestByHint);
@@ -271,7 +277,7 @@ function dps368PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
         label: "Pressure",
         value: b.pressureHpa,
         unit: "hPa",
-        fractionDigits: 2,
+        fractionDigits: 1,
         signedPositive: false,
       },
       {

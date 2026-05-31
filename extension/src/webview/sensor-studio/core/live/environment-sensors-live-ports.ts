@@ -1,4 +1,5 @@
 import type { BitstreamSensorSampleV2 } from "../../../../bitstream/events/sensor-decoder";
+import { pressureHpaFromWireSecondaryX100 } from "../../../bitstream-app/telemetry/pressureDisplay";
 
 /** µT vector decoded from int16 ×100 fields (matches `decodeBmm350Sample`). */
 export type MagneticMicroteslaVec3 = { x: number; y: number; z: number };
@@ -10,14 +11,15 @@ function scaleInt16X100(value: number | undefined): number {
   return value / 100;
 }
 
-function scaleUint16Secondary(value: number | undefined): number {
+/** Wire: secondaryX100 stores %RH × 100 — same scaling as `SHT40DataViewer`. */
+function scaleHumidityPctFromSecondaryX100(value: number | undefined): number {
   if (typeof value !== "number" || !Number.isFinite(value)) {
     return 0;
   }
   return value / 100;
 }
 
-/** Pressure (hPa) and temperature (°C) — same scaling as `DPS368DataViewer`. */
+/** Pressure (hPa) and temperature (°C) — same scaling as `DPS368DataViewer` (pressure: hPa×10 in `secondaryX100`). */
 export function computeDps368PinBundle(latestByHint: {
   dps368: BitstreamSensorSampleV2 | null;
 }): {
@@ -30,7 +32,9 @@ export function computeDps368PinBundle(latestByHint: {
     const hasPressure = typeof s.secondaryX100 === "number" && Number.isFinite(s.secondaryX100);
     const hasTemp = typeof s.temperatureCx100 === "number" && Number.isFinite(s.temperatureCx100);
     return {
-      pressureHpa: hasPressure ? scaleUint16Secondary(s.secondaryX100) : 0,
+      pressureHpa: hasPressure
+        ? pressureHpaFromWireSecondaryX100(s.secondaryX100)
+        : 0,
       tempC: hasTemp ? scaleInt16X100(s.temperatureCx100) : 0,
       streamLive: true,
     };
@@ -55,7 +59,7 @@ export function computeSht40PinBundle(latestByHint: {
     const hasHumidity = typeof s.secondaryX100 === "number" && Number.isFinite(s.secondaryX100);
     const hasTemp = typeof s.temperatureCx100 === "number" && Number.isFinite(s.temperatureCx100);
     return {
-      humidityPct: hasHumidity ? scaleUint16Secondary(s.secondaryX100) : 0,
+      humidityPct: hasHumidity ? scaleHumidityPctFromSecondaryX100(s.secondaryX100) : 0,
       tempC: hasTemp ? scaleInt16X100(s.temperatureCx100) : 0,
       streamLive: true,
     };

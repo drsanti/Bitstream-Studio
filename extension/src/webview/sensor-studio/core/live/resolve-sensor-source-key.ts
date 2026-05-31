@@ -2,6 +2,7 @@ import type {
   BitstreamSensorSampleV2,
   BitstreamSensorSourceHint,
 } from "../../../../bitstream/events/sensor-decoder";
+import { pressureHpaFromWireSecondaryX100 } from "../../../bitstream-app/telemetry/pressureDisplay";
 
 export const STUDIO_SENSOR_SOURCE_KEY_OPTIONS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "bmi270.accel.x", label: "BMI270 accel X (m/s²)" },
@@ -137,7 +138,10 @@ function extractNumericFromSample(sample: BitstreamSensorSampleV2, path: string)
   }
 
   if (path === "pressure") {
-    return scale100(sample.secondaryX100);
+    if (typeof sample.secondaryX100 !== "number" || !Number.isFinite(sample.secondaryX100)) {
+      return null;
+    }
+    return pressureHpaFromWireSecondaryX100(sample.secondaryX100);
   }
 
   return null;

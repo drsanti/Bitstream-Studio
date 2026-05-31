@@ -1,57 +1,61 @@
-/** Persisted oscilloscope UI + styling (Sensor Studio flow node `defaultConfig`). */
+/** Persisted Plotter UI + styling (Sensor Studio flow node `defaultConfig`). */
 
-export const OSCILLOSCOPE_INPUT_IDS = ["ch1", "ch2", "ch3", "ch4"] as const;
-export type OscilloscopeInputId = (typeof OSCILLOSCOPE_INPUT_IDS)[number];
+export const PLOTTER_NODE_ID = "plotter";
+/** @deprecated Hydrate migrates persisted graphs to {@link PLOTTER_NODE_ID}. */
+export const LEGACY_OSCILLOSCOPE_NODE_ID = "oscilloscope";
 
-export type OscilloscopeLineStyle = "solid" | "dashed" | "dotted";
-export type OscilloscopeMarkerStyle = "none" | "dots" | "cross";
+export function isPlotterNodeId(nodeId: string): boolean {
+  return nodeId === PLOTTER_NODE_ID || nodeId === LEGACY_OSCILLOSCOPE_NODE_ID;
+}
 
-export type OscilloscopeChannelStyle = {
+export const PLOTTER_INPUT_IDS = ["ch1", "ch2", "ch3", "ch4"] as const;
+export type PlotterInputId = (typeof PLOTTER_INPUT_IDS)[number];
+
+export type PlotterLineStyle = "solid" | "dashed" | "dotted";
+export type PlotterMarkerStyle = "none" | "dots" | "cross";
+
+export type PlotterChannelStyle = {
   label: string;
   visible: boolean;
   colorHex: string;
-  lineStyle: OscilloscopeLineStyle;
+  lineStyle: PlotterLineStyle;
   lineWidthPx: number;
-  marker: OscilloscopeMarkerStyle;
+  marker: PlotterMarkerStyle;
   /** Draw a marker every N samples along the visible window (≥ 1). */
   markerEvery: number;
 };
 
-export type OscilloscopeConfig = {
-  /** Depth of the shared time buffer (samples retained per channel). */
-  sampleCount: number;
-  /** Vertical amplifier — multiplied on every sample before mapping (shared Y axis). */
+export type PlotterConfig = {
+  /** Points retained per channel (not sample rate in Hz). */
+  historyLength: number;
   verticalGain: number;
-  /** Added after gain (shared offset, volts-offset analogy). */
   verticalOffset: number;
-  /** When true, Y limits follow visible window min/max across visible traces. */
   autoScale: boolean;
-  /** Fixed amplitude limits when `autoScale` is false. */
   yMin: number;
   yMax: number;
   showGrid: boolean;
   timeDivisions: number;
   ampDivisions: number;
   showLegend: boolean;
-  channels: Record<string, OscilloscopeChannelStyle>;
+  channels: Record<string, PlotterChannelStyle>;
 };
 
-const DEFAULT_CHANNEL_COLORS: Record<OscilloscopeInputId, string> = {
+const DEFAULT_CHANNEL_COLORS: Record<PlotterInputId, string> = {
   ch1: "#22d3ee",
   ch2: "#fbbf24",
   ch3: "#34d399",
   ch4: "#fb7185",
 };
 
-const DEFAULT_CHANNEL_LABELS: Record<OscilloscopeInputId, string> = {
+const DEFAULT_CHANNEL_LABELS: Record<PlotterInputId, string> = {
   ch1: "Ch 1",
   ch2: "Ch 2",
   ch3: "Ch 3",
   ch4: "Ch 4",
 };
 
-export const DEFAULT_OSCILLOSCOPE_CONFIG: OscilloscopeConfig = {
-  sampleCount: 256,
+export const DEFAULT_PLOTTER_CONFIG: PlotterConfig = {
+  historyLength: 256,
   verticalGain: 1,
   verticalOffset: 0,
   autoScale: true,
@@ -61,7 +65,7 @@ export const DEFAULT_OSCILLOSCOPE_CONFIG: OscilloscopeConfig = {
   timeDivisions: 8,
   ampDivisions: 6,
   showLegend: true,
-  channels: OSCILLOSCOPE_INPUT_IDS.reduce(
+  channels: PLOTTER_INPUT_IDS.reduce(
     (acc, id) => {
       acc[id] = {
         label: DEFAULT_CHANNEL_LABELS[id],
@@ -74,7 +78,7 @@ export const DEFAULT_OSCILLOSCOPE_CONFIG: OscilloscopeConfig = {
       };
       return acc;
     },
-    {} as Record<string, OscilloscopeChannelStyle>,
+    {} as Record<string, PlotterChannelStyle>,
   ),
 };
 
@@ -94,11 +98,11 @@ function asBool(v: unknown, fallback: boolean): boolean {
   return typeof v === "boolean" ? v : fallback;
 }
 
-function asLineStyle(v: unknown, fallback: OscilloscopeLineStyle): OscilloscopeLineStyle {
+function asLineStyle(v: unknown, fallback: PlotterLineStyle): PlotterLineStyle {
   return v === "solid" || v === "dashed" || v === "dotted" ? v : fallback;
 }
 
-function asMarkerStyle(v: unknown, fallback: OscilloscopeMarkerStyle): OscilloscopeMarkerStyle {
+function asMarkerStyle(v: unknown, fallback: PlotterMarkerStyle): PlotterMarkerStyle {
   return v === "none" || v === "dots" || v === "cross" ? v : fallback;
 }
 
@@ -113,8 +117,8 @@ function asHexColor(v: unknown, fallback: string): string {
   return fallback;
 }
 
-function coerceChannel(raw: unknown, id: OscilloscopeInputId): OscilloscopeChannelStyle {
-  const d = DEFAULT_OSCILLOSCOPE_CONFIG.channels[id]!;
+function coerceChannel(raw: unknown, id: PlotterInputId): PlotterChannelStyle {
+  const d = DEFAULT_PLOTTER_CONFIG.channels[id]!;
   if (raw == null || typeof raw !== "object") {
     return { ...d };
   }
@@ -130,18 +134,28 @@ function coerceChannel(raw: unknown, id: OscilloscopeInputId): OscilloscopeChann
   };
 }
 
+function readHistoryLength(o: Record<string, unknown>, fallback: number): number {
+  if (o.historyLength != null) {
+    return Math.round(clamp(asFinite(o.historyLength, fallback), 16, 2048));
+  }
+  if (o.sampleCount != null) {
+    return Math.round(clamp(asFinite(o.sampleCount, fallback), 16, 2048));
+  }
+  return Math.round(clamp(fallback, 16, 2048));
+}
+
 /** Merge catalog defaults with persisted `defaultConfig` fragments. */
-export function coerceOscilloscopeConfig(raw: unknown): OscilloscopeConfig {
-  const d = DEFAULT_OSCILLOSCOPE_CONFIG;
+export function coercePlotterConfig(raw: unknown): PlotterConfig {
+  const d = DEFAULT_PLOTTER_CONFIG;
   if (raw == null || typeof raw !== "object") {
     return {
       ...d,
-      channels: OSCILLOSCOPE_INPUT_IDS.reduce(
+      channels: PLOTTER_INPUT_IDS.reduce(
         (acc, id) => {
           acc[id] = { ...d.channels[id]! };
           return acc;
         },
-        {} as Record<string, OscilloscopeChannelStyle>,
+        {} as Record<string, PlotterChannelStyle>,
       ),
     };
   }
@@ -154,14 +168,12 @@ export function coerceOscilloscopeConfig(raw: unknown): OscilloscopeConfig {
     yMax = t;
   }
   const channelsRaw = (o.channels ?? null) as Record<string, unknown> | null;
-  const channels: Record<string, OscilloscopeChannelStyle> = {};
-  for (const id of OSCILLOSCOPE_INPUT_IDS) {
+  const channels: Record<string, PlotterChannelStyle> = {};
+  for (const id of PLOTTER_INPUT_IDS) {
     channels[id] = coerceChannel(channelsRaw?.[id], id);
   }
   return {
-    sampleCount: Math.round(
-      clamp(asFinite(o.sampleCount, d.sampleCount), 16, 2048),
-    ),
+    historyLength: readHistoryLength(o, d.historyLength),
     verticalGain: clamp(asFinite(o.verticalGain, d.verticalGain), 0.001, 1e6),
     verticalOffset: asFinite(o.verticalOffset, d.verticalOffset),
     autoScale: asBool(o.autoScale, d.autoScale),
@@ -175,6 +187,38 @@ export function coerceOscilloscopeConfig(raw: unknown): OscilloscopeConfig {
   };
 }
 
-export function persistOscilloscopeConfig(cfg: OscilloscopeConfig): OscilloscopeConfig {
-  return coerceOscilloscopeConfig(cfg);
+export function persistPlotterConfig(cfg: PlotterConfig): PlotterConfig {
+  return coercePlotterConfig(cfg);
 }
+
+/** Migrate legacy oscilloscope node payload on hydrate / import. */
+export function migrateLegacyPlotterNodeData(data: StudioNodeDataLike): StudioNodeDataLike {
+  let next: StudioNodeDataLike =
+    data.nodeId === LEGACY_OSCILLOSCOPE_NODE_ID ? { ...data, nodeId: PLOTTER_NODE_ID } : data;
+
+  if (next.nodeId !== PLOTTER_NODE_ID) {
+    return next;
+  }
+
+  const dc = { ...(next.defaultConfig ?? {}) };
+  if (dc.historyLength == null && dc.sampleCount != null) {
+    dc.historyLength = dc.sampleCount;
+  }
+  delete dc.sampleCount;
+
+  const livePlotHistory = next.livePlotHistory ?? next.liveScopeHistory;
+  const { liveScopeHistory: _legacyScope, ...rest } = next;
+  return {
+    ...rest,
+    defaultConfig: dc,
+    ...(livePlotHistory != null ? { livePlotHistory } : {}),
+  };
+}
+
+/** Minimal shape for migrate helper (avoids store import cycle). */
+export type StudioNodeDataLike = {
+  nodeId: string;
+  defaultConfig?: Record<string, unknown>;
+  livePlotHistory?: Record<string, number[]>;
+  liveScopeHistory?: Record<string, number[]>;
+};

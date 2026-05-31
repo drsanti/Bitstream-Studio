@@ -274,16 +274,45 @@ When adding a multi-output sensor source:
 4. **Catalog `nodeId`** must follow **`…-tap-temp`**, **`…-tap-humidity`**, or **`…-tap-pressure`** (or extend **`live-reading-colors.ts`**) so scalar taps tint correctly with handle **`out`**.
 5. **No card body panel** — preview on the socket row only.
 
-### Resizable panel nodes (oscilloscope, model-viewer, …)
+### Plotter (multi-channel trend chart)
+
+Renamed from **Oscilloscope** — avoids implying lab scope sample rate / trigger semantics.
+
+| Item | Rule |
+| ---- | ---- |
+| **Catalog id** | **`plotter`** (legacy **`oscilloscope`** migrates on hydrate/import) |
+| **Config** | **`historyLength`** = points retained per channel (**not Hz**); legacy **`sampleCount`** accepted on import |
+| **Runtime data** | **`livePlotHistory`** — one append per **`tickSimulation`** when upstream pins update |
+| **Acquisition** | Event-driven with the graph (typically one point per telemetry frame); no plotter-local Hz clock in v0.1 |
+| **X axis** | Sample index (not wall-clock ms/div) until a future **Oscilloscope** instrument node |
+| **Key files** | **`nodes/plotter/plotter-config.ts`**, **`PlotterCanvas.tsx`**, **`PlotterInspectorSection.tsx`** |
+
+Future **Oscilloscope** node (backlog): independent acquisition rate, ms/div timebase, trigger — do not overload Plotter.
+
+### Resizable panel nodes (plotter, model-viewer, …)
 
 - Set explicit **`data.ui.minWidth` / `minHeight`** in **`attachConfigErrors`** when the default body needs a floor.
-- **Canvas resize:** TRNWindow-style edge/corner drag via **`FlowNodeEdgeResize`** when **`data.ui.resizable === true`** and the node is selected. Operator enables per node on Inspector → **Node → Allow resize on canvas**. Default **off**; **oscilloscope** and **model-viewer** default **on** at create/hydrate.
+- **Canvas resize:** TRNWindow-style edge/corner drag via **`FlowNodeEdgeResize`** when **`data.ui.resizable === true`** and the node is selected. Operator enables per node on Inspector → **Node → Allow resize on canvas**. Default **off**; **plotter** and **model-viewer** default **on** at create/hydrate.
 - **Wrap-content** nodes (live sensor cards): height **`auto`** via **`utilityBodyFitsContent`**; vertical resize sets an explicit flow height.
+
+## Flow graph execution (dataflow)
+
+| Layer | Behavior |
+| ----- | -------- |
+| **Trigger** | **`tickSimulation()`** runs when telemetry decodes (**`sampleCount`** ↑), BMI270 wire taps update, or graph edits flush pins — **not** a fixed Hz loop |
+| **Evaluation** | Pull dataflow: sources → transforms → sinks; **`readIncoming`** on wired pins |
+| **Plotter** | Appends one point per channel per tick; rate follows upstream publish / tick rate |
+| **Stale UI** | 250 ms poll refreshes health badges only when samples stop — does not drive plotter acquisition |
+
+Device **`publishMode`** (periodic / on_change / hybrid) controls **how often UART events arrive**, not the flow engine type.
+
+**Future (planned, not started):** Keyboard/mouse events, per-frame 3D/animation, and material graphs require **additional domains** — see **[`FLOW_DOMAINS.md`](./FLOW_DOMAINS.md)** and tracker *Flow domains* epic.
 
 ---
 
 ## Related docs
 
+- **`FLOW_DOMAINS.md`** — multi-evaluator roadmap (telemetry, scene, events, material)
 - **`extension/docs/DEVELOPMENT_TRACKER.md`** — backlog and shipped work
 - **`NODE_CREATION_RULES.md`** (node-animator) — socket grid and manifest patterns (reference only)
 - **`trn-component-first.mdc`** — TRN-first webview UI

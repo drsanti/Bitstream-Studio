@@ -43,16 +43,17 @@ import {
 import { EnvironmentNodePanel } from "./environment/EnvironmentNodePanel";
 import { CameraViewNodePanel } from "./camera-view/CameraViewNodePanel";
 import { RotationPreviewPanelV4 } from "./rotation/RotationPreviewPanelV4";
-import { OscilloscopeCanvas } from "./oscilloscope/OscilloscopeCanvas";
+import { PlotterCanvas } from "./plotter/PlotterCanvas";
 import { RadialGaugeNodePanel } from "./radial-gauge/RadialGaugeNodePanel";
 import { BarMeterNodePanel } from "./bar-meter/BarMeterNodePanel";
 import { LedIndicatorNodePanel } from "./led-indicator/LedIndicatorNodePanel";
 import { KnobNodePanel } from "./knob/KnobNodePanel";
 import { NumericDisplayNodePanel } from "./numeric-display/NumericDisplayNodePanel";
 import {
-  coerceOscilloscopeConfig,
-  OSCILLOSCOPE_INPUT_IDS,
-} from "./oscilloscope/oscilloscope-config";
+  coercePlotterConfig,
+  isPlotterNodeId,
+  PLOTTER_INPUT_IDS,
+} from "./plotter/plotter-config";
 import {
   isRotation3DCatalogNodeId,
 } from "./rotation/rotation-3d-node-ids";
@@ -104,7 +105,7 @@ export function StudioNodeCard(props: NodeProps) {
   const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
   const flowBodyFlexCol =
     isRotationNode ||
-    data.nodeId === "oscilloscope" ||
+    isPlotterNodeId(data.nodeId) ||
     data.nodeId === "radial-gauge" ||
     data.nodeId === "bar-meter" ||
     data.nodeId === "knob";
@@ -554,7 +555,7 @@ export function StudioNodeCard(props: NodeProps) {
             ? /* Keep base drop shadow + outer “ring” via shadow only (no border width jump). */
               "shadow-[0_8px_24px_rgba(0,0,0,0.35),0_0_0_2px_rgba(0,200,200,0.5)] transition-shadow duration-150"
             : "transition-shadow duration-150",
-          data.nodeId === "oscilloscope" || data.nodeId === "model-viewer"
+          isPlotterNodeId(data.nodeId) || data.nodeId === "model-viewer"
             ? "min-h-0"
             : "",
         ]
@@ -578,7 +579,7 @@ export function StudioNodeCard(props: NodeProps) {
           <FlowNodeSocketRegion
             alignedOutputColumns={alignedOutputSocketColumns}
             className={
-              data.nodeId === "oscilloscope"
+              isPlotterNodeId(data.nodeId)
                 ? "pb-0 pt-1.5"
                 : alignedOutputSocketColumns
                   ? "w-full max-w-full"
@@ -613,7 +614,7 @@ export function StudioNodeCard(props: NodeProps) {
         <FlowNodeBody
           className={
             flowBodyFlexCol
-              ? data.nodeId === "oscilloscope"
+              ? isPlotterNodeId(data.nodeId)
                 ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
                 : "flex min-h-0 flex-1 flex-col"
               : "space-y-0"
@@ -813,15 +814,15 @@ export function StudioNodeCard(props: NodeProps) {
               defaultConfig={data.defaultConfig}
             />
           ) : null}
-          {data.nodeId === "oscilloscope" ? (
+          {isPlotterNodeId(data.nodeId) ? (
             <ReadingPanel className="mt-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none ring-0">
-              <OscilloscopeCanvas
+              <PlotterCanvas
                 className="relative box-border min-h-0 min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
-                histories={data.liveScopeHistory ?? {}}
+                histories={data.livePlotHistory ?? {}}
                 channelOrder={
-                  data.inputHandles?.map((h) => h.id) ?? [...OSCILLOSCOPE_INPUT_IDS]
+                  data.inputHandles?.map((h) => h.id) ?? [...PLOTTER_INPUT_IDS]
                 }
-                config={coerceOscilloscopeConfig(data.defaultConfig)}
+                config={coercePlotterConfig(data.defaultConfig)}
               />
             </ReadingPanel>
           ) : null}
@@ -845,7 +846,7 @@ export function StudioNodeCard(props: NodeProps) {
           data.nodeId !== "indicator" &&
           data.nodeId !== "gauge" &&
           data.nodeId !== "sparkline" &&
-          data.nodeId !== "oscilloscope" &&
+          !isPlotterNodeId(data.nodeId) &&
           data.nodeId !== "radial-gauge" &&
           data.nodeId !== "bar-meter" &&
           data.nodeId !== "led-indicator" &&

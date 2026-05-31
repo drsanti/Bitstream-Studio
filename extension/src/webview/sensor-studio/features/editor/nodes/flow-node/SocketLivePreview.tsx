@@ -7,6 +7,7 @@ import {
 } from "./readings";
 import {
   getLiveScalarReadingColorClass,
+  resolveLiveScalarReadingFractionDigits,
   type LiveReadingStreamTone,
 } from "./readings/live-reading-colors";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./readings/socket-live-value-cell";
@@ -85,15 +86,13 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   }
 
   if (portType === "number") {
-    const scalarTone = getLiveScalarReadingColorClass(streamMode, {
-      handleId,
-      nodeId,
-      label: portLabel,
-    });
+    const hints = { handleId, nodeId, label: portLabel };
+    const scalarTone = getLiveScalarReadingColorClass(streamMode, hints);
+    const fractionDigits = resolveLiveScalarReadingFractionDigits(hints);
     return (
       <ReadingNumber
         value={scalar}
-        fractionDigits={2}
+        fractionDigits={fractionDigits}
         className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "block text-right", scalarTone)}
       />
     );

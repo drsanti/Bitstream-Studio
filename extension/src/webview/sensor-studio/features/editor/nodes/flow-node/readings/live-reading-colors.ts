@@ -102,6 +102,21 @@ export function resolveLiveScalarReadingKind(
   return resolveFromUnitOrLabel(hints);
 }
 
+const LIVE_SCALAR_FRACTION_DIGITS: Record<LiveScalarReadingKind, number> = {
+  temperature: 2,
+  humidity: 2,
+  /** Matches `dps368PressureDisplayFractionDigits` default in Bitstream config. */
+  pressure: 1,
+  neutral: 2,
+};
+
+/** Decimal places for scalar live readouts (library, flow sockets, aligned rows). */
+export function resolveLiveScalarReadingFractionDigits(
+  hints: LiveScalarReadingColorHints,
+): number {
+  return LIVE_SCALAR_FRACTION_DIGITS[resolveLiveScalarReadingKind(hints)];
+}
+
 /** Tailwind text color for a scalar live readout (library rows, flow sockets, inspector). */
 export function getLiveScalarReadingColorClass(
   streamMode: LiveReadingStreamTone,

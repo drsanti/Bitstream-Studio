@@ -1,38 +1,38 @@
 import { Activity } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import {
-  OSCILLOSCOPE_INPUT_IDS,
-  coerceOscilloscopeConfig,
-  type OscilloscopeChannelStyle,
-  type OscilloscopeConfig,
-  type OscilloscopeLineStyle,
-  type OscilloscopeMarkerStyle,
-} from "../nodes/oscilloscope/oscilloscope-config";
+  PLOTTER_INPUT_IDS,
+  coercePlotterConfig,
+  type PlotterChannelStyle,
+  type PlotterConfig,
+  type PlotterLineStyle,
+  type PlotterMarkerStyle,
+} from "../nodes/plotter/plotter-config";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 
-type OscilloscopeInspectorSectionProps = {
+type PlotterInspectorSectionProps = {
   defaultConfigRaw: Record<string, unknown>;
 };
 
-export function OscilloscopeInspectorSection(props: OscilloscopeInspectorSectionProps) {
+export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
   const { defaultConfigRaw } = props;
-  const updateOscilloscope = useFlowEditorStore((s) => s.updateSelectedNodeOscilloscopeConfig);
+  const updatePlotter = useFlowEditorStore((s) => s.updateSelectedNodePlotterConfig);
 
   const cfg = useMemo(
-    () => coerceOscilloscopeConfig(defaultConfigRaw),
+    () => coercePlotterConfig(defaultConfigRaw),
     [defaultConfigRaw],
   );
 
   const patch = useCallback(
-    (fn: (c: OscilloscopeConfig) => OscilloscopeConfig) => {
-      const cur = coerceOscilloscopeConfig(defaultConfigRaw);
-      updateOscilloscope(fn(cur));
+    (fn: (c: PlotterConfig) => PlotterConfig) => {
+      const cur = coercePlotterConfig(defaultConfigRaw);
+      updatePlotter(fn(cur));
     },
-    [defaultConfigRaw, updateOscilloscope],
+    [defaultConfigRaw, updatePlotter],
   );
 
   const patchChannel = useCallback(
-    (channelId: string, chPatch: Partial<OscilloscopeChannelStyle>) => {
+    (channelId: string, chPatch: Partial<PlotterChannelStyle>) => {
       patch((c) => {
         const prev = c.channels[channelId] ?? c.channels.ch1!;
         return {
@@ -54,34 +54,34 @@ export function OscilloscopeInspectorSection(props: OscilloscopeInspectorSection
     <div className="space-y-2 rounded border border-cyan-900/35 bg-zinc-950/45 p-2">
       <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-cyan-200/90">
         <Activity className="h-3.5 w-3.5 shrink-0 opacity-90" aria-hidden />
-        Oscilloscope
+        Plotter
       </div>
       <p className="text-[10px] leading-snug text-zinc-500">
-        Shared timebase and vertical amplifier (lab-style). Wire scalars to Ch 1–4 (e.g. quaternion
-        splitter or Euler components).
+        Multi-channel trend chart — one point per flow update (typically each telemetry frame).
+        Wire scalars to Ch 1–4.
       </p>
 
       <div className="space-y-1.5 rounded border border-zinc-700/70 bg-zinc-900/35 p-2">
         <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-          Timebase & buffer
+          Trace buffer
         </div>
         <div className="grid grid-cols-2 gap-2">
           <label className="space-y-0.5">
-            <span className="text-[10px] text-zinc-500">Samples</span>
+            <span className="text-[10px] text-zinc-500">History length</span>
             <input
               type="number"
               className={controlClass}
               min={16}
               max={2048}
               step={16}
-              value={cfg.sampleCount}
+              value={cfg.historyLength}
               onChange={(e) =>
-                patch((c) => ({ ...c, sampleCount: Number(e.target.value) }))
+                patch((c) => ({ ...c, historyLength: Number(e.target.value) }))
               }
             />
           </label>
           <label className="space-y-0.5">
-            <span className="text-[10px] text-zinc-500">Time divisions</span>
+            <span className="text-[10px] text-zinc-500">Horizontal divisions</span>
             <input
               type="number"
               className={controlClass}
@@ -99,7 +99,7 @@ export function OscilloscopeInspectorSection(props: OscilloscopeInspectorSection
 
       <div className="space-y-1.5 rounded border border-zinc-700/70 bg-zinc-900/35 p-2">
         <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-          Vertical amplifier (shared)
+          Vertical scale (shared)
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-[11px] text-zinc-300">
           <input
@@ -202,7 +202,7 @@ export function OscilloscopeInspectorSection(props: OscilloscopeInspectorSection
         <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
           Channels
         </div>
-        {OSCILLOSCOPE_INPUT_IDS.map((id) => {
+        {PLOTTER_INPUT_IDS.map((id) => {
           const ch = cfg.channels[id] ?? cfg.channels.ch1!;
           return (
             <div
@@ -247,7 +247,7 @@ export function OscilloscopeInspectorSection(props: OscilloscopeInspectorSection
                     value={ch.lineStyle}
                     onChange={(e) =>
                       patchChannel(id, {
-                        lineStyle: e.target.value as OscilloscopeLineStyle,
+                        lineStyle: e.target.value as PlotterLineStyle,
                       })
                     }
                   >
@@ -279,7 +279,7 @@ export function OscilloscopeInspectorSection(props: OscilloscopeInspectorSection
                     value={ch.marker}
                     onChange={(e) =>
                       patchChannel(id, {
-                        marker: e.target.value as OscilloscopeMarkerStyle,
+                        marker: e.target.value as PlotterMarkerStyle,
                       })
                     }
                   >

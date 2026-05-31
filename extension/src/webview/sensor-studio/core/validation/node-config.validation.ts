@@ -25,8 +25,9 @@ export function validateStudioNodeConfig(nodeId: string, cfg: Record<string, unk
       return validateGauge(safeCfg);
     case "sparkline":
       return validateSparkline(safeCfg);
+    case "plotter":
     case "oscilloscope":
-      return validateOscilloscope(safeCfg);
+      return validatePlotter(safeCfg);
     case "boolean-constant":
       return validateBooleanConstant(safeCfg);
     case "number-constant":
@@ -150,21 +151,22 @@ function validateSparkline(cfg: Record<string, unknown>): string[] {
   return out;
 }
 
-const oscilloscopeLineStyle = z.enum(["solid", "dashed", "dotted"]);
-const oscilloscopeMarkerStyle = z.enum(["none", "dots", "cross"]);
+const plotterLineStyle = z.enum(["solid", "dashed", "dotted"]);
+const plotterMarkerStyle = z.enum(["none", "dots", "cross"]);
 
-function validateOscilloscope(cfg: Record<string, unknown>): string[] {
+function validatePlotter(cfg: Record<string, unknown>): string[] {
   const channelSchema = z.object({
     label: z.string().min(1).optional(),
     visible: z.boolean().optional(),
     colorHex: z.string().min(4).optional(),
-    lineStyle: oscilloscopeLineStyle.optional(),
+    lineStyle: plotterLineStyle.optional(),
     lineWidthPx: z.number().finite().min(0.5).max(8).optional(),
-    marker: oscilloscopeMarkerStyle.optional(),
+    marker: plotterMarkerStyle.optional(),
     markerEvery: z.number().finite().int().min(1).max(64).optional(),
   });
 
   const schema = z.object({
+    historyLength: z.number().finite().int().min(16).max(2048).optional(),
     sampleCount: z.number().finite().int().min(16).max(2048).optional(),
     verticalGain: z.number().finite().min(0.001).max(1e6).optional(),
     verticalOffset: z.number().finite().optional(),

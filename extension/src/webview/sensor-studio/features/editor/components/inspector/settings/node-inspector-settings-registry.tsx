@@ -8,7 +8,7 @@ import { GaugeSettingsSection } from "./sections/GaugeSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
 import { NumberConstantSettingsSection } from "./sections/NumberConstantSettingsSection";
-import { OscilloscopeSettingsSection } from "./sections/OscilloscopeSettingsSection";
+import { PlotterSettingsSection } from "./sections/PlotterSettingsSection";
 import { SensorInputSettingsSection } from "./sections/SensorInputSettingsSection";
 import { SparklineSettingsSection } from "./sections/SparklineSettingsSection";
 import { ThresholdSettingsSection } from "./sections/ThresholdSettingsSection";
@@ -26,7 +26,9 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "low-pass": LowPassSettingsSection,
   gauge: GaugeSettingsSection,
   sparkline: SparklineSettingsSection,
-  oscilloscope: OscilloscopeSettingsSection,
+  plotter: PlotterSettingsSection,
+  /** @deprecated Migrated to `plotter` on hydrate. */
+  oscilloscope: PlotterSettingsSection,
   "sensor-input": SensorInputSettingsSection,
   environment: EnvironmentSettingsSection,
   "glb-animation-bundle": GlbAnimationBundleSettingsSection,

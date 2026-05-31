@@ -44,10 +44,12 @@ import {
   persistScene3DConfig,
 } from "../nodes/rotation/scene3d-config";
 import {
-  coerceOscilloscopeConfig,
-  persistOscilloscopeConfig,
-  type OscilloscopeConfig,
-} from "../nodes/oscilloscope/oscilloscope-config";
+  coercePlotterConfig,
+  isPlotterNodeId,
+  migrateLegacyPlotterNodeData,
+  persistPlotterConfig,
+  type PlotterConfig,
+} from "../nodes/plotter/plotter-config";
 import type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
 import {
   coerceFlowWireEnvironmentV1,
@@ -249,8 +251,8 @@ export type StudioNodeData = {
   /** Incoming **`anim`** pin snapshot on **`model-viewer`** (structured clip times + speed). */
   liveAnimationWire?: FlowWireAnimationV1;
   liveHistory?: number[];
-  /** Multi-channel numeric history for oscilloscope (`handleId` → samples). */
-  liveScopeHistory?: Record<string, number[]>;
+  /** Multi-channel numeric history for plotter (`handleId` → samples). */
+  livePlotHistory?: Record<string, number[]>;
   lastUpdatedAt?: string;
   /** Set only when this node is driven by a matching Bitstream sample this tick. */
   sensorStreamMode?: SensorHardwareStreamLive;
@@ -325,7 +327,7 @@ function applyStudioFlowSelection(
 
 /**
  * When two or more flow nodes are selected and every one shares the same catalog `nodeId`,
- * inspector may apply label / typed config / oscilloscope changes to the whole set in one undo step.
+ * inspector may apply label / typed config / plotter changes to the whole set in one undo step.
  */
 function getHomogeneousMultiSelectionIds(state: {
   nodes: StudioNode[];
@@ -447,8 +449,8 @@ type FlowEditorState = {
    */
   applySelectedNodeConfigFieldLive: (key: string, value: unknown) => boolean;
   updateSelectedNodeConfigFromJson: (nextJson: string) => { ok: true } | { ok: false; message: string };
-  /** Replace oscilloscope `defaultConfig` in one undo step (coerced + persisted). */
-  updateSelectedNodeOscilloscopeConfig: (next: OscilloscopeConfig) => void;
+  /** Replace plotter `defaultConfig` in one undo step (coerced + persisted). */
+  updateSelectedNodePlotterConfig: (next: PlotterConfig) => void;
   tickSimulation: () => void;
 };
 
@@ -561,6 +563,12 @@ function migrateStudioEdgesFusionQuat(edges: Edge[]): Edge[] {
     sourceHandle: e.sourceHandle === "fusionQuat" ? "quaternion" : e.sourceHandle,
     targetHandle: e.targetHandle === "fusionQuat" ? "quaternion" : e.targetHandle,
   }));
+}
+
+/** Legacy graph migration before catalog refresh (e.g. oscilloscope → plotter). */
+function migrateFlowNodeFromLegacy(node: StudioNode): StudioNode {
+  const data = migrateLegacyPlotterNodeData(node.data) as StudioNodeData;
+  return { ...node, data };
 }
 
 /** Refresh input/output pin definitions from the bundled catalog (catalog updates, import). */
@@ -685,7 +693,9 @@ function coercePersistedSensorStreamMode(data: StudioNodeData): StudioNodeData {
 
 function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
   return nodes.map((node) => {
-    const coercedData = coercePersistedSensorStreamMode(node.data);
+    const coercedData = migrateLegacyPlotterNodeData(
+      coercePersistedSensorStreamMode(node.data),
+    ) as StudioNodeData;
     const withScene3d: StudioNodeData =
       coercedData.nodeId === "rotation-3d-euler" ||
       coercedData.nodeId === "rotation-3d-quaternion" ||
@@ -730,11 +740,11 @@ function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
           })()
         : coercedData;
     let piped: StudioNodeData = withScene3d;
-    if (piped.nodeId === "oscilloscope") {
-      const osc = persistOscilloscopeConfig(piped.defaultConfig);
+    if (piped.nodeId === "plotter") {
+      const plotterCfg = persistPlotterConfig(piped.defaultConfig);
       piped = {
         ...piped,
-        defaultConfig: { ...(osc as unknown as Record<string, unknown>) },
+        defaultConfig: { ...(plotterCfg as unknown as Record<string, unknown>) },
         ui: {
           ...piped.ui,
           resizable: piped.ui?.resizable ?? true,
@@ -1012,7 +1022,7 @@ function createStudioNodeFromCatalogEntry(
       inputHandles: inferred.inputHandles,
       liveValue: null,
       liveHistory: [],
-      liveScopeHistory: {},
+      livePlotHistory: {},
     },
   };
   return attachConfigErrors([base], undefined)[0] ?? base;
@@ -1031,7 +1041,7 @@ function stripTransientStudioNodeData(data: StudioNodeData): StudioNodeData {
     inputHandles: data.inputHandles?.map((h) => ({ ...h })),
     liveValue: null,
     liveHistory: [],
-    liveScopeHistory: {},
+    livePlotHistory: {},
     configErrors: data.configErrors,
   };
 }
@@ -1397,7 +1407,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
   },
   hydrateFlowDocument: (snapshot) => {
-    const nodesRaw = (snapshot.nodes as StudioNode[]).map((n) => refreshCatalogOutputHandles(n));
+    const nodesRaw = (snapshot.nodes as StudioNode[]).map((n) =>
+      refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n)),
+    );
     const sel = normalizeFlowSnapshotSelection(snapshot);
     set({
       nodes: attachConfigErrorsWithModelChildRegistry(
@@ -1463,7 +1475,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     });
     get().pushUndoSnapshot();
     const migratedEdges = migrateStudioEdgesFusionQuat(o.edges as Edge[]);
-    const migratedNodes = (o.nodes as StudioNode[]).map((n) => refreshCatalogOutputHandles(n));
+    const migratedNodes = (o.nodes as StudioNode[]).map((n) =>
+      refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n)),
+    );
     const vpRaw = o.viewport;
     const viewport =
       vpRaw != null && isValidStudioPersistedViewport(vpRaw)
@@ -1871,7 +1885,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           inputHandles: inferred.inputHandles,
           liveValue: null,
           liveHistory: [],
-          liveScopeHistory: {},
+          livePlotHistory: {},
         },
       };
     };
@@ -2270,15 +2284,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
     return true;
   },
-  updateSelectedNodeOscilloscopeConfig: (next) => {
+  updateSelectedNodePlotterConfig: (next) => {
     const st = get();
     const multiIds = getHomogeneousMultiSelectionIds(st);
     if (multiIds != null) {
       const ref = st.nodes.find((node) => node.id === multiIds[0]);
-      if (ref?.data.nodeId !== "oscilloscope") {
+      if (ref == null || !isPlotterNodeId(ref.data.nodeId)) {
         return;
       }
-      const persisted = persistOscilloscopeConfig(next);
+      const persisted = persistPlotterConfig(next);
       get().pushUndoSnapshot();
       const idSet = new Set(multiIds);
       set((state) => ({
@@ -2305,10 +2319,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
     const selected = st.nodes.find((node) => node.id === selectedNodeId);
-    if (selected?.data.nodeId !== "oscilloscope") {
+    if (selected == null || !isPlotterNodeId(selected.data.nodeId)) {
       return;
     }
-    const persisted = persistOscilloscopeConfig(next);
+    const persisted = persistPlotterConfig(next);
     get().pushUndoSnapshot();
     set((state) => ({
       nodes: attachConfigErrorsWithModelChildRegistry(
@@ -2719,7 +2733,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId === "oscilloscope") {
+        if (isPlotterNodeId(node.data.nodeId)) {
           continue;
         }
 
@@ -2830,15 +2844,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       }
     }
 
-    const oscilloscopeHistUpdates = new Map<string, Record<string, number[]>>();
+    const plotterHistUpdates = new Map<string, Record<string, number[]>>();
     for (const node of nodes) {
-      if (node.data.nodeId !== "oscilloscope") {
+      if (!isPlotterNodeId(node.data.nodeId)) {
         continue;
       }
       const handles = node.data.inputHandles ?? [];
-      const oscCfg = coerceOscilloscopeConfig(node.data.defaultConfig);
-      const cap = oscCfg.sampleCount;
-      const prev = node.data.liveScopeHistory ?? {};
+      const plotterCfg = coercePlotterConfig(node.data.defaultConfig);
+      const cap = plotterCfg.historyLength;
+      const prev = node.data.livePlotHistory ?? {};
       const nextCh: Record<string, number[]> = {};
       for (const h of handles) {
         const pinVal = readPinForEdgeTarget(edges, node.id, h.id, pinValues);
@@ -2848,7 +2862,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         series.push(sample);
         nextCh[h.id] = series.slice(-cap);
       }
-      oscilloscopeHistUpdates.set(node.id, nextCh);
+      plotterHistUpdates.set(node.id, nextCh);
     }
 
     set((state) => ({
@@ -2906,8 +2920,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ) {
           delete dataWithoutSensorMode.liveNumberByHandle;
         }
-        if (node.data.nodeId !== "oscilloscope") {
-          delete dataWithoutSensorMode.liveScopeHistory;
+        if (!isPlotterNodeId(node.data.nodeId)) {
+          delete dataWithoutSensorMode.livePlotHistory;
         }
 
         const outPin = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
@@ -2925,7 +2939,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "model-viewer" ||
           node.data.nodeId === "environment" ||
           node.data.nodeId === "camera-view" ||
-          node.data.nodeId === "oscilloscope" ||
+          isPlotterNodeId(node.data.nodeId) ||
           BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
           ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
         ) {
@@ -2935,7 +2949,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         }
 
         const nextHistory =
-          node.data.nodeId === "oscilloscope"
+          isPlotterNodeId(node.data.nodeId)
             ? []
             : typeof nextLive === "number"
               ? [
@@ -2961,8 +2975,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           lastUpdatedAt: nowIso,
         };
 
-        if (node.data.nodeId === "oscilloscope") {
-          base.liveScopeHistory = oscilloscopeHistUpdates.get(node.id) ?? {};
+        if (isPlotterNodeId(node.data.nodeId)) {
+          base.livePlotHistory = plotterHistUpdates.get(node.id) ?? {};
           base.liveValue = null;
           base.liveHistory = [];
         }
