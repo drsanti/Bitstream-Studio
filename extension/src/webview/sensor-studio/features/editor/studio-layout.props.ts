@@ -119,6 +119,8 @@ export type StudioLayoutProps = {
     payload: StudioAssetDragPayloadV1,
     flowPosition: { x: number; y: number },
   ) => void;
+  /** Canvas drop for saved node group presets (Library → Groups tab). */
+  onDropNodeGroupAsset?: (assetId: string, flowPosition: { x: number; y: number }) => void;
   /** Runtime default for Library palette layout (`runtime-defaults.config.ts`). */
   defaultPaletteLayout?: NodePaletteLayoutMode;
 };

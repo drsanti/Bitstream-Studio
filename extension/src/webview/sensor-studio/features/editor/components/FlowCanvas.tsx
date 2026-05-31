@@ -48,6 +48,7 @@ import { FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW } from "./flow-canvas-ui-persist
 import { parseStudioAssetDragData, type StudioAssetDragPayloadV1 } from "../../asset-browser/studio-asset-drag";
 import { parsePaletteCatalogDragData } from "./node-palette/palette-catalog-drag";
 import { parseStudioGlbExtractDragData, type StudioGlbExtractDragPayloadV1 } from "./node-palette/glb-extract-drag";
+import { parseStudioNodeGroupAssetDragData } from "./node-palette/node-group-asset-drag";
 import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
 import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
@@ -107,6 +108,7 @@ type FlowCanvasProps = {
     payload: StudioAssetDragPayloadV1,
     flowPosition: { x: number; y: number },
   ) => void;
+  onDropNodeGroupAsset?: (assetId: string, flowPosition: { x: number; y: number }) => void;
   canvasBackgroundColor: string;
   flowCanvasPreferences: FlowCanvasPreferences;
   onFlowPanePointerEvent?: (event: { button: number }) => void;
@@ -143,6 +145,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     onDropPaletteCatalogNode,
     onDropGlbExtract,
     onDropStudioAsset,
+    onDropNodeGroupAsset,
     canvasBackgroundColor,
     flowCanvasPreferences,
     onFlowPanePointerEvent,
@@ -243,7 +246,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   const canAcceptCanvasDrop =
     onDropPaletteCatalogNode != null ||
     onDropGlbExtract != null ||
-    onDropStudioAsset != null;
+    onDropStudioAsset != null ||
+    onDropNodeGroupAsset != null;
 
   const handleCanvasDragOver = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
@@ -279,6 +283,14 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
         }
       }
 
+      if (onDropNodeGroupAsset != null) {
+        const groupPayload = parseStudioNodeGroupAssetDragData(event.dataTransfer);
+        if (groupPayload != null) {
+          onDropNodeGroupAsset(groupPayload.assetId, flowPosition);
+          return;
+        }
+      }
+
       if (onDropGlbExtract != null) {
         const glbPayload = parseStudioGlbExtractDragData(event.dataTransfer);
         if (glbPayload != null) {
@@ -294,7 +306,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
         }
       }
     },
-    [canAcceptCanvasDrop, onDropGlbExtract, onDropPaletteCatalogNode, onDropStudioAsset],
+    [canAcceptCanvasDrop, onDropGlbExtract, onDropNodeGroupAsset, onDropPaletteCatalogNode, onDropStudioAsset],
   );
 
   const nodeTypes = useMemo(

@@ -1,5 +1,5 @@
-import { useCallback, useMemo } from "react";
-import { Copy, FolderOpen, Link2, LogIn, LogOut, Plus, Ungroup } from "lucide-react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { Copy, Download, FolderOpen, Link2, LogIn, LogOut, Plus, Save, Ungroup, Upload } from "lucide-react";
 import {
   TRNButton,
   TRNFormField,
@@ -8,6 +8,7 @@ import {
 } from "../../../../../ui/TRN";
 import { createManualGroupSocket } from "../../subgraphs/studio-group-interface-sync";
 import { countStudioSubgraphHosts } from "../../subgraphs/duplicate-group-instance";
+import { parseStudioNodeAssetFile } from "../../subgraphs/node-library/studio-node-asset-file";
 import {
   emptyGroupInterface,
   isStudioGroupBoundaryNode,
@@ -38,6 +39,11 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
   const ungroupNodeGroup = useFlowEditorStore((s) => s.ungroupNodeGroup);
   const duplicateGroupLinked = useFlowEditorStore((s) => s.duplicateGroupLinked);
   const duplicateGroupDeepCopy = useFlowEditorStore((s) => s.duplicateGroupDeepCopy);
+  const saveGroupToNodeLibrary = useFlowEditorStore((s) => s.saveGroupToNodeLibrary);
+  const exportGroupAsNodeAssetFile = useFlowEditorStore((s) => s.exportGroupAsNodeAssetFile);
+  const importNodeAssetIntoGroup = useFlowEditorStore((s) => s.importNodeAssetIntoGroup);
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [libraryFeedback, setLibraryFeedback] = useState<string | null>(null);
 
   const subgraphId = data.subgraphId ?? hostNodeId;
   const subgraphDoc = subgraphs[subgraphId];
@@ -193,6 +199,97 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
           Ungroup (Ctrl+Shift+G)
         </TRNButton>
       </div>
+
+      <InspectorCollapsibleSection
+        title="Library"
+        icon={<Save size={14} aria-hidden />}
+        iconHint="Save reusable presets to the Groups library tab or export portable .trn-node-asset.json files."
+        defaultExpanded={false}
+      >
+        {libraryFeedback != null ? (
+          <TRNHintText className="text-[11px]">{libraryFeedback}</TRNHintText>
+        ) : (
+          <TRNHintText className="text-[11px]">
+            Saved presets appear in Library → <span className="font-medium text-zinc-300">Groups</span>.
+            Drag onto the canvas to spawn a deep copy.
+          </TRNHintText>
+        )}
+        <div className="flex flex-col gap-2">
+          <TRNButton
+            type="button"
+            className="w-full justify-center"
+            prefixIcon={<Save className="h-3.5 w-3.5" aria-hidden />}
+            onClick={() => {
+              const result = saveGroupToNodeLibrary(hostNodeId, title);
+              if (result == null) {
+                setLibraryFeedback("Could not save — this group has no inner graph.");
+                return;
+              }
+              setLibraryFeedback(
+                result.updated
+                  ? `Updated "${title}" in the Groups library.`
+                  : `Saved "${title}" to the Groups library.`,
+              );
+            }}
+          >
+            Save to library
+          </TRNButton>
+          <TRNButton
+            type="button"
+            className="w-full justify-center"
+            prefixIcon={<Download className="h-3.5 w-3.5" aria-hidden />}
+            onClick={() => {
+              const ok = exportGroupAsNodeAssetFile(hostNodeId);
+              setLibraryFeedback(
+                ok
+                  ? "Downloaded .trn-node-asset.json preset."
+                  : "Could not export — this group has no inner graph.",
+              );
+            }}
+          >
+            Export preset
+          </TRNButton>
+          <TRNButton
+            type="button"
+            className="w-full justify-center"
+            prefixIcon={<Upload className="h-3.5 w-3.5" aria-hidden />}
+            onClick={() => {
+              importFileRef.current?.click();
+            }}
+          >
+            Load preset into group
+          </TRNButton>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".json,.trn-node-asset.json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file == null) {
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => {
+                const text = typeof reader.result === "string" ? reader.result : "";
+                const asset = parseStudioNodeAssetFile(text);
+                if (asset == null) {
+                  setLibraryFeedback("Invalid file — expected a .trn-node-asset.json preset.");
+                  return;
+                }
+                const ok = importNodeAssetIntoGroup(hostNodeId, asset);
+                setLibraryFeedback(
+                  ok
+                    ? `Loaded "${asset.meta.name}" into this group.`
+                    : "Could not load preset into this group.",
+                );
+              };
+              reader.readAsText(file);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      </InspectorCollapsibleSection>
 
       <InspectorCollapsibleSection
         title="Inputs"

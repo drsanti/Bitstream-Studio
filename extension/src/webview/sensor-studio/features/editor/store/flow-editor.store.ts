@@ -71,6 +71,20 @@ import {
   filterParentEdgesForGroupInterface,
   subgraphForInterfaceEdit,
 } from "../subgraphs/studio-group-interface-sync";
+import { buildStudioNodeAssetFromGroup } from "../subgraphs/node-library/build-node-asset-from-group";
+import { findStudioNodeGroupHost } from "../subgraphs/node-library/find-studio-node-group-host";
+import { instantiateStudioNodeAsset } from "../subgraphs/node-library/instantiate-node-asset";
+import {
+  upsertStudioLibraryPreset,
+  type StudioLibrarySaveResult,
+} from "../subgraphs/node-library/library-preset-upsert";
+import { replaceStudioNodeGroupFromAsset } from "../subgraphs/node-library/replace-group-from-asset";
+import {
+  downloadStudioNodeAssetFile,
+  rekeyStudioNodeAssetMeta,
+  type StudioNodeAssetFile,
+} from "../subgraphs/node-library/studio-node-asset-file";
+import { readPersistedNodeGroupLibrary, writePersistedNodeGroupLibrary } from "../../../persistence/node-group-library.repository";
 import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
 import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
@@ -564,6 +578,14 @@ type FlowEditorState = {
   ungroupNodeGroup: (hostNodeId: string) => void;
   duplicateGroupLinked: (hostNodeId: string) => void;
   duplicateGroupDeepCopy: (hostNodeId: string) => void;
+  nodeGroupLibrary: StudioNodeAssetFile[];
+  saveGroupToNodeLibrary: (hostNodeId: string, name?: string) => StudioLibrarySaveResult | null;
+  removeNodeAssetFromLibrary: (assetId: string) => void;
+  importNodeAssetToLibrary: (asset: StudioNodeAssetFile) => string;
+  exportNodeAssetById: (assetId: string) => boolean;
+  exportGroupAsNodeAssetFile: (hostNodeId: string) => boolean;
+  importNodeAssetIntoGroup: (hostNodeId: string, asset: StudioNodeAssetFile) => boolean;
+  instantiateNodeAssetAt: (asset: StudioNodeAssetFile, position: { x: number; y: number }) => boolean;
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
@@ -1797,6 +1819,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   selectedNodeIds: [],
   undoStack: [],
   redoStack: [],
+  nodeGroupLibrary: readPersistedNodeGroupLibrary(),
   pushUndoSnapshot: () => {
     const st = get();
     const snap = cloneFlowSnapshot({
@@ -2534,6 +2557,191 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     get().pushUndoSnapshot();
     applyGroupHostDuplicateToStore(set, s, result);
+  },
+  saveGroupToNodeLibrary: (hostNodeId, name) => {
+    const s = persistActiveGraphBuffer(get());
+    const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
+    if (hostCtx == null) {
+      return null;
+    }
+    const asset = buildStudioNodeAssetFromGroup(
+      hostNodeId,
+      hostCtx.parentNodes,
+      hostCtx.parentEdges,
+      s.subgraphs,
+      name != null ? { name } : undefined,
+    );
+    if (asset == null) {
+      return null;
+    }
+    const { library, result } = upsertStudioLibraryPreset(get().nodeGroupLibrary, asset, {
+      sourceNodeId: hostNodeId,
+      presetKind: "nodeGraph",
+    });
+    writePersistedNodeGroupLibrary(library);
+
+    const patchHost = (nodes: FlowGraphNode[]) =>
+      nodes.map((n) =>
+        n.id === hostNodeId && isStudioNodeGroupNode(n)
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                libraryAssetId: result.id,
+              },
+            }
+          : n,
+      );
+
+    set({
+      nodeGroupLibrary: library,
+      rootNodes: patchHost(s.rootNodes),
+      nodes: s.activeGraphId === STUDIO_ROOT_GRAPH_ID ? patchHost(s.nodes) : s.nodes,
+    });
+    return result;
+  },
+  removeNodeAssetFromLibrary: (assetId) => {
+    const next = get().nodeGroupLibrary.filter((a) => a.meta.id !== assetId);
+    writePersistedNodeGroupLibrary(next);
+    set({ nodeGroupLibrary: next });
+  },
+  importNodeAssetToLibrary: (asset) => {
+    const keyed = rekeyStudioNodeAssetMeta(asset);
+    const next = [...get().nodeGroupLibrary, keyed];
+    writePersistedNodeGroupLibrary(next);
+    set({ nodeGroupLibrary: next });
+    return keyed.meta.id;
+  },
+  exportNodeAssetById: (assetId) => {
+    const asset = get().nodeGroupLibrary.find((a) => a.meta.id === assetId);
+    if (asset == null) {
+      return false;
+    }
+    downloadStudioNodeAssetFile(asset);
+    return true;
+  },
+  exportGroupAsNodeAssetFile: (hostNodeId) => {
+    const s = persistActiveGraphBuffer(get());
+    const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
+    if (hostCtx == null) {
+      return false;
+    }
+    const asset = buildStudioNodeAssetFromGroup(
+      hostNodeId,
+      hostCtx.parentNodes,
+      hostCtx.parentEdges,
+      s.subgraphs,
+    );
+    if (asset == null) {
+      return false;
+    }
+    downloadStudioNodeAssetFile(asset);
+    return true;
+  },
+  importNodeAssetIntoGroup: (hostNodeId, asset) => {
+    const s = persistActiveGraphBuffer(get());
+    const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
+    if (hostCtx == null) {
+      return false;
+    }
+    const data = hostCtx.host.data;
+    const subgraphKey = data.subgraphId ?? hostNodeId;
+    const nextSubgraphs = replaceStudioNodeGroupFromAsset(subgraphKey, asset, s.subgraphs);
+    if (nextSubgraphs == null) {
+      return false;
+    }
+
+    get().pushUndoSnapshot();
+    const graphTitle = asset.meta.name.trim() || "Node Group";
+    const patchHost = (n: FlowGraphNode) =>
+      n.id === hostNodeId && isStudioNodeGroupNode(n)
+        ? { ...n, data: { ...n.data, graphTitle, libraryAssetId: asset.meta.id } }
+        : n;
+
+    const rootNodes = s.rootNodes.map(patchHost);
+    const subgraphs = nextSubgraphs;
+    const activeSub = subgraphs[s.activeGraphId];
+
+    if (s.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+      const committed = commitActiveGraphMutation(
+        { ...s, subgraphs, rootNodes },
+        rootNodes,
+        s.rootEdges,
+      );
+      set(committed);
+    } else if (activeSub != null) {
+      set({
+        subgraphs,
+        rootNodes,
+        nodes: activeSub.nodes.map(patchHost) as FlowGraphNode[],
+        edges: activeSub.edges,
+      });
+    } else {
+      set({ subgraphs, rootNodes });
+    }
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  instantiateNodeAssetAt: (asset, position) => {
+    const st = persistActiveGraphBuffer(get());
+    get().pushUndoSnapshot();
+    const { nodes: pastedRaw, edges: pastedEdgesRaw, subgraphs: mergedSubgraphs } =
+      instantiateStudioNodeAsset(asset, position, st.subgraphs);
+    if (pastedRaw.length === 0) {
+      return false;
+    }
+
+    const pastedNodesRaw: FlowGraphNode[] = pastedRaw.map((n) => {
+      if (isStudioFlowNode(n)) {
+        const migrated = refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n as StudioNode));
+        return {
+          ...migrated,
+          selected: true,
+          dragHandle: dragHandleSelectorForNodeId(migrated.data.nodeId),
+          data: stripTransientStudioNodeData(migrated.data),
+        };
+      }
+      return { ...n, selected: true };
+    });
+    const pastedNodes = pastedNodesRaw;
+
+    const pastedEdges: Edge[] = pastedEdgesRaw.map((e) => {
+      const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
+      const sourceStub = pastedNodes.find((n) => n.id === e.source);
+      const label =
+        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs) : "";
+      return {
+        ...e,
+        animated: true,
+        label,
+        style: { ...(e.style ?? {}), strokeWidth: 2 },
+      };
+    });
+
+    const rootNodes = [
+      ...st.rootNodes.map((n) => ({ ...n, selected: false })),
+      ...pastedNodes,
+    ];
+    const rootEdges = [...st.rootEdges, ...pastedEdges];
+    const attachedRoot = attachConfigErrorsWithModelChildRegistry(rootNodes, rootEdges);
+    const pastedIds = pastedNodes.map((n) => n.id);
+    const committed = commitActiveGraphMutation(
+      { ...st, subgraphs: mergedSubgraphs },
+      attachedRoot,
+      rootEdges,
+    );
+    set({
+      ...committed,
+      activeGraphId: STUDIO_ROOT_GRAPH_ID,
+      graphStack: [],
+      nodes: attachedRoot,
+      edges: rootEdges,
+      rootNodes: attachedRoot,
+      rootEdges,
+      ...selectionFromIds(pastedIds),
+    });
+    flushFlowSimulationPins(get);
+    return true;
   },
   jumpToGraph: (graphId: StudioGraphId) => {
     const s = get();

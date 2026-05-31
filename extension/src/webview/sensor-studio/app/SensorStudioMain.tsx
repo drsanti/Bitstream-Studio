@@ -614,6 +614,19 @@ export function SensorStudioMain() {
     }
   }, []);
 
+  const onDropNodeGroupAsset = useCallback(
+    (assetId: string, flowPosition: { x: number; y: number }) => {
+      const st = useFlowEditorStore.getState();
+      const asset = st.nodeGroupLibrary.find((a) => a.meta.id === assetId);
+      if (asset == null) {
+        return;
+      }
+      st.instantiateNodeAssetAt(asset, snapDropPosition(flowPosition));
+      requestFitViewIfEnabled();
+    },
+    [snapDropPosition, requestFitViewIfEnabled],
+  );
+
   const runTemplateNow = useCallback(() => {
     onRunTemplate(templateId, catalog);
     requestFitViewIfEnabled();
@@ -880,6 +893,7 @@ export function SensorStudioMain() {
         onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
         onDropGlbExtract={onDropGlbExtract}
         onDropStudioAsset={onDropStudioAsset}
+        onDropNodeGroupAsset={onDropNodeGroupAsset}
         flowCanvasGraphRef={flowCanvasGraphRef}
         onAddCatalogEntryAtFlowPosition={onAddCatalogEntryAtFlowPosition}
         defaultPaletteLayout={runtimeDefaults.nodePaletteLayout}

@@ -1,4 +1,4 @@
-import { BookOpen, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
+import { BookOpen, Boxes, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../../core/config/config-types";
 import { useFlowEditorStore } from "../store/flow-editor.store";
@@ -6,6 +6,7 @@ import { resolveSingleModelSelectParentId, readGlbExtractTag, readSourceModelNod
 import { studioGlbExtractRowKey } from "../gltf/studio-gltf-extract";
 import { useStudioGltfExtraction } from "../gltf/useStudioGltfExtraction";
 import { GlbExtractionTabPanel } from "./node-palette/GlbExtractionTabPanel";
+import { GroupLibraryTabPanel } from "./node-palette/GroupLibraryTabPanel";
 import { filterPaletteEntries } from "./node-palette/filter-palette-entries";
 import { LibraryEntryRow } from "./node-palette/LibraryEntryRow";
 import {
@@ -50,7 +51,7 @@ import { NodePaletteTwoLine } from "./node-palette/NodePaletteTwoLine";
 import { NodePaletteAccordion } from "./node-palette/NodePaletteAccordion";
 import { PaletteLayoutSwitcher } from "./node-palette/PaletteLayoutSwitcher";
 
-type NodePaletteTabId = "nodes" | "simulation" | "glb";
+type NodePaletteTabId = "nodes" | "simulation" | "glb" | "groups";
 
 type CategoryFilter = "all" | NodeCatalogEntry["category"];
 
@@ -164,6 +165,7 @@ export function NodePalette(props: NodePaletteProps) {
     readStoredPaletteLayout(defaultPaletteLayout),
   );
 
+  const nodeGroupLibrary = useFlowEditorStore((s) => s.nodeGroupLibrary);
   const parentModelFlowNodeId = useFlowEditorStore((s) => resolveSingleModelSelectParentId(s));
   const modelNodes = useFlowEditorStore((s) => s.nodes);
   const glbFetchUrl = useMemo(() => {
@@ -177,6 +179,19 @@ export function NodePalette(props: NodePaletteProps) {
     const u = n.data.defaultConfig["selectedModelUrl"];
     return typeof u === "string" && u.trim().length > 0 ? u.trim() : null;
   }, [parentModelFlowNodeId, modelNodes]);
+
+  const filteredGroupLibraryCount = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (q.length === 0) {
+      return nodeGroupLibrary.length;
+    }
+    return nodeGroupLibrary.filter((asset) =>
+      [asset.meta.name, asset.meta.description ?? "", ...(asset.meta.tags ?? [])]
+        .join(" ")
+        .toLowerCase()
+        .includes(q),
+    ).length;
+  }, [nodeGroupLibrary, query]);
 
   const glbExtraction = useStudioGltfExtraction(tab === "glb" ? glbFetchUrl : null);
 
@@ -281,7 +296,12 @@ export function NodePalette(props: NodePaletteProps) {
 
   const activeList = tab === "simulation" ? simulationNodes : standardNodes;
 
-  const headerListCount = tab === "glb" ? glbExtraction.totalRows : activeList.length;
+  const headerListCount =
+    tab === "glb"
+      ? glbExtraction.totalRows
+      : tab === "groups"
+        ? filteredGroupLibraryCount
+        : activeList.length;
 
   const categoryCounts = useMemo(() => {
     const m = new Map<NodeCatalogEntry["category"], number>();
@@ -758,6 +778,10 @@ export function NodePalette(props: NodePaletteProps) {
                   ? paletteFilterActive
                     ? "GLB entries matching search"
                     : "Extracted GLB entries for the selected Model"
+                  : tab === "groups"
+                    ? paletteFilterActive
+                      ? "Saved groups matching search"
+                      : "Saved node group presets"
                   : paletteFilterActive
                     ? "Count of blocks matching the current list"
                     : "Blocks in this list"
@@ -838,6 +862,25 @@ export function NodePalette(props: NodePaletteProps) {
             <Box className={`shrink-0 opacity-80 ${dense ? "size-3" : "size-3.5"}`} aria-hidden />
             GLB
           </button>
+          <button
+            id="palette-tab-groups"
+            type="button"
+            role="tab"
+            aria-selected={tab === "groups"}
+            onClick={() => {
+              setTab("groups");
+              setCategoryFilter("all");
+              setSensorFamilyFilter("all");
+            }}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+              dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
+            } ${
+              tab === "groups" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            <Boxes className={`shrink-0 opacity-80 ${dense ? "size-3" : "size-3.5"}`} aria-hidden />
+            Groups
+          </button>
         </div>
 
         <div className="relative">
@@ -850,7 +893,9 @@ export function NodePalette(props: NodePaletteProps) {
             placeholder={
               tab === "glb"
                 ? "Search clips, parts, materials, lights…"
-                : "Search by name, sensor, or description…"
+                : tab === "groups"
+                  ? "Search saved node groups…"
+                  : "Search by name, sensor, or description…"
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -864,7 +909,13 @@ export function NodePalette(props: NodePaletteProps) {
               dense ? "py-1.5 text-[11px]" : "py-2 text-[12px]"
             } ${query.trim().length > 0 ? "pr-9" : "pr-2"}`}
             style={{ borderColor }}
-            aria-label={tab === "glb" ? "Search GLB extraction list" : "Search library"}
+            aria-label={
+              tab === "glb"
+                ? "Search GLB extraction list"
+                : tab === "groups"
+                  ? "Search saved node groups"
+                  : "Search library"
+            }
           />
           {query.trim().length > 0 ? (
             <button
@@ -999,7 +1050,9 @@ export function NodePalette(props: NodePaletteProps) {
                 ? "palette-tab-nodes"
                 : tab === "simulation"
                   ? "palette-tab-simulation"
-                  : "palette-tab-glb"
+                  : tab === "groups"
+                    ? "palette-tab-groups"
+                    : "palette-tab-glb"
             }
           >
           {tab === "glb" ? (
@@ -1021,6 +1074,8 @@ export function NodePalette(props: NodePaletteProps) {
               onSpawnGlbMaterialTextureExtract={onSpawnGlbMaterialTextureExtract}
               onSpawnGlbMaterialColorExtract={onSpawnGlbMaterialColorExtract}
             />
+          ) : tab === "groups" ? (
+            <GroupLibraryTabPanel dense={dense} query={query} borderColor={borderColor} />
           ) : activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
               <Waves className="size-8 text-zinc-600" aria-hidden />

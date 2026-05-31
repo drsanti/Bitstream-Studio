@@ -31,6 +31,8 @@ export type StudioSubgraphDocument = {
 export type StudioNodeGroupData = {
   graphTitle?: string;
   subgraphId: string;
+  /** When set, this shell was spawned from or saved to the node group library. */
+  libraryAssetId?: string;
 };
 
 export type StudioGroupBoundaryData = {

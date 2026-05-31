@@ -24,6 +24,7 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | Copy / paste groups | **Ctrl+C** / **Ctrl+V** (includes `subgraphs` payload) |
 | Group Sockets inspector | Select group shell (or boundary node inside) → rename, add/remove/reorder typed inputs/outputs |
 | Duplicate linked / deep copy | Inspector **Duplicate linked** (shared inner graph) or **Duplicate deep copy** (independent clone) |
+| Group library | Inspector **Save to library** / **Export preset** / **Load preset into group**; Library **Groups** tab + canvas drag |
 | Breadcrumb | Top-left overlay on the flow canvas |
 
 ## Implementation map
@@ -41,6 +42,9 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | `subgraphs/clone-studio-subgraph.ts` | Deep clone nested subgraph documents |
 | `subgraphs/studio-group-interface-sync.ts` | Interface edit + parent edge cleanup |
 | `subgraphs/duplicate-group-instance.ts` | Linked vs deep-copy group duplicates |
+| `subgraphs/node-library/` | `.trn-node-asset.json` build, parse, instantiate, library upsert |
+| `components/node-palette/GroupLibraryTabPanel.tsx` | Saved group presets + import/drag |
+| `persistence/node-group-library.repository.ts` | localStorage library persistence |
 | `components/inspector/NodeGroupInspectorSection.tsx` | Group Sockets inspector UI |
 | `clipboard/flow-clipboard.ts` | `subgraphs` in copy/paste payload |
 
@@ -48,6 +52,7 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 
 ## Backlog
 
-- Group library save/load (node-animator parity Phase 9+)
+- Global remote manifest under `assets/libraries/node-graph/` (node-animator feed parity)
+- Update from library / break link UI for linked presets
 
 See also [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md) Phase 9.

@@ -157,9 +157,14 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 - `extension/tests/sensor-studio/studio-subgraph.test.ts`
 - `extension/tests/sensor-studio/studio-group-interface-sync.test.ts`
 
+## Phase 9+ — Shipped (slice 1)
+
+- Group library save/load — `.trn-node-asset.json` export/import, project library (`nodeGroupLibrary`), Library **Groups** tab, canvas drag instantiate (**2026-05-31**)
+
 ## Phase 9+ — Planned
 
-- Group library save/load (node-animator `14-node-asset-library` parity)
+- Global folder + remote manifest sync
+- Linked library update / break link
 
 ## Shortcuts (current)
 
