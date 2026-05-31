@@ -122,7 +122,7 @@ import {
   resolveWiredStudioModelSelectNodeId,
 } from "../model/model-generated-bindings";
 import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
-import { splitEdgeWithReroute } from "../layout/reroute-graph-ops";
+import { splitEdgeWithReroute, applyRerouteBridgeOnEdgeRemoves, removeFlowNodesFromGraph } from "../layout/reroute-graph-ops";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
@@ -1965,8 +1965,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
     get().pushUndoSnapshot();
-    const nextNodes = st.nodes.filter((n) => !ids.has(n.id));
-    const nextEdges = st.edges.filter((e) => !ids.has(e.source) && !ids.has(e.target));
+    const removed = removeFlowNodesFromGraph([...ids], st.nodes, st.edges);
+    const nextNodes = removed.nodes;
+    const nextEdges = removed.edges;
     const priorSelection =
       st.selectedNodeIds.length > 0
         ? st.selectedNodeIds
@@ -2060,7 +2061,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       get().pushUndoSnapshot();
     }
     set((state) => {
-      const nextEdges = applyEdgeChanges(changes, state.edges);
+      const bridged = applyRerouteBridgeOnEdgeRemoves(changes, state.nodes, state.edges);
+      const nextEdges =
+        bridged.changes.length > 0
+          ? applyEdgeChanges(bridged.changes, bridged.edges)
+          : bridged.edges;
       return {
         edges: nextEdges,
         nodes: attachConfigErrorsWithModelChildRegistry(

@@ -95,11 +95,19 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 - `features/editor/store/flow-editor.store.ts` — `insertRerouteOnEdge`
 - `extension/tests/sensor-studio/reroute-graph-ops.test.ts`
 
-## Phase 6+ — Planned
+## Phase 6 — Shipped
+
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Reroute bridge on delete | `bridgeReroutesOnNodeRemove`, `applyRerouteBridgeOnEdgeRemoves` | `reroute-graph-ops.ts`, `onEdgesChange`, `deleteSelection` |
+
+Deleting a fully wired reroute reconnects `upstream → downstream` instead of breaking the link (React Flow edge-remove batch + programmatic delete).
+
+## Phase 7+ — Planned
 
 - Subgraph-aware clipboard (when node groups ship)
 - Group / Tab drill-in (defer until subgraph epic)
-- Reroute bridge on delete (auto-reconnect upstream→downstream)
+- Frame parenting (child nodes inside frames)
 
 ## Shortcuts (current)
 
