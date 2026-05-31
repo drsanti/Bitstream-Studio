@@ -9,6 +9,8 @@ import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickSched
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
+import type { FlowCanvasGraphHandle } from "../features/editor/components/flow-canvas-graph-handle";
+import { isFlowKeyboardTarget } from "../features/editor/keyboard/is-flow-keyboard-target";
 import { snapFlowPoint } from "../features/editor/components/snap-flow-position";
 import { readStoredFlowCanvasPreferences } from "../features/editor/components/flow-canvas-ui-persistence";
 import { useFlowCanvasPreferences } from "../features/editor/components/use-flow-canvas-preferences";
@@ -221,9 +223,7 @@ export function SensorStudioMain() {
     useFlowCanvasPreferences(bootCanvasPreferences);
   const flowCanvasPrefsRef = useRef(flowCanvasPreferences);
   flowCanvasPrefsRef.current = flowCanvasPreferences;
-  const onFlowPanePointerEvent = useCallback((event: { button: number }) => {
-    dispatchFlowPanePointerEventFromDom(event);
-  }, []);
+  const flowCanvasGraphRef = useRef<FlowCanvasGraphHandle | null>(null);
   const [deviceSensorSettingsOpen, setDeviceSensorSettingsOpen] = useState(false);
   const [deviceSensorSettingsInitialSourceId, setDeviceSensorSettingsInitialSourceId] =
     useState<number | null>(null);
@@ -303,6 +303,10 @@ export function SensorStudioMain() {
     return snapFlowPoint(position, prefs.gridSize, prefs.snapToGrid);
   }, []);
 
+  const onFlowPanePointerEvent = useCallback((event: { button: number }) => {
+    dispatchFlowPanePointerEventFromDom(event);
+  }, []);
+
   const onDropPaletteCatalogNode = useCallback(
     (catalogNodeId: string, flowPosition: { x: number; y: number }) => {
       const snapped = snapDropPosition(flowPosition);
@@ -321,6 +325,13 @@ export function SensorStudioMain() {
       addNodeFromCatalogAt(entry, snapped);
     },
     [addNodeFromCatalogAt, addNodeFromCatalogLinkedToModel, catalog, snapDropPosition],
+  );
+
+  const onAddCatalogEntryAtFlowPosition = useCallback(
+    (entry: NodeCatalogEntry, flowPosition: { x: number; y: number }) => {
+      onDropPaletteCatalogNode(entry.id, flowPosition);
+    },
+    [onDropPaletteCatalogNode],
   );
 
   const spawnGlbLinkedCatalogNode = useCallback(
@@ -707,22 +718,30 @@ export function SensorStudioMain() {
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      const target = event.target;
-      if (target instanceof HTMLElement) {
-        const tag = target.tagName.toLowerCase();
-        const editable =
-          tag === "input" ||
-          tag === "textarea" ||
-          tag === "select" ||
-          target.isContentEditable;
-        if (editable) {
-          return;
-        }
+      if (isFlowKeyboardTarget(event.target)) {
+        return;
       }
 
       if (event.key === "Escape") {
+        if (flowCanvasGraphRef.current?.isAddNodeMenuOpen()) {
+          event.preventDefault();
+          flowCanvasGraphRef.current.closeAddNodeMenu();
+          return;
+        }
         event.preventDefault();
         clearNodeSelection();
+        return;
+      }
+
+      if (
+        event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        (event.key === "a" || event.key === "A")
+      ) {
+        event.preventDefault();
+        flowCanvasGraphRef.current?.toggleAddNodeMenu();
         return;
       }
 
@@ -933,6 +952,8 @@ export function SensorStudioMain() {
         onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
         onDropGlbExtract={onDropGlbExtract}
         onDropStudioAsset={onDropStudioAsset}
+        flowCanvasGraphRef={flowCanvasGraphRef}
+        onAddCatalogEntryAtFlowPosition={onAddCatalogEntryAtFlowPosition}
       />
     </>
   );

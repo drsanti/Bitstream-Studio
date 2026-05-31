@@ -5,10 +5,12 @@ import type {
   OnNodesChange,
   Viewport,
 } from "@xyflow/react";
+import type { RefObject } from "react";
 import type { NodeCatalogEntry } from "../../core/config/config-types";
 import type { StudioGltfExtractRow } from "./gltf/studio-gltf-extract";
 import type { StudioAssetDragPayloadV1 } from "../asset-browser/studio-asset-drag";
 import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/glb-extract-drag";
+import type { FlowCanvasGraphHandle } from "./components/flow-canvas-graph-handle";
 import type { StudioDemoTemplateId, StudioNode } from "./store/flow-editor.store";
 import type { FlowCanvasPreferences } from "./components/flow-canvas-ui-persistence";
 
@@ -37,6 +39,13 @@ export type StudioLayoutProps = {
   /** Flow selection order; length 0 = none, 1 = single, 2+ = multi (inspector shows Live table). */
   orderedSelectedNodes: StudioNode[];
   onAddNode: (entry: NodeCatalogEntry) => void;
+  /** Spawn a catalog node at flow coordinates (Shift+A menu, same rules as canvas drop). */
+  onAddCatalogEntryAtFlowPosition?: (
+    entry: NodeCatalogEntry,
+    flowPosition: { x: number; y: number },
+  ) => void;
+  /** Imperative flow canvas API (Shift+A toggle, menu anchor). */
+  flowCanvasGraphRef?: RefObject<FlowCanvasGraphHandle | null>;
   onNodesChange: OnNodesChange<StudioNode>;
   onEdgesChange: OnEdgesChange<Edge>;
   onConnect: OnConnect;

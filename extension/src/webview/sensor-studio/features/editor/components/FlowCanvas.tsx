@@ -10,7 +10,16 @@ import {
   type OnNodesChange,
   type Viewport,
 } from "@xyflow/react";
-import { useCallback, useEffect, useMemo, useRef, type DragEvent } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 import "@xyflow/react/dist/style.css";
 import "../nodes/flow-node/flow-node-handles.css";
 import "../flow-canvas-minimap.css";
@@ -22,6 +31,10 @@ import { FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW } from "./flow-canvas-ui-persist
 import { parseStudioAssetDragData, type StudioAssetDragPayloadV1 } from "../../asset-browser/studio-asset-drag";
 import { parsePaletteCatalogDragData } from "./node-palette/palette-catalog-drag";
 import { parseStudioGlbExtractDragData, type StudioGlbExtractDragPayloadV1 } from "./node-palette/glb-extract-drag";
+import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
+import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
+import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
+import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
 
 type FlowCanvasProps = {
   borderColor: string;
@@ -39,44 +52,40 @@ type FlowCanvasProps = {
   glbAnimationColor: string;
   transformColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
+  catalogEntries: readonly NodeCatalogEntry[];
+  onAddCatalogEntryAtFlowPosition: (
+    entry: NodeCatalogEntry,
+    flowPosition: { x: number; y: number },
+  ) => void;
   nodes: StudioNode[];
   edges: Edge[];
   onNodesChange: OnNodesChange<StudioNode>;
   onEdgesChange: OnEdgesChange<Edge>;
   onConnect: OnConnect;
   onSelectionChange: (selectedNodeIds: string[]) => void;
-  /** When greater than zero, fit the view (templates, import, clear). Skip zero so a restored viewport can apply on init. */
   fitViewVersion: number;
-  /** Applied once when React Flow initializes (e.g. restored from localStorage). */
   initialViewport?: Viewport | null;
-  /** Called after pan/zoom settles; parent debounces persistence. */
   onViewportMoveEnd?: (viewport: Viewport) => void;
-  /** Bump nonce after import (etc.) to apply pan/zoom without remounting. */
   applyViewport?: Viewport | null;
   applyViewportNonce?: number;
-  /** Drop palette rows onto the canvas (flow coordinates from React Flow). */
   onDropPaletteCatalogNode?: (
     catalogNodeId: string,
     flowPosition: { x: number; y: number },
   ) => void;
-  /** Drop GLB extraction rows (custom MIME) onto the canvas. */
   onDropGlbExtract?: (
     payload: StudioGlbExtractDragPayloadV1,
     flowPosition: { x: number; y: number },
   ) => void;
-  /** Drop Asset Browser model row onto the canvas. */
   onDropStudioAsset?: (
     payload: StudioAssetDragPayloadV1,
     flowPosition: { x: number; y: number },
   ) => void;
-  /** Theme default when `flowCanvasPreferences.backgroundHex` is null. */
   canvasBackgroundColor: string;
   flowCanvasPreferences: FlowCanvasPreferences;
-  /** Domain C — empty-canvas pointer (On Click nodes). */
   onFlowPanePointerEvent?: (event: { button: number }) => void;
 };
 
-export function FlowCanvas(props: FlowCanvasProps) {
+export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(function FlowCanvas(props, ref) {
   const {
     borderColor,
     panelColor,
@@ -91,6 +100,8 @@ export function FlowCanvas(props: FlowCanvasProps) {
     glbAnimationColor,
     transformColor,
     minimapCategoryColors,
+    catalogEntries,
+    onAddCatalogEntryAtFlowPosition,
     nodes,
     edges,
     onNodesChange,
@@ -109,7 +120,46 @@ export function FlowCanvas(props: FlowCanvasProps) {
     flowCanvasPreferences,
     onFlowPanePointerEvent,
   } = props;
+
   const reactFlowRef = useRef<ReactFlowInstance<StudioNode> | null>(null);
+  const graphWrapperRef = useRef<HTMLDivElement>(null);
+  const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{ clientX: number; clientY: number } | null>(
+    null,
+  );
+
+  const addableEntries = useMemo(() => listAddableCatalogEntries(catalogEntries), [catalogEntries]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      resolveAddNodeMenuAnchor: () =>
+        resolveAddNodeMenuAnchor({
+          wrapper: graphWrapperRef.current,
+          lastPointer: lastPointerRef.current,
+        }),
+      isAddNodeMenuOpen: () => addNodeMenuAnchor != null,
+      closeAddNodeMenu: () => setAddNodeMenuAnchor(null),
+      openAddNodeMenuAt: (anchor) => setAddNodeMenuAnchor(anchor),
+      toggleAddNodeMenu: () => {
+        setAddNodeMenuAnchor((prev) => {
+          if (prev != null) {
+            return null;
+          }
+          return resolveAddNodeMenuAnchor({
+            wrapper: graphWrapperRef.current,
+            lastPointer: lastPointerRef.current,
+          });
+        });
+      },
+    }),
+    [addNodeMenuAnchor],
+  );
+
+  const openAddNodeMenuAtPointer = useCallback((clientX: number, clientY: number) => {
+    lastPointerRef.current = { clientX, clientY };
+    setAddNodeMenuAnchor({ clientX, clientY });
+  }, []);
 
   const canAcceptCanvasDrop =
     onDropPaletteCatalogNode != null ||
@@ -167,12 +217,14 @@ export function FlowCanvas(props: FlowCanvasProps) {
     },
     [canAcceptCanvasDrop, onDropGlbExtract, onDropPaletteCatalogNode, onDropStudioAsset],
   );
+
   const nodeTypes = useMemo(
     () => ({
       studio: StudioNodeCard,
     }),
     [],
   );
+
   const coloredEdges = useMemo(() => {
     const colorByType: Record<string, string> = {
       number: numberColor,
@@ -270,10 +322,14 @@ export function FlowCanvas(props: FlowCanvasProps) {
       }}
     >
       <div
+        ref={graphWrapperRef}
         className="relative min-h-0 flex-1"
         style={{ borderColor }}
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
+        onPointerMove={(event) => {
+          lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY };
+        }}
       >
         <ReactFlow<StudioNode>
           colorMode="dark"
@@ -298,11 +354,14 @@ export function FlowCanvas(props: FlowCanvasProps) {
             onSelectionChange(selection.nodes.map((n) => n.id));
           }}
           onPaneClick={(event) => {
+            if (addNodeMenuAnchor != null) {
+              setAddNodeMenuAnchor(null);
+            }
             onFlowPanePointerEvent?.({ button: event.button });
           }}
           onPaneContextMenu={(event) => {
             event.preventDefault();
-            onFlowPanePointerEvent?.({ button: event.button });
+            openAddNodeMenuAtPointer(event.clientX, event.clientY);
           }}
           onMoveEnd={
             onViewportMoveEnd != null
@@ -344,8 +403,18 @@ export function FlowCanvas(props: FlowCanvasProps) {
               className="studio-flow-minimap"
             />
           ) : null}
+          {addNodeMenuAnchor != null ? (
+            <FlowAddNodeMenu
+              clientX={addNodeMenuAnchor.clientX}
+              clientY={addNodeMenuAnchor.clientY}
+              entries={addableEntries}
+              categoryColors={minimapCategoryColors}
+              onPickEntry={onAddCatalogEntryAtFlowPosition}
+              onClose={() => setAddNodeMenuAnchor(null)}
+            />
+          ) : null}
         </ReactFlow>
       </div>
     </section>
   );
-}
+});

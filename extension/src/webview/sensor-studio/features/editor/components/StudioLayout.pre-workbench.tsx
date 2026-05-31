@@ -199,6 +199,10 @@ export function StudioLayout(props: StudioLayoutProps) {
             vector3Color={vector3Color}
             quaternionColor={quaternionColor}
             minimapCategoryColors={minimapCategoryColors}
+            catalogEntries={entries}
+            onAddCatalogEntryAtFlowPosition={(entry, flowPosition) => {
+              onDropPaletteCatalogNode?.(entry.id, flowPosition);
+            }}
             nodes={nodes}
             edges={edges}
             onNodesChange={onNodesChange}

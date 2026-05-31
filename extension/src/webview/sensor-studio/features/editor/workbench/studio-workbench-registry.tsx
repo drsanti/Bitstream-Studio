@@ -28,6 +28,7 @@ export function WorkbenchFlowPanel() {
   const p = useStudioWorkbenchShell();
   return (
     <FlowCanvas
+      ref={p.flowCanvasGraphRef ?? undefined}
       borderColor={p.borderColor}
       panelColor={p.panelBackgroundColor}
       primaryTextColor={p.primaryTextColor}
@@ -43,6 +44,8 @@ export function WorkbenchFlowPanel() {
       glbAnimationColor={p.glbAnimationColor}
       transformColor={p.transformColor}
       minimapCategoryColors={p.minimapCategoryColors}
+      catalogEntries={p.entries}
+      onAddCatalogEntryAtFlowPosition={p.onAddCatalogEntryAtFlowPosition!}
       nodes={p.nodes}
       edges={p.edges}
       onNodesChange={p.onNodesChange}
