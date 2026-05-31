@@ -46,6 +46,8 @@ Runbook: **[`../HOW_TO_RUN.md`](../HOW_TO_RUN.md)**. Agent handoff: **[`../../AG
 | [`MVP1_NODE_EDITOR_TASK_BOARD.md`](./MVP1_NODE_EDITOR_TASK_BOARD.md) | Milestones |
 | [`MVP1_NODE_EDITOR_EXECUTION_CHECKLIST.md`](./MVP1_NODE_EDITOR_EXECUTION_CHECKLIST.md) | Execution checklist |
 | [`MVP1_CONFIG_SPEC.md`](./MVP1_CONFIG_SPEC.md) | Config contract |
+| [`../src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md) | Telemetry vs scene tick domains |
+| [`../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md) | Flow editor UX parity (Phases 1–3 shipped) |
 
 Feature README: [`../src/webview/sensor-studio/README.md`](../src/webview/sensor-studio/README.md).
 

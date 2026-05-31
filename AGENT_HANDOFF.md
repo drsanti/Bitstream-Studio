@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-05-31 (BMI270 Output profile + temperature path)  
+**Last updated:** 2026-05-31 (Sensor Studio node-animator parity Phases 1–3)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -121,6 +121,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 9 | **`extension/docs/BITSTREAM_TELEMETRY_OPERATIONS.md`** |
 | 10 | **`TESAIoT_Firmware/AGENT_HANDOFF.md`** (MCU BS2) |
 | 11 | **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`** |
+| 12 | **`extension/src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md`** (flow editor UX parity) |
+| 13 | **`extension/src/webview/sensor-studio/docs/FLOW_DOMAINS.md`** (telemetry vs scene tick domains) |
 
 ---
 
@@ -155,6 +157,20 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 **Do not:** `lazy()`-load `SimulationHost` or `BitstreamLandingBackground3D` without shared React chunks (React **#321**). **Do not** mount landing + sim Canvases in one commit without `useWebGLSurfaceReady`.
 
+### Sensor Studio flow editor (node-animator parity)
+
+| Layer | Path |
+|-------|------|
+| Parity plan + shortcuts | `extension/src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md` |
+| Add-node menu (Shift+A) | `extension/src/webview/sensor-studio/features/editor/components/FlowAddNodeMenu.tsx` |
+| Canvas + layout **R** shortcut | `extension/src/webview/sensor-studio/features/editor/components/FlowCanvas.tsx` |
+| Layout spawn hook | `extension/src/webview/sensor-studio/features/editor/keyboard/use-flow-canvas-layout-shortcuts.ts` |
+| Layout RF types | `extension/src/webview/sensor-studio/features/editor/layout-nodes/` |
+| Store (connect, spawn, sim) | `extension/src/webview/sensor-studio/features/editor/store/flow-editor.store.ts` |
+| Unit tests | `extension/tests/sensor-studio/layout-flow-nodes.test.ts` |
+
+**Note:** **R** uses `reactFlowRef` from `onInit` — do not call `useReactFlow()` in hooks mounted outside `<ReactFlow>` (React Flow error #001).
+
 ### Build / test
 
 | Item | Path / command |
@@ -169,6 +185,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-05-31 | **Sensor Studio — node-animator parity Phases 1–3:** Shift+A add menu; keyboard registry + recent nodes + palette layout; layout RF nodes (reroute/frame/note/split), **R** shortcut via `reactFlowRef`, Layout inspector + tests; docs **`NODE_ANIMATOR_PARITY.md`**, tracker |
 | 2026-05-31 | **BMI270 Output profile + temperature:** Output profile card (presets + coordinated Apply); Operation **Both** label; Custom advanced channels; host EVT merge/finalize + Telemetry channels restore; firmware default mask 0x07; unit tests |
 | 2026-05-29 | **Phase 0 bootstrap:** new repo from `ternion-t3d` BS2; rebrand `bitstream-studio`; external sim |
 | 2026-05-30 | **Phases 1–4:** isolate BitstreamApp; extension-bridge; `ui/catalog/`; remove `@ternion/t3d`; Vite/VSIX |

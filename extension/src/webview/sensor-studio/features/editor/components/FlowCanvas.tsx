@@ -23,9 +23,18 @@ import {
 import "@xyflow/react/dist/style.css";
 import "../nodes/flow-node/flow-node-handles.css";
 import "../flow-canvas-minimap.css";
+import "../layout-nodes/layout-flow-nodes.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
+import { RerouteLayoutNode } from "../layout-nodes/RerouteLayoutNode";
+import { FrameLayoutNode } from "../layout-nodes/FrameLayoutNode";
+import { NoteLayoutNode } from "../layout-nodes/NoteLayoutNode";
+import { SplitLayoutNode } from "../layout-nodes/SplitLayoutNode";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
-import type { StudioNode } from "../store/flow-editor.store";
+import type { FlowGraphNode } from "../store/flow-editor.store";
+import { useFlowEditorStore } from "../store/flow-editor.store";
+import { useFlowCanvasLayoutShortcuts } from "../keyboard/use-flow-canvas-layout-shortcuts";
+import type { LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
+import { isStudioFlowNode } from "../layout/layout-port-resolution";
 import type { FlowCanvasPreferences } from "./flow-canvas-ui-persistence";
 import { FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW } from "./flow-canvas-ui-persistence";
 import { parseStudioAssetDragData, type StudioAssetDragPayloadV1 } from "../../asset-browser/studio-asset-drag";
@@ -57,9 +66,9 @@ type FlowCanvasProps = {
     entry: NodeCatalogEntry,
     flowPosition: { x: number; y: number },
   ) => void;
-  nodes: StudioNode[];
+  nodes: FlowGraphNode[];
   edges: Edge[];
-  onNodesChange: OnNodesChange<StudioNode>;
+  onNodesChange: OnNodesChange<FlowGraphNode>;
   onEdgesChange: OnEdgesChange<Edge>;
   onConnect: OnConnect;
   onSelectionChange: (selectedNodeIds: string[]) => void;
@@ -121,14 +130,17 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     onFlowPanePointerEvent,
   } = props;
 
-  const reactFlowRef = useRef<ReactFlowInstance<StudioNode> | null>(null);
+  const reactFlowRef = useRef<ReactFlowInstance<FlowGraphNode> | null>(null);
   const graphWrapperRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
+  const addLayoutNodeAt = useFlowEditorStore((s) => s.addLayoutNodeAt);
   const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{ clientX: number; clientY: number } | null>(
     null,
   );
 
   const addableEntries = useMemo(() => listAddableCatalogEntries(catalogEntries), [catalogEntries]);
+
+  useFlowCanvasLayoutShortcuts(lastPointerRef, reactFlowRef);
 
   useImperativeHandle(
     ref,
@@ -221,8 +233,19 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   const nodeTypes = useMemo(
     () => ({
       studio: StudioNodeCard,
+      "studio-reroute": RerouteLayoutNode,
+      "studio-frame": FrameLayoutNode,
+      "studio-note": NoteLayoutNode,
+      "studio-split": SplitLayoutNode,
     }),
     [],
+  );
+
+  const onPickLayoutEntry = useCallback(
+    (kind: LayoutMenuEntryId, flowPosition: { x: number; y: number }) => {
+      addLayoutNodeAt(kind, flowPosition);
+    },
+    [addLayoutNodeAt],
   );
 
   const coloredEdges = useMemo(() => {
@@ -303,8 +326,17 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   );
 
   const minimapNodeColor = useCallback(
-    (node: StudioNode) => {
-      const category = node.data?.category;
+    (node: FlowGraphNode) => {
+      if (node.type === "studio-reroute" || node.type === "studio-split") {
+        return "#71717a";
+      }
+      if (node.type === "studio-frame") {
+        return "#52525b";
+      }
+      if (node.type === "studio-note") {
+        return "#ca8a04";
+      }
+      const category = isStudioFlowNode(node) ? node.data?.category : undefined;
       if (category != null && minimapCategoryColors[category] != null) {
         return minimapCategoryColors[category];
       }
@@ -331,7 +363,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY };
         }}
       >
-        <ReactFlow<StudioNode>
+        <ReactFlow<FlowGraphNode>
           colorMode="dark"
           proOptions={{ hideAttribution: true }}
           style={{ backgroundColor: effectiveCanvasBackground }}
@@ -410,6 +442,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
               entries={addableEntries}
               categoryColors={minimapCategoryColors}
               onPickEntry={onAddCatalogEntryAtFlowPosition}
+              onPickLayoutEntry={onPickLayoutEntry}
               onClose={() => setAddNodeMenuAnchor(null)}
             />
           ) : null}

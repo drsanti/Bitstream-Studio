@@ -11,7 +11,7 @@ import type { StudioGltfExtractRow } from "./gltf/studio-gltf-extract";
 import type { StudioAssetDragPayloadV1 } from "../asset-browser/studio-asset-drag";
 import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/glb-extract-drag";
 import type { FlowCanvasGraphHandle } from "./components/flow-canvas-graph-handle";
-import type { StudioDemoTemplateId, StudioNode } from "./store/flow-editor.store";
+import type { StudioDemoTemplateId, FlowGraphNode, StudioNode } from "./store/flow-editor.store";
 import type { FlowCanvasPreferences } from "./components/flow-canvas-ui-persistence";
 
 /** Props for `StudioLayout` and the Sensor Studio workbench panel context. */
@@ -33,11 +33,11 @@ export type StudioLayoutProps = {
   transformColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   entries: NodeCatalogEntry[];
-  nodes: StudioNode[];
+  nodes: FlowGraphNode[];
   edges: Edge[];
-  selectedNode: StudioNode | null;
+  selectedNode: FlowGraphNode | null;
   /** Flow selection order; length 0 = none, 1 = single, 2+ = multi (inspector shows Live table). */
-  orderedSelectedNodes: StudioNode[];
+  orderedSelectedNodes: FlowGraphNode[];
   onAddNode: (entry: NodeCatalogEntry) => void;
   /** Spawn a catalog node at flow coordinates (Shift+A menu, same rules as canvas drop). */
   onAddCatalogEntryAtFlowPosition?: (

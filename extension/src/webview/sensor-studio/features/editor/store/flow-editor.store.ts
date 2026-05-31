@@ -116,6 +116,15 @@ import {
   readGlbExtractTag,
   resolveWiredStudioModelSelectNodeId,
 } from "../model/model-generated-bindings";
+import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
+import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
+import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
+import {
+  isStudioFlowNode,
+  layoutNodeAcceptsInput,
+  patchLayoutNodesAfterConnect,
+  resolveFlowSourcePortType,
+} from "../layout/layout-port-resolution";
 
 export type { FlowWireQuaternion, FlowWireVec3 } from "../../../core/live/flow-wire-types";
 export type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
@@ -312,6 +321,8 @@ export type StudioNodeData = {
 
 export type StudioNode = Node<StudioNodeData>;
 
+export type FlowGraphNode = StudioNode | LayoutFlowNode;
+
 /** Built-in canvas presets from **Run Demo Template** (toolbar + shortcuts). */
 export type StudioDemoTemplateId =
   | "basic-indicator"
@@ -322,7 +333,7 @@ export type StudioDemoTemplateId =
   | "material-glb-drives";
 
 export type FlowSnapshot = {
-  nodes: StudioNode[];
+  nodes: FlowGraphNode[];
   edges: Edge[];
   selectedNodeId: string | null;
   /** Present on snapshots after multi-select support; older snapshots omit this. */
@@ -417,7 +428,7 @@ function flushFlowSimulationPins(get: () => { tickSimulation: () => void }): voi
 }
 
 type FlowEditorState = {
-  nodes: StudioNode[];
+  nodes: FlowGraphNode[];
   edges: Edge[];
   selectedNodeId: string | null;
   /** React Flow multi-selection order (primary inspector target is `selectedNodeId`, kept in sync). */
@@ -460,6 +471,12 @@ type FlowEditorState = {
       mergeDefaultConfig?: Record<string, unknown>;
     },
   ) => string;
+  addLayoutNodeAt: (
+    kind: LayoutMenuEntryId,
+    position: { x: number; y: number },
+  ) => string;
+  spawnRerouteAt: (position: { x: number; y: number }) => string;
+  updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
   /**
    * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
    * `sourceModelNodeId`. The store reconciles `generatedChildNodeIds` on the parent.
@@ -643,22 +660,16 @@ function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
   };
 }
 
-function getSourcePortType(node: StudioNode, sourceHandle: string): StudioPortType | null {
-  if (node.data.outputHandles != null && node.data.outputHandles.length > 0) {
-    return node.data.outputHandles.find((h) => h.id === sourceHandle)?.portType ?? null;
-  }
-  if (sourceHandle === STUDIO_HANDLE_OUT && node.data.outputType != null) {
-    return node.data.outputType;
-  }
-  return null;
+function getSourcePortType(node: FlowGraphNode, sourceHandle: string): StudioPortType | null {
+  return resolveFlowSourcePortType(node, sourceHandle);
 }
 
-function edgeLabelForSource(sourceNode: StudioNode, sourceHandle: string): string {
+function edgeLabelForSource(sourceNode: FlowGraphNode, sourceHandle: string): string {
   const t = getSourcePortType(sourceNode, sourceHandle);
   return t ?? "";
 }
 
-function canConnect(connection: Connection, nodes: StudioNode[]): boolean {
+function canConnect(connection: Connection, nodes: FlowGraphNode[]): boolean {
   if (connection.source == null || connection.target == null) {
     return false;
   }
@@ -669,14 +680,23 @@ function canConnect(connection: Connection, nodes: StudioNode[]): boolean {
   }
   const sourceHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
   const targetHandle = connection.targetHandle ?? STUDIO_HANDLE_IN;
+  const sourceType = resolveFlowSourcePortType(sourceNode, sourceHandle);
+  if (sourceType == null) {
+    return false;
+  }
+  if (isLayoutFlowNode(targetNode)) {
+    if (targetNode.type === "studio-note" || targetNode.type === "studio-frame") {
+      return false;
+    }
+    return layoutNodeAcceptsInput(targetNode, targetHandle, sourceType);
+  }
+  if (!isStudioFlowNode(targetNode)) {
+    return false;
+  }
   const inputHandles = targetNode.data.inputHandles;
   if (inputHandles != null && inputHandles.length > 0) {
     const def = inputHandles.find((h) => h.id === targetHandle);
     if (def == null) {
-      return false;
-    }
-    const sourceType = getSourcePortType(sourceNode, sourceHandle);
-    if (sourceType == null) {
       return false;
     }
     return sourceType === def.portType;
@@ -684,9 +704,8 @@ function canConnect(connection: Connection, nodes: StudioNode[]): boolean {
   if (targetHandle !== STUDIO_HANDLE_IN) {
     return false;
   }
-  const sourceType = getSourcePortType(sourceNode, sourceHandle);
   const targetType = targetNode.data.inputType;
-  if (sourceType == null || targetType == null) {
+  if (targetType == null) {
     return false;
   }
   return sourceType === targetType;
@@ -746,8 +765,11 @@ function coercePersistedSensorStreamMode(data: StudioNodeData): StudioNodeData {
   return rest as StudioNodeData;
 }
 
-function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
+function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNode[] {
   return nodes.map((node) => {
+    if (!isStudioFlowNode(node)) {
+      return node;
+    }
     const coercedData = migrateLegacyPlotterNodeData(
       coercePersistedSensorStreamMode(node.data),
     ) as StudioNodeData;
@@ -890,20 +912,25 @@ function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
 }
 
 function attachConfigErrorsWithModelChildRegistry(
-  nodes: StudioNode[],
+  nodes: FlowGraphNode[],
   edges?: Edge[],
-): StudioNode[] {
-  return attachConfigErrors(reconcileStudioModelGeneratedChildIds(nodes), edges);
+): FlowGraphNode[] {
+  return attachConfigErrors(reconcileStudioModelGeneratedChildIds(nodes as StudioNode[]), edges);
 }
 
 /** When **Studio Model** wires into **model-viewer** or GLB event nodes, persist `sourceModelNodeId`. */
 function patchStudioModelScopeOnConnect(
-  nodes: StudioNode[],
+  nodes: FlowGraphNode[],
   connection: Connection,
-): StudioNode[] {
+): FlowGraphNode[] {
   const target = nodes.find((n) => n.id === connection.target);
   const source = nodes.find((n) => n.id === connection.source);
-  if (target == null || source?.data.nodeId !== "model-select") {
+  if (
+    target == null ||
+    !isStudioFlowNode(target) ||
+    !isStudioFlowNode(source) ||
+    source.data.nodeId !== "model-select"
+  ) {
     return nodes;
   }
   const targetHandle = connection.targetHandle ?? STUDIO_HANDLE_IN;
@@ -1789,13 +1816,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const sourceSet = new Set(sourceIds);
     const oldNodes = st.nodes.filter((n) => sourceSet.has(n.id));
-    const newNodesRaw: StudioNode[] = oldNodes.map((n) =>
-      cloneStudioNodeForDuplicate(n, idMap.get(n.id) ?? studioDupNodeId(), {
-        x: n.position.x + OFFSET,
-        y: n.position.y + OFFSET,
-      }),
-    );
-    const newNodes = remapSourceModelNodeIdAfterDuplicate(newNodesRaw, idMap);
+    const newNodesRaw: FlowGraphNode[] = oldNodes.map((n) => {
+      const newId = idMap.get(n.id) ?? studioDupNodeId();
+      const position = { x: n.position.x + OFFSET, y: n.position.y + OFFSET };
+      if (isStudioFlowNode(n)) {
+        return cloneStudioNodeForDuplicate(n, newId, position);
+      }
+      return {
+        ...n,
+        id: newId,
+        position,
+        selected: true,
+        data: { ...n.data },
+      };
+    });
+    const newNodes = remapSourceModelNodeIdAfterDuplicate(newNodesRaw as StudioNode[], idMap);
     for (const nn of newNodes) {
       nn.selected = true;
     }
@@ -1995,9 +2030,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return {
         edges: nextEdges,
         nodes: attachConfigErrorsWithModelChildRegistry(
-          reconcileGlbEventModelScopeFromEdges(
-            patchStudioModelScopeOnConnect(state.nodes, connection),
-            nextEdges,
+          patchLayoutNodesAfterConnect(
+            reconcileGlbEventModelScopeFromEdges(
+              patchStudioModelScopeOnConnect(state.nodes, connection),
+              nextEdges,
+            ),
+            connection,
           ),
           nextEdges,
         ),
@@ -2054,13 +2092,49 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
     return nextNode.id;
   },
+  addLayoutNodeAt: (kind, position) => {
+    get().pushUndoSnapshot();
+    const nextNode = buildLayoutFlowNode(kind, position);
+    nextNode.selected = true;
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, nextNode], [nextNode.id]),
+        state.edges,
+      ),
+      ...selectionFromIds([nextNode.id]),
+    }));
+    flushFlowSimulationPins(get);
+    return nextNode.id;
+  },
+  spawnRerouteAt: (position) => {
+    get().pushUndoSnapshot();
+    const nextNode = buildRerouteFlowNode(position);
+    nextNode.selected = true;
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, nextNode], [nextNode.id]),
+        state.edges,
+      ),
+      ...selectionFromIds([nextNode.id]),
+    }));
+    return nextNode.id;
+  },
+  updateLayoutNodeData: (flowNodeId, patch) => {
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        node.id === flowNodeId && isLayoutFlowNode(node)
+          ? { ...node, data: { ...node.data, ...patch } }
+          : node,
+      ),
+    }));
+  },
   addNodeFromCatalogLinkedToModel: (entry, position, options) => {
     const parentId = options.parentModelNodeId.trim();
     if (parentId.length === 0) {
       return;
     }
     const parent = get().nodes.find((n) => n.id === parentId);
-    if (parent == null || parent.data.nodeId !== "model-select") {
+    if (parent == null || !isStudioFlowNode(parent) || parent.data.nodeId !== "model-select") {
       return;
     }
     get().pushUndoSnapshot();
@@ -2985,7 +3059,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         return null;
       }
       const targetNode = nodes.find((n) => n.id === targetId);
-      if (targetNode?.data.nodeId === "number-average") {
+      if (isStudioFlowNode(targetNode) && targetNode.data.nodeId === "number-average") {
         const nums: number[] = [];
         for (const inc of list) {
           if (inc.targetHandle !== STUDIO_HANDLE_IN) {
@@ -3018,6 +3092,25 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
     for (let pass = 0; pass < 3; pass += 1) {
       for (const node of nodes) {
+        if (node.type === "studio-reroute") {
+          const v = readIncoming(node.id, STUDIO_HANDLE_IN);
+          if (v != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
+          }
+          continue;
+        }
+        if (node.type === "studio-split") {
+          const v = readIncoming(node.id, STUDIO_HANDLE_IN);
+          if (v != null) {
+            for (const handleId of splitOutputHandleIds(node.data.outputCount)) {
+              pinValues.set(studioFlowPinKey(node.id, handleId), v);
+            }
+          }
+          continue;
+        }
+        if (!isStudioFlowNode(node)) {
+          continue;
+        }
         if (node.data.nodeId === "sine-wave") {
           const freq = asFiniteNumber(node.data.defaultConfig.frequency, 1);
           const amp = asFiniteNumber(node.data.defaultConfig.amplitude, 1);

@@ -10,7 +10,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 |---|---------------|---------------|
 | Addable catalog entries | 54 (52 root) | 53 |
 | Palette categories | 14 (Blender GN–style) | 7 schema categories + sensor subgroups |
-| React Flow node types | 74 | 1 (`studio` card) |
+| React Flow node types | 74 | 5 (`studio` + 4 layout types) |
 
 **Target:** keep 53+ telemetry/scene nodes; add **layout** nodes (reroute, frame, note) and scene parity incrementally — not full simulation/physics catalog unless Digital Twin phases require it.
 
@@ -36,18 +36,39 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 
 ## Phase 2 — Shipped
 
-- Central `flow-keyboard-shortcuts.ts` registry + `useFlowKeyboardShortcuts` hook
-- Recent nodes in add menu (`sensor-studio:recent-nodes` localStorage)
-- `nodePaletteLayout` wired from runtime defaults + Library layout switcher
-- `palette-display-meta.ts` — 9-group display taxonomy in Shift+A menu
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Central shortcut registry | `graphKeyboard.ts` | `flow-keyboard-shortcuts.ts`, `useFlowKeyboardShortcuts` |
+| Recent nodes in add menu | localStorage | `sensor-studio:recent-nodes` |
+| Palette layout switcher | Library layout | `nodePaletteLayout` from runtime defaults + Library |
+| Display taxonomy | GN-style groups | `palette-display-meta.ts` — 9 groups in Shift+A |
 
-## Phase 3 — Planned
+### Key files
 
-- `reroute` (+ **R** at pointer)
-- `frame`, `note`, `split`
-- Virtual **Layout** section in add menu
+- `features/editor/keyboard/flow-keyboard-shortcuts.ts`
+- `features/editor/keyboard/use-flow-keyboard-shortcuts.ts`
+- `features/editor/palette/nodePaletteLayout.ts`
+- `features/editor/palette/palette-display-meta.ts`
 
-## Phase 4+ — Scene / clipboard
+## Phase 3 — Shipped
+
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Reroute / split / frame / note | layout node components | `studio-reroute`, `studio-frame`, `studio-note`, `studio-split` |
+| **R** spawn reroute | pointer spawn | `useFlowCanvasLayoutShortcuts` via `reactFlowRef` (not `useReactFlow` outside `<ReactFlow>`) |
+| Layout add-menu section | context menu groups | Virtual **Layout** section in `FlowAddNodeMenu` |
+| Wire passthrough | reroute simulation | Store connect + simulation passthrough for reroute / split |
+
+### Key files
+
+- `features/editor/layout/` — types, builders, port resolution, menu entries
+- `features/editor/layout-nodes/` — React components + CSS
+- `features/editor/keyboard/use-flow-canvas-layout-shortcuts.ts`
+- `features/editor/components/inspector/LayoutNodeInspectorPanel.tsx`
+- `features/editor/store/flow-editor.store.ts` — `addLayoutNodeAt`, `spawnRerouteAt`, connect rules
+- `extension/tests/sensor-studio/layout-flow-nodes.test.ts`
+
+## Phase 4+ — Planned
 
 - Socket-colored edges while connecting
 - Subgraph-aware clipboard (`flowClipboard.ts` port)
@@ -63,6 +84,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 | **Ctrl+A** | Select all |
 | **Ctrl+D** | Duplicate |
 | **Delete / Backspace** | Delete selection (canvas focused) |
+| **R** | Spawn reroute at pointer |
 | **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** | Undo / redo |
 
 See node-animator `docs/architecture/10-editor-ux.md` for the full reference set.

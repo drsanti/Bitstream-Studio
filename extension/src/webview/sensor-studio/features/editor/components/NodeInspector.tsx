@@ -12,7 +12,9 @@ import {
   TRN_INSPECTOR_TAB_ACTIVE_CLASS,
 } from "../../../../ui/TRN";
 import { isRotation3DCatalogNodeId } from "../nodes/rotation/rotation-3d-node-ids";
-import type { StudioNode } from "../store/flow-editor.store";
+import type { FlowGraphNode, StudioNode } from "../store/flow-editor.store";
+import { isStudioFlowNode } from "../layout/layout-port-resolution";
+import { LayoutNodeInspectorPanel } from "./inspector/LayoutNodeInspectorPanel";
 import { NodeInspectorDetailsTab } from "./inspector/NodeInspectorDetailsTab";
 import { NodeInspectorDeviceTab } from "./inspector/NodeInspectorDeviceTab";
 import { InspectorContextBar } from "./inspector/InspectorContextBar";
@@ -48,9 +50,9 @@ const DEVICE_INSPECTOR_TAB = {
 export type NodeInspectorProps = {
   borderColor: string;
   panelColor: string;
-  selectedNode: StudioNode | null;
+  selectedNode: FlowGraphNode | null;
   /** Full flow selection order; when more than one node, inspector shows multi live readouts only. */
-  orderedSelectedNodes?: StudioNode[];
+  orderedSelectedNodes?: FlowGraphNode[];
   /** Node catalog (definition title + description for the selected type). */
   catalogEntries: NodeCatalogEntry[];
   /** Minimap / category chips (same colors as the flow canvas). */
@@ -101,11 +103,14 @@ export function NodeInspector(props: NodeInspectorProps) {
     if (!isMultiSelect) {
       return false;
     }
-    const firstId = orderedSelectedNodes[0]?.data.nodeId;
-    if (firstId == null) {
+    const first = orderedSelectedNodes[0];
+    if (first == null || !isStudioFlowNode(first)) {
       return false;
     }
-    return orderedSelectedNodes.every((n) => n.data.nodeId === firstId);
+    const firstId = first.data.nodeId;
+    return orderedSelectedNodes.every(
+      (n) => isStudioFlowNode(n) && n.data.nodeId === firstId,
+    );
   }, [isMultiSelect, orderedSelectedNodes]);
   const [jsonDraft, setJsonDraft] = useState("{}");
   const [jsonError, setJsonError] = useState<string | null>(null);
@@ -123,14 +128,14 @@ export function NodeInspector(props: NodeInspectorProps) {
     writeStoredInspectorActiveTab(next);
   }, []);
   useEffect(() => {
-    if (selectedNode == null) {
+    if (selectedNode == null || !isStudioFlowNode(selectedNode)) {
       setJsonDraft("{}");
       setJsonError(null);
       return;
     }
     setJsonDraft(JSON.stringify(selectedNode.data.defaultConfig, null, 2));
     setJsonError(null);
-  }, [selectedNodeId]);
+  }, [selectedNodeId, selectedNode]);
 
   const deviceSourceId = useMemo(
     () => resolveStudioNodeSourceId(selectedNode),
@@ -233,6 +238,12 @@ export function NodeInspector(props: NodeInspectorProps) {
             configuration.
           </div>
         )
+      ) : selectedNode != null && !isStudioFlowNode(selectedNode) ? (
+        <LayoutNodeInspectorPanel
+          borderColor={borderColor}
+          panelColor={panelColor}
+          selectedNode={selectedNode}
+        />
       ) : isMultiSelect && !homogeneousMultiEdit ? (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
           <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2 text-[11px] font-semibold tracking-wide text-zinc-100/90">

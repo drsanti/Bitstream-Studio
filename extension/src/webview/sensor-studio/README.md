@@ -17,6 +17,10 @@ Current focus is configuration-first architecture and Node Editor groundwork.
    - [`docs/DEVICE_SENSOR_SETTINGS_IMPLEMENTATION_PLAN.md`](./docs/DEVICE_SENSOR_SETTINGS_IMPLEMENTATION_PLAN.md)
 6. Rotation preview scene JSON (`Scene3DConfigV1`) — authoring, coercion, shadows:
    - [`docs/ROTATION_SCENE3D_CONFIG.md`](./docs/ROTATION_SCENE3D_CONFIG.md)
+7. Flow domains (telemetry vs scene tick):
+   - [`docs/FLOW_DOMAINS.md`](./docs/FLOW_DOMAINS.md)
+8. node-animator editor parity (Shift+A, layout nodes, shortcuts):
+   - [`docs/NODE_ANIMATOR_PARITY.md`](./docs/NODE_ANIMATOR_PARITY.md)
 
 ## Current Structure
 
