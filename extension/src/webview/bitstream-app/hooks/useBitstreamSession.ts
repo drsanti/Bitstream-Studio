@@ -50,6 +50,7 @@ import { useWsClientStore } from "../../ws-client-store.js";
 import { appendTelemetryActivity } from "../../sensor-telemetry/store/telemetryActivity.store.js";
 import { computeSampleInterArrivalMs } from "../utils/deviceTMsInterArrival.js";
 import { updateTelemetryStreamRates } from "../utils/telemetryStreamRate.js";
+import { mergePartialBitstreamSensorSample } from "../bridge/bs2-sample-to-live-v2.js";
 
 /** Rolling window of BMI270 inter-arrival gaps for wire-path jitter stats (not UI-throttled). */
 const BMI270_WIRE_GAP_RING_MAX = 64;
@@ -77,23 +78,7 @@ function mergeLatestSensorSample(
   prev: BitstreamSensorSampleV2 | null,
   incoming: BitstreamSensorSampleV2,
 ): BitstreamSensorSampleV2 {
-  if (prev == null || prev.sourceHint !== incoming.sourceHint)
-  {
-    return incoming;
-  }
-  const merged: BitstreamSensorSampleV2 = {
-    ...prev,
-    ...incoming,
-    counter: incoming.counter,
-    sourceHint: incoming.sourceHint,
-    deviceTMs: incoming.deviceTMs ?? prev.deviceTMs,
-  };
-  if (incoming.sourceHint === "bmi270")
-  {
-    merged.isBmi270FusionPayload =
-      incoming.isBmi270FusionPayload === true || prev.isBmi270FusionPayload === true;
-  }
-  return merged;
+  return mergePartialBitstreamSensorSample(prev, incoming);
 }
 
 function createSensorCfgBroadcastInstanceToken(): string {

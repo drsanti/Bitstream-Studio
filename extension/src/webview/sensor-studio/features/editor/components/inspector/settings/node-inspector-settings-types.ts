@@ -1,6 +1,6 @@
 import type { StudioNode } from "../../../store/flow-editor.store";
 
-/** Props passed to each catalog-specific settings section under the Settings tab. */
+/** Props passed to each catalog-specific settings section under the Node tab. */
 export type NodeInspectorSettingsSectionProps = {
   selectedNode: StudioNode;
   onUpdateConfigField: (key: string, value: unknown) => boolean;

@@ -119,6 +119,9 @@ export function InspectorSensorDeckReadings(props: InspectorSensorDeckReadingsPr
   if (nodeId === "bmi270-tap-euler") {
     return <Bmi270EulerDeckCard {...bmi270Frame} />;
   }
+  if (nodeId === "bmi270-tap-temp") {
+    return <Bmi270TempDeckCard {...bmi270Frame} />;
+  }
 
   if (nodeId === "bmm350-input") {
     return (

@@ -170,6 +170,13 @@ export type {
   TRNParameterPositiveSignMode,
   TRNParameterValueColumnLayout,
 } from "./TRNParameter.js";
+export { TrnLiveDataPulseIcon } from "./TrnLiveDataPulseIcon.js";
+export type { TrnLiveDataPulseIconProps } from "./TrnLiveDataPulseIcon.js";
+export {
+  useGsapIconPulseOnValueChange,
+  displayValueStableKey,
+  type TrnIconPulseStyle,
+} from "./useGsapIconPulseOnValueChange.js";
 export { TRNTooltip } from "./TRNTooltip.js";
 export type { TRNTooltipProps, TRNTooltipPlacement } from "./TRNTooltip.js";
 export {

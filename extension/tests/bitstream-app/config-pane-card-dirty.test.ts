@@ -11,6 +11,7 @@ import {
   isBmi270FusionFeedCardDirty,
   isBmi270MinPublishCardDirty,
   isBmi270OperationCardDirty,
+  isBmi270OutputProfileCardDirty,
   isBmi270SamplingCardDirty,
   isSensorCfgFieldsDirty,
 } from "../../src/webview/sensor-telemetry/lib/configPaneCardDirty";
@@ -43,14 +44,15 @@ test("isSensorCfgFieldsDirty — detects single field drift", () => {
   assert.equal(isSensorCfgFieldsDirty(SENSOR_SOURCE_ID_BMI270, ["deltaX100"]), false);
 });
 
-test("BMI270 card dirty helpers — operation includes stream mode extras", () => {
+test("BMI270 card dirty helpers — output profile includes stream mode extras", () => {
   useBitstreamDeviceSensorConfigStore.getState().commitFirmwareTruthRows([BMI270_ROW]);
   useBitstreamDeviceSensorConfigStore.getState().setSensorCfgTruthReady(true);
   useBmi270FirmwareExtrasDraftStore.getState().setDeferFirmwareApply(true);
   useBmi270FirmwareExtrasDraftStore.getState().commitStreamModeBaseline("hybrid");
   useBmi270FirmwareExtrasDraftStore.getState().commitFusionFeedBaseline(10);
   useBitstreamConfigStore.getState().setBmi270StreamMode("raw");
-  assert.equal(isBmi270OperationCardDirty(), true);
+  assert.equal(isBmi270OperationCardDirty(), false);
+  assert.equal(isBmi270OutputProfileCardDirty(), true);
   assert.equal(isBmi270FusionFeedCardDirty(), false);
   assert.equal(isBmi270SamplingCardDirty(), false);
 });

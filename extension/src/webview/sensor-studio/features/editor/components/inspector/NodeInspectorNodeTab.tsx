@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Search, Tag } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   TRNAccordion,
@@ -7,8 +7,8 @@ import {
   TRNAccordionTrigger,
   TRNHighlightedJsonTextarea,
 } from "../../../../../ui/TRN";
-import { InspectorSensorCfgSection } from "../../../../../sensor-telemetry/components/sensor-cfg-deck/InspectorSensorCfgSection";
-import { InspectorPropertyRow } from "./InspectorPropertyRow";
+import { NodeInspectorCanvasLayoutSection } from "./NodeInspectorCanvasLayoutSection";
+import { InspectorSection } from "./InspectorSection";
 import { Rotation3DInspectorCards } from "../rotation/Rotation3DInspectorCards";
 import {
   defaultScene3DConfig,
@@ -21,7 +21,6 @@ import type { NodeInspectorSettingsSectionProps } from "./settings/node-inspecto
 import {
   shouldShowJsonConfigSection,
   shouldShowRotation3dSettings,
-  shouldShowSharedDeviceSettings,
   shouldShowTypedSettingsSection,
 } from "./settings/node-inspector-settings-search";
 import {
@@ -30,15 +29,15 @@ import {
   writeSettingsJsonAccordionValue,
 } from "./node-inspector-ui-persistence";
 
-export type NodeInspectorSettingsTabProps = {
+export type NodeInspectorNodeTabProps = {
   selectedNode: StudioNode;
   /** Catalog definition title for search + context (may be empty). */
   catalogDefinitionTitle: string;
   isRotation3DNode: boolean;
-  deviceSourceId: number | null;
   /** When true (multi-select, same `nodeId`), hide JSON — store rejects multi JSON apply. */
   suppressDefaultConfigJson?: boolean;
   onUpdateLabel: (nextLabel: string) => void;
+  onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (
     nextJson: string,
@@ -53,14 +52,14 @@ export type NodeInspectorSettingsTabProps = {
   setSourceKeyFieldError: (next: string | null) => void;
 };
 
-export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
+export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
   const {
     selectedNode,
     catalogDefinitionTitle,
     isRotation3DNode,
-    deviceSourceId,
     suppressDefaultConfigJson = false,
     onUpdateLabel,
+    onUpdateNodeUiResizable,
     onUpdateConfigField,
     onUpdateConfigJson,
     jsonDraft,
@@ -118,9 +117,6 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
 
   const showJsonSection = shouldShowJsonConfigSection(settingsSearch);
 
-  const showSharedDeviceCard =
-    deviceSourceId != null && shouldShowSharedDeviceSettings(settingsSearch);
-
   const scrollColumnUsesRotationFlex =
     isRotation3DNode && showRotationBlock;
 
@@ -131,8 +127,8 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
           <Search className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
           <input
             type="search"
-            aria-label="Filter settings"
-            placeholder="Filter settings…"
+            aria-label="Filter node settings"
+            placeholder="Filter node settings…"
             className="min-w-0 flex-1 bg-transparent text-[11px] text-zinc-200 outline-none placeholder:text-zinc-600"
             value={settingsSearch}
             onChange={(e) => setSettingsSearch(e.target.value)}
@@ -161,18 +157,27 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
           </div>
         ) : null}
 
-        <InspectorPropertyRow label="Node label" description="Shown on the flow node header.">
-          <input
-            type="text"
-            className="w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 outline-none focus:border-cyan-400/60"
-            value={selectedNode.data.label}
-            onChange={(event) => onUpdateLabel(event.target.value)}
-          />
-        </InspectorPropertyRow>
+        <InspectorSection title="Identity" contentClassName="px-2.5 py-2">
+          <div className="relative min-w-0">
+            <Tag
+              className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500"
+              aria-hidden
+            />
+            <input
+              type="text"
+              aria-label="Node label"
+              placeholder="Display name on canvas"
+              className="w-full rounded border border-zinc-700/80 bg-zinc-900/60 py-1.5 pl-8 pr-2 text-[11px] outline-none focus:border-cyan-400/60"
+              value={selectedNode.data.label}
+              onChange={(event) => onUpdateLabel(event.target.value)}
+            />
+          </div>
+        </InspectorSection>
 
-        {showSharedDeviceCard && deviceSourceId != null ? (
-          <InspectorSensorCfgSection sourceId={deviceSourceId} />
-        ) : null}
+        <NodeInspectorCanvasLayoutSection
+          selectedNode={selectedNode}
+          onResizableChange={onUpdateNodeUiResizable}
+        />
 
         {showTypedSection && CatalogSection != null ? (
           selectedNode.data.nodeId === "glb-animation-bundle" ? (
@@ -207,49 +212,51 @@ export function NodeInspectorSettingsTab(props: NodeInspectorSettingsTabProps) {
       ) : null}
 
       {showJsonSection && !suppressDefaultConfigJson ? (
-        <TRNAccordion
-          type="single"
-          collapsible
-          className="shrink-0 rounded-md border border-zinc-700/70 bg-zinc-950/40"
-          value={jsonAccordionValue}
-          onValueChange={(next) => {
-            const raw = typeof next === "string" ? next : "";
-            const normalized =
-              raw === SETTINGS_JSON_ACCORDION_VALUE ? SETTINGS_JSON_ACCORDION_VALUE : "";
-            setJsonAccordionValue(normalized);
-            writeSettingsJsonAccordionValue(
-              normalized === "" ? undefined : SETTINGS_JSON_ACCORDION_VALUE,
-            );
-          }}
-        >
-          <TRNAccordionItem value="default-config-json" className="border-0">
-            <TRNAccordionTrigger className="px-2 py-1.5 text-xs font-normal text-zinc-400 hover:bg-zinc-800/35">
-              Default Config (JSON)
-            </TRNAccordionTrigger>
-            <TRNAccordionContent
-              className="border-t border-zinc-800/60 bg-zinc-950/35"
-              innerClassName="flex flex-col gap-1 px-2 pb-2 pt-1 text-xs text-zinc-300"
-            >
-              <TRNHighlightedJsonTextarea
-                aria-label="Default node configuration JSON"
-                className="min-h-[200px] w-full max-h-[min(52vh,440px)] sm:min-h-[240px]"
-                value={jsonDraft}
-                onChange={setJsonDraft}
-                onBlur={() => {
-                  const result = onUpdateConfigJson(jsonDraft);
-                  if (!result.ok) {
-                    setJsonError(result.message);
-                    return;
-                  }
-                  setJsonError(null);
-                }}
-              />
-              {jsonError != null ? (
-                <div className="shrink-0 text-[11px] text-red-400">{jsonError}</div>
-              ) : null}
-            </TRNAccordionContent>
-          </TRNAccordionItem>
-        </TRNAccordion>
+        <InspectorSection title="Advanced" contentClassName="px-2 py-2">
+          <TRNAccordion
+            type="single"
+            collapsible
+            className="rounded-md border border-zinc-700/70 bg-zinc-950/40"
+            value={jsonAccordionValue}
+            onValueChange={(next) => {
+              const raw = typeof next === "string" ? next : "";
+              const normalized =
+                raw === SETTINGS_JSON_ACCORDION_VALUE ? SETTINGS_JSON_ACCORDION_VALUE : "";
+              setJsonAccordionValue(normalized);
+              writeSettingsJsonAccordionValue(
+                normalized === "" ? undefined : SETTINGS_JSON_ACCORDION_VALUE,
+              );
+            }}
+          >
+            <TRNAccordionItem value="default-config-json" className="border-0">
+              <TRNAccordionTrigger className="px-2 py-1.5 text-xs font-normal text-zinc-400 hover:bg-zinc-800/35">
+                Default config (JSON)
+              </TRNAccordionTrigger>
+              <TRNAccordionContent
+                className="border-t border-zinc-800/60 bg-zinc-950/35"
+                innerClassName="flex flex-col gap-1 px-2 pb-2 pt-1 text-xs text-zinc-300"
+              >
+                <TRNHighlightedJsonTextarea
+                  aria-label="Default node configuration JSON"
+                  className="min-h-[200px] w-full max-h-[min(52vh,440px)] sm:min-h-[240px]"
+                  value={jsonDraft}
+                  onChange={setJsonDraft}
+                  onBlur={() => {
+                    const result = onUpdateConfigJson(jsonDraft);
+                    if (!result.ok) {
+                      setJsonError(result.message);
+                      return;
+                    }
+                    setJsonError(null);
+                  }}
+                />
+                {jsonError != null ? (
+                  <div className="shrink-0 text-[11px] text-red-400">{jsonError}</div>
+                ) : null}
+              </TRNAccordionContent>
+            </TRNAccordionItem>
+          </TRNAccordion>
+        </InspectorSection>
       ) : null}
     </>
   );

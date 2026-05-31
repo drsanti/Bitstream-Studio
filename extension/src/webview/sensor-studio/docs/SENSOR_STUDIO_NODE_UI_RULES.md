@@ -8,10 +8,10 @@ Short conventions for **flow node cards** and the **Node Inspector**, aligned wi
 
 | Element            | Rule                                                                                                      |
 | ------------------ | --------------------------------------------------------------------------------------------------------- |
-| **Pane title**     | **Node Inspector**                                                                                        |
-| **Subtitle**       | _Selection, live values, and typed settings_                                                              |
-| **Tabs**           | Horizontal **Details / Live / Settings** tab bar on top — do not collapse into a single scroll panel      |
-| **Identity strip** | Catalog **type** badge + **category** badge (accent); user **label** below; instance id in a hint tooltip |
+| **Pane title**     | **Node Inspector** + **`SlidersHorizontal`** prefix (matches workbench Inspector tab) |
+| **Subtitle**       | None — context lives in tabs + **`InspectorContextBar`** |
+| **Tabs**           | Horizontal **Details / Live / Node** (+ **Device** when the node maps to a firmware `sourceId`) — do not collapse into a single scroll panel |
+| **Identity strip** | Catalog **Lucide icon** (`InspectorCategoryIcon`) tinted by category; pulses when stream is live / sim / stale; meta row lists category + `nodeId` |
 
 ---
 
@@ -57,9 +57,20 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | **Tab bar**           | `TRNTabs` + **`trn-inspector-tab-bar`** (shared with Telemetry deck) | Live / Telemetry Data active: emerald; others: zinc                              |
 | **Context**           | **`InspectorContextBar`**                               | Category dot, title, mono `nodeId`, clock, single stream status (no duplicate chips) |
 | **Details sections**  | **`TRNInteractiveCard`** + **`TRNSortableContainer`** (telemetry deck parity) | **Specifications** · **Ports** — drag reorder + collapse; **Specifications** uses **`sensor-inspector-about-content`** (datasheet ranges/accuracy) for hardware nodes |
-| **Settings — shared device** | **`InspectorSensorCfgSection`** + **`SensorCfgDeck`** on **Settings** tab | Same editable cards as Telemetry **Sensor Config**; draft-until-Apply via **`useSensorCfgPanelHost`** + **`useBitstreamDeviceSensorConfigStore`** sync |
+| **Settings — node (flow-local)** | **`NodeInspectorNodeTab`** — Identity, Canvas, typed registry, rotation 3D, Advanced JSON | Stacked **`InspectorFieldStack`** fields (~340px rail); **`InspectorSection`** for Identity / Canvas / Advanced; filter via search |
+| **Settings — device (shared)** | **`NodeInspectorDeviceTab`** + **`InspectorSensorCfgSection`** | Conditional **Device** tab only when `resolveStudioNodeSourceId` returns a id; same editable deck as Telemetry **Sensor Config**; amber shared-scope banner |
 | **Live sections**     | **`InspectorSensorDeckReadings`**                       | Deck `TRNInteractiveCard` viewers; **`useInspectorLiveDeckSamples`**                 |
-| **Settings sections** | **`InspectorCollapsibleSection`**                       | Glass `TRNCard` for typed forms                                                      |
+| **Settings sections** | **`InspectorSettingsSectionFrame`** / registry under **`NodeInspectorNodeTab`** | **`InspectorPropertyRow`** → **`InspectorFieldStack`** (label above control); glass `TRNCard` for collapsible typed forms |
+
+### Node tab field layout (Inspector → Node)
+
+| Block | Components | Rule |
+| ----- | ---------- | ---- |
+| **Identity** | **`InspectorSection`** | Full-width label input with inline **Tag** icon; no left “Node label” column |
+| **Canvas** | **`InspectorSection`** + **`InspectorCompactToggleRow`** | Slim toggle + short hint; not a heavy **`TRNInlineToggleRow`** card |
+| **Catalog sections** | **`InspectorPropertyRow`** / **`InspectorFieldStack`** | Uppercase 10px label stacked above full-width control |
+| **Advanced** | **`InspectorSection`** + **`TRNAccordion`** | Default config JSON unchanged |
+
 
 Live tab content order: **Live readings** → **Diagnostics** (if errors) → **History** / wire dumps (collapsed by default).
 
@@ -212,8 +223,11 @@ When adding a multi-output sensor source:
 
 ### Resizable panel nodes (oscilloscope, model-viewer, …)
 
+### Resizable panel nodes (oscilloscope, model-viewer, …)
+
 - Set explicit **`data.ui.minWidth` / `minHeight`** in **`attachConfigErrors`** when the default body needs a floor.
-- **Wrap-content** nodes (live sensor cards): height **`auto`** via **`utilityBodyFitsContent`**; resize mins from content measurement is backlog — do not shrink below natural socket layout.
+- **Canvas resize:** TRNWindow-style edge/corner drag via **`FlowNodeEdgeResize`** when **`data.ui.resizable === true`** and the node is selected. Operator enables per node on Inspector → **Node → Allow resize on canvas**. Default **off**; **oscilloscope** and **model-viewer** default **on** at create/hydrate.
+- **Wrap-content** nodes (live sensor cards): height **`auto`** via **`utilityBodyFitsContent`**; vertical resize sets an explicit flow height.
 
 ---
 

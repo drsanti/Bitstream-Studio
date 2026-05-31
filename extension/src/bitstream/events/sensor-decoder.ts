@@ -13,8 +13,10 @@ export interface BitstreamSensorSampleV2 {
   counter: number;
   /** BS2 EVT_SENSOR device timestamp (tMs, u32); absent on legacy v1 decode paths. */
   deviceTMs?: number;
-  temperatureCx100: number;
-  secondaryX100: number;
+  /** Present when the EVT mask includes a temperature field for this sensor. */
+  temperatureCx100?: number;
+  /** RH (%×100), pressure (hPa×10), or sensor-specific secondary scalar when published. */
+  secondaryX100?: number;
   sourceHint: BitstreamSensorSourceHint;
   isBmi270FusionPayload: boolean;
   magneticXUtX100?: number;

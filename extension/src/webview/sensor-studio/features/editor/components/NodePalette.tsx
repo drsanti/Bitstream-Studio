@@ -1,6 +1,5 @@
-import { LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
-import { createPortal } from "react-dom";
-import { useCallback, useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
+import { BookOpen, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { resolveSingleModelSelectParentId, readGlbExtractTag, readSourceModelNodeId } from "../model/model-generated-bindings";
@@ -8,27 +7,47 @@ import { studioGlbExtractRowKey } from "../gltf/studio-gltf-extract";
 import { useStudioGltfExtraction } from "../gltf/useStudioGltfExtraction";
 import { GlbExtractionTabPanel } from "./node-palette/GlbExtractionTabPanel";
 import { filterPaletteEntries } from "./node-palette/filter-palette-entries";
-import { PaletteCatalogIcon } from "./node-palette/PaletteCatalogIcon";
-import { paletteEntryDnDProps } from "./node-palette/palette-entry-dnd-props";
+import { LibraryEntryRow } from "./node-palette/LibraryEntryRow";
 import {
   getPaletteEntryMeta,
+  getSubgroupChip,
   getSubgroupLabel,
+  isPaletteSensorFamilySubgroup,
+  isPaletteSensorPrimaryEntry,
+  isPaletteSensorTapEntry,
+  PALETTE_SENSOR_FAMILY_SUBGROUPS,
   PALETTE_SENSOR_SUBGROUP_ORDER,
+  resolvePaletteRowVariant,
+  splitSensorFamilyPanelEntries,
+  type PaletteSensorFamilySubgroup,
   type PaletteSensorSubgroup,
 } from "./node-palette/palette-entry-meta";
 import { PaletteDensityProvider, usePaletteDensity } from "./node-palette/palette-density-context";
-import { PalettePreviewAffix } from "./node-palette/PalettePreviewAffix";
 import { PaletteLiveTickProvider } from "./node-palette/PaletteLiveTickContext";
 import {
+  PaletteSensorTreeLayoutProvider,
+} from "./node-palette/palette-sensor-tree-layout-context";
+import {
+  SENSOR_FAMILY_TREE_LAYOUT_OPTIONS,
+  type SensorFamilyTreeGutterRole,
+} from "./node-palette/sensor-family-tree-layout";
+import {
+  readStoredPaletteCollapsedSubgroups,
   readStoredPaletteDensity,
+  readStoredPaletteSensorTreeLayout,
+  writeStoredPaletteCollapsedSubgroups,
   writeStoredPaletteDensity,
+  writeStoredPaletteSensorTreeLayout,
   type NodePaletteDensity,
+  type SensorFamilyTreeLayout,
 } from "./node-palette/node-palette-ui-persistence";
-import { usePaletteEntryPreview } from "./node-palette/usePaletteEntryPreview";
+import { NODE_PALETTE_FONT_CLASS } from "./node-palette/node-palette-font";
 
 type NodePaletteTabId = "nodes" | "simulation" | "glb";
 
 type CategoryFilter = "all" | NodeCatalogEntry["category"];
+
+type SensorFamilyFilter = "all" | PaletteSensorFamilySubgroup;
 
 const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
   "sensor",
@@ -50,42 +69,24 @@ const CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string> = {
   generator: "Generator",
 };
 
-/** Hover dwell before showing the library hint (ms). */
-const LIBRARY_HINT_DELAY_MS = 1000;
+function sortSensorGroupEntries(entries: NodeCatalogEntry[]): NodeCatalogEntry[] {
+  const primary: NodeCatalogEntry[] = [];
+  const taps: NodeCatalogEntry[] = [];
+  const rest: NodeCatalogEntry[] = [];
+  for (const entry of entries) {
+    if (isPaletteSensorPrimaryEntry(entry)) {
+      primary.push(entry);
+    } else if (isPaletteSensorTapEntry(entry)) {
+      taps.push(entry);
+    } else {
+      rest.push(entry);
+    }
+  }
+  return [...primary, ...taps, ...rest];
+}
 
-function LibraryHintPanel(props: {
-  entry: NodeCatalogEntry;
-  chip?: string | null;
-}) {
-  const { entry, chip } = props;
-  return (
-    <div className="flex max-h-60 max-w-xs flex-col gap-2 overflow-y-auto rounded-lg border border-zinc-600/90 bg-zinc-950/98 px-3 py-2.5 text-left shadow-xl ring-1 ring-black/40 backdrop-blur-md">
-      <div>
-        <div className="text-[13px] font-semibold leading-snug text-zinc-50">{entry.title}</div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-zinc-500">
-          <code className="rounded bg-zinc-900/90 px-1 py-px font-mono text-[10px] text-cyan-200/90">
-            {entry.id}
-          </code>
-          <span className="text-zinc-500">·</span>
-          <span>{CATEGORY_LABEL[entry.category]}</span>
-          {chip != null ? (
-            <>
-              <span className="text-zinc-600">·</span>
-              <span className="rounded border border-cyan-500/25 bg-cyan-950/40 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-cyan-200/85">
-                {chip}
-              </span>
-            </>
-          ) : null}
-        </div>
-      </div>
-      <p className="text-[11px] leading-relaxed text-zinc-300">{entry.description}</p>
-      <div className="border-t border-zinc-800/90 pt-2 text-[10px] leading-snug text-zinc-500">
-        <span className="font-medium text-zinc-400">Actions</span>
-        <span className="mx-1 text-zinc-600">—</span>
-        Click to add to the graph. Drag onto the canvas to place at a position.
-      </div>
-    </div>
-  );
+function isGroupedHardwareFamily(subgroup: PaletteSensorSubgroup): boolean {
+  return isPaletteSensorFamilySubgroup(subgroup);
 }
 
 type NodePaletteProps = {
@@ -104,208 +105,20 @@ type NodePaletteProps = {
   mutedTextColor?: string;
 };
 
-function LibraryEntryRow(props: {
-  entry: NodeCatalogEntry;
-  borderColor: string;
-  onAddNode: (entry: NodeCatalogEntry) => void;
-  chip?: string | null;
-  categoryAccent?: string;
-}) {
-  const { entry, borderColor, onAddNode, chip, categoryAccent } = props;
-  const density = usePaletteDensity();
-  const dense = density === "dense";
-  const preview = usePaletteEntryPreview(entry);
-  const livePulse = preview.kind === "pulse" ? preview.streamMode : null;
-  const hintBodyId = useId();
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const showTimerRef = useRef<number | null>(null);
-  const leaveDismissTimerRef = useRef<number | null>(null);
-  const [hintOpen, setHintOpen] = useState(false);
-  const [hintStyle, setHintStyle] = useState<CSSProperties | null>(null);
-
-  const clearShowTimer = useCallback(() => {
-    if (showTimerRef.current != null) {
-      window.clearTimeout(showTimerRef.current);
-      showTimerRef.current = null;
-    }
-  }, []);
-
-  const clearLeaveDismissTimer = useCallback(() => {
-    if (leaveDismissTimerRef.current != null) {
-      window.clearTimeout(leaveDismissTimerRef.current);
-      leaveDismissTimerRef.current = null;
-    }
-  }, []);
-
-  const dismissHint = useCallback(() => {
-    clearShowTimer();
-    clearLeaveDismissTimer();
-    setHintOpen(false);
-    setHintStyle(null);
-  }, [clearShowTimer, clearLeaveDismissTimer]);
-
-  const armLeaveDismiss = useCallback(() => {
-    clearLeaveDismissTimer();
-    leaveDismissTimerRef.current = window.setTimeout(() => {
-      leaveDismissTimerRef.current = null;
-      dismissHint();
-    }, 220);
-  }, [clearLeaveDismissTimer, dismissHint]);
-
-  const scheduleHint = useCallback(() => {
-    clearShowTimer();
-    clearLeaveDismissTimer();
-    showTimerRef.current = window.setTimeout(() => {
-      showTimerRef.current = null;
-      const el = btnRef.current;
-      if (el == null) {
-        return;
-      }
-      const anchor = el.getBoundingClientRect();
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const maxW = 288;
-      const gutter = 8;
-      const left = Math.max(gutter, Math.min(anchor.left, vw - gutter - maxW));
-      const spaceBelow = vh - anchor.bottom - gutter;
-      const placeBelow = spaceBelow >= 96;
-      const overlap = 6;
-      if (placeBelow) {
-        setHintStyle({
-          position: "fixed",
-          left,
-          top: anchor.bottom - overlap,
-          maxWidth: maxW,
-          zIndex: 340,
-        });
-      } else {
-        setHintStyle({
-          position: "fixed",
-          left,
-          bottom: vh - anchor.top + overlap,
-          maxWidth: maxW,
-          zIndex: 340,
-        });
-      }
-      setHintOpen(true);
-    }, LIBRARY_HINT_DELAY_MS);
-  }, [clearShowTimer, clearLeaveDismissTimer]);
-
-  useEffect(() => {
-    return () => {
-      clearShowTimer();
-      clearLeaveDismissTimer();
-    };
-  }, [clearShowTimer, clearLeaveDismissTimer]);
-
-  useEffect(() => {
-    if (!hintOpen) {
-      return;
-    }
-    const onScroll = () => {
-      dismissHint();
-    };
-    window.addEventListener("scroll", onScroll, true);
-    return () => window.removeEventListener("scroll", onScroll, true);
-  }, [hintOpen, dismissHint]);
-
-  const { draggable, onDragStart } = paletteEntryDnDProps(entry);
-
-  return (
-    <>
-      <span id={hintBodyId} className="sr-only">
-        {entry.description}
-      </span>
-      <div
-        className="w-full"
-        onMouseEnter={() => {
-          clearLeaveDismissTimer();
-          scheduleHint();
-        }}
-        onMouseLeave={armLeaveDismiss}
-      >
-        <button
-          ref={btnRef}
-          type="button"
-          className={`group flex w-full cursor-grab items-center rounded-lg border text-left transition-colors hover:bg-zinc-800/45 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
-            dense ? "gap-2 px-2 py-1.5" : "gap-2.5 px-2.5 py-2"
-          }`}
-          style={{ borderColor }}
-          onClick={() => onAddNode(entry)}
-          draggable={draggable}
-          onDragStart={(e) => {
-            dismissHint();
-            onDragStart(e);
-          }}
-          aria-describedby={hintBodyId}
-        >
-          <span
-            className={`flex shrink-0 items-center justify-center rounded-md border-l-[3px] border-l-transparent bg-zinc-900/80 ring-1 ring-zinc-700/60 group-hover:bg-zinc-800/90 ${
-              dense ? "size-7" : "size-8"
-            }`}
-            style={
-              categoryAccent != null
-                ? { borderLeftColor: categoryAccent }
-                : undefined
-            }
-          >
-            <PaletteCatalogIcon
-              icon={entry.icon}
-              livePulse={livePulse}
-              className={dense ? "h-3 w-3" : undefined}
-            />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`truncate font-medium leading-tight text-zinc-100 ${
-                  dense ? "text-[12px]" : "text-[13px]"
-                }`}
-              >
-                {entry.title}
-              </span>
-              {chip != null ? (
-                <span
-                  className={`shrink-0 rounded border border-cyan-500/30 bg-cyan-950/35 font-semibold uppercase tracking-wide text-cyan-200/90 ${
-                    dense
-                      ? "px-0.5 py-px text-[8px]"
-                      : "px-1 py-px text-[9px]"
-                  }`}
-                >
-                  {chip}
-                </span>
-              ) : null}
-            </span>
-          </span>
-          <span className="shrink-0">
-            <PalettePreviewAffix preview={preview} density={density} />
-          </span>
-        </button>
-      </div>
-      {hintOpen && hintStyle != null && typeof document !== "undefined"
-        ? createPortal(
-            <div
-              role="tooltip"
-              className="pointer-events-auto"
-              style={hintStyle}
-              onMouseEnter={clearLeaveDismissTimer}
-              onMouseLeave={dismissHint}
-            >
-              <LibraryHintPanel entry={entry} chip={chip} />
-            </div>,
-            document.body,
-          )
-        : null}
-    </>
-  );
-}
 
 export function NodePalette(props: NodePaletteProps) {
   const { borderColor, panelColor, entries, onAddNode, onSpawnGlbExtract, categoryColors, mutedTextColor } = props;
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<NodePaletteTabId>("nodes");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
+  const [sensorFamilyFilter, setSensorFamilyFilter] = useState<SensorFamilyFilter>("all");
   const [density, setDensity] = useState<NodePaletteDensity>(() => readStoredPaletteDensity());
+  const [collapsedSubgroups, setCollapsedSubgroups] = useState<Set<PaletteSensorSubgroup>>(
+    () => readStoredPaletteCollapsedSubgroups(),
+  );
+  const [sensorTreeLayout, setSensorTreeLayout] = useState<SensorFamilyTreeLayout>(() =>
+    readStoredPaletteSensorTreeLayout(),
+  );
 
   const parentModelFlowNodeId = useFlowEditorStore((s) => resolveSingleModelSelectParentId(s));
   const modelNodes = useFlowEditorStore((s) => s.nodes);
@@ -359,19 +172,39 @@ export function NodePalette(props: NodePaletteProps) {
     writeStoredPaletteDensity(density);
   }, [density]);
 
+  useEffect(() => {
+    writeStoredPaletteSensorTreeLayout(sensorTreeLayout);
+  }, [sensorTreeLayout]);
+
   const dense = density === "dense";
 
   const entryAccent = (entry: NodeCatalogEntry) => categoryColors?.[entry.category];
 
   const paletteFilterActive =
-    query.trim().length > 0 || (tab === "nodes" && categoryFilter !== "all");
+    query.trim().length > 0 ||
+    (tab === "nodes" && (categoryFilter !== "all" || sensorFamilyFilter !== "all"));
 
   const showFilterSecondary =
-    query.trim().length > 0 || (tab === "nodes" && categoryFilter !== "all");
+    query.trim().length > 0 ||
+    (tab === "nodes" && (categoryFilter !== "all" || sensorFamilyFilter !== "all"));
 
   const resetPaletteFilters = useCallback(() => {
     setQuery("");
     setCategoryFilter("all");
+    setSensorFamilyFilter("all");
+  }, []);
+
+  const toggleSubgroupCollapsed = useCallback((subgroup: PaletteSensorSubgroup) => {
+    setCollapsedSubgroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(subgroup)) {
+        next.delete(subgroup);
+      } else {
+        next.add(subgroup);
+      }
+      writeStoredPaletteCollapsedSubgroups(next);
+      return next;
+    });
   }, []);
 
   const sensorSubgroupDot = categoryColors?.sensor ?? "#52525b";
@@ -408,6 +241,26 @@ export function NodePalette(props: NodePaletteProps) {
     return m;
   }, [standardNodes]);
 
+  const sensorFamilyCounts = useMemo(() => {
+    const counts = new Map<PaletteSensorFamilySubgroup, number>();
+    for (const sg of PALETTE_SENSOR_FAMILY_SUBGROUPS) {
+      counts.set(sg, 0);
+    }
+    for (const entry of standardNodes) {
+      if (entry.category !== "sensor") {
+        continue;
+      }
+      const meta = getPaletteEntryMeta(entry);
+      const sg = meta.sensorSubgroup;
+      if (sg != null && isPaletteSensorFamilySubgroup(sg)) {
+        counts.set(sg, (counts.get(sg) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [standardNodes]);
+
+  const sensorListGrouped = query.trim().length === 0;
+
   const groupedByCategory = useMemo(() => {
     const m = new Map<NodeCatalogEntry["category"], NodeCatalogEntry[]>();
     for (const c of CATEGORY_ORDER) {
@@ -435,48 +288,258 @@ export function NodePalette(props: NodePaletteProps) {
     return map;
   }, [sensorNodes]);
 
-  const renderSensorSections = () => (
-    <>
-      {PALETTE_SENSOR_SUBGROUP_ORDER.map((sg) => {
-        const list = sensorBySubgroup.get(sg) ?? [];
-        if (list.length === 0) {
-          return null;
-        }
+  const renderSensorFamilyTreeRows = (
+    list: NodeCatalogEntry[],
+    layout: SensorFamilyTreeLayout,
+  ) => {
+    const { primary, children } = splitSensorFamilyPanelEntries(list);
+    const rows: Array<{
+      entry: NodeCatalogEntry;
+      treeRole: SensorFamilyTreeGutterRole | null;
+    }> = [];
+
+    if (layout === "header-root") {
+      for (let i = 0; i < children.length; i += 1) {
+        rows.push({
+          entry: children[i],
+          treeRole: i === children.length - 1 ? "tap-last" : "tap-middle",
+        });
+      }
+      return rows.map(({ entry, treeRole }) => {
+        const meta = getPaletteEntryMeta(entry);
         return (
-          <div key={sg} className={dense ? "space-y-1" : "space-y-1.5"}>
-            <div
-              className={`flex select-none items-center gap-1.5 border-b border-zinc-700/70 font-semibold uppercase tracking-wider text-zinc-500 ${
-                dense ? "pb-0.5 text-[9px]" : "pb-1 text-[10px]"
-              }`}
-              style={{ borderColor }}
-            >
-              <span
-                className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
-                style={{ backgroundColor: sensorSubgroupDot }}
-                aria-hidden
-              />
-              {getSubgroupLabel(sg)}
-            </div>
-            <div className={dense ? "space-y-0.5" : "space-y-1"}>
-              {list.map((entry) => {
-                const meta = getPaletteEntryMeta(entry);
-                return (
-                  <LibraryEntryRow
-                    key={entry.id}
-                    entry={entry}
-                    borderColor={borderColor}
-                    onAddNode={onAddNode}
-                    chip={meta.chip}
-                    categoryAccent={entryAccent(entry)}
-                  />
-                );
-              })}
-            </div>
-          </div>
+          <LibraryEntryRow
+            key={entry.id}
+            entry={entry}
+            borderColor={borderColor}
+            onAddNode={onAddNode}
+            chip={meta.chip}
+            categoryAccent={entryAccent(entry)}
+            grouped
+            hideChip
+            variant={resolvePaletteRowVariant(entry, true)}
+            treeRole={treeRole}
+          />
         );
-      })}
-    </>
-  );
+      });
+    }
+
+    if (primary != null) {
+      rows.push({ entry: primary, treeRole: "root" });
+    }
+    for (let i = 0; i < children.length; i += 1) {
+      rows.push({
+        entry: children[i],
+        treeRole: i === children.length - 1 ? "tap-last" : "tap-middle",
+      });
+    }
+
+    return rows.map(({ entry, treeRole }) => {
+      const meta = getPaletteEntryMeta(entry);
+      return (
+        <LibraryEntryRow
+          key={entry.id}
+          entry={entry}
+          borderColor={borderColor}
+          onAddNode={onAddNode}
+          chip={meta.chip}
+          categoryAccent={entryAccent(entry)}
+          grouped
+          hideChip
+          variant={resolvePaletteRowVariant(entry, true)}
+          treeRole={treeRole}
+        />
+      );
+    });
+  };
+
+  const renderSensorEntryList = (
+    list: NodeCatalogEntry[],
+    options: { grouped: boolean; hideChip: boolean; treeLayout?: SensorFamilyTreeLayout },
+  ) => {
+    if (options.grouped && options.treeLayout != null) {
+      return renderSensorFamilyTreeRows(list, options.treeLayout);
+    }
+    return sortSensorGroupEntries(list).map((entry) => {
+      const meta = getPaletteEntryMeta(entry);
+      return (
+        <LibraryEntryRow
+          key={entry.id}
+          entry={entry}
+          borderColor={borderColor}
+          onAddNode={onAddNode}
+          chip={meta.chip}
+          categoryAccent={entryAccent(entry)}
+          grouped={options.grouped}
+          hideChip={options.hideChip}
+          variant={resolvePaletteRowVariant(entry, options.grouped)}
+        />
+      );
+    });
+  };
+
+  const renderSensorSections = () => {
+    const subgroupsToRender = PALETTE_SENSOR_SUBGROUP_ORDER.filter((sg) => {
+      if (
+        categoryFilter === "sensor" &&
+        sensorFamilyFilter !== "all" &&
+        sg !== sensorFamilyFilter
+      ) {
+        return false;
+      }
+      return (sensorBySubgroup.get(sg)?.length ?? 0) > 0;
+    });
+
+    return (
+      <>
+        {subgroupsToRender.map((sg) => {
+          const list = sensorBySubgroup.get(sg) ?? [];
+          if (list.length === 0) {
+            return null;
+          }
+
+          const collapsed = collapsedSubgroups.has(sg);
+          const groupedPanel = sensorListGrouped && isGroupedHardwareFamily(sg);
+
+          if (groupedPanel) {
+            const { primary, children } = splitSensorFamilyPanelEntries(list);
+            const isHeaderRoot = sensorTreeLayout === "header-root";
+
+            if (isHeaderRoot) {
+              return (
+                <div
+                  key={sg}
+                  className="overflow-hidden rounded-lg border border-zinc-700/70 bg-zinc-950/20"
+                  style={{ borderColor }}
+                >
+                  <div className="flex items-stretch border-b border-zinc-800/70">
+                    <button
+                      type="button"
+                      className={`flex shrink-0 items-center justify-center text-zinc-500 transition-colors hover:bg-zinc-800/30 hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-500/35 ${
+                        dense ? "w-7" : "w-8"
+                      }`}
+                      aria-expanded={!collapsed}
+                      aria-label={`${collapsed ? "Expand" : "Collapse"} ${getSubgroupLabel(sg)}`}
+                      onClick={() => toggleSubgroupCollapsed(sg)}
+                    >
+                      {collapsed ? (
+                        <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+                      ) : (
+                        <ChevronDown className="size-3.5 shrink-0" aria-hidden />
+                      )}
+                    </button>
+                    {primary != null ? (
+                      <div className="min-w-0 flex-1">
+                        <LibraryEntryRow
+                          entry={primary}
+                          borderColor={borderColor}
+                          onAddNode={onAddNode}
+                          chip={getPaletteEntryMeta(primary).chip}
+                          categoryAccent={entryAccent(primary)}
+                          grouped
+                          hideChip
+                          variant="primary"
+                          treeRole="header-root"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={`flex min-w-0 flex-1 items-center gap-1.5 px-2 font-semibold uppercase tracking-wider text-zinc-400 ${
+                          dense ? "py-1.5 text-[9px]" : "py-2 text-[10px]"
+                        }`}
+                      >
+                        <span
+                          className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
+                          style={{ backgroundColor: sensorSubgroupDot }}
+                          aria-hidden
+                        />
+                        {getSubgroupLabel(sg)}
+                      </div>
+                    )}
+                  </div>
+                  {!collapsed && children.length > 0 ? (
+                    <div className={`relative ${dense ? "pb-1 pt-1" : "pb-1.5 pt-1.5"}`}>
+                      {renderSensorFamilyTreeRows(list, sensorTreeLayout)}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={sg}
+                className="overflow-hidden rounded-lg border border-zinc-700/70 bg-zinc-950/20"
+                style={{ borderColor }}
+              >
+                <button
+                  type="button"
+                  className={`flex w-full select-none items-center gap-1.5 text-left font-semibold uppercase tracking-wider text-zinc-400 transition-colors hover:bg-zinc-800/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-500/35 ${
+                    dense ? "px-2 py-1.5 text-[9px]" : "px-2.5 py-2 text-[10px]"
+                  }`}
+                  aria-expanded={!collapsed}
+                  onClick={() => toggleSubgroupCollapsed(sg)}
+                >
+                  {collapsed ? (
+                    <ChevronRight className="size-3 shrink-0 text-zinc-500" aria-hidden />
+                  ) : (
+                    <ChevronDown className="size-3 shrink-0 text-zinc-500" aria-hidden />
+                  )}
+                  <span
+                    className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
+                    style={{ backgroundColor: sensorSubgroupDot }}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 flex-1 truncate">{getSubgroupLabel(sg)}</span>
+                  <span className="shrink-0 tabular-nums text-zinc-600">{list.length}</span>
+                </button>
+                {!collapsed ? (
+                  <div className={`relative ${dense ? "pb-1 pt-1" : "pb-1.5 pt-1.5"}`}>
+                    {renderSensorFamilyTreeRows(list, sensorTreeLayout)}
+                  </div>
+                ) : null}
+              </div>
+            );
+          }
+
+          return (
+            <div key={sg} className={dense ? "space-y-1" : "space-y-1.5"}>
+              <button
+                type="button"
+                className={`flex w-full select-none items-center gap-1.5 border-b border-zinc-700/70 text-left font-semibold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                  dense ? "pb-0.5 text-[9px]" : "pb-1 text-[10px]"
+                }`}
+                style={{ borderColor }}
+                aria-expanded={!collapsed}
+                onClick={() => toggleSubgroupCollapsed(sg)}
+              >
+                {collapsed ? (
+                  <ChevronRight className="size-3 shrink-0" aria-hidden />
+                ) : (
+                  <ChevronDown className="size-3 shrink-0" aria-hidden />
+                )}
+                <span
+                  className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
+                  style={{ backgroundColor: sensorSubgroupDot }}
+                  aria-hidden
+                />
+                <span className="min-w-0 flex-1 truncate">{getSubgroupLabel(sg)}</span>
+                <span className="shrink-0 tabular-nums opacity-70">{list.length}</span>
+              </button>
+              {!collapsed ? (
+                <div className={dense ? "space-y-0.5" : "space-y-1"}>
+                  {renderSensorEntryList(list, {
+                    grouped: false,
+                    hideChip: false,
+                  })}
+                </div>
+              ) : null}
+            </div>
+          );
+        })}
+      </>
+    );
+  };
 
   const renderCategoryBlock = (category: NodeCatalogEntry["category"]) => {
     const nodes = groupedByCategory.get(category) ?? [];
@@ -538,7 +601,7 @@ export function NodePalette(props: NodePaletteProps) {
 
   return (
     <section
-      className="flex h-full min-h-0 flex-col overflow-hidden rounded-lg ring-1 ring-zinc-800/80"
+      className={`flex h-full min-h-0 flex-col overflow-hidden rounded-lg ring-1 ring-zinc-800/80 ${NODE_PALETTE_FONT_CLASS}`}
       style={{
         borderColor,
         backgroundColor: panelColor,
@@ -549,7 +612,10 @@ export function NodePalette(props: NodePaletteProps) {
         style={{ borderColor }}
       >
         <div className={`flex flex-wrap items-center gap-x-2 gap-y-1.5 ${dense ? "mb-2" : "mb-3"}`}>
-          <h2 className="shrink-0 text-sm font-semibold tracking-tight text-zinc-100">Library</h2>
+          <h2 className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold tracking-tight text-zinc-100">
+            <BookOpen className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />
+            Library
+          </h2>
           <div className="min-w-0 flex-1" aria-hidden />
           <div
             className="flex shrink-0 items-center gap-0.5 rounded-md bg-zinc-950/50 p-0.5 ring-1 ring-zinc-800/80"
@@ -582,6 +648,28 @@ export function NodePalette(props: NodePaletteProps) {
             >
               Dense
             </button>
+          </div>
+          <div
+            className="flex shrink-0 items-center gap-0.5 rounded-md bg-zinc-950/50 p-0.5 ring-1 ring-zinc-800/80"
+            role="group"
+            aria-label="Sensor family tree layout"
+          >
+            {SENSOR_FAMILY_TREE_LAYOUT_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                aria-pressed={sensorTreeLayout === opt.id}
+                onClick={() => setSensorTreeLayout(opt.id)}
+                className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                  sensorTreeLayout === opt.id
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+                title={opt.title}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             <span
@@ -622,6 +710,7 @@ export function NodePalette(props: NodePaletteProps) {
             onClick={() => {
               setTab("nodes");
               setCategoryFilter("all");
+              setSensorFamilyFilter("all");
             }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
               dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
@@ -640,6 +729,7 @@ export function NodePalette(props: NodePaletteProps) {
             onClick={() => {
               setTab("simulation");
               setCategoryFilter("all");
+              setSensorFamilyFilter("all");
             }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
               dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
@@ -658,6 +748,7 @@ export function NodePalette(props: NodePaletteProps) {
             onClick={() => {
               setTab("glb");
               setCategoryFilter("all");
+              setSensorFamilyFilter("all");
             }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
               dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
@@ -709,58 +800,118 @@ export function NodePalette(props: NodePaletteProps) {
         </div>
 
         {showCategoryRail ? (
-          <div
-            className={`flex snap-x snap-mandatory gap-1 overflow-x-auto pb-0.5 scrollbar-hide ${dense ? "mt-2" : "mt-3"}`}
-          >
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("all")}
-              className={`snap-start shrink-0 rounded-full border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
-                dense ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
-              } ${
-                categoryFilter === "all"
-                  ? "border-cyan-500/50 bg-cyan-950/40 text-cyan-100"
-                  : "border-zinc-700/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
-              }`}
+          <>
+            <div
+              className={`flex snap-x snap-mandatory gap-1 overflow-x-auto pb-0.5 scrollbar-hide ${dense ? "mt-2" : "mt-3"}`}
             >
-              All
-              <span className="ml-1 tabular-nums opacity-70">{standardNodes.length}</span>
-            </button>
-            {CATEGORY_ORDER.map((cat) => {
-              const n = categoryCounts.get(cat) ?? 0;
-              if (n === 0) {
-                return null;
-              }
-              const dot = categoryColors?.[cat] ?? "#52525b";
-              return (
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryFilter("all");
+                  setSensorFamilyFilter("all");
+                }}
+                className={`snap-start shrink-0 rounded-full border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                  dense ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
+                } ${
+                  categoryFilter === "all"
+                    ? "border-cyan-500/50 bg-cyan-950/40 text-cyan-100"
+                    : "border-zinc-700/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                }`}
+              >
+                All
+                <span className="ml-1 tabular-nums opacity-70">{standardNodes.length}</span>
+              </button>
+              {CATEGORY_ORDER.map((cat) => {
+                const n = categoryCounts.get(cat) ?? 0;
+                if (n === 0) {
+                  return null;
+                }
+                const dot = categoryColors?.[cat] ?? "#52525b";
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setCategoryFilter(cat);
+                      if (cat !== "sensor") {
+                        setSensorFamilyFilter("all");
+                      }
+                    }}
+                    className={`inline-flex snap-start shrink-0 items-center gap-1.5 rounded-full border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                      dense ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
+                    } ${
+                      categoryFilter === cat
+                        ? "border-cyan-500/50 bg-cyan-950/40 text-cyan-100"
+                        : "border-zinc-700/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                    }`}
+                  >
+                    <span
+                      className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
+                      style={{ backgroundColor: dot }}
+                      aria-hidden
+                    />
+                    {CATEGORY_LABEL[cat]}
+                    <span className="ml-0.5 tabular-nums opacity-70">{n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {categoryFilter === "sensor" ? (
+              <div
+                className={`flex snap-x snap-mandatory gap-1 overflow-x-auto pb-0.5 scrollbar-hide ${dense ? "mt-1.5" : "mt-2"}`}
+                role="group"
+                aria-label="Sensor family filter"
+              >
                 <button
-                  key={cat}
                   type="button"
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`inline-flex snap-start shrink-0 items-center gap-1.5 rounded-full border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                  onClick={() => setSensorFamilyFilter("all")}
+                  className={`snap-start shrink-0 rounded-full border font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
                     dense ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
                   } ${
-                    categoryFilter === cat
-                      ? "border-cyan-500/50 bg-cyan-950/40 text-cyan-100"
+                    sensorFamilyFilter === "all"
+                      ? "border-violet-500/45 bg-violet-950/35 text-violet-100"
                       : "border-zinc-700/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
                   }`}
                 >
-                  <span
-                    className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
-                    style={{ backgroundColor: dot }}
-                    aria-hidden
-                  />
-                  {CATEGORY_LABEL[cat]}
-                  <span className="ml-0.5 tabular-nums opacity-70">{n}</span>
+                  All sensors
+                  <span className="ml-1 tabular-nums opacity-70">
+                    {categoryCounts.get("sensor") ?? 0}
+                  </span>
                 </button>
-              );
-            })}
-          </div>
+                {PALETTE_SENSOR_FAMILY_SUBGROUPS.map((sg) => {
+                  const n = sensorFamilyCounts.get(sg) ?? 0;
+                  if (n === 0) {
+                    return null;
+                  }
+                  return (
+                    <button
+                      key={sg}
+                      type="button"
+                      onClick={() => setSensorFamilyFilter(sg)}
+                      className={`snap-start shrink-0 rounded-full border font-semibold uppercase tracking-wide transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                        dense ? "px-2 py-0.5 text-[9px]" : "px-2.5 py-1 text-[10px]"
+                      } ${
+                        sensorFamilyFilter === sg
+                          ? "border-violet-500/45 bg-violet-950/35 text-violet-100"
+                          : "border-zinc-700/60 bg-zinc-900/40 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
+                      }`}
+                    >
+                      {getSubgroupChip(sg)}
+                      <span className="ml-1 tabular-nums font-medium normal-case tracking-normal opacity-70">
+                        {n}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : null}
+          </>
         ) : null}
       </div>
 
       <PaletteLiveTickProvider>
         <PaletteDensityProvider value={density}>
+          <PaletteSensorTreeLayoutProvider value={sensorTreeLayout}>
           <div
             className={`min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 scrollbar-hide ${dense ? "pb-2 pt-0" : "pb-3 pt-0"}`}
             role="tabpanel"
@@ -840,6 +991,7 @@ export function NodePalette(props: NodePaletteProps) {
             </div>
           )}
         </div>
+          </PaletteSensorTreeLayoutProvider>
         </PaletteDensityProvider>
       </PaletteLiveTickProvider>
     </section>

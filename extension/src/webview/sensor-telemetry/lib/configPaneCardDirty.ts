@@ -70,10 +70,20 @@ function useSensorCfgFieldsDirtySelector(
 
 export function isBmi270OperationCardDirty(): boolean
 {
+  return isSensorCfgFieldsDirty(SENSOR_SOURCE_ID_BMI270, ["enabled", "publishMode"]);
+}
+
+export function isBmi270OutputProfileCardDirty(): boolean
+{
   return (
-    isSensorCfgFieldsDirty(SENSOR_SOURCE_ID_BMI270, ["enabled", "publishMode", "mask"]) ||
+    isSensorCfgFieldsDirty(SENSOR_SOURCE_ID_BMI270, ["mask"]) ||
     isBmi270StreamModeDraftDirty()
   );
+}
+
+export function isBmi270TelemetryChannelsCardDirty(): boolean
+{
+  return isSensorCfgFieldsDirty(SENSOR_SOURCE_ID_BMI270, ["mask"]);
 }
 
 function isBmi270StreamModeDraftDirty(): boolean
@@ -146,24 +156,25 @@ export function isSensorMinPublishCardDirty(sourceId: number): boolean
 
 export function useBmi270OperationCardDirty(): boolean
 {
-  const cfgDirty = useSensorCfgFieldsDirtySelector(SENSOR_SOURCE_ID_BMI270, [
-    "enabled",
-    "publishMode",
-    "mask",
-  ]);
+  return useSensorCfgFieldsDirtySelector(SENSOR_SOURCE_ID_BMI270, ["enabled", "publishMode"]);
+}
+
+export function useBmi270OutputProfileCardDirty(): boolean
+{
+  const maskDirty = useSensorCfgFieldsDirtySelector(SENSOR_SOURCE_ID_BMI270, ["mask"]);
   const streamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
   const deferApply = useBmi270FirmwareExtrasDraftStore((s) => s.deferFirmwareApply);
   const streamBaseline = useBmi270FirmwareExtrasDraftStore((s) => s.streamModeBaseline);
 
   if (!deferApply)
   {
-    return cfgDirty;
+    return maskDirty;
   }
   if (streamBaseline == null)
   {
     return true;
   }
-  return cfgDirty || streamMode !== streamBaseline;
+  return maskDirty || streamMode !== streamBaseline;
 }
 
 export function useBmi270FusionFeedCardDirty(): boolean
@@ -196,6 +207,11 @@ export function useBmi270DeltaCardDirty(): boolean
 export function useBmi270MinPublishCardDirty(): boolean
 {
   return useSensorCfgFieldsDirtySelector(SENSOR_SOURCE_ID_BMI270, ["minPublishIntervalMs"]);
+}
+
+export function useBmi270TelemetryChannelsCardDirty(): boolean
+{
+  return useSensorCfgFieldsDirtySelector(SENSOR_SOURCE_ID_BMI270, ["mask"]);
 }
 
 export function useSensorOperationCardDirty(sourceId: number): boolean

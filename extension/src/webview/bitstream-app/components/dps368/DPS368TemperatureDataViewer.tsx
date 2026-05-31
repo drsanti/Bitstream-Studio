@@ -6,7 +6,7 @@ import { useSensorLastUpdateBadge } from "../telemetry/useSensorLastUpdateBadge.
 import { SensorMetricRow } from "../telemetry/SensorMetricRow";
 import { LastUpdateBadge } from "../telemetry/LastUpdateBadge.js";
 import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
-import { formatTemperatureFromC, convertTemperatureCToUnit } from "../../telemetry/temperatureDisplay.js";
+import { formatTemperatureFromC, convertTemperatureCToUnit, readTemperatureCFromSample } from "../../telemetry/temperatureDisplay.js";
 import { TemperatureDisplaySettingsMenu } from "../telemetry/TemperatureDisplaySettingsMenu.js";
 
 export function DPS368TemperatureDataViewer(props: DPS368DataViewerProps) {
@@ -20,10 +20,7 @@ export function DPS368TemperatureDataViewer(props: DPS368DataViewerProps) {
   const updateBadge = useSensorLastUpdateBadge("dps368", samplingIntervalMs);
   const temperatureUnit = useBitstreamConfigStore((s) => s.temperatureDisplayUnit);
   const temperatureDigits = useBitstreamConfigStore((s) => s.temperatureDisplayFractionDigits);
-  const tpNumeric =
-    typeof sample?.temperatureCx100 === "number"
-      ? sample.temperatureCx100 / 100
-      : undefined;
+  const tpNumeric = readTemperatureCFromSample(sample);
   const tpDisplay = formatTemperatureFromC(tpNumeric, temperatureUnit, temperatureDigits);
   const gaugeMin = convertTemperatureCToUnit(0, temperatureUnit);
   const gaugeMax = convertTemperatureCToUnit(60, temperatureUnit);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Node Inspector Settings — editable shared device SENSOR_CFG deck + apply bar.
+ * Node Inspector Device tab — editable shared device SENSOR_CFG deck + apply bar.
  ******************************************************************************/
 
 import { useBitstreamTransportActionsOptional } from "../../../bitstream-app/context/bitstreamTransportActions.context.js";

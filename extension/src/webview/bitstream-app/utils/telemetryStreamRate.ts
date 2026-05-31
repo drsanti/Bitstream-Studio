@@ -172,3 +172,40 @@ export function updateTelemetryStreamRates(
     hostGapRing: nextRing,
   };
 }
+
+/** Human-readable aggregate decode rate for toolbar chips (all sensor hints combined). */
+export function formatAggregateDecodeFps(fps: number | null | undefined): string {
+  if (fps == null || !Number.isFinite(fps)) {
+    return "— fps";
+  }
+  if (fps <= 0) {
+    return "0 fps";
+  }
+  if (fps >= 100) {
+    return `${Math.round(fps)} fps`;
+  }
+  if (fps >= 10) {
+    return `${fps.toFixed(1)} fps`;
+  }
+  return `${fps.toFixed(2)} fps`;
+}
+
+/** Rolling window FPS from monotonic sample counter deltas. */
+export function computeRollingFpsFromSampleCount(args: {
+  sampleCount: number;
+  nowMs: number;
+  prevTick: { sampleCount: number; atMs: number };
+  minWindowSec?: number;
+}): { fps: number | null; nextTick: { sampleCount: number; atMs: number } } {
+  const { sampleCount, nowMs, prevTick, minWindowSec = 0.25 } = args;
+  const dtSec = (nowMs - prevTick.atMs) / 1000;
+  if (dtSec < minWindowSec) {
+    return { fps: null, nextTick: prevTick };
+  }
+  const delta = sampleCount - prevTick.sampleCount;
+  const fps = delta / dtSec;
+  return {
+    fps: Number.isFinite(fps) ? Math.max(0, fps) : null,
+    nextTick: { sampleCount, atMs: nowMs },
+  };
+}

@@ -1,7 +1,11 @@
 import { twMerge } from "tailwind-merge";
 import { ReadingNumber, type ReadingNumberProps } from "./ReadingNumber";
 import { readingParamAxisValueClass } from "./param-axis-classes";
-import { SOCKET_LIVE_VALUE_TYPOGRAPHY, socketLiveValueCellClass } from "./socket-live-value-cell";
+import {
+  SOCKET_LIVE_VALUE_TYPOGRAPHY,
+  socketLiveValueCellClass,
+  type SocketLiveValueTextAlign,
+} from "./socket-live-value-cell";
 
 export type ReadingAxis = "x" | "y" | "z" | "w";
 
@@ -13,6 +17,8 @@ export type ReadingAxisNumberProps = ReadingNumberProps & {
   compact?: boolean;
   /** Fixed cell width on socket rows — values do not shift when digits change. */
   socketFixedCell?: boolean;
+  /** Digit alignment inside fixed cells (socket rows default right). */
+  textAlign?: SocketLiveValueTextAlign;
 };
 
 const AXIS_TEXT: Record<ReadingAxis, string> = {
@@ -28,16 +34,19 @@ export function ReadingAxisNumber(props: ReadingAxisNumberProps) {
     showAxisPrefix = false,
     compact = false,
     socketFixedCell = false,
+    textAlign = "right",
     className,
     fractionDigits = 2,
     ...numberProps
   } = props;
+  const justifyClass = textAlign === "left" ? "justify-start" : "justify-end";
+  const digitAlignClass = textAlign === "left" ? "text-left" : "text-right";
   return (
     <span
       className={
         compact
-          ? "inline-flex items-baseline justify-end gap-0.5"
-          : "inline-flex min-w-14 items-baseline justify-end gap-0.5"
+          ? `inline-flex items-baseline ${justifyClass} gap-0.5`
+          : `inline-flex min-w-14 items-baseline ${justifyClass} gap-0.5`
       }
       data-axis={axis}
     >
@@ -46,9 +55,12 @@ export function ReadingAxisNumber(props: ReadingAxisNumberProps) {
       ) : null}
       <ReadingNumber
         className={twMerge(
-          "text-right",
+          digitAlignClass,
           compact && socketFixedCell
-            ? twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, socketLiveValueCellClass(fractionDigits))
+            ? twMerge(
+                SOCKET_LIVE_VALUE_TYPOGRAPHY,
+                socketLiveValueCellClass(fractionDigits, textAlign),
+              )
             : "text-[10px]",
           readingParamAxisValueClass(axis),
           className,

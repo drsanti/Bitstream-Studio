@@ -30,7 +30,7 @@ import {
   TELEMETRY_META_HINT_DPS368_SAMPLE_COUNTER,
   TELEMETRY_META_HINT_SHT40_SAMPLE_COUNTER,
 } from "../../../bitstream-app/constants/telemetryMetaHints.js";
-import { mergeBmi270SampleCache } from "../../../bitstream-app/bmi270/bmi270SampleCache.js";
+import { mergeBmi270SampleCache, finalizeBmi270DeckSample } from "../../../bitstream-app/bmi270/bmi270SampleCache.js";
 import {
   SENSOR_SOURCE_ID_BMI270,
   SENSOR_SOURCE_ID_BMM350,
@@ -115,7 +115,10 @@ export function TelemetryLivePanel()
     bmi270Sample ?? undefined,
     Date.now(),
   );
-  const mergedBmi270Sample = bmi270CacheRef.current?.sample ?? null;
+  const mergedBmi270Sample = finalizeBmi270DeckSample(
+    bmi270CacheRef.current?.sample,
+    bmi270Sample,
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">

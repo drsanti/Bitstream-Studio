@@ -119,6 +119,7 @@ export const BMI270_TAP_NODE_IDS = [
   "bmi270-tap-euler",
   "bmi270-tap-accel",
   "bmi270-tap-gyro",
+  "bmi270-tap-temp",
 ] as const;
 
 export const BMI270_TAP_NODE_ID_SET = new Set<string>(BMI270_TAP_NODE_IDS);
@@ -195,6 +196,7 @@ export const STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID: Record<string, string> = 
   "bmi270-tap-euler": "BMI270",
   "bmi270-tap-accel": "BMI270",
   "bmi270-tap-gyro": "BMI270",
+  "bmi270-tap-temp": "BMI270",
   "dps368-input": "DPS368",
   "dps368-tap-pressure": "DPS368",
   "dps368-tap-temp": "DPS368",
@@ -433,6 +435,7 @@ type FlowEditorState = {
   runDemoTemplate: (templateId: StudioDemoTemplateId, catalog: NodeCatalogEntry[]) => void;
   updateSelectedNodeLabel: (nextLabel: string) => void;
   updateSelectedNodeConfigField: (key: string, value: unknown) => boolean;
+  updateSelectedNodeUiResizable: (resizable: boolean) => void;
   /**
    * Single-selection config patch without pushing an undo snapshot (e.g. animation playback ticks).
    * Returns **false** for multi-edit or when nothing is selected.
@@ -729,7 +732,7 @@ function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
         defaultConfig: { ...(osc as unknown as Record<string, unknown>) },
         ui: {
           ...piped.ui,
-          resizable: piped.ui?.resizable !== false,
+          resizable: piped.ui?.resizable ?? true,
           minWidth: piped.ui?.minWidth ?? 280,
           minHeight: piped.ui?.minHeight ?? 168,
         },
@@ -740,7 +743,7 @@ function attachConfigErrors(nodes: StudioNode[], edges?: Edge[]): StudioNode[] {
         ...piped,
         ui: {
           ...piped.ui,
-          resizable: piped.ui?.resizable !== false,
+          resizable: piped.ui?.resizable ?? true,
           minWidth: piped.ui?.minWidth ?? 280,
           minHeight: piped.ui?.minHeight ?? 200,
         },
@@ -1157,6 +1160,13 @@ function hasLiveBmi270GyroFields(sample: BitstreamSensorSampleV2 | null): boolea
   );
 }
 
+function hasLiveBmi270TempFields(sample: BitstreamSensorSampleV2 | null): boolean {
+  if (sample == null) {
+    return false;
+  }
+  return typeof sample.temperatureCx100 === "number" && Number.isFinite(sample.temperatureCx100);
+}
+
 function inferSensorHintFromNode(node: StudioNode): BitstreamSensorSourceHint | null {
   switch (node.data.nodeId) {
     case "bmi270-input":
@@ -1164,6 +1174,7 @@ function inferSensorHintFromNode(node: StudioNode): BitstreamSensorSourceHint | 
     case "bmi270-tap-euler":
     case "bmi270-tap-accel":
     case "bmi270-tap-gyro":
+    case "bmi270-tap-temp":
       return "bmi270";
     case "dps368-input":
     case "dps368-tap-pressure":
@@ -1280,6 +1291,12 @@ function computeNodeInvalidReason(
       return invalidReasonForRequiredNumber(
         latestByHint.bmm350,
         latestByHint.bmm350?.temperatureCx100,
+        "Temperature",
+      );
+    case "bmi270-tap-temp":
+      return invalidReasonForRequiredNumber(
+        latestByHint.bmi270,
+        latestByHint.bmi270?.temperatureCx100,
         "Temperature",
       );
     default:
@@ -2168,6 +2185,40 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
     return true;
   },
+  updateSelectedNodeUiResizable: (resizable) => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    const targetIds =
+      multiIds != null
+        ? multiIds
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    if (targetIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(targetIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          idSet.has(node.id)
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  ui: {
+                    ...node.data.ui,
+                    resizable,
+                  },
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+  },
   applySelectedNodeConfigFieldLive: (key, value) => {
     const st = get();
     if (getHomogeneousMultiSelectionIds(st) != null) {
@@ -2544,6 +2595,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             case "bmi270-tap-gyro":
               out = hasLiveBmi270GyroFields(bmiSample) ? bundle.gyro : prevVec;
               break;
+            case "bmi270-tap-temp": {
+              const prevScalar =
+                typeof node.data.liveValue === "number" && Number.isFinite(node.data.liveValue)
+                  ? node.data.liveValue
+                  : 0;
+              out = hasLiveBmi270TempFields(bmiSample) ? bundle.temp : prevScalar;
+              break;
+            }
             case "bmi270-tap-euler":
               out = hasEulerWireTap
                 ? eulerFromWireTap
@@ -2929,6 +2988,24 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                 base.sensorInvalidByHandle = { out: reason };
               }
             }
+          }
+        }
+
+        if (node.data.nodeId === "bmi270-tap-temp") {
+          const scalarOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          const prevLive = typeof node.data.liveValue === "number" ? node.data.liveValue : undefined;
+          const reason = computeNodeInvalidReason(node, latestByHint);
+          const isValidScalar =
+            reason == null && typeof scalarOut === "number" && Number.isFinite(scalarOut);
+          base.liveValue = keepLastFiniteNumber(isValidScalar ? scalarOut : undefined, prevLive, 0);
+          base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
+            node.data.sensorLastValidAtByHandle,
+            "out",
+            isValidScalar,
+            nowIso,
+          );
+          if (!isValidScalar && reason != null) {
+            base.sensorInvalidByHandle = { out: reason };
           }
         }
 

@@ -24,9 +24,11 @@ import { useBitstreamConfigStore } from "../../bitstream-app/state/bitstreamConf
 import {
   isBmi270FusionFeedCardDirty,
   isBmi270OperationCardDirty,
+  isBmi270OutputProfileCardDirty,
   isBmi270SamplingCardDirty,
   isBmi270DeltaCardDirty,
   isBmi270MinPublishCardDirty,
+  isBmi270TelemetryChannelsCardDirty,
   isSensorCfgFieldsDirty,
   type SensorCfgRowField,
 } from "./configPaneCardDirty.js";
@@ -34,6 +36,8 @@ import {
 export type SensorCfgApplyScope =
   | { kind: "global" }
   | { kind: "bmi270-operation" }
+  | { kind: "bmi270-output-profile" }
+  | { kind: "bmi270-telemetry-channels" }
   | { kind: "bmi270-fusion-feed" }
   | { kind: "bmi270-sampling" }
   | { kind: "bmi270-delta" }
@@ -50,7 +54,11 @@ export function sensorCfgApplyScopeLabel(scope: SensorCfgApplyScope): string
     case "global":
       return "Apply all pending sensor config changes";
     case "bmi270-operation":
-      return "Apply BMI270 operation and stream mode";
+      return "Apply BMI270 operation settings";
+    case "bmi270-output-profile":
+      return "Apply BMI270 telemetry sources (stream mode + channel mask)";
+    case "bmi270-telemetry-channels":
+      return "Apply BMI270 telemetry channel mask";
     case "bmi270-fusion-feed":
       return "Apply BMI270 fusion feed rate";
     case "bmi270-sampling":
@@ -80,8 +88,12 @@ function fieldsForScope(scope: SensorCfgApplyScope): {
     case "bmi270-operation":
       return {
         sourceId: SENSOR_SOURCE_ID_BMI270,
-        fields: ["enabled", "publishMode", "mask"],
+        fields: ["enabled", "publishMode"],
       };
+    case "bmi270-telemetry-channels":
+      return { sourceId: SENSOR_SOURCE_ID_BMI270, fields: ["mask"] };
+    case "bmi270-output-profile":
+      return { sourceId: SENSOR_SOURCE_ID_BMI270, fields: ["mask"] };
     case "bmi270-sampling":
       return { sourceId: SENSOR_SOURCE_ID_BMI270, fields: ["samplingIntervalMs"] };
     case "bmi270-delta":
@@ -110,6 +122,14 @@ function scopeHasWork(scope: SensorCfgApplyScope): boolean
   if (scope.kind === "bmi270-operation")
   {
     return isBmi270OperationCardDirty();
+  }
+  if (scope.kind === "bmi270-output-profile")
+  {
+    return isBmi270OutputProfileCardDirty();
+  }
+  if (scope.kind === "bmi270-telemetry-channels")
+  {
+    return isBmi270TelemetryChannelsCardDirty();
   }
   if (scope.kind === "bmi270-fusion-feed")
   {
@@ -214,7 +234,7 @@ export async function runSensorCfgApplyScope(args: {
     }
   }
 
-  if (scope.kind === "bmi270-operation")
+  if (scope.kind === "bmi270-output-profile")
   {
     const extras = await applyBmi270StreamModeIfDirty(bmi270Transport);
     if (!extras.ok)

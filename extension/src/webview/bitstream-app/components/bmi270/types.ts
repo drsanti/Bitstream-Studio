@@ -2,6 +2,7 @@ export type SensorPublishMode = 0 | 1 | 2;
 
 export type Bmi270CardId =
   | "operation"
+  | "outputProfile"
   | "telemetryChannels"
   | "fusionFeed"
   | "sampling"

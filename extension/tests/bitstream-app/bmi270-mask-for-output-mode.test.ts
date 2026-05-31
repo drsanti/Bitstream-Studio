@@ -15,7 +15,12 @@ test("bmi270MaskForFusionOutput — motion preset gains Euler+Quat for hybrid", 
   assert.equal(bmi270MaskIncludesFusionChannels(next), true);
 });
 
-test("bmi270MaskForFusionOutput — raw leaves mask unchanged", () => {
-  const motion = 0x03;
+test("bmi270MaskForFusionOutput — raw strips fusion channel bits", () => {
+  const hybridMask = 0x1f;
+  assert.equal(bmi270MaskForFusionOutput("raw", hybridMask), 0x07);
+});
+
+test("bmi270MaskForFusionOutput — raw leaves motion-only mask", () => {
+  const motion = BMI270_MASK.ACC | BMI270_MASK.GYR;
   assert.equal(bmi270MaskForFusionOutput("raw", motion), motion);
 });

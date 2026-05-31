@@ -9,6 +9,7 @@ import {
 import { PaletteCatalogIcon } from "./PaletteCatalogIcon";
 import { paletteEntryDnDProps } from "./palette-entry-dnd-props";
 import { PalettePreviewAffix } from "./PalettePreviewAffix";
+import { paletteIconPulseFromPreview } from "./palette-icon-pulse";
 import { usePaletteEntryPreview } from "./usePaletteEntryPreview";
 
 type NodePaletteAccordionProps = {
@@ -26,7 +27,7 @@ function PaletteRowAccordionSensor(props: {
 }) {
   const { entry, borderColor, onAddNode, chip } = props;
   const preview = usePaletteEntryPreview(entry);
-  const livePulse = preview.kind === "pulse" ? preview.streamMode : null;
+  const { livePulse, pulseTriggerKey } = paletteIconPulseFromPreview(preview);
   return (
     <button
       type="button"
@@ -36,7 +37,7 @@ function PaletteRowAccordionSensor(props: {
       title={entry.description}
       {...paletteEntryDnDProps(entry)}
     >
-      <PaletteCatalogIcon icon={entry.icon} livePulse={livePulse} />
+      <PaletteCatalogIcon icon={entry.icon} livePulse={livePulse} pulseTriggerKey={pulseTriggerKey} />
       <span className="min-w-0 flex-1 truncate">{entry.title}</span>
       <PalettePreviewAffix preview={preview} />
       {chip != null ? (
@@ -56,7 +57,7 @@ function PaletteRowAccordionOther(props: {
 }) {
   const { entry, borderColor, category, onAddNode } = props;
   const preview = usePaletteEntryPreview(entry);
-  const livePulse = preview.kind === "pulse" ? preview.streamMode : null;
+  const { livePulse, pulseTriggerKey } = paletteIconPulseFromPreview(preview);
   return (
     <button
       type="button"
@@ -67,7 +68,7 @@ function PaletteRowAccordionOther(props: {
       {...paletteEntryDnDProps(entry)}
     >
       <div className="flex min-w-0 items-start gap-1.5">
-        <PaletteCatalogIcon icon={entry.icon} className="mt-0.5 shrink-0" livePulse={livePulse} />
+        <PaletteCatalogIcon icon={entry.icon} className="mt-0.5 shrink-0" livePulse={livePulse} pulseTriggerKey={pulseTriggerKey} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex min-w-0 items-start justify-between gap-1">
             <span className="min-w-0 flex-1 truncate">{entry.title}</span>

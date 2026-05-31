@@ -14,7 +14,7 @@ import { SparklineSettingsSection } from "./sections/SparklineSettingsSection";
 import { ThresholdSettingsSection } from "./sections/ThresholdSettingsSection";
 
 /**
- * Catalog `nodeId` → settings UI for the Node Inspector **Settings** tab (above JSON / rotation blocks).
+ * Catalog `nodeId` → settings UI for the Node Inspector **Node** tab (above JSON / rotation blocks).
  * Add a new entry when a node needs typed fields; unknown ids render no extra section.
  */
 export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<

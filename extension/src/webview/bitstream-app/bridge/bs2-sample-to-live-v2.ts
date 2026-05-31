@@ -36,15 +36,12 @@ function mapBmi270(
   values: number[],
 ): BitstreamSensorSampleV2 | null {
   const rest = [...values];
-  let temperatureCx100 = 0;
-  let secondaryX100 = 0;
   const sample: BitstreamSensorSampleV2 = {
     counter,
-    temperatureCx100: 0,
-    secondaryX100: 0,
     sourceHint: "bmi270",
     isBmi270FusionPayload: false,
   };
+  let secondaryX100: number | undefined;
 
   if ((mask & BMI270_MASK.ACC) !== 0) {
     const triple = takeN(rest, 3);
@@ -69,7 +66,6 @@ function mapBmi270(
   if ((mask & BMI270_MASK.TMP) !== 0) {
     const t = takeN(rest, 1);
     if (!t) return null;
-    temperatureCx100 = t[0];
     sample.temperatureCx100 = t[0];
   }
   if ((mask & BMI270_MASK.EULER) !== 0) {
@@ -80,7 +76,7 @@ function mapBmi270(
     sample.fusionHeadingRadX100 = triple[0];
     sample.fusionPitchRadX100 = triple[1];
     sample.fusionRollRadX100 = triple[2];
-    secondaryX100 = Math.max(secondaryX100, Math.abs(triple[0]));
+    secondaryX100 = Math.max(secondaryX100 ?? 0, Math.abs(triple[0]));
   }
   if ((mask & BMI270_MASK.QUAT) !== 0) {
     const quad = takeN(rest, 4);
@@ -90,27 +86,23 @@ function mapBmi270(
     sample.fusionQuatXX10000 = quad[1];
     sample.fusionQuatYX10000 = quad[2];
     sample.fusionQuatZX10000 = quad[3];
-    secondaryX100 = Math.max(secondaryX100, Math.abs(quad[0]));
+    secondaryX100 = Math.max(secondaryX100 ?? 0, Math.abs(quad[0]));
   }
 
-  if (sample.temperatureCx100 === 0 && temperatureCx100 !== 0) {
-    sample.temperatureCx100 = temperatureCx100;
+  if (secondaryX100 !== undefined) {
+    sample.secondaryX100 = secondaryX100;
   }
-  sample.secondaryX100 = secondaryX100;
   return sample;
 }
 
 function mapBmm350(mask: number, counter: number, values: number[]): BitstreamSensorSampleV2 | null {
   const rest = [...values];
-  let temperatureCx100 = 0;
-  let magneticAbsMax = 0;
   const sample: BitstreamSensorSampleV2 = {
     counter,
-    temperatureCx100: 0,
-    secondaryX100: 0,
     sourceHint: "bmm350",
     isBmi270FusionPayload: false,
   };
+  let magneticAbsMax: number | undefined;
 
   if ((mask & BMM350_MASK.MAG) !== 0) {
     const triple = takeN(rest, 3);
@@ -123,64 +115,56 @@ function mapBmm350(mask: number, counter: number, values: number[]): BitstreamSe
   if ((mask & BMM350_MASK.TMP) !== 0) {
     const t = takeN(rest, 1);
     if (!t) return null;
-    temperatureCx100 = t[0];
     sample.temperatureCx100 = t[0];
   }
-  sample.secondaryX100 = magneticAbsMax;
-  if (sample.temperatureCx100 === 0) {
-    sample.temperatureCx100 = temperatureCx100;
+  if (magneticAbsMax !== undefined) {
+    sample.secondaryX100 = magneticAbsMax;
   }
   return sample;
 }
 
 function mapSht40(mask: number, counter: number, values: number[]): BitstreamSensorSampleV2 | null {
   const rest = [...values];
-  let temp = 0;
-  let rh = 0;
+  const sample: BitstreamSensorSampleV2 = {
+    counter,
+    sourceHint: "sht40",
+    isBmi270FusionPayload: false,
+  };
 
   if ((mask & SHT40_MASK.TEMP) !== 0) {
     const t = takeN(rest, 1);
     if (!t) return null;
-    temp = t[0];
+    sample.temperatureCx100 = t[0];
   }
   if ((mask & SHT40_MASK.HUM) !== 0) {
     const h = takeN(rest, 1);
     if (!h) return null;
-    rh = h[0];
+    sample.secondaryX100 = h[0];
   }
 
-  return {
-    counter,
-    temperatureCx100: temp,
-    secondaryX100: rh,
-    sourceHint: "sht40",
-    isBmi270FusionPayload: false,
-  };
+  return sample;
 }
 
 function mapDps368(mask: number, counter: number, values: number[]): BitstreamSensorSampleV2 | null {
   const rest = [...values];
-  let pressure = 0;
-  let temp = 0;
+  const sample: BitstreamSensorSampleV2 = {
+    counter,
+    sourceHint: "dps368",
+    isBmi270FusionPayload: false,
+  };
 
   if ((mask & DPS368_MASK.PRESS) !== 0) {
     const p = takeN(rest, 1);
     if (!p) return null;
-    pressure = p[0];
+    sample.secondaryX100 = p[0];
   }
   if ((mask & DPS368_MASK.TMP) !== 0) {
     const t = takeN(rest, 1);
     if (!t) return null;
-    temp = t[0];
+    sample.temperatureCx100 = t[0];
   }
 
-  return {
-    counter,
-    temperatureCx100: temp,
-    secondaryX100: pressure,
-    sourceHint: "dps368",
-    isBmi270FusionPayload: false,
-  };
+  return sample;
 }
 
 /** Map BS-framed `EVT_SENSOR` JSON into legacy `BitstreamSensorSampleV2` for Sensor Studio. */
@@ -222,4 +206,53 @@ export function bs2SampleToBitstreamSensorSampleV2(
     ...mapped,
     deviceTMs: payload.tMs >>> 0,
   };
+}
+
+/** Numeric / optional fields merged from partial BS2 EVT rows (mask subsets). */
+export const BS2_PARTIAL_SAMPLE_MERGE_KEYS = [
+  "temperatureCx100",
+  "secondaryX100",
+  "magneticXUtX100",
+  "magneticYUtX100",
+  "magneticZUtX100",
+  "accelXMs2X100",
+  "accelYMs2X100",
+  "accelZMs2X100",
+  "gyroXRadSX100",
+  "gyroYRadSX100",
+  "gyroZRadSX100",
+  "fusionQuatWBucketX10000",
+  "fusionQuatXX10000",
+  "fusionQuatYX10000",
+  "fusionQuatZX10000",
+  "fusionHeadingRadX100",
+  "fusionPitchRadX100",
+  "fusionRollRadX100",
+] as const satisfies readonly (keyof BitstreamSensorSampleV2)[];
+
+/** Merge partial BS2 rows without zeroing fields omitted from the latest EVT mask. */
+export function mergePartialBitstreamSensorSample(
+  prev: BitstreamSensorSampleV2 | null,
+  incoming: BitstreamSensorSampleV2,
+): BitstreamSensorSampleV2 {
+  if (prev == null || prev.sourceHint !== incoming.sourceHint) {
+    return incoming;
+  }
+
+  const merged: BitstreamSensorSampleV2 = {
+    ...prev,
+    counter: incoming.counter,
+    sourceHint: incoming.sourceHint,
+    deviceTMs: incoming.deviceTMs ?? prev.deviceTMs,
+    isBmi270FusionPayload:
+      incoming.isBmi270FusionPayload === true || prev.isBmi270FusionPayload === true,
+  };
+
+  for (const key of BS2_PARTIAL_SAMPLE_MERGE_KEYS) {
+    if (key in incoming) {
+      (merged as Record<string, unknown>)[key] = incoming[key];
+    }
+  }
+
+  return merged;
 }

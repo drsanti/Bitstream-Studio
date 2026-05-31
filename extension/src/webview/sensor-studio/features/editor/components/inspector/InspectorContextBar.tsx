@@ -5,15 +5,22 @@ import type {
   SensorHealthStatus,
 } from "../../store/flow-editor.store";
 import { formatInspectorUpdatedAt } from "./inspector-format-time";
+import type { InspectorMainTab } from "./node-inspector-ui-persistence";
+import {
+  InspectorCategoryIcon,
+  type InspectorStreamStatusKind,
+} from "./InspectorCategoryIcon";
 
 export type InspectorContextBarProps = {
   label: string;
   nodeId: string;
   catalogTitle?: string;
   catalogDescription?: string;
+  /** Catalog `icon` slug — thermometer, gauge, etc. */
+  catalogIconSlug?: string;
   category: string;
   categoryTint: string;
-  activeTab: "details" | "live" | "settings";
+  activeTab: InspectorMainTab;
   lastUpdatedAt?: string;
   sensorStreamMode?: SensorHardwareStreamLive;
   sensorHealth?: SensorHealthStatus;
@@ -27,7 +34,30 @@ function formatCategoryLabel(category: string): string {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
-type StreamStatusKind = "live" | "stale" | "offline" | "sim" | "idle";
+type StreamStatusKind = InspectorStreamStatusKind;
+
+function resolveStreamHealthVisual(props: {
+  sensorStreamMode?: SensorHardwareStreamLive;
+  sensorHealth?: SensorHealthStatus;
+}): StreamStatusKind | null {
+  const { sensorStreamMode, sensorHealth } = props;
+  if (sensorHealth === "offline") {
+    return "offline";
+  }
+  if (sensorHealth === "stale") {
+    return "stale";
+  }
+  if (sensorHealth === "sim") {
+    return "sim";
+  }
+  if (sensorHealth === "live" || sensorStreamMode === "live") {
+    return "live";
+  }
+  if (sensorHealth != null) {
+    return "idle";
+  }
+  return null;
+}
 
 function resolveStreamStatus(props: {
   activeTab: InspectorContextBarProps["activeTab"];
@@ -110,7 +140,7 @@ function NodeInstanceHint(props: { nodeId: string; children: ReactNode }) {
           <span className="font-medium text-zinc-200">Catalog node id</span>
           <span className="mt-1 block font-mono text-[10px] text-zinc-400">{nodeId}</span>
           <span className="mt-2 block text-zinc-400">
-            Instance type for this graph node. Edit the display label under Settings → Node label.
+            Instance type for this graph node. Edit the display label under Node → Node label.
           </span>
         </>
       }
@@ -129,6 +159,7 @@ export function InspectorContextBar(props: InspectorContextBarProps) {
     nodeId,
     catalogTitle,
     catalogDescription,
+    catalogIconSlug,
     category,
     categoryTint,
     activeTab,
@@ -148,6 +179,10 @@ export function InspectorContextBar(props: InspectorContextBarProps) {
     customLabel !== typeLabel &&
     customLabel !== nodeId;
   const updatedClock = formatInspectorUpdatedAt(lastUpdatedAt);
+  const streamHealthVisual = resolveStreamHealthVisual({
+    sensorStreamMode,
+    sensorHealth,
+  });
   const streamStatus = resolveStreamStatus({ activeTab, sensorStreamMode, sensorHealth });
 
   const titleNode =
@@ -168,44 +203,46 @@ export function InspectorContextBar(props: InspectorContextBarProps) {
 
   return (
     <header className="sticky top-0 z-[2] shrink-0 border-b border-zinc-800/60 bg-zinc-950/80 px-3 py-2 backdrop-blur-sm supports-backdrop-filter:bg-zinc-950/70">
-      <div className="flex min-w-0 items-center gap-2">
-        <span
-          className="mt-0.5 h-2 w-2 shrink-0 self-start rounded-full ring-1 ring-white/10"
-          style={{ backgroundColor: categoryTint }}
-          title={categoryLabel}
-          aria-hidden
+      <div className="grid grid-cols-[auto_1fr_auto] grid-rows-[auto_auto] items-start gap-x-2 gap-y-1">
+        <InspectorCategoryIcon
+          className="row-span-2 mt-0.5"
+          category={category}
+          categoryTint={categoryTint}
+          categoryLabel={categoryLabel}
+          catalogIconSlug={catalogIconSlug}
+          streamStatus={streamHealthVisual}
         />
-        <div className="min-w-0 flex-1">{titleNode}</div>
+        <div className="min-w-0">{titleNode}</div>
         <time
-          className="shrink-0 font-mono text-[10px] tabular-nums leading-none text-zinc-500"
+          className="shrink-0 self-start font-mono text-[10px] tabular-nums leading-none text-zinc-500"
           dateTime={lastUpdatedAt}
           title={lastUpdatedAt ?? "Last update"}
         >
           {updatedClock}
         </time>
-      </div>
 
-      <div className="mt-1 flex min-w-0 items-center gap-1.5 pl-4 text-[10px] leading-snug">
-        <span className="shrink-0 text-zinc-500">{categoryLabel}</span>
-        <MetaSeparator />
-        <NodeInstanceHint nodeId={nodeId}>
-          <span className="min-w-0 truncate font-mono text-zinc-600 hover:text-zinc-400">
-            {nodeId}
-          </span>
-        </NodeInstanceHint>
-        {showCustomLabel ? (
-          <>
-            <MetaSeparator />
-            <span className="min-w-0 truncate text-zinc-400" title={customLabel}>
-              {customLabel}
+        <div className="col-start-2 col-end-4 flex min-w-0 items-center gap-1.5 text-[10px] leading-snug">
+          <span className="shrink-0 text-zinc-500">{categoryLabel}</span>
+          <MetaSeparator />
+          <NodeInstanceHint nodeId={nodeId}>
+            <span className="min-w-0 truncate font-mono text-zinc-600 hover:text-zinc-400">
+              {nodeId}
             </span>
-          </>
-        ) : null}
-        {streamStatus != null ? (
-          <span className="ml-auto shrink-0 pl-2">
-            <InspectorStreamStatus kind={streamStatus} />
-          </span>
-        ) : null}
+          </NodeInstanceHint>
+          {showCustomLabel ? (
+            <>
+              <MetaSeparator />
+              <span className="min-w-0 truncate text-zinc-400" title={customLabel}>
+                {customLabel}
+              </span>
+            </>
+          ) : null}
+          {streamStatus != null ? (
+            <span className="ml-auto shrink-0 pl-2">
+              <InspectorStreamStatus kind={streamStatus} />
+            </span>
+          ) : null}
+        </div>
       </div>
     </header>
   );

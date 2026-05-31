@@ -60,11 +60,14 @@ function safeLocalStorageRemove(key: string): void {
   }
 }
 
-export type InspectorMainTab = "details" | "settings" | "live";
+export type InspectorMainTab = "details" | "live" | "node" | "device";
 
 export function readStoredInspectorActiveTab(): InspectorMainTab {
   const raw = safeLocalStorageGet(KEYS.activeTab);
-  if (raw === "details" || raw === "settings" || raw === "live") {
+  if (raw === "settings") {
+    return "node";
+  }
+  if (raw === "details" || raw === "live" || raw === "node" || raw === "device") {
     return raw;
   }
   return "details";
@@ -125,7 +128,7 @@ function readLegacyDetailsSharedDeviceCollapsed(): boolean | undefined {
   }
 }
 
-/** Shared device card on Settings tab — default expanded. */
+/** @deprecated Device tab is always expanded; kept for legacy localStorage migration. */
 export function readSettingsSharedDeviceCollapsed(): boolean {
   const raw = safeLocalStorageGet(KEYS.settingsSharedDeviceCollapsed);
   if (raw === "true") {

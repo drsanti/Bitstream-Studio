@@ -16,6 +16,11 @@ type Props = {
   dirty?: boolean;
   appliedMask: number;
   onMaskChange: (mask: number) => void;
+  /** Hide mask hex readout, hex editor, and applied hex (Sensor Config pane). */
+  showMaskHex?: boolean;
+  showAppliedHex?: boolean;
+  showPresets?: boolean;
+  showHexEditor?: boolean;
 };
 
 export function SensorMaskChannelsField({
@@ -25,6 +30,10 @@ export function SensorMaskChannelsField({
   dirty,
   appliedMask,
   onMaskChange,
+  showMaskHex = true,
+  showAppliedHex = true,
+  showPresets = true,
+  showHexEditor = true,
 }: Props) {
   const baseId = useId();
   const [showHex, setShowHex] = useState(false);
@@ -57,7 +66,9 @@ export function SensorMaskChannelsField({
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-medium text-zinc-300">Channels</span>
-        <span className="font-mono text-xs text-zinc-500">mask 0x{mask.toString(16)}</span>
+        {showMaskHex ? (
+          <span className="font-mono text-xs text-zinc-500">mask 0x{mask.toString(16)}</span>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-2">
@@ -80,29 +91,33 @@ export function SensorMaskChannelsField({
         })}
       </div>
 
-      <div className="flex flex-wrap gap-1.5">
-        {spec.presets.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            disabled={disabled}
-            className="rounded border border-zinc-700/80 bg-zinc-950/60 px-2 py-0.5 text-[11px] text-zinc-300 hover:bg-zinc-800/80 disabled:opacity-50"
-            onClick={() => applyPreset(p)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {showPresets ? (
+        <div className="flex flex-wrap gap-1.5">
+          {spec.presets.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              disabled={disabled}
+              className="rounded border border-zinc-700/80 bg-zinc-950/60 px-2 py-0.5 text-[11px] text-zinc-300 hover:bg-zinc-800/80 disabled:opacity-50"
+              onClick={() => applyPreset(p)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
-      <button
-        type="button"
-        className="self-start text-[11px] text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
-        onClick={() => setShowHex((v) => !v)}
-      >
-        {showHex ? "Hide" : "Advanced"} hex
-      </button>
+      {showHexEditor ? (
+        <button
+          type="button"
+          className="self-start text-[11px] text-zinc-500 underline-offset-2 hover:text-zinc-300 hover:underline"
+          onClick={() => setShowHex((v) => !v)}
+        >
+          {showHex ? "Hide" : "Advanced"} hex
+        </button>
+      ) : null}
 
-      {showHex ? (
+      {showHexEditor && showHex ? (
         <input
           id={`${baseId}-mask-hex`}
           className={inputClass}
@@ -112,7 +127,7 @@ export function SensorMaskChannelsField({
         />
       ) : null}
 
-      {dirty ? (
+      {showAppliedHex && dirty ? (
         <p className="text-[10px] text-amber-200/70">Applied: 0x{appliedMask.toString(16)}</p>
       ) : null}
     </div>

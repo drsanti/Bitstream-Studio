@@ -4,12 +4,20 @@ import { BMI270DeltaThresholdCard } from "./cards/BMI270DeltaThresholdCard";
 import { BMI270FusionFeedIntervalCard } from "./cards/BMI270FusionFeedIntervalCard";
 import { BMI270MinPublishIntervalCard } from "./cards/BMI270MinPublishIntervalCard";
 import { BMI270OperationCard } from "./cards/BMI270OperationCard";
+import { BMI270OutputProfileCard } from "./cards/BMI270OutputProfileCard";
 import { BMI270SamplingFrequencyCard } from "./cards/BMI270SamplingFrequencyCard";
-import { bmi270MaskForFusionOutput } from "../../lib/bmi270MaskForOutputMode.js";
+import { BMI270TelemetryChannelsCard } from "./cards/BMI270TelemetryChannelsCard";
+import {
+  bmi270DraftForOutputPreset,
+  isBmi270CustomOutput,
+  type Bmi270OutputPresetId,
+} from "../../lib/bmi270OutputProfiles.js";
 import { useBitstreamTransportActions } from "../../context/bitstreamTransportActions.context.js";
 import { useBmi270FirmwareExtrasDraftStore } from "../../state/bmi270FirmwareExtrasDraft.store.js";
 import type { Bmi270StreamModeUi } from "../../state/bitstreamConfig.store.js";
 import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
+import { useBitstreamDeviceSensorConfigStore } from "../../state/bitstreamDeviceSensorConfig.store.js";
+import { SENSOR_SOURCE_ID_BMI270 } from "../../constants/sensorSourceIds.js";
 import type { SensorConfigAckState } from "../../types/sensorConfigAck";
 import type { Bmi270AckState, Bmi270CardId, SensorPublishMode } from "./types";
 import {
@@ -23,7 +31,9 @@ import {
   useBmi270FusionFeedCardDirty,
   useBmi270MinPublishCardDirty,
   useBmi270OperationCardDirty,
+  useBmi270OutputProfileCardDirty,
   useBmi270SamplingCardDirty,
+  useBmi270TelemetryChannelsCardDirty,
 } from "../../../sensor-telemetry/lib/configPaneCardDirty.js";
 import type { SensorCfgCardApplyProps } from "../../../sensor-telemetry/components/panels/SensorCfgCardHeaderTrailing.js";
 
@@ -33,6 +43,10 @@ function bmi270ScopeToCardId(scope: SensorCfgApplyScope): Bmi270CardId | null
   {
     case "bmi270-operation":
       return "operation";
+    case "bmi270-output-profile":
+      return "outputProfile";
+    case "bmi270-telemetry-channels":
+      return "telemetryChannels";
     case "bmi270-fusion-feed":
       return "fusionFeed";
     case "bmi270-sampling":
@@ -96,6 +110,8 @@ export function BMI270ControlPanel(props: {
   } = props;
 
   const operationDirty = useBmi270OperationCardDirty();
+  const outputProfileDirty = useBmi270OutputProfileCardDirty();
+  const telemetryChannelsDirty = useBmi270TelemetryChannelsCardDirty();
   const fusionFeedDirty = useBmi270FusionFeedCardDirty();
   const samplingDirty = useBmi270SamplingCardDirty();
   const deltaDirty = useBmi270DeltaCardDirty();
@@ -107,6 +123,14 @@ export function BMI270ControlPanel(props: {
     useBitstreamTransportActions();
   const setBmi270StreamMode = useBitstreamConfigStore((s) => s.setBmi270StreamMode);
   const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
+  const isCustomOutputProfile = isBmi270CustomOutput(mask, bmi270StreamMode);
+  const appliedMask =
+    useBitstreamDeviceSensorConfigStore(
+      (s) =>
+        s.baselineBySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ??
+        s.bySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ??
+        mask,
+    ) & 0xff;
   const showFusionFeedCard = bmi270StreamMode === "fusion" || bmi270StreamMode === "hybrid";
 
   const operationControlsDisabled = !enabled;
@@ -115,6 +139,8 @@ export function BMI270ControlPanel(props: {
 
   const [cardOrder, setCardOrder] = useState<Bmi270CardId[]>([
     "operation",
+    "outputProfile",
+    "telemetryChannels",
     "fusionFeed",
     "sampling",
     "delta",
@@ -122,6 +148,8 @@ export function BMI270ControlPanel(props: {
   ]);
   const [collapsedCards, setCollapsedCards] = useState<Record<Bmi270CardId, boolean>>({
     operation: false,
+    outputProfile: false,
+    telemetryChannels: true,
     fusionFeed: false,
     sampling: false,
     delta: false,
@@ -132,6 +160,7 @@ export function BMI270ControlPanel(props: {
     Record<Bmi270CardId, { state: "idle" | "pending" | "ok" | "error"; message?: string }>
   >({
     operation: { state: "idle" },
+    outputProfile: { state: "idle" },
     telemetryChannels: { state: "idle" },
     fusionFeed: { state: "idle" },
     sampling: { state: "idle" },
@@ -179,16 +208,8 @@ export function BMI270ControlPanel(props: {
     [applyLockedReason, cardApplyDisabled, draftUntilApply, handleApplyCard, onApplyCard],
   );
 
-  const handleStreamModeChange = useCallback(
+  const applyStreamModeOnly = useCallback(
     (next: Bmi270StreamModeUi) => {
-      if (next === "fusion" || next === "hybrid")
-      {
-        const withFusion = bmi270MaskForFusionOutput(next, mask);
-        if (withFusion !== mask)
-        {
-          onMaskChange(withFusion);
-        }
-      }
       if (draftUntilApply)
       {
         useBmi270FirmwareExtrasDraftStore.getState().markExtrasUserEdited();
@@ -199,7 +220,7 @@ export function BMI270ControlPanel(props: {
         });
         return;
       }
-      beginCardAck("operation");
+      beginCardAck("outputProfile");
       declareBmi270OutputModePending();
       setBmi270StreamMode(next);
       publishBmi270StreamModeUpdated({
@@ -211,11 +232,20 @@ export function BMI270ControlPanel(props: {
       beginCardAck,
       declareBmi270OutputModePending,
       draftUntilApply,
-      mask,
-      onMaskChange,
       publishBmi270StreamModeUpdated,
       setBmi270StreamMode,
     ],
+  );
+
+  const handlePresetSelect = useCallback(
+    (presetId: Bmi270OutputPresetId) => {
+      const draft = bmi270DraftForOutputPreset(presetId);
+      runSensorCfgCardChange(draftUntilApply, () => beginCardAck("outputProfile"), () => {
+        onMaskChange(draft.mask);
+        applyStreamModeOnly(draft.streamMode);
+      });
+    },
+    [applyStreamModeOnly, beginCardAck, draftUntilApply, onMaskChange],
   );
 
   const endCardAck = useCallback(
@@ -272,12 +302,14 @@ export function BMI270ControlPanel(props: {
       return cardOrder.filter((id) => id === "operation");
     }
     let ids = cardOrder;
-    ids = ids.filter((id) => id !== "telemetryChannels");
     if (isPeriodicMode) {
       ids = ids.filter((id) => id !== "delta" && id !== "minPublish");
     }
+    if (!isCustomOutputProfile) {
+      ids = ids.filter((id) => id !== "telemetryChannels");
+    }
     return ids;
-  }, [enabled, isPeriodicMode, cardOrder]);
+  }, [cardOrder, enabled, isCustomOutputProfile, isPeriodicMode]);
 
   return (
     <TRNSortableContainer
@@ -301,7 +333,6 @@ export function BMI270ControlPanel(props: {
               publishMode={publishMode}
               controlsDisabled={operationControlsDisabled}
               ack={cardAckForDraftMode(draftUntilApply, cardAck.operation)}
-              streamMode={bmi270StreamMode}
               onToggleCollapsed={() => toggleCardCollapsed("operation")}
               onEnabledChange={(next) => {
                 runSensorCfgCardChange(draftUntilApply, () => beginCardAck("operation"), () =>
@@ -313,8 +344,34 @@ export function BMI270ControlPanel(props: {
                   onPublishModeChange(next),
                 );
               }}
-              onStreamModeChange={handleStreamModeChange}
               cardApply={makeCardApply({ kind: "bmi270-operation" }, operationDirty)}
+            />
+          ) : cardId === "outputProfile" ? (
+            <BMI270OutputProfileCard
+              collapsed={collapsedCards.outputProfile}
+              controlsDisabled={operationControlsDisabled}
+              mask={mask}
+              streamMode={bmi270StreamMode}
+              ack={cardAckForDraftMode(draftUntilApply, cardAck.outputProfile)}
+              onToggleCollapsed={() => toggleCardCollapsed("outputProfile")}
+              onPresetSelect={handlePresetSelect}
+              cardApply={makeCardApply({ kind: "bmi270-output-profile" }, outputProfileDirty)}
+            />
+          ) : cardId === "telemetryChannels" ? (
+            <BMI270TelemetryChannelsCard
+              collapsed={collapsedCards.telemetryChannels}
+              controlsDisabled={operationControlsDisabled}
+              mask={mask}
+              appliedMask={appliedMask}
+              maskDirty={telemetryChannelsDirty}
+              ack={cardAckForDraftMode(draftUntilApply, cardAck.telemetryChannels)}
+              onToggleCollapsed={() => toggleCardCollapsed("telemetryChannels")}
+              onMaskChange={(next) => {
+                runSensorCfgCardChange(draftUntilApply, () => beginCardAck("telemetryChannels"), () =>
+                  onMaskChange(next),
+                );
+              }}
+              cardApply={makeCardApply({ kind: "bmi270-telemetry-channels" }, telemetryChannelsDirty)}
             />
           ) : cardId === "fusionFeed" ? (
             <BMI270FusionFeedIntervalCard

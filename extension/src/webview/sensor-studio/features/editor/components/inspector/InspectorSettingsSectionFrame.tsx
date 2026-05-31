@@ -34,7 +34,7 @@ export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFra
   return (
     <div
       className={
-        "space-y-2 rounded border border-zinc-700/80 bg-zinc-900/40 p-2 " + className
+        "space-y-3 rounded border border-zinc-700/80 bg-zinc-900/40 p-2.5 " + className
       }
     >
       <TRNMenuSectionTitle spacing="labelOnly" className="text-[11px]">

@@ -26,6 +26,12 @@ import {
   type HandshakeLifecycleState,
   useBitstreamLiveStore,
 } from "../../bitstream-app/state/bitstreamLive.store.js";
+import {
+  computeRollingFpsFromSampleCount,
+  formatAggregateDecodeFps,
+} from "../../bitstream-app/utils/telemetryStreamRate.js";
+
+export type SensorRxChipMetric = "freshness" | "aggregateFps";
 
 export type TelemetryRxBadgeVariant = "chip" | "cardRow" | "panel";
 
@@ -100,8 +106,23 @@ export function computeWorstSampleAgeMs(
   nowMs: number,
   bySourceId: Partial<Record<number, DeviceSensorConfigRow>>,
 ): number | null {
-  let worst = 0;
-  let any = false;
+  const worst = findWorstEnabledSensorAge(lastAtByHint, nowMs, bySourceId);
+  return worst?.ageMs ?? null;
+}
+
+export type WorstEnabledSensorAge = {
+  hint: (typeof SENSOR_RX_HINTS)[number];
+  ageMs: number;
+  lastAtMs: number;
+};
+
+/** Enabled sensor with the largest wall-clock age since last decode. */
+export function findWorstEnabledSensorAge(
+  lastAtByHint: Record<string, number | null>,
+  nowMs: number,
+  bySourceId: Partial<Record<number, DeviceSensorConfigRow>>,
+): WorstEnabledSensorAge | null {
+  let worst: WorstEnabledSensorAge | null = null;
   for (const hint of SENSOR_RX_HINTS) {
     const sid = HINT_TO_SOURCE_ID[hint];
     const row = bySourceId[sid];
@@ -112,10 +133,79 @@ export function computeWorstSampleAgeMs(
     if (typeof t !== "number") {
       continue;
     }
-    any = true;
-    worst = Math.max(worst, Math.max(0, nowMs - t));
+    const ageMs = Math.max(0, nowMs - t);
+    if (worst == null || ageMs > worst.ageMs) {
+      worst = { hint, ageMs, lastAtMs: t };
+    }
   }
-  return any ? worst : null;
+  return worst;
+}
+
+function hintToChipShortLabel(hint: (typeof SENSOR_RX_HINTS)[number]): string {
+  switch (hint) {
+    case "sht40":
+      return "SHT";
+    case "dps368":
+      return "DPS";
+    case "bmm350":
+      return "BMM";
+    case "bmi270":
+      return "BMI";
+    default:
+      return hint;
+  }
+}
+
+/** Toolbar chip label — wall age for the pinned worst sensor (not inter-arrival Δ). */
+export function formatSensorDecodeChipLabel(hint: (typeof SENSOR_RX_HINTS)[number], ageMs: number): string {
+  return `${hintToChipShortLabel(hint)} · ${formatSampleAge(ageMs)} ago`;
+}
+
+export type StickyWorstSensorPin = {
+  hint: (typeof SENSOR_RX_HINTS)[number];
+  pinnedLastAt: number;
+};
+
+/**
+ * Keep showing one sensor's climbing wall age until that sensor gets a new decode,
+ * so the toolbar chip does not flicker when another sensor is only slightly fresher.
+ */
+export function resolveStickyWorstSensorDisplay(args: {
+  pin: StickyWorstSensorPin | null;
+  lastAtByHint: Record<string, number | null>;
+  nowMs: number;
+  bySourceId: Partial<Record<number, DeviceSensorConfigRow>>;
+}): { pin: StickyWorstSensorPin; display: WorstEnabledSensorAge } | null {
+  const { pin, lastAtByHint, nowMs, bySourceId } = args;
+
+  if (pin != null) {
+    const sid = HINT_TO_SOURCE_ID[pin.hint];
+    const row = bySourceId[sid];
+    const lastAt = lastAtByHint[pin.hint];
+    if (
+      isSensorRowEnabled(row) &&
+      typeof lastAt === "number" &&
+      lastAt === pin.pinnedLastAt
+    ) {
+      return {
+        pin,
+        display: {
+          hint: pin.hint,
+          lastAtMs: lastAt,
+          ageMs: Math.max(0, nowMs - lastAt),
+        },
+      };
+    }
+  }
+
+  const worst = findWorstEnabledSensorAge(lastAtByHint, nowMs, bySourceId);
+  if (worst == null) {
+    return null;
+  }
+  return {
+    pin: { hint: worst.hint, pinnedLastAt: worst.lastAtMs },
+    display: worst,
+  };
 }
 
 function computeWorstFreshnessTier(
@@ -598,11 +688,15 @@ export function BitstreamBridgeSerialRxBadge(props: {
 export function BitstreamSensorSampleRxBadge(props: {
   variant?: TelemetryRxBadgeVariant;
   panelEmbed?: boolean;
+  /** Chip-only: show rolling decode FPS (all sensors) vs worst-sensor wall age. */
+  chipMetric?: SensorRxChipMetric;
   /** When decode Δ is stale (≥3s), click triggers reconnect (Sensor Studio toolbar). */
   onReconnectTelemetry?: () => void;
 }) {
   const variant = props.variant ?? "chip";
   const panelEmbed = props.panelEmbed ?? false;
+  const chipMetric = props.chipMetric ?? "freshness";
+  const isAggregateFpsChip = variant === "chip" && chipMetric === "aggregateFps";
   const onReconnectTelemetry = props.onReconnectTelemetry;
   const handshakeState = useBitstreamLiveStore((s) => s.handshakeState);
   const lastAtByHint = useBitstreamLiveStore((s) => s.lastAtByHint);
@@ -618,6 +712,11 @@ export function BitstreamSensorSampleRxBadge(props: {
     serialBridgeStatus,
   });
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const stickyWorstPinRef = useRef<StickyWorstSensorPin | null>(null);
+  const fpsTickRef = useRef({ sampleCount: 0, atMs: Date.now() });
+  const prevSampleCountRef = useRef<number | null>(null);
+  const lastSampleIncreaseAtRef = useRef<number | null>(null);
+  const [displayFps, setDisplayFps] = useState<number | null>(null);
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 350);
@@ -625,11 +724,67 @@ export function BitstreamSensorSampleRxBadge(props: {
   }, []);
 
   const newestSampleAtMs = useMemo(() => maxSensorSampleAtMs(lastAtByHint, nowMs), [lastAtByHint, nowMs]);
+  const pipelineAgeMs =
+    newestSampleAtMs != null ? Math.max(0, nowMs - newestSampleAtMs) : null;
+  const fpsIdleMs =
+    lastSampleIncreaseAtRef.current != null
+      ? nowMs - lastSampleIncreaseAtRef.current
+      : null;
+
+  const visible = isTelemetryDecodePipelineActive(
+    { connected, transportState, serialBridgeStatus },
+    handshakeState,
+  );
+
+  useEffect(() => {
+    if (!isAggregateFpsChip || !visible) {
+      prevSampleCountRef.current = null;
+      lastSampleIncreaseAtRef.current = null;
+      setDisplayFps(null);
+      return;
+    }
+    const prev = prevSampleCountRef.current;
+    if (prev != null && sampleCount > prev) {
+      lastSampleIncreaseAtRef.current = Date.now();
+    }
+    prevSampleCountRef.current = sampleCount;
+  }, [isAggregateFpsChip, sampleCount, visible]);
+
+  useEffect(() => {
+    if (!isAggregateFpsChip || !visible) {
+      return;
+    }
+    if (sampleCount === 0) {
+      fpsTickRef.current = { sampleCount: 0, atMs: Date.now() };
+      setDisplayFps(null);
+      return;
+    }
+    const { fps, nextTick } = computeRollingFpsFromSampleCount({
+      sampleCount,
+      nowMs,
+      prevTick: fpsTickRef.current,
+    });
+    if (fps != null) {
+      setDisplayFps(fps);
+      fpsTickRef.current = nextTick;
+    }
+  }, [isAggregateFpsChip, nowMs, sampleCount, visible]);
 
   const worstSampleAgeMs = useMemo(
     () => computeWorstSampleAgeMs(lastAtByHint, nowMs, bySourceId),
     [bySourceId, lastAtByHint, nowMs],
   );
+
+  const stickyWorstDisplay = useMemo(() => {
+    const resolved = resolveStickyWorstSensorDisplay({
+      pin: stickyWorstPinRef.current,
+      lastAtByHint,
+      nowMs,
+      bySourceId,
+    });
+    stickyWorstPinRef.current = resolved?.pin ?? null;
+    return resolved?.display ?? null;
+  }, [bySourceId, lastAtByHint, nowMs]);
 
   const freshnessTier = useMemo(
     () => computeWorstFreshnessTier(lastAtByHint, nowMs, bySourceId),
@@ -663,40 +818,66 @@ export function BitstreamSensorSampleRxBadge(props: {
     [transportReady, handshakeState, lastAtByHint, nowMs, bySourceId, simulatorMode],
   );
 
-  const visible = isTelemetryDecodePipelineActive(
-    { connected, transportState, serialBridgeStatus },
-    handshakeState,
-  );
-
-  const decodeAgeMs = worstSampleAgeMs;
-  const toneClass = !visible
-    ? "text-zinc-500"
-    : !hasEnabledFreshnessSignal
+  const toneClass = isAggregateFpsChip
+    ? !visible || sampleCount <= 0
       ? "text-zinc-500"
-      : freshnessTier === 0
-        ? "text-emerald-400"
-        : freshnessTier === 1
-          ? "text-amber-400"
-          : "text-rose-400";
-  const borderClass = !visible
-    ? "border-zinc-600/50 bg-white/4"
-    : !hasEnabledFreshnessSignal
+      : pipelineAgeMs != null && pipelineAgeMs >= 3000
+        ? "text-rose-400"
+        : displayFps != null && displayFps >= 4
+          ? "text-emerald-400"
+          : displayFps != null && displayFps > 0
+            ? "text-emerald-300/90"
+            : fpsIdleMs != null && fpsIdleMs > 5000
+              ? "text-rose-400"
+              : "text-zinc-500"
+    : !visible
+      ? "text-zinc-500"
+      : !hasEnabledFreshnessSignal
+        ? "text-zinc-500"
+        : freshnessTier === 0
+          ? "text-emerald-400"
+          : freshnessTier === 1
+            ? "text-amber-400"
+            : "text-rose-400";
+  const borderClass = isAggregateFpsChip
+    ? !visible || sampleCount <= 0
       ? "border-zinc-600/50 bg-white/4"
-      : freshnessTier === 0
-        ? "border-emerald-500/35 bg-emerald-500/10"
-        : freshnessTier === 1
-          ? "border-amber-500/35 bg-amber-500/10"
-          : "border-rose-500/40 bg-rose-500/10";
+      : pipelineAgeMs != null && pipelineAgeMs >= 3000
+        ? "border-rose-500/40 bg-rose-500/10"
+        : displayFps != null && displayFps >= 4
+          ? "border-emerald-500/35 bg-emerald-500/10"
+          : displayFps != null && displayFps > 0
+            ? "border-emerald-500/35 bg-emerald-500/10"
+            : fpsIdleMs != null && fpsIdleMs > 5000
+              ? "border-rose-500/40 bg-rose-500/10"
+              : "border-zinc-600/50 bg-white/4"
+    : !visible
+      ? "border-zinc-600/50 bg-white/4"
+      : !hasEnabledFreshnessSignal
+        ? "border-zinc-600/50 bg-white/4"
+        : freshnessTier === 0
+          ? "border-emerald-500/35 bg-emerald-500/10"
+          : freshnessTier === 1
+            ? "border-amber-500/35 bg-amber-500/10"
+            : "border-rose-500/40 bg-rose-500/10";
 
-  const label = !visible
-    ? "RX —"
-    : !hasEnabledFreshnessSignal
-      ? sampleCount > 0
-        ? "RX …"
-        : "RX —"
-      : worstSampleAgeMs != null
-        ? `Δ ${formatSampleAge(worstSampleAgeMs)}`
-        : "RX —";
+  const label = isAggregateFpsChip
+    ? !visible
+      ? "RX —"
+      : sampleCount <= 0
+        ? "RX —"
+        : displayFps != null
+          ? formatAggregateDecodeFps(displayFps)
+          : "… fps"
+    : !visible
+      ? "RX —"
+      : !hasEnabledFreshnessSignal
+        ? sampleCount > 0
+          ? "RX …"
+          : "RX —"
+        : stickyWorstDisplay != null
+          ? formatSensorDecodeChipLabel(stickyWorstDisplay.hint, stickyWorstDisplay.ageMs)
+          : "RX —";
 
   const cardValueLabel =
     !transportReady || !visible
@@ -707,10 +888,15 @@ export function BitstreamSensorSampleRxBadge(props: {
           : "Await handshake"
       : label;
 
-  const decodeDeltaLabel = decodeAgeMs != null ? `Δ ${formatSampleAge(decodeAgeMs)}` : null;
+  const decodeAgeLabel =
+    stickyWorstDisplay != null
+      ? formatSensorDecodeChipLabel(stickyWorstDisplay.hint, stickyWorstDisplay.ageMs)
+      : worstSampleAgeMs != null
+        ? `${formatSampleAge(worstSampleAgeMs)} ago`
+        : null;
   const sensorRowValueLabel =
-    (variant === "panel" || variant === "cardRow") && decodeDeltaLabel != null
-      ? decodeDeltaLabel
+    (variant === "panel" || variant === "cardRow") && decodeAgeLabel != null
+      ? decodeAgeLabel
       : cardValueLabel;
 
   const perHintLines = SENSOR_RX_HINTS.map((hint) => {
@@ -732,9 +918,20 @@ export function BitstreamSensorSampleRxBadge(props: {
 
   const triggerAriaLabel = useMemo(() => {
     if (!visible) {
-      return simulatorMode
-        ? "Sensor decode freshness: hidden until Connect (simulator) and handshake pass."
-        : "Sensor decode freshness: hidden until serial is open and handshake passes.";
+      return isAggregateFpsChip
+        ? simulatorMode
+          ? "Sensor decode rate: hidden until Connect (simulator) and handshake pass."
+          : "Sensor decode rate: hidden until serial is open and handshake passes."
+        : simulatorMode
+          ? "Sensor decode freshness: hidden until Connect (simulator) and handshake pass."
+          : "Sensor decode freshness: hidden until serial is open and handshake passes.";
+    }
+    if (isAggregateFpsChip) {
+      if (sampleCount <= 0) {
+        return "Sensor decode rate: waiting for first decoded frame; see tooltip";
+      }
+      const fpsText = displayFps != null ? formatAggregateDecodeFps(displayFps) : "estimating";
+      return `Sensor decode rate: ${fpsText} across all sensor types (${sampleCount.toLocaleString()} lifetime frames). See tooltip.`;
     }
     if (!hasEnabledFreshnessSignal) {
       return sampleCount > 0
@@ -742,14 +939,59 @@ export function BitstreamSensorSampleRxBadge(props: {
         : "Sensor decode freshness: waiting for first decoded sensor sample; see tooltip";
     }
     const age = worstSampleAgeMs ?? 0;
-    return `Sensor decode freshness: worst enabled-sensor wall age ${formatSampleAge(age)} (${label}). Each sensor uses its own sampling interval (emerald ≤2×, amber ≤4×). See tooltip.`;
-  }, [hasEnabledFreshnessSignal, label, sampleCount, visible, worstSampleAgeMs]);
+    const pinned = stickyWorstDisplay?.hint ?? "sensor";
+    return `Sensor decode freshness: slowest enabled sensor (${pinned}) last decode ${formatSampleAge(age)} ago (${label}). Color uses worst age across all enabled sensors (emerald ≤2× interval, amber ≤4×). See tooltip.`;
+  }, [
+    displayFps,
+    hasEnabledFreshnessSignal,
+    isAggregateFpsChip,
+    label,
+    sampleCount,
+    stickyWorstDisplay?.hint,
+    visible,
+    worstSampleAgeMs,
+    simulatorMode,
+  ]);
 
-  const tooltip = (
+  const tooltip = isAggregateFpsChip ? (
+    <div className="min-w-0 max-w-[280px] whitespace-pre-line text-left">
+      <div className="font-semibold text-zinc-100">Sensor decode rate</div>
+      <div className="text-zinc-300">
+        Rolling average frames per second for <span className="font-semibold text-zinc-200">all</span> decoded sensor
+        samples in this webview (every source type combined).
+      </div>
+      <div className="mt-1 font-mono text-[11px] text-zinc-300">
+        Current: {displayFps != null ? formatAggregateDecodeFps(displayFps) : "estimating…"}
+        {"\n"}
+        Lifetime frames: {sampleCount.toLocaleString()}
+      </div>
+      <div className="mt-1 text-zinc-400">
+        Last frame (any sensor):{" "}
+        {newestSampleAtMs != null ? formatTime(newestSampleAtMs) : "none yet"}
+        {pipelineAgeMs != null ? ` · ${formatSampleAge(pipelineAgeMs)} ago` : null}
+      </div>
+      <div className="mt-2 text-zinc-500">
+        Rate is derived from the global decode counter, not per-sensor spacing. Per-sensor freshness remains in
+        Telemetry link diagnostics.
+      </div>
+      {onReconnectTelemetry != null && pipelineAgeMs != null && pipelineAgeMs >= 3000 ? (
+        <div className="mt-2 text-amber-200/90">
+          Click the chip to <span className="font-semibold">reconnect telemetry</span> (reset HostSession). Auto-recover
+          should also run when enabled in Telemetry settings.
+        </div>
+      ) : null}
+    </div>
+  ) : (
     <div className="min-w-0 max-w-[280px] whitespace-pre-line text-left">
       <div className="font-semibold text-zinc-100">Sensor samples (this UI)</div>
       <div className="text-zinc-300">
-        Newest decoded frame: {newestSampleAtMs != null ? formatTime(newestSampleAtMs) : "none yet"}
+        Chip: time since <span className="font-semibold text-zinc-200">last decode</span> for the slowest enabled
+        sensor (wall clock, not inter-arrival gap). The value climbs until that sensor publishes, then may switch to
+        another sensor.
+      </div>
+      <div className="mt-1 text-zinc-300">
+        Newest decoded frame (any sensor):{" "}
+        {newestSampleAtMs != null ? formatTime(newestSampleAtMs) : "none yet"}
       </div>
       <div className="text-zinc-400">Lifetime sample events: {sampleCount.toLocaleString()}</div>
       <div className="mt-1 text-zinc-400">Per sensor (wall clock age, own interval thresholds):</div>
@@ -772,8 +1014,9 @@ export function BitstreamSensorSampleRxBadge(props: {
   const staleReconnectEnabled =
     visible &&
     onReconnectTelemetry != null &&
-    worstSampleAgeMs != null &&
-    worstSampleAgeMs >= 3000;
+    (isAggregateFpsChip
+      ? pipelineAgeMs != null && pipelineAgeMs >= 3000
+      : worstSampleAgeMs != null && worstSampleAgeMs >= 3000);
 
   if (variant === "chip" && !visible) {
     return null;
@@ -909,6 +1152,7 @@ export function BitstreamSensorSampleRxBadge(props: {
       placement="bottom-end"
       openDelayMs={650}
       disableHoverFx
+      triggerWrapper="span"
       triggerClassName="!p-0 max-w-full"
       triggerAriaLabel={staleReconnectEnabled ? undefined : triggerAriaLabel}
       content={tooltip}

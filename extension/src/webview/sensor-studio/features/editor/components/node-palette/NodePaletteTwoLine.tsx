@@ -3,6 +3,7 @@ import { getPaletteEntryMeta, PALETTE_CATEGORY_LABEL } from "./palette-entry-met
 import { PaletteCatalogIcon } from "./PaletteCatalogIcon";
 import { paletteEntryDnDProps } from "./palette-entry-dnd-props";
 import { PalettePreviewAffix } from "./PalettePreviewAffix";
+import { paletteIconPulseFromPreview } from "./palette-icon-pulse";
 import { usePaletteEntryPreview } from "./usePaletteEntryPreview";
 
 type NodePaletteTwoLineProps = {
@@ -21,7 +22,7 @@ function PaletteRowTwoLine(props: {
   const { entry, borderColor, category, onAddNode } = props;
   const meta = getPaletteEntryMeta(entry);
   const preview = usePaletteEntryPreview(entry);
-  const livePulse = preview.kind === "pulse" ? preview.streamMode : null;
+  const { livePulse, pulseTriggerKey } = paletteIconPulseFromPreview(preview);
   const topRight =
     meta.chip != null ? (
       <span className="shrink-0 rounded border border-cyan-500/35 bg-cyan-950/40 px-1 py-px text-[9px] font-semibold uppercase tracking-wide text-cyan-200/90">
@@ -44,7 +45,7 @@ function PaletteRowTwoLine(props: {
       {...paletteEntryDnDProps(entry)}
     >
       <div className="flex min-w-0 items-start gap-1.5">
-        <PaletteCatalogIcon icon={entry.icon} className="mt-0.5 shrink-0" livePulse={livePulse} />
+        <PaletteCatalogIcon icon={entry.icon} className="mt-0.5 shrink-0" livePulse={livePulse} pulseTriggerKey={pulseTriggerKey} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex min-w-0 items-start justify-between gap-1">
             <span className="min-w-0 truncate font-medium leading-snug text-zinc-100">{entry.title}</span>

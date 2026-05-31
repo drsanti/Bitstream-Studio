@@ -68,6 +68,8 @@ interface BitstreamLiveState extends MetricsSnapshot {
   bs2EvtSensorLastRxAtMs: number | null;
   /** Last BMI270 EVT_SENSOR mask byte (0x07 = raw only on wire; fusion adds 0x08/0x10). */
   bmi270LastEvtMask: number | null;
+  /** OR of all BMI270 EVT mask bytes seen this session (stable; use for TMP presence, not last frame). */
+  bmi270EvtMaskSeenOr: number;
   /** UI flush: count of metrics snapshots applied to the live store. */
   uiFlushCount: number;
   /** UI flush: last wall-clock time a snapshot was applied (ms since epoch). */
@@ -176,6 +178,7 @@ const LIVE_DEFAULTS: Pick<
   | "bs2EvtSensorRxCount"
   | "bs2EvtSensorLastRxAtMs"
   | "bmi270LastEvtMask"
+  | "bmi270EvtMaskSeenOr"
   | "uiFlushCount"
   | "uiFlushLastAtMs"
 > = {
@@ -192,6 +195,7 @@ const LIVE_DEFAULTS: Pick<
   bs2EvtSensorRxCount: 0,
   bs2EvtSensorLastRxAtMs: null,
   bmi270LastEvtMask: null,
+  bmi270EvtMaskSeenOr: 0,
   uiFlushCount: 0,
   uiFlushLastAtMs: null,
 };
@@ -243,6 +247,7 @@ export const useBitstreamLiveStore = create<BitstreamLiveStore>((set) => ({
       bs2EvtSensorRxCount: state.bs2EvtSensorRxCount,
       bs2EvtSensorLastRxAtMs: state.bs2EvtSensorLastRxAtMs,
       bmi270LastEvtMask: state.bmi270LastEvtMask,
+      bmi270EvtMaskSeenOr: state.bmi270EvtMaskSeenOr,
       uiFlushCount: state.uiFlushCount,
       uiFlushLastAtMs: state.uiFlushLastAtMs,
     })),
@@ -253,7 +258,13 @@ export const useBitstreamLiveStore = create<BitstreamLiveStore>((set) => ({
       bs2EvtSensorLastRxAtMs: atMs ?? Date.now(),
     })),
   recordBmi270EvtMask: (mask) =>
-    set({ bmi270LastEvtMask: mask & 0xff }),
+    set((state) => {
+      const masked = mask & 0xff;
+      return {
+        bmi270LastEvtMask: masked,
+        bmi270EvtMaskSeenOr: state.bmi270EvtMaskSeenOr | masked,
+      };
+    }),
   bumpUiFlushApplied: (atMs) =>
     set((state) => ({
       uiFlushCount: state.uiFlushCount + 1,

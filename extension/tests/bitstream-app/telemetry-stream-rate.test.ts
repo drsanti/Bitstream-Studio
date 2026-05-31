@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  computeRollingFpsFromSampleCount,
   emaStreamHz,
   emptyStreamHzByHint,
+  formatAggregateDecodeFps,
   hzInstantFromGapMs,
   pushHostGapRing,
   smoothedHzFromGapRing,
@@ -66,4 +68,28 @@ test("skips counter Hz when counter unchanged", () => {
 
 test("pushHostGapRing trims to max length", () => {
   assert.deepEqual(pushHostGapRing([1, 2, 3], 4, 3), [2, 3, 4]);
+});
+
+test("formatAggregateDecodeFps formats toolbar labels", () => {
+  assert.equal(formatAggregateDecodeFps(null), "— fps");
+  assert.equal(formatAggregateDecodeFps(0), "0 fps");
+  assert.equal(formatAggregateDecodeFps(42.37), "42.4 fps");
+  assert.equal(formatAggregateDecodeFps(128.4), "128 fps");
+});
+
+test("computeRollingFpsFromSampleCount uses sample counter delta", () => {
+  const first = computeRollingFpsFromSampleCount({
+    sampleCount: 10,
+    nowMs: 1000,
+    prevTick: { sampleCount: 0, atMs: 0 },
+  });
+  assert.ok(Math.abs((first.fps ?? 0) - 10) < 0.001);
+  assert.deepEqual(first.nextTick, { sampleCount: 10, atMs: 1000 });
+
+  const tooSoon = computeRollingFpsFromSampleCount({
+    sampleCount: 12,
+    nowMs: 1100,
+    prevTick: first.nextTick,
+  });
+  assert.equal(tooSoon.fps, null);
 });

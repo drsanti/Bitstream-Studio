@@ -14,6 +14,12 @@ export const SOCKET_LIVE_CELL_SIGNED3_UNIT =
 /** Signed 2 dp (accel / gyro): `+99.99`, `-99.99`. */
 export const SOCKET_LIVE_CELL_SIGNED2 = "inline-block w-[6ch] shrink-0 text-right";
 
-export function socketLiveValueCellClass(fractionDigits: number): string {
-  return fractionDigits >= 3 ? SOCKET_LIVE_CELL_SIGNED3_UNIT : SOCKET_LIVE_CELL_SIGNED2;
+export type SocketLiveValueTextAlign = "left" | "right";
+
+export function socketLiveValueCellClass(
+  fractionDigits: number,
+  textAlign: SocketLiveValueTextAlign = "right",
+): string {
+  const base = fractionDigits >= 3 ? SOCKET_LIVE_CELL_SIGNED3_UNIT : SOCKET_LIVE_CELL_SIGNED2;
+  return textAlign === "left" ? base.replace("text-right", "text-left") : base;
 }

@@ -54,7 +54,11 @@ export function StudioToolbar(props: StudioToolbarProps) {
     >
       <div className="shrink-0 text-sm font-semibold">Sensor Studio</div>
       <div className="ml-auto flex min-w-0 shrink items-center">
-        <BitstreamSensorSampleRxBadge variant="chip" onReconnectTelemetry={reconnectTelemetry} />
+        <BitstreamSensorSampleRxBadge
+          variant="chip"
+          chipMetric="aggregateFps"
+          onReconnectTelemetry={reconnectTelemetry}
+        />
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <button

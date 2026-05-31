@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
+import {
+  TRN_COMPACT_CHOICE_BUTTON_BASE,
+  TRN_COMPACT_CHOICE_BUTTON_SIZE,
+  trnCompactChoiceButtonTone,
+} from "./trnCompactChoiceButtonClasses.js";
 
 export type TRNChipButtonGroupOption<T extends string | number = string | number> =
   {
@@ -50,8 +55,7 @@ export function TRNChipButtonGroup<
     ariaLabel,
   } = props;
 
-  const paddingClass = size === "sm" ? "py-1 px-1.5" : "py-1.5 px-2";
-  const textClass = size === "sm" ? "text-[11px]" : "text-xs";
+  const sizeClass = size === "sm" ? TRN_COMPACT_CHOICE_BUTTON_SIZE : "py-1.5 px-2 text-xs font-semibold";
 
   return (
     <div className={twMerge("space-y-2", className)}>
@@ -82,14 +86,10 @@ export function TRNChipButtonGroup<
                 }
               }}
               className={twMerge(
-                "inline-flex w-full min-w-0 items-center justify-center gap-1 rounded border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-cyan-400/50",
-                paddingClass,
-                textClass,
-                isOptionDisabled || isLoading
-                  ? "cursor-not-allowed border-zinc-800/80 bg-zinc-950/60 text-zinc-600 opacity-60"
-                  : isSelected
-                    ? "border-zinc-700/80 bg-cyan-500/20 text-cyan-100"
-                    : "border-zinc-700/80 bg-zinc-950/90 text-zinc-400 hover:bg-zinc-800/70 hover:text-zinc-200",
+                TRN_COMPACT_CHOICE_BUTTON_BASE,
+                "w-full min-w-0 gap-1",
+                sizeClass,
+                trnCompactChoiceButtonTone(isSelected, isOptionDisabled || isLoading),
               )}
             >
               {isLoading ? (

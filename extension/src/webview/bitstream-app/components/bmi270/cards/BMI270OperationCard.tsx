@@ -1,4 +1,4 @@
-import { Layers, Orbit, SlidersHorizontal } from "lucide-react";
+import { Orbit, SlidersHorizontal } from "lucide-react";
 import {
   TRNToggleSwitch,
   TRNButton,
@@ -9,7 +9,6 @@ import {
   SensorCfgCardHeaderTrailing,
   type SensorCfgCardApplyProps,
 } from "../../../../sensor-telemetry/components/panels/SensorCfgCardHeaderTrailing.js";
-import type { Bmi270StreamModeUi } from "../../../state/bitstreamConfig.store.js";
 import type { Bmi270AckState, SensorPublishMode } from "../types";
 import { SENSOR_CFG_UI } from "../../../constants/sensorConfigUiLabels";
 
@@ -19,11 +18,9 @@ export function BMI270OperationCard(props: {
   publishMode: SensorPublishMode;
   controlsDisabled: boolean;
   ack: Bmi270AckState;
-  streamMode: Bmi270StreamModeUi;
   onToggleCollapsed: () => void;
   onEnabledChange: (next: boolean) => void;
   onPublishModeChange: (nextMode: SensorPublishMode) => void;
-  onStreamModeChange: (nextMode: Bmi270StreamModeUi) => void;
   cardApply?: SensorCfgCardApplyProps;
 }) {
   const {
@@ -32,11 +29,9 @@ export function BMI270OperationCard(props: {
     publishMode,
     controlsDisabled,
     ack,
-    streamMode,
     onToggleCollapsed,
     onEnabledChange,
     onPublishModeChange,
-    onStreamModeChange,
     cardApply,
   } = props;
 
@@ -91,6 +86,7 @@ export function BMI270OperationCard(props: {
             size="compact"
             selected={publishMode === 0}
             disabled={controlsDisabled}
+            hint={SENSOR_CFG_UI.publishModePeriodicHint}
             onClick={() => onPublishModeChange(0)}
           >
             Periodic
@@ -100,6 +96,7 @@ export function BMI270OperationCard(props: {
             size="compact"
             selected={publishMode === 1}
             disabled={controlsDisabled}
+            hint={SENSOR_CFG_UI.publishModeChangeHint}
             onClick={() => onPublishModeChange(1)}
           >
             Change
@@ -109,53 +106,10 @@ export function BMI270OperationCard(props: {
             size="compact"
             selected={publishMode === 2}
             disabled={controlsDisabled}
+            hint={SENSOR_CFG_UI.publishModeBothHint}
             onClick={() => onPublishModeChange(2)}
           >
-            Hybrid
-          </TRNButton>
-        </div>
-      </div>
-
-      <div
-        className={`mt-2 ${controlsDisabled ? "opacity-50" : ""} rounded border border-zinc-700/80 bg-transparent px-2 pt-1 pb-2 text-sm`}
-      >
-        <div className="group mb-1 flex items-center gap-2">
-          <Layers className="h-4 w-4 text-zinc-400" strokeWidth={2.25} aria-hidden />
-          <span className="min-w-0 truncate text-xs font-semibold normal-case tracking-normal text-zinc-100">
-            {SENSOR_CFG_UI.streamMode}
-          </span>
-        </div>
-        <div
-          role="radiogroup"
-          aria-label="BMI270 stream mode raw fusion hybrid"
-          className="flex w-full flex-row flex-wrap justify-between gap-2"
-        >
-          <TRNButton
-            className="min-w-14 flex-1 border-zinc-700/80"
-            size="compact"
-            selected={streamMode === "raw"}
-            disabled={controlsDisabled}
-            onClick={() => onStreamModeChange("raw")}
-          >
-            Raw
-          </TRNButton>
-          <TRNButton
-            className="min-w-14 flex-1 border-zinc-700/80"
-            size="compact"
-            selected={streamMode === "fusion"}
-            disabled={controlsDisabled}
-            onClick={() => onStreamModeChange("fusion")}
-          >
-            Fusion
-          </TRNButton>
-          <TRNButton
-            className="min-w-14 flex-1 border-zinc-700/80"
-            size="compact"
-            selected={streamMode === "hybrid"}
-            disabled={controlsDisabled}
-            onClick={() => onStreamModeChange("hybrid")}
-          >
-            Hybrid
+            {SENSOR_CFG_UI.publishModeBoth}
           </TRNButton>
         </div>
       </div>

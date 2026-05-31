@@ -5,7 +5,7 @@ import {
   type NodeProps,
 } from "@xyflow/react";
 import { ChevronDown } from "lucide-react";
-import { useLayoutEffect, useMemo, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import type { StudioNodeData } from "../store/flow-editor.store";
 import {
   isStudioSensorTapNodeId,
@@ -17,8 +17,8 @@ import { useFlowEditorStore } from "../store/flow-editor.store";
 import { studioPortAccent } from "./port-accent";
 import {
   FlowNodeBody,
+  FlowNodeEdgeResize,
   FlowNodeHeader,
-  FlowNodeResizeControl,
   FlowNodeShell,
   FlowNodeSocketDot,
   FlowNodeSocketRegion,
@@ -351,7 +351,7 @@ export function StudioNodeCard(props: NodeProps) {
     data.outputType != null ||
     (data.outputHandles != null && data.outputHandles.length > 0);
 
-  const nodeResizable = data.ui?.resizable !== false;
+  const nodeResizable = data.ui?.resizable === true;
   const minNodeWidth =
     typeof data.ui?.minWidth === "number" && Number.isFinite(data.ui.minWidth)
       ? Math.round(data.ui.minWidth)
@@ -527,15 +527,20 @@ export function StudioNodeCard(props: NodeProps) {
     };
   }, [data.liveQuaternionWire, data.nodeId, rotationShowGrid, scene3dForPreview]);
 
+  const shellRef = useRef<HTMLDivElement | null>(null);
+  const resizeActive = isSelected && nodeResizable;
+
   return (
     <div
+      ref={shellRef}
       className={`relative w-full min-w-0 max-w-full ${utilityBodyFitsContent ? "h-auto" : "h-full"}`}
     >
-      <FlowNodeResizeControl
-        visible={nodeResizable}
-        active={isSelected}
+      <FlowNodeEdgeResize
+        nodeId={id}
+        active={resizeActive}
         minWidth={minNodeWidth}
         minHeight={minNodeHeight}
+        shellRef={shellRef}
       />
       <FlowNodeShell
         glass

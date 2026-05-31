@@ -1,0 +1,28 @@
+---
+description: Webview hints must use TRNTooltip / TRNHintTooltip — never native title
+alwaysApply: true
+---
+
+# TRN hints — no native `title` tooltips
+
+In **`extension/src/webview/`**, do **not** use the HTML **`title`** attribute (or other browser-default tooltips) for operator hints, field explanations, or preset descriptions.
+
+## Use instead
+
+| Pattern | Component |
+|---------|-----------|
+| Whole control / row hover | **`TRNTooltip`** — or **`TRNButton`** / **`TRNParameter`** **`hint`** prop (wraps `TRNTooltip` with shared panel chrome) |
+| Label-adjacent help icon | **`TRNHintTooltip`** (1s delay, `TRN_HINT_POPOVER_PANEL_CLASS`) |
+| Always-visible helper copy | **`TRNHintText`** |
+
+Shared styling: **`TRN_HINT_POPOVER_PANEL_CLASS`**, **`TRN_HINT_HOVER_DELAY_MS`** from **`TRNHintText.tsx`**.
+
+## `TRNButton`
+
+Pass **`hint={...}`** — not **`title={...}`**. When **`hint`** is set, native **`title`** is stripped.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.
+
+Keep repo root **`.cursor/rules/trn-no-native-tooltip.mdc`** in sync when editing this file.

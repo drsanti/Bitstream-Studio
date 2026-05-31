@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-05-30 (landing + sim WebGL fixes; handoff docs pass)  
+**Last updated:** 2026-05-31 (BMI270 Output profile + temperature path)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -168,6 +168,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-05-31 | **BMI270 Output profile + temperature:** Output profile card (presets + coordinated Apply); Operation **Both** label; Custom advanced channels; host EVT merge/finalize + Telemetry channels restore; firmware default mask 0x07; unit tests |
 | 2026-05-29 | **Phase 0 bootstrap:** new repo from `ternion-t3d` BS2; rebrand `bitstream-studio`; external sim |
 | 2026-05-30 | **Phases 1–4:** isolate BitstreamApp; extension-bridge; `ui/catalog/`; remove `@ternion/t3d`; Vite/VSIX |
 | 2026-05-30 | **Removed Jolt Physics** — WASM, Vite plugins, host COI; Rapier kept for future |

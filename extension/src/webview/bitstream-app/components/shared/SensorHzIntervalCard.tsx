@@ -1,6 +1,8 @@
 import type { LucideIcon } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import {
   TRNDragHandle,
+  TRNHintTooltip,
   TRNInteractiveCard,
 } from "@/ui/TRN";
 import {
@@ -15,8 +17,33 @@ export type SensorHzIntervalCardAck = {
   message?: string;
 };
 
+function SensorHzIntervalCardTitle(props: { title: string; titleHint?: string }) {
+  const { title, titleHint } = props;
+  if (titleHint == null || titleHint.trim().length === 0) {
+    return title;
+  }
+  return (
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1">
+      <span className="truncate">{title}</span>
+      <TRNHintTooltip
+        trigger={
+          <CircleHelp
+            className="h-3.5 w-3.5 shrink-0 text-zinc-500 transition-colors hover:text-zinc-300"
+            aria-hidden
+          />
+        }
+        content={titleHint}
+        triggerAriaLabel={`About ${title}`}
+        placement="top-start"
+      />
+    </span>
+  );
+}
+
 export function SensorHzIntervalCard(props: {
   title: string;
+  /** Shown on a title-bar help icon — not under the rate controls. */
+  titleHint?: string;
   icon: LucideIcon;
   collapsed: boolean;
   controlsDisabled: boolean;
@@ -27,11 +54,12 @@ export function SensorHzIntervalCard(props: {
   onIntervalMsChange: (nextMs: number) => void;
   cardApply?: SensorCfgCardApplyProps;
   rateField?: Partial<
-    Pick<SensorHzRateFieldProps, "minMs" | "maxMs" | "allowZero" | "hint" | "sliderStepHz">
+    Pick<SensorHzRateFieldProps, "minMs" | "maxMs" | "allowZero" | "sliderStepHz">
   >;
 }) {
   const {
     title,
+    titleHint,
     icon: Icon,
     collapsed,
     controlsDisabled,
@@ -46,7 +74,7 @@ export function SensorHzIntervalCard(props: {
 
   return (
     <TRNInteractiveCard
-      title={title}
+      title={<SensorHzIntervalCardTitle title={title} titleHint={titleHint} />}
       titleLeadingSlot={
         <div className="inline-flex items-center gap-1">
           <TRNDragHandle className="h-5 w-5 border-0 bg-transparent p-0 text-zinc-400 hover:bg-transparent!" />
@@ -85,7 +113,6 @@ export function SensorHzIntervalCard(props: {
           maxMs={rateField?.maxMs}
           allowZero={rateField?.allowZero}
           sliderStepHz={rateField?.sliderStepHz}
-          hint={rateField?.hint}
         />
       </div>
     </TRNInteractiveCard>

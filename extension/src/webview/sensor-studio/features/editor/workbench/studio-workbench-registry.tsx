@@ -80,6 +80,7 @@ export function WorkbenchInspectorPanel() {
       catalogEntries={p.entries}
       categoryColors={p.minimapCategoryColors}
       onUpdateLabel={p.onUpdateLabel}
+      onUpdateNodeUiResizable={p.onUpdateNodeUiResizable}
       onUpdateConfigField={p.onUpdateConfigField}
       onUpdateConfigJson={p.onUpdateConfigJson}
     />

@@ -11,7 +11,15 @@ import {
   toScaledValue,
   toScaledValueBy,
 } from "../../telemetry/telemetryFormat";
-import { formatTemperatureFromC, convertTemperatureCToUnit } from "../../telemetry/temperatureDisplay.js";
+import {
+  TRNHintText,
+} from "@/ui/TRN";
+import { BMI270_MASK } from "../../../../bitstream2/domains/sensors/bmi270.js";
+import { SENSOR_SOURCE_ID_BMI270 } from "../../constants/sensorSourceIds.js";
+import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
+import { useBitstreamDeviceSensorConfigStore } from "../../state/bitstreamDeviceSensorConfig.store.js";
+import { useBitstreamLiveStore } from "../../state/bitstreamLive.store.js";
+import { formatTemperatureFromC, convertTemperatureCToUnit, readTemperatureCFromSample } from "../../telemetry/temperatureDisplay.js";
 import { Bmi270RawSection } from "./Bmi270RawSection";
 import { useBmi270FusionQuatOrientationStore } from "../../state/bmi270FusionQuatOrientation.store";
 import { useBmi270FusionEulerWireTapStore } from "../../state/bmi270FusionEulerWireTap.store";
@@ -27,7 +35,6 @@ import {
   fusionQuatNorm,
   resolveFusionQuatComponents,
 } from "../../telemetry/fusionQuaternionDisplay.js";
-import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
 import { TemperatureDisplaySettingsMenu } from "../telemetry/TemperatureDisplaySettingsMenu.js";
 
 export function Bmi270RawGyroDataView(props: {
@@ -135,12 +142,38 @@ export function Bmi270RawTemperatureDataView(props: {
 }) {
   const { sample, samplingIntervalMs, collapsed, onToggleCollapsed, dragHandleSlot } = props;
   const updateBadge = useSensorLastUpdateBadge("bmi270", samplingIntervalMs);
+  const bmi270EvtMaskSeenOr = useBitstreamLiveStore((s) => s.bmi270EvtMaskSeenOr);
+  const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
+  const appliedMask =
+    useBitstreamDeviceSensorConfigStore(
+      (s) =>
+        s.baselineBySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ??
+        s.bySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ??
+        0,
+    ) & 0xff;
+  const draftMask =
+    useBitstreamDeviceSensorConfigStore(
+      (s) => s.bySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ?? appliedMask,
+    ) & 0xff;
   const temperatureUnit = useBitstreamConfigStore((s) => s.temperatureDisplayUnit);
   const temperatureDigits = useBitstreamConfigStore((s) => s.temperatureDisplayFractionDigits);
-  const tpNumericC =
-    typeof sample?.temperatureCx100 === "number" ? sample.temperatureCx100 / 100 : undefined;
+  const tpNumericC = readTemperatureCFromSample(sample);
   const tpDisplay = formatTemperatureFromC(tpNumericC, temperatureUnit, temperatureDigits);
   const gaugeMax = convertTemperatureCToUnit(100, temperatureUnit);
+  const streamActive = typeof sample?.counter === "number";
+  const tmpConfiguredOnDevice = (appliedMask & BMI270_MASK.TMP) !== 0;
+  const tmpConfiguredInDraft = (draftMask & BMI270_MASK.TMP) !== 0;
+  const tmpEverOnWire = (bmi270EvtMaskSeenOr & BMI270_MASK.TMP) !== 0;
+  const showEnableTempHint =
+    streamActive && tpNumericC == null && !tmpConfiguredOnDevice && !tmpConfiguredInDraft;
+  const showApplyTempHint =
+    streamActive && tpNumericC == null && !tmpConfiguredOnDevice && tmpConfiguredInDraft;
+  const showWaitingForTmpHint =
+    streamActive && tpNumericC == null && tmpConfiguredOnDevice && !tmpEverOnWire;
+  const waitingHintText =
+    bmi270StreamMode === "hybrid"
+      ? "Temperature updates on raw frames when All is selected. Pick Raw or All, then Apply."
+      : "Temperature is enabled but not received yet. Apply Telemetry Sources if you changed the preset.";
   return (
     <Bmi270RawSection
       title="BMI270 Temperature"
@@ -157,6 +190,21 @@ export function Bmi270RawTemperatureDataView(props: {
       onToggleCollapsed={onToggleCollapsed}
       dragHandleSlot={dragHandleSlot}
       samplingIntervalMs={samplingIntervalMs}
+      prefaceSlot={
+        showEnableTempHint ? (
+          <TRNHintText tone="warn" className="text-[10px] leading-relaxed">
+            Pick Raw or All, then Apply in Telemetry Sources.
+          </TRNHintText>
+        ) : showApplyTempHint ? (
+          <TRNHintText tone="warn" className="text-[10px] leading-relaxed">
+            Temperature is not on the device yet. Apply in Telemetry Sources.
+          </TRNHintText>
+        ) : showWaitingForTmpHint ? (
+          <TRNHintText tone="warn" className="text-[10px] leading-relaxed">
+            {waitingHintText}
+          </TRNHintText>
+        ) : null
+      }
       items={[
         {
           name: "tp",

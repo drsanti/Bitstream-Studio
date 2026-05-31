@@ -70,6 +70,8 @@ export function SensorTapInspectorReadings(props: SensorTapInspectorReadingsProp
       return (
         <Vec3TapRow label="Gyro (rad/s)" vector={vec3} fractionDigits={2} />
       );
+    case "bmi270-tap-temp":
+      return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;
     case "bmm350-tap-magnetic":
       return (
         <Vec3TapRow label="Magnetic (µT)" vector={vec3} fractionDigits={2} />

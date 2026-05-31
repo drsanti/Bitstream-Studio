@@ -225,6 +225,8 @@ export function FlowCanvas(props: FlowCanvasProps) {
         onDrop={handleCanvasDrop}
       >
         <ReactFlow<StudioNode>
+          colorMode="dark"
+          proOptions={{ hideAttribution: true }}
           nodes={nodes}
           edges={coloredEdges}
           nodeTypes={nodeTypes}

@@ -27,6 +27,11 @@ export function BMI270FusionFeedIntervalCard(props: {
   return (
     <SensorHzIntervalCard
       title={SENSOR_CFG_UI.fusionFeed}
+      titleHint={
+        controlsDisabled
+          ? "Switch stream mode to Fusion or Hybrid to edit the BSX fusion feed rate."
+          : undefined
+      }
       icon={Cpu}
       collapsed={collapsed}
       controlsDisabled={controlsDisabled}
@@ -36,13 +41,6 @@ export function BMI270FusionFeedIntervalCard(props: {
       onToggleCollapsed={onToggleCollapsed}
       onIntervalMsChange={onFusionFeedIntervalChange}
       cardApply={cardApply}
-      rateField={
-        controlsDisabled
-          ? {
-              hint: "Switch stream mode to Fusion or Hybrid to edit the BSX fusion feed rate.",
-            }
-          : undefined
-      }
     />
   );
 }

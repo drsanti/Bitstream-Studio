@@ -2,6 +2,7 @@ import type { NodeCatalogEntry } from "../../../../core/config/config-types";
 import { PaletteCatalogIcon } from "./PaletteCatalogIcon";
 import { paletteEntryDnDProps } from "./palette-entry-dnd-props";
 import { PalettePreviewAffix } from "./PalettePreviewAffix";
+import { paletteIconPulseFromPreview } from "./palette-icon-pulse";
 import { usePaletteEntryPreview } from "./usePaletteEntryPreview";
 
 type NodePaletteClassicProps = {
@@ -18,7 +19,7 @@ function PaletteRowClassic(props: {
 }) {
   const { entry, borderColor, onAddNode } = props;
   const preview = usePaletteEntryPreview(entry);
-  const livePulse = preview.kind === "pulse" ? preview.streamMode : null;
+  const { livePulse, pulseTriggerKey } = paletteIconPulseFromPreview(preview);
   return (
     <button
       type="button"
@@ -28,7 +29,7 @@ function PaletteRowClassic(props: {
       title={entry.description}
       {...paletteEntryDnDProps(entry)}
     >
-      <PaletteCatalogIcon icon={entry.icon} livePulse={livePulse} />
+      <PaletteCatalogIcon icon={entry.icon} livePulse={livePulse} pulseTriggerKey={pulseTriggerKey} />
       <span className="min-w-0 flex-1 truncate">{entry.title}</span>
       <PalettePreviewAffix preview={preview} />
     </button>

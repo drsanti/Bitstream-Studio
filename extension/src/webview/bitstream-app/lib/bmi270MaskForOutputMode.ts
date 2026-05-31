@@ -21,12 +21,18 @@ export function bmi270MaskIncludesFusionChannels(mask: number): boolean
   return (mask & FUSION_CHANNEL_BITS) === FUSION_CHANNEL_BITS;
 }
 
+/** Strip fusion channel bits when stream mode is raw. */
+export function bmi270MaskForRawStream(currentMask: number): number
+{
+  return currentMask & ~FUSION_CHANNEL_BITS & 0xff;
+}
+
 /** OR in Euler + Quat when output mode is fusion or hybrid (SENSOR_CFG prerequisite). */
 export function bmi270MaskForFusionOutput(mode: Bmi270StreamModeUi, currentMask: number): number
 {
   if (mode === "raw")
   {
-    return currentMask & 0xff;
+    return bmi270MaskForRawStream(currentMask);
   }
   return (currentMask | FUSION_CHANNEL_BITS) & 0xff;
 }

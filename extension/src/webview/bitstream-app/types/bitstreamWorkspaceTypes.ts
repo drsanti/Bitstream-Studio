@@ -59,4 +59,6 @@ export const DEFAULT_SENSOR_TELEMETRY_CARD_ORDER: SensorTelemetryCardId[] = [
 export type Bmi270SampleCacheState = {
   sample: Bmi270ResolvedSampleWithFrameFlags;
   updatedAtByKey: Partial<Record<Bmi270NumericKey, number>>;
+  /** Last EVT counter applied — stale TTL runs only when this advances. */
+  lastIncomingCounter?: number;
 };

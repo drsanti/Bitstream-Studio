@@ -44,6 +44,7 @@ export function SensorSamplingFrequencyCard(props: {
   return (
     <SensorHzIntervalCard
       title={SENSOR_CFG_UI.sampleRate}
+      titleHint={rateHint}
       icon={icon}
       collapsed={collapsed}
       controlsDisabled={controlsDisabled}
@@ -56,7 +57,6 @@ export function SensorSamplingFrequencyCard(props: {
       rateField={{
         ...(rateField?.minMs != null ? { minMs: rateField.minMs } : {}),
         ...(rateField?.maxMs != null ? { maxMs: rateField.maxMs } : {}),
-        ...(rateHint != null && rateHint.length > 0 ? { hint: rateHint } : {}),
       }}
     />
   );

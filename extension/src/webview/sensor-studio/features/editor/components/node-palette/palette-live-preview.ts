@@ -11,16 +11,63 @@ import type { MetricsSnapshot } from "../../../../../bitstream-app/state/bitstre
 
 export type PalettePreviewStreamTone = "live" | "idle";
 
+export type PalettePrimaryBundleRow =
+  | {
+      kind: "vector3";
+      label: string;
+      handleId: string;
+      vector: FlowWireVec3;
+      fractionDigits: number;
+    }
+  | {
+      kind: "quaternion";
+      label: string;
+      quaternion: FlowWireQuaternion;
+      fractionDigits?: number;
+    }
+  | {
+      kind: "scalar";
+      label: string;
+      value: number;
+      unit?: string;
+      fractionDigits?: number;
+      signedPositive?: boolean;
+      unavailableWhenIdle?: boolean;
+    };
+
 export type PalettePreview =
-  | { kind: "value"; text: string; streamMode: PalettePreviewStreamTone }
-  | { kind: "pulse"; streamMode: PalettePreviewStreamTone }
-  | { kind: "dash" };
+  | { kind: "pulse"; streamMode: PalettePreviewStreamTone; label?: string }
+  | { kind: "unavailable"; unit?: string }
+  | {
+      kind: "primaryBundle";
+      streamMode: PalettePreviewStreamTone;
+      rows: PalettePrimaryBundleRow[];
+    }
+  | {
+      kind: "scalar";
+      streamMode: PalettePreviewStreamTone;
+      value: number;
+      unit?: string;
+      fractionDigits?: number;
+      signedPositive?: boolean;
+    }
+  | {
+      kind: "vector3";
+      streamMode: PalettePreviewStreamTone;
+      vector: FlowWireVec3;
+      /** Drives fraction digits (euler → 3 dp). */
+      handleId: string;
+    }
+  | {
+      kind: "quaternion";
+      streamMode: PalettePreviewStreamTone;
+      quaternion: FlowWireQuaternion;
+      fractionDigits?: number;
+    }
+  /** @deprecated Prefer structured scalar / vector3 / quaternion previews. */
+  | { kind: "value"; text: string; unit?: string; streamMode: PalettePreviewStreamTone };
 
 type HintMap = MetricsSnapshot["latestByHint"];
-
-function vecMag(v: FlowWireVec3): number {
-  return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-}
 
 /** Rotation angle (degrees) from quaternion (same construction as common atan2 formulation). */
 export function quatRotationDeg(q: FlowWireQuaternion): number {
@@ -46,36 +93,68 @@ export function formatPaletteScalar(n: number): string {
   return n.toFixed(3);
 }
 
+function scalarPreview(
+  n: number,
+  unit: string | undefined,
+  streamMode: PalettePreviewStreamTone,
+  unavailableWhenNotLive = false,
+  fractionDigits = 2,
+): PalettePreview {
+  if (unavailableWhenNotLive && streamMode === "idle" && (!Number.isFinite(n) || n === 0)) {
+    return { kind: "unavailable", unit };
+  }
+  if (!Number.isFinite(n)) {
+    return { kind: "unavailable", unit };
+  }
+  return { kind: "scalar", value: n, unit, streamMode, fractionDigits };
+}
+
 function sensorInputPreview(entry: NodeCatalogEntry, latestByHint: HintMap, nowMs: number): PalettePreview {
   const raw = entry.defaultConfig.sourceKey;
   const key =
     typeof raw === "string" && raw.trim().length > 0 ? raw.trim() : "bmi270.accel.x";
   const live = resolveLiveNumericFromLatestByHint(latestByHint, key);
   if (live != null && Number.isFinite(live)) {
-    return { kind: "value", text: formatPaletteScalar(live), streamMode: "live" };
+    return { kind: "scalar", value: live, streamMode: "live", fractionDigits: 2 };
   }
   const demo = Math.sin(nowMs / 500) * 0.5 + 0.5;
-  return { kind: "value", text: formatPaletteScalar(demo), streamMode: "idle" };
+  return { kind: "scalar", value: demo, streamMode: "idle", fractionDigits: 2 };
 }
 
 function quatInputAnimatedPreview(nowMs: number): PalettePreview {
   const t = nowMs / 3000;
   const half = t / 2;
-  const q: FlowWireQuaternion = { x: 0, y: 0, z: Math.sin(half), w: Math.cos(half) };
   return {
-    kind: "value",
-    text: `${quatRotationDeg(q).toFixed(1)}°`,
+    kind: "quaternion",
     streamMode: "idle",
+    quaternion: { x: 0, y: 0, z: Math.sin(half), w: Math.cos(half) },
+    fractionDigits: 3,
   };
+}
+
+function vector3HandleIdForTap(nodeId: string): string {
+  switch (nodeId) {
+    case "bmi270-tap-euler":
+      return "euler";
+    case "bmi270-tap-gyro":
+      return "gyro";
+    case "bmi270-tap-accel":
+      return "accel";
+    case "bmm350-tap-magnetic":
+      return "magnetic";
+    default:
+      return "vector";
+  }
 }
 
 function vector3TapPreview(nodeId: string, latestByHint: HintMap): PalettePreview {
   if (nodeId === "bmm350-tap-magnetic") {
     const b = computeBmm350PinBundle(latestByHint);
     return {
-      kind: "value",
-      text: formatPaletteScalar(vecMag(b.magneticUt)),
+      kind: "vector3",
       streamMode: b.streamLive ? "live" : "idle",
+      vector: b.magneticUt,
+      handleId: "magnetic",
     };
   }
   const bundle = computeBmi270PinBundle(latestByHint);
@@ -93,18 +172,20 @@ function vector3TapPreview(nodeId: string, latestByHint: HintMap): PalettePrevie
       break;
   }
   return {
-    kind: "value",
-    text: formatPaletteScalar(vecMag(v)),
+    kind: "vector3",
     streamMode: bundle.streamLive ? "live" : "idle",
+    vector: v,
+    handleId: vector3HandleIdForTap(nodeId),
   };
 }
 
 function quaternionTapPreview(latestByHint: HintMap): PalettePreview {
   const bundle = computeBmi270PinBundle(latestByHint);
   return {
-    kind: "value",
-    text: `${quatRotationDeg(bundle.quaternion).toFixed(1)}°`,
+    kind: "quaternion",
     streamMode: bundle.streamLive ? "live" : "idle",
+    quaternion: bundle.quaternion,
+    fractionDigits: 3,
   };
 }
 
@@ -112,81 +193,172 @@ function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PaletteP
   switch (nodeId) {
     case "dps368-tap-pressure": {
       const b = computeDps368PinBundle(latestByHint);
-      return {
-        kind: "value",
-        text: formatPaletteScalar(b.pressureHpa),
-        streamMode: b.streamLive ? "live" : "idle",
-      };
+      return scalarPreview(b.pressureHpa, "hPa", b.streamLive ? "live" : "idle");
     }
     case "dps368-tap-temp": {
       const b = computeDps368PinBundle(latestByHint);
-      return {
-        kind: "value",
-        text: formatPaletteScalar(b.tempC),
-        streamMode: b.streamLive ? "live" : "idle",
-      };
+      return scalarPreview(b.tempC, "°C", b.streamLive ? "live" : "idle", true);
     }
     case "sht40-tap-humidity": {
       const b = computeSht40PinBundle(latestByHint);
-      return {
-        kind: "value",
-        text: formatPaletteScalar(b.humidityPct),
-        streamMode: b.streamLive ? "live" : "idle",
-      };
+      return scalarPreview(b.humidityPct, "%RH", b.streamLive ? "live" : "idle");
     }
     case "sht40-tap-temp": {
       const b = computeSht40PinBundle(latestByHint);
-      return {
-        kind: "value",
-        text: formatPaletteScalar(b.tempC),
-        streamMode: b.streamLive ? "live" : "idle",
-      };
+      return scalarPreview(b.tempC, "°C", b.streamLive ? "live" : "idle", true);
     }
     case "bmm350-tap-temp": {
       const b = computeBmm350PinBundle(latestByHint);
-      return {
-        kind: "value",
-        text: formatPaletteScalar(b.tempC),
-        streamMode: b.streamLive ? "live" : "idle",
-      };
+      return scalarPreview(b.tempC, "°C", b.streamLive ? "live" : "idle", true);
+    }
+    case "bmi270-tap-temp": {
+      const b = computeBmi270PinBundle(latestByHint);
+      return scalarPreview(b.temp, "°C", b.streamLive ? "live" : "idle", true);
     }
     default:
-      return { kind: "dash" };
+      return { kind: "unavailable" };
   }
 }
 
 function multiOutputPulsePreview(nodeId: string, latestByHint: HintMap): PalettePreview {
   switch (nodeId) {
-    case "bmi270-input":
-      return {
-        kind: "pulse",
-        streamMode: computeBmi270PinBundle(latestByHint).streamLive ? "live" : "idle",
-      };
-    case "dps368-input":
-      return {
-        kind: "pulse",
-        streamMode: computeDps368PinBundle(latestByHint).streamLive ? "live" : "idle",
-      };
-    case "sht40-input":
-      return {
-        kind: "pulse",
-        streamMode: computeSht40PinBundle(latestByHint).streamLive ? "live" : "idle",
-      };
-    case "bmm350-input":
-      return {
-        kind: "pulse",
-        streamMode: computeBmm350PinBundle(latestByHint).streamLive ? "live" : "idle",
-      };
     case "vector-splitter":
     case "quaternion-splitter":
-      return { kind: "pulse", streamMode: "idle" };
+      return { kind: "pulse", streamMode: "idle", label: "multi" };
     default:
       return { kind: "pulse", streamMode: "idle" };
   }
 }
 
+function bmi270PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
+  const b = computeBmi270PinBundle(latestByHint);
+  const streamMode = b.streamLive ? "live" : "idle";
+  return {
+    kind: "primaryBundle",
+    streamMode,
+    rows: [
+      { kind: "vector3", label: "Accel", handleId: "accel", vector: b.accel, fractionDigits: 2 },
+      { kind: "vector3", label: "Gyro", handleId: "gyro", vector: b.gyro, fractionDigits: 2 },
+      { kind: "vector3", label: "Euler", handleId: "euler", vector: b.euler, fractionDigits: 3 },
+      {
+        kind: "quaternion",
+        label: "Quat",
+        quaternion: b.quaternion,
+        fractionDigits: 3,
+      },
+      {
+        kind: "scalar",
+        label: "Temp",
+        value: b.temp,
+        unit: "°C",
+        fractionDigits: 2,
+        signedPositive: false,
+        unavailableWhenIdle: true,
+      },
+    ],
+  };
+}
+
+function dps368PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
+  const b = computeDps368PinBundle(latestByHint);
+  const streamMode = b.streamLive ? "live" : "idle";
+  return {
+    kind: "primaryBundle",
+    streamMode,
+    rows: [
+      {
+        kind: "scalar",
+        label: "Pressure",
+        value: b.pressureHpa,
+        unit: "hPa",
+        fractionDigits: 2,
+        signedPositive: false,
+      },
+      {
+        kind: "scalar",
+        label: "Temp",
+        value: b.tempC,
+        unit: "°C",
+        fractionDigits: 2,
+        signedPositive: false,
+        unavailableWhenIdle: true,
+      },
+    ],
+  };
+}
+
+function sht40PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
+  const b = computeSht40PinBundle(latestByHint);
+  const streamMode = b.streamLive ? "live" : "idle";
+  return {
+    kind: "primaryBundle",
+    streamMode,
+    rows: [
+      {
+        kind: "scalar",
+        label: "RH",
+        value: b.humidityPct,
+        unit: "%RH",
+        fractionDigits: 2,
+        signedPositive: false,
+      },
+      {
+        kind: "scalar",
+        label: "Temp",
+        value: b.tempC,
+        unit: "°C",
+        fractionDigits: 2,
+        signedPositive: false,
+        unavailableWhenIdle: true,
+      },
+    ],
+  };
+}
+
+function bmm350PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
+  const b = computeBmm350PinBundle(latestByHint);
+  const streamMode = b.streamLive ? "live" : "idle";
+  return {
+    kind: "primaryBundle",
+    streamMode,
+    rows: [
+      {
+        kind: "vector3",
+        label: "Mag",
+        handleId: "magnetic",
+        vector: b.magneticUt,
+        fractionDigits: 2,
+      },
+      {
+        kind: "scalar",
+        label: "Temp",
+        value: b.tempC,
+        unit: "°C",
+        fractionDigits: 2,
+        signedPositive: false,
+        unavailableWhenIdle: true,
+      },
+    ],
+  };
+}
+
+function primarySensorBundlePreview(nodeId: string, latestByHint: HintMap): PalettePreview {
+  switch (nodeId) {
+    case "bmi270-input":
+      return bmi270PrimaryBundlePreview(latestByHint);
+    case "dps368-input":
+      return dps368PrimaryBundlePreview(latestByHint);
+    case "sht40-input":
+      return sht40PrimaryBundlePreview(latestByHint);
+    case "bmm350-input":
+      return bmm350PrimaryBundlePreview(latestByHint);
+    default:
+      return multiOutputPulsePreview(nodeId, latestByHint);
+  }
+}
+
 /**
- * Preview text / pulse / dash for a catalog row. Mirrors flow graph live bundles where applicable.
+ * Preview text / pulse / unavailable for a catalog row. Mirrors flow graph live bundles where applicable.
  */
 export function computePalettePreview(
   entry: NodeCatalogEntry,
@@ -195,7 +367,7 @@ export function computePalettePreview(
 ): PalettePreview {
   const ports = entry.outputPorts;
   if (ports != null && ports.length > 1) {
-    return multiOutputPulsePreview(entry.id, latestByHint);
+    return primarySensorBundlePreview(entry.id, latestByHint);
   }
 
   if (entry.id === "sensor-input") {
@@ -218,5 +390,5 @@ export function computePalettePreview(
     }
   }
 
-  return { kind: "dash" };
+  return { kind: "unavailable" };
 }

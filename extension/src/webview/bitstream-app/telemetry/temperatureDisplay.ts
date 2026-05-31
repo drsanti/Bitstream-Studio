@@ -69,3 +69,24 @@ export function formatTemperatureFromC(
   };
 }
 
+/** True when a decoded sample object includes a BS2 temperature field (mask had TMP / TEMP). */
+export function hasTemperatureCx100(sample: unknown): boolean
+{
+  return (
+    sample != null &&
+    typeof sample === "object" &&
+    "temperatureCx100" in sample &&
+    typeof (sample as { temperatureCx100?: unknown }).temperatureCx100 === "number" &&
+    Number.isFinite((sample as { temperatureCx100: number }).temperatureCx100)
+  );
+}
+
+export function readTemperatureCFromSample(sample: unknown): number | undefined
+{
+  if (!hasTemperatureCx100(sample))
+  {
+    return undefined;
+  }
+  return (sample as { temperatureCx100: number }).temperatureCx100 / 100;
+}
+

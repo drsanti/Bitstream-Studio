@@ -18,6 +18,7 @@ export function resolveStudioNodeSourceId(node: StudioNode | null): number | nul
     case "bmi270-tap-euler":
     case "bmi270-tap-accel":
     case "bmi270-tap-gyro":
+    case "bmi270-tap-temp":
       return SENSOR_SOURCE_ID_BMI270;
     case "dps368-input":
     case "dps368-tap-pressure":

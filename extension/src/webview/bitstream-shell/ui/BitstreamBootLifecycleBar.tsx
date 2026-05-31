@@ -40,14 +40,20 @@ function StepPill(props: {
         : tone === "warn"
           ? "border-amber-400/35 bg-amber-500/12 text-amber-100/90"
           : "border-white/12 bg-white/[0.06] text-white/55";
+  const className = `flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none ${ring}`;
+  if (onClick == null) {
+    return (
+      <span className={className}>
+        <span className="shrink-0 opacity-90">{icon}</span>
+        <span className="truncate">{label}</span>
+      </span>
+    );
+  }
   return (
     <button
       type="button"
-      disabled={onClick == null}
       onClick={onClick}
-      className={`flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none ${ring} ${
-        onClick != null ? "cursor-pointer hover:brightness-110" : "cursor-default"
-      }`}
+      className={`${className} cursor-pointer hover:brightness-110`}
     >
       <span className="shrink-0 opacity-90">{icon}</span>
       <span className="truncate">{label}</span>
@@ -233,6 +239,8 @@ export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps)
           placement="bottom-start"
           openDelayMs={650}
           disableHoverFx
+          triggerWrapper="span"
+          triggerAriaLabel="Wi‑Fi sync status. Show details."
           content={
             <div className="min-w-0 whitespace-pre-line text-left">
               <div className="font-semibold text-zinc-100">Wi‑Fi sync</div>
@@ -248,19 +256,17 @@ export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps)
             </div>
           }
           trigger={
-            <div>
-              <StepPill
-                icon={
-                  w.tone === "active" ? (
-                    <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
-                  ) : (
-                    <Wifi className="h-3 w-3" aria-hidden />
-                  )
-                }
-                label={w.label}
-                tone={w.tone}
-              />
-            </div>
+            <StepPill
+              icon={
+                w.tone === "active" ? (
+                  <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                ) : (
+                  <Wifi className="h-3 w-3" aria-hidden />
+                )
+              }
+              label={w.label}
+              tone={w.tone}
+            />
           }
         />
         <span className="ml-1 min-w-0 truncate text-[10px] text-white/50">

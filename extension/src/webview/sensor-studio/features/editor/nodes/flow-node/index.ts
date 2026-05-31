@@ -11,6 +11,8 @@ export type { FlowNodeHeaderProps } from "./FlowNodeHeader";
 export { FlowNodeHeader } from "./FlowNodeHeader";
 export type { FlowNodeBodyProps } from "./FlowNodeBody";
 export { FlowNodeBody } from "./FlowNodeBody";
+export type { FlowNodeEdgeResizeProps } from "./FlowNodeEdgeResize";
+export { FlowNodeEdgeResize } from "./FlowNodeEdgeResize";
 export type { FlowNodeResizeControlProps } from "./FlowNodeResizeControl";
 export { FlowNodeResizeControl } from "./FlowNodeResizeControl";
 export type { FlowNodeSocketRegionProps } from "./FlowNodeSocketRegion";

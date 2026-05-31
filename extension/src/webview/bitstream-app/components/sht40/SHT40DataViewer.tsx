@@ -7,7 +7,7 @@ import { SensorMetricRow } from "../telemetry/SensorMetricRow";
 import { LastUpdateBadge } from "../telemetry/LastUpdateBadge.js";
 import { TemperatureDisplaySettingsMenu } from "../telemetry/TemperatureDisplaySettingsMenu.js";
 import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
-import { convertTemperatureCToUnit, formatTemperatureFromC } from "../../telemetry/temperatureDisplay.js";
+import { convertTemperatureCToUnit, formatTemperatureFromC, readTemperatureCFromSample } from "../../telemetry/temperatureDisplay.js";
 
 /** Short deck row labels; full wording stays in each row `hint` (sensor deck convention). */
 const SHT40_ROW_HU = "hu";
@@ -29,10 +29,7 @@ export function SHT40DataViewer(props: SHT40DataViewerProps) {
     typeof sample?.secondaryX100 === "number"
       ? sample.secondaryX100 / 100
       : undefined;
-  const tpNum =
-    typeof sample?.temperatureCx100 === "number"
-      ? sample.temperatureCx100 / 100
-      : undefined;
+  const tpNum = readTemperatureCFromSample(sample);
   const hd = typeof hdNum === "number" ? hdNum.toFixed(2) : "--";
   const tpDisplay = formatTemperatureFromC(tpNum, temperatureUnit, temperatureDigits);
   const gaugeMin = convertTemperatureCToUnit(0, temperatureUnit);

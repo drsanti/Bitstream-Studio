@@ -233,6 +233,7 @@ const TAP_NOTES: Partial<Record<string, string>> = {
   "bmi270-tap-euler": "Scalar tap from fusion Euler (rad)—roll, pitch, heading mapped to x, y, z.",
   "bmi270-tap-accel": "Tap from the raw accelerometer vector (m/s²).",
   "bmi270-tap-gyro": "Tap from the raw gyroscope vector (rad/s).",
+  "bmi270-tap-temp": "Scalar die temperature tap (°C) from the BMI270 stream.",
   "dps368-tap-pressure": "Scalar pressure tap (hPa) from the DPS368 stream.",
   "dps368-tap-temp": "Scalar temperature tap (°C) from the DPS368 stream.",
   "sht40-tap-humidity": "Scalar humidity tap (%RH) from the SHT40 stream.",

@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import {
+  finalizeBmi270DeckSample,
   mergeBmi270SampleCache,
   type Bmi270SampleCacheState,
 } from "../../../../../bitstream-app/bmi270/bmi270SampleCache";
@@ -41,7 +42,10 @@ export function useInspectorLiveDeckSamples(): InspectorLiveDeckSamples {
       (bmi270Raw ?? undefined) as Bmi270LiveSample | undefined,
       Date.now(),
     );
-    return (bmi270CacheRef.current?.sample ?? null) as Bmi270LiveSample | null;
+    return finalizeBmi270DeckSample(
+      bmi270CacheRef.current?.sample,
+      (bmi270Raw ?? undefined) as Bmi270LiveSample | undefined,
+    ) as Bmi270LiveSample | null;
   }, [bmi270Raw]);
 
   return useMemo(

@@ -40,6 +40,7 @@ export type StudioLayoutProps = {
   onConnect: OnConnect;
   onSelectionChange: (selectedNodeIds: string[]) => void;
   onUpdateLabel: (nextLabel: string) => void;
+  onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (nextJson: string) => { ok: true } | { ok: false; message: string };
   templateId: StudioDemoTemplateId;

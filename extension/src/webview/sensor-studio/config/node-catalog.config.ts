@@ -89,6 +89,16 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [{ id: "out", portType: "vector3", label: "Gyroscope" }],
       },
       {
+        id: "bmi270-tap-temp",
+        category: "sensor",
+        title: "Temperature",
+        description: "Die temperature (°C) from the live BMI270 stream.",
+        icon: "thermometer",
+        defaultVisible: true,
+        defaultConfig: {},
+        outputPorts: [{ id: "out", portType: "number", label: "Temp (°C)" }],
+      },
+      {
         id: "dps368-input",
         category: "sensor",
         title: "DPS368",
@@ -631,7 +641,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "generator",
         title: "Boolean",
         description:
-          "Fixed boolean on the **`out`** wire. Toggle on the **node card** or in the **inspector Settings** tab.",
+          "Fixed boolean on the **`out`** wire. Toggle on the **node card** or in the **inspector Node** tab.",
         icon: "toggle-left",
         defaultVisible: true,
         defaultConfig: {
@@ -644,7 +654,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "generator",
         title: "Number",
         description:
-          "Fixed number on the **`out`** wire. Edit on the **node card** (input or slider) or in the **inspector Settings** tab (same options plus min / max / step).",
+          "Fixed number on the **`out`** wire. Edit on the **node card** (input or slider) or in the **inspector Node** tab (same options plus min / max / step).",
         icon: "hash",
         defaultVisible: true,
         defaultConfig: {

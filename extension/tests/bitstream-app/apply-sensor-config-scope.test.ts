@@ -23,6 +23,7 @@ const BMI270_ROW = {
 
 test("sensorCfgApplyScopeLabel — card scopes", () => {
   assert.match(sensorCfgApplyScopeLabel({ kind: "bmi270-operation" }), /BMI270 operation/i);
+  assert.match(sensorCfgApplyScopeLabel({ kind: "bmi270-output-profile" }), /telemetry sources/i);
   assert.match(sensorCfgApplyScopeLabel({ kind: "bmi270-fusion-feed" }), /fusion feed/i);
 });
 

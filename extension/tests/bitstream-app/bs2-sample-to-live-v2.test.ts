@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { bs2SampleToBitstreamSensorSampleV2 } from "../../src/webview/bitstream-app/bridge/bs2-sample-to-live-v2";
+import {
+  bs2SampleToBitstreamSensorSampleV2,
+  mergePartialBitstreamSensorSample,
+} from "../../src/webview/bitstream-app/bridge/bs2-sample-to-live-v2";
 import { BS2_SENSOR_ID } from "../../src/bitstream2/domains/sensors/sensor-ids";
 import { BMI270_MASK } from "../../src/bitstream2/domains/sensors/bmi270";
 
@@ -36,6 +39,31 @@ test("bs2SampleToBitstreamSensorSampleV2 maps BMI270 gyro (rad/s×100 pass-throu
   assert.equal(sample.gyroXRadSX100, 150);
   assert.equal(sample.gyroYRadSX100, -200);
   assert.equal(sample.gyroZRadSX100, 300);
+  assert.equal(sample.temperatureCx100, undefined);
+});
+
+test("mergePartialBitstreamSensorSample keeps temperature when later EVT omits TMP", () => {
+  const withTemp = bs2SampleToBitstreamSensorSampleV2({
+    sensorId: BS2_SENSOR_ID.BMI270,
+    mask: BMI270_MASK.ACC | BMI270_MASK.TMP,
+    counter: 1,
+    tMs: 0,
+    values: [981, 0, 0, 2350],
+    atMs: Date.now(),
+  });
+  assert.ok(withTemp);
+  const gyroOnly = bs2SampleToBitstreamSensorSampleV2({
+    sensorId: BS2_SENSOR_ID.BMI270,
+    mask: BMI270_MASK.GYR,
+    counter: 2,
+    tMs: 25,
+    values: [10, 0, 0],
+    atMs: Date.now(),
+  });
+  assert.ok(gyroOnly);
+  const merged = mergePartialBitstreamSensorSample(withTemp, gyroOnly);
+  assert.equal(merged.temperatureCx100, 2350);
+  assert.equal(merged.gyroXRadSX100, 10);
 });
 
 test("bs2SampleToBitstreamSensorSampleV2 maps BMM350 mag + temp", () => {
