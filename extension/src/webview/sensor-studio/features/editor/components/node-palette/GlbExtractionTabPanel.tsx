@@ -40,6 +40,11 @@ export type GlbExtractionTabPanelProps = {
     parentModelFlowNodeId: string;
     row: StudioGltfExtractRow;
   }) => void;
+  /** Materials only: spawn **GLB Material Color** linked to the Model. */
+  onSpawnGlbMaterialColorExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
   /** Row keys (`kind:ref`) already present as linked GLB placeholders on the flow graph. */
   placedRowKeys?: ReadonlySet<string>;
 };
@@ -81,6 +86,7 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     onSpawnGlbEventPartExtract,
     onSpawnGlbEventAnimExtract,
     onSpawnGlbMaterialTextureExtract,
+    onSpawnGlbMaterialColorExtract,
     placedRowKeys,
   } = props;
 
@@ -140,9 +146,24 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     onSpawnGlbMaterialTextureExtract({ parentModelFlowNodeId, row });
   };
 
+  const spawnMaterialColor = (row: StudioGltfExtractRow) => {
+    if (
+      parentModelFlowNodeId == null ||
+      onSpawnGlbMaterialColorExtract == null ||
+      row.kind !== "material"
+    ) {
+      return;
+    }
+    onSpawnGlbMaterialColorExtract({ parentModelFlowNodeId, row });
+  };
+
   const textureSpawnButtonClass = dense
     ? "shrink-0 rounded border border-cyan-900/50 bg-cyan-950/25 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-cyan-100/90 transition-colors hover:border-cyan-500/40 hover:bg-cyan-950/45"
     : "shrink-0 rounded border border-cyan-900/50 bg-cyan-950/25 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-cyan-100/90 transition-colors hover:border-cyan-500/40 hover:bg-cyan-950/45";
+
+  const colorSpawnButtonClass = dense
+    ? "shrink-0 rounded border border-violet-900/50 bg-violet-950/25 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-violet-100/90 transition-colors hover:border-violet-500/40 hover:bg-violet-950/45"
+    : "shrink-0 rounded border border-violet-900/50 bg-violet-950/25 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-violet-100/90 transition-colors hover:border-violet-500/40 hover:bg-violet-950/45";
 
   const eventSpawnButtonClass = dense
     ? "shrink-0 rounded border border-amber-900/50 bg-amber-950/25 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-amber-100/90 transition-colors hover:border-amber-500/40 hover:bg-amber-950/45"
@@ -227,7 +248,9 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                       (row.kind === "animation" && onSpawnGlbEventAnimExtract != null);
                     const hasTextureSpawn =
                       row.kind === "material" && onSpawnGlbMaterialTextureExtract != null;
-                    const hasSideSpawn = hasEventSpawn || hasTextureSpawn;
+                    const hasColorSpawn =
+                      row.kind === "material" && onSpawnGlbMaterialColorExtract != null;
+                    const hasSideSpawn = hasEventSpawn || hasTextureSpawn || hasColorSpawn;
                     return (
                       <div key={rowKey} className="min-w-0">
                         <div className="flex min-w-0 items-stretch gap-1">
@@ -279,6 +302,19 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                               }}
                             >
                               Tex
+                            </button>
+                          ) : null}
+                          {row.kind === "material" && onSpawnGlbMaterialColorExtract != null ? (
+                            <button
+                              type="button"
+                              className={colorSpawnButtonClass}
+                              style={{ borderColor }}
+                              title="Add GLB Material Color drive for this material"
+                              onClick={() => {
+                                spawnMaterialColor(row);
+                              }}
+                            >
+                              Clr
                             </button>
                           ) : null}
                           {row.kind === "part" && onSpawnGlbEventPartExtract != null ? (

@@ -36,6 +36,10 @@ export function validateStudioNodeConfig(nodeId: string, cfg: Record<string, unk
       return validateNumberConstant(safeCfg);
     case "glb-material-texture":
       return validateGlbMaterialTexture(safeCfg);
+    case "glb-material-color":
+      return validateGlbMaterialColor(safeCfg);
+    case "material-mix":
+      return validateMaterialMix(safeCfg);
     case "glb-animation-bundle":
       return validateGlbAnimationBundle(safeCfg);
     case "model-select":
@@ -242,6 +246,36 @@ function validateGlbMaterialTexture(cfg: Record<string, unknown>): string[] {
       selectedStudioTextureAssetId: z.string().optional(),
     })
     .passthrough();
+  const r = schema.safeParse(cfg);
+  const out: string[] = [];
+  if (!r.success) {
+    pushIssues(out, r.error.issues);
+  }
+  return out;
+}
+
+function validateGlbMaterialColor(cfg: Record<string, unknown>): string[] {
+  const schema = z
+    .object({
+      glbMaterialColorTarget: z.enum(["baseColor", "emissiveColor"]).optional(),
+      glbMaterialColorHex: z
+        .string()
+        .regex(/^#[0-9a-fA-F]{6}$/, "must be #RRGGBB hex")
+        .optional(),
+    })
+    .passthrough();
+  const r = schema.safeParse(cfg);
+  const out: string[] = [];
+  if (!r.success) {
+    pushIssues(out, r.error.issues);
+  }
+  return out;
+}
+
+function validateMaterialMix(cfg: Record<string, unknown>): string[] {
+  const schema = z.object({
+    factor: z.number().finite().min(0).max(1).optional(),
+  });
   const r = schema.safeParse(cfg);
   const out: string[] = [];
   if (!r.success) {

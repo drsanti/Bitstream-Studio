@@ -95,6 +95,11 @@ export type StudioLayoutProps = {
     parentModelFlowNodeId: string;
     row: StudioGltfExtractRow;
   }) => void;
+  /** GLB Library **Materials** tab: spawn **GLB Material Color** for a material row. */
+  onSpawnGlbMaterialColorExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
   /** GLB Library **Parts** tab: spawn **Toggle GLB Part** event action for a part row. */
   onSpawnGlbEventPartExtract?: (args: {
     parentModelFlowNodeId: string;

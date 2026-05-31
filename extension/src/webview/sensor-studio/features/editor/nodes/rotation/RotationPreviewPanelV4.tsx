@@ -36,18 +36,22 @@ import {
 } from "./scene3d-config";
 import type { GlbMaterialPbrDriveRow } from "../../gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../gltf/studio-glb-material-texture";
+import type { GlbMaterialColorDriveRow } from "../../gltf/studio-glb-material-color";
 import {
   applyGlbLightIntensityOverrides,
+  applyGlbMaterialColorByName,
   applyGlbMaterialPbrByName,
   applyGlbMaterialTexturesByName,
   applyGlbMorphWeightsToModelRoot,
   applyGlbPartVisibilityByPathMap,
   applyStudioCameraFromBlendedGlbCameras,
   buildStudioGlbPathIndex,
+  resetGlbMaterialColorDriveState,
   resetGlbMaterialPbrDriveState,
   resetGlbMaterialTextureDriveState,
   resetGlbPartVisibilityDriveState,
   resolveGlbCameraBlendWeights,
+  type GlbMaterialColorDriveState,
   type GlbMaterialPbrDriveState,
   type GlbMaterialTextureDriveState,
   type GlbPartVisibilityDriveState,
@@ -364,6 +368,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const glbPartsRef = useRef<Record<string, number>>({});
   const glbMaterialPbrRef = useRef<Record<string, GlbMaterialPbrDriveRow>>({});
   const glbMaterialTexturesRef = useRef<Record<string, GlbMaterialTextureDriveRow>>({});
+  const glbMaterialColorsRef = useRef<Record<string, GlbMaterialColorDriveRow>>({});
   const glbCamerasRef = useRef<Record<string, number>>({});
   const scenePropsGlb = props.sceneProps as RotationPreviewSceneProps & {
     glbMorphWeights?: Record<string, number>;
@@ -378,6 +383,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     glbPartVisibilityByPath?: Record<string, number>;
     glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
     glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
+    glbMaterialColorsByName?: Record<string, GlbMaterialColorDriveRow>;
     glbCameraDriveByName?: Record<string, number>;
   };
   glbMorphRef.current = scenePropsGlb.glbMorphWeights ?? {};
@@ -396,6 +402,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbPartsRef.current = scenePropsGlb.glbPartVisibilityByPath ?? {};
   glbMaterialPbrRef.current = scenePropsGlb.glbMaterialPbrByName ?? {};
   glbMaterialTexturesRef.current = scenePropsGlb.glbMaterialTexturesByName ?? {};
+  glbMaterialColorsRef.current = scenePropsGlb.glbMaterialColorsByName ?? {};
   glbCamerasRef.current = scenePropsGlb.glbCameraDriveByName ?? {};
 
   const quatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
@@ -912,6 +919,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         baseline: new Map(),
         lastMaterialNames: new Set(),
       };
+      const materialColorDriveState: GlbMaterialColorDriveState = {
+        baseline: new Map(),
+        lastMaterialNames: new Set(),
+      };
 
       const animationMixerState = createStudioGlbAnimationMixerState();
       const resetAnimationMixer = (): void => {
@@ -940,6 +951,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbMaterialColorDriveState(materialColorDriveState);
         resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
         if (modelRoot != null) {
@@ -1124,6 +1136,11 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           glbMaterialTexturesRef.current,
           materialTextureDriveState,
         );
+        applyGlbMaterialColorByName(
+          modelRoot,
+          glbMaterialColorsRef.current,
+          materialColorDriveState,
+        );
         applyGlbLightIntensityOverrides(modelRoot, glbLightsRef.current);
         if (animationMixer != null && clipActions.size > 0) {
           const structuredDrives = glbAnimDrivesRef.current;
@@ -1293,6 +1310,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbMaterialColorDriveState(materialColorDriveState);
         resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
         if (modelRoot != null) {

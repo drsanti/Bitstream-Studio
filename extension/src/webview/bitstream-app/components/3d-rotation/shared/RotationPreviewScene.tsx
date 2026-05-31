@@ -20,6 +20,7 @@ import type { GlbAnimationClipPreviewDrive } from "../../../../sensor-studio/fea
 import type { StudioGlbAnimationPlaybackModeV1 } from "../../../../sensor-studio/features/editor/gltf/studio-glb-animation-playback-mode";
 import type { GlbMaterialPbrDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-texture";
+import type { GlbMaterialColorDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-color";
 
 export type RotationPreviewSceneProps = {
   qw: number;
@@ -68,6 +69,8 @@ export type RotationPreviewSceneProps = {
   glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
   /** Optional material texture URLs by material **name** and map slot. */
   glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
+  /** Optional material base / emissive RGB drives by material **name** (0–1 channels). */
+  glbMaterialColorsByName?: Record<string, GlbMaterialColorDriveRow>;
   /** @deprecated Prefer {@link glbMaterialPbrByName}. Emissive-only legacy map. */
   glbMaterialEmissiveByName?: Record<string, number>;
   /**

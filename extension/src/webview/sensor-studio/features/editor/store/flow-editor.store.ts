@@ -140,6 +140,7 @@ import {
   defaultGlbMaterialParamValue,
   STUDIO_GLB_MATERIAL_PARAM_KEY,
 } from "../gltf/studio-glb-material-param";
+import { readGlbMaterialColorRgbFromConfig } from "../gltf/studio-glb-material-color";
 import {
   readSourceModelNodeId,
   reconcileStudioModelGeneratedChildIds,
@@ -3995,10 +3996,32 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId === "number-constant" || node.data.nodeId === "glb-material-param") {
+        if (node.data.nodeId === "number-constant") {
           const dc = node.data.defaultConfig as Record<string, unknown>;
           const v = coerceNumberConstantValue(dc, dc.value);
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
+          continue;
+        }
+
+        if (node.data.nodeId === "glb-material-param") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const wired = readIncoming(node.id, STUDIO_HANDLE_IN);
+          const v =
+            wired != null && typeof wired === "number" && Number.isFinite(wired)
+              ? wired
+              : coerceNumberConstantValue(dc, dc.value);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
+          continue;
+        }
+
+        if (node.data.nodeId === "material-mix") {
+          const a = narrowNumber(readIncoming(node.id, "a"));
+          const b = narrowNumber(readIncoming(node.id, "b"));
+          const factor = clampNumber(asFiniteNumber(node.data.defaultConfig.factor, 0.5), 0, 1);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            a * (1 - factor) + b * factor,
+          );
           continue;
         }
 
@@ -4375,7 +4398,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId !== "bmi270-tap-accel" &&
           node.data.nodeId !== "bmi270-tap-gyro" &&
           node.data.nodeId !== "bmm350-tap-magnetic" &&
-          node.data.nodeId !== "rotation-3d-euler"
+          node.data.nodeId !== "rotation-3d-euler" &&
+          node.data.nodeId !== "glb-material-color"
         ) {
           delete dataWithoutSensorMode.liveVector3Wire;
         }
@@ -4500,6 +4524,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "event-trigger-glb-anim") {
           base.liveValue = readGlbAnimTriggerNonce(node.data.defaultConfig as Record<string, unknown>);
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "glb-material-color") {
+          const wired = readIncoming(node.id, STUDIO_HANDLE_IN);
+          base.liveVector3Wire =
+            wired != null
+              ? flowValueAsVec3(wired)
+              : (() => {
+                  const rgb = readGlbMaterialColorRgbFromConfig(
+                    node.data.defaultConfig as Record<string, unknown>,
+                  );
+                  return { x: rgb.r, y: rgb.g, z: rgb.b };
+                })();
+          base.liveValue = null;
           base.liveHistory = [];
         }
 

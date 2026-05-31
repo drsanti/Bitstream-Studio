@@ -85,6 +85,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 4):** **linked vs deep-copy** group duplicates — inspector **Duplicate linked** / **Duplicate deep copy**; `duplicate-group-instance.ts`; linked host count hint; unit tests.
 - **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 3):** **Group Sockets inspector** — rename group, add/remove/reorder typed inputs/outputs; `studio-group-interface-sync.ts`, `NodeGroupInspectorSection.tsx`; parent + inner edge cleanup on removed sockets; unit tests.
 - **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 2):** subgraph-aware **Ctrl+C/V** + duplicate clone; **Ctrl+Shift+G** ungroup; `dissolve-studio-node-group.ts`, `clone-studio-subgraph.ts`; unit tests. **GLB Animation Bundle** **`animationPlaybackMode`** (**per-clip** / **parallel-all** / **sequence**); inspector playback select; preview sequence advance + parallel merge.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 6 material v2 foundation (slice 1):** **`material-domain-eval`** module; **`glb-material-color`** (base/emissive RGB); **`material-mix`**; **`glb-material-param`** wired **Value**; GLB **Materials → Clr** spawn; preview color apply.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 demo template:** **`material-glb-drives`** (Model Viewer + material param + texture on robot GLB).
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material texture swap (slice 2):** **`glb-material-texture`** node (map slots); GLB **Materials → Tex** spawn; preview texture apply.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material params (slice 1):** **`glb-material-param`** node (emissive / roughness / metalness / opacity); GLB **Materials** spawn; PBR preview apply.
@@ -403,7 +404,8 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
   - [x] Phase 3 — event layer (**slice 1–4 shipped 2026-05-31**: On Key/Click, Toggle/Set Boolean, GLB part visibility, animation trigger)
   - [x] Phase 4 — GLB animation depth (**slices 1–4 2026-05-31**; multi-clip playback modes)
   - [x] Phase 5 — material parameter nodes (**slices 1–3 2026-05-31**; full shader graph → Phase 6)
-  - [ ] Phase 6 — optional geometry / full shader DAG
+  - [x] Phase 6 — material v2 foundation (**slice 1 2026-05-31**: color drives, material-mix, domain eval module)
+  - [ ] Phase 6 — optional geometry / full shader DAG (remaining backlog)
 - **`ternion-3d-assets-free` upstream cleanup** — **Done 2026-05-31** ([`b2cc826`](https://github.com/drsanti/ternion-3d-assets-free/commit/b2cc826)): legacy root duplicates removed; **`docs/LAYOUT.md`** on GitHub. Bitstream contract: **[`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md)**.
 - **Digital Twin simulations (from `ternion-t3d`)** — canonical plan **[`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md)**. Order: **Phase 0** shared R3F shell → **Phase 1** E84 → **Phase 2** ABB → **Phase 3** vehicle (Jolt).
   - [x] Phase 0 — `webview/simulations/**`, catalog, hub, landing cards (2026-05-30)

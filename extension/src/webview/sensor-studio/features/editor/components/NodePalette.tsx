@@ -122,6 +122,11 @@ type NodePaletteProps = {
     parentModelFlowNodeId: string;
     row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
   }) => void;
+  /** Spawn **GLB Material Color** for a material row (Library GLB tab). */
+  onSpawnGlbMaterialColorExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
+  }) => void;
   /** When set, section headers, filter chips, and rows pick up the same hues as the flow minimap. */
   categoryColors?: Record<NodeCatalogEntry["category"], string>;
   /** Secondary text from the workbench theme (helper / meta lines). */
@@ -140,6 +145,7 @@ export function NodePalette(props: NodePaletteProps) {
     onSpawnGlbEventPartExtract,
     onSpawnGlbEventAnimExtract,
     onSpawnGlbMaterialTextureExtract,
+    onSpawnGlbMaterialColorExtract,
     categoryColors,
     mutedTextColor,
   } = props;
@@ -1013,6 +1019,7 @@ export function NodePalette(props: NodePaletteProps) {
               onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
               onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
               onSpawnGlbMaterialTextureExtract={onSpawnGlbMaterialTextureExtract}
+              onSpawnGlbMaterialColorExtract={onSpawnGlbMaterialColorExtract}
             />
           ) : activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">

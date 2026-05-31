@@ -7,6 +7,8 @@ import { GaugeSettingsSection } from "./sections/GaugeSettingsSection";
 import { GlbMaterialTextureSettingsSection } from "./sections/GlbMaterialTextureSettingsSection";
 import { GlbAnimationBundleSettingsSection } from "./sections/GlbAnimationBundleSettingsSection";
 import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
+import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSettingsSection";
+import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
 import { NumberConstantSettingsSection } from "./sections/NumberConstantSettingsSection";
@@ -47,6 +49,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "number-constant": NumberConstantSettingsSection,
   "glb-material-param": GlbMaterialParamSettingsSection,
   "glb-material-texture": GlbMaterialTextureSettingsSection,
+  "glb-material-color": GlbMaterialColorSettingsSection,
+  "material-mix": MaterialMixSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,

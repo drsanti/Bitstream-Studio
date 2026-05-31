@@ -15,6 +15,13 @@ import {
   readGlbMaterialTextureUrl,
   type GlbMaterialTextureDriveRow,
 } from "./studio-glb-material-texture";
+import {
+  flowVec3ToGlbMaterialColorRgb,
+  mergeGlbMaterialColorDriveRow,
+  readGlbMaterialColorRgbFromConfig,
+  readGlbMaterialColorTarget,
+  type GlbMaterialColorDriveRow,
+} from "./studio-glb-material-color";
 
 const GLB_SCALAR_DRIVE_NODE_IDS = new Set<string>([
   "number-constant",
@@ -29,6 +36,7 @@ type FlowNodeLike = {
     nodeId: string;
     defaultConfig: Record<string, unknown>;
     liveValue?: unknown;
+    liveVector3Wire?: { x: number; y: number; z: number };
   };
 };
 
@@ -206,4 +214,42 @@ export function collectGlbMaterialTextureDrivesForModel(
     textures[tag.ref] = mergeGlbMaterialTextureDriveRow(textures[tag.ref], slot, url);
   }
   return textures;
+}
+
+function readGlbMaterialColorDriveRgb(n: FlowNodeLike): { r: number; g: number; b: number } {
+  const wired = n.data.liveVector3Wire;
+  if (wired != null) {
+    return flowVec3ToGlbMaterialColorRgb(wired);
+  }
+  return readGlbMaterialColorRgbFromConfig(n.data.defaultConfig);
+}
+
+/**
+ * RGB color drives from **`glb-material-color`** nodes linked to the same Model.
+ */
+export function collectGlbMaterialColorDrivesForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): Record<string, GlbMaterialColorDriveRow> {
+  const colors: Record<string, GlbMaterialColorDriveRow> = {};
+  if (sourceModelNodeId.trim().length === 0) {
+    return colors;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "glb-material-color") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const tag = readGlbExtractTag(n.data.defaultConfig);
+    if (tag == null || tag.kind !== "material") {
+      continue;
+    }
+    const target = readGlbMaterialColorTarget(n.data.defaultConfig);
+    const rgb = readGlbMaterialColorDriveRgb(n);
+    colors[tag.ref] = mergeGlbMaterialColorDriveRow(colors[tag.ref], target, rgb);
+  }
+  return colors;
 }

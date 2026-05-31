@@ -360,6 +360,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
       },
       {
+        id: "material-mix",
+        category: "transform",
+        title: "Material Mix",
+        description:
+          "Blend two numeric inputs with a factor (shader-graph primitive). Wire **Out** into **GLB Material Param** **Value** to drive animated PBR channels.",
+        icon: "between-horizontal-start",
+        defaultVisible: true,
+        defaultConfig: {
+          factor: 0.5,
+        },
+        inputPorts: [
+          { id: "a", portType: "number", label: "A" },
+          { id: "b", portType: "number", label: "B" },
+        ],
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
         id: "clamp",
         category: "transform",
         title: "Clamp",
@@ -815,7 +832,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "generator",
         title: "GLB Material Param",
         description:
-          "Drive a PBR channel (emissive, roughness, metalness, opacity) on a named GLB material. Spawn from Library **GLB → Materials** or bind `glbExtractKind: material` manually. Preview updates on Model Viewer / 3D Rotation nodes linked to the same Model.",
+          "Drive a PBR channel (emissive, roughness, metalness, opacity) on a named GLB material. Spawn from Library **GLB → Materials** or bind `glbExtractKind: material` manually. Optional **Value** input overrides the card slider.",
         icon: "palette",
         defaultVisible: true,
         defaultConfig: {
@@ -824,6 +841,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           cardValueControl: "input",
           glbMaterialParam: "emissive",
         },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
         outputPorts: [{ id: "out", portType: "number", label: "Out" }],
       },
       {
@@ -840,6 +858,20 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           selectedStudioTextureAssetId: "",
         },
         outputPorts: [{ id: "out", portType: "string", label: "Texture URL" }],
+      },
+      {
+        id: "glb-material-color",
+        category: "generator",
+        title: "GLB Material Color",
+        description:
+          "Drive base or emissive **RGB** on a named GLB material. Spawn from Library **GLB → Materials → Clr** or bind manually. Optional **Color** vector3 input overrides the picker.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          glbMaterialColorTarget: "baseColor",
+          glbMaterialColorHex: "#ffffff",
+        },
+        inputPorts: [{ id: "in", portType: "vector3", label: "Color" }],
       },
     ],
   },

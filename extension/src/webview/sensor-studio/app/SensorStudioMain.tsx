@@ -35,6 +35,11 @@ import {
   STUDIO_GLB_MATERIAL_PARAM_KEY,
 } from "../features/editor/gltf/studio-glb-material-param";
 import {
+  defaultGlbMaterialColorHex,
+  STUDIO_GLB_MATERIAL_COLOR_HEX_KEY,
+  STUDIO_GLB_MATERIAL_COLOR_TARGET_KEY,
+} from "../features/editor/gltf/studio-glb-material-color";
+import {
   STUDIO_GLB_MATERIAL_TEXTURE_SLOT_KEY,
   STUDIO_TEXTURE_ASSET_ID_KEY,
   STUDIO_TEXTURE_URL_KEY,
@@ -355,6 +360,7 @@ export function SensorStudioMain() {
         | "number-constant"
         | "glb-material-param"
         | "glb-material-texture"
+        | "glb-material-color"
         | "event-toggle-glb-part"
         | "event-set-glb-part"
         | "event-trigger-glb-anim",
@@ -384,6 +390,9 @@ export function SensorStudioMain() {
         mergeDefaultConfig[STUDIO_GLB_MATERIAL_TEXTURE_SLOT_KEY] = "map";
         mergeDefaultConfig[STUDIO_TEXTURE_URL_KEY] = "";
         mergeDefaultConfig[STUDIO_TEXTURE_ASSET_ID_KEY] = "";
+      } else if (catalogNodeId === "glb-material-color") {
+        mergeDefaultConfig[STUDIO_GLB_MATERIAL_COLOR_TARGET_KEY] = "baseColor";
+        mergeDefaultConfig[STUDIO_GLB_MATERIAL_COLOR_HEX_KEY] = defaultGlbMaterialColorHex("baseColor");
       } else if (catalogNodeId === "event-toggle-glb-part") {
         mergeDefaultConfig.value = 1;
       } else if (catalogNodeId === "event-set-glb-part") {
@@ -479,6 +488,22 @@ export function SensorStudioMain() {
           ? { x: parent.position.x + 300, y: parent.position.y + 144 }
           : { x: 120, y: 264 };
       spawnGlbLinkedCatalogNode("glb-material-texture", args.parentModelFlowNodeId, args.row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
+  );
+
+  const onSpawnGlbMaterialColorExtract = useCallback(
+    (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
+      if (args.row.kind !== "material") {
+        return;
+      }
+      const st = useFlowEditorStore.getState();
+      const parent = st.nodes.find((n) => n.id === args.parentModelFlowNodeId);
+      const position =
+        parent != null
+          ? { x: parent.position.x + 300, y: parent.position.y + 216 }
+          : { x: 120, y: 336 };
+      spawnGlbLinkedCatalogNode("glb-material-color", args.parentModelFlowNodeId, args.row, position);
     },
     [spawnGlbLinkedCatalogNode],
   );
@@ -850,6 +875,7 @@ export function SensorStudioMain() {
         onDropPaletteCatalogNode={onDropPaletteCatalogNode}
         onSpawnGlbExtract={onSpawnGlbExtract}
         onSpawnGlbMaterialTextureExtract={onSpawnGlbMaterialTextureExtract}
+        onSpawnGlbMaterialColorExtract={onSpawnGlbMaterialColorExtract}
         onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
         onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
         onDropGlbExtract={onDropGlbExtract}

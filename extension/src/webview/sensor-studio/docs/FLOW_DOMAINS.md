@@ -166,10 +166,16 @@ Material compile →  Shader / PBR DAG    (on edit or bake — not every UART fr
 - [x] Demo template **`material-glb-drives`** — Model Viewer + param + texture (**2026-05-31** slice 3)
 - [ ] Full shader graph (backlog)
 
-### Phase 6 — Geometry / full shader (optional, far)
+### Phase 6 — Material domain v2 foundation (optional / far)
 
-- [ ] Geometry-style mesh ops only if in-app procedural mesh is required
-- [ ] Full shader DAG only if Blender-export + parameter wiring is insufficient
+Practical **Domain D v2** slice before a full BSDF DAG: separate material evaluator, RGB color drives, and shader-graph-style numeric blend.
+
+- [x] **`material-domain-eval.ts`** — `evaluateMaterialGraphForModel`, `compactMaterialGraphEvaluation`, `MATERIAL_DOMAIN_NODE_IDS` (**2026-05-31** slice 1)
+- [x] **`glb-material-color`** — base / emissive RGB on named GLB materials; Library **Materials → Clr** spawn; preview apply (**2026-05-31** slice 1)
+- [x] **`material-mix`** — blend two numbers with factor; wire into **`glb-material-param`** **Value** (**2026-05-31** slice 1)
+- [x] **`glb-material-param`** — optional wired **Value** input (**2026-05-31** slice 1)
+- [ ] Geometry-style mesh ops (backlog)
+- [ ] Full shader DAG compile (backlog)
 
 ---
 
@@ -210,5 +216,7 @@ Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-fra
 
 | Date | Change |
 | ---- | ------ |
+| **2026-05-31** | Phase 6 slice 1: `material-domain-eval`, `glb-material-color`, `material-mix`, GLB **Clr** spawn, wired param **Value**. |
+| **2026-05-31** | Phase 5 slice 3: demo template `material-glb-drives`. |
 | **2026-05-31** | Phase 2: `FlowWireTransformV1`, transform utility nodes, model-viewer + rotation `xf` input. |
 | **2026-05-31** | Initial plan from architecture review (keyboard/mouse, Blender-like geometry/shader targets). |

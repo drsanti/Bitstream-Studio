@@ -19,6 +19,7 @@ export function WorkbenchLibraryPanel() {
       defaultPaletteLayout={p.defaultPaletteLayout}
       onSpawnGlbExtract={p.onSpawnGlbExtract}
       onSpawnGlbMaterialTextureExtract={p.onSpawnGlbMaterialTextureExtract}
+      onSpawnGlbMaterialColorExtract={p.onSpawnGlbMaterialColorExtract}
       onSpawnGlbEventPartExtract={p.onSpawnGlbEventPartExtract}
       onSpawnGlbEventAnimExtract={p.onSpawnGlbEventAnimExtract}
     />

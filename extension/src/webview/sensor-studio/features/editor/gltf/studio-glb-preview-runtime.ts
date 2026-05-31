@@ -144,6 +144,7 @@ import type {
   StudioGlbMaterialTextureSlotV1,
 } from "./studio-glb-material-texture";
 import { STUDIO_GLB_MATERIAL_TEXTURE_SLOTS } from "./studio-glb-material-texture";
+import type { GlbMaterialColorDriveRow } from "./studio-glb-material-color";
 
 export type GlbMaterialPbrBaseline = {
   emissiveIntensity: number;
@@ -208,6 +209,123 @@ function applyMaterialPbrRowToMat(
     mat.transparent = opacity < 1;
   }
   mat.needsUpdate = true;
+}
+
+export type GlbMaterialColorBaseline = {
+  colorHex: string;
+  emissiveHex: string;
+};
+
+export type GlbMaterialColorDriveState = {
+  baseline: Map<string, GlbMaterialColorBaseline>;
+  lastMaterialNames: Set<string>;
+};
+
+export function resetGlbMaterialColorDriveState(st: GlbMaterialColorDriveState): void {
+  st.baseline.clear();
+  st.lastMaterialNames.clear();
+}
+
+function captureMaterialColorBaseline(
+  mat: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial,
+): GlbMaterialColorBaseline {
+  return {
+    colorHex: `#${mat.color.getHexString()}`,
+    emissiveHex: `#${mat.emissive.getHexString()}`,
+  };
+}
+
+function restoreMaterialColorBaseline(
+  mat: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial,
+  base: GlbMaterialColorBaseline,
+): void {
+  mat.color.set(base.colorHex);
+  mat.emissive.set(base.emissiveHex);
+  mat.needsUpdate = true;
+}
+
+function applyMaterialColorRowToMat(
+  mat: THREE.MeshStandardMaterial | THREE.MeshPhysicalMaterial,
+  row: GlbMaterialColorDriveRow,
+  st: GlbMaterialColorDriveState,
+): void {
+  if (!st.baseline.has(mat.uuid)) {
+    st.baseline.set(mat.uuid, captureMaterialColorBaseline(mat));
+  }
+  if (row.baseColor != null) {
+    mat.color.setRGB(row.baseColor.r, row.baseColor.g, row.baseColor.b);
+  }
+  if (row.emissiveColor != null) {
+    mat.emissive.setRGB(row.emissiveColor.r, row.emissiveColor.g, row.emissiveColor.b);
+  }
+  mat.needsUpdate = true;
+}
+
+/**
+ * Material rows: drive base / emissive RGB on Standard/Physical materials by **name**.
+ */
+export function applyGlbMaterialColorByName(
+  root: THREE.Object3D | null,
+  drives: Record<string, GlbMaterialColorDriveRow> | undefined,
+  st: GlbMaterialColorDriveState,
+): void {
+  if (root == null) {
+    return;
+  }
+  const nextNames = new Set(Object.keys(drives ?? {}));
+  for (const name of st.lastMaterialNames) {
+    if (!nextNames.has(name)) {
+      root.traverse((obj) => {
+        if (!(obj instanceof THREE.Mesh)) {
+          return;
+        }
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const mat of mats) {
+          if (
+            !(mat instanceof THREE.MeshStandardMaterial) &&
+            !(mat instanceof THREE.MeshPhysicalMaterial)
+          ) {
+            continue;
+          }
+          const nm = typeof mat.name === "string" ? mat.name.trim() : "";
+          if (nm !== name) {
+            continue;
+          }
+          const base = st.baseline.get(mat.uuid);
+          if (base != null) {
+            restoreMaterialColorBaseline(mat, base);
+          }
+        }
+      });
+    }
+  }
+  st.lastMaterialNames = nextNames;
+  if (drives == null || Object.keys(drives).length === 0) {
+    return;
+  }
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) {
+      return;
+    }
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    for (const mat of mats) {
+      if (
+        !(mat instanceof THREE.MeshStandardMaterial) &&
+        !(mat instanceof THREE.MeshPhysicalMaterial)
+      ) {
+        continue;
+      }
+      const nm = typeof mat.name === "string" ? mat.name.trim() : "";
+      if (nm.length === 0) {
+        continue;
+      }
+      const row = drives[nm];
+      if (row == null) {
+        continue;
+      }
+      applyMaterialColorRowToMat(mat, row, st);
+    }
+  });
 }
 
 /**
