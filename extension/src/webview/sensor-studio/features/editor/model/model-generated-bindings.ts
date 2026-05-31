@@ -13,6 +13,23 @@ export const STUDIO_GENERATED_CHILD_NODE_IDS_KEY = "generatedChildNodeIds" as co
 export const STUDIO_GLB_EXTRACT_KIND_KEY = "glbExtractKind" as const;
 export const STUDIO_GLB_EXTRACT_REF_KEY = "glbExtractRef" as const;
 
+/** Optional **Model** input on GLB event action nodes (wire from **Studio Model** `out`). */
+export const STUDIO_HANDLE_MODEL = "model" as const;
+
+export const STUDIO_GLB_EVENT_ACTION_CATALOG_IDS = [
+  "event-trigger-glb-anim",
+  "event-toggle-glb-part",
+  "event-set-glb-part",
+] as const;
+
+export const STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET = new Set<string>(
+  STUDIO_GLB_EVENT_ACTION_CATALOG_IDS,
+);
+
+export function isGlbEventActionCatalogNodeId(catalogNodeId: string): boolean {
+  return STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(catalogNodeId);
+}
+
 /** Catalog ids that auto-bind to a lone selected **Model** when added from the palette or canvas drop. */
 export const STUDIO_CATALOG_IDS_SPAWN_LINKED_TO_MODEL: readonly string[] = ["model-viewer", "glb-animation-bundle"];
 
@@ -60,6 +77,142 @@ export function readSourceModelNodeId(
   }
   const t = v.trim();
   return t.length > 0 ? t : undefined;
+}
+
+export type StudioFlowEdgeLike = {
+  source: string;
+  target: string;
+  sourceHandle?: string | null;
+  targetHandle?: string | null;
+};
+
+/** When the graph has exactly one **Studio Model**, use it as implicit GLB scope. */
+export function resolveFallbackSingleModelSelectNodeId(
+  nodes: readonly { id: string; data: { nodeId: string } }[],
+): string | undefined {
+  const models = nodes.filter((n) => n.data.nodeId === "model-select");
+  if (models.length !== 1) {
+    return undefined;
+  }
+  return models[0]!.id;
+}
+
+/** Follow a **Studio Model** wire into a target node (model-viewer **`in`** or GLB event **`model`**). */
+export function resolveWiredStudioModelSelectNodeId(args: {
+  targetFlowNodeId: string;
+  edges: readonly StudioFlowEdgeLike[];
+  nodes: readonly { id: string; data: { nodeId: string } }[];
+  targetHandle?: string;
+}): string | undefined {
+  const expectedHandle = args.targetHandle ?? "in";
+  for (const edge of args.edges) {
+    if (edge.target !== args.targetFlowNodeId) {
+      continue;
+    }
+    const targetHandle = edge.targetHandle ?? "in";
+    if (targetHandle !== expectedHandle) {
+      continue;
+    }
+    const src = args.nodes.find((n) => n.id === edge.source);
+    if (src?.data.nodeId === "model-select") {
+      return src.id;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Resolve which **model-select** node scopes GLB-linked children / viewer drive collection.
+ * Order: wired **Model** input → explicit config → sole model-select on canvas.
+ */
+export function resolveStudioModelScopeNodeId(args: {
+  nodes: readonly { id: string; data: { nodeId: string; defaultConfig: Record<string, unknown> } }[];
+  edges?: readonly StudioFlowEdgeLike[];
+  defaultConfig: Record<string, unknown>;
+  flowNodeId?: string;
+  catalogNodeId?: string;
+}): string {
+  if (args.flowNodeId != null && args.edges != null && args.catalogNodeId != null) {
+    const wireHandle =
+      args.catalogNodeId === "model-viewer"
+        ? "in"
+        : isGlbEventActionCatalogNodeId(args.catalogNodeId)
+          ? STUDIO_HANDLE_MODEL
+          : undefined;
+    if (wireHandle != null) {
+      const wired = resolveWiredStudioModelSelectNodeId({
+        targetFlowNodeId: args.flowNodeId,
+        targetHandle: wireHandle,
+        edges: args.edges,
+        nodes: args.nodes,
+      });
+      if (wired != null) {
+        return wired;
+      }
+    }
+  }
+  const fromConfig = readSourceModelNodeId(args.defaultConfig);
+  if (fromConfig != null) {
+    return fromConfig;
+  }
+  return resolveFallbackSingleModelSelectNodeId(args.nodes) ?? "";
+}
+
+export function resolveNodeStudioModelScopeNodeId(
+  node: { id: string; data: { nodeId: string; defaultConfig: Record<string, unknown> } },
+  nodes: readonly { id: string; data: { nodeId: string; defaultConfig: Record<string, unknown> } }[],
+  edges?: readonly StudioFlowEdgeLike[],
+): string {
+  return resolveStudioModelScopeNodeId({
+    nodes,
+    edges,
+    defaultConfig: node.data.defaultConfig,
+    flowNodeId: node.id,
+    catalogNodeId: node.data.nodeId,
+  });
+}
+
+/** Human-readable label for the **model-select** node scoped to this flow node (inspector). */
+export function resolveLinkedStudioModelDisplayLabel(
+  node: {
+    id: string;
+    data: { nodeId: string; label?: string; defaultConfig: Record<string, unknown> };
+  },
+  nodes: readonly {
+    id: string;
+    data: { nodeId: string; label?: string; defaultConfig: Record<string, unknown> };
+  }[],
+  edges?: readonly StudioFlowEdgeLike[],
+): { modelFlowId: string; displayLabel: string } | null {
+  const modelFlowId = resolveNodeStudioModelScopeNodeId(node, nodes, edges);
+  if (modelFlowId.trim().length === 0) {
+    return null;
+  }
+  const parent = nodes.find((n) => n.id === modelFlowId);
+  const displayLabel =
+    parent != null &&
+    typeof parent.data.label === "string" &&
+    parent.data.label.trim().length > 0
+      ? parent.data.label.trim()
+      : modelFlowId;
+  return { modelFlowId, displayLabel };
+}
+
+/** Resolve **model-select** scope for GLB event action nodes in the Node inspector. */
+export function resolveEventGlbActionModelRefForInspector(
+  nodes: readonly { id: string; data: { nodeId: string; defaultConfig: Record<string, unknown> } }[],
+  edges: readonly StudioFlowEdgeLike[],
+  eventNodeFlowId: string,
+): { status: "ok"; modelFlowId: string } | { status: "no_model" } {
+  const node = nodes.find((n) => n.id === eventNodeFlowId);
+  if (node == null) {
+    return { status: "no_model" };
+  }
+  const modelFlowId = resolveNodeStudioModelScopeNodeId(node, nodes, edges);
+  if (modelFlowId.trim().length === 0) {
+    return { status: "no_model" };
+  }
+  return { status: "ok", modelFlowId };
 }
 
 /** Minimal flow node shape for resolving a linked **`model-select`** GLB URL. */

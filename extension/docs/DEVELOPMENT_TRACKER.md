@@ -73,6 +73,14 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Sensor Studio flow domains — Phase 4 demo template:** **`rotation-glb-anim`** starter graph (BMI270 Euler + bundle **`anim`** + click trigger) in Canvas **Document → Run template**.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 4 animation merge (slice 1):** **`mergeGlbAnimationClipDrivesForPreview`** (scalar + bundle wire + event triggers); **Model Viewer** uses shared merge; unit tests.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 3 polish:** **Model** input on GLB event nodes, inspector linked-model catalog label, clip binding sync on re-wire, clip picker UX.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 3 event layer (slice 3):** **`event-toggle-glb-part`**, **`event-set-glb-part`**, GLB **Parts → Evt** spawn, **`collectGlbScalarDrivesForModel`** extended for event part drives.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 3 event layer (slice 2):** **`on-click`** pane pointer source, **`event-set-boolean`** action, shared **`runFlowEventDispatch`**, **`flow-event-dispatch.ts`**.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 3 event layer (slice 1):** **`on-key`** + **`event-toggle-boolean`** logic nodes, **`dispatchFlowKeyboardEvent`**, **`flow-event-runner.ts`**; orange **event** wires; keyboard dispatch after canvas chords; unit tests.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 2 transform wire:** **`FlowWireTransformV1`**, **`object-transform`** + **`transform-from-euler`** catalog nodes, orange **`transform`** port type, **`xf`** input on Model Viewer / 3D rotation nodes; merge into `scene3d` at preview.
+- **2026-05-31** — **Sensor Studio flow domains — Phase 1 foundation:** **`useSensorStudioFlowTickScheduler`** decouples Domain B (scene frame rAF) from UART **`sampleCount`**; **`scene-flow-frame-subscribers.ts`** catalog + unit tests; Phase 0 design decisions locked in **`FLOW_DOMAINS.md`**.
 - **2026-05-31** — **`ternion-3d-assets-free` upstream cleanup (shipped):** removed legacy repo-root `models/`, `textures/`, duplicate manifest; **`robot-4w`** moved to **`assets/models/`**; README + **`docs/LAYOUT.md`**; feed revision **`2026-05-31T08:00:00Z`** — commit **`b2cc826`** on GitHub. Bitstream contract: **`ASSETS_ONLINE_REPO.md`**.
 - **2026-05-31** — **Docs — online assets repo (`ternion-3d-assets-free`):** canonical **`extension/docs/ASSETS_ONLINE_REPO.md`** — Bitstream uses **`main/assets`** (not repo root); URL rules, sync mapping, consumer matrix, upstream cleanup checklist; cross-linked from asset docs index + `GlobalConfig` / manifest comments.
 - **2026-05-31** — **Canvas inspector per-sensor decode rows:** **`BitstreamSensorSampleRxBadge`** **`panelSensorRows="perSensor"`** — one bordered freshness row per hint (SHT40/DPS368/BMM350/BMI270) with tier colors; Canvas **Telemetry** tab uses split layout + session summary footer (aggregate + diagnostics grid unchanged elsewhere).
@@ -366,18 +374,18 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- *(none — pick from **Planned / next**.)*
+- **Sensor Studio — flow domains Phase 4** — rotation **`anim`** shipped (slice 2); GLB drive polish next.
 
 ---
 
 ## Planned / next
 
-- **Sensor Studio — flow domains (multi-evaluator epic)** — **Planned; do not start implementation until explicitly requested.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (exec or event runner), (D) **material / PBR** (parameter wiring first, full shader graph later). Captured from product review **2026-05-31**.
-  - [x] Phase 0 — design doc + tracker entry (**2026-05-31**)
-  - [ ] Phase 1 — frame loop for 3D (decouple rAF from `sampleCount`)
-  - [ ] Phase 2 — **`FlowWireTransformV1`** + model-viewer consumer (extends *Model Viewer composable wires* **P2**)
-  - [ ] Phase 3 — event layer (key/mouse source nodes + runner)
-  - [ ] Phase 4 — GLB animation depth (merge utility, drive polish)
+- **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
+  - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
+  - [x] Phase 1 — frame loop (**2026-05-31**)
+  - [x] Phase 2 — **`FlowWireTransformV1`** + model-viewer / rotation **`xf`** consumer (**2026-05-31**)
+  - [x] Phase 3 — event layer (**slice 1–4 shipped 2026-05-31**: On Key/Click, Toggle/Set Boolean, GLB part visibility, animation trigger)
+  - [~] Phase 4 — GLB animation depth (**slice 1–2 2026-05-31**; drive polish, multi-clip modes backlog)
   - [ ] Phase 5 — material parameter nodes (PBR v1)
   - [ ] Phase 6 — optional geometry / full shader DAG
 - **`ternion-3d-assets-free` upstream cleanup** — **Done 2026-05-31** ([`b2cc826`](https://github.com/drsanti/ternion-3d-assets-free/commit/b2cc826)): legacy root duplicates removed; **`docs/LAYOUT.md`** on GitHub. Bitstream contract: **[`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md)**.

@@ -12,6 +12,7 @@ const studioPortTypeEnum = z.enum([
   "environment",
   "camera",
   "glbAnimation",
+  "transform",
 ]);
 
 const catalogNodeBaseSchema = z.object({

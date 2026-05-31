@@ -24,8 +24,11 @@ import {
   Shrink,
   Sigma,
   Thermometer,
+  MousePointerClick,
+  Keyboard,
   ToggleLeft,
   Waves,
+  Eye,
 } from "lucide-react";
 
 /** Maps `NodeCatalogEntry.icon` (kebab-style slug) → Lucide component. */
@@ -54,7 +57,10 @@ const CATALOG_LUCIDE_BY_SLUG: Record<string, LucideIcon> = {
   camera: Camera,
   clapperboard: Clapperboard,
   "toggle-left": ToggleLeft,
+  keyboard: Keyboard,
+  "mouse-pointer-click": MousePointerClick,
   hash: Hash,
+  eye: Eye,
 };
 
 export function getCatalogLucideIcon(slug: string): LucideIcon {

@@ -1,9 +1,11 @@
 import type { Edge, Viewport } from "@xyflow/react";
 import type { ChangeEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.store";
-import { useBmi270FusionEulerWireTapStore } from "../../bitstream-app/state/bmi270FusionEulerWireTap.store";
-import { useBmi270FusionQuatWireTapStore } from "../../bitstream-app/state/bmi270FusionQuatWireTap.store";
+import {
+  dispatchFlowKeyboardEventFromDom,
+  dispatchFlowPanePointerEventFromDom,
+} from "./flow-event-dispatch";
+import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickScheduler";
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
@@ -140,6 +142,7 @@ export function SensorStudioMain() {
   const onUpdateConfigField = useFlowEditorStore((s) => s.updateSelectedNodeConfigField);
   const onUpdateConfigJson = useFlowEditorStore((s) => s.updateSelectedNodeConfigFromJson);
   const tickSimulation = useFlowEditorStore((s) => s.tickSimulation);
+  useSensorStudioFlowTickScheduler(tickSimulation);
   useSensorStudioTelemetryFlowRefresh(tickSimulation);
   const undo = useFlowEditorStore((s) => s.undo);
   const redo = useFlowEditorStore((s) => s.redo);
@@ -209,6 +212,9 @@ export function SensorStudioMain() {
     useFlowCanvasPreferences(bootCanvasPreferences);
   const flowCanvasPrefsRef = useRef(flowCanvasPreferences);
   flowCanvasPrefsRef.current = flowCanvasPreferences;
+  const onFlowPanePointerEvent = useCallback((event: { button: number }) => {
+    dispatchFlowPanePointerEventFromDom(event);
+  }, []);
   const [deviceSensorSettingsOpen, setDeviceSensorSettingsOpen] = useState(false);
   const [deviceSensorSettingsInitialSourceId, setDeviceSensorSettingsInitialSourceId] =
     useState<number | null>(null);
@@ -308,10 +314,19 @@ export function SensorStudioMain() {
     [addNodeFromCatalogAt, addNodeFromCatalogLinkedToModel, catalog, snapDropPosition],
   );
 
-  const spawnGlbLinkedNumberConstant = useCallback(
-    (parentModelFlowNodeId: string, row: StudioGltfExtractRow, position: { x: number; y: number }) => {
-      const numberEntry = catalog.find((n) => n.id === "number-constant");
-      if (numberEntry == null) {
+  const spawnGlbLinkedCatalogNode = useCallback(
+    (
+      catalogNodeId:
+        | "number-constant"
+        | "event-toggle-glb-part"
+        | "event-set-glb-part"
+        | "event-trigger-glb-anim",
+      parentModelFlowNodeId: string,
+      row: StudioGltfExtractRow,
+      position: { x: number; y: number },
+    ) => {
+      const entry = catalog.find((n) => n.id === catalogNodeId);
+      if (entry == null) {
         return;
       }
       const st = useFlowEditorStore.getState();
@@ -319,17 +334,37 @@ export function SensorStudioMain() {
       if (parent == null || parent.data.nodeId !== "model-select") {
         return;
       }
-      addNodeFromCatalogLinkedToModel(numberEntry, position, {
+      const mergeDefaultConfig: Record<string, unknown> = {
+        [STUDIO_GLB_EXTRACT_KIND_KEY]: row.kind,
+        [STUDIO_GLB_EXTRACT_REF_KEY]: row.ref,
+      };
+      if (catalogNodeId === "number-constant") {
+        mergeDefaultConfig.value = 0;
+      } else if (catalogNodeId === "event-toggle-glb-part") {
+        mergeDefaultConfig.value = 1;
+      } else if (catalogNodeId === "event-set-glb-part") {
+        mergeDefaultConfig.value = 0;
+        mergeDefaultConfig.setTo = 1;
+      } else {
+        mergeDefaultConfig.triggerNonce = 0;
+        mergeDefaultConfig.speed = 1;
+        mergeDefaultConfig.weight = 1;
+        mergeDefaultConfig.loopMode = "once";
+      }
+      addNodeFromCatalogLinkedToModel(entry, position, {
         parentModelNodeId: parentModelFlowNodeId,
         flowNodeLabel: row.label,
-        mergeDefaultConfig: {
-          value: 0,
-          [STUDIO_GLB_EXTRACT_KIND_KEY]: row.kind,
-          [STUDIO_GLB_EXTRACT_REF_KEY]: row.ref,
-        },
+        mergeDefaultConfig,
       });
     },
     [addNodeFromCatalogLinkedToModel, catalog],
+  );
+
+  const spawnGlbLinkedNumberConstant = useCallback(
+    (parentModelFlowNodeId: string, row: StudioGltfExtractRow, position: { x: number; y: number }) => {
+      spawnGlbLinkedCatalogNode("number-constant", parentModelFlowNodeId, row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
   );
 
   const onSpawnGlbExtract = useCallback(
@@ -343,6 +378,38 @@ export function SensorStudioMain() {
       spawnGlbLinkedNumberConstant(args.parentModelFlowNodeId, args.row, position);
     },
     [spawnGlbLinkedNumberConstant],
+  );
+
+  const onSpawnGlbEventPartExtract = useCallback(
+    (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
+      if (args.row.kind !== "part") {
+        return;
+      }
+      const st = useFlowEditorStore.getState();
+      const parent = st.nodes.find((n) => n.id === args.parentModelFlowNodeId);
+      const position =
+        parent != null
+          ? { x: parent.position.x + 300, y: parent.position.y + 72 }
+          : { x: 120, y: 192 };
+      spawnGlbLinkedCatalogNode("event-toggle-glb-part", args.parentModelFlowNodeId, args.row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
+  );
+
+  const onSpawnGlbEventAnimExtract = useCallback(
+    (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
+      if (args.row.kind !== "animation") {
+        return;
+      }
+      const st = useFlowEditorStore.getState();
+      const parent = st.nodes.find((n) => n.id === args.parentModelFlowNodeId);
+      const position =
+        parent != null
+          ? { x: parent.position.x + 300, y: parent.position.y + 72 }
+          : { x: 120, y: 192 };
+      spawnGlbLinkedCatalogNode("event-trigger-glb-anim", args.parentModelFlowNodeId, args.row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
   );
 
   const onDropGlbExtract = useCallback(
@@ -721,6 +788,10 @@ export function SensorStudioMain() {
         setTemplateId("bmi270-gauge-z");
         return;
       }
+
+      if (dispatchFlowKeyboardEventFromDom(event)) {
+        event.preventDefault();
+      }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => {
@@ -743,57 +814,6 @@ export function SensorStudioMain() {
     clearNodeSelection,
     requestFitView,
   ]);
-
-  useEffect(() => {
-    let rafId = 0;
-    let prevSampleCount = useBitstreamLiveStore.getState().sampleCount;
-    let prevQuatSeq = useBmi270FusionQuatWireTapStore.getState().seq;
-    let prevEulerSeq = useBmi270FusionEulerWireTapStore.getState().seq;
-
-    const runTick = () => {
-      tickSimulation();
-    };
-
-    const scheduleTick = () => {
-      if (rafId !== 0) {
-        return;
-      }
-      rafId = window.requestAnimationFrame(() => {
-        rafId = 0;
-        runTick();
-      });
-    };
-
-    const unsubscribeLive = useBitstreamLiveStore.subscribe((state) => {
-      if (state.sampleCount !== prevSampleCount) {
-        prevSampleCount = state.sampleCount;
-        scheduleTick();
-      }
-    });
-    const unsubscribeQuatWire = useBmi270FusionQuatWireTapStore.subscribe((state) => {
-      if (state.seq !== prevQuatSeq) {
-        prevQuatSeq = state.seq;
-        scheduleTick();
-      }
-    });
-    const unsubscribeEulerWire = useBmi270FusionEulerWireTapStore.subscribe((state) => {
-      if (state.seq !== prevEulerSeq) {
-        prevEulerSeq = state.seq;
-        scheduleTick();
-      }
-    });
-
-    runTick();
-
-    return () => {
-      unsubscribeLive();
-      unsubscribeQuatWire();
-      unsubscribeEulerWire();
-      if (rafId !== 0) {
-        window.cancelAnimationFrame(rafId);
-      }
-    };
-  }, [tickSimulation]);
 
   return (
     <>
@@ -820,6 +840,7 @@ export function SensorStudioMain() {
         environmentColor={dataTypeColors.environment}
         cameraColor={dataTypeColors.camera}
         glbAnimationColor={dataTypeColors.glbAnimation}
+        transformColor={dataTypeColors.transform}
         minimapCategoryColors={minimapCategoryColors}
         entries={catalog}
         nodes={nodes}
@@ -859,8 +880,11 @@ export function SensorStudioMain() {
         onRestoreFlowViewport={onRestoreFlowViewport}
         flowCanvasPreferences={flowCanvasPreferences}
         onFlowCanvasPreferencesChange={patchFlowCanvasPreferences}
+        onFlowPanePointerEvent={onFlowPanePointerEvent}
         onDropPaletteCatalogNode={onDropPaletteCatalogNode}
         onSpawnGlbExtract={onSpawnGlbExtract}
+        onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
+        onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
         onDropGlbExtract={onDropGlbExtract}
         onDropStudioAsset={onDropStudioAsset}
       />

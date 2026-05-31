@@ -28,6 +28,16 @@ import type {
   BitstreamSensorSampleV2,
   BitstreamSensorSourceHint,
 } from "../../../../bitstream/events/sensor-decoder";
+import {
+  collectFlowEventTargetNodeIds,
+  readEventBooleanValue,
+  runFlowEventDispatch,
+} from "../../../core/flow/flow-event-runner";
+import { resolveSingleClipAutoBindPatchesForGlbAnimNodes } from "../gltf/glb-anim-clip-auto-bind";
+import { keyboardEventMatchesOnKeyConfig } from "../nodes/events/on-key-config";
+import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
+import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
+import { readGlbPartVisibilityScalar } from "../nodes/events/glb-part-event-config";
 import { validateStudioNodeConfig } from "../../../core/validation/node-config.validation";
 import {
   type StudioPersistedViewport,
@@ -68,6 +78,14 @@ import {
   flowAnimationWireFromBundleDefaultConfig,
   isFlowWireAnimationV1,
 } from "../nodes/animation/flow-wire-animation";
+import type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
+import {
+  coerceFlowWireTransformV1,
+  flowWireTransformFromEulerRad,
+  readFlowWireTransformEulerMapping,
+  flowWireTransformFromNodeDefaultConfig,
+  isFlowWireTransformV1,
+} from "../nodes/transform/flow-wire-transform";
 import {
   computeAggregatedEnvironmentWire,
   computeEnvironmentInputHandles,
@@ -80,13 +98,20 @@ import {
   reconcileStudioModelGeneratedChildIds,
   remapSourceModelNodeIdAfterDuplicate,
   resolveStudioSourceModelGlbUrl,
+  STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET,
+  STUDIO_GLB_EXTRACT_KIND_KEY,
+  STUDIO_GLB_EXTRACT_REF_KEY,
+  STUDIO_HANDLE_MODEL,
   STUDIO_SOURCE_MODEL_NODE_ID_KEY,
+  readGlbExtractTag,
+  resolveWiredStudioModelSelectNodeId,
 } from "../model/model-generated-bindings";
 
 export type { FlowWireQuaternion, FlowWireVec3 } from "../../../core/live/flow-wire-types";
 export type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
 export type { FlowWireCameraV1 } from "../nodes/camera-view/flow-wire-camera";
 export type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation";
+export type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
 
 export type StudioPortType =
   | "number"
@@ -97,7 +122,8 @@ export type StudioPortType =
   | "quaternion"
   | "environment"
   | "camera"
-  | "glbAnimation";
+  | "glbAnimation"
+  | "transform";
 
 /** Present only while Bitstream provides a matching hardware sample for this node. */
 export type SensorHardwareStreamLive = "live";
@@ -118,6 +144,8 @@ export const STUDIO_HANDLE_ENV = "env";
 export const STUDIO_HANDLE_CAM = "cam";
 /** Optional fourth input on **`model-viewer`** for structured GLB animation clip drives. */
 export const STUDIO_HANDLE_ANIM = "anim";
+/** Optional transform input on 3D canvas nodes (model position / rotation / scale). */
+export const STUDIO_HANDLE_XF = "xf";
 
 /** Single-output nodes that mirror one BMI270 stream (live hardware or synthesized feed). */
 export const BMI270_TAP_NODE_IDS = [
@@ -250,10 +278,14 @@ export type StudioNodeData = {
   liveCameraWire?: FlowWireCameraV1;
   /** Incoming **`anim`** pin snapshot on **`model-viewer`** (structured clip times + speed). */
   liveAnimationWire?: FlowWireAnimationV1;
+  /** Incoming **`xf`** pin snapshot for 3D canvas nodes (model transform). */
+  liveTransformWire?: FlowWireTransformV1;
   liveHistory?: number[];
   /** Multi-channel numeric history for plotter (`handleId` → samples). */
   livePlotHistory?: Record<string, number[]>;
   lastUpdatedAt?: string;
+  /** Transient pulse timestamp for event source nodes (not persisted). */
+  flowEventLastFiredAtMs?: number;
   /** Set only when this node is driven by a matching Bitstream sample this tick. */
   sensorStreamMode?: SensorHardwareStreamLive;
   /** Freshness status derived from live-store timestamps. */
@@ -275,7 +307,8 @@ export type StudioDemoTemplateId =
   | "basic-indicator"
   | "gauge-monitor"
   | "signal-chain"
-  | "bmi270-gauge-z";
+  | "bmi270-gauge-z"
+  | "rotation-glb-anim";
 
 export type FlowSnapshot = {
   nodes: StudioNode[];
@@ -442,6 +475,8 @@ type FlowEditorState = {
   runDemoTemplate: (templateId: StudioDemoTemplateId, catalog: NodeCatalogEntry[]) => void;
   updateSelectedNodeLabel: (nextLabel: string) => void;
   updateSelectedNodeConfigField: (key: string, value: unknown) => boolean;
+  /** Patch multiple config keys on the selected node in one undo step. */
+  patchSelectedNodeConfigFields: (fields: Record<string, unknown>) => boolean;
   updateSelectedNodeUiResizable: (resizable: boolean) => void;
   /**
    * Single-selection config patch without pushing an undo snapshot (e.g. animation playback ticks).
@@ -452,6 +487,15 @@ type FlowEditorState = {
   /** Replace plotter `defaultConfig` in one undo step (coerced + persisted). */
   updateSelectedNodePlotterConfig: (next: PlotterConfig) => void;
   tickSimulation: () => void;
+  /** Domain C — keyboard event sources → wired action nodes. Returns true when consumed. */
+  dispatchFlowKeyboardEvent: (event: {
+    code: string;
+    ctrlKey: boolean;
+    shiftKey: boolean;
+    altKey: boolean;
+    metaKey?: boolean;
+  }) => boolean;
+  dispatchFlowPanePointerEvent: (event: { button: number }) => boolean;
 };
 
 function inferPortTypes(entry: NodeCatalogEntry): {
@@ -841,6 +885,135 @@ function attachConfigErrorsWithModelChildRegistry(
   return attachConfigErrors(reconcileStudioModelGeneratedChildIds(nodes), edges);
 }
 
+/** When **Studio Model** wires into **model-viewer** or GLB event nodes, persist `sourceModelNodeId`. */
+function patchStudioModelScopeOnConnect(
+  nodes: StudioNode[],
+  connection: Connection,
+): StudioNode[] {
+  const target = nodes.find((n) => n.id === connection.target);
+  const source = nodes.find((n) => n.id === connection.source);
+  if (target == null || source?.data.nodeId !== "model-select") {
+    return nodes;
+  }
+  const targetHandle = connection.targetHandle ?? STUDIO_HANDLE_IN;
+  const parentId = source.id;
+
+  if (
+    STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(target.data.nodeId) &&
+    targetHandle === STUDIO_HANDLE_MODEL
+  ) {
+    const prevId = readSourceModelNodeId(target.data.defaultConfig);
+    if (prevId === parentId) {
+      return nodes;
+    }
+    return nodes.map((n) => {
+      if (n.id !== target.id) {
+        return n;
+      }
+      const nextConfig: Record<string, unknown> = {
+        ...n.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: parentId,
+      };
+      if (readGlbExtractTag(n.data.defaultConfig) != null) {
+        delete nextConfig[STUDIO_GLB_EXTRACT_KIND_KEY];
+        delete nextConfig[STUDIO_GLB_EXTRACT_REF_KEY];
+      }
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          defaultConfig: nextConfig,
+        },
+      };
+    });
+  }
+
+  if (target.data.nodeId !== "model-viewer" || targetHandle !== STUDIO_HANDLE_IN) {
+    return nodes;
+  }
+
+  let changed = false;
+  const next = nodes.map((n) => {
+    if (n.id === target.id) {
+      if (readSourceModelNodeId(n.data.defaultConfig) === parentId) {
+        return n;
+      }
+      changed = true;
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          defaultConfig: {
+            ...n.data.defaultConfig,
+            [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: parentId,
+          },
+        },
+      };
+    }
+    if (!STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(n.data.nodeId)) {
+      return n;
+    }
+    if (readSourceModelNodeId(n.data.defaultConfig) != null) {
+      return n;
+    }
+    if (readGlbExtractTag(n.data.defaultConfig) == null) {
+      return n;
+    }
+    changed = true;
+    return {
+      ...n,
+      data: {
+        ...n.data,
+        defaultConfig: {
+          ...n.data.defaultConfig,
+          [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: parentId,
+        },
+      },
+    };
+  });
+  return changed ? next : nodes;
+}
+
+/** Keep GLB event nodes aligned with a wired **Model** input (scope + stale clip cleanup). */
+function reconcileGlbEventModelScopeFromEdges(nodes: StudioNode[], edges: Edge[]): StudioNode[] {
+  let changed = false;
+  const next = nodes.map((node) => {
+    if (!STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(node.data.nodeId)) {
+      return node;
+    }
+    const wiredModelId = resolveWiredStudioModelSelectNodeId({
+      targetFlowNodeId: node.id,
+      targetHandle: STUDIO_HANDLE_MODEL,
+      edges,
+      nodes,
+    });
+    if (wiredModelId == null) {
+      return node;
+    }
+    const prevId = readSourceModelNodeId(node.data.defaultConfig);
+    if (prevId === wiredModelId) {
+      return node;
+    }
+    const nextConfig: Record<string, unknown> = {
+      ...node.data.defaultConfig,
+      [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: wiredModelId,
+    };
+    if (readGlbExtractTag(node.data.defaultConfig) != null) {
+      delete nextConfig[STUDIO_GLB_EXTRACT_KIND_KEY];
+      delete nextConfig[STUDIO_GLB_EXTRACT_REF_KEY];
+    }
+    changed = true;
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        defaultConfig: nextConfig,
+      },
+    };
+  });
+  return changed ? next : nodes;
+}
+
 const STUDIO_UTILITY_BODY_EXPANDED_KEYS = {
   cameraViewControlsExpanded: "cameraViewLayoutHeight",
   environmentControlsExpanded: "environmentLayoutHeight",
@@ -1101,6 +1274,13 @@ function flowValueAsAnimation(v: unknown): FlowWireAnimationV1 | null {
   return coerceFlowWireAnimationV1(v);
 }
 
+function flowValueAsTransform(v: unknown): FlowWireTransformV1 | null {
+  if (!isFlowWireTransformV1(v)) {
+    return null;
+  }
+  return coerceFlowWireTransformV1(v);
+}
+
 type StudioSimulationPinValue =
   | number
   | boolean
@@ -1110,6 +1290,7 @@ type StudioSimulationPinValue =
   | FlowWireEnvironmentV1
   | FlowWireCameraV1
   | FlowWireAnimationV1
+  | FlowWireTransformV1
   | null;
 
 function readPinForEdgeTarget(
@@ -1332,6 +1513,74 @@ function mergeValidHandleTimestamp(
     ...(previous ?? {}),
     [handle]: nowIso,
   };
+}
+
+function dispatchFlowEventSourcesWithGlbAnimAutoBind(
+  get: () => FlowEditorState,
+  set: (
+    partial: Partial<FlowEditorState> | ((state: FlowEditorState) => Partial<FlowEditorState>),
+  ) => void,
+  sourceNodeIds: readonly string[],
+): void {
+  const { nodes, edges } = get();
+  const targetIds: string[] = [];
+  for (const sourceId of sourceNodeIds) {
+    targetIds.push(...collectFlowEventTargetNodeIds(edges, sourceId));
+  }
+  const nextNodes = runFlowEventDispatch({ nodes, edges, sourceNodeIds });
+  set((state) => ({
+    nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, state.edges),
+  }));
+  get().tickSimulation();
+  if (targetIds.length === 0) {
+    return;
+  }
+  void resolveSingleClipAutoBindPatchesForGlbAnimNodes({
+    nodes: get().nodes,
+    edges: get().edges,
+    targetFlowNodeIds: targetIds,
+  }).then((patches) => {
+    if (patches.size === 0) {
+      return;
+    }
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) => {
+          const patch = patches.get(node.id);
+          if (patch == null) {
+            return node;
+          }
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              defaultConfig: {
+                ...node.data.defaultConfig,
+                ...patch,
+              },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+    get().tickSimulation();
+  });
+}
+
+function applyConfigFieldPatch(
+  base: Record<string, unknown>,
+  fields: Record<string, unknown>,
+): Record<string, unknown> {
+  const next = { ...base };
+  for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+  }
+  return next;
 }
 
 export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
@@ -1692,7 +1941,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const nextEdges = applyEdgeChanges(changes, state.edges);
       return {
         edges: nextEdges,
-        nodes: attachConfigErrorsWithModelChildRegistry(state.nodes, nextEdges),
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          reconcileGlbEventModelScopeFromEdges(state.nodes, nextEdges),
+          nextEdges,
+        ),
       };
     });
     flushFlowSimulationPins(get);
@@ -1731,7 +1983,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       );
       return {
         edges: nextEdges,
-        nodes: attachConfigErrorsWithModelChildRegistry(state.nodes, nextEdges),
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          reconcileGlbEventModelScopeFromEdges(
+            patchStudioModelScopeOnConnect(state.nodes, connection),
+            nextEdges,
+          ),
+          nextEdges,
+        ),
       };
     });
     flushFlowSimulationPins(get);
@@ -1889,6 +2147,125 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         },
       };
     };
+
+    if (templateId === "rotation-glb-anim") {
+      const eulerTapEntry = catalog.find((entry) => entry.id === "bmi270-tap-euler");
+      const rotEulerEntry = catalog.find((entry) => entry.id === "rotation-3d-euler");
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const bundleEntry = catalog.find((entry) => entry.id === "glb-animation-bundle");
+      const onClickEntry = catalog.find((entry) => entry.id === "on-click");
+      const triggerEntry = catalog.find((entry) => entry.id === "event-trigger-glb-anim");
+      if (
+        eulerTapEntry == null ||
+        rotEulerEntry == null ||
+        modelEntry == null ||
+        bundleEntry == null ||
+        onClickEntry == null ||
+        triggerEntry == null
+      ) {
+        return;
+      }
+
+      const modelFlowId = "demo-model-select";
+      const rotScene3d = persistScene3DConfig({
+        ...defaultScene3DConfig(),
+        model: {
+          ...defaultScene3DConfig().model,
+          url: "models/robot-4th-project/robot-4th-project.glb",
+          studioAssetId: "model.robot-4th-project",
+        },
+      });
+
+      const eulerTapNode = makeNode(eulerTapEntry, "demo-euler-tap", 72, 180);
+      const rotNode = makeNode(rotEulerEntry, "demo-rot-euler", 380, 80);
+      rotNode.data.label = "3D Rotation (IMU + GLB anim)";
+      rotNode.data.defaultConfig = {
+        ...rotNode.data.defaultConfig,
+        showGrid: true,
+        scene3d: rotScene3d,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      };
+      rotNode.data.ui = { resizable: true };
+
+      const modelNode = makeNode(modelEntry, modelFlowId, 72, 360);
+      modelNode.data.label = "Studio Model (robot)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: "model.robot-4th-project",
+        selectedModelUrl: "models/robot-4th-project/robot-4th-project.glb",
+        generatedChildNodeIds: ["demo-anim-bundle", "demo-glb-anim-trigger"],
+      };
+
+      const bundleNode = makeNode(bundleEntry, "demo-anim-bundle", 72, 480);
+      bundleNode.data.defaultConfig = {
+        ...bundleNode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      };
+
+      const onClickNode = makeNode(onClickEntry, "demo-on-click", 72, 600);
+      const triggerNode = makeNode(triggerEntry, "demo-glb-anim-trigger", 260, 600);
+      triggerNode.data.defaultConfig = {
+        ...triggerNode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        loopMode: "once",
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-rot-e1",
+          source: eulerTapNode.id,
+          target: rotNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(eulerTapNode, STUDIO_HANDLE_OUT) ?? "vector3",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-rot-e2",
+          source: bundleNode.id,
+          target: rotNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_ANIM,
+          animated: true,
+          label: getSourcePortType(bundleNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-rot-e3",
+          source: onClickNode.id,
+          target: triggerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(onClickNode, STUDIO_HANDLE_OUT) ?? "event",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-rot-e4",
+          source: modelNode.id,
+          target: triggerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MODEL,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [eulerTapNode, rotNode, modelNode, bundleNode, onClickNode, triggerNode],
+            [rotNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([rotNode.id]),
+      });
+      return;
+    }
 
     if (templateId === "bmi270-gauge-z") {
       const bmi270Entry = catalog.find((entry) => entry.id === "bmi270-input");
@@ -2217,6 +2594,59 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
     return true;
   },
+  patchSelectedNodeConfigFields: (fields) => {
+    const keys = Object.keys(fields);
+    if (keys.length === 0) {
+      return false;
+    }
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    if (multiIds != null) {
+      get().pushUndoSnapshot();
+      const idSet = new Set(multiIds);
+      set((state) => ({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((node) =>
+            idSet.has(node.id)
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    defaultConfig: applyConfigFieldPatch(node.data.defaultConfig, fields),
+                  },
+                }
+              : node,
+          ),
+          state.edges,
+        ),
+      }));
+      flushFlowSimulationPins(get);
+      return true;
+    }
+    const selectedNodeId = st.selectedNodeId;
+    if (selectedNodeId == null) {
+      return false;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === selectedNodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: applyConfigFieldPatch(node.data.defaultConfig, fields),
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
   updateSelectedNodeUiResizable: (resizable) => {
     const st = get();
     const multiIds = getHomogeneousMultiSelectionIds(st);
@@ -2410,6 +2840,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       | FlowWireEnvironmentV1
       | FlowWireCameraV1
       | FlowWireAnimationV1
+      | FlowWireTransformV1
       | null;
 
     const nowIso = new Date().toISOString();
@@ -2520,6 +2951,22 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             b = s === "true" || s === "1" || s === "yes";
           }
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), b);
+          continue;
+        }
+
+        if (node.data.nodeId === "event-toggle-boolean") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            readEventBooleanValue(node.data.defaultConfig as Record<string, unknown>),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "event-set-boolean") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            readEventBooleanValue(node.data.defaultConfig as Record<string, unknown>),
+          );
           continue;
         }
 
@@ -2763,6 +3210,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (node.data.nodeId === "object-transform") {
+          const wire = flowWireTransformFromNodeDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
+        if (node.data.nodeId === "transform-from-euler") {
+          const euler = flowValueAsVec3(readIncoming(node.id, STUDIO_HANDLE_IN));
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const eulerMapping = readFlowWireTransformEulerMapping(dc.eulerMapping);
+          const wire = flowWireTransformFromEulerRad(euler, undefined, eulerMapping);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
         if (node.data.nodeId === "glb-animation-bundle") {
           const wire = flowAnimationWireFromBundleDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
@@ -2907,8 +3369,19 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ) {
           delete dataWithoutSensorMode.liveCameraWire;
         }
-        if (node.data.nodeId !== "model-viewer") {
+        if (
+          node.data.nodeId !== "rotation-3d-euler" &&
+          node.data.nodeId !== "rotation-3d-quaternion" &&
+          node.data.nodeId !== "model-viewer"
+        ) {
           delete dataWithoutSensorMode.liveAnimationWire;
+        }
+        if (
+          node.data.nodeId !== "rotation-3d-euler" &&
+          node.data.nodeId !== "rotation-3d-quaternion" &&
+          node.data.nodeId !== "model-viewer"
+        ) {
+          delete dataWithoutSensorMode.liveTransformWire;
         }
         if (
           node.data.nodeId !== "bmi270-input" &&
@@ -2939,6 +3412,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "model-viewer" ||
           node.data.nodeId === "environment" ||
           node.data.nodeId === "camera-view" ||
+          node.data.nodeId === "object-transform" ||
+          node.data.nodeId === "transform-from-euler" ||
           isPlotterNodeId(node.data.nodeId) ||
           BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
           ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
@@ -2978,6 +3453,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (isPlotterNodeId(node.data.nodeId)) {
           base.livePlotHistory = plotterHistUpdates.get(node.id) ?? {};
           base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (
+          node.data.nodeId === "event-toggle-glb-part" ||
+          node.data.nodeId === "event-set-glb-part"
+        ) {
+          base.liveValue = readGlbPartVisibilityScalar(
+            node.data.defaultConfig as Record<string, unknown>,
+          );
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "event-trigger-glb-anim") {
+          base.liveValue = readGlbAnimTriggerNonce(node.data.defaultConfig as Record<string, unknown>);
           base.liveHistory = [];
         }
 
@@ -3235,6 +3725,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveCameraWire;
           }
+          const xfVal = readIncoming(node.id, STUDIO_HANDLE_XF);
+          const xfWire = flowValueAsTransform(xfVal);
+          if (xfWire != null) {
+            base.liveTransformWire = xfWire;
+          } else {
+            delete base.liveTransformWire;
+          }
+          const animVal = readIncoming(node.id, STUDIO_HANDLE_ANIM);
+          const animWire = flowValueAsAnimation(animVal);
+          if (animWire != null) {
+            base.liveAnimationWire = animWire;
+          } else {
+            delete base.liveAnimationWire;
+          }
         }
 
         if (node.data.nodeId === "rotation-3d-quaternion") {
@@ -3253,6 +3757,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             base.liveCameraWire = camWire;
           } else {
             delete base.liveCameraWire;
+          }
+          const xfVal = readIncoming(node.id, STUDIO_HANDLE_XF);
+          const xfWire = flowValueAsTransform(xfVal);
+          if (xfWire != null) {
+            base.liveTransformWire = xfWire;
+          } else {
+            delete base.liveTransformWire;
+          }
+          const animVal = readIncoming(node.id, STUDIO_HANDLE_ANIM);
+          const animWire = flowValueAsAnimation(animVal);
+          if (animWire != null) {
+            base.liveAnimationWire = animWire;
+          } else {
+            delete base.liveAnimationWire;
           }
         }
 
@@ -3295,6 +3813,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveAnimationWire;
           }
+          const xfVal = readIncoming(node.id, STUDIO_HANDLE_XF);
+          const xfWire = flowValueAsTransform(xfVal);
+          if (xfWire != null) {
+            base.liveTransformWire = xfWire;
+          } else {
+            delete base.liveTransformWire;
+          }
         }
 
         if (node.data.nodeId === "vector-splitter") {
@@ -3336,6 +3861,40 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         };
       }),
     }));
+  },
+  dispatchFlowKeyboardEvent: (event) => {
+    const { nodes } = get();
+    const matchingSources = nodes.filter(
+      (n) =>
+        n.data.nodeId === "on-key" &&
+        keyboardEventMatchesOnKeyConfig(event, n.data.defaultConfig as Record<string, unknown>),
+    );
+    if (matchingSources.length === 0) {
+      return false;
+    }
+    dispatchFlowEventSourcesWithGlbAnimAutoBind(
+      get,
+      set,
+      matchingSources.map((s) => s.id),
+    );
+    return true;
+  },
+  dispatchFlowPanePointerEvent: (event) => {
+    const { nodes } = get();
+    const matchingSources = nodes.filter(
+      (n) =>
+        n.data.nodeId === "on-click" &&
+        pointerEventMatchesOnClickConfig(event, n.data.defaultConfig as Record<string, unknown>),
+    );
+    if (matchingSources.length === 0) {
+      return false;
+    }
+    dispatchFlowEventSourcesWithGlbAnimAutoBind(
+      get,
+      set,
+      matchingSources.map((s) => s.id),
+    );
+    return true;
   },
 }));
 

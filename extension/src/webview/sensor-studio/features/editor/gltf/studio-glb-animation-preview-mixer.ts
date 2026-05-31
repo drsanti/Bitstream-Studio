@@ -12,6 +12,16 @@ export type GlbAnimationClipPreviewDrive = {
   trimEndS: number;
   fadeInS: number;
   fadeOutS: number;
+  /**
+   * When this value changes, the preview restarts the clip from `timeS` (event one-shot triggers).
+   * Omit for scrub / inspector drives that only move `timeS`.
+   */
+  restartNonce?: number;
+  /**
+   * When **true** (default), every frame sets `action.time` from `timeS` (scrub).
+   * When **false**, the mixer advances time after the initial restart.
+   */
+  holdTime?: boolean;
 };
 
 /** Per-clip mixer bookkeeping across frames (lives in the preview render loop closure). */
@@ -19,10 +29,12 @@ export type StudioGlbAnimationMixerState = {
   prevActive: Set<string>;
   /** Last drive payload per clip (used for fade-out duration when a clip deactivates). */
   lastDrives: Record<string, GlbAnimationClipPreviewDrive>;
+  /** Last seen {@link GlbAnimationClipPreviewDrive.restartNonce} per clip. */
+  lastRestartNonceByClip: Record<string, number>;
 };
 
 export function createStudioGlbAnimationMixerState(): StudioGlbAnimationMixerState {
-  return { prevActive: new Set(), lastDrives: {} };
+  return { prevActive: new Set(), lastDrives: {}, lastRestartNonceByClip: {} };
 }
 
 function resolveTrimRange(
@@ -105,7 +117,14 @@ export function applyStudioGlbAnimationMixerDrives(args: {
     const clipDur = ac.getClip().duration;
     const { start, end } = resolveTrimRange(drive, clipDur);
     const timeS = clampTimeToTrim(drive.timeS, start, end);
-    const wasActive = state.prevActive.has(nm);
+    const restartNonce = drive.restartNonce ?? 0;
+    const prevRestartNonce = state.lastRestartNonceByClip[nm] ?? -1;
+    const forceRestart = restartNonce !== prevRestartNonce;
+    if (forceRestart) {
+      state.lastRestartNonceByClip[nm] = restartNonce;
+    }
+    const wasActive = state.prevActive.has(nm) && !forceRestart;
+    const holdTime = drive.holdTime !== false;
     const targetWeight = Math.min(1, Math.max(0, drive.weight));
     const speed =
       typeof drive.speed === "number" && Number.isFinite(drive.speed) && Math.abs(drive.speed) < 1e6
@@ -115,7 +134,9 @@ export function applyStudioGlbAnimationMixerDrives(args: {
     ac.enabled = true;
     ac.timeScale = speed;
     applyLoopMode(ac, drive.loopMode);
-    ac.time = timeS;
+    if (!wasActive || holdTime) {
+      ac.time = timeS;
+    }
 
     if (!wasActive) {
       ac.reset();

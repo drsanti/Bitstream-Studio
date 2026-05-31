@@ -36,6 +36,7 @@ export type DataTypeColorsPayload = {
   environment: string;
   camera: string;
   glbAnimation: string;
+  transform: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -50,7 +51,8 @@ export type NodeCatalogOutputPort = {
     | "quaternion"
     | "environment"
     | "camera"
-    | "glbAnimation";
+    | "glbAnimation"
+    | "transform";
   label: string;
 };
 

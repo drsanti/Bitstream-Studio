@@ -13,5 +13,6 @@ export const dataTypeColorsSchema = z.object({
     environment: z.string().min(1),
     camera: z.string().min(1).default("#93C5FD"),
     glbAnimation: z.string().min(1).default("#FBBF24"),
+    transform: z.string().min(1).default("#FB923C"),
   }),
 });

@@ -24,6 +24,8 @@ export function studioPortAccent(portType: StudioPortType): string {
       return DT.camera;
     case "glbAnimation":
       return DT.glbAnimation;
+    case "transform":
+      return DT.transform;
     default:
       return "#a1a1aa";
   }

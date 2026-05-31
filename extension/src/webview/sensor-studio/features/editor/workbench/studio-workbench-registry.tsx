@@ -17,6 +17,8 @@ export function WorkbenchLibraryPanel() {
       entries={p.entries}
       onAddNode={p.onAddNode}
       onSpawnGlbExtract={p.onSpawnGlbExtract}
+      onSpawnGlbEventPartExtract={p.onSpawnGlbEventPartExtract}
+      onSpawnGlbEventAnimExtract={p.onSpawnGlbEventAnimExtract}
     />
   );
 }
@@ -38,6 +40,7 @@ export function WorkbenchFlowPanel() {
       environmentColor={p.environmentColor}
       cameraColor={p.cameraColor}
       glbAnimationColor={p.glbAnimationColor}
+      transformColor={p.transformColor}
       minimapCategoryColors={p.minimapCategoryColors}
       nodes={p.nodes}
       edges={p.edges}
@@ -55,6 +58,7 @@ export function WorkbenchFlowPanel() {
       onDropStudioAsset={p.onDropStudioAsset}
       canvasBackgroundColor={p.canvasBackgroundColor}
       flowCanvasPreferences={p.flowCanvasPreferences}
+      onFlowPanePointerEvent={p.onFlowPanePointerEvent}
     />
   );
 }

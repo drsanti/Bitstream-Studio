@@ -99,6 +99,16 @@ type NodePaletteProps = {
     parentModelFlowNodeId: string;
     row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
   }) => void;
+  /** Spawn **Toggle GLB Part** for a part row (Library GLB tab). */
+  onSpawnGlbEventPartExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
+  }) => void;
+  /** Spawn **Trigger GLB Anim** for an animation row (Library GLB tab). */
+  onSpawnGlbEventAnimExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
+  }) => void;
   /** When set, section headers, filter chips, and rows pick up the same hues as the flow minimap. */
   categoryColors?: Record<NodeCatalogEntry["category"], string>;
   /** Secondary text from the workbench theme (helper / meta lines). */
@@ -107,7 +117,7 @@ type NodePaletteProps = {
 
 
 export function NodePalette(props: NodePaletteProps) {
-  const { borderColor, panelColor, entries, onAddNode, onSpawnGlbExtract, categoryColors, mutedTextColor } = props;
+  const { borderColor, panelColor, entries, onAddNode, onSpawnGlbExtract, onSpawnGlbEventPartExtract, onSpawnGlbEventAnimExtract, categoryColors, mutedTextColor } = props;
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<NodePaletteTabId>("nodes");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
@@ -937,6 +947,8 @@ export function NodePalette(props: NodePaletteProps) {
               rows={glbRows}
               placedRowKeys={glbPlacedRowKeys}
               onSpawnGlbExtract={onSpawnGlbExtract}
+              onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
+              onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
             />
           ) : activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">

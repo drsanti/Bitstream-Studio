@@ -1,6 +1,6 @@
 # Sensor Studio — flow domains (multi-evaluator plan)
 
-**Status:** **Planned** — design captured **2026-05-31**; **do not implement** until the team explicitly starts this epic.
+**Status:** **In progress** — Phase 0 aligned **2026-05-31**; Phase 1 foundation started **2026-05-31**.
 
 **Goal:** One React Flow canvas can host **sensor dataflow**, **3D scene control**, **input/event logic**, and (later) **material authoring** — but each domain needs its **own evaluation model and tick source**, not a single global loop.
 
@@ -29,7 +29,7 @@ Trying to drive **keyboard events**, **per-frame animation**, **UART samples**, 
 | ---------- | ------ | ----- |
 | Continuous **dataflow** | Shipped | `tickSimulation()` — pull eval, `readIncoming` on wired pins |
 | Telemetry-driven ticks | Shipped | `sampleCount` ↑, wire taps, graph flush — not fixed Hz |
-| **`event` port type** | Schema only | No catalog nodes or exec runner |
+| **`event` port type** | Shipped (slice 1) | **`on-key`**, **`event-toggle-boolean`**, **`dispatchFlowKeyboardEvent`** |
 | **Plotter** | Shipped | One point per channel per dataflow tick |
 | **3D preview** | Partial | `model-viewer`, `environment`, `camera-view`, rotation nodes |
 | **GLB animation wire** | Partial | `FlowWireAnimationV1`, `glb-animation-bundle`, mixer drives |
@@ -125,35 +125,37 @@ Material compile →  Shader / PBR DAG    (on edit or bake — not every UART fr
 
 ## Phased roadmap (implementation order)
 
-**Gate:** No code for this epic until explicitly started (tracker + team sign-off).
-
 ### Phase 0 — Document and align (this file)
 
 - [x] Capture domain split and fit matrix (**2026-05-31**)
-- [ ] Review against `MVP1_NODE_EDITOR_EXECUTION_CHECKLIST.md` (exec pins were deferred in MVP1)
-- [ ] Confirm exec vs pure-`event` port strategy
+- [x] Review against `MVP1_NODE_EDITOR_EXECUTION_CHECKLIST.md` — MVP1 deferred exec pins and 3D; this epic **extends** post-MVP1 without breaking dataflow (**2026-05-31**)
+- [x] Confirm exec vs pure-`event` port strategy — **Decision:** Phase C uses existing **`event`** port type + imperative **event runner** (no exec pins in v1 of Domain C); exec pins remain backlog if subgraph ordering needs them
 
 ### Phase 1 — Frame loop for 3D (Domain B foundation)
 
-- [ ] **`useSceneFlowFrameTick`** (or equivalent) — rAF driver independent of `sampleCount`
-- [ ] Document which nodes subscribe to frame vs telemetry tick
-- [ ] Ensure dual-runtime (dev + VSIX) parity for preview updates
+- [x] **`useSensorStudioFlowTickScheduler`** — rAF driver for scene subscribers, coalesced with telemetry ticks (**2026-05-31**)
+- [x] **`graphNeedsSceneFrameTick`** / subscriber node catalog (**2026-05-31**)
+- [x] Document which nodes subscribe to frame vs telemetry tick (see **Tick subscription** below)
+- [x] Manual smoke: sine → Plotter / rotation without UART (user verified **2026-05-31**)
 
 ### Phase 2 — Transform wire (Domain B)
 
-- [ ] **`FlowWireTransformV1`** + transform utility node(s)
-- [ ] **`model-viewer`** (primary consumer) merge transform over `scene3d`
+- [x] **`FlowWireTransformV1`** + **`object-transform`** / **`transform-from-euler`** utility nodes (**2026-05-31**)
+- [x] **`model-viewer`** + 3D rotation nodes merge transform over `scene3d` (**2026-05-31**)
 - [ ] Deprecation path for fusion-only rotation nodes in **new** templates (keep legacy graphs)
 
 ### Phase 3 — Event layer (Domain C)
 
-- [ ] Event runner + catalog stubs (`On Key`, `On Click`, …)
-- [ ] Wire event sources to actions (toggle visibility, set constant, trigger one-shot anim)
-- [ ] Inspector + persistence for event node config
+- [x] Event runner + catalog stubs — **`on-key`**, **`event-toggle-boolean`** (**2026-05-31** slice 1)
+- [x] Wire event sources to actions (toggle / set boolean → indicator) (**2026-05-31**)
+- [x] Inspector + persistence for **On Key** / **On Click** / **Set Boolean** (**2026-05-31**)
+- [x] GLB part visibility on event — **`event-toggle-glb-part`**, **`event-set-glb-part`**, GLB **Parts → Evt** spawn (**2026-05-31** slice 3)
+- [x] One-shot animation trigger — **`event-trigger-glb-anim`**, GLB **Animations → Evt**, mixer **`restartNonce`** (**2026-05-31** slice 4)
 
 ### Phase 4 — Animation depth (Domain B)
 
-- [ ] Animation merge utility; optional `anim` on rotation nodes if needed
+- [x] Animation merge utility (`mergeGlbAnimationClipDrivesForPreview`) — scalar + bundle wire + event triggers (**2026-05-31** slice 1)
+- [x] Optional `anim` on rotation nodes — **3D Rotation (Euler / Quaternion)** **`anim`** input + shared merge path (**2026-05-31** slice 2)
 - [ ] Expand GLB drive kinds per product feedback (part opacity, multi-camera blend)
 
 ### Phase 5 — Material parameters (Domain D v1)
@@ -181,11 +183,22 @@ UART vs Simulator telemetry rules (**`bitstream-dual-runtime.mdc`**) apply to Do
 
 ---
 
+## Tick subscription (Phase 1)
+
+| Trigger | Driver | Nodes / behavior |
+| ------- | ------ | ---------------- |
+| **Telemetry (A)** | `sampleCount` ↑, BMI270 wire tap seq, graph flush, stale-health poll | Sensor inputs, transforms, Plotter history, gauges, health badges |
+| **Scene frame (B)** | `requestAnimationFrame` while `graphNeedsSceneFrameTick()` | `model-viewer`, `rotation-3d-*`, `environment`, `camera-view`, `glb-animation-bundle`, `object-transform`, `transform-from-euler`, `sine-wave` |
+
+Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-frame-subscribers.ts`** (catalog). Both triggers coalesce into one rAF **`tickSimulation()`** per display frame. Three.js preview rendering remains in **`RotationPreviewPanelV4`** (separate inner rAF).
+
+---
+
 ## Open design decisions
 
-1. **Exec pins** vs **`event`-only** dataflow triggers for Domain C.
-2. **Single graph** vs **subgraph / “blueprint”** boundaries per domain (filter palette by mode?).
-3. **Pick ray → event** — in scope for Phase 3 or later?
+1. ~~**Exec pins** vs **`event`-only**~~ — **Resolved:** `event` port + event runner for Phase C.
+2. **Single graph** vs **subgraph / “blueprint”** boundaries — **Default:** one canvas; optional palette filter later.
+3. **Pick ray → event** — **Deferred** to Phase 4+ (after basic key/mouse sources).
 4. **Real oscilloscope instrument** — separate node with own acquisition clock (Domain A extension, not Domain B).
 
 ---
@@ -194,4 +207,5 @@ UART vs Simulator telemetry rules (**`bitstream-dual-runtime.mdc`**) apply to Do
 
 | Date | Change |
 | ---- | ------ |
+| **2026-05-31** | Phase 2: `FlowWireTransformV1`, transform utility nodes, model-viewer + rotation `xf` input. |
 | **2026-05-31** | Initial plan from architecture review (keyboard/mouse, Blender-like geometry/shader targets). |

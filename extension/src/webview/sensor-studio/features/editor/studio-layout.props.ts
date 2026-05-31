@@ -28,6 +28,7 @@ export type StudioLayoutProps = {
   environmentColor: string;
   cameraColor: string;
   glbAnimationColor: string;
+  transformColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   entries: NodeCatalogEntry[];
   nodes: StudioNode[];
@@ -63,6 +64,8 @@ export type StudioLayoutProps = {
   onResetWorkspaceLayout?: () => void;
   flowCanvasPreferences: FlowCanvasPreferences;
   onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
+  /** Empty flow canvas clicks — **On Click** event sources. */
+  onFlowPanePointerEvent?: (event: { button: number }) => void;
   deviceSensorSettingsOpen?: boolean;
   onDeviceSensorSettingsOpenChange?: (open: boolean) => void;
   deviceSensorSettingsInitialSourceId?: number | null;
@@ -78,6 +81,16 @@ export type StudioLayoutProps = {
   ) => void;
   /** GLB Library tab: spawn a linked placeholder node for an extracted row. */
   onSpawnGlbExtract?: (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => void;
+  /** GLB Library **Parts** tab: spawn **Toggle GLB Part** event action for a part row. */
+  onSpawnGlbEventPartExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
+  /** GLB Library **Animations** tab: spawn **Trigger GLB Anim** for an animation row. */
+  onSpawnGlbEventAnimExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
   /** Canvas drop for GLB extraction rows (custom MIME payload from the Library GLB tab). */
   onDropGlbExtract?: (
     payload: StudioGlbExtractDragPayloadV1,

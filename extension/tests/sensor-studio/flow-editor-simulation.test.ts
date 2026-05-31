@@ -5,6 +5,7 @@ import type { Edge } from "@xyflow/react";
 import {
   type StudioDemoTemplateId,
   type StudioNode,
+  STUDIO_HANDLE_ANIM,
   STUDIO_HANDLE_IN,
   useFlowEditorStore,
 } from "../../src/webview/sensor-studio/features/editor/store/flow-editor.store";
@@ -220,6 +221,30 @@ test("quaternion splitter feeds W into low-pass", () => {
   assert.ok(Number.isFinite(lpNode?.data.liveValue as number));
   assert.ok(Math.abs(lpNode?.data.liveValue as number) <= 1.001);
   useFlowEditorStore.getState().resetCanvas();
+});
+
+test("runDemoTemplate rotation-glb-anim wires euler, bundle anim, and click trigger", () => {
+  const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
+
+  runDemoTemplate("rotation-glb-anim", NODE_CATALOG_DEFAULTS.payload.nodes);
+  const built = useFlowEditorStore.getState();
+  assert.equal(built.nodes.length, 6);
+  assert.equal(built.edges.length, 4);
+  assert.ok(
+    built.edges.some(
+      (e) => e.target === "demo-rot-euler" && e.targetHandle === STUDIO_HANDLE_ANIM,
+    ),
+  );
+  assert.ok(
+    built.edges.some(
+      (e) => e.target === "demo-glb-anim-trigger" && e.targetHandle === STUDIO_HANDLE_IN,
+    ),
+  );
+  assert.equal(built.selectedNodeId, "demo-rot-euler");
+  const rot = built.nodes.find((n) => n.id === "demo-rot-euler");
+  assert.equal(rot?.data.nodeId, "rotation-3d-euler");
+
+  resetCanvas();
 });
 
 test("runDemoTemplate bmi270-gauge-z wires accel → splitter → gauge Z", () => {
@@ -500,5 +525,36 @@ test("rotation-3d-quaternion accepts quaternion input connection", () => {
   });
   assert.equal(useFlowEditorStore.getState().edges.length, 1);
   assert.equal(useFlowEditorStore.getState().edges[0]?.label, "quaternion");
+  useFlowEditorStore.getState().resetCanvas();
+});
+
+const ROTATION_3D_SCENE_INPUT_HANDLES: StudioNode["data"]["inputHandles"] = [
+  { id: "in", portType: "vector3", label: "Euler (rad)" },
+  { id: "env", portType: "environment", label: "Environment" },
+  { id: "cam", portType: "camera", label: "Camera" },
+  { id: "anim", portType: "glbAnimation", label: "Animation" },
+  { id: "xf", portType: "transform", label: "Transform" },
+];
+
+test("rotation-3d-euler accepts glbAnimation bundle on anim input", () => {
+  const bundle = node("b1", "glb-animation-bundle", "utility", {
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const rot3dEuler = node("r1", "rotation-3d-euler", "output", {
+    inputHandles: ROTATION_3D_SCENE_INPUT_HANDLES,
+  });
+  useFlowEditorStore.setState({ nodes: [bundle, rot3dEuler], edges: [], selectedNodeId: null });
+  useFlowEditorStore.getState().onConnect({
+    source: "b1",
+    target: "r1",
+    sourceHandle: "out",
+    targetHandle: STUDIO_HANDLE_ANIM,
+  });
+  assert.equal(useFlowEditorStore.getState().edges.length, 1);
+  assert.equal(useFlowEditorStore.getState().edges[0]?.label, "glbAnimation");
+  useFlowEditorStore.getState().tickSimulation();
+  const rot = useFlowEditorStore.getState().nodes.find((n) => n.id === "r1");
+  assert.ok(rot?.data.liveAnimationWire != null);
+  assert.equal(typeof rot?.data.liveAnimationWire?.clips, "object");
   useFlowEditorStore.getState().resetCanvas();
 });

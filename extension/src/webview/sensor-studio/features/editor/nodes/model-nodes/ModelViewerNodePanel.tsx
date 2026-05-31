@@ -11,19 +11,21 @@ import { mergeFlowWireEnvironmentIntoScene3d } from "../environment/flow-wire-en
 import type { FlowWireCameraV1 } from "../camera-view/flow-wire-camera";
 import { mergeFlowWireCameraIntoScene3d } from "../camera-view/flow-wire-camera";
 import type { FlowWireAnimationV1 } from "../animation/flow-wire-animation";
-import { mergeFlowWireAnimationIntoClipDrives } from "../animation/flow-wire-animation";
-import {
-  readSourceModelNodeId,
-  resolveStudioSourceModelGlbUrl,
-} from "../../model/model-generated-bindings";
+import { buildGlbAnimationPreviewSceneProps } from "../../gltf/build-glb-animation-preview-scene-props";
+import type { FlowWireTransformV1 } from "../transform/flow-wire-transform";
+import { mergeFlowWireTransformIntoScene3d } from "../transform/flow-wire-transform";
+import { rotationPreviewOrientationFromTransformWire } from "../transform/flow-wire-transform-preview-orientation";
+import { resolveStudioModelScopeNodeId, resolveStudioSourceModelGlbUrl } from "../../model/model-generated-bindings";
 import { collectGlbScalarDrivesForModel } from "../../gltf/studio-glb-flow-drives";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 export type ModelViewerNodePanelProps = {
+  nodeId: string;
   liveValue: unknown;
   liveEnvironmentWire?: FlowWireEnvironmentV1 | null;
   liveCameraWire?: FlowWireCameraV1 | null;
   liveAnimationWire?: FlowWireAnimationV1 | null;
+  liveTransformWire?: FlowWireTransformV1 | null;
   defaultConfig: Record<string, unknown>;
 };
 
@@ -40,21 +42,31 @@ const MODEL_VIEWER_EMPTY_HINT =
  * No silent default mesh — stays empty until wired or linked to a configured Studio Model.
  */
 export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
-  const { liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, defaultConfig } = props;
+  const { nodeId, liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, liveTransformWire, defaultConfig } = props;
 
-  const sourceModelNodeId = readSourceModelNodeId(defaultConfig) ?? "";
-
-  /** Subscribe to `nodes` only — a selector that returns a fresh object each run breaks `useSyncExternalStore` snapshots. */
   const nodes = useFlowEditorStore((s) => s.nodes);
+  const edges = useFlowEditorStore((s) => s.edges);
+  const sourceModelNodeId = useMemo(
+    () =>
+      resolveStudioModelScopeNodeId({
+        nodes,
+        edges,
+        defaultConfig,
+        flowNodeId: nodeId,
+        catalogNodeId: "model-viewer",
+      }),
+    [nodes, edges, defaultConfig, nodeId],
+  );
+
   const glbDrives = useMemo(
-    () => collectGlbScalarDrivesForModel(nodes, sourceModelNodeId),
-    [nodes, sourceModelNodeId],
+    () => collectGlbScalarDrivesForModel(nodes, sourceModelNodeId, edges),
+    [nodes, edges, sourceModelNodeId],
   );
 
   const wiredUrl =
     typeof liveValue === "string" && liveValue.trim().length > 0 ? liveValue.trim() : "";
   const linkedModelUrl = useMemo(
-    () => resolveStudioSourceModelGlbUrl(nodes, sourceModelNodeId),
+    () => resolveStudioSourceModelGlbUrl(nodes, sourceModelNodeId || undefined),
     [nodes, sourceModelNodeId],
   );
   const fallbackRaw = defaultConfig.fallbackModelUrl;
@@ -88,10 +100,24 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       },
     };
     const withEnv = mergeFlowWireEnvironmentIntoScene3d(withModel, liveEnvironmentWire ?? null);
-    return mergeFlowWireCameraIntoScene3d(withEnv, liveCameraWire ?? null);
-  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire]);
+    const withCam = mergeFlowWireCameraIntoScene3d(withEnv, liveCameraWire ?? null);
+    return mergeFlowWireTransformIntoScene3d(withCam, liveTransformWire ?? null);
+  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire, liveTransformWire]);
 
   const showGrid = readBoolean(defaultConfig, "showGrid", true);
+
+  const glbAnimationSceneProps = useMemo(
+    () =>
+      buildGlbAnimationPreviewSceneProps({
+        nodes,
+        edges,
+        flowNodeId: nodeId,
+        catalogNodeId: "model-viewer",
+        defaultConfig,
+        liveAnimationWire: liveAnimationWire ?? null,
+      }),
+    [nodes, edges, nodeId, defaultConfig, liveAnimationWire],
+  );
 
   const sceneProps = useMemo((): RotationPreviewSceneProps => {
     const morphKeys = Object.keys(glbDrives.morphs);
@@ -99,37 +125,20 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
     const partKeys = Object.keys(glbDrives.parts);
     const materialKeys = Object.keys(glbDrives.materials);
     const cameraKeys = Object.keys(glbDrives.cameras);
-    const mergedAnim = mergeFlowWireAnimationIntoClipDrives({
-      scalarTimesByClipName: glbDrives.anims,
-      wire: liveAnimationWire ?? null,
-    });
-    const mergedAnimKeys = Object.keys(mergedAnim.times);
-    const scaleKeys = Object.keys(mergedAnim.scales);
-    const loopKeys = Object.keys(mergedAnim.loops);
-    const weightKeys = Object.keys(mergedAnim.weights);
+    const orientation = rotationPreviewOrientationFromTransformWire(liveTransformWire ?? null);
     return {
-      qw: 1,
-      qx: 0,
-      qy: 0,
-      qz: 0,
-      fusionEulerHundredths: null,
+      ...orientation,
+      ...glbAnimationSceneProps,
       meshOrientationFromEulerFallback: false,
-      eulerOnly: false,
       showGrid,
       scene3d,
       glbMorphWeights: morphKeys.length > 0 ? glbDrives.morphs : undefined,
       glbLightIntensityByName: lightKeys.length > 0 ? glbDrives.lights : undefined,
-      glbAnimationTimeByClipName: mergedAnimKeys.length > 0 ? mergedAnim.times : undefined,
-      glbAnimationTimeScaleByClipName: scaleKeys.length > 0 ? mergedAnim.scales : undefined,
-      glbAnimationLoopByClipName: loopKeys.length > 0 ? mergedAnim.loops : undefined,
-      glbAnimationWeightByClipName: weightKeys.length > 0 ? mergedAnim.weights : undefined,
-      glbAnimationClipDrivesByName:
-        Object.keys(mergedAnim.drives).length > 0 ? mergedAnim.drives : undefined,
       glbPartVisibilityByPath: partKeys.length > 0 ? glbDrives.parts : undefined,
       glbMaterialEmissiveByName: materialKeys.length > 0 ? glbDrives.materials : undefined,
       glbCameraDriveByName: cameraKeys.length > 0 ? glbDrives.cameras : undefined,
     };
-  }, [showGrid, scene3d, glbDrives, liveAnimationWire]);
+  }, [showGrid, scene3d, glbDrives, glbAnimationSceneProps, liveTransformWire]);
 
   return (
     <RotationPreviewPanelV4

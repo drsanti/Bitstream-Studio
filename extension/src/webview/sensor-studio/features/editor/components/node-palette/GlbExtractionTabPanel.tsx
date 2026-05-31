@@ -25,6 +25,16 @@ export type GlbExtractionTabPanelProps = {
     parentModelFlowNodeId: string;
     row: StudioGltfExtractRow;
   }) => void;
+  /** Parts only: spawn **Toggle GLB Part** event action linked to the Model. */
+  onSpawnGlbEventPartExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
+  /** Animations only: spawn **Trigger GLB Anim** event action linked to the Model. */
+  onSpawnGlbEventAnimExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
   /** Row keys (`kind:ref`) already present as linked GLB placeholders on the flow graph. */
   placedRowKeys?: ReadonlySet<string>;
 };
@@ -63,6 +73,8 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     errorMessage,
     rows,
     onSpawnGlbExtract,
+    onSpawnGlbEventPartExtract,
+    onSpawnGlbEventAnimExtract,
     placedRowKeys,
   } = props;
 
@@ -96,6 +108,24 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     }
     onSpawnGlbExtract({ parentModelFlowNodeId, row });
   };
+
+  const spawnEventPart = (row: StudioGltfExtractRow) => {
+    if (parentModelFlowNodeId == null || onSpawnGlbEventPartExtract == null || row.kind !== "part") {
+      return;
+    }
+    onSpawnGlbEventPartExtract({ parentModelFlowNodeId, row });
+  };
+
+  const spawnEventAnim = (row: StudioGltfExtractRow) => {
+    if (parentModelFlowNodeId == null || onSpawnGlbEventAnimExtract == null || row.kind !== "animation") {
+      return;
+    }
+    onSpawnGlbEventAnimExtract({ parentModelFlowNodeId, row });
+  };
+
+  const eventSpawnButtonClass = dense
+    ? "shrink-0 rounded border border-amber-900/50 bg-amber-950/25 px-1.5 py-1 text-[9px] font-semibold uppercase tracking-wide text-amber-100/90 transition-colors hover:border-amber-500/40 hover:bg-amber-950/45"
+    : "shrink-0 rounded border border-amber-900/50 bg-amber-950/25 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-100/90 transition-colors hover:border-amber-500/40 hover:bg-amber-950/45";
 
   return (
     <div className={dense ? "space-y-2 pt-2" : "space-y-3 pt-3"}>
@@ -136,6 +166,11 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
           <TRNHintText tone="muted" className={dense ? "text-[10px] leading-snug" : "text-[11px]"}>
             Click a row to add a linked <span className="font-medium text-zinc-300">Number</span>{" "}
             block (placeholder value 0) tagged with this GLB reference, or drag onto the canvas.
+            For <span className="font-medium text-zinc-300">Parts</span>, use{" "}
+            <span className="font-medium text-amber-200/90">Evt</span> for{" "}
+            <span className="font-medium text-zinc-300">Toggle GLB Part</span>; for{" "}
+            <span className="font-medium text-zinc-300">Animations</span>, **Evt** adds{" "}
+            <span className="font-medium text-zinc-300">Trigger GLB Anim</span>.
             With a linked <span className="font-medium text-zinc-300">Model viewer</span> (same
             Model), live values drive{" "}
             <span className="font-medium text-zinc-300">morph</span>,{" "}
@@ -172,44 +207,76 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                   {list.map((row) => {
                     const rowKey = studioGlbExtractRowKey(row);
                     const placed = placedRowKeys?.has(rowKey) ?? false;
+                    const hasEventSpawn =
+                      (row.kind === "part" && onSpawnGlbEventPartExtract != null) ||
+                      (row.kind === "animation" && onSpawnGlbEventAnimExtract != null);
                     return (
                       <div key={rowKey} className="min-w-0">
-                        <button
-                          type="button"
-                          draggable={parentModelFlowNodeId != null}
-                          className={
-                            rowButtonClass +
-                            (placed ? " border-emerald-900/50 bg-emerald-950/15" : "")
-                          }
-                          style={{ borderColor }}
-                          onClick={() => {
-                            spawn(row);
-                          }}
-                          onDragStart={(e) => {
-                            if (parentModelFlowNodeId == null) {
-                              return;
+                        <div className="flex min-w-0 items-stretch gap-1">
+                          <button
+                            type="button"
+                            draggable={parentModelFlowNodeId != null}
+                            className={
+                              rowButtonClass +
+                              (placed ? " border-emerald-900/50 bg-emerald-950/15" : "") +
+                              (hasEventSpawn ? " flex-1" : " w-full")
                             }
-                            setStudioGlbExtractDragData(e.dataTransfer, {
-                              v: 1,
-                              parentModelFlowNodeId,
-                              kind: row.kind,
-                              glbRef: row.ref,
-                              label: row.label,
-                            });
-                          }}
-                        >
-                          <span className="min-w-0 flex-1 truncate font-medium">{row.label}</span>
-                          <span className="flex shrink-0 items-center gap-1">
-                            {placed ? (
-                              <span className="rounded bg-emerald-950/70 px-1 py-px text-[8px] font-semibold uppercase tracking-wide text-emerald-200/90">
-                                Placed
+                            style={{ borderColor }}
+                            onClick={() => {
+                              spawn(row);
+                            }}
+                            onDragStart={(e) => {
+                              if (parentModelFlowNodeId == null) {
+                                return;
+                              }
+                              setStudioGlbExtractDragData(e.dataTransfer, {
+                                v: 1,
+                                parentModelFlowNodeId,
+                                kind: row.kind,
+                                glbRef: row.ref,
+                                label: row.label,
+                              });
+                            }}
+                          >
+                            <span className="min-w-0 flex-1 truncate font-medium">{row.label}</span>
+                            <span className="flex shrink-0 items-center gap-1">
+                              {placed ? (
+                                <span className="rounded bg-emerald-950/70 px-1 py-px text-[8px] font-semibold uppercase tracking-wide text-emerald-200/90">
+                                  Placed
+                                </span>
+                              ) : null}
+                              <span className="font-mono text-[9px] uppercase text-zinc-500">
+                                {row.kind}
                               </span>
-                            ) : null}
-                            <span className="font-mono text-[9px] uppercase text-zinc-500">
-                              {row.kind}
                             </span>
-                          </span>
-                        </button>
+                          </button>
+                          {row.kind === "part" && onSpawnGlbEventPartExtract != null ? (
+                            <button
+                              type="button"
+                              className={eventSpawnButtonClass}
+                              style={{ borderColor }}
+                              title="Add Toggle GLB Part event action for this part"
+                              onClick={() => {
+                                spawnEventPart(row);
+                              }}
+                            >
+                              Evt
+                            </button>
+                          ) : null}
+                          {row.kind === "animation" && onSpawnGlbEventAnimExtract != null ? (
+                            <button
+                              type="button"
+                              className={eventSpawnButtonClass}
+                              style={{ borderColor }}
+                              title="Add Trigger GLB Anim event action for this clip"
+                              onClick={() => {
+                                spawnEventAnim(row);
+                              }}
+                            >
+                              Evt
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })}

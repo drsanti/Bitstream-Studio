@@ -1,6 +1,7 @@
 import type { NodeCatalogConfig } from "../core/config/config-types";
 import { PSOC_E84_GLB_RELATIVE_PATH } from "../../bitstream-app/components/3d-rotation/shared/rotationPreviewConstants";
 import { defaultFlowWireCameraV1 } from "../features/editor/nodes/camera-view/flow-wire-camera";
+import { defaultFlowWireTransformV1 } from "../features/editor/nodes/transform/flow-wire-transform";
 import { defaultFlowWireEnvironmentV1 } from "../features/editor/nodes/environment/flow-wire-environment";
 import { defaultScene3DConfig, type Scene3DConfigV1 } from "../features/editor/nodes/rotation/scene3d-config";
 
@@ -301,11 +302,38 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [{ id: "out", portType: "camera", label: "Camera" }],
       },
       {
+        id: "object-transform",
+        category: "utility",
+        title: "Object Transform",
+        description:
+          "Author model position, rotation (degrees), and scale once. Wire the output into the **Transform** input on Model Viewer or 3D Rotation nodes to override their saved scene transform while connected.",
+        icon: "box",
+        defaultVisible: true,
+        defaultConfig: {
+          ...(defaultFlowWireTransformV1() as unknown as Record<string, unknown>),
+        },
+        outputPorts: [{ id: "out", portType: "transform", label: "Transform" }],
+      },
+      {
+        id: "transform-from-euler",
+        category: "utility",
+        title: "Transform from Euler",
+        description:
+          "Convert a **vector3** Euler wire (radians: roll, pitch, heading) into a **Transform** wire for Model Viewer / 3D Rotation **Transform** inputs. Choose **IMU / fusion** or **literal scene XYZ** mapping on the Node tab. Position and scale stay at defaults unless you chain through **Object Transform**.",
+        icon: "rotate-cw",
+        defaultVisible: true,
+        defaultConfig: {
+          eulerMapping: "fusion",
+        },
+        inputPorts: [{ id: "in", portType: "vector3", label: "Euler" }],
+        outputPorts: [{ id: "out", portType: "transform", label: "Transform" }],
+      },
+      {
         id: "glb-animation-bundle",
         category: "utility",
         title: "GLB Animation Bundle",
         description:
-          "Drive GLB animation clips with a structured wire. When the node is linked to the same Model as your viewer (add from palette with Model selected), the inspector lists clip names from the GLB — toggle each clip and set time (s) and speed without JSON. Wire out into Model Viewer Animation. Optional Advanced section edits raw clips JSON.",
+          "Drive GLB animation clips with a structured wire. When the node is linked to the same Model as your viewer (add from palette with Model selected), the inspector lists clip names from the GLB — toggle each clip and set time (s) and speed without JSON. Wire out into **Model Viewer** or **3D Rotation** **Animation**. Optional Advanced section edits raw clips JSON.",
         icon: "clapperboard",
         defaultVisible: true,
         defaultConfig: {
@@ -350,6 +378,116 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           alpha: 0.2,
         },
+      },
+      {
+        id: "on-click",
+        category: "logic",
+        title: "On Click",
+        description:
+          "Emit an **event** pulse when you click empty canvas space (not on a node). Choose left or right click on the **Node** tab. Wire into **Set Boolean**, **Toggle Boolean**, or future actions.",
+        icon: "mouse-pointer-click",
+        defaultVisible: true,
+        defaultConfig: {
+          button: "left",
+        },
+        outputPorts: [{ id: "out", portType: "event", label: "Click" }],
+      },
+      {
+        id: "event-set-boolean",
+        category: "logic",
+        title: "Set Boolean",
+        description:
+          "On each incoming **event** pulse, set the boolean **out** wire to a configured ON/OFF value (does not flip). Wire into **Indicator** or other boolean consumers.",
+        icon: "toggle-left",
+        defaultVisible: true,
+        defaultConfig: {
+          setTo: true,
+          value: false,
+        },
+        inputPorts: [{ id: "in", portType: "event", label: "Trigger" }],
+        outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
+      },
+      {
+        id: "on-key",
+        category: "logic",
+        title: "On Key",
+        description:
+          "Emit an **event** pulse when a keyboard key is pressed while the canvas has focus. Wire into **Toggle Boolean** or future action nodes. Configure the key on the **Node** tab.",
+        icon: "keyboard",
+        defaultVisible: true,
+        defaultConfig: {
+          key: "KeyR",
+          requireCtrl: false,
+          requireShift: false,
+          requireAlt: false,
+        },
+        outputPorts: [{ id: "out", portType: "event", label: "Key down" }],
+      },
+      {
+        id: "event-toggle-boolean",
+        category: "logic",
+        title: "Toggle Boolean",
+        description:
+          "On each incoming **event** pulse, flip the boolean **out** wire. Wire into **Indicator** or other boolean consumers.",
+        icon: "toggle-left",
+        defaultVisible: true,
+        defaultConfig: {
+          value: false,
+        },
+        inputPorts: [{ id: "in", portType: "event", label: "Trigger" }],
+        outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
+      },
+      {
+        id: "event-toggle-glb-part",
+        category: "logic",
+        title: "Toggle GLB Part",
+        description:
+          "On each incoming **event** pulse, flip **part** visibility for a GLB part bound from the Library **GLB** tab (0 hidden, 1 visible). Requires a linked **Model viewer** on the same Model.",
+        icon: "eye",
+        defaultVisible: true,
+        defaultConfig: {
+          value: 1,
+        },
+        inputPorts: [
+          { id: "in", portType: "event", label: "Trigger" },
+          { id: "model", portType: "string", label: "Model" },
+        ],
+      },
+      {
+        id: "event-set-glb-part",
+        category: "logic",
+        title: "Set GLB Part",
+        description:
+          "On each incoming **event** pulse, set **part** visibility to a configured visible/hidden state for a GLB part bound from the Library **GLB** tab.",
+        icon: "eye",
+        defaultVisible: true,
+        defaultConfig: {
+          setTo: 1,
+          value: 0,
+        },
+        inputPorts: [
+          { id: "in", portType: "event", label: "Trigger" },
+          { id: "model", portType: "string", label: "Model" },
+        ],
+      },
+      {
+        id: "event-trigger-glb-anim",
+        category: "logic",
+        title: "Trigger GLB Anim",
+        description:
+          "On each incoming **event** pulse, restart a bound GLB **animation** clip in the **Model viewer** for the wired **Model** (default **once**). Wire **Studio Model → Model** for multi-model graphs; spawn from Library **GLB → Animations → Evt**.",
+        icon: "clapperboard",
+        defaultVisible: true,
+        defaultConfig: {
+          triggerNonce: 0,
+          speed: 1,
+          weight: 1,
+          loopMode: "once",
+        },
+        inputPorts: [
+          { id: "in", portType: "event", label: "Trigger" },
+          { id: "model", portType: "string", label: "Model" },
+        ],
       },
       {
         id: "threshold",
@@ -467,7 +605,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "3D Rotation (Euler)",
         description:
-          "Preview 3D object orientation from Euler vector input (rad), using a vanilla Three.js viewport for reliable resizing. Optional **Environment** input overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits.",
+          "Preview 3D object orientation from Euler vector input (rad), using a vanilla Three.js viewport for reliable resizing. Optional **Environment** input overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**; optional **Transform** overrides model position / rotation / scale.",
         icon: "box",
         defaultVisible: true,
         defaultConfig: {
@@ -478,6 +616,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "in", portType: "vector3", label: "Euler (rad)" },
           { id: "env", portType: "environment", label: "Environment" },
           { id: "cam", portType: "camera", label: "Camera" },
+          { id: "anim", portType: "glbAnimation", label: "Animation" },
+          { id: "xf", portType: "transform", label: "Transform" },
         ],
       },
       {
@@ -485,7 +625,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "3D Rotation (Quaternion)",
         description:
-          "Preview 3D object orientation from quaternion input, using a vanilla Three.js viewport for reliable resizing. Optional **Environment** input overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits.",
+          "Preview 3D object orientation from quaternion input, using a vanilla Three.js viewport for reliable resizing. Optional **Environment** input overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**; optional **Transform** overrides model position / rotation / scale.",
         icon: "box",
         defaultVisible: true,
         defaultConfig: {
@@ -496,6 +636,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "in", portType: "quaternion", label: "Quaternion" },
           { id: "env", portType: "environment", label: "Environment" },
           { id: "cam", portType: "camera", label: "Camera" },
+          { id: "anim", portType: "glbAnimation", label: "Animation" },
+          { id: "xf", portType: "transform", label: "Transform" },
         ],
       },
       {
@@ -503,7 +645,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "Model Viewer",
         description:
-          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment** overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**.",
+          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment** overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**; optional **Transform** overrides model position / rotation / scale.",
         icon: "scan-line",
         defaultVisible: true,
         defaultConfig: {
@@ -516,6 +658,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "env", portType: "environment", label: "Environment" },
           { id: "cam", portType: "camera", label: "Camera" },
           { id: "anim", portType: "glbAnimation", label: "Animation" },
+          { id: "xf", portType: "transform", label: "Transform" },
         ],
       },
       // ── Display / Control nodes ──────────────────────────────────────────

@@ -123,6 +123,16 @@ function quaternionFromSceneProps(p: RotationPreviewSceneProps): THREE.Quaternio
   return new THREE.Quaternion();
 }
 
+/** Identity quaternion from Model Viewer / transform-only graphs — do not overwrite `root.rotation`. */
+function isPlaceholderOrientationQuaternion(q: THREE.Quaternion): boolean {
+  return (
+    Math.abs(q.w - 1) < 1e-5 &&
+    Math.abs(q.x) < 1e-5 &&
+    Math.abs(q.y) < 1e-5 &&
+    Math.abs(q.z) < 1e-5
+  );
+}
+
 export type RotationPreviewPanelV4Props = {
   title: string;
   sceneProps: RotationPreviewSceneProps;
@@ -881,6 +891,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         clipActions.clear();
         animationMixerState.prevActive.clear();
         animationMixerState.lastDrives = {};
+        animationMixerState.lastRestartNonceByClip = {};
       };
       let loadedModelKey = "";
       let inflightModelKey: string | null = null;
@@ -1128,16 +1139,21 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           s.model.transform.position.y,
           s.model.transform.position.z,
         );
-        root.rotation.set(
-          degToRad(s.model.transform.rotationDeg.x),
-          degToRad(s.model.transform.rotationDeg.y),
-          degToRad(s.model.transform.rotationDeg.z),
-        );
         root.scale.set(
           s.model.transform.scale.x,
           s.model.transform.scale.y,
           s.model.transform.scale.z,
         );
+        const orientationQ = quatRef.current;
+        if (isPlaceholderOrientationQuaternion(orientationQ)) {
+          root.rotation.set(
+            degToRad(s.model.transform.rotationDeg.x),
+            degToRad(s.model.transform.rotationDeg.y),
+            degToRad(s.model.transform.rotationDeg.z),
+          );
+        } else {
+          root.quaternion.copy(orientationQ);
+        }
 
         camera.fov = s.camera.fovDeg;
         const glbCamWinner = pickActiveGlbCameraName(glbCamerasRef.current);
@@ -1191,8 +1207,6 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         directionalLightHelper?.update();
         cameraHelper?.update();
 
-        // Apply latest quaternion (updated outside the render loop).
-        root.quaternion.copy(quatRef.current);
         controls.update(deltaSec);
         renderer?.render(scene, camera);
         raf = requestAnimationFrame(loop);

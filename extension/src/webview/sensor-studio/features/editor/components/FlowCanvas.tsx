@@ -37,6 +37,7 @@ type FlowCanvasProps = {
   environmentColor: string;
   cameraColor: string;
   glbAnimationColor: string;
+  transformColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   nodes: StudioNode[];
   edges: Edge[];
@@ -71,6 +72,8 @@ type FlowCanvasProps = {
   /** Theme default when `flowCanvasPreferences.backgroundHex` is null. */
   canvasBackgroundColor: string;
   flowCanvasPreferences: FlowCanvasPreferences;
+  /** Domain C — empty-canvas pointer (On Click nodes). */
+  onFlowPanePointerEvent?: (event: { button: number }) => void;
 };
 
 export function FlowCanvas(props: FlowCanvasProps) {
@@ -86,6 +89,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
     environmentColor,
     cameraColor,
     glbAnimationColor,
+    transformColor,
     minimapCategoryColors,
     nodes,
     edges,
@@ -103,6 +107,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
     onDropStudioAsset,
     canvasBackgroundColor,
     flowCanvasPreferences,
+    onFlowPanePointerEvent,
   } = props;
   const reactFlowRef = useRef<ReactFlowInstance<StudioNode> | null>(null);
 
@@ -179,6 +184,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
       environment: environmentColor,
       camera: cameraColor,
       glbAnimation: glbAnimationColor,
+      transform: transformColor,
     };
     return edges.map((edge) => {
       const type = typeof edge.label === "string" ? edge.label : "";
@@ -210,6 +216,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
     environmentColor,
     cameraColor,
     glbAnimationColor,
+    transformColor,
     flowCanvasPreferences.edgeRoutingStyle,
   ]);
 
@@ -289,6 +296,13 @@ export function FlowCanvas(props: FlowCanvasProps) {
           onConnect={onConnect}
           onSelectionChange={(selection) => {
             onSelectionChange(selection.nodes.map((n) => n.id));
+          }}
+          onPaneClick={(event) => {
+            onFlowPanePointerEvent?.({ button: event.button });
+          }}
+          onPaneContextMenu={(event) => {
+            event.preventDefault();
+            onFlowPanePointerEvent?.({ button: event.button });
           }}
           onMoveEnd={
             onViewportMoveEnd != null

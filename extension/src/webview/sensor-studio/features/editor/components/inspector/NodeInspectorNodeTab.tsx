@@ -8,6 +8,7 @@ import {
   TRNHighlightedJsonTextarea,
 } from "../../../../../ui/TRN";
 import { NodeInspectorCanvasLayoutSection } from "./NodeInspectorCanvasLayoutSection";
+import { InspectorLinkedStudioModelSection } from "./InspectorLinkedStudioModelSection";
 import { InspectorSection } from "./InspectorSection";
 import { Rotation3DInspectorCards } from "../rotation/Rotation3DInspectorCards";
 import {
@@ -156,6 +157,8 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
             </ul>
           </div>
         ) : null}
+
+        <InspectorLinkedStudioModelSection selectedNode={selectedNode} />
 
         <InspectorSection title="Identity" contentClassName="px-2.5 py-2">
           <div className="relative min-w-0">

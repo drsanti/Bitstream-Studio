@@ -250,6 +250,7 @@ function clipToPreviewDrive(
     trimEndS,
     fadeInS: typeof fadeInMs === "number" && fadeInMs > 0 ? fadeInMs / 1000 : 0,
     fadeOutS: typeof fadeOutMs === "number" && fadeOutMs > 0 ? fadeOutMs / 1000 : 0,
+    holdTime: true,
   };
 }
 
@@ -292,6 +293,7 @@ export function mergeFlowWireAnimationIntoClipDrives(args: {
       trimEndS: dur > 0 ? dur : -1,
       fadeInS: 0,
       fadeOutS: 0,
+      holdTime: true,
     };
   }
 

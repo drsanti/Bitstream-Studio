@@ -9,6 +9,12 @@ export type CanvasDemoTemplateOption = {
 /** Built-in flow presets (same ids as `runDemoTemplate`). */
 export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] = [
   {
+    value: "rotation-glb-anim",
+    label: "Rotation + GLB anim",
+    hint:
+      "BMI270 Euler → 3D Rotation with **Animation** bundle + **On Click → Trigger GLB Anim** (robot GLB). Bind a clip on the trigger/bundle, then click empty canvas to fire.",
+  },
+  {
     value: "signal-chain",
     label: "Signal chain",
     hint: "BMI270 tap → threshold → gauge — good default for live telemetry demos.",

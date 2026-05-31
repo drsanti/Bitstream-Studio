@@ -35,7 +35,6 @@ import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
-import { readSourceModelNodeId } from "../model/model-generated-bindings";
 import {
   BooleanConstantNodePanel,
   NumberConstantNodePanel,
@@ -60,6 +59,9 @@ import {
 import { coerceScene3DConfigV1, defaultScene3DConfig } from "./rotation/scene3d-config";
 import { mergeFlowWireEnvironmentIntoScene3d } from "./environment/flow-wire-environment";
 import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
+import { mergeFlowWireTransformIntoScene3d } from "./transform/flow-wire-transform";
+import { buildGlbAnimationPreviewSceneProps } from "../gltf/build-glb-animation-preview-scene-props";
+import { EventSetBooleanNodePanel, EventSetGlbPartNodePanel, EventToggleBooleanNodePanel, EventToggleGlbPartNodePanel, EventTriggerGlbAnimNodePanel, OnClickNodePanel, OnKeyNodePanel } from "./events/EventFlowNodePanels";
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 
 const handleBaseClass =
@@ -89,19 +91,6 @@ export function StudioNodeCard(props: NodeProps) {
   const isSelected = Boolean(
     selectedFromRf || selectedInDocument || primarySelectedId === id,
   );
-  const linkedModelSubtitle = useFlowEditorStore((s) => {
-    const self = s.nodes.find((n) => n.id === id);
-    const pid = readSourceModelNodeId(self?.data.defaultConfig);
-    if (pid == null) {
-      return null;
-    }
-    const parent = s.nodes.find((n) => n.id === pid);
-    const label =
-      parent != null && typeof parent.data.label === "string" && parent.data.label.trim().length > 0
-        ? parent.data.label.trim()
-        : pid;
-    return `Linked model · ${label}`;
-  });
   const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
   const flowBodyFlexCol =
     isRotationNode ||
@@ -269,6 +258,15 @@ export function StudioNodeCard(props: NodeProps) {
   const utilityBodyFitsContent =
     (data.nodeId === "environment" && !environmentControlsExpanded) ||
     (data.nodeId === "camera-view" && !cameraViewControlsExpanded) ||
+    data.nodeId === "object-transform" ||
+    data.nodeId === "transform-from-euler" ||
+    data.nodeId === "on-key" ||
+    data.nodeId === "on-click" ||
+    data.nodeId === "event-toggle-boolean" ||
+    data.nodeId === "event-set-boolean" ||
+    data.nodeId === "event-toggle-glb-part" ||
+    data.nodeId === "event-set-glb-part" ||
+    data.nodeId === "event-trigger-glb-anim" ||
     isStudioSensorSocketPreviewNodeId(data.nodeId);
 
   useLayoutEffect(() => {
@@ -470,6 +468,10 @@ export function StudioNodeCard(props: NodeProps) {
       ? data.defaultConfig.showGrid
       : true;
 
+  const isRotation3dNode = isRotation3DCatalogNodeId(data.nodeId);
+  const flowNodes = useFlowEditorStore((s) => s.nodes);
+  const flowEdges = useFlowEditorStore((s) => s.edges);
+
   type RotationPreviewScenePropsV4 = RotationPreviewSceneProps & { scene3d?: unknown };
   const scene3d =
     data.defaultConfig.scene3d != null
@@ -478,11 +480,37 @@ export function StudioNodeCard(props: NodeProps) {
 
   const scene3dForPreview = useMemo(
     () =>
-      mergeFlowWireCameraIntoScene3d(
-        mergeFlowWireEnvironmentIntoScene3d(scene3d, data.liveEnvironmentWire ?? null),
-        data.liveCameraWire ?? null,
+      mergeFlowWireTransformIntoScene3d(
+        mergeFlowWireCameraIntoScene3d(
+          mergeFlowWireEnvironmentIntoScene3d(scene3d, data.liveEnvironmentWire ?? null),
+          data.liveCameraWire ?? null,
+        ),
+        data.liveTransformWire ?? null,
       ),
-    [scene3d, data.liveEnvironmentWire, data.liveCameraWire],
+    [scene3d, data.liveEnvironmentWire, data.liveCameraWire, data.liveTransformWire],
+  );
+
+  const rotationGlbAnimationSceneProps = useMemo(
+    () =>
+      isRotation3dNode
+        ? buildGlbAnimationPreviewSceneProps({
+            nodes: flowNodes,
+            edges: flowEdges,
+            flowNodeId: id,
+            catalogNodeId: data.nodeId,
+            defaultConfig: data.defaultConfig,
+            liveAnimationWire: data.liveAnimationWire ?? null,
+          })
+        : {},
+    [
+      isRotation3dNode,
+      flowNodes,
+      flowEdges,
+      id,
+      data.nodeId,
+      data.defaultConfig,
+      data.liveAnimationWire,
+    ],
   );
 
   const eulerScene = useMemo<RotationPreviewScenePropsV4 | null>(() => {
@@ -506,8 +534,15 @@ export function StudioNodeCard(props: NodeProps) {
       eulerOnly: true,
       showGrid: rotationShowGrid,
       scene3d: scene3dForPreview,
+      ...rotationGlbAnimationSceneProps,
     };
-  }, [data.liveVector3Wire, data.nodeId, rotationShowGrid, scene3dForPreview]);
+  }, [
+    data.liveVector3Wire,
+    data.nodeId,
+    rotationShowGrid,
+    scene3dForPreview,
+    rotationGlbAnimationSceneProps,
+  ]);
 
   const quaternionScene = useMemo<RotationPreviewScenePropsV4 | null>(() => {
     if (data.liveQuaternionWire == null) {
@@ -525,8 +560,15 @@ export function StudioNodeCard(props: NodeProps) {
       meshOrientationFromEulerFallback: false,
       showGrid: rotationShowGrid,
       scene3d: scene3dForPreview,
+      ...rotationGlbAnimationSceneProps,
     };
-  }, [data.liveQuaternionWire, data.nodeId, rotationShowGrid, scene3dForPreview]);
+  }, [
+    data.liveQuaternionWire,
+    data.nodeId,
+    rotationShowGrid,
+    scene3dForPreview,
+    rotationGlbAnimationSceneProps,
+  ]);
 
   const shellRef = useRef<HTMLDivElement | null>(null);
   const resizeActive = isSelected && nodeResizable;
@@ -566,7 +608,6 @@ export function StudioNodeCard(props: NodeProps) {
           glass
           glassPreset="medium"
           className="studio-node-drag-handle cursor-move"
-          subtitle={linkedModelSubtitle ?? undefined}
           primary={
             <div className="text-[13px] font-semibold leading-tight text-zinc-100">
               {data.label}
@@ -677,6 +718,7 @@ export function StudioNodeCard(props: NodeProps) {
                   eulerOnly: true,
                   showGrid: rotationShowGrid,
                   scene3d: scene3dForPreview,
+                  ...rotationGlbAnimationSceneProps,
                 }
               }
             />
@@ -694,6 +736,7 @@ export function StudioNodeCard(props: NodeProps) {
                   meshOrientationFromEulerFallback: false,
                   showGrid: rotationShowGrid,
                   scene3d: scene3dForPreview,
+                  ...rotationGlbAnimationSceneProps,
                 }
               }
             />
@@ -704,15 +747,44 @@ export function StudioNodeCard(props: NodeProps) {
           {data.nodeId === "boolean-constant" ? (
             <BooleanConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
+          {data.nodeId === "event-toggle-boolean" ? (
+            <EventToggleBooleanNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "on-key" ? (
+            <OnKeyNodePanel
+              defaultConfig={data.defaultConfig}
+              lastFiredAtMs={data.flowEventLastFiredAtMs}
+            />
+          ) : null}
+          {data.nodeId === "on-click" ? (
+            <OnClickNodePanel
+              defaultConfig={data.defaultConfig}
+              lastFiredAtMs={data.flowEventLastFiredAtMs}
+            />
+          ) : null}
+          {data.nodeId === "event-set-boolean" ? (
+            <EventSetBooleanNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "event-toggle-glb-part" ? (
+            <EventToggleGlbPartNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "event-set-glb-part" ? (
+            <EventSetGlbPartNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "event-trigger-glb-anim" ? (
+            <EventTriggerGlbAnimNodePanel defaultConfig={data.defaultConfig} />
+          ) : null}
           {data.nodeId === "number-constant" ? (
             <NumberConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel
+              nodeId={id}
               liveValue={data.liveValue}
               liveEnvironmentWire={data.liveEnvironmentWire}
               liveCameraWire={data.liveCameraWire}
               liveAnimationWire={data.liveAnimationWire}
+              liveTransformWire={data.liveTransformWire}
               defaultConfig={data.defaultConfig}
             />
           ) : null}
@@ -837,9 +909,18 @@ export function StudioNodeCard(props: NodeProps) {
           data.nodeId !== "model-select" &&
           data.nodeId !== "model-viewer" &&
           data.nodeId !== "boolean-constant" &&
+          data.nodeId !== "event-toggle-boolean" &&
+          data.nodeId !== "on-key" &&
+          data.nodeId !== "on-click" &&
+          data.nodeId !== "event-set-boolean" &&
+          data.nodeId !== "event-toggle-glb-part" &&
+          data.nodeId !== "event-set-glb-part" &&
+          data.nodeId !== "event-trigger-glb-anim" &&
           data.nodeId !== "number-constant" &&
           data.nodeId !== "environment" &&
           data.nodeId !== "camera-view" &&
+          data.nodeId !== "object-transform" &&
+          data.nodeId !== "transform-from-euler" &&
           data.nodeId !== "glb-animation-bundle" &&
           data.nodeId !== "quat-input" &&
           !isStudioSensorTapNodeId(data.nodeId) &&
