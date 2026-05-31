@@ -73,6 +73,7 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Sensor Studio — node-animator Phase 7 (frame parenting):** drag nodes into frames (`parentId` + `extent`); frame delete dissolves children; `frame-flow-nodes.ts`, `onNodeDragStop`, unit tests.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 6 (reroute bridge on delete):** deleting wired reroutes reconnects upstream→downstream; `applyRerouteBridgeOnEdgeRemoves` in `onEdgesChange`, `removeFlowNodesFromGraph` in `deleteSelection`.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 5 (Shift+click edge reroute):** split wire with typed reroute at pointer; `reroute-graph-ops.ts`, `insertRerouteOnEdge`, unit tests.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 4 (connect preview + clipboard):** type-colored connection line while dragging; **Ctrl+C** / **Ctrl+V** flow clipboard JSON; `flow-port-edge-colors.ts`, `flow-clipboard.ts`, unit tests.
@@ -390,7 +391,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Sensor Studio — node-animator editor parity (Phase 7+)** — Phases 1–6 **shipped 2026-05-31**. Plan: **[`NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md)**. Next: subgraph clipboard, frame parenting.
+- **Sensor Studio — node-animator editor parity (Phase 8+)** — Phases 1–7 **shipped 2026-05-31**. Plan: **[`NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md)**. Next: subgraph clipboard, frame auto-fit inspector.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)

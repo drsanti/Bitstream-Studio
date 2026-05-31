@@ -1,6 +1,11 @@
 import type { XYPosition } from "@xyflow/react";
 import type { StudioPortType } from "../store/flow-editor.store";
 import {
+  DEFAULT_FRAME_SIZE,
+  FRAME_FIT_PAD,
+  FRAME_HEADER_H,
+} from "./frame-flow-nodes";
+import {
   REROUTE_LAYOUT_HEIGHT,
   REROUTE_LAYOUT_WIDTH,
   type FrameFlowNode,
@@ -44,14 +49,23 @@ export function buildFrameFlowNode(position: XYPosition): FrameFlowNode {
     id: layoutNodeId("frame"),
     type: "studio-frame",
     position: {
-      x: position.x - 120,
-      y: position.y - 80,
+      x: position.x - DEFAULT_FRAME_SIZE.width / 2,
+      y: position.y - DEFAULT_FRAME_SIZE.height / 2,
     },
-    data: { label: "Frame" },
+    data: {
+      label: "Frame",
+      padding: FRAME_FIT_PAD,
+      headerHeight: FRAME_HEADER_H,
+      padTop: 0,
+    },
+    dragHandle: ".studio-frame-node__drag",
     selectable: true,
     draggable: true,
     zIndex: -1,
-    style: { width: 280, height: 180 },
+    style: {
+      width: DEFAULT_FRAME_SIZE.width,
+      height: DEFAULT_FRAME_SIZE.height,
+    },
   };
 }
 

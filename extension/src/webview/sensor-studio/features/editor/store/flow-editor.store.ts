@@ -123,6 +123,11 @@ import {
 } from "../model/model-generated-bindings";
 import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
 import { splitEdgeWithReroute, applyRerouteBridgeOnEdgeRemoves, removeFlowNodesFromGraph } from "../layout/reroute-graph-ops";
+import {
+  applyFlowFrameDragStop,
+  dissolveStudioFrames,
+  sortFlowNodesParentFirst,
+} from "../layout/frame-flow-nodes";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
@@ -485,6 +490,7 @@ type FlowEditorState = {
   ) => string;
   spawnRerouteAt: (position: { x: number; y: number }) => string;
   insertRerouteOnEdge: (edgeId: string, flowPosition: { x: number; y: number }) => string | null;
+  applyFlowFrameDragStop: (dragged: FlowGraphNode) => void;
   updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
   /**
    * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
@@ -1965,7 +1971,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
     get().pushUndoSnapshot();
-    const removed = removeFlowNodesFromGraph([...ids], st.nodes, st.edges);
+    const frameIds = [...ids].filter(
+      (id) => get().nodes.find((n) => n.id === id)?.type === "studio-frame",
+    );
+    let workingNodes = st.nodes;
+    if (frameIds.length > 0) {
+      const dissolved = dissolveStudioFrames(frameIds, workingNodes);
+      workingNodes = dissolved.nodes;
+    }
+    const removed = removeFlowNodesFromGraph([...ids], workingNodes, st.edges);
     const nextNodes = removed.nodes;
     const nextEdges = removed.edges;
     const priorSelection =
@@ -2245,6 +2259,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     });
     flushFlowSimulationPins(get);
     return split.rerouteId;
+  },
+  applyFlowFrameDragStop: (dragged) => {
+    const st = get();
+    const result = applyFlowFrameDragStop(dragged, st.nodes);
+    if (!result.changed) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
+    }));
+    flushFlowSimulationPins(get);
   },
   updateLayoutNodeData: (flowNodeId, patch) => {
     set((state) => ({

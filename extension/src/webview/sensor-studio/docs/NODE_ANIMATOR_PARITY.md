@@ -103,11 +103,27 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 
 Deleting a fully wired reroute reconnects `upstream → downstream` instead of breaking the link (React Flow edge-remove batch + programmatic delete).
 
-## Phase 7+ — Planned
+## Phase 7 — Shipped
+
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Frame parenting | `syncFrameChildren`, `attachNodeToFrame` | `frame-flow-nodes.ts`, `onNodeDragStop`, `parentId` + `extent: parent` |
+| Frame delete dissolve | `dissolveFrames` | `dissolveStudioFrames` in `deleteSelection` |
+
+Drag a **studio** node onto a **frame** and release — it becomes a child and moves with the frame. Deleting a frame keeps children on the canvas.
+
+### Key files
+
+- `features/editor/layout/frame-flow-nodes.ts`
+- `features/editor/store/flow-editor.store.ts` — `applyFlowFrameDragStop`
+- `features/editor/components/FlowCanvas.tsx` — render sort + drag stop
+- `extension/tests/sensor-studio/frame-flow-nodes.test.ts`
+
+## Phase 8+ — Planned
 
 - Subgraph-aware clipboard (when node groups ship)
 - Group / Tab drill-in (defer until subgraph epic)
-- Frame parenting (child nodes inside frames)
+- Frame auto-fit toggle in inspector
 
 ## Shortcuts (current)
 

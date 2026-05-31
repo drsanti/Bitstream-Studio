@@ -18,6 +18,15 @@ export type RerouteLayoutNodeData = {
 
 export type FrameLayoutNodeData = {
   label?: string;
+  autoFit?: boolean;
+  padding?: number;
+  padX?: number;
+  padY?: number;
+  padLeft?: number;
+  padRight?: number;
+  padBottom?: number;
+  padTop?: number;
+  headerHeight?: number;
 };
 
 export type NoteLayoutNodeData = {

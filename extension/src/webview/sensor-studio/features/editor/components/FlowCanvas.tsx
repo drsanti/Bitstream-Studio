@@ -48,6 +48,7 @@ import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
 import { resolveFlowSourcePortType } from "../layout/layout-port-resolution";
+import { sortFlowNodesParentFirst, isStudioFrameNode } from "../layout/frame-flow-nodes";
 import {
   buildFlowPortColorMap,
   decorateFlowEdges,
@@ -145,6 +146,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const addLayoutNodeAt = useFlowEditorStore((s) => s.addLayoutNodeAt);
   const insertRerouteOnEdge = useFlowEditorStore((s) => s.insertRerouteOnEdge);
+  const applyFlowFrameDragStop = useFlowEditorStore((s) => s.applyFlowFrameDragStop);
   const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{ clientX: number; clientY: number } | null>(
     null,
   );
@@ -289,6 +291,21 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     [],
   );
 
+  const nodesForRender = useMemo(
+    () =>
+      sortFlowNodesParentFirst(
+        nodes.map((node) => {
+          if (isStudioFrameNode(node)) {
+            return node.dragHandle === ".studio-frame-node__drag"
+              ? node
+              : { ...node, dragHandle: ".studio-frame-node__drag" };
+          }
+          return node;
+        }),
+      ),
+    [nodes],
+  );
+
   const onPickLayoutEntry = useCallback(
     (kind: LayoutMenuEntryId, flowPosition: { x: number; y: number }) => {
       addLayoutNodeAt(kind, flowPosition);
@@ -352,6 +369,13 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
       insertRerouteOnEdge(edge.id, flowPos);
     },
     [insertRerouteOnEdge],
+  );
+
+  const handleNodeDragStop = useCallback(
+    (_event: MouseEvent, dragged: FlowGraphNode) => {
+      applyFlowFrameDragStop(dragged);
+    },
+    [applyFlowFrameDragStop],
   );
 
   const bootViewportAppliedRef = useRef(false);
@@ -426,7 +450,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           colorMode="dark"
           proOptions={{ hideAttribution: true }}
           style={{ backgroundColor: effectiveCanvasBackground }}
-          nodes={nodes}
+          nodes={nodesForRender}
           edges={coloredEdges}
           nodeTypes={nodeTypes}
           elementsSelectable
@@ -440,6 +464,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           deleteKeyCode={["Backspace", "Delete"]}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeDragStop={handleNodeDragStop}
           onConnect={handleConnect}
           onConnectStart={handleConnectStart}
           onConnectEnd={handleConnectEnd}
