@@ -54,6 +54,12 @@ export type StudioLayoutProps = {
   onClearCanvasSelection?: () => void;
   onExportFlow: () => void;
   onImportFlowPick: () => void;
+  /** Live canvas pan/zoom (updated after viewport settles). */
+  flowViewport?: Viewport | null;
+  /** Apply persisted viewport without remounting React Flow. */
+  onRestoreFlowViewport?: () => void;
+  /** Reset workbench pane split layout (provided by StudioLayout). */
+  onResetWorkspaceLayout?: () => void;
   deviceSensorSettingsOpen?: boolean;
   onDeviceSensorSettingsOpenChange?: (open: boolean) => void;
   deviceSensorSettingsInitialSourceId?: number | null;

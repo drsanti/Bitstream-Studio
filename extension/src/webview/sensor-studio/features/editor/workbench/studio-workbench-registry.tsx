@@ -83,6 +83,24 @@ export function WorkbenchInspectorPanel() {
       onUpdateNodeUiResizable={p.onUpdateNodeUiResizable}
       onUpdateConfigField={p.onUpdateConfigField}
       onUpdateConfigJson={p.onUpdateConfigJson}
+      nodes={p.nodes}
+      edges={p.edges}
+      orderedSelectedNodesForCanvas={p.orderedSelectedNodes}
+      canvasInspector={{
+        flowViewport: p.flowViewport,
+        templateId: p.templateId,
+        onTemplateIdChange: p.onTemplateIdChange,
+        onRunTemplate: p.onRunTemplate,
+        onFitView: p.onFitView,
+        onRestoreFlowViewport: p.onRestoreFlowViewport,
+        onSelectAllNodes: p.onSelectAllNodes,
+        onClearCanvasSelection: p.onClearCanvasSelection,
+        onClearCanvas: p.onClearCanvas,
+        onExportFlow: p.onExportFlow,
+        onImportFlowPick: p.onImportFlowPick,
+        onOpenDeviceSensorSettings: p.onOpenDeviceSensorSettings,
+        onResetWorkspaceLayout: p.onResetWorkspaceLayout,
+      }}
     />
   );
 }

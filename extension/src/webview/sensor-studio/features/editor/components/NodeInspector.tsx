@@ -20,6 +20,10 @@ import { NodeInspectorLiveTab } from "./inspector/NodeInspectorLiveTab";
 import { NodeInspectorMultiLiveReadouts } from "./inspector/NodeInspectorMultiLiveReadouts";
 import { NodeInspectorNodeTab } from "./inspector/NodeInspectorNodeTab";
 import {
+  CanvasInspectorPanel,
+  type CanvasInspectorPanelProps,
+} from "./inspector/CanvasInspectorPanel";
+import {
   readStoredInspectorActiveTab,
   writeStoredInspectorActiveTab,
   type InspectorMainTab,
@@ -57,6 +61,11 @@ export type NodeInspectorProps = {
   onUpdateConfigJson: (
     nextJson: string,
   ) => { ok: true } | { ok: false; message: string };
+  /** When no node is selected, show canvas-level controls (omit for legacy layouts). */
+  canvasInspector?: Omit<CanvasInspectorPanelProps, "nodes" | "edges" | "orderedSelectedNodes">;
+  nodes?: CanvasInspectorPanelProps["nodes"];
+  edges?: CanvasInspectorPanelProps["edges"];
+  orderedSelectedNodesForCanvas?: CanvasInspectorPanelProps["orderedSelectedNodes"];
 };
 
 export function NodeInspector(props: NodeInspectorProps) {
@@ -71,6 +80,10 @@ export function NodeInspector(props: NodeInspectorProps) {
     onUpdateNodeUiResizable,
     onUpdateConfigField,
     onUpdateConfigJson,
+    canvasInspector,
+    nodes: canvasNodes,
+    edges: canvasEdges,
+    orderedSelectedNodesForCanvas,
   } = props;
 
   const orderedSelectedNodes =
@@ -197,14 +210,26 @@ export function NodeInspector(props: NodeInspectorProps) {
             className="h-3.5 w-3.5 shrink-0 text-zinc-400"
             aria-hidden
           />
-          Node Inspector
+          Inspector
         </div>
       </div>
       {selectedNode == null ? (
-        <div className="min-h-0 flex-1 text-xs leading-relaxed text-zinc-400">
-          Select a flow node to inspect its ports, live readings, and
-          configuration.
-        </div>
+        canvasInspector != null &&
+        canvasNodes != null &&
+        canvasEdges != null &&
+        orderedSelectedNodesForCanvas != null ? (
+          <CanvasInspectorPanel
+            nodes={canvasNodes}
+            edges={canvasEdges}
+            orderedSelectedNodes={orderedSelectedNodesForCanvas}
+            {...canvasInspector}
+          />
+        ) : (
+          <div className="min-h-0 flex-1 text-xs leading-relaxed text-zinc-400">
+            Select a flow node to inspect its ports, live readings, and
+            configuration.
+          </div>
+        )
       ) : isMultiSelect && !homogeneousMultiEdit ? (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
           <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2 text-[11px] font-semibold tracking-wide text-zinc-100/90">

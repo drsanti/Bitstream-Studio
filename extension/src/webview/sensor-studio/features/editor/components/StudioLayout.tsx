@@ -118,7 +118,9 @@ export function StudioLayout(props: StudioLayoutProps) {
       />
 
       <main className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 pt-0">
-        <StudioWorkbenchShellProvider value={props}>
+        <StudioWorkbenchShellProvider
+          value={{ ...props, onResetWorkspaceLayout: resetWorkspaceLayout }}
+        >
           <StandaloneWorkbench
             ref={workbenchRef}
             initialLayout={DEFAULT_STUDIO_WORKBENCH_LAYOUT}

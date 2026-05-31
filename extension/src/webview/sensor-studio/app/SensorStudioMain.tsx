@@ -204,6 +204,11 @@ export function SensorStudioMain() {
     nonce: number;
     viewport: Viewport;
   } | null>(null);
+  const [flowViewport, setFlowViewport] = useState<Viewport | null>(() =>
+    bootViewport != null
+      ? { x: bootViewport.x, y: bootViewport.y, zoom: bootViewport.zoom }
+      : null,
+  );
   const persistFingerprintRef = useRef<string>("");
   const viewportPersistRef = useRef<StudioPersistedViewport | null>(bootViewport);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>();
@@ -240,10 +245,27 @@ export function SensorStudioMain() {
         y: viewport.y,
         zoom: viewport.zoom,
       };
+      setFlowViewport(viewport);
       schedulePersistToStorage();
     },
     [schedulePersistToStorage],
   );
+
+  const onRestoreFlowViewport = useCallback(() => {
+    const saved = viewportPersistRef.current ?? bootViewport;
+    if (saved == null) {
+      return;
+    }
+    setFlowViewport({
+      x: saved.x,
+      y: saved.y,
+      zoom: saved.zoom,
+    });
+    setFlowViewportApply({
+      nonce: Date.now(),
+      viewport: { x: saved.x, y: saved.y, zoom: saved.zoom },
+    });
+  }, [bootViewport]);
 
   const onDropPaletteCatalogNode = useCallback(
     (catalogNodeId: string, flowPosition: { x: number; y: number }) => {
@@ -465,6 +487,11 @@ export function SensorStudioMain() {
         if (r.ok) {
           if (r.viewport != null) {
             viewportPersistRef.current = r.viewport;
+            setFlowViewport({
+              x: r.viewport.x,
+              y: r.viewport.y,
+              zoom: r.viewport.zoom,
+            });
             setFlowViewportApply({
               nonce: Date.now(),
               viewport: {
@@ -790,6 +817,8 @@ export function SensorStudioMain() {
         onFitView={requestFitView}
         onSelectAllNodes={onSelectAllFlowNodes}
         onClearCanvasSelection={onClearFlowSelection}
+        flowViewport={flowViewport}
+        onRestoreFlowViewport={onRestoreFlowViewport}
         onDropPaletteCatalogNode={onDropPaletteCatalogNode}
         onSpawnGlbExtract={onSpawnGlbExtract}
         onDropGlbExtract={onDropGlbExtract}
