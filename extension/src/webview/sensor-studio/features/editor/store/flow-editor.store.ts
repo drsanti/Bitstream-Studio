@@ -54,10 +54,17 @@ import {
   isExcludedFromNodeGroup,
   isStudioNodeGroupNode,
   STUDIO_ROOT_GRAPH_ID,
+  ensureDefaultGroupSockets,
   type StudioGraphId,
+  type StudioGroupInterface,
   type StudioSubgraphDocument,
   type SubgraphFlowNode,
 } from "../subgraphs/studio-subgraph.types";
+import {
+  applyGroupInterfaceToSubgraph,
+  filterParentEdgesForGroupInterface,
+  subgraphForInterfaceEdit,
+} from "../subgraphs/studio-group-interface-sync";
 import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
 import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
@@ -497,6 +504,9 @@ type FlowEditorState = {
   enterGroup: (groupId: string) => void;
   exitGroup: () => void;
   jumpToGraph: (graphId: StudioGraphId) => void;
+  updateNodeGroupInterface: (hostNodeId: string, nextInterface: StudioGroupInterface) => void;
+  updateNodeGroupTitle: (hostNodeId: string, title: string) => void;
+  ungroupNodeGroup: (hostNodeId: string) => void;
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
@@ -2278,6 +2288,165 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       selectedNodeId: null,
       selectedNodeIds: [],
     });
+  },
+  updateNodeGroupInterface: (hostNodeId, nextInterface) => {
+    const s = get();
+    const host =
+      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
+      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    if (host == null) {
+      return;
+    }
+    const subgraphId = host.data.subgraphId ?? hostNodeId;
+    const subgraph = s.subgraphs[subgraphId];
+    if (subgraph == null) {
+      return;
+    }
+
+    get().pushUndoSnapshot();
+
+    const base = subgraphForInterfaceEdit(
+      subgraphId,
+      subgraph,
+      s.activeGraphId,
+      s.nodes,
+      s.edges,
+    );
+    if (base == null) {
+      return;
+    }
+
+    const ensured = ensureDefaultGroupSockets(nextInterface);
+    const updatedSub = applyGroupInterfaceToSubgraph(base, ensured);
+    const filteredRootEdges = filterParentEdgesForGroupInterface(
+      s.rootEdges,
+      hostNodeId,
+      ensured,
+    );
+    const newSubgraphs = { ...s.subgraphs, [subgraphId]: updatedSub };
+
+    if (s.activeGraphId === subgraphId) {
+      const attached = attachConfigErrorsWithModelChildRegistry(
+        updatedSub.nodes as FlowGraphNode[],
+        updatedSub.edges,
+      );
+      const committed = commitActiveGraphMutation(
+        { ...s, subgraphs: newSubgraphs, rootEdges: filteredRootEdges },
+        attached,
+        updatedSub.edges,
+      );
+      set({ ...committed, rootEdges: filteredRootEdges });
+    } else if (s.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+      const filteredEdges = filterParentEdgesForGroupInterface(s.edges, hostNodeId, ensured);
+      set({
+        subgraphs: newSubgraphs,
+        edges: filteredEdges,
+        rootEdges: filteredEdges,
+      });
+    } else {
+      set({
+        subgraphs: newSubgraphs,
+        rootEdges: filteredRootEdges,
+      });
+    }
+    flushFlowSimulationPins(get);
+  },
+  updateNodeGroupTitle: (hostNodeId, title) => {
+    const s = get();
+    const host =
+      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
+      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    if (host == null) {
+      return;
+    }
+    const subgraphId = host.data.subgraphId ?? hostNodeId;
+    const subgraph = s.subgraphs[subgraphId];
+    if (subgraph == null) {
+      return;
+    }
+
+    get().pushUndoSnapshot();
+    const trimmed = title.trim();
+    const graphTitle = trimmed.length > 0 ? trimmed : undefined;
+    const patchHostTitle = (nodes: FlowGraphNode[]) =>
+      nodes.map((node) =>
+        node.id === hostNodeId && isStudioNodeGroupNode(node)
+          ? { ...node, data: { ...node.data, graphTitle } }
+          : node,
+      );
+
+    set({
+      nodes: patchHostTitle(s.nodes),
+      rootNodes: patchHostTitle(s.rootNodes),
+      subgraphs: {
+        ...s.subgraphs,
+        [subgraphId]: {
+          ...subgraph,
+          graphTitle,
+        },
+      },
+    });
+  },
+  ungroupNodeGroup: (hostNodeId) => {
+    const initial = persistActiveGraphBuffer(get());
+    const host =
+      initial.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
+      initial.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    if (host == null) {
+      return;
+    }
+
+    get().pushUndoSnapshot();
+
+    let s = initial;
+    if (s.activeGraphId !== STUDIO_ROOT_GRAPH_ID) {
+      s = {
+        ...s,
+        activeGraphId: STUDIO_ROOT_GRAPH_ID,
+        graphStack: [],
+        nodes: s.rootNodes,
+        edges: s.rootEdges,
+      };
+    }
+
+    const groupNode = s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    if (groupNode == null) {
+      return;
+    }
+
+    const rootNodesForCount = s.rootNodes.length > 0 ? s.rootNodes : s.nodes;
+    const result = dissolveStudioNodeGroupInParent(
+      s.nodes,
+      s.edges,
+      groupNode,
+      s.subgraphs,
+      rootNodesForCount,
+    );
+    if (result == null) {
+      return;
+    }
+
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      result.nodes as FlowGraphNode[],
+      result.edges,
+    );
+    const expandedIds = result.nodes.filter((n) => n.selected).map((n) => n.id);
+    const committed = commitActiveGraphMutation(
+      { ...s, subgraphs: result.subgraphs },
+      attachedNodes,
+      result.edges,
+    );
+    set({
+      ...committed,
+      activeGraphId: STUDIO_ROOT_GRAPH_ID,
+      graphStack: [],
+      nodes: attachedNodes,
+      edges: result.edges,
+      rootNodes: attachedNodes,
+      rootEdges: result.edges,
+      ...selectionFromIds(expandedIds),
+    });
+    flushFlowSimulationPins(get);
   },
   jumpToGraph: (graphId: StudioGraphId) => {
     const s = get();

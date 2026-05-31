@@ -133,29 +133,32 @@ Drag a **studio** node onto a **frame** and release — it becomes a child and m
 - `features/editor/components/inspector/FrameLayoutInspectorSection.tsx`
 - `features/editor/store/flow-editor.store.ts` — `fitSelectedFramesToContents`, `dissolveSelectedFrames`
 
-## Phase 9 — Shipped (slices 1–2)
+## Phase 9 — Shipped (slices 1–3)
 
 | Feature | Reference | Sensor Studio |
 |---------|-----------|---------------|
 | Group selection | **Ctrl+G** | `createGroupFromSelection` |
-| Ungroup selection | **Ctrl+Shift+G** | `ungroupSelection` / `dissolveStudioNodeGroupInParent` |
+| Ungroup selection | **Ctrl+Shift+G** | `ungroupSelection` / `ungroupNodeGroup` / `dissolveStudioNodeGroupInParent` |
 | Node group shell | `nodeGroup` | `studio-node-group` + boundary nodes |
 | Drill-in | **Tab** / double-click | `enterGroup`, breadcrumb, **Shift+Tab** exit |
 | Subgraph clipboard | `subgraphs` in payload | `buildFlowClipboardPayload` + `attachSubgraphsForPastedNodeGroups` |
+| Group Sockets inspector | `NodeGroupInspector` | `NodeGroupInspectorSection` (+ boundary selection when drilled in) |
 | Eval flatten | `flattenGraphForEvaluation` | `flattenFlowGraphForEvaluation` in `tickSimulation` |
 
 Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 ### Key files
 
-- `features/editor/subgraphs/` — types, create, rewire, flatten, store sync
+- `features/editor/subgraphs/` — types, create, rewire, flatten, interface sync, store sync
 - `features/editor/layout-nodes/NodeGroupLayoutNode.tsx` (+ Group Input/Output)
+- `features/editor/components/inspector/NodeGroupInspectorSection.tsx`
 - `features/editor/components/FlowGraphBreadcrumb.tsx`
 - `extension/tests/sensor-studio/studio-subgraph.test.ts`
+- `extension/tests/sensor-studio/studio-group-interface-sync.test.ts`
 
 ## Phase 9+ — Planned
 
-- Group Sockets inspector (+/−, reorder, relabel)
+- Linked vs deep-copy group instances (explicit duplicate mode)
 
 ## Shortcuts (current)
 

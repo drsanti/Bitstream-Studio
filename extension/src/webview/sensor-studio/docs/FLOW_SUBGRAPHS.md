@@ -22,6 +22,7 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | Enter group | **Tab** (one group selected) or double-click group |
 | Exit group | **Shift+Tab** |
 | Copy / paste groups | **Ctrl+C** / **Ctrl+V** (includes `subgraphs` payload) |
+| Group Sockets inspector | Select group shell (or boundary node inside) → rename, add/remove/reorder typed inputs/outputs |
 | Breadcrumb | Top-left overlay on the flow canvas |
 
 ## Implementation map
@@ -37,13 +38,14 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | `subgraphs/paste-subgraph-groups.ts` | Clipboard / duplicate subgraph clone |
 | `subgraphs/dissolve-studio-node-group.ts` | Ungroup + parent edge rewire |
 | `subgraphs/clone-studio-subgraph.ts` | Deep clone nested subgraph documents |
+| `subgraphs/studio-group-interface-sync.ts` | Interface edit + parent edge cleanup |
+| `components/inspector/NodeGroupInspectorSection.tsx` | Group Sockets inspector UI |
 | `clipboard/flow-clipboard.ts` | `subgraphs` in copy/paste payload |
 
 | `store/flow-editor.store.ts` | `createGroupFromSelection`, `ungroupSelection`, drill-in/out, eval hook |
 
 ## Backlog
 
-- Group Sockets inspector (+/−, reorder, relabel)
 - Linked vs deep-copy group instances (explicit duplicate mode)
 
 See also [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md) Phase 9.

@@ -3,6 +3,12 @@ import { isStudioFlowNode } from "../../layout/layout-port-resolution";
 import { LAYOUT_MENU_ENTRIES } from "../../layout/layout-flow-menu-entries";
 import type { FrameLayoutNodeData } from "../../layout/layout-flow-nodes.types";
 import { FrameLayoutInspectorSection } from "./FrameLayoutInspectorSection";
+import {
+  nodeGroupInspectorTitle,
+  NodeGroupInspectorSection,
+  resolveNodeGroupHostId,
+} from "./NodeGroupInspectorSection";
+import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 type LayoutNodeInspectorPanelProps = {
   borderColor: string;
@@ -12,9 +18,15 @@ type LayoutNodeInspectorPanelProps = {
 
 export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
   const { borderColor, panelColor, selectedNode } = props;
+  const rootNodes = useFlowEditorStore((s) => s.rootNodes);
+  const activeGraphId = useFlowEditorStore((s) => s.activeGraphId);
+  const subgraphs = useFlowEditorStore((s) => s.subgraphs);
+
   if (isStudioFlowNode(selectedNode)) {
     return null;
   }
+
+  const groupHost = resolveNodeGroupHostId(selectedNode, rootNodes, activeGraphId);
 
   const meta = LAYOUT_MENU_ENTRIES.find((entry) => {
     if (selectedNode.type === "studio-reroute") {
@@ -37,8 +49,21 @@ export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
       className="flex h-full min-h-0 flex-col overflow-hidden p-4 text-zinc-200"
       style={{ backgroundColor: panelColor, borderColor }}
     >
-      <h2 className="text-sm font-semibold text-zinc-100">{meta?.title ?? "Layout"}</h2>
-      {selectedNode.type === "studio-frame" ? (
+      <h2 className="text-sm font-semibold text-zinc-100">
+        {groupHost != null
+          ? nodeGroupInspectorTitle(
+              groupHost.data,
+              subgraphs[groupHost.data.subgraphId ?? groupHost.hostNodeId]?.graphTitle,
+            )
+          : (meta?.title ?? "Layout")}
+      </h2>
+      {groupHost != null ? (
+        <NodeGroupInspectorSection
+          hostNodeId={groupHost.hostNodeId}
+          data={groupHost.data}
+          focusedBoundaryRole={groupHost.focusedBoundaryRole}
+        />
+      ) : selectedNode.type === "studio-frame" ? (
         <FrameLayoutInspectorSection
           frameNodeId={selectedNode.id}
           data={selectedNode.data as FrameLayoutNodeData}
