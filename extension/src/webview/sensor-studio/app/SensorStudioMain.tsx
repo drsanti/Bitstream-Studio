@@ -8,7 +8,9 @@ import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
 import { snapFlowPoint } from "../features/editor/components/snap-flow-position";
+import { readStoredFlowCanvasPreferences } from "../features/editor/components/flow-canvas-ui-persistence";
 import { useFlowCanvasPreferences } from "../features/editor/components/use-flow-canvas-preferences";
+import { coerceFlowCanvasPreferences } from "../persistence/flow-canvas-preferences";
 import {
   type StudioDemoTemplateId,
   type StudioNode,
@@ -196,8 +198,15 @@ export function SensorStudioMain() {
 
   const selectedNode = orderedSelectedNodes[0] ?? null;
   const [templateId, setTemplateId] = useState<StudioDemoTemplateId>("signal-chain");
+  const [bootCanvasPreferences] = useState(() => {
+    const doc = persistedBootstrapRef.current;
+    if (doc?.canvasPreferences != null) {
+      return coerceFlowCanvasPreferences(doc.canvasPreferences);
+    }
+    return readStoredFlowCanvasPreferences();
+  });
   const { preferences: flowCanvasPreferences, patchPreferences: patchFlowCanvasPreferences } =
-    useFlowCanvasPreferences();
+    useFlowCanvasPreferences(bootCanvasPreferences);
   const flowCanvasPrefsRef = useRef(flowCanvasPreferences);
   flowCanvasPrefsRef.current = flowCanvasPreferences;
   const [deviceSensorSettingsOpen, setDeviceSensorSettingsOpen] = useState(false);
@@ -240,6 +249,7 @@ export function SensorStudioMain() {
         selectedNodeIds:
           st.selectedNodeIds.length > 0 ? st.selectedNodeIds : undefined,
         viewport: viewportPersistRef.current ?? undefined,
+        canvasPreferences: flowCanvasPrefsRef.current,
       });
     }, 480);
   }, []);
@@ -435,16 +445,22 @@ export function SensorStudioMain() {
     ],
   );
 
+  const requestFitViewIfEnabled = useCallback(() => {
+    if (flowCanvasPrefsRef.current.autoFitViewOnReplace) {
+      setFitViewVersion((value) => value + 1);
+    }
+  }, []);
+
   const runTemplateNow = useCallback(() => {
     onRunTemplate(templateId, catalog);
-    setFitViewVersion((value) => value + 1);
-  }, [catalog, onRunTemplate, templateId]);
+    requestFitViewIfEnabled();
+  }, [catalog, onRunTemplate, requestFitViewIfEnabled, templateId]);
 
   const runSpecificTemplate = useCallback((nextTemplateId: StudioDemoTemplateId) => {
     setTemplateId(nextTemplateId);
     onRunTemplate(nextTemplateId, catalog);
-    setFitViewVersion((value) => value + 1);
-  }, [catalog, onRunTemplate]);
+    requestFitViewIfEnabled();
+  }, [catalog, onRunTemplate, requestFitViewIfEnabled]);
 
   const clearNow = useCallback(() => {
     onClearCanvas();
@@ -473,6 +489,7 @@ export function SensorStudioMain() {
   const onExportFlow = useCallback(() => {
     const json = useFlowEditorStore.getState().exportFlowGraphJson({
       viewport: viewportPersistRef.current ?? undefined,
+      canvasPreferences: flowCanvasPrefsRef.current,
     });
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -499,6 +516,9 @@ export function SensorStudioMain() {
         const text = String(reader.result ?? "");
         const r = useFlowEditorStore.getState().importFlowGraphJson(text);
         if (r.ok) {
+          if (r.canvasPreferences != null) {
+            patchFlowCanvasPreferences(r.canvasPreferences);
+          }
           if (r.viewport != null) {
             viewportPersistRef.current = r.viewport;
             setFlowViewport({
@@ -516,15 +536,19 @@ export function SensorStudioMain() {
             });
             schedulePersistToStorage();
           } else {
-            setFitViewVersion((v) => v + 1);
+            requestFitViewIfEnabled();
           }
         }
       };
       reader.onerror = () => {};
       reader.readAsText(file);
     },
-    [schedulePersistToStorage],
+    [patchFlowCanvasPreferences, requestFitViewIfEnabled, schedulePersistToStorage],
   );
+
+  useEffect(() => {
+    schedulePersistToStorage();
+  }, [flowCanvasPreferences, schedulePersistToStorage]);
 
   useEffect(() => {
     const raw = persistedBootstrapRef.current;
@@ -543,7 +567,7 @@ export function SensorStudioMain() {
         raw.selectedNodeId,
         raw.selectedNodeIds ?? (raw.selectedNodeId != null ? [raw.selectedNodeId] : []),
       );
-      if (bootViewport == null) {
+      if (bootViewport == null && bootCanvasPreferences.autoFitViewOnReplace) {
         setFitViewVersion((v) => v + 1);
       }
     } else {

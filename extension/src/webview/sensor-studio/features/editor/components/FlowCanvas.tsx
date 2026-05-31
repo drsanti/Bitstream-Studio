@@ -18,6 +18,7 @@ import { StudioNodeCard } from "../nodes/StudioNodeCard";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import type { StudioNode } from "../store/flow-editor.store";
 import type { FlowCanvasPreferences } from "./flow-canvas-ui-persistence";
+import { FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW } from "./flow-canvas-ui-persistence";
 import { parseStudioAssetDragData, type StudioAssetDragPayloadV1 } from "../../asset-browser/studio-asset-drag";
 import { parsePaletteCatalogDragData } from "./node-palette/palette-catalog-drag";
 import { parseStudioGlbExtractDragData, type StudioGlbExtractDragPayloadV1 } from "./node-palette/glb-extract-drag";
@@ -184,6 +185,7 @@ export function FlowCanvas(props: FlowCanvasProps) {
       const stroke = colorByType[type] ?? "rgb(113 113 122)";
       return {
         ...edge,
+        type: FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW[flowCanvasPreferences.edgeRoutingStyle],
         style: {
           ...(edge.style ?? {}),
           stroke,
@@ -197,7 +199,19 @@ export function FlowCanvas(props: FlowCanvasProps) {
         },
       };
     });
-  }, [edges, numberColor, booleanColor, stringColor, eventColor, vector3Color, quaternionColor, environmentColor, cameraColor, glbAnimationColor]);
+  }, [
+    edges,
+    numberColor,
+    booleanColor,
+    stringColor,
+    eventColor,
+    vector3Color,
+    quaternionColor,
+    environmentColor,
+    cameraColor,
+    glbAnimationColor,
+    flowCanvasPreferences.edgeRoutingStyle,
+  ]);
 
   const bootViewportAppliedRef = useRef(false);
 
@@ -264,6 +278,11 @@ export function FlowCanvas(props: FlowCanvasProps) {
           elementsSelectable
           snapToGrid={flowCanvasPreferences.snapToGrid}
           snapGrid={snapGrid}
+          defaultEdgeOptions={{
+            type: FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW[flowCanvasPreferences.edgeRoutingStyle],
+            animated: true,
+            style: { strokeWidth: 2 },
+          }}
           deleteKeyCode={["Backspace", "Delete"]}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}

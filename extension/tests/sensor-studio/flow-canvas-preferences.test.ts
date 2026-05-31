@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  coerceFlowCanvasPreferences,
   DEFAULT_FLOW_CANVAS_PREFERENCES,
+  FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW,
   mergeFlowCanvasPreferences,
-} from "../../src/webview/sensor-studio/features/editor/components/flow-canvas-ui-persistence";
+} from "../../src/webview/sensor-studio/persistence/flow-canvas-preferences";
 import { snapFlowPoint } from "../../src/webview/sensor-studio/features/editor/components/snap-flow-position";
 
 test("snapFlowPoint returns input when snap is disabled", () => {
@@ -28,7 +30,20 @@ test("mergeFlowCanvasPreferences accepts valid patches", () => {
   const next = mergeFlowCanvasPreferences(DEFAULT_FLOW_CANVAS_PREFERENCES, {
     showMinimap: true,
     backgroundHex: "#112233",
+    edgeRoutingStyle: "step",
+    autoFitViewOnReplace: false,
   });
   assert.equal(next.showMinimap, true);
   assert.equal(next.backgroundHex, "#112233");
+  assert.equal(next.edgeRoutingStyle, "step");
+  assert.equal(next.autoFitViewOnReplace, false);
+});
+
+test("coerceFlowCanvasPreferences defaults autoFitViewOnReplace to true", () => {
+  const next = coerceFlowCanvasPreferences({ showMinimap: true });
+  assert.equal(next.autoFitViewOnReplace, true);
+});
+
+test("FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW maps bezier to default", () => {
+  assert.equal(FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW.bezier, "default");
 });

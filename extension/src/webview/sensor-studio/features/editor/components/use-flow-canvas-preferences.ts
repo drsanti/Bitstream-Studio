@@ -1,17 +1,17 @@
 import { useCallback, useState } from "react";
 import {
   mergeFlowCanvasPreferences,
-  readStoredFlowCanvasPreferences,
   writeStoredFlowCanvasPreferences,
+  readStoredFlowCanvasPreferences,
   type FlowCanvasPreferences,
 } from "./flow-canvas-ui-persistence";
 
-export function useFlowCanvasPreferences(): {
+export function useFlowCanvasPreferences(initial?: FlowCanvasPreferences): {
   preferences: FlowCanvasPreferences;
   patchPreferences: (patch: Partial<FlowCanvasPreferences>) => void;
 } {
-  const [preferences, setPreferences] = useState<FlowCanvasPreferences>(() =>
-    readStoredFlowCanvasPreferences(),
+  const [preferences, setPreferences] = useState<FlowCanvasPreferences>(
+    () => initial ?? readStoredFlowCanvasPreferences(),
   );
 
   const patchPreferences = useCallback((patch: Partial<FlowCanvasPreferences>) => {

@@ -17,6 +17,7 @@ import { resolveStudioNodeSourceId } from "../../../../core/device/resolve-studi
 import type { StudioDemoTemplateId, StudioNode } from "../../store/flow-editor.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import type {
+  FlowCanvasEdgeRoutingStyle,
   FlowCanvasGridSize,
   FlowCanvasPreferences,
 } from "../flow-canvas-ui-persistence";
@@ -53,6 +54,13 @@ const GRID_SIZE_OPTIONS: { value: string; label: string }[] = [
   { value: "20", label: "20 px" },
   { value: "24", label: "24 px" },
   { value: "32", label: "32 px" },
+];
+
+const EDGE_ROUTING_OPTIONS: { value: FlowCanvasEdgeRoutingStyle; label: string }[] = [
+  { value: "bezier", label: "Bezier (curved)" },
+  { value: "smoothstep", label: "Smooth step" },
+  { value: "step", label: "Step" },
+  { value: "straight", label: "Straight" },
 ];
 
 function formatZoomPercent(zoom: number | undefined): string {
@@ -221,7 +229,7 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
           ) : null}
         </InspectorSection>
 
-        <InspectorSection title="View" hint="Pan and zoom for the flow canvas.">
+        <InspectorSection title="View" hint="Pan, zoom, edge routing, and replace behavior.">
           <InspectorPropertyRow label="Zoom">
             <span className="font-mono text-[12px] tabular-nums text-zinc-200/95">
               {formatZoomPercent(flowViewport?.zoom)}
@@ -248,6 +256,35 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
                 Restore view
               </TRNButton>
             ) : null}
+          </div>
+          <div className="mt-2.5 space-y-2.5 border-t border-zinc-800/60 pt-2.5">
+            <InspectorCompactToggleRow
+              label="Auto fit after replace"
+              hint="Fit view after Run template or JSON import without a saved viewport."
+              checked={flowCanvasPreferences.autoFitViewOnReplace}
+              onCheckedChange={(next) =>
+                onFlowCanvasPreferencesChange({ autoFitViewOnReplace: next })
+              }
+            />
+            <InspectorPropertyRow
+              label="Edge routing"
+              description="Wire path style for all flow edges."
+            >
+              <TRNSelect
+                value={flowCanvasPreferences.edgeRoutingStyle}
+                options={EDGE_ROUTING_OPTIONS.map((o) => ({
+                  value: o.value,
+                  label: o.label,
+                }))}
+                ariaLabel="Flow edge routing style"
+                size="sm"
+                onValueChange={(next) =>
+                  onFlowCanvasPreferencesChange({
+                    edgeRoutingStyle: next as FlowCanvasEdgeRoutingStyle,
+                  })
+                }
+              />
+            </InspectorPropertyRow>
           </div>
         </InspectorSection>
 

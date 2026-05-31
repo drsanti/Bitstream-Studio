@@ -1,5 +1,10 @@
 const STORAGE_KEY = "sensor-studio:flow-graph:v1";
 
+import {
+  coerceFlowCanvasPreferences,
+  type FlowCanvasPreferences,
+} from "./flow-canvas-preferences";
+
 function getWebLocalStorage(): Storage | null {
   if (typeof globalThis === "undefined") {
     return null;
@@ -14,7 +19,6 @@ function getWebLocalStorage(): Storage | null {
   return null;
 }
 
-/** React Flow viewport (canvas pan and zoom). Optional on persisted graphs. */
 export type StudioPersistedViewport = {
   x: number;
   y: number;
@@ -47,6 +51,8 @@ export type PersistedFlowDocumentV1 = {
   /** Multi-selection from React Flow; omitted in older saves. */
   selectedNodeIds?: string[];
   viewport?: StudioPersistedViewport;
+  /** Optional flow canvas chrome (grid, minimap, edge routing, etc.). */
+  canvasPreferences?: FlowCanvasPreferences;
 };
 
 export function readPersistedFlowDocument(): PersistedFlowDocumentV1 | null {
@@ -67,7 +73,11 @@ export function readPersistedFlowDocument(): PersistedFlowDocumentV1 | null {
       parsed.viewport != null && isValidStudioPersistedViewport(parsed.viewport)
         ? parsed.viewport
         : undefined;
-    return { ...parsed, viewport };
+    const canvasPreferences =
+      parsed.canvasPreferences != null
+        ? coerceFlowCanvasPreferences(parsed.canvasPreferences)
+        : undefined;
+    return { ...parsed, viewport, canvasPreferences };
   } catch {
     return null;
   }

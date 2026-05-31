@@ -35,6 +35,10 @@ import {
   isValidStudioPersistedViewport,
 } from "../../../persistence/flow-graph.repository";
 import {
+  coerceFlowCanvasPreferences,
+  type FlowCanvasPreferences,
+} from "../../../persistence/flow-canvas-preferences";
+import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
   persistScene3DConfig,
@@ -380,11 +384,12 @@ type FlowEditorState = {
   hydrateFlowDocument: (snapshot: FlowSnapshot) => void;
   exportFlowGraphJson: (options?: {
     viewport?: StudioPersistedViewport | null;
+    canvasPreferences?: FlowCanvasPreferences;
   }) => string;
   importFlowGraphJson: (
     json: string,
   ) =>
-    | { ok: true; viewport?: StudioPersistedViewport }
+    | { ok: true; viewport?: StudioPersistedViewport; canvasPreferences?: FlowCanvasPreferences }
     | { ok: false; message: string };
   duplicateSelection: () => void;
   deleteSelection: () => void;
@@ -1412,6 +1417,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const viewportArg = options?.viewport;
     const viewportPayload =
       viewportArg != null && isValidStudioPersistedViewport(viewportArg) ? viewportArg : undefined;
+    const canvasPreferences = options?.canvasPreferences;
     return JSON.stringify(
       {
         version: 1 as const,
@@ -1421,6 +1427,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         selectedNodeId: st.selectedNodeId,
         selectedNodeIds: st.selectedNodeIds,
         ...(viewportPayload != null ? { viewport: viewportPayload } : {}),
+        ...(canvasPreferences != null ? { canvasPreferences } : {}),
       },
       null,
       2,
@@ -1462,6 +1469,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       vpRaw != null && isValidStudioPersistedViewport(vpRaw)
         ? vpRaw
         : undefined;
+    const canvasPreferences =
+      o.canvasPreferences != null
+        ? coerceFlowCanvasPreferences(o.canvasPreferences)
+        : undefined;
     set({
       nodes: attachConfigErrorsWithModelChildRegistry(
         applyStudioFlowSelection(
@@ -1476,7 +1487,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       redoStack: [],
     });
     flushFlowSimulationPins(get);
-    return viewport != null ? { ok: true, viewport } : { ok: true };
+    if (viewport != null || canvasPreferences != null) {
+      return {
+        ok: true,
+        ...(viewport != null ? { viewport } : {}),
+        ...(canvasPreferences != null ? { canvasPreferences } : {}),
+      };
+    }
+    return { ok: true };
   },
   duplicateSelection: () => {
     const st = get();
