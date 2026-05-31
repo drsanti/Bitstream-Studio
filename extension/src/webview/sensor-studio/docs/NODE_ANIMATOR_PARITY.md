@@ -119,11 +119,24 @@ Drag a **studio** node onto a **frame** and release — it becomes a child and m
 - `features/editor/components/FlowCanvas.tsx` — render sort + drag stop
 - `extension/tests/sensor-studio/frame-flow-nodes.test.ts`
 
-## Phase 8+ — Planned
+## Phase 8 — Shipped
+
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Frame auto-fit toggle | Inspector switch | `FrameLayoutInspectorSection`, `data.autoFit` |
+| Fit to contents | Toolbar / inspector button | `fitSelectedFramesToContents` |
+| Dissolve frame | Inspector button | `dissolveSelectedFrames` |
+| Padding sliders | Header / sides / gap | TRN range sliders in frame inspector |
+
+### Key files
+
+- `features/editor/components/inspector/FrameLayoutInspectorSection.tsx`
+- `features/editor/store/flow-editor.store.ts` — `fitSelectedFramesToContents`, `dissolveSelectedFrames`
+
+## Phase 9+ — Planned
 
 - Subgraph-aware clipboard (when node groups ship)
 - Group / Tab drill-in (defer until subgraph epic)
-- Frame auto-fit toggle in inspector
 
 ## Shortcuts (current)
 

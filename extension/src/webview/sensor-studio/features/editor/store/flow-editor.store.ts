@@ -126,6 +126,7 @@ import { splitEdgeWithReroute, applyRerouteBridgeOnEdgeRemoves, removeFlowNodesF
 import {
   applyFlowFrameDragStop,
   dissolveStudioFrames,
+  fitFramesToContents,
   sortFlowNodesParentFirst,
 } from "../layout/frame-flow-nodes";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
@@ -491,6 +492,8 @@ type FlowEditorState = {
   spawnRerouteAt: (position: { x: number; y: number }) => string;
   insertRerouteOnEdge: (edgeId: string, flowPosition: { x: number; y: number }) => string | null;
   applyFlowFrameDragStop: (dragged: FlowGraphNode) => void;
+  fitSelectedFramesToContents: (frameIds?: string[]) => boolean;
+  dissolveSelectedFrames: (frameIds?: string[]) => boolean;
   updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
   /**
    * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
@@ -2271,6 +2274,56 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
     }));
     flushFlowSimulationPins(get);
+  },
+  fitSelectedFramesToContents: (frameIds) => {
+    const st = get();
+    const ids =
+      frameIds ??
+      (st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id).length > 0
+        ? st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id)
+        : st.selectedNodeId != null &&
+            st.nodes.find((n) => n.id === st.selectedNodeId)?.type === "studio-frame"
+          ? [st.selectedNodeId]
+          : []);
+    if (ids.length === 0) {
+      return false;
+    }
+    const result = fitFramesToContents(ids, st.nodes);
+    if (!result.changed) {
+      return false;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  dissolveSelectedFrames: (frameIds) => {
+    const st = get();
+    const ids =
+      frameIds ??
+      (st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id).length > 0
+        ? st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id)
+        : st.selectedNodeId != null &&
+            st.nodes.find((n) => n.id === st.selectedNodeId)?.type === "studio-frame"
+          ? [st.selectedNodeId]
+          : []);
+    if (ids.length === 0) {
+      return false;
+    }
+    const dissolved = dissolveStudioFrames(ids, st.nodes);
+    if (!dissolved.changed) {
+      return false;
+    }
+    get().pushUndoSnapshot();
+    const survivingSelectedIds = st.selectedNodeIds.filter((id) => !ids.includes(id));
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(dissolved.nodes, state.edges),
+      ...selectionFromIds(survivingSelectedIds),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
   },
   updateLayoutNodeData: (flowNodeId, patch) => {
     set((state) => ({

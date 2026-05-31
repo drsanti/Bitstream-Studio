@@ -322,6 +322,30 @@ export function fitParentFrameIfAutoFit(
   return { nodes: sortFlowNodesParentFirst(fitted.nodes), changed: true };
 }
 
+export function fitFramesToContents(
+  frameIds: string[],
+  nodes: FlowGraphNode[],
+): { nodes: FlowGraphNode[]; changed: boolean } {
+  if (frameIds.length === 0) {
+    return { nodes, changed: false };
+  }
+  let next = nodes;
+  let changed = false;
+  for (const frameId of frameIds) {
+    const frame = next.find((n) => n.id === frameId);
+    if (frame == null || !isStudioFrameNode(frame)) {
+      continue;
+    }
+    const fitted = fitFrameToContents(frame, next);
+    next = fitted.nodes;
+    changed = changed || fitted.fitted;
+  }
+  if (!changed) {
+    return { nodes: next, changed: false };
+  }
+  return { nodes: sortFlowNodesParentFirst(next), changed: true };
+}
+
 /** Remove layout frame(s) and keep children at their current canvas positions. */
 export function dissolveStudioFrames(
   frameIds: string[],

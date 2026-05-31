@@ -6,6 +6,7 @@ import {
   attachNodeToFrame,
   detachNodeFromFrame,
   dissolveStudioFrames,
+  fitFramesToContents,
   nodeAbsolutePosition,
   sortFlowNodesParentFirst,
   syncFrameChildren,
@@ -78,5 +79,15 @@ describe("frame-flow-nodes", () => {
     assert.equal(result.changed, true);
     const child = result.nodes.find((n) => n.id === "n1");
     assert.equal(child?.parentId, frame.id);
+  });
+
+  it("fitFramesToContents wraps parented children", () => {
+    const frame = buildFrameFlowNode({ x: 0, y: 0 });
+    const attached = attachNodeToFrame(studioNode("n1", 60, 60), frame, [frame]);
+    const nodes = [frame, attached];
+    const fitted = fitFramesToContents([frame.id], nodes);
+    assert.equal(fitted.changed, true);
+    const nextFrame = fitted.nodes.find((n) => n.id === frame.id);
+    assert.ok((nextFrame?.style?.width as number) >= 200);
   });
 });
