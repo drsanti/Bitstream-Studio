@@ -83,11 +83,23 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 - `extension/tests/sensor-studio/flow-clipboard.test.ts`
 - `extension/tests/sensor-studio/flow-port-edge-colors.test.ts`
 
-## Phase 5+ — Planned
+## Phase 5 — Shipped
+
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Shift+click edge → reroute | `onEdgeClick` + `splitEdgeWithReroute` | `FlowCanvas`, `reroute-graph-ops.ts`, `insertRerouteOnEdge` |
+
+### Key files
+
+- `features/editor/layout/reroute-graph-ops.ts` — split wire + pointer edge hit helper
+- `features/editor/store/flow-editor.store.ts` — `insertRerouteOnEdge`
+- `extension/tests/sensor-studio/reroute-graph-ops.test.ts`
+
+## Phase 6+ — Planned
 
 - Subgraph-aware clipboard (when node groups ship)
 - Group / Tab drill-in (defer until subgraph epic)
-- Shift+click edge → insert reroute (node-animator parity)
+- Reroute bridge on delete (auto-reconnect upstream→downstream)
 
 ## Shortcuts (current)
 
@@ -100,6 +112,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 | **Ctrl+D** | Duplicate |
 | **Delete / Backspace** | Delete selection (canvas focused) |
 | **R** | Spawn reroute at pointer |
+| **Shift+click** edge | Insert reroute on wire |
 | **Ctrl+C** | Copy selection (or full graph if none selected) |
 | **Ctrl+V** | Paste from clipboard |
 | **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** | Undo / redo |

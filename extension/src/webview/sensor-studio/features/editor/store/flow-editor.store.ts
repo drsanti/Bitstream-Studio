@@ -122,6 +122,7 @@ import {
   resolveWiredStudioModelSelectNodeId,
 } from "../model/model-generated-bindings";
 import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
+import { splitEdgeWithReroute } from "../layout/reroute-graph-ops";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
@@ -483,6 +484,7 @@ type FlowEditorState = {
     position: { x: number; y: number },
   ) => string;
   spawnRerouteAt: (position: { x: number; y: number }) => string;
+  insertRerouteOnEdge: (edgeId: string, flowPosition: { x: number; y: number }) => string | null;
   updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
   /**
    * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
@@ -2192,6 +2194,52 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ...selectionFromIds([nextNode.id]),
     }));
     return nextNode.id;
+  },
+  insertRerouteOnEdge: (edgeId, flowPosition) => {
+    const st = get();
+    const split = splitEdgeWithReroute(edgeId, flowPosition, st.nodes, st.edges);
+    if (split == null) {
+      return null;
+    }
+    const edge = st.edges.find((e) => e.id === edgeId);
+    if (edge?.source == null || edge.target == null) {
+      return null;
+    }
+    const sourceHandle = edge.sourceHandle ?? STUDIO_HANDLE_OUT;
+    const targetHandle = edge.targetHandle ?? STUDIO_HANDLE_IN;
+    const upstreamConnection = {
+      source: edge.source,
+      sourceHandle,
+      target: split.rerouteId,
+      targetHandle: "in",
+    };
+    const downstreamConnection = {
+      source: split.rerouteId,
+      sourceHandle: "out",
+      target: edge.target,
+      targetHandle,
+    };
+    get().pushUndoSnapshot();
+    set((state) => {
+      let nextNodes = split.nodes.map((n) =>
+        n.id === split.rerouteId ? { ...n, selected: true } : { ...n, selected: false },
+      );
+      nextNodes = patchLayoutNodesAfterConnect(nextNodes, upstreamConnection);
+      nextNodes = patchLayoutNodesAfterConnect(nextNodes, downstreamConnection);
+      nextNodes = patchStudioModelScopeOnConnect(nextNodes, upstreamConnection);
+      nextNodes = patchStudioModelScopeOnConnect(nextNodes, downstreamConnection);
+      const nextEdges = reconcileGlbEventModelScopeFromEdges(nextNodes, split.edges);
+      return {
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(nextNodes, [split.rerouteId]),
+          nextEdges,
+        ),
+        edges: nextEdges,
+        ...selectionFromIds([split.rerouteId]),
+      };
+    });
+    flushFlowSimulationPins(get);
+    return split.rerouteId;
   },
   updateLayoutNodeData: (flowNodeId, patch) => {
     set((state) => ({

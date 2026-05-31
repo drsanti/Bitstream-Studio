@@ -144,6 +144,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   const graphWrapperRef = useRef<HTMLDivElement>(null);
   const lastPointerRef = useRef<{ clientX: number; clientY: number } | null>(null);
   const addLayoutNodeAt = useFlowEditorStore((s) => s.addLayoutNodeAt);
+  const insertRerouteOnEdge = useFlowEditorStore((s) => s.insertRerouteOnEdge);
   const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{ clientX: number; clientY: number } | null>(
     null,
   );
@@ -330,6 +331,29 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     [onConnect],
   );
 
+  const handleEdgeClick = useCallback(
+    (event: MouseEvent, edge: Edge) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) {
+        return;
+      }
+      if (!event.shiftKey) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      const instance = reactFlowRef.current;
+      if (instance == null) {
+        return;
+      }
+      const flowPos = instance.screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+      insertRerouteOnEdge(edge.id, flowPos);
+    },
+    [insertRerouteOnEdge],
+  );
+
   const bootViewportAppliedRef = useRef(false);
 
   useEffect(() => {
@@ -419,6 +443,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           onConnect={handleConnect}
           onConnectStart={handleConnectStart}
           onConnectEnd={handleConnectEnd}
+          onEdgeClick={handleEdgeClick}
           connectionLineStyle={connectionLineStyle}
           onSelectionChange={(selection) => {
             onSelectionChange(selection.nodes.map((n) => n.id));
