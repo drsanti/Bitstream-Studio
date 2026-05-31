@@ -159,6 +159,8 @@ export function SensorStudioMain() {
   const redo = useFlowEditorStore((s) => s.redo);
   const hydrateFlowDocument = useFlowEditorStore((s) => s.hydrateFlowDocument);
   const duplicateSelection = useFlowEditorStore((s) => s.duplicateSelection);
+  const copyFlowSelectionToClipboard = useFlowEditorStore((s) => s.copyFlowSelectionToClipboard);
+  const pasteFlowFromClipboard = useFlowEditorStore((s) => s.pasteFlowFromClipboard);
   const deleteSelection = useFlowEditorStore((s) => s.deleteSelection);
   const selectAllNodes = useFlowEditorStore((s) => s.selectAllNodes);
   const clearNodeSelection = useFlowEditorStore((s) => s.clearNodeSelection);
@@ -681,6 +683,8 @@ export function SensorStudioMain() {
       clearNodeSelection,
       selectAllNodes,
       duplicateSelection,
+      copyFlowSelectionToClipboard,
+      pasteFlowFromClipboard,
       undo,
       redo,
       clearNow,
@@ -695,6 +699,8 @@ export function SensorStudioMain() {
       clearNodeSelection,
       selectAllNodes,
       duplicateSelection,
+      copyFlowSelectionToClipboard,
+      pasteFlowFromClipboard,
       undo,
       redo,
       clearNow,

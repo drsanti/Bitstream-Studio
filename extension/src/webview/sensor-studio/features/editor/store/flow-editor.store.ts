@@ -34,10 +34,15 @@ import {
   runFlowEventDispatch,
 } from "../../../core/flow/flow-event-runner";
 import { resolveSingleClipAutoBindPatchesForGlbAnimNodes } from "../gltf/glb-anim-clip-auto-bind";
-import { keyboardEventMatchesOnKeyConfig } from "../nodes/events/on-key-config";
+import {
+  buildFlowClipboardPayload,
+  parseFlowClipboard,
+  remapFlowPaste,
+  serializeFlowClipboard,
+} from "../clipboard/flow-clipboard";
 import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
 import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
-import { readGlbPartVisibilityScalar } from "../nodes/events/glb-part-event-config";
+import { readClipboardText, writeClipboardText } from "../../../../ui/utils/clipboard";
 import { validateStudioNodeConfig } from "../../../core/validation/node-config.validation";
 import {
   type StudioPersistedViewport,
@@ -449,6 +454,8 @@ type FlowEditorState = {
     | { ok: true; viewport?: StudioPersistedViewport; canvasPreferences?: FlowCanvasPreferences }
     | { ok: false; message: string };
   duplicateSelection: () => void;
+  copyFlowSelectionToClipboard: () => Promise<boolean>;
+  pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
@@ -1875,6 +1882,73 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ...selectionFromIds(dupIds),
     });
     flushFlowSimulationPins(get);
+  },
+  copyFlowSelectionToClipboard: async () => {
+    const st = get();
+    if (st.nodes.length === 0) {
+      return false;
+    }
+    const payload = buildFlowClipboardPayload(st.nodes, st.edges);
+    if (payload.nodes.length === 0) {
+      return false;
+    }
+    return writeClipboardText(serializeFlowClipboard(payload));
+  },
+  pasteFlowFromClipboard: async () => {
+    const text = await readClipboardText();
+    if (text == null) {
+      return { ok: false, message: "Clipboard is empty or unavailable." };
+    }
+    const payload = parseFlowClipboard(text);
+    if (payload == null || payload.nodes.length === 0) {
+      return { ok: false, message: "Clipboard does not contain a Sensor Studio flow selection." };
+    }
+    const st = get();
+    get().pushUndoSnapshot();
+    const { nodes: pastedRaw, edges: pastedEdgesRaw, idMap } = remapFlowPaste(payload);
+    const pastedNodesRaw: FlowGraphNode[] = pastedRaw.map((n) => {
+      if (isStudioFlowNode(n)) {
+        const migrated = refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n as StudioNode));
+        return {
+          ...migrated,
+          selected: true,
+          dragHandle: dragHandleSelectorForNodeId(migrated.data.nodeId),
+          data: stripTransientStudioNodeData(migrated.data),
+        };
+      }
+      return { ...n, selected: true };
+    });
+    const pastedNodes = remapSourceModelNodeIdAfterDuplicate(
+      pastedNodesRaw as StudioNode[],
+      idMap,
+    ) as FlowGraphNode[];
+    for (const nn of pastedNodes) {
+      nn.selected = true;
+    }
+    const pastedEdges: Edge[] = pastedEdgesRaw.map((e) => {
+      const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
+      const sourceStub = pastedNodes.find((n) => n.id === e.source);
+      const label = sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle) : "";
+      return {
+        ...e,
+        animated: true,
+        label,
+        style: { ...(e.style ?? {}), strokeWidth: 2 },
+      };
+    });
+    const mergedNodes = [
+      ...st.nodes.map((n) => ({ ...n, selected: false })),
+      ...pastedNodes,
+    ];
+    const pastedIds = pastedNodes.map((n) => n.id);
+    const mergedEdges = [...st.edges, ...pastedEdges];
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges),
+      edges: mergedEdges,
+      ...selectionFromIds(pastedIds),
+    });
+    flushFlowSimulationPins(get);
+    return { ok: true };
   },
   deleteSelection: () => {
     const st = get();

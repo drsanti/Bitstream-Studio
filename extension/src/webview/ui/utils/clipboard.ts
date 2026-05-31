@@ -1,3 +1,12 @@
+export async function readClipboardText(): Promise<string | null> {
+  try {
+    const text = await navigator.clipboard.readText();
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function writeClipboardText(text: string): Promise<boolean> {
   const normalized = text.replace(/\n$/, "");
   if (!normalized) {

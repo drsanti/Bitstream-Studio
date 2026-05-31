@@ -2,6 +2,7 @@ import {
   Background,
   BackgroundVariant,
   MiniMap,
+  type OnConnectStartParams,
   type ReactFlowInstance,
   ReactFlow,
   type Edge,
@@ -19,6 +20,8 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type MouseEvent,
+  type TouchEvent,
 } from "react";
 import "@xyflow/react/dist/style.css";
 import "../nodes/flow-node/flow-node-handles.css";
@@ -44,6 +47,13 @@ import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
 import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
+import { resolveFlowSourcePortType } from "../layout/layout-port-resolution";
+import {
+  buildFlowPortColorMap,
+  decorateFlowEdges,
+  FLOW_EDGE_FALLBACK_STROKE,
+  strokeForPortType,
+} from "../edges/flow-port-edge-colors";
 
 type FlowCanvasProps = {
   borderColor: string;
@@ -136,6 +146,43 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
   const addLayoutNodeAt = useFlowEditorStore((s) => s.addLayoutNodeAt);
   const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{ clientX: number; clientY: number } | null>(
     null,
+  );
+  const [connectingLineStroke, setConnectingLineStroke] = useState<string | null>(null);
+
+  const portColorMap = useMemo(
+    () =>
+      buildFlowPortColorMap({
+        numberColor,
+        booleanColor,
+        stringColor,
+        eventColor,
+        vector3Color,
+        quaternionColor,
+        environmentColor,
+        cameraColor,
+        glbAnimationColor,
+        transformColor,
+      }),
+    [
+      numberColor,
+      booleanColor,
+      stringColor,
+      eventColor,
+      vector3Color,
+      quaternionColor,
+      environmentColor,
+      cameraColor,
+      glbAnimationColor,
+      transformColor,
+    ],
+  );
+
+  const connectionLineStyle = useMemo(
+    () => ({
+      stroke: connectingLineStroke ?? FLOW_EDGE_FALLBACK_STROKE,
+      strokeWidth: 2,
+    }),
+    [connectingLineStroke],
   );
 
   const addableEntries = useMemo(() => listAddableCatalogEntries(catalogEntries), [catalogEntries]);
@@ -248,52 +295,40 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     [addLayoutNodeAt],
   );
 
-  const coloredEdges = useMemo(() => {
-    const colorByType: Record<string, string> = {
-      number: numberColor,
-      boolean: booleanColor,
-      string: stringColor,
-      event: eventColor,
-      vector3: vector3Color,
-      quaternion: quaternionColor,
-      environment: environmentColor,
-      camera: cameraColor,
-      glbAnimation: glbAnimationColor,
-      transform: transformColor,
-    };
-    return edges.map((edge) => {
-      const type = typeof edge.label === "string" ? edge.label : "";
-      const stroke = colorByType[type] ?? "rgb(113 113 122)";
-      return {
-        ...edge,
-        type: FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW[flowCanvasPreferences.edgeRoutingStyle],
-        style: {
-          ...(edge.style ?? {}),
-          stroke,
-          strokeWidth: 2,
-        },
-        labelStyle: {
-          ...(edge.labelStyle ?? {}),
-          fill: stroke,
-          fontSize: 11,
-          fontWeight: 600,
-        },
-      };
-    });
-  }, [
-    edges,
-    numberColor,
-    booleanColor,
-    stringColor,
-    eventColor,
-    vector3Color,
-    quaternionColor,
-    environmentColor,
-    cameraColor,
-    glbAnimationColor,
-    transformColor,
-    flowCanvasPreferences.edgeRoutingStyle,
-  ]);
+  const coloredEdges = useMemo(
+    () => decorateFlowEdges(edges, portColorMap, flowCanvasPreferences.edgeRoutingStyle),
+    [edges, portColorMap, flowCanvasPreferences.edgeRoutingStyle],
+  );
+
+  const handleConnectStart = useCallback(
+    (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
+      const { nodeId, handleId, handleType } = params;
+      if (nodeId == null || handleId == null || handleType !== "source") {
+        setConnectingLineStroke(null);
+        return;
+      }
+      const node = nodes.find((n) => n.id === nodeId);
+      if (node == null) {
+        setConnectingLineStroke(null);
+        return;
+      }
+      const portType = resolveFlowSourcePortType(node, handleId);
+      setConnectingLineStroke(strokeForPortType(portColorMap, portType));
+    },
+    [nodes, portColorMap],
+  );
+
+  const handleConnectEnd = useCallback(() => {
+    setConnectingLineStroke(null);
+  }, []);
+
+  const handleConnect = useCallback(
+    (connection: Parameters<OnConnect>[0]) => {
+      setConnectingLineStroke(null);
+      onConnect(connection);
+    },
+    [onConnect],
+  );
 
   const bootViewportAppliedRef = useRef(false);
 
@@ -381,7 +416,10 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           deleteKeyCode={["Backspace", "Delete"]}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
+          onConnect={handleConnect}
+          onConnectStart={handleConnectStart}
+          onConnectEnd={handleConnectEnd}
+          connectionLineStyle={connectionLineStyle}
           onSelectionChange={(selection) => {
             onSelectionChange(selection.nodes.map((n) => n.id));
           }}

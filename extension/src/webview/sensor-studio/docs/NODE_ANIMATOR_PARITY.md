@@ -68,11 +68,26 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 - `features/editor/store/flow-editor.store.ts` — `addLayoutNodeAt`, `spawnRerouteAt`, connect rules
 - `extension/tests/sensor-studio/layout-flow-nodes.test.ts`
 
-## Phase 4+ — Planned
+## Phase 4 — Shipped
 
-- Socket-colored edges while connecting
-- Subgraph-aware clipboard (`flowClipboard.ts` port)
+| Feature | Reference | Sensor Studio |
+|---------|-----------|---------------|
+| Type-colored wire while connecting | `onConnectStart` + `connectionLineStyle` | `FlowCanvas` + `flow-port-edge-colors.ts` |
+| Copy / paste selection | `flowClipboard.ts` | `clipboard/flow-clipboard.ts`, **Ctrl+C** / **Ctrl+V** |
+
+### Key files
+
+- `features/editor/edges/flow-port-edge-colors.ts` — shared edge + connection-line colors
+- `features/editor/clipboard/flow-clipboard.ts` — JSON clipboard marker + remap on paste
+- `features/editor/store/flow-editor.store.ts` — `copyFlowSelectionToClipboard`, `pasteFlowFromClipboard`
+- `extension/tests/sensor-studio/flow-clipboard.test.ts`
+- `extension/tests/sensor-studio/flow-port-edge-colors.test.ts`
+
+## Phase 5+ — Planned
+
+- Subgraph-aware clipboard (when node groups ship)
 - Group / Tab drill-in (defer until subgraph epic)
+- Shift+click edge → insert reroute (node-animator parity)
 
 ## Shortcuts (current)
 
@@ -85,6 +100,8 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 | **Ctrl+D** | Duplicate |
 | **Delete / Backspace** | Delete selection (canvas focused) |
 | **R** | Spawn reroute at pointer |
+| **Ctrl+C** | Copy selection (or full graph if none selected) |
+| **Ctrl+V** | Paste from clipboard |
 | **Ctrl+Z / Ctrl+Shift+Z / Ctrl+Y** | Undo / redo |
 
 See node-animator `docs/architecture/10-editor-ux.md` for the full reference set.

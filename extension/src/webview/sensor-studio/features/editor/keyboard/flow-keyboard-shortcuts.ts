@@ -8,6 +8,8 @@ export type FlowKeyboardShortcutActions = {
   clearNodeSelection: () => void;
   selectAllNodes: () => void;
   duplicateSelection: () => void;
+  copyFlowSelectionToClipboard: () => Promise<boolean>;
+  pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
   undo: () => void;
   redo: () => void;
   clearNow: () => void;
@@ -61,6 +63,16 @@ export function handleFlowKeyboardShortcut(
 
   if (mod && !event.shiftKey && (key === "d" || key === "D")) {
     ctx.duplicateSelection();
+    return true;
+  }
+
+  if (mod && !event.shiftKey && (key === "c" || key === "C")) {
+    void ctx.copyFlowSelectionToClipboard();
+    return true;
+  }
+
+  if (mod && !event.shiftKey && (key === "v" || key === "V")) {
+    void ctx.pasteFlowFromClipboard();
     return true;
   }
 
