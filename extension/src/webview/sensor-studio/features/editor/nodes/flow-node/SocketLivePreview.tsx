@@ -5,6 +5,8 @@ import {
   ReadingNumber,
   ReadingValueGroup,
 } from "./readings";
+import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./readings/socket-live-value-cell";
+import { twMerge } from "tailwind-merge";
 
 export type SocketLivePreviewProps = {
   portType: StudioPortType;
@@ -24,7 +26,7 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   if (portType === "vector3" && vector3 != null) {
     const fractionDigits = handleId === "euler" ? 3 : 2;
     return (
-      <ReadingValueGroup className="justify-end gap-x-1 text-[10px]">
+      <ReadingValueGroup className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "justify-end gap-x-1")}>
         <ReadingAxisNumber
           compact
           socketFixedCell
@@ -68,7 +70,7 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
       <ReadingNumber
         value={scalar}
         fractionDigits={2}
-        className="block text-right text-[10px] text-zinc-100"
+        className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "block text-right text-zinc-100")}
       />
     );
   }

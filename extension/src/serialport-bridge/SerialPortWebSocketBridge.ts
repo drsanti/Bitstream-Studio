@@ -196,25 +196,34 @@ export class SerialPortWebSocketBridge {
     const prev = this.telemetryRouteMode;
     this.telemetryRouteMode = route.mode;
     this.telemetryRouteAtMs = atMs;
-    if (prev === route.mode)
+    const modeChanged = prev !== route.mode;
+    if (modeChanged)
     {
-      return;
-    }
-    this.pushOperation(
-      "telemetry-route",
-      `telemetry route → ${route.mode}`,
-    );
-    if (route.mode === "simulator" && this.port.isOpen())
-    {
-      this.setHostUartSessionActive(false, "telemetry-route-simulator");
-      this.clearBs2HandshakeState("telemetry-route-simulator");
-      this.bsUartDecoder.reset();
-      void this.port.close().catch(() => {
-        void this.port.forceClose().catch(() => {
-          /* ignore */
+      this.pushOperation(
+        "telemetry-route",
+        `telemetry route → ${route.mode}`,
+      );
+      if (route.mode === "simulator" && this.port.isOpen())
+      {
+        this.setHostUartSessionActive(false, "telemetry-route-simulator");
+        this.clearBs2HandshakeState("telemetry-route-simulator");
+        this.bsUartDecoder.reset();
+        void this.port.close().catch(() => {
+          void this.port.forceClose().catch(() => {
+            /* ignore */
+          });
         });
-      });
-      void this.schedulePublishStatus();
+      }
+    }
+    /* Late joiner (VSIX / refresh): re-publish snapshot + last HELLO when route is re-asserted. */
+    void this.schedulePublishStatus();
+    if (
+      route.mode === "uart" &&
+      this.bsLastHello != null &&
+      this.bridgeHandshakeState === "passed"
+    )
+    {
+      void this.client.publish(BITSTREAM2_TOPICS.HELLO, this.bsLastHello, 0);
     }
   }
 

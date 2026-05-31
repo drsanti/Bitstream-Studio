@@ -1,7 +1,7 @@
 import { twMerge } from "tailwind-merge";
 import { ReadingNumber, type ReadingNumberProps } from "./ReadingNumber";
 import { readingParamAxisValueClass } from "./param-axis-classes";
-import { socketLiveValueCellClass } from "./socket-live-value-cell";
+import { SOCKET_LIVE_VALUE_TYPOGRAPHY, socketLiveValueCellClass } from "./socket-live-value-cell";
 
 export type ReadingAxis = "x" | "y" | "z" | "w";
 
@@ -46,9 +46,11 @@ export function ReadingAxisNumber(props: ReadingAxisNumberProps) {
       ) : null}
       <ReadingNumber
         className={twMerge(
-          "text-right text-[10px]",
+          "text-right",
+          compact && socketFixedCell
+            ? twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, socketLiveValueCellClass(fractionDigits))
+            : "text-[10px]",
           readingParamAxisValueClass(axis),
-          compact && socketFixedCell ? socketLiveValueCellClass(fractionDigits) : null,
           className,
         )}
         fractionDigits={fractionDigits}

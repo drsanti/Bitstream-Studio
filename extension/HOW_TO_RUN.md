@@ -420,6 +420,49 @@ Bridge logs external sim detection via `bitstream2/sim/status` heartbeat.
 
 ---
 
+## Connection troubleshooting ladder
+
+Use when **Link** fails or telemetry stays idle. Daily workflow: toolbar **Link** only. For diagnosis, open **☰ → System → Connection…** (Guided mode) or **Diagnostics & runtime services** (same **Connect all** / **Disconnect all** actions).
+
+### Step order
+
+| Step | What | Success signal | Dev (`npm run dev:webview`) | VSIX |
+|------|------|----------------|----------------------------|------|
+| **1. Bridge** | Broker + UART on `:9998` | Port reachable | `cd extension && npm run start:bridge` | Extension auto-starts; **Start bridge** in Connection panel if stopped |
+| **2. WebSocket** | Webview client → broker | WS connected | Auto-retry; **Continue: Connect WebSocket** | Same |
+| **3. Source** | Bitstream vs Simulator | Route published | Toolbar source toggle + **Publish route** | Same |
+| **4. Transport** | COM @ 921600 or external sim | COM open (UART) or sim streaming | Port Admin **Allow** list; **Next Link port** | Same |
+| **5. Handshake** | BS2 HELLO / PING | Handshake OK | **Retry handshake** after COM open | Same |
+| **6. Link ready** | Workspace gates | Sensor deck unlocks | Toolbar **Link** or **Connect all** | Same |
+
+### Guided **Continue**
+
+In **Connection… → Guided**, the progress bar shows **Continue: …** for the first blocked step only. Expert mode exposes every control.
+
+### **Disconnect all** (reverse order)
+
+1. Close COM (UART)  
+2. Disconnect WebSocket  
+3. Stop bridge (VSIX only; dev: stop your terminal bridge)
+
+### UART COM pick (Allow list)
+
+- **Allow ON** = whitelist (Link may use this port)  
+- **Allow OFF** = blacklist  
+- **★** = active target (wins among allowed ports)  
+- Empty Allow list + no ★ target → no auto-connect (by design)
+
+CLI parity for handshake failures:
+
+```bash
+cd extension
+npm run bitstream2:uart-probe -- --path COM3 --baud 921600
+```
+
+See **`docs/TELEMETRY_MODE_LIFECYCLE.md`** for Bitstream vs Simulator exclusivity.
+
+---
+
 ## CI
 
 ```bash

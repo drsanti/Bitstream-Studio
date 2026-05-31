@@ -2,6 +2,7 @@ import {
   FolderOpen,
   Gauge,
   KeyRound,
+  Link2,
   LayoutGrid,
   LayoutTemplate,
   MessageSquareText,
@@ -44,6 +45,7 @@ export function BitstreamHeaderMenuPanel(props: {
   onOpenTelemetryPerformanceSettings: () => void;
   onOpenTelemetryLinkDiagnostics: () => void;
   onOpenSystemDiagnostics: () => void;
+  onOpenConnection: () => void;
 }) {
   const {
     menu,
@@ -58,6 +60,7 @@ export function BitstreamHeaderMenuPanel(props: {
     onOpenTelemetryPerformanceSettings,
     onOpenTelemetryLinkDiagnostics,
     onOpenSystemDiagnostics,
+    onOpenConnection,
   } = props;
 
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
@@ -131,6 +134,11 @@ export function BitstreamHeaderMenuPanel(props: {
     onOpenSystemDiagnostics();
     menu.closeMenu();
   }, [menu, onOpenSystemDiagnostics]);
+
+  const handleOpenConnection = useCallback(() => {
+    onOpenConnection();
+    menu.closeMenu();
+  }, [menu, onOpenConnection]);
 
   const handleToggleBitstreamAssistant = useCallback(() => {
     toggleAssistant();
@@ -247,6 +255,14 @@ export function BitstreamHeaderMenuPanel(props: {
             onClick={handleOpenAnthropicApiKeySettings}
             icon={<KeyRound className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />}
             label="Assistant AI settings"
+          />
+          <TRNMenuSectionTitle spacing="menuNext">System</TRNMenuSectionTitle>
+          <TRNMenuItemButton
+            role="menuitem"
+            onClick={handleOpenConnection}
+            icon={<Link2 className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />}
+            label="Connection…"
+            title="Step-by-step bridge, WebSocket, COM, and handshake"
           />
           <TRNMenuItemButton
             role="menuitem"

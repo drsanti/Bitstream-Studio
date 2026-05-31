@@ -82,7 +82,7 @@ export function TRNChipButtonGroup<
                 }
               }}
               className={twMerge(
-                "inline-flex items-center justify-center gap-1 rounded border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-cyan-400/50",
+                "inline-flex w-full min-w-0 items-center justify-center gap-1 rounded border transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-cyan-400/50",
                 paddingClass,
                 textClass,
                 isOptionDisabled || isLoading

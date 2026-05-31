@@ -1,4 +1,5 @@
-import { TRNButton, TRNHintText, TRNRangeSlider } from "@/ui/TRN";
+import { TRNChipButtonGroup, TRNHintText, TRNRangeSlider } from "@/ui/TRN";
+import { useMemo } from "react";
 import {
   clampIntervalMs,
   hzFromIntervalMs,
@@ -27,6 +28,9 @@ export type SensorHzRateFieldProps = {
   onIntervalMsChange: (intervalMs: number) => void;
 };
 
+/** Equal-width preset grid — stable wrap (4 + 3 for seven slow-sensor rates). */
+const PRESET_CHIP_COLUMNS = 4 as const;
+
 export function SensorHzRateField({
   presets,
   intervalMs,
@@ -46,6 +50,11 @@ export function SensorHzRateField({
       ? 0
       : clampIntervalMs(intervalMs, clampMinMs, clampMaxMs);
   const matchedHz = presetMatchesInterval(presets, clampedMs);
+
+  const presetOptions = useMemo(
+    () => presets.map((p) => ({ value: p.intervalMs, label: p.label })),
+    [presets],
+  );
 
   const { minHz, maxHz } = hzSliderBoundsFromPresets(presets, allowZero);
   const presetStepHz = hzSliderStepFromPresets(presets);
@@ -72,20 +81,16 @@ export function SensorHzRateField({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex flex-wrap gap-1">
-        {presets.map((p) => (
-          <TRNButton
-            key={`${p.hz}-${p.intervalMs}`}
-            size="compact"
-            className="min-w-14 flex-1 border-zinc-700/80"
-            selected={matchedHz === p.hz}
-            disabled={disabled}
-            onClick={() => onIntervalMsChange(p.intervalMs)}
-          >
-            {p.label}
-          </TRNButton>
-        ))}
-      </div>
+      <TRNChipButtonGroup
+        ariaLabel="Rate presets"
+        value={clampedMs}
+        options={presetOptions}
+        columns={PRESET_CHIP_COLUMNS}
+        size="sm"
+        disabled={disabled}
+        className="space-y-0"
+        onChange={onIntervalMsChange}
+      />
       <div className="flex items-center gap-2">
         <TRNRangeSlider
           className="min-w-0 flex-1 pb-0"

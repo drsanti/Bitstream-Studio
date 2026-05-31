@@ -2,6 +2,9 @@
 @import 'tailwindcss';
 @config "../../tailwind.config.mjs";
 
+/* Default UI sans — bundled for VS Code webview (CSP-safe, no CDN). */
+@import '@fontsource-variable/inter';
+
 /* Shared T3D design tokens + base styles (synced from T3D/src/index.css) */
 @import './t3d-shared.css';
 
@@ -23,7 +26,7 @@ html {
   overflow: hidden;
   background-color: #222;
   color: #ccc;
-  font-family: Inter, Helvetica, sans-serif, Arial;
+  @apply font-sans antialiased;
 }
 
 /* Global default: dark micro scrollbars everywhere (opt-out via `.scrollbar-hide`). */

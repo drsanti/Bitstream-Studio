@@ -16,15 +16,22 @@ export interface BitstreamBootLifecycleBarProps {
   runtimeSyncState: "idle" | "syncing_snapshot" | "ready";
   handshakeState: HandshakeLifecycleState;
   firmwareSensorTruthReady: boolean;
+  /** Opens the Connection step-by-step panel (optional step focus). */
+  onOpenConnection?: (stepId?: string) => void;
   /** Optional trailing region (e.g. collaborator sync summary). */
   trailingSlot?: ReactNode;
 }
 
 type StepTone = "muted" | "active" | "ok" | "warn";
 
-function StepPill(props: { icon: ReactNode; label: string; tone: StepTone })
+function StepPill(props: {
+  icon: ReactNode;
+  label: string;
+  tone: StepTone;
+  onClick?: () => void;
+})
 {
-  const { icon, label, tone } = props;
+  const { icon, label, tone, onClick } = props;
   const ring =
     tone === "ok"
       ? "border-emerald-400/35 bg-emerald-500/15 text-emerald-100/95"
@@ -34,12 +41,17 @@ function StepPill(props: { icon: ReactNode; label: string; tone: StepTone })
           ? "border-amber-400/35 bg-amber-500/12 text-amber-100/90"
           : "border-white/12 bg-white/[0.06] text-white/55";
   return (
-    <div
-      className={`flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none ${ring}`}
+    <button
+      type="button"
+      disabled={onClick == null}
+      onClick={onClick}
+      className={`flex min-w-0 items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none ${ring} ${
+        onClick != null ? "cursor-pointer hover:brightness-110" : "cursor-default"
+      }`}
     >
       <span className="shrink-0 opacity-90">{icon}</span>
       <span className="truncate">{label}</span>
-    </div>
+    </button>
   );
 }
 
@@ -138,6 +150,7 @@ export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps)
     handshakeState,
     firmwareSensorTruthReady,
     trailingSlot,
+    onOpenConnection,
   } = props;
 
   const wifiSync = useBitstreamWifiStore((s) => s.wifiSync);
@@ -191,11 +204,13 @@ export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps)
           icon={<Usb className="h-3 w-3" aria-hidden />}
           label={t.label}
           tone={t.tone}
+          onClick={onOpenConnection != null ? () => onOpenConnection("transport") : undefined}
         />
         <StepPill
           icon={<Cable className="h-3 w-3" aria-hidden />}
           label={b.label}
           tone={b.tone}
+          onClick={onOpenConnection != null ? () => onOpenConnection("websocket") : undefined}
         />
         <StepPill
           icon={
@@ -207,6 +222,7 @@ export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps)
           }
           label={h.label}
           tone={h.tone}
+          onClick={onOpenConnection != null ? () => onOpenConnection("handshake") : undefined}
         />
         <StepPill
           icon={<Radio className="h-3 w-3" aria-hidden />}
@@ -252,6 +268,15 @@ export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps)
         </span>
       </div>
       <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+        {onOpenConnection != null ? (
+          <button
+            type="button"
+            className="rounded border border-zinc-600/70 bg-zinc-900/60 px-2 py-0.5 text-[10px] font-medium text-zinc-200 hover:bg-zinc-800/80"
+            onClick={() => onOpenConnection()}
+          >
+            Connection…
+          </button>
+        ) : null}
         {trailingSlot != null ? (
           <div className="flex shrink-0 items-center justify-end">{trailingSlot}</div>
         ) : null}

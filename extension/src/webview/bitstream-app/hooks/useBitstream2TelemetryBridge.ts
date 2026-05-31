@@ -33,6 +33,10 @@ const LISTENER_ID = "bitstream-app-bs2-telemetry-bridge";
 
 const BMI270_WIRE_GAP_RING_MAX = 64;
 
+/** VSIX: extension spawns the bridge async; dev usually has `start:bridge` already up. */
+const WS_CONNECT_RETRY_MS = 500;
+const WS_CONNECT_MAX_ATTEMPTS = 40;
+
 /** External sim online: mark loopback when BS2 arrives without open COM (status hint only). */
 function noteExternalSimulatorOnline(conn: TelemetryTransportSnapshot): void {
   if (conn.serialBridgeStatus?.isOpen === true) {
@@ -131,8 +135,40 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
     handlersRef.current.onSimConfigsSynced?.();
   }, [applyHandshakeFromSimState, markRuntimeReadyForBs2Link]);
 
+  const applyRuntimeSnapshotHandshake = useCallback((snapshot: BridgeRuntimeSnapshotPayload) => {
+    if (snapshot.handshakeState !== "passed") {
+      return;
+    }
+    handlersRef.current.setHandshakeState?.("passed");
+    if (snapshot.handshakeLastError != null) {
+      useBitstreamLiveStore.getState().setHandshakeLastError(null);
+    }
+    reconcileBs2HandshakePassedFromStores();
+    markRuntimeReadyForBs2Link();
+  }, [markRuntimeReadyForBs2Link]);
+
   useEffect(() => {
-    void connect();
+    let cancelled = false;
+
+    void (async () => {
+      for (let attempt = 0; attempt < WS_CONNECT_MAX_ATTEMPTS && !cancelled; attempt++) {
+        if (useWsClientStore.getState().isConnected) {
+          return;
+        }
+        try {
+          await connect();
+          return;
+        } catch {
+          await new Promise<void>((resolve) => {
+            window.setTimeout(resolve, WS_CONNECT_RETRY_MS);
+          });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [connect]);
 
   /** Re-assert route + sim control when WS connects. */
@@ -188,13 +224,14 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
         useBitstreamConnectionStore.getState().setSerialBridgeStatus(
           payload as SerialPortStatusPayload,
         );
+        reconcileBs2HandshakePassedFromStores();
         return;
       }
 
       if (topic === SERIALPORT_TOPICS.RUNTIME_SNAPSHOT) {
-        useBitstreamConnectionStore.getState().setRuntimeSnapshot(
-          payload as BridgeRuntimeSnapshotPayload,
-        );
+        const snapshot = payload as BridgeRuntimeSnapshotPayload;
+        useBitstreamConnectionStore.getState().setRuntimeSnapshot(snapshot);
+        applyRuntimeSnapshotHandshake(snapshot);
         return;
       }
 
@@ -286,6 +323,7 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
     removeMessageListener,
     subscribeTopic,
     applyHandshakeFromSimState,
+    applyRuntimeSnapshotHandshake,
     syncSimConfigs,
     getTelemetryConnSnapshot,
   ]);

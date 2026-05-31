@@ -1,13 +1,21 @@
-import { Activity, Copy } from "lucide-react";
+import { Activity, Copy, Plug, Unplug } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getDefaultAiBridgeWsUrl } from "../../../ai-bridge/ai-bridge-webview-config";
 import { postAiBridgeGetStatusFromExtension } from "../../../ai-bridge/ai-bridge-extension-messages";
 import { useAiBridgeExtensionHostStatus } from "../../../ai-bridge/useAiBridgeExtensionHostStatus";
 import { isVsCodeExtensionWebview } from "../../../isVsCodeExtensionWebview";
 import { getModelLoaderWsClientUrl } from "../../../runtimeWsUrls";
+import { useWsClientStore } from "../../../ws-client-store.js";
 import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
 import { useBitstreamConnectionStore } from "../../state/bitstreamConnection.store.js";
 import { useBitstreamLiveStore } from "../../state/bitstreamLive.store.js";
+import { useBitstreamTelemetrySourceStore } from "../../state/bitstreamTelemetrySource.store.js";
+import { postSerialBridgeStartFromExtension } from "../../bridge/serial-bridge-extension-messages.js";
+import { useSerialBridgeExtensionHostStatus } from "../../bridge/useSerialBridgeExtensionHostStatus.js";
+import { openUartPortAndHandshake } from "../../bridge/openUartPortAndHandshake.js";
+import { useConnectionPanelStore, type ConnectionStepId } from "../../connection/connectionPanel.store.js";
+import { useConnectionPanelActions } from "../../connection/connectionPanelActions.context.js";
+import { TRNButton, TRNHintText } from "../../../ui/TRN/index.js";
 import type { SerialRxWireWindowStats } from "../../../../serialport-bridge/protocol";
 
 type HealthTier = "ok" | "warn" | "bad" | "neutral";
@@ -236,6 +244,69 @@ function aiHostTier(
   return { tier: "bad", label: "Stopped", detail: `Last port ${host.port ?? "—"}` };
 }
 
+function serialBridgeHostTier(
+  ext: boolean,
+  host: {
+    running: boolean;
+    port: number | null;
+    managedByExtension: boolean;
+    externalProcess?: boolean;
+    warning?: string;
+  } | null,
+): { tier: HealthTier; label: string; detail?: string } {
+  if (!ext) {
+    return {
+      tier: "neutral",
+      label: "External (dev)",
+      detail: "Run npm run start:bridge in extension/",
+    };
+  }
+  if (host == null) {
+    return { tier: "warn", label: "Unknown", detail: "No bridge status yet." };
+  }
+  if (host.running) {
+    if (host.externalProcess) {
+      return {
+        tier: "warn",
+        label: "External process",
+        detail: host.warning ?? `Port ${host.port ?? 9998} · not extension-managed`,
+      };
+    }
+    return {
+      tier: "ok",
+      label: "Running",
+      detail: `Port ${host.port ?? 9998}${host.managedByExtension ? " · extension" : ""}`,
+    };
+  }
+  return { tier: "bad", label: "Stopped", detail: host.warning ?? "Start bridge from Connection panel." };
+}
+
+function suggestConnectionFocusStep(input: {
+  ext: boolean;
+  bridgeHostRunning: boolean;
+  wsConnected: boolean;
+  handshakeState: string;
+  serialOpen: boolean;
+  backend: string;
+}): ConnectionStepId | undefined {
+  if (ext && !input.bridgeHostRunning) {
+    return "bridge";
+  }
+  if (!input.wsConnected) {
+    return "websocket";
+  }
+  if (input.backend === "simulator") {
+    return "transport";
+  }
+  if (!input.serialOpen) {
+    return "transport";
+  }
+  if (input.handshakeState !== "passed") {
+    return "handshake";
+  }
+  return undefined;
+}
+
 export type RuntimeServicesHealthPanelProps = {
   /** When false, WebSocket probes pause and extension status refresh is skipped. */
   active: boolean;
@@ -272,14 +343,15 @@ function HealthRow(props: {
 }
 
 /**
- * Read-only summary of Bitstream transport, firmware handshake, AI bridge host, and optional broker reachability.
- * Uses existing Zustand slices and extension `ai-bridge-status` — does not open a duplicate AI assistant WebSocket.
+ * Bitstream transport, firmware handshake, AI bridge host, and optional broker reachability.
+ * Quick connection actions link to the Guided Connection panel (same orchestration as toolbar Link).
  */
 export function RuntimeServicesHealthPanel(props: RuntimeServicesHealthPanelProps) {
   const { active } = props;
   const ext = isVsCodeExtensionWebview();
   const bitstreamWsUrl = useBitstreamConfigStore((s) => s.wsUrl);
   const serialPath = useBitstreamConfigStore((s) => s.serialPath);
+  const backend = useBitstreamTelemetrySourceStore((s) => s.backend);
   const backendWsState = useBitstreamConnectionStore((s) => s.backendWsState);
   const transportState = useBitstreamConnectionStore((s) => s.transportState);
   const sessionAttached = useBitstreamConnectionStore((s) => s.sessionAttached);
@@ -291,11 +363,18 @@ export function RuntimeServicesHealthPanel(props: RuntimeServicesHealthPanelProp
   const handshakeLastError = useBitstreamLiveStore((s) => s.handshakeLastError);
   const firmwareLiveness = useBitstreamLiveStore((s) => s.firmwareLiveness);
 
+  const wsConnected = useWsClientStore((s) => s.isConnected);
+  const wsConnect = useWsClientStore((s) => s.connect);
+
+  const openConnectionPanel = useConnectionPanelStore((s) => s.openPanel);
+  const { connectAll, disconnectAll } = useConnectionPanelActions();
+
   const aiBridgeWsUrl = useMemo(() => getDefaultAiBridgeWsUrl(), []);
   const modelBrokerUrl = useMemo(() => getModelLoaderWsClientUrl(), []);
   const modelProbe = useOneShotWsReachability(modelBrokerUrl, active);
 
   const extensionHostStatus = useAiBridgeExtensionHostStatus(ext && active);
+  const serialBridgeHost = useSerialBridgeExtensionHostStatus(ext && active);
 
   useEffect(() => {
     if (active && ext) {
@@ -322,6 +401,27 @@ export function RuntimeServicesHealthPanel(props: RuntimeServicesHealthPanelProp
   );
   const model = useMemo(() => modelProbeTier(modelProbe), [modelProbe]);
   const aiHost = useMemo(() => aiHostTier(ext, extensionHostStatus), [ext, extensionHostStatus]);
+  const bridgeHost = useMemo(
+    () => serialBridgeHostTier(ext, serialBridgeHost),
+    [ext, serialBridgeHost],
+  );
+
+  const focusStep = useMemo(
+    () =>
+      suggestConnectionFocusStep({
+        ext,
+        bridgeHostRunning: serialBridgeHost?.running === true,
+        wsConnected,
+        handshakeState,
+        serialOpen: serialBridgeStatus?.isOpen === true,
+        backend,
+      }),
+    [backend, ext, handshakeState, serialBridgeHost?.running, serialBridgeStatus?.isOpen, wsConnected],
+  );
+
+  const openConnectionWithFocus = useCallback(() => {
+    openConnectionPanel(focusStep);
+  }, [focusStep, openConnectionPanel]);
 
   const [copyHint, setCopyHint] = useState<"idle" | "ok" | "err">("idle");
 
@@ -410,7 +510,61 @@ export function RuntimeServicesHealthPanel(props: RuntimeServicesHealthPanelProp
       {copyHint === "ok" ? <div className="text-[10px] text-emerald-400">Copied JSON to clipboard.</div> : null}
       {copyHint === "err" ? <div className="text-[10px] text-amber-400">Clipboard blocked.</div> : null}
 
+      <div className="space-y-1.5 rounded-md border border-cyan-500/25 bg-cyan-950/10 px-2 py-1.5">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-cyan-200/90">
+          Connection controls
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <TRNButton size="compact" onClick={openConnectionWithFocus}>
+            Open Connection…
+          </TRNButton>
+          <TRNButton
+            size="compact"
+            prefixIcon={<Plug className="h-3 w-3" aria-hidden />}
+            onClick={() => void connectAll()}
+          >
+            Connect all
+          </TRNButton>
+          <TRNButton
+            size="compact"
+            className="border-zinc-600/80 bg-zinc-900/75"
+            prefixIcon={<Unplug className="h-3 w-3" aria-hidden />}
+            onClick={() => void disconnectAll()}
+          >
+            Disconnect all
+          </TRNButton>
+          {ext && serialBridgeHost?.running !== true ? (
+            <TRNButton size="compact" onClick={() => postSerialBridgeStartFromExtension()}>
+              Start bridge
+            </TRNButton>
+          ) : null}
+          {!wsConnected ? (
+            <TRNButton size="compact" onClick={() => void wsConnect()}>
+              Connect WS
+            </TRNButton>
+          ) : null}
+          {backend === "uart" && serialBridgeStatus?.isOpen === true && handshakeState !== "passed" ? (
+            <TRNButton
+              size="compact"
+              onClick={() => void openUartPortAndHandshake({ forceFullBringUp: true })}
+            >
+              Retry handshake
+            </TRNButton>
+          ) : null}
+        </div>
+        <TRNHintText className="text-[9px] text-zinc-500">
+          Disconnect all: close COM → disconnect WS → stop bridge (VSIX). Same as Connection panel footer.
+        </TRNHintText>
+      </div>
+
       <div className="space-y-1.5">
+        <HealthRow
+          title="Bridge process (broker + UART)"
+          badge={bridgeHost.label}
+          tier={bridgeHost.tier}
+          subtitle={bridgeHost.detail}
+          url={bitstreamWsUrl}
+        />
         <HealthRow title="Serial broker (Bitstream WS)" badge={broker.label} tier={broker.tier} url={bitstreamWsUrl} />
         <HealthRow title="Bitstream transport" badge={transport.label} tier={transport.tier} />
         <HealthRow

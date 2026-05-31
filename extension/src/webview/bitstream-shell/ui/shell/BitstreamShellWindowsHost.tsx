@@ -12,6 +12,8 @@ import { AiBridgeHelpMarkdown } from "../../../bitstream-app/components/ai-dev/A
 import { AiBridgeSettingsPanel } from "../../../bitstream-app/components/ai-dev/AiBridgeSettingsPanel.js";
 import { DiagCardsDeck } from "../../../bitstream-app/components/diag/DiagCardsDeck.js";
 import { RuntimeServicesHealthPanel } from "../../../bitstream-app/components/diag/RuntimeServicesHealthPanel.js";
+import { ConnectionPanel } from "../../../bitstream-app/connection/ConnectionPanel.js";
+import { useConnectionPanelStore } from "../../../bitstream-app/connection/connectionPanel.store.js";
 import { AnthropicApiKeySettingsPanel } from "../../../ai-bridge/AnthropicApiKeySettingsPanel";
 import { BitstreamTelemetryLinkDiagnosticsPanel } from "../BitstreamTelemetryLinkDiagnosticsPanel";
 
@@ -143,6 +145,8 @@ export function BitstreamShellWindowsHost(props: {
 {
   const { windows, actions } = props;
   const [aiDevHelpOpen, setAiDevHelpOpen] = useState(false);
+  const connectionPanelOpen = useConnectionPanelStore((s) => s.open);
+  const closeConnectionPanel = useConnectionPanelStore((s) => s.closePanel);
 
   return (
     <>
@@ -323,8 +327,23 @@ export function BitstreamShellWindowsHost(props: {
         contentClassName="flex min-h-0 flex-col gap-3 overflow-y-auto bg-black/30 p-2"
         persistRectStorageKey="bitstream-app:system-diagnostics-window"
       >
-        <RuntimeServicesHealthPanel />
+        <RuntimeServicesHealthPanel active={windows.systemDiagnosticsOpen} />
         <DiagCardsDeck />
+      </TRNWindow>
+
+      <TRNWindow
+        open={connectionPanelOpen}
+        onClose={closeConnectionPanel}
+        title="Connection"
+        initialRect={{ x: Math.max(24, (typeof window !== "undefined" ? window.innerWidth : 1200) - 400), y: 56, width: 380, height: 680 }}
+        minWidth={320}
+        minHeight={420}
+        modal={false}
+        zIndex={344}
+        contentClassName="flex min-h-0 flex-col overflow-hidden bg-black/30 p-2"
+        persistRectStorageKey="bitstream-app:connection-panel-window"
+      >
+        <ConnectionPanel />
       </TRNWindow>
     </>
   );

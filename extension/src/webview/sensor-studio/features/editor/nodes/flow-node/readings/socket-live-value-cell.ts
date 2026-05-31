@@ -1,7 +1,11 @@
 /**
  * Fixed-width classes for socket-row live values so digits do not shift on tick.
- * Widths match worst-case signed strings at 10px tabular mono.
+ * Typography matches {@link FlowNodeSocketRow} port labels (sans, 11px); widths match worst-case signed strings.
  */
+
+/** Same typography as socket port labels — Inter via Tailwind `font-sans`. */
+export const SOCKET_LIVE_VALUE_TYPOGRAPHY =
+  "font-sans text-[11px] leading-tight tabular-nums";
 
 /** Signed 3 dp in ±1 (quaternion / euler): `+1.000`, `-0.999`. */
 export const SOCKET_LIVE_CELL_SIGNED3_UNIT =

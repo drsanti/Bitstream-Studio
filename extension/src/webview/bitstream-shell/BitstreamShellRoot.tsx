@@ -2,6 +2,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -19,7 +20,6 @@ import { useUartFirmwareHotplugRecovery } from "../bitstream-app/hooks/useUartFi
 import { useSyncBrokerWsToConnectionStore } from "../bitstream-app/hooks/useSyncBrokerWsToConnectionStore.js";
 import { useTelemetryActivityMirror } from "../sensor-telemetry/hooks/useTelemetryActivityMirror.js";
 import { appendTelemetryActivity } from "../sensor-telemetry/store/telemetryActivity.store.js";
-import { ensureBitstreamSimulatorReady } from "../bitstream-app/bridge/requestBitstreamSimulatorHost.js";
 import { useWsClientStore } from "../ws-client-store";
 import { CY_WCM_SECURITY_WPA2_AES_PSK } from "../../bitstream/wifi/wifi-wcm-security.js";
 import {
@@ -73,6 +73,14 @@ import { SensorCfgColdSyncEffect } from "../bitstream-app/sync-effects/SensorCfg
 import { useSensorCfgBrokerSync } from "../bitstream-app/sync-effects/useSensorCfgBrokerSync.js";
 import { useBmi270StreamModeBrokerSync } from "../bitstream-app/sync-effects/useBmi270StreamModeBrokerSync.js";
 import { useSerialPortStore } from "../serialport/serial-port-store";
+import { BitstreamBootLifecycleBar } from "./ui/BitstreamBootLifecycleBar.js";
+import { ConnectionPanelActionsProvider } from "../bitstream-app/connection/connectionPanelActions.context.js";
+import {
+  type ConnectionStepId,
+  useConnectionPanelStore,
+} from "../bitstream-app/connection/connectionPanel.store.js";
+import { runConnectAllSession } from "../bitstream-app/connection/runConnectAllSession.js";
+import { runDisconnectAllSession } from "../bitstream-app/connection/runDisconnectAllSession.js";
 
 /** Mount broker sync hooks without adding render output. */
 function SensorCfgBrokerSyncMount(props: { instanceToken: string })
@@ -225,6 +233,18 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
   const openSystemDiagnosticsFromMenu = windowActions.openSystemDiagnostics;
   const openTelemetryPerformanceSettingsFromMenu = windowActions.openTelemetryPerformanceSettings;
   const openTelemetryLinkDiagnosticsFromMenu = windowActions.openTelemetryLinkDiagnostics;
+  const openConnectionPanel = useConnectionPanelStore((s) => s.openPanel);
+
+  const openConnectionFromMenu = useCallback(() => {
+    openConnectionPanel();
+  }, [openConnectionPanel]);
+
+  const openConnectionWithStep = useCallback(
+    (stepId?: string) => {
+      openConnectionPanel(stepId as ConnectionStepId | undefined);
+    },
+    [openConnectionPanel],
+  );
 
   const { uiFlushIntervalMs } = useBitstreamConfig();
   const {
@@ -278,6 +298,25 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
     resetLiveData,
     autoOrchestrate: true,
   });
+
+  const connectionPanelActions = useMemo(
+    () => ({
+      connectAll: async () => {
+        appendTelemetryActivity({ text: "Connection starting (Connect all)…", tone: "info" });
+        await runAction("Connect all", async () => {
+          await runConnectAllSession(connectSession);
+        });
+      },
+      disconnectAll: async () => {
+        appendTelemetryActivity({ text: "Connection teardown (Disconnect all)…", tone: "info" });
+        await runAction("Disconnect all", async () => {
+          await runDisconnectAllSession(disconnectSession);
+        });
+      },
+      runAction,
+    }),
+    [connectSession, disconnectSession, runAction],
+  );
 
   const handleReconnectTelemetry = useCallback(() => {
     appendTelemetryActivity({ text: "Reconnecting session…", tone: "info" });
@@ -653,6 +692,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
           reconnectTelemetry: handleReconnectTelemetry,
         }}
       >
+        <ConnectionPanelActionsProvider value={connectionPanelActions}>
         <BitstreamAppControlContext.Provider
           value={{
             getSensorConfig,
@@ -699,31 +739,24 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
           brokerWsConnecting={brokerWsConnecting}
           onConnect={() => {
             appendTelemetryActivity({ text: "Connection starting (Connect)…", tone: "info" });
-            void (async () =>
-            {
-              const ready = await ensureBitstreamSimulatorReady();
-              if (!ready)
-              {
-                return;
-              }
-              const tel = useBitstreamTelemetrySourceStore.getState();
-              const serial = useSerialPortStore.getState();
-              const live = useBitstreamLiveStore.getState();
-              await connectSession(undefined, {
-                userInitiated: true,
-                forceUartFullBringUp:
-                  tel.backend === "uart" &&
-                  (tel.uartBringUpPending ||
-                    live.handshakeState !== "passed" ||
-                    serial.status?.isOpen !== true),
-              });
-            })();
+            void runAction("Connect", async () => {
+              await runConnectAllSession(connectSession);
+            });
           }}
           onDisconnect={() => void disconnectSession({ userInitiated: true })}
           onOpenSystemLogs={windowActions.openSystemLogs}
           onOpenFirmwareLogLevel={openFirmwareLogLevelFromMenu}
           onOpenWifiPanel={openWifiPanelFromMenu}
           onOpenSystemDiagnostics={openSystemDiagnosticsFromMenu}
+        />
+        <BitstreamBootLifecycleBar
+          connected={connected}
+          connecting={connecting}
+          transportState={transportState}
+          runtimeSyncState={runtimeSyncState}
+          handshakeState={handshakeState}
+          firmwareSensorTruthReady={firmwareSensorTruthReady}
+          onOpenConnection={openConnectionWithStep}
         />
         <main className="flex min-h-0 w-full flex-1 flex-col">
           <TRNScrollableEdgeHints
@@ -746,6 +779,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
                 }
                 onOpenTelemetryLinkDiagnostics={openTelemetryLinkDiagnosticsFromMenu}
                 onOpenSystemDiagnostics={openSystemDiagnosticsFromMenu}
+                onOpenConnection={openConnectionFromMenu}
               />
 
             </div>
@@ -805,6 +839,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
         onReconnectTelemetry={handleReconnectTelemetry}
       />
         </BitstreamAppControlContext.Provider>
+        </ConnectionPanelActionsProvider>
       </BitstreamTransportActionsProvider>
     </div>
   );

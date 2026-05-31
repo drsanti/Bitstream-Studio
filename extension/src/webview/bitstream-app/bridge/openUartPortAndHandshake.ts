@@ -114,6 +114,34 @@ function statusMatchesPick(
   return true;
 }
 
+/** User-configured COM pick (whitelist + active target + display order). */
+function resolveConfiguredUartPick(
+  availablePaths: readonly string[],
+  explicitPreferred?: string,
+): string | null {
+  const cfg = useBitstreamConfigStore.getState();
+  const preferred =
+    (explicitPreferred?.trim() || cfg.serialPath.trim() || useSerialPortStore.getState().selectedPath.trim()) ||
+    "";
+  return pickPreferredSerialPortPath({
+    availablePaths,
+    preferredPath: preferred,
+    whitelistedPaths: cfg.whitelistedSerialPaths,
+    displayOrder: cfg.serialPortDisplayOrder,
+  });
+}
+
+async function listAvailablePortPaths(
+  serial: ReturnType<typeof useSerialPortStore.getState>,
+): Promise<string[]> {
+  try {
+    const ports = await serial.listPorts();
+    return ports.map((p) => p.path).filter((p) => p.length > 0);
+  } catch {
+    return [];
+  }
+}
+
 /**
  * List/open UART (if needed), BS2 PING, promote handshake to passed.
  * Requires WebSocket broker link and `bitstream2/res` subscription.
@@ -155,43 +183,90 @@ async function openUartPortAndHandshakeImpl(
 
     const serial = useSerialPortStore.getState();
     const storeOpen = serial.status?.isOpen === true;
-
-    const selectedPath = serial.selectedPath;
     const baud = serial.baudRate > 0 ? serial.baudRate : 921600;
 
-    const pickFromBridge =
-      bridgeOpen?.isOpen && bridgeOpen.path ? bridgeOpen.path : "";
-    const pick =
-      pickFromBridge ||
-      (selectedPath && selectedPath.length > 0 ? selectedPath : "");
+    let availablePaths = await listAvailablePortPaths(serial);
+    if (bridgeOpen?.path && !availablePaths.includes(bridgeOpen.path))
+    {
+      availablePaths = [...availablePaths, bridgeOpen.path];
+    }
 
-    /* Backend still has COM after browser refresh — do not close/re-open. */
-    if (
-      bridgeOpen?.isOpen &&
-      pickFromBridge &&
-      statusMatchesPick(bridgeOpen, pickFromBridge, baud)
-    )
+    const intendedPick = resolveConfiguredUartPick(availablePaths, serial.selectedPath);
+    if (intendedPick == null || intendedPick.length === 0)
+    {
+      const wl = useBitstreamConfigStore.getState().whitelistedSerialPaths;
+      if (wl.length === 0)
+      {
+        throw new Error(
+          "No AUTO-enabled COM port — turn AUTO on in Port Admin or set an active UART target",
+        );
+      }
+      throw new Error(
+        "No whitelisted COM port available — check Port Admin AUTO toggles and USB connection",
+      );
+    }
+
+    const bridgePath = bridgeOpen?.isOpen && bridgeOpen.path ? bridgeOpen.path : "";
+    const bridgeMatchesIntended =
+      bridgePath.length > 0 &&
+      bridgeOpen != null &&
+      statusMatchesPick(bridgeOpen, intendedPick, baud);
+
+    if (bridgeMatchesIntended)
     {
       applyBridgeStatusToSerialStore(bridgeOpen);
       appendTelemetryActivity({
-        text: `Bitstream: reusing backend COM ${pickFromBridge} @ ${bridgeOpen.baudRate ?? baud}`,
+        text: `Bitstream: reusing backend COM ${intendedPick} @ ${bridgeOpen.baudRate ?? baud}`,
         tone: "info",
       });
+    }
+    else if (bridgePath.length > 0 && bridgeOpen?.isOpen)
+    {
+      appendTelemetryActivity({
+        text: `Bitstream: closing ${bridgePath} — target is ${intendedPick} (AUTO / active target)`,
+        tone: "info",
+      });
+      await serial.closePort();
+      syncSerialBridgeStatusFromPortStore();
+      await openComIfNeeded(serial, intendedPick, baud);
     }
     else if (forceFullBringUp && storeOpen)
     {
       appendTelemetryActivity({ text: "Bitstream: closing stale webview COM state", tone: "info" });
       await serial.closePort();
       syncSerialBridgeStatusFromPortStore();
-      await openComIfNeeded(serial, pick, baud);
+      await openComIfNeeded(serial, intendedPick, baud);
     }
     else if (!storeOpen && !(bridgeOpen?.isOpen === true))
     {
-      await openComIfNeeded(serial, pick, baud);
+      await openComIfNeeded(serial, intendedPick, baud);
     }
     else if (!storeOpen && bridgeOpen?.isOpen)
     {
-      applyBridgeStatusToSerialStore(bridgeOpen);
+      if (bridgePath === intendedPick)
+      {
+        applyBridgeStatusToSerialStore(bridgeOpen);
+      }
+      else
+      {
+        appendTelemetryActivity({
+          text: `Bitstream: closing ${bridgePath} — target is ${intendedPick}`,
+          tone: "info",
+        });
+        await serial.closePort();
+        syncSerialBridgeStatusFromPortStore();
+        await openComIfNeeded(serial, intendedPick, baud);
+      }
+    }
+    else if (storeOpen && serial.status?.path !== intendedPick)
+    {
+      appendTelemetryActivity({
+        text: `Bitstream: switching ${serial.status?.path ?? "?"} → ${intendedPick}`,
+        tone: "info",
+      });
+      await serial.closePort();
+      syncSerialBridgeStatusFromPortStore();
+      await openComIfNeeded(serial, intendedPick, baud);
     }
 
     syncSerialBridgeStatusFromPortStore();
@@ -354,7 +429,9 @@ async function openComIfNeeded(
 
   if (!pick)
   {
-    throw new Error("No serial port path available");
+    throw new Error(
+      "No AUTO-enabled COM port matches — enable AUTO on the target port in Port Admin",
+    );
   }
 
   serial.setSelectedPath(pick);

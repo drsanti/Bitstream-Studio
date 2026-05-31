@@ -128,6 +128,11 @@ export function SystemSerialportInfo()
           lastUpdatedAt={lastUpdatedAt}
           loading={loading}
           onRefresh={() => void refreshPorts()}
+          onSwitchToAllowedPort={
+            autoConnectPick != null
+              ? () => void useThisPort(autoConnectPick)
+              : undefined
+          }
         />
 
         <div className="flex w-full flex-col gap-2">
@@ -154,7 +159,9 @@ export function SystemSerialportInfo()
                 }
               >
                 <span aria-hidden />
-                <span title="Include in UART auto-connect pick">Auto</span>
+                <span title="ON: Bitstream Link may open this port. OFF: ignored (blacklisted).">
+                  Allow
+                </span>
                 <span>Path</span>
                 <span>Type</span>
                 <span>Manufacturer</span>
@@ -187,7 +194,8 @@ export function SystemSerialportInfo()
                           className={
                             "border-b border-zinc-700/40 " +
                             (isInspecting ? "bg-zinc-800/45" : "hover:bg-zinc-800/30") +
-                            (isTarget ? " border-l-2 border-l-amber-400/70" : "")
+                            (isTarget ? " border-l-2 border-l-amber-400/70" : "") +
+                            (whitelisted ? "" : " opacity-[0.42] saturate-[0.55]")
                           }
                         >
                           <div
@@ -223,8 +231,8 @@ export function SystemSerialportInfo()
                                 }
                                 ariaLabel={
                                   whitelisted
-                                    ? `Remove ${port.path} from auto-connect list`
-                                    : `Add ${port.path} to auto-connect list`
+                                    ? `Disallow ${port.path} for Link (blacklist)`
+                                    : `Allow ${port.path} for Link (whitelist)`
                                 }
                               />
                             </div>
@@ -235,8 +243,16 @@ export function SystemSerialportInfo()
                                 <Star
                                   className="h-3 w-3 shrink-0 fill-amber-300/90 text-amber-300/90"
                                   aria-label="Active UART target"
-                                  title="Active UART target"
+                                  title="Active target — first choice among allowed ports"
                                 />
+                              ) : null}
+                              {!whitelisted ? (
+                                <span
+                                  className="shrink-0 rounded border border-zinc-600/50 px-1 py-px text-[9px] font-medium uppercase tracking-wide text-zinc-500"
+                                  title="Allow is OFF — Link will not use this port"
+                                >
+                                  blocked
+                                </span>
                               ) : null}
                             </div>
 
@@ -279,12 +295,12 @@ export function SystemSerialportInfo()
                               }}
                               title={
                                 isTarget
-                                  ? `Connect using ${port.path} (active target)`
-                                  : `Set ${port.path} as UART target and connect`
+                                  ? `Link now using ${port.path} (active target)`
+                                  : `Set ${port.path} as active target and Link`
                               }
                             >
                               <Cable className="h-3 w-3" aria-hidden />
-                              {isTarget ? "Connect" : "Set target"}
+                              {isTarget ? "Link now" : "Use as target"}
                             </button>
                           </div>
                         </TRNSortableItem>
@@ -295,8 +311,8 @@ export function SystemSerialportInfo()
               </div>
 
               <TRNHintText tone="muted" className="mt-2 px-1">
-                ★ Active UART target · Row click = inspect · Drag ≡ = auto-connect
-                priority (top first)
+                Allow ON = whitelist (Link may use) · Allow OFF = blacklist · ★ = active target ·
+                drag ≡ = priority among allowed ports
               </TRNHintText>
             </div>
           </TRNSectionContainer>

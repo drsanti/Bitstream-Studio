@@ -1,4 +1,6 @@
 import { ReadingAxisNumber } from "./ReadingAxisNumber";
+import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./socket-live-value-cell";
+import { twMerge } from "tailwind-merge";
 
 export type QuaternionScalarsGridProps = {
   w: number | null | undefined;
@@ -20,7 +22,7 @@ export function QuaternionScalarsGrid(props: QuaternionScalarsGridProps) {
     <div
       className={
         compact
-          ? "flex max-w-full items-baseline justify-end gap-x-1 text-[10px]"
+          ? twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "flex max-w-full items-baseline justify-end gap-x-1")
           : "grid w-max max-w-full grid-cols-4 items-baseline justify-items-end gap-x-2 text-[10px]"
       }
     >

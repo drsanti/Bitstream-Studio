@@ -13,7 +13,7 @@
   overflow: hidden;
   position: relative;
   color: var(--workbench-text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: Inter, Helvetica, Arial, sans-serif;
 }
 
 .workbench-pane {

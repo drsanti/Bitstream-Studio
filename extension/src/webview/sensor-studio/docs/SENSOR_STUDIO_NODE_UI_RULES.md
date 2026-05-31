@@ -92,15 +92,13 @@ Apply on the label cell in **`FlowNodeSocketRow`** (aligned and flex rows with *
 
 ### Live value cells (no jitter)
 
-Use fixed-width mono cells so digits do not shift on tick:
+Use fixed-width **Inter** cells (`font-sans` + **`tabular-nums`**) so digits do not shift on tick — see **Typography** below. Helpers: **`SOCKET_LIVE_VALUE_TYPOGRAPHY`**, **`readings/socket-live-value-cell.ts`**, **`SocketLivePreview`**, **`QuaternionScalarsGrid`** (`socketFixedCell` when **`compact`**).
 
 | Data                         | Digits | Width                | Constant / prop                                                                |
 | ---------------------------- | ------ | -------------------- | ------------------------------------------------------------------------------ |
 | Euler, quaternion components | 3      | **`6ch`** (`+1.000`) | **`SOCKET_LIVE_CELL_SIGNED3_UNIT`**, **`ReadingAxisNumber` `socketFixedCell`** |
 | Accel, gyro                  | 2      | **`6ch`** (`+99.99`) | **`SOCKET_LIVE_CELL_SIGNED2`**                                                 |
 | Temperature (scalar)         | 2      | auto                 | No fixed cell — single value only                                              |
-
-Shared helpers: **`readings/socket-live-value-cell.ts`**, **`SocketLivePreview`**, **`QuaternionScalarsGrid`** (`socketFixedCell` when **`compact`**).
 
 ### Socket handles (border-centered, on top)
 
@@ -144,6 +142,25 @@ Legacy **`InspectorSettingsSectionFrame`** remains for sections not yet migrated
 
 ---
 
+## Typography
+
+Default UI font is **Inter** (bundled via **`@fontsource-variable/inter`**, Tailwind **`font-sans`** in **`tailwind.config.mjs`**, **`app.css`** on `body`).
+
+| Element | Classes / token | Size |
+| ------- | ----------------- | ---- |
+| **Node card title** (`FlowNodeHeader` primary) | **`text-[13px] font-semibold leading-tight text-zinc-100`** | 13px |
+| **Node header badges** (LIVE, family tag, Invalid) | **`FLOW_NODE_HEADER_BADGE_CLASS`** — `text-[8px] font-semibold uppercase tracking-wide leading-none` | 8px |
+| **Node header subtitle** (linked model, etc.) | **`text-[11px] uppercase tracking-wide text-zinc-400`** | 11px |
+| **Socket port label** | **`text-[11px] leading-tight text-zinc-300`** (+ muted span **`text-zinc-400`**) | 11px |
+| **Socket live preview** | **`SOCKET_LIVE_VALUE_TYPOGRAPHY`** — `font-sans text-[11px] leading-tight tabular-nums` | 11px |
+| **Inspector `nodeId`, wire dumps** | **`font-mono`** | context-specific |
+
+**Do not** use **`font-mono`** on socket-row live previews — match port labels (Inter). Use **`font-mono`** only for ids, JSON, and diagnostic monospace blocks.
+
+**New nodes:** reuse the title row classes in **`StudioNodeCard`** (`primary` slot); do not introduce alternate title sizes without updating this table.
+
+---
+
 ## Flow node cards
 
 - Shared chrome: **`FlowNodeShell`**, **`FlowNodeHeader`**, **`FlowNodeBody`**, socket rows under `nodes/flow-node/`.
@@ -159,7 +176,7 @@ Legacy **`InspectorSettingsSectionFrame`** remains for sections not yet migrated
 | ------------------------------------------- | ---------------------------------------- |
 | **`TRNScrubNumberInput`**                   | Inspector numerics, optional card scrubs |
 | **`TRNSelect`** / **`TRNSegmentedControl`** | Enums and modes                          |
-| **`TRNChipButtonGroup`**                    | Small mutually exclusive options         |
+| **`TRNChipButtonGroup`**                    | Small mutually exclusive options; **`columns={4}`** for Hz rate presets (`SensorHzRateField`) — equal-width chips, wrap to next row (no horizontal scroll) |
 | Native `<select>`                           | Avoid in new UI                          |
 | Native `<input type="checkbox">`            | Avoid — use **`TRNInlineToggleRow`**     |
 
@@ -168,10 +185,11 @@ Legacy **`InspectorSettingsSectionFrame`** remains for sections not yet migrated
 ## Adding a new catalog node
 
 1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temp (°C)`** last on BMI270).
-2. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
-3. Optional **Settings** section + registry entry.
-4. Optional on-card panel — only if operators need at-a-glance control.
-5. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
+2. **Typography** — follow **Typography** (Inter; node title **`text-[13px]`**, socket labels/previews **`11px`**).
+3. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
+4. Optional **Settings** section + registry entry.
+5. Optional on-card panel — only if operators need at-a-glance control.
+6. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
 
 ### Live multi-pin input node (BMI270 / BMM350 / DPS368 / SHT40)
 

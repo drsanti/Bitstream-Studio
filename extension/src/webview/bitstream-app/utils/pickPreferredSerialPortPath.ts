@@ -1,5 +1,9 @@
 /**
  * Choose a COM path for UART auto-connect from user prefs (whitelist + display order).
+ *
+ * AUTO toggle ON adds a path to `whitelistedPaths`; OFF removes it (implicit blacklist).
+ * When the whitelist is non-empty, only whitelisted paths may be auto-selected.
+ * When the whitelist is empty, auto-connect does not pick a port unless `preferredPath` is set (manual target / star).
  */
 
 export type PickPreferredSerialPortPathInput = {
@@ -7,7 +11,7 @@ export type PickPreferredSerialPortPathInput = {
   availablePaths: readonly string[];
   /** Persisted target (`bitstreamConfig.serialPath`). */
   preferredPath?: string;
-  /** Allowed paths when non-empty; empty = no whitelist filter. */
+  /** AUTO-on paths; empty means no whitelist filter for auto (only explicit preferred). */
   whitelistedPaths: readonly string[];
   /** User drag-order (paths only). */
   displayOrder: readonly string[];
@@ -33,7 +37,8 @@ export function normalizeSerialPathList(paths: readonly string[]): string[]
 
 /**
  * Resolve which COM path to open.
- * Priority: explicit preferred (if present) → whitelisted in display order → display order → first available.
+ * Priority when whitelist non-empty: preferred (if whitelisted) → whitelisted in display order → first whitelisted.
+ * When whitelist empty: only explicit preferred (active UART target); no auto pick from other ports.
  */
 export function pickPreferredSerialPortPath(input: PickPreferredSerialPortPathInput): string | null
 {
@@ -45,17 +50,20 @@ export function pickPreferredSerialPortPath(input: PickPreferredSerialPortPathIn
 
   const availableSet = new Set(available);
   const preferred = input.preferredPath?.trim() ?? "";
-  if (preferred.length > 0 && availableSet.has(preferred))
-  {
-    return preferred;
-  }
-
   const displayOrder = normalizeSerialPathList(input.displayOrder).filter((p) =>
     availableSet.has(p),
   );
   const whitelist = normalizeSerialPathList(input.whitelistedPaths).filter((p) =>
     availableSet.has(p),
   );
+
+  if (preferred.length > 0 && availableSet.has(preferred))
+  {
+    if (whitelist.length === 0 || whitelist.includes(preferred))
+    {
+      return preferred;
+    }
+  }
 
   if (whitelist.length > 0)
   {
@@ -69,12 +77,27 @@ export function pickPreferredSerialPortPath(input: PickPreferredSerialPortPathIn
     return whitelist[0] ?? null;
   }
 
-  if (displayOrder.length > 0)
-  {
-    return displayOrder[0] ?? null;
-  }
+  return null;
+}
 
-  return available[0] ?? null;
+/** True when path is allowed for connect (AUTO on, or explicit preferred with empty whitelist). */
+export function isSerialPathAllowedForConnect(
+  path: string,
+  availablePaths: readonly string[],
+  preferredPath: string,
+  whitelistedPaths: readonly string[],
+): boolean {
+  const normalized = path.trim();
+  if (normalized.length === 0) {
+    return false;
+  }
+  const pick = pickPreferredSerialPortPath({
+    availablePaths,
+    preferredPath: preferredPath.trim() || normalized,
+    whitelistedPaths,
+    displayOrder: [],
+  });
+  return pick === normalized;
 }
 
 /** Order port rows: `displayOrder` first, then remaining paths alphabetically. */

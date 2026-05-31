@@ -73,6 +73,11 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
+- **2026-05-31** — **Connection panel teardown + diagnostics link:** **Disconnect all** runs COM → WS → stop bridge (`runDisconnectAllSession`); **Runtime services** panel adds Connection controls + bridge process row; **HOW_TO_RUN** troubleshooting ladder.
+- **2026-05-31** — **Connection panel Guided Continue:** primary **Continue: …** runs one ladder step via `runConnectionStep`; UART step 4 shows **Next Link port** + mismatch banner (`ConnectionUartAllowStrip`); Guided hides expert COM picker.
+- **2026-05-31** — **Port Admin Allow / whitelist UI (Phase 1):** **Auto** column → **Allow**; blocked rows dimmed + badge; **Next Link port** preview; mismatch banner + **Switch to …** when open COM ≠ allowed pick; Connection panel hint aligned.
+- **2026-05-31** — **UART port pick respects AUTO whitelist:** bridge no longer reuses a stale COM (e.g. COM6) when active target / AUTO list says COM3; non-whitelisted preferred paths ignored; empty AUTO list blocks auto-connect.
+- **2026-05-31** — **Connection panel (Guided / Expert):** ☰ **System → Connection…** + boot bar **Connection…**; step ladder (bridge → WS → source → COM/sim → handshake → link); VSIX bridge start/stop; shares toolbar **Connect all** via `runConnectAllSession`.
 - **2026-05-31** — **Sensor Studio Node Inspector:** vertical icon rail → horizontal **Details / Live / Settings** tab bar (`TRNTabs`); Live tab keeps emerald active accent; full-width content column.
 - **2026-05-31** — **Sensor Studio catalog category `sensor`:** hardware nodes (BMI270/DPS368/SHT40/BMM350 + taps) use **`category: "sensor"`**; palette **Sensors** section; hydrate syncs category from catalog; legacy **`sensor-input`** stays **`input`**.
 - **2026-05-31** — **Sensor Studio Inspector Live → Telemetry deck reuse:** **`InspectorSensorDeckReadings`** composes `Bmi270RawDataViews` / `*DataViewer` from Telemetry Data panel; **`useInspectorLiveDeckSamples`** mirrors deck sample + interval wiring.
@@ -411,6 +416,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **Project 4 (`src/webview/project4`) — deprecated:** Slated for **removal**; **do not** schedule new features, packaging QA, or roadmap expansion here. Ignore for prioritization until the tree is deleted (see **Parking lot**).
 - **Assistant**: ~~Optional UI toggle~~ **Shipped** — see **Recently completed** (`enableMcpTools` in Sensor Studio Assistant).
 - **System status (services health)** — **v1 shipped 2026-05-11**: **`RuntimeServicesHealthPanel`** inside **Diagnostics & runtime services** (`BitstreamShellWindowsHost`), Bitstream ☰ + Sensor Studio Assistant ☰; **Copy diagnostics** JSON; model broker one-shot reachability (**no** duplicate AI client WS). **Later**: MQTT/transporter rows, richer **Degraded** rules, optional dedicated slide-over.
+- **Connection — configurable broker port (unified)** — *deferred; see **Future / ideas** § Configurable Bitstream broker port.* Today Expert **Broker URL** only changes **`ws-client-store`** (dev); bridge listen port stays **`ternion.ws.brokerPort`** / **`T3D_WS_PORT`** (default **9998**). Future: one setting drives extension spawn, webview URL, external sim, diagnostics.
 - **Secrets**: Evaluate VS Code `SecretStorage` vs `localStorage` for API keys in packaged builds.
 - **Docs**: Keep `DEVELOPMENT_COMMANDS.md` aligned when scripts or ports change — **verify:ai-mcp-tools** (**2026-05-09**); Sensor Studio MCP prerequisites + **`hello_ack`** (**2026-05-11**).
 - **AI Dev Trace (incremental)** — next: **trace snapshots** / naming / regression clips (optional **localStorage**), then **compare runs** — see **Planned (later)**. ~~Export~~ / ~~Assistant `bridgeErrors`~~ / ~~large JSON collapse~~ / ~~outbound log~~ **Shipped 2026-05-09**.
@@ -441,6 +447,27 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 ---
 
 ## Future / ideas
+
+### Configurable Bitstream broker port (unified client + server)
+
+**Logged 2026-05-31.** Connection panel **Expert → Broker URL** can change the webview client target (`useWsClientStore`, persisted in `localStorage` **`ternion-ws-config`**), and **`connect()`** uses that URL — but the **combined bridge listen port** is configured separately (**VS Code** **`ternion.ws.brokerPort`**, default **9998**; dev **`T3D_WS_PORT`** / **`combined-bridge-entry.ts`**). Changing the Expert field only works when a broker is already listening on that URL; otherwise step 2 (WebSocket) fails. **VSIX** Expert URL is **read-only** (injected **`window.T3D_BITSTREAM_WS_URL`** from **`brokerPort`**).
+
+**Gap today**
+
+- **Two client URL stores:** **`ws-client-store`** (connect path) vs **`bitstreamConfig.store.wsUrl`** (some diagnostics / AI settings) — can diverge after Expert edit.
+- **Bridge spawn** does not read webview URL; **Start bridge** always uses workspace **`brokerPort`**.
+- **External bitstream-simulator** and CLI probes assume default **`ws://127.0.0.1:9998`** unless env overrides.
+
+**Target behavior (when scheduled)**
+
+- **Single source of truth** for serial broker port/URL (settings + UI), applied to: extension bridge process, webview default + reconnect, Connection ladder probe, Runtime services display, **`HOW_TO_RUN`** / **`DEVELOPMENT_COMMANDS.md`**, external sim docs.
+- **Expert / Settings UX:** edit port or full URL with validation; optional **Apply & restart bridge** (VSIX) or dev hint to restart terminal bridge with matching **`T3D_WS_PORT`**.
+- **Reconnect contract:** disconnect WS (and optionally COM) when port changes; avoid stale **`HostSession`** (build on existing **`wsUrl` connect guard**).
+- **Out of scope for v1 slice:** model broker (**9999**) and AI bridge (**9987**) — keep separate unless product asks for a unified “all brokers” settings page.
+
+**Touch points (implementation map):** `bridge-handle.ts`, `TernionDigitalTwin.ts` (inject), `ws-client-store.ts`, `runtimeWsUrls.ts`, `ConnectionPanel.tsx`, `bitstreamConfig.store.ts`, `package.json` **`ternion.ws.brokerPort`**, `combined-bridge-entry.ts`, bitstream-simulator broker URL.
+
+---
 
 ### Known issues — Bitstream telemetry MCU → UI (defer fix)
 
@@ -499,6 +526,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 | Logged `YYYY-MM-DD` | Source | Requirement | Status |
 |---------------------|--------|--------------|--------|
+| **2026-05-31** | User / extension | **Unified configurable Bitstream broker port:** Expert Connection **Broker URL** should eventually align with bridge listen port (**`ternion.ws.brokerPort`** / dev **`T3D_WS_PORT`**), not only **`ws-client-store`**. Single setting for webview + extension spawn + external sim + diagnostics. | `accepted` |
 | **2026-05-30** | User / extension | **Migrate Digital Twin sims** (E84 rotation, ABB robot, vehicle physics) from `ternion-t3d` welcome cards into Bitstream Studio without `@ternion/t3d` (R3F + mqtt; Jolt for vehicle). Track in **`APPLICATION_MIGRATION_PLAN.md`**. | `accepted` |
 | **2026-05-12** | User / extension | **Bitstream sensor `cfg` reload truth**: On browser reload, left sensor deck must show **MCU-actual** values for **`enabled`**, **`publishMode`**, **`samplingIntervalMs`**, **`deltaX100`**, **`minPublishIntervalMs`**. Backend/bridge should converge on firmware truth at startup (cold **`sensor.cfg.get`** and/or persisted **`RUNTIME_SNAPSHOT.sensorConfigs`**); avoid republishing seeded defaults as truth. | `accepted` |
 | **2026-05-12** | User / extension | **Bitstream telemetry (MCU→UI)**: Intermittent **UI stall** and **telemetry / progress-style HUD jumps**; treat as **known deferred bug** — analysis in [`BITSTREAM_TELEMETRY_STALE_PIPELINE.md`](./BITSTREAM_TELEMETRY_STALE_PIPELINE.md) and **Future / ideas** (*Known issues — Bitstream telemetry MCU → UI*); implement fixes (smoothing, unified Hz, transport surfacing, reconnect UX) when scheduled. | `deferred` |

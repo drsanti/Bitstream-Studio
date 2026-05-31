@@ -157,7 +157,7 @@ test("isTelemetryDecodePipelineActive: uart decode inactive until redesign", () 
   assert.equal(isTelemetryDecodePipelineActive(conn, "unknown"), true);
 });
 
-test("shouldAcceptBs2Hello: simulator always; uart when COM open", () => {
+test("shouldAcceptBs2Hello: simulator always; uart accepts before status lag", () => {
   useBitstreamTelemetrySourceStore.setState({ backend: "simulator", loopbackAvailable: true });
   assert.equal(
     shouldAcceptBs2Hello({
@@ -174,7 +174,8 @@ test("shouldAcceptBs2Hello: simulator always; uart when COM open", () => {
       transportState: "disconnected",
       serialBridgeStatus: { isOpen: false, path: "", baudRate: 921600 },
     }),
-    false,
+    true,
+    "bridge publishes HELLO only after COM decode; webview status may lag",
   );
   assert.equal(
     shouldAcceptBs2Hello({
@@ -184,6 +185,25 @@ test("shouldAcceptBs2Hello: simulator always; uart when COM open", () => {
     }),
     true,
   );
+});
+
+test("isLinkHandshakeSatisfied: BS2 HELLO + uart without serialBridgeStatus lag", () => {
+  useBitstreamTelemetrySourceStore.setState({
+    backend: "uart",
+    loopbackAvailable: false,
+    bs2Hello: { version: 2, caps: 0x7f, mtuSensor: 512, mtuCtrl: 256, atMs: Date.now() },
+  });
+  useBitstreamLiveStore.setState({ handshakeState: "unknown" });
+  assert.equal(
+    isLinkHandshakeSatisfied("unknown", {
+      connected: true,
+      transportState: "connected",
+      serialBridgeStatus: { isOpen: false, path: "", baudRate: 921600 },
+    }),
+    true,
+  );
+  assert.equal(reconcileBs2HandshakePassedFromStores(), true);
+  assert.equal(useBitstreamLiveStore.getState().handshakeState, "passed");
 });
 
 test("isLinkHandshakeSatisfied: BS2 HELLO + simulator", () => {

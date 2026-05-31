@@ -147,12 +147,12 @@ export function shouldAcceptBs2SampleOrigin(
  * Simulator: always. UART: accept broker HELLO (bridge only publishes after open COM);
  * do not drop when webview `serialBridgeStatus` lags `serialport/status` by a frame.
  */
-export function shouldAcceptBs2Hello(conn: TelemetryTransportSnapshot): boolean {
+export function shouldAcceptBs2Hello(_conn: TelemetryTransportSnapshot): boolean {
   if (isSimulatorTelemetryBackend()) {
     return true;
   }
   if (isBs2UartFirmwareLink()) {
-    return isComLinkOpen(conn);
+    return true;
   }
   return false;
 }
@@ -179,17 +179,8 @@ export function isLinkHandshakeSatisfied(
     return true;
   }
   if (isBs2UartFirmwareLink()) {
-    const snap =
-      conn ??
-      (() => {
-        const c = useBitstreamConnectionStore.getState();
-        return {
-          connected: c.connected,
-          transportState: c.transportState,
-          serialBridgeStatus: c.serialBridgeStatus,
-        };
-      })();
-    return isComLinkOpen(snap);
+    // Stored BS2 HELLO implies the bridge decoded firmware on an open COM session.
+    return true;
   }
   return false;
 }

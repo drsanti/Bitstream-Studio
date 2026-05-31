@@ -32,6 +32,7 @@ import {
 } from "./flow-node";
 import { socketLivePreviewForOutputHandle } from "./flow-node/socket-live-preview-for-handle";
 import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
+import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import { readSourceModelNodeId } from "../model/model-generated-bindings";
@@ -212,7 +213,7 @@ export function StudioNodeCard(props: NodeProps) {
   const sensorHealthBadge =
     data.sensorHealth != null && data.sensorHealth !== "sim" ? (
       <span
-        className={`rounded border px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+        className={`${FLOW_NODE_HEADER_BADGE_CLASS} ${
           data.sensorHealth === "live"
             ? "border-emerald-500/60 bg-emerald-950/50 text-emerald-300"
             : data.sensorHealth === "stale"
@@ -227,7 +228,7 @@ export function StudioNodeCard(props: NodeProps) {
     ) : null;
 
   const invalidBadge = hasInvalid ? (
-    <span className="rounded border border-rose-500/70 bg-rose-950/45 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-rose-200">
+    <span className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-rose-500/70 bg-rose-950/45 text-rose-200`}>
       Invalid
     </span>
   ) : null;
@@ -243,7 +244,7 @@ export function StudioNodeCard(props: NodeProps) {
     labelNorm !== tagNorm;
   const sensorFamilyTag =
     showSensorFamilyTag ? (
-      <span className="rounded border border-cyan-500/45 bg-cyan-950/35 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-cyan-200/90">
+      <span className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-cyan-500/45 bg-cyan-950/35 text-cyan-200/90`}>
         {sensorFamilyTagLabel}
       </span>
     ) : null;
@@ -561,7 +562,7 @@ export function StudioNodeCard(props: NodeProps) {
           className="studio-node-drag-handle cursor-move"
           subtitle={linkedModelSubtitle ?? undefined}
           primary={
-            <div className="text-sm font-semibold leading-tight text-zinc-100">
+            <div className="text-[13px] font-semibold leading-tight text-zinc-100">
               {data.label}
             </div>
           }
