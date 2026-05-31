@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { FolderOpen, LogIn, LogOut, Plus, Ungroup } from "lucide-react";
+import { Copy, FolderOpen, Link2, LogIn, LogOut, Plus, Ungroup } from "lucide-react";
 import {
   TRNButton,
   TRNFormField,
@@ -7,6 +7,7 @@ import {
   TRNInlineEdit,
 } from "../../../../../ui/TRN";
 import { createManualGroupSocket } from "../../subgraphs/studio-group-interface-sync";
+import { countStudioSubgraphHosts } from "../../subgraphs/duplicate-group-instance";
 import {
   emptyGroupInterface,
   isStudioGroupBoundaryNode,
@@ -29,11 +30,14 @@ type NodeGroupInspectorSectionProps = {
 export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps) {
   const { hostNodeId, data, focusedBoundaryRole = null } = props;
   const subgraphs = useFlowEditorStore((s) => s.subgraphs);
+  const rootNodes = useFlowEditorStore((s) => s.rootNodes);
   const activeGraphId = useFlowEditorStore((s) => s.activeGraphId);
   const updateNodeGroupInterface = useFlowEditorStore((s) => s.updateNodeGroupInterface);
   const updateNodeGroupTitle = useFlowEditorStore((s) => s.updateNodeGroupTitle);
   const enterGroup = useFlowEditorStore((s) => s.enterGroup);
   const ungroupNodeGroup = useFlowEditorStore((s) => s.ungroupNodeGroup);
+  const duplicateGroupLinked = useFlowEditorStore((s) => s.duplicateGroupLinked);
+  const duplicateGroupDeepCopy = useFlowEditorStore((s) => s.duplicateGroupDeepCopy);
 
   const subgraphId = data.subgraphId ?? hostNodeId;
   const subgraphDoc = subgraphs[subgraphId];
@@ -47,6 +51,11 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
 
   const isInsideGroup = activeGraphId === subgraphId;
   const enterDisabled = isInsideGroup;
+  const linkedHostCount = useMemo(
+    () => countStudioSubgraphHosts(subgraphId, rootNodes, subgraphs),
+    [subgraphId, rootNodes, subgraphs],
+  );
+  const isLinkedInstance = linkedHostCount > 1;
 
   const applyInterface = useCallback(
     (next: StudioGroupInterface) => {
@@ -117,6 +126,14 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
           Boundary node selected — edit the group interface below. Wires on removed sockets are
           dropped automatically.
         </TRNHintText>
+      ) : isLinkedInstance ? (
+        <TRNHintText className="text-[11px]">
+          <span className="inline-flex items-center gap-1">
+            <Link2 className="h-3 w-3 shrink-0 opacity-80" aria-hidden />
+            Linked instance — {linkedHostCount} shells share this inner graph. Edits apply to all
+            linked copies.
+          </span>
+        </TRNHintText>
       ) : (
         <TRNHintText className="text-[11px]">
           Typed inputs and outputs appear on the group shell in the parent graph. Drag to reorder
@@ -144,6 +161,26 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
           }}
         >
           Enter group
+        </TRNButton>
+        <TRNButton
+          type="button"
+          className="w-full justify-center"
+          prefixIcon={<Link2 className="h-3.5 w-3.5" aria-hidden />}
+          onClick={() => {
+            duplicateGroupLinked(hostNodeId);
+          }}
+        >
+          Duplicate linked
+        </TRNButton>
+        <TRNButton
+          type="button"
+          className="w-full justify-center"
+          prefixIcon={<Copy className="h-3.5 w-3.5" aria-hidden />}
+          onClick={() => {
+            duplicateGroupDeepCopy(hostNodeId);
+          }}
+        >
+          Duplicate deep copy
         </TRNButton>
         <TRNButton
           type="button"

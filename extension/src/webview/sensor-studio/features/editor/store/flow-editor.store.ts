@@ -42,6 +42,12 @@ import {
 } from "../clipboard/flow-clipboard";
 import { createStudioNodeGroupFromSelection } from "../subgraphs/create-studio-node-group";
 import { dissolveStudioNodeGroupInParent } from "../subgraphs/dissolve-studio-node-group";
+import {
+  appendGroupHostToRootGraph,
+  duplicateStudioGroupDeepCopy,
+  duplicateStudioGroupLinked,
+  type DuplicateGroupInstanceResult,
+} from "../subgraphs/duplicate-group-instance";
 import { attachSubgraphsForPastedNodeGroups } from "../subgraphs/paste-subgraph-groups";
 import { rewireParentGraphForStudioGroup } from "../subgraphs/rewire-parent-graph-for-group";
 import {
@@ -470,6 +476,54 @@ function flushFlowSimulationPins(get: () => { tickSimulation: () => void }): voi
   get().tickSimulation();
 }
 
+function resolveRootGraphBuffer(state: StudioSubgraphStoreSlice): {
+  rootNodes: FlowGraphNode[];
+  rootEdges: Edge[];
+} {
+  if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+    return { rootNodes: state.nodes, rootEdges: state.edges };
+  }
+  if (state.rootNodes.length > 0) {
+    return { rootNodes: state.rootNodes, rootEdges: state.rootEdges };
+  }
+  return { rootNodes: state.nodes, rootEdges: state.edges };
+}
+
+function applyGroupHostDuplicateToStore(
+  set: (partial: Partial<FlowEditorState> | ((state: FlowEditorState) => Partial<FlowEditorState>)) => void,
+  state: StudioSubgraphStoreSlice,
+  result: DuplicateGroupInstanceResult,
+): void {
+  const { rootNodes, rootEdges } = resolveRootGraphBuffer(state);
+  const appended = appendGroupHostToRootGraph(rootNodes, rootEdges, result.hostNode);
+  const attached = attachConfigErrorsWithModelChildRegistry(
+    appended.rootNodes as FlowGraphNode[],
+    appended.rootEdges,
+  );
+
+  if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+    const committed = commitActiveGraphMutation(
+      { ...state, subgraphs: result.subgraphs },
+      attached,
+      appended.rootEdges,
+    );
+    set({
+      ...committed,
+      nodes: attached,
+      edges: appended.rootEdges,
+      ...selectionFromIds([result.hostNode.id]),
+    });
+    return;
+  }
+
+  set({
+    ...state,
+    subgraphs: result.subgraphs,
+    rootNodes: attached,
+    rootEdges: appended.rootEdges,
+  });
+}
+
 type FlowEditorState = {
   nodes: FlowGraphNode[];
   edges: Edge[];
@@ -507,6 +561,8 @@ type FlowEditorState = {
   updateNodeGroupInterface: (hostNodeId: string, nextInterface: StudioGroupInterface) => void;
   updateNodeGroupTitle: (hostNodeId: string, title: string) => void;
   ungroupNodeGroup: (hostNodeId: string) => void;
+  duplicateGroupLinked: (hostNodeId: string) => void;
+  duplicateGroupDeepCopy: (hostNodeId: string) => void;
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
@@ -2447,6 +2503,36 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ...selectionFromIds(expandedIds),
     });
     flushFlowSimulationPins(get);
+  },
+  duplicateGroupLinked: (hostNodeId) => {
+    const s = persistActiveGraphBuffer(get());
+    const source =
+      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
+      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    if (source == null) {
+      return;
+    }
+    const result = duplicateStudioGroupLinked(source, s.subgraphs);
+    if (result == null) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    applyGroupHostDuplicateToStore(set, s, result);
+  },
+  duplicateGroupDeepCopy: (hostNodeId) => {
+    const s = persistActiveGraphBuffer(get());
+    const source =
+      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
+      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    if (source == null) {
+      return;
+    }
+    const result = duplicateStudioGroupDeepCopy(source, s.subgraphs);
+    if (result == null) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    applyGroupHostDuplicateToStore(set, s, result);
   },
   jumpToGraph: (graphId: StudioGraphId) => {
     const s = get();

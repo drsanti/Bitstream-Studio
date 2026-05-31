@@ -143,6 +143,7 @@ Drag a **studio** node onto a **frame** and release — it becomes a child and m
 | Drill-in | **Tab** / double-click | `enterGroup`, breadcrumb, **Shift+Tab** exit |
 | Subgraph clipboard | `subgraphs` in payload | `buildFlowClipboardPayload` + `attachSubgraphsForPastedNodeGroups` |
 | Group Sockets inspector | `NodeGroupInspector` | `NodeGroupInspectorSection` (+ boundary selection when drilled in) |
+| Linked / deep duplicate | `duplicateGroupLinked` / `duplicateGroupDeepCopy` | Inspector buttons + `duplicate-group-instance.ts` |
 | Eval flatten | `flattenGraphForEvaluation` | `flattenFlowGraphForEvaluation` in `tickSimulation` |
 
 Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
@@ -158,7 +159,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 ## Phase 9+ — Planned
 
-- Linked vs deep-copy group instances (explicit duplicate mode)
+- Group library save/load (node-animator `14-node-asset-library` parity)
 
 ## Shortcuts (current)
 

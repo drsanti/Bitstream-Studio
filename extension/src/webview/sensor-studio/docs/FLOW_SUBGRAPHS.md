@@ -23,6 +23,7 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | Exit group | **Shift+Tab** |
 | Copy / paste groups | **Ctrl+C** / **Ctrl+V** (includes `subgraphs` payload) |
 | Group Sockets inspector | Select group shell (or boundary node inside) → rename, add/remove/reorder typed inputs/outputs |
+| Duplicate linked / deep copy | Inspector **Duplicate linked** (shared inner graph) or **Duplicate deep copy** (independent clone) |
 | Breadcrumb | Top-left overlay on the flow canvas |
 
 ## Implementation map
@@ -39,6 +40,7 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | `subgraphs/dissolve-studio-node-group.ts` | Ungroup + parent edge rewire |
 | `subgraphs/clone-studio-subgraph.ts` | Deep clone nested subgraph documents |
 | `subgraphs/studio-group-interface-sync.ts` | Interface edit + parent edge cleanup |
+| `subgraphs/duplicate-group-instance.ts` | Linked vs deep-copy group duplicates |
 | `components/inspector/NodeGroupInspectorSection.tsx` | Group Sockets inspector UI |
 | `clipboard/flow-clipboard.ts` | `subgraphs` in copy/paste payload |
 
@@ -46,6 +48,6 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 
 ## Backlog
 
-- Linked vs deep-copy group instances (explicit duplicate mode)
+- Group library save/load (node-animator parity Phase 9+)
 
 See also [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md) Phase 9.
