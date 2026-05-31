@@ -85,7 +85,8 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 4):** **linked vs deep-copy** group duplicates — inspector **Duplicate linked** / **Duplicate deep copy**; `duplicate-group-instance.ts`; linked host count hint; unit tests.
 - **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 3):** **Group Sockets inspector** — rename group, add/remove/reorder typed inputs/outputs; `studio-group-interface-sync.ts`, `NodeGroupInspectorSection.tsx`; parent + inner edge cleanup on removed sockets; unit tests.
 - **2026-05-31** — **Sensor Studio flow subgraphs (Phase 9 slice 2):** subgraph-aware **Ctrl+C/V** + duplicate clone; **Ctrl+Shift+G** ungroup; `dissolve-studio-node-group.ts`, `clone-studio-subgraph.ts`; unit tests. **GLB Animation Bundle** **`animationPlaybackMode`** (**per-clip** / **parallel-all** / **sequence**); inspector playback select; preview sequence advance + parallel merge.
-- **2026-05-31** — **Sensor Studio flow subgraphs — group library (Phase 9+ slice 1):** save/export/import `.trn-node-asset.json`; Library **Groups** tab; inspector save/load; canvas drag instantiate; localStorage persistence.
+- **2026-05-31** — **Sensor Studio flow domains — material rAF tick:** `graphNeedsMaterialDomainEvalInGraph` hooked into **`useSensorStudioFlowTickScheduler`**.
+- **2026-05-31** — **Sensor Studio flow subgraphs — group library slices 2–4:** remote official presets, linked preset UI, node-animator import normalization.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 6 material v2 foundation (slice 1):** **`material-domain-eval`** module; **`glb-material-color`** (base/emissive RGB); **`material-mix`**; **`glb-material-param`** wired **Value**; GLB **Materials → Clr** spawn; preview color apply.
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 demo template:** **`material-glb-drives`** (Model Viewer + material param + texture on robot GLB).
 - **2026-05-31** — **Sensor Studio flow domains — Phase 5 material texture swap (slice 2):** **`glb-material-texture`** node (map slots); GLB **Materials → Tex** spawn; preview texture apply.
@@ -397,7 +398,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Sensor Studio — node-animator editor parity (Phase 9+)** — **Phase 9 slices 1–4 + group library slice 1 shipped 2026-05-31**. Plan: **[`NODE_ANIMATOR_PARITY.md`](../src/webview/sensor-studio/docs/NODE_ANIMATOR_PARITY.md)**, **[`FLOW_SUBGRAPHS.md`](../src/webview/sensor-studio/docs/FLOW_SUBGRAPHS.md)**. Next: remote node-graph manifest / linked preset update UI.
+- **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31** (local + remote + linked UI + node-animator import). Next: feed cache polish.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)

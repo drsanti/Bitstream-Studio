@@ -617,7 +617,7 @@ export function SensorStudioMain() {
   const onDropNodeGroupAsset = useCallback(
     (assetId: string, flowPosition: { x: number; y: number }) => {
       const st = useFlowEditorStore.getState();
-      const asset = st.nodeGroupLibrary.find((a) => a.meta.id === assetId);
+      const asset = st.resolveNodeGroupAsset(assetId);
       if (asset == null) {
         return;
       }

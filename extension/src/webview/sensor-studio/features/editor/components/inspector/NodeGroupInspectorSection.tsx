@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Copy, Download, FolderOpen, Link2, LogIn, LogOut, Plus, Save, Ungroup, Upload } from "lucide-react";
+import { Copy, Download, FolderOpen, Link2, Link2Off, LogIn, LogOut, Plus, RefreshCw, Save, Ungroup, Upload } from "lucide-react";
 import {
   TRNButton,
   TRNFormField,
@@ -8,6 +8,7 @@ import {
 } from "../../../../../ui/TRN";
 import { createManualGroupSocket } from "../../subgraphs/studio-group-interface-sync";
 import { countStudioSubgraphHosts } from "../../subgraphs/duplicate-group-instance";
+import { findLinkedStudioLibraryPreset } from "../../subgraphs/node-library/library-preset-upsert";
 import { parseStudioNodeAssetFile } from "../../subgraphs/node-library/studio-node-asset-file";
 import {
   emptyGroupInterface,
@@ -42,6 +43,10 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
   const saveGroupToNodeLibrary = useFlowEditorStore((s) => s.saveGroupToNodeLibrary);
   const exportGroupAsNodeAssetFile = useFlowEditorStore((s) => s.exportGroupAsNodeAssetFile);
   const importNodeAssetIntoGroup = useFlowEditorStore((s) => s.importNodeAssetIntoGroup);
+  const updateGroupFromLibrary = useFlowEditorStore((s) => s.updateGroupFromLibrary);
+  const breakGroupLibraryLink = useFlowEditorStore((s) => s.breakGroupLibraryLink);
+  const nodeGroupLibrary = useFlowEditorStore((s) => s.nodeGroupLibrary);
+  const remoteNodeGraphAssets = useFlowEditorStore((s) => s.remoteNodeGraphAssets);
   const importFileRef = useRef<HTMLInputElement>(null);
   const [libraryFeedback, setLibraryFeedback] = useState<string | null>(null);
 
@@ -62,6 +67,19 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
     [subgraphId, rootNodes, subgraphs],
   );
   const isLinkedInstance = linkedHostCount > 1;
+
+  const linkedPreset = useMemo(() => {
+    if (typeof data.libraryAssetId === "string") {
+      return (
+        nodeGroupLibrary.find((a) => a.meta.id === data.libraryAssetId) ??
+        remoteNodeGraphAssets[data.libraryAssetId]
+      );
+    }
+    return findLinkedStudioLibraryPreset(nodeGroupLibrary, {
+      sourceNodeId: hostNodeId,
+      presetKind: "nodeGraph",
+    });
+  }, [data.libraryAssetId, hostNodeId, nodeGroupLibrary, remoteNodeGraphAssets]);
 
   const applyInterface = useCallback(
     (next: StudioGroupInterface) => {
@@ -208,10 +226,14 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
       >
         {libraryFeedback != null ? (
           <TRNHintText className="text-[11px]">{libraryFeedback}</TRNHintText>
+        ) : linkedPreset != null ? (
+          <TRNHintText className="text-[11px]">
+            Linked to library preset{" "}
+            <span className="font-medium text-zinc-300">{linkedPreset.meta.name}</span>.
+          </TRNHintText>
         ) : (
           <TRNHintText className="text-[11px]">
-            Saved presets appear in Library → <span className="font-medium text-zinc-300">Groups</span>.
-            Drag onto the canvas to spawn a deep copy.
+            Saved presets appear in Library → Groups. Drag onto the canvas to spawn a deep copy.
           </TRNHintText>
         )}
         <div className="flex flex-col gap-2">
@@ -220,6 +242,18 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
             className="w-full justify-center"
             prefixIcon={<Save className="h-3.5 w-3.5" aria-hidden />}
             onClick={() => {
+              const existing = findLinkedStudioLibraryPreset(nodeGroupLibrary, {
+                sourceNodeId: hostNodeId,
+                presetKind: "nodeGraph",
+              });
+              if (
+                existing != null &&
+                !window.confirm(
+                  `"${existing.meta.name}" is already saved from this group. Replace it with the current inner graph?`,
+                )
+              ) {
+                return;
+              }
               const result = saveGroupToNodeLibrary(hostNodeId, title);
               if (result == null) {
                 setLibraryFeedback("Could not save — this group has no inner graph.");
@@ -234,6 +268,50 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
           >
             Save to library
           </TRNButton>
+          {linkedPreset != null ? (
+            <>
+              <TRNButton
+                type="button"
+                className="w-full justify-center"
+                prefixIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      `Replace this group's inner graph with "${linkedPreset.meta.name}"? Parent wires may break if sockets changed.`,
+                    )
+                  ) {
+                    return;
+                  }
+                  const ok = updateGroupFromLibrary(hostNodeId);
+                  setLibraryFeedback(
+                    ok
+                      ? `Updated from "${linkedPreset.meta.name}".`
+                      : "Could not update — linked preset not found.",
+                  );
+                }}
+              >
+                Update from library
+              </TRNButton>
+              <TRNButton
+                type="button"
+                className="w-full justify-center"
+                prefixIcon={<Link2Off className="h-3.5 w-3.5" aria-hidden />}
+                onClick={() => {
+                  if (
+                    !window.confirm(
+                      "Break the library link? The saved preset is kept; this group will no longer track it.",
+                    )
+                  ) {
+                    return;
+                  }
+                  breakGroupLibraryLink(hostNodeId);
+                  setLibraryFeedback("Library link removed — this group is now independent.");
+                }}
+              >
+                Break library link
+              </TRNButton>
+            </>
+          ) : null}
           <TRNButton
             type="button"
             className="w-full justify-center"

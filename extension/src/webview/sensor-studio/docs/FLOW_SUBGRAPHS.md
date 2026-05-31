@@ -25,6 +25,8 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | Group Sockets inspector | Select group shell (or boundary node inside) → rename, add/remove/reorder typed inputs/outputs |
 | Duplicate linked / deep copy | Inspector **Duplicate linked** (shared inner graph) or **Duplicate deep copy** (independent clone) |
 | Group library | Inspector **Save to library** / **Export preset** / **Load preset into group**; Library **Groups** tab + canvas drag |
+| Remote official presets | **`libraries/node-graph/index.json`** on online asset base; Groups tab **Official** section |
+| Linked preset sync | Inspector **Update from library** / **Break library link** |
 | Breadcrumb | Top-left overlay on the flow canvas |
 
 ## Implementation map
@@ -42,7 +44,9 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | `subgraphs/clone-studio-subgraph.ts` | Deep clone nested subgraph documents |
 | `subgraphs/studio-group-interface-sync.ts` | Interface edit + parent edge cleanup |
 | `subgraphs/duplicate-group-instance.ts` | Linked vs deep-copy group duplicates |
-| `subgraphs/node-library/` | `.trn-node-asset.json` build, parse, instantiate, library upsert |
+| `subgraphs/node-library/remote-node-graph-index.ts` | Online index + asset fetch |
+| `subgraphs/node-library/normalize-node-asset-for-studio.ts` | node-animator → studio type mapping |
+| `subgraphs/node-library/use-remote-node-graph-presets.ts` | Groups tab remote loader hook |
 | `components/node-palette/GroupLibraryTabPanel.tsx` | Saved group presets + import/drag |
 | `persistence/node-group-library.repository.ts` | localStorage library persistence |
 | `components/inspector/NodeGroupInspectorSection.tsx` | Group Sockets inspector UI |
@@ -52,7 +56,6 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 
 ## Backlog
 
-- Global remote manifest under `assets/libraries/node-graph/` (node-animator feed parity)
-- Update from library / break link UI for linked presets
+- Feed cache badges / offline sync UX polish
 
 See also [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md) Phase 9.

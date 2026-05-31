@@ -76,6 +76,7 @@ import { findStudioNodeGroupHost } from "../subgraphs/node-library/find-studio-n
 import { instantiateStudioNodeAsset } from "../subgraphs/node-library/instantiate-node-asset";
 import {
   upsertStudioLibraryPreset,
+  findLinkedStudioLibraryPreset,
   type StudioLibrarySaveResult,
 } from "../subgraphs/node-library/library-preset-upsert";
 import { replaceStudioNodeGroupFromAsset } from "../subgraphs/node-library/replace-group-from-asset";
@@ -579,12 +580,18 @@ type FlowEditorState = {
   duplicateGroupLinked: (hostNodeId: string) => void;
   duplicateGroupDeepCopy: (hostNodeId: string) => void;
   nodeGroupLibrary: StudioNodeAssetFile[];
+  remoteNodeGraphAssets: Record<string, StudioNodeAssetFile>;
+  registerRemoteNodeGraphAsset: (asset: StudioNodeAssetFile) => void;
+  clearRemoteNodeGraphAssets: () => void;
+  resolveNodeGroupAsset: (assetId: string) => StudioNodeAssetFile | undefined;
   saveGroupToNodeLibrary: (hostNodeId: string, name?: string) => StudioLibrarySaveResult | null;
   removeNodeAssetFromLibrary: (assetId: string) => void;
   importNodeAssetToLibrary: (asset: StudioNodeAssetFile) => string;
   exportNodeAssetById: (assetId: string) => boolean;
   exportGroupAsNodeAssetFile: (hostNodeId: string) => boolean;
   importNodeAssetIntoGroup: (hostNodeId: string, asset: StudioNodeAssetFile) => boolean;
+  updateGroupFromLibrary: (hostNodeId: string) => boolean;
+  breakGroupLibraryLink: (hostNodeId: string) => void;
   instantiateNodeAssetAt: (asset: StudioNodeAssetFile, position: { x: number; y: number }) => boolean;
   deleteSelection: () => void;
   selectAllNodes: () => void;
@@ -1820,6 +1827,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   undoStack: [],
   redoStack: [],
   nodeGroupLibrary: readPersistedNodeGroupLibrary(),
+  remoteNodeGraphAssets: {},
   pushUndoSnapshot: () => {
     const st = get();
     const snap = cloneFlowSnapshot({
@@ -2604,6 +2612,64 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const next = get().nodeGroupLibrary.filter((a) => a.meta.id !== assetId);
     writePersistedNodeGroupLibrary(next);
     set({ nodeGroupLibrary: next });
+  },
+  registerRemoteNodeGraphAsset: (asset) => {
+    set((state) => ({
+      remoteNodeGraphAssets: {
+        ...state.remoteNodeGraphAssets,
+        [asset.meta.id]: asset,
+      },
+    }));
+  },
+  clearRemoteNodeGraphAssets: () => {
+    set({ remoteNodeGraphAssets: {} });
+  },
+  resolveNodeGroupAsset: (assetId) => {
+    const st = get();
+    return (
+      st.nodeGroupLibrary.find((a) => a.meta.id === assetId) ??
+      st.remoteNodeGraphAssets[assetId]
+    );
+  },
+  updateGroupFromLibrary: (hostNodeId) => {
+    const s = persistActiveGraphBuffer(get());
+    const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
+    if (hostCtx == null) {
+      return false;
+    }
+    const data = hostCtx.host.data;
+    const asset =
+      (typeof data.libraryAssetId === "string"
+        ? get().nodeGroupLibrary.find((a) => a.meta.id === data.libraryAssetId) ??
+          get().remoteNodeGraphAssets[data.libraryAssetId]
+        : undefined) ??
+      findLinkedStudioLibraryPreset(get().nodeGroupLibrary, {
+        sourceNodeId: hostNodeId,
+        presetKind: "nodeGraph",
+      });
+    if (asset == null) {
+      return false;
+    }
+    return get().importNodeAssetIntoGroup(hostNodeId, asset);
+  },
+  breakGroupLibraryLink: (hostNodeId) => {
+    const patchHost = (nodes: FlowGraphNode[]) =>
+      nodes.map((n) =>
+        n.id === hostNodeId && isStudioNodeGroupNode(n)
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                libraryAssetId: undefined,
+              },
+            }
+          : n,
+      );
+    const s = get();
+    set({
+      rootNodes: patchHost(s.rootNodes),
+      nodes: patchHost(s.nodes),
+    });
   },
   importNodeAssetToLibrary: (asset) => {
     const keyed = rekeyStudioNodeAssetMeta(asset);

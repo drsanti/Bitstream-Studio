@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.store";
 import { useBmi270FusionEulerWireTapStore } from "../../bitstream-app/state/bmi270FusionEulerWireTap.store";
 import { useBmi270FusionQuatWireTapStore } from "../../bitstream-app/state/bmi270FusionQuatWireTap.store";
+import { graphNeedsMaterialDomainEvalInGraph } from "../core/flow/material-domain-eval";
 import { graphNeedsSceneFrameTick } from "../core/flow/scene-flow-frame-subscribers";
 import { useFlowEditorStore } from "../features/editor/store/flow-editor.store";
 
@@ -48,8 +49,20 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
       sceneLoopRunning = false;
     };
 
+    const graphNeedsContinuousFlowTick = () => {
+      const st = useFlowEditorStore.getState();
+      return (
+        graphNeedsSceneFrameTick(st.nodes) ||
+        graphNeedsMaterialDomainEvalInGraph({
+          nodes: st.nodes,
+          rootNodes: st.rootNodes,
+          subgraphs: st.subgraphs,
+        })
+      );
+    };
+
     const sceneFrameLoop = () => {
-      if (!graphNeedsSceneFrameTick(useFlowEditorStore.getState().nodes)) {
+      if (!graphNeedsContinuousFlowTick()) {
         stopSceneLoop();
         return;
       }
@@ -61,7 +74,7 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
       if (sceneLoopRunning) {
         return;
       }
-      if (!graphNeedsSceneFrameTick(useFlowEditorStore.getState().nodes)) {
+      if (!graphNeedsContinuousFlowTick()) {
         return;
       }
       sceneLoopRunning = true;

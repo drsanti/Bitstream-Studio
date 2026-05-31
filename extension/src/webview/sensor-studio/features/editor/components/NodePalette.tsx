@@ -1075,7 +1075,7 @@ export function NodePalette(props: NodePaletteProps) {
               onSpawnGlbMaterialColorExtract={onSpawnGlbMaterialColorExtract}
             />
           ) : tab === "groups" ? (
-            <GroupLibraryTabPanel dense={dense} query={query} borderColor={borderColor} />
+            <GroupLibraryTabPanel dense={dense} query={query} borderColor={borderColor} remoteEnabled />
           ) : activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
               <Waves className="size-8 text-zinc-600" aria-hidden />

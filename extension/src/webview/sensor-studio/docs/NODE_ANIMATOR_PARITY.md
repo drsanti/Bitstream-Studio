@@ -157,14 +157,20 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 - `extension/tests/sensor-studio/studio-subgraph.test.ts`
 - `extension/tests/sensor-studio/studio-group-interface-sync.test.ts`
 
-## Phase 9+ — Shipped (slice 1)
+## Phase 9+ — Shipped (slices 1–4)
 
-- Group library save/load — `.trn-node-asset.json` export/import, project library (`nodeGroupLibrary`), Library **Groups** tab, canvas drag instantiate (**2026-05-31**)
+- Group library save/load — `.trn-node-asset.json` export/import, project library (`nodeGroupLibrary`), Library **Groups** tab, canvas drag instantiate (**2026-05-31** slice 1)
+- Remote official presets — online `libraries/node-graph/index.json` + asset fetch (**2026-05-31** slice 2)
+- Linked preset UI — **Update from library** / **Break library link** (**2026-05-31** slice 3)
+- Node-animator import — `nodeGroup` / `groupInput` / `float` normalization on parse (**2026-05-31** slice 3)
+
+## Phase 9+ — Shipped (flow domains)
+
+- Material domain rAF tick — `graphNeedsMaterialDomainEvalInGraph` in **`useSensorStudioFlowTickScheduler`** (**2026-05-31** slice 4)
 
 ## Phase 9+ — Planned
 
-- Global folder + remote manifest sync
-- Linked library update / break link
+- Feed cache badges / offline sync UX polish
 
 ## Shortcuts (current)
 

@@ -1,5 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { StudioSubgraphDocument } from "../studio-subgraph.types";
+import { normalizeNodeAssetForStudio } from "./normalize-node-asset-for-studio";
 
 export const STUDIO_NODE_ASSET_MARKER = "trn-node-asset" as const;
 export const STUDIO_NODE_ASSET_VERSION = 1 as const;
@@ -76,6 +77,16 @@ export function serializeStudioNodeAssetFile(asset: StudioNodeAssetFile): string
 export function parseStudioNodeAssetFile(text: string): StudioNodeAssetFile | null {
   try {
     const raw = JSON.parse(text) as Partial<StudioNodeAssetFile>;
+    const host = Array.isArray(raw.nodes)
+      ? raw.nodes.find(
+          (n) =>
+            (n as { type?: string }).type === "studio-node-group" ||
+            (n as { type?: string }).type === "nodeGroup",
+        )
+      : undefined;
+    if ((host as { type?: string } | undefined)?.type === "nodeGroup") {
+      return normalizeNodeAssetForStudio(raw);
+    }
     if (raw?.marker !== STUDIO_NODE_ASSET_MARKER || raw.version !== STUDIO_NODE_ASSET_VERSION) {
       return null;
     }
@@ -88,8 +99,7 @@ export function parseStudioNodeAssetFile(text: string): StudioNodeAssetFile | nu
     if (raw.subgraphs == null || typeof raw.subgraphs !== "object" || Array.isArray(raw.subgraphs)) {
       return null;
     }
-    const host = raw.nodes.find((n) => n.type === "studio-node-group");
-    if (!host) {
+    if (!host || (host as { type?: string }).type !== "studio-node-group") {
       return null;
     }
 
@@ -159,6 +169,7 @@ export function rekeyStudioNodeAssetMeta(asset: StudioNodeAssetFile): StudioNode
 export function studioNodeAssetFromDragPayload(
   data: Record<string, unknown>,
   library: StudioNodeAssetFile[],
+  remoteLibrary?: Record<string, StudioNodeAssetFile>,
 ): StudioNodeAssetFile | null {
   if (data.dragKind !== STUDIO_NODE_ASSET_DRAG_KIND || typeof data.assetId !== "string") {
     return null;
@@ -166,6 +177,10 @@ export function studioNodeAssetFromDragPayload(
   const fromLibrary = library.find((a) => a.meta.id === data.assetId);
   if (fromLibrary != null) {
     return fromLibrary;
+  }
+  const fromRemote = remoteLibrary?.[data.assetId];
+  if (fromRemote != null) {
+    return fromRemote;
   }
   const embedded = data.asset;
   if (embedded != null && typeof embedded === "object") {

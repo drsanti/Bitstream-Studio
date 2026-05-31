@@ -174,6 +174,7 @@ Practical **Domain D v2** slice before a full BSDF DAG: separate material evalua
 - [x] **`glb-material-color`** — base / emissive RGB on named GLB materials; Library **Materials → Clr** spawn; preview apply (**2026-05-31** slice 1)
 - [x] **`material-mix`** — blend two numbers with factor; wire into **`glb-material-param`** **Value** (**2026-05-31** slice 1)
 - [x] **`glb-material-param`** — optional wired **Value** input (**2026-05-31** slice 1)
+- [x] Material domain nodes trigger coalesced rAF **`tickSimulation`** via **`graphNeedsMaterialDomainEvalInGraph`** (**2026-05-31**)
 - [ ] Geometry-style mesh ops (backlog)
 - [ ] Full shader DAG compile (backlog)
 
@@ -198,6 +199,7 @@ UART vs Simulator telemetry rules (**`bitstream-dual-runtime.mdc`**) apply to Do
 | ------- | ------ | ---------------- |
 | **Telemetry (A)** | `sampleCount` ↑, BMI270 wire tap seq, graph flush, stale-health poll | Sensor inputs, transforms, Plotter history, gauges, health badges |
 | **Scene frame (B)** | `requestAnimationFrame` while `graphNeedsSceneFrameTick()` | `model-viewer`, `rotation-3d-*`, `environment`, `camera-view`, `glb-animation-bundle`, `object-transform`, `transform-from-euler`, `sine-wave` |
+| **Material (D partial)** | Same rAF coalesced loop when `graphNeedsMaterialDomainEvalInGraph()` | `glb-material-param`, `glb-material-texture`, `glb-material-color`, `material-mix` |
 
 Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-frame-subscribers.ts`** (catalog). Both triggers coalesce into one rAF **`tickSimulation()`** per display frame. Three.js preview rendering remains in **`RotationPreviewPanelV4`** (separate inner rAF).
 

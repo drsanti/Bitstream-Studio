@@ -39,6 +39,35 @@ export function graphNeedsMaterialDomainEval(nodes: ReadonlyArray<{ data: { node
   return nodes.some((node) => MATERIAL_DOMAIN_NODE_IDS.has(node.data.nodeId));
 }
 
+function collectStudioNodeIds(nodes: ReadonlyArray<{ type?: string; data?: unknown }>): string[] {
+  const ids: string[] = [];
+  for (const node of nodes) {
+    if (node.type !== "studio") {
+      continue;
+    }
+    const data = node.data as { nodeId?: string } | undefined;
+    if (typeof data?.nodeId === "string") {
+      ids.push(data.nodeId);
+    }
+  }
+  return ids;
+}
+
+/** Scan root graph + nested subgraph documents for Domain D material nodes. */
+export function graphNeedsMaterialDomainEvalInGraph(args: {
+  nodes: ReadonlyArray<{ type?: string; data?: unknown }>;
+  rootNodes?: ReadonlyArray<{ type?: string; data?: unknown }>;
+  subgraphs?: Record<string, { nodes: ReadonlyArray<{ type?: string; data?: unknown }> }>;
+}): boolean {
+  const buckets = [args.nodes, args.rootNodes ?? [], ...Object.values(args.subgraphs ?? {}).map((s) => s.nodes)];
+  for (const list of buckets) {
+    if (graphNeedsMaterialDomainEval(collectStudioNodeIds(list).map((nodeId) => ({ data: { nodeId } })))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** Collect material scalar, texture, and color drives for one Model scope (Domain D). */
 export function evaluateMaterialGraphForModel(
   nodes: readonly FlowNodeLike[],
