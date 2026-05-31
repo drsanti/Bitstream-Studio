@@ -61,6 +61,7 @@ import { mergeFlowWireEnvironmentIntoScene3d } from "./environment/flow-wire-env
 import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
 import { mergeFlowWireTransformIntoScene3d } from "./transform/flow-wire-transform";
 import { buildGlbAnimationPreviewSceneProps } from "../gltf/build-glb-animation-preview-scene-props";
+import { buildGlbScalarPreviewSceneProps } from "../gltf/build-glb-scalar-preview-scene-props";
 import { EventSetBooleanNodePanel, EventSetGlbPartNodePanel, EventToggleBooleanNodePanel, EventToggleGlbPartNodePanel, EventTriggerGlbAnimNodePanel, OnClickNodePanel, OnKeyNodePanel } from "./events/EventFlowNodePanels";
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 
@@ -490,17 +491,26 @@ export function StudioNodeCard(props: NodeProps) {
     [scene3d, data.liveEnvironmentWire, data.liveCameraWire, data.liveTransformWire],
   );
 
-  const rotationGlbAnimationSceneProps = useMemo(
+  const rotationGlbSceneProps = useMemo(
     () =>
       isRotation3dNode
-        ? buildGlbAnimationPreviewSceneProps({
-            nodes: flowNodes,
-            edges: flowEdges,
-            flowNodeId: id,
-            catalogNodeId: data.nodeId,
-            defaultConfig: data.defaultConfig,
-            liveAnimationWire: data.liveAnimationWire ?? null,
-          })
+        ? {
+            ...buildGlbScalarPreviewSceneProps({
+              nodes: flowNodes,
+              edges: flowEdges,
+              flowNodeId: id,
+              catalogNodeId: data.nodeId,
+              defaultConfig: data.defaultConfig,
+            }),
+            ...buildGlbAnimationPreviewSceneProps({
+              nodes: flowNodes,
+              edges: flowEdges,
+              flowNodeId: id,
+              catalogNodeId: data.nodeId,
+              defaultConfig: data.defaultConfig,
+              liveAnimationWire: data.liveAnimationWire ?? null,
+            }),
+          }
         : {},
     [
       isRotation3dNode,
@@ -534,14 +544,14 @@ export function StudioNodeCard(props: NodeProps) {
       eulerOnly: true,
       showGrid: rotationShowGrid,
       scene3d: scene3dForPreview,
-      ...rotationGlbAnimationSceneProps,
+      ...rotationGlbSceneProps,
     };
   }, [
     data.liveVector3Wire,
     data.nodeId,
     rotationShowGrid,
     scene3dForPreview,
-    rotationGlbAnimationSceneProps,
+    rotationGlbSceneProps,
   ]);
 
   const quaternionScene = useMemo<RotationPreviewScenePropsV4 | null>(() => {
@@ -560,14 +570,14 @@ export function StudioNodeCard(props: NodeProps) {
       meshOrientationFromEulerFallback: false,
       showGrid: rotationShowGrid,
       scene3d: scene3dForPreview,
-      ...rotationGlbAnimationSceneProps,
+      ...rotationGlbSceneProps,
     };
   }, [
     data.liveQuaternionWire,
     data.nodeId,
     rotationShowGrid,
     scene3dForPreview,
-    rotationGlbAnimationSceneProps,
+    rotationGlbSceneProps,
   ]);
 
   const shellRef = useRef<HTMLDivElement | null>(null);
@@ -718,7 +728,7 @@ export function StudioNodeCard(props: NodeProps) {
                   eulerOnly: true,
                   showGrid: rotationShowGrid,
                   scene3d: scene3dForPreview,
-                  ...rotationGlbAnimationSceneProps,
+                  ...rotationGlbSceneProps,
                 }
               }
             />
@@ -736,7 +746,7 @@ export function StudioNodeCard(props: NodeProps) {
                   meshOrientationFromEulerFallback: false,
                   showGrid: rotationShowGrid,
                   scene3d: scene3dForPreview,
-                  ...rotationGlbAnimationSceneProps,
+                  ...rotationGlbSceneProps,
                 }
               }
             />

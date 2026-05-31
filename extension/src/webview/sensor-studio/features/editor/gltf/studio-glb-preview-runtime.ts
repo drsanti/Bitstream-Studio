@@ -26,15 +26,78 @@ export function buildStudioGlbPathIndex(root: THREE.Object3D): Map<string, THREE
 
 export type GlbPartVisibilityDriveState = {
   lastKeys: Set<string>;
+  /** Material uuid → opacity captured before part-opacity drives. */
+  materialOpacityBaseline: Map<string, number>;
+  /** Material uuid → transparent flag captured before part-opacity drives. */
+  materialTransparentBaseline: Map<string, boolean>;
 };
 
 export function resetGlbPartVisibilityDriveState(st: GlbPartVisibilityDriveState): void {
   st.lastKeys.clear();
+  st.materialOpacityBaseline.clear();
+  st.materialTransparentBaseline.clear();
+}
+
+function restoreMaterialOpacityBaselines(
+  obj: THREE.Object3D,
+  st: GlbPartVisibilityDriveState,
+): void {
+  if (!(obj instanceof THREE.Mesh)) {
+    return;
+  }
+  const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+  for (const mat of mats) {
+    if (!(mat instanceof THREE.Material)) {
+      continue;
+    }
+    const baseOpacity = st.materialOpacityBaseline.get(mat.uuid);
+    if (typeof baseOpacity === "number" && Number.isFinite(baseOpacity)) {
+      mat.opacity = baseOpacity;
+    }
+    const baseTransparent = st.materialTransparentBaseline.get(mat.uuid);
+    if (typeof baseTransparent === "boolean") {
+      mat.transparent = baseTransparent;
+    }
+    mat.needsUpdate = true;
+  }
+}
+
+function applyPartOpacityToObjectTree(obj: THREE.Object3D, opacity: number, st: GlbPartVisibilityDriveState): void {
+  const clamped = Math.min(1, Math.max(0, opacity));
+  obj.visible = clamped > 0;
+  obj.traverse((node) => {
+    if (!(node instanceof THREE.Mesh)) {
+      return;
+    }
+    const mats = Array.isArray(node.material) ? node.material : [node.material];
+    for (const mat of mats) {
+      if (!(mat instanceof THREE.Material)) {
+        continue;
+      }
+      if (!st.materialOpacityBaseline.has(mat.uuid)) {
+        st.materialOpacityBaseline.set(mat.uuid, mat.opacity);
+      }
+      if (!st.materialTransparentBaseline.has(mat.uuid)) {
+        st.materialTransparentBaseline.set(mat.uuid, mat.transparent);
+      }
+      if (clamped >= 1) {
+        const baseOpacity = st.materialOpacityBaseline.get(mat.uuid);
+        mat.opacity = typeof baseOpacity === "number" ? baseOpacity : 1;
+        const baseTransparent = st.materialTransparentBaseline.get(mat.uuid);
+        mat.transparent = typeof baseTransparent === "boolean" ? baseTransparent : false;
+      } else if (clamped > 0) {
+        mat.opacity = clamped;
+        mat.transparent = true;
+      }
+      mat.needsUpdate = true;
+    }
+  });
 }
 
 /**
- * Part rows: numeric **> 0.5** means visible; otherwise hidden. Keys are full object paths.
- * Objects no longer listed are restored to **visible**.
+ * Part rows: **0** hides the subtree; **(0, 1)** sets mesh material opacity; **1** restores
+ * baseline visibility/opacity. Keys are full object paths.
+ * Objects no longer listed are restored to **visible** with captured material baselines.
  */
 export function applyGlbPartVisibilityByPathMap(
   pathToObject: Map<string, THREE.Object3D> | null,
@@ -50,15 +113,26 @@ export function applyGlbPartVisibilityByPathMap(
       const o = pathToObject.get(k);
       if (o != null) {
         o.visible = true;
+        o.traverse((node) => restoreMaterialOpacityBaselines(node, st));
       }
     }
   }
   if (visibility != null) {
     for (const [p, v] of Object.entries(visibility)) {
       const o = pathToObject.get(p);
-      if (o != null) {
-        o.visible = typeof v === "number" && Number.isFinite(v) && v > 0.5;
+      if (o == null || typeof v !== "number" || !Number.isFinite(v)) {
+        continue;
       }
+      if (v <= 0) {
+        o.visible = false;
+        continue;
+      }
+      if (v >= 1) {
+        o.visible = true;
+        o.traverse((node) => restoreMaterialOpacityBaselines(node, st));
+        continue;
+      }
+      applyPartOpacityToObjectTree(o, v, st);
     }
   }
   st.lastKeys = next;
@@ -155,21 +229,144 @@ const glbCamScratch = {
 
 /** Pick the GLB camera name with the strongest drive value (must be **> 0.5** to activate). */
 export function pickActiveGlbCameraName(cameras: Record<string, number> | undefined): string | null {
-  if (cameras == null || Object.keys(cameras).length === 0) {
+  const blend = resolveGlbCameraBlendWeights(cameras);
+  if (blend.length === 0) {
     return null;
   }
-  let best: string | null = null;
-  let bestV = 0.5;
+  return blend[0]?.name ?? null;
+}
+
+export type GlbCameraBlendEntry = { name: string; weight: number };
+
+/**
+ * Normalized weights for embedded GLB cameras with drive **> 0.5**.
+ * Used for single-camera pick (highest weight) and multi-camera pose blend.
+ */
+export function resolveGlbCameraBlendWeights(
+  cameras: Record<string, number> | undefined,
+): GlbCameraBlendEntry[] {
+  if (cameras == null || Object.keys(cameras).length === 0) {
+    return [];
+  }
+  const raw: GlbCameraBlendEntry[] = [];
   for (const [name, v] of Object.entries(cameras)) {
     if (typeof v !== "number" || !Number.isFinite(v) || v <= 0.5) {
       continue;
     }
-    if (v > bestV) {
-      bestV = v;
-      best = name;
+    const trimmed = name.trim();
+    if (trimmed.length === 0) {
+      continue;
+    }
+    raw.push({ name: trimmed, weight: v });
+  }
+  if (raw.length === 0) {
+    return [];
+  }
+  raw.sort((a, b) => b.weight - a.weight);
+  const sum = raw.reduce((acc, row) => acc + row.weight, 0);
+  if (sum <= 0) {
+    return [];
+  }
+  return raw.map((row) => ({ name: row.name, weight: row.weight / sum }));
+}
+
+function findNamedGlbCamera(modelRoot: THREE.Object3D, cameraName: string): THREE.Camera | null {
+  const want = cameraName.trim();
+  if (want.length === 0) {
+    return null;
+  }
+  let foundCam: THREE.Camera | null = null;
+  modelRoot.traverse((o) => {
+    if (foundCam != null) {
+      return;
+    }
+    if (!(o instanceof THREE.Camera)) {
+      return;
+    }
+    const n = typeof o.name === "string" ? o.name.trim() : "";
+    if (n === want) {
+      foundCam = o;
+    }
+  });
+  return foundCam;
+}
+
+/**
+ * Blend pose (+ perspective FOV when applicable) from weighted GLB embedded cameras into the
+ * studio orbit camera. Falls back to the highest-weight camera when only one entry is active.
+ */
+export function applyStudioCameraFromBlendedGlbCameras(
+  modelRoot: THREE.Object3D | null,
+  blend: readonly GlbCameraBlendEntry[],
+  studioCamera: THREE.PerspectiveCamera,
+  controls: OrbitControls,
+): boolean {
+  if (modelRoot == null || blend.length === 0) {
+    return false;
+  }
+  if (blend.length === 1) {
+    return applyStudioCameraFromNamedGlbCamera(modelRoot, blend[0]?.name ?? null, studioCamera, controls);
+  }
+
+  const posAcc = new THREE.Vector3();
+  const targetAcc = new THREE.Vector3();
+  let fovAcc = 0;
+  let fovWeight = 0;
+  const quatSum = new THREE.Vector4(0, 0, 0, 0);
+  let matched = 0;
+
+  for (const row of blend) {
+    const cam = findNamedGlbCamera(modelRoot, row.name);
+    if (cam == null) {
+      continue;
+    }
+    matched += 1;
+    cam.getWorldPosition(glbCamScratch.pos);
+    posAcc.addScaledVector(glbCamScratch.pos, row.weight);
+    cam.getWorldQuaternion(glbCamScratch.quat);
+    if (quatSum.lengthSq() > 0) {
+      const dot =
+        quatSum.x * glbCamScratch.quat.x +
+        quatSum.y * glbCamScratch.quat.y +
+        quatSum.z * glbCamScratch.quat.z +
+        quatSum.w * glbCamScratch.quat.w;
+      if (dot < 0) {
+        glbCamScratch.quat.x *= -1;
+        glbCamScratch.quat.y *= -1;
+        glbCamScratch.quat.z *= -1;
+        glbCamScratch.quat.w *= -1;
+      }
+    }
+    quatSum.x += glbCamScratch.quat.x * row.weight;
+    quatSum.y += glbCamScratch.quat.y * row.weight;
+    quatSum.z += glbCamScratch.quat.z * row.weight;
+    quatSum.w += glbCamScratch.quat.w * row.weight;
+    cam.getWorldDirection(glbCamScratch.dir);
+    targetAcc.addScaledVector(glbCamScratch.pos.clone().add(glbCamScratch.dir), row.weight);
+    if (cam instanceof THREE.PerspectiveCamera) {
+      fovAcc += cam.fov * row.weight;
+      fovWeight += row.weight;
     }
   }
-  return best;
+
+  if (matched === 0) {
+    return false;
+  }
+
+  quatSum.normalize();
+  const quatAcc = new THREE.Quaternion(quatSum.x, quatSum.y, quatSum.z, quatSum.w);
+  quatAcc.normalize();
+
+  studioCamera.position.copy(posAcc);
+  studioCamera.quaternion.copy(quatAcc);
+  studioCamera.scale.set(1, 1, 1);
+  if (fovWeight > 0) {
+    studioCamera.fov = fovAcc / fovWeight;
+  }
+  controls.target.copy(targetAcc);
+  studioCamera.updateProjectionMatrix();
+  controls.update();
+  return true;
 }
 
 /**
@@ -185,20 +382,7 @@ export function applyStudioCameraFromNamedGlbCamera(
   if (modelRoot == null || cameraName == null || cameraName.trim().length === 0) {
     return false;
   }
-  const want = cameraName.trim();
-  let foundCam: THREE.Camera | undefined;
-  modelRoot.traverse((o) => {
-    if (foundCam != null) {
-      return;
-    }
-    if (!(o instanceof THREE.Camera)) {
-      return;
-    }
-    const n = typeof o.name === "string" ? o.name.trim() : "";
-    if (n === want) {
-      foundCam = o;
-    }
-  });
+  const foundCam = findNamedGlbCamera(modelRoot, cameraName);
   if (foundCam == null) {
     return false;
   }

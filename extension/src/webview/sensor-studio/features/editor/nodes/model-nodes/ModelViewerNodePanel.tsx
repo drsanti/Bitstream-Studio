@@ -12,11 +12,11 @@ import type { FlowWireCameraV1 } from "../camera-view/flow-wire-camera";
 import { mergeFlowWireCameraIntoScene3d } from "../camera-view/flow-wire-camera";
 import type { FlowWireAnimationV1 } from "../animation/flow-wire-animation";
 import { buildGlbAnimationPreviewSceneProps } from "../../gltf/build-glb-animation-preview-scene-props";
+import { buildGlbScalarPreviewSceneProps } from "../../gltf/build-glb-scalar-preview-scene-props";
 import type { FlowWireTransformV1 } from "../transform/flow-wire-transform";
 import { mergeFlowWireTransformIntoScene3d } from "../transform/flow-wire-transform";
 import { rotationPreviewOrientationFromTransformWire } from "../transform/flow-wire-transform-preview-orientation";
 import { resolveStudioModelScopeNodeId, resolveStudioSourceModelGlbUrl } from "../../model/model-generated-bindings";
-import { collectGlbScalarDrivesForModel } from "../../gltf/studio-glb-flow-drives";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 export type ModelViewerNodePanelProps = {
@@ -46,28 +46,22 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
 
   const nodes = useFlowEditorStore((s) => s.nodes);
   const edges = useFlowEditorStore((s) => s.edges);
-  const sourceModelNodeId = useMemo(
-    () =>
-      resolveStudioModelScopeNodeId({
-        nodes,
-        edges,
-        defaultConfig,
-        flowNodeId: nodeId,
-        catalogNodeId: "model-viewer",
-      }),
-    [nodes, edges, defaultConfig, nodeId],
-  );
-
-  const glbDrives = useMemo(
-    () => collectGlbScalarDrivesForModel(nodes, sourceModelNodeId, edges),
-    [nodes, edges, sourceModelNodeId],
-  );
 
   const wiredUrl =
     typeof liveValue === "string" && liveValue.trim().length > 0 ? liveValue.trim() : "";
   const linkedModelUrl = useMemo(
-    () => resolveStudioSourceModelGlbUrl(nodes, sourceModelNodeId || undefined),
-    [nodes, sourceModelNodeId],
+    () =>
+      resolveStudioSourceModelGlbUrl(
+        nodes,
+        resolveStudioModelScopeNodeId({
+          nodes,
+          edges,
+          defaultConfig,
+          flowNodeId: nodeId,
+          catalogNodeId: "model-viewer",
+        }) || undefined,
+      ),
+    [nodes, edges, defaultConfig, nodeId],
   );
   const fallbackRaw = defaultConfig.fallbackModelUrl;
   const fallback =
@@ -106,6 +100,18 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
 
   const showGrid = readBoolean(defaultConfig, "showGrid", true);
 
+  const glbScalarSceneProps = useMemo(
+    () =>
+      buildGlbScalarPreviewSceneProps({
+        nodes,
+        edges,
+        flowNodeId: nodeId,
+        catalogNodeId: "model-viewer",
+        defaultConfig,
+      }),
+    [nodes, edges, nodeId, defaultConfig],
+  );
+
   const glbAnimationSceneProps = useMemo(
     () =>
       buildGlbAnimationPreviewSceneProps({
@@ -120,25 +126,16 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
   );
 
   const sceneProps = useMemo((): RotationPreviewSceneProps => {
-    const morphKeys = Object.keys(glbDrives.morphs);
-    const lightKeys = Object.keys(glbDrives.lights);
-    const partKeys = Object.keys(glbDrives.parts);
-    const materialKeys = Object.keys(glbDrives.materials);
-    const cameraKeys = Object.keys(glbDrives.cameras);
     const orientation = rotationPreviewOrientationFromTransformWire(liveTransformWire ?? null);
     return {
       ...orientation,
+      ...glbScalarSceneProps,
       ...glbAnimationSceneProps,
       meshOrientationFromEulerFallback: false,
       showGrid,
       scene3d,
-      glbMorphWeights: morphKeys.length > 0 ? glbDrives.morphs : undefined,
-      glbLightIntensityByName: lightKeys.length > 0 ? glbDrives.lights : undefined,
-      glbPartVisibilityByPath: partKeys.length > 0 ? glbDrives.parts : undefined,
-      glbMaterialEmissiveByName: materialKeys.length > 0 ? glbDrives.materials : undefined,
-      glbCameraDriveByName: cameraKeys.length > 0 ? glbDrives.cameras : undefined,
     };
-  }, [showGrid, scene3d, glbDrives, glbAnimationSceneProps, liveTransformWire]);
+  }, [showGrid, scene3d, glbScalarSceneProps, glbAnimationSceneProps, liveTransformWire]);
 
   return (
     <RotationPreviewPanelV4

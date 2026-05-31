@@ -1,4 +1,4 @@
-/** Scalar visibility for GLB **part** drives: 0 = hidden, 1 = visible (> 0.5 visible in preview). */
+/** Scalar visibility/opacity for GLB **part** drives: 0 = hidden; (0, 1) = material opacity; 1 = visible. */
 
 export function readGlbPartVisibilityScalar(defaultConfig: Record<string, unknown>): number {
   const raw = defaultConfig.value;

@@ -156,7 +156,7 @@ Material compile →  Shader / PBR DAG    (on edit or bake — not every UART fr
 
 - [x] Animation merge utility (`mergeGlbAnimationClipDrivesForPreview`) — scalar + bundle wire + event triggers (**2026-05-31** slice 1)
 - [x] Optional `anim` on rotation nodes — **3D Rotation (Euler / Quaternion)** **`anim`** input + shared merge path (**2026-05-31** slice 2)
-- [ ] Expand GLB drive kinds per product feedback (part opacity, multi-camera blend)
+- [x] Expand GLB drive kinds — part **opacity** (0–1), multi-camera **blend**, scalar drives on **3D Rotation** previews (**2026-05-31** slice 3)
 
 ### Phase 5 — Material parameters (Domain D v1)
 

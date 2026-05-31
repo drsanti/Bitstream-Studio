@@ -39,21 +39,19 @@ import {
   applyGlbMaterialEmissiveByName,
   applyGlbMorphWeightsToModelRoot,
   applyGlbPartVisibilityByPathMap,
-  applyStudioCameraFromNamedGlbCamera,
+  applyStudioCameraFromBlendedGlbCameras,
   buildStudioGlbPathIndex,
+  resetGlbMaterialEmissiveDriveState,
+  resetGlbPartVisibilityDriveState,
+  resolveGlbCameraBlendWeights,
+  type GlbMaterialEmissiveDriveState,
+  type GlbPartVisibilityDriveState,
 } from "../../gltf/studio-glb-preview-runtime";
 import {
   applyStudioGlbAnimationMixerDrives,
   createStudioGlbAnimationMixerState,
   type GlbAnimationClipPreviewDrive,
 } from "../../gltf/studio-glb-animation-preview-mixer";
-import {
-  pickActiveGlbCameraName,
-  resetGlbMaterialEmissiveDriveState,
-  resetGlbPartVisibilityDriveState,
-  type GlbMaterialEmissiveDriveState,
-  type GlbPartVisibilityDriveState,
-} from "../../gltf/studio-glb-preview-runtime";
 import {
   applyStudioShadowMeshes,
   configureStudioDirectionalShadow,
@@ -876,6 +874,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       let glbPathIndex: Map<string, THREE.Object3D> | null = null;
       const partVisibilityDriveState: GlbPartVisibilityDriveState = {
         lastKeys: new Set(),
+        materialOpacityBaseline: new Map(),
+        materialTransparentBaseline: new Map(),
       };
       const materialEmissiveDriveState: GlbMaterialEmissiveDriveState = {
         baseline: new Map(),
@@ -1058,7 +1058,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       let raf = 0;
       let lastCameraDriveKey = cameraDriveKeyFromScene3d(scene3dRef.current);
       /** Previous frame's GLB camera drive winner; used to detect handoff back to `scene3d` rig. */
-      let prevGlbCamWinner: string | null = null;
+      let prevGlbCamActive = false;
       let lastPerfMs = performance.now();
       const loop = () => {
         const nowMs = performance.now();
@@ -1156,10 +1156,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         }
 
         camera.fov = s.camera.fovDeg;
-        const glbCamWinner = pickActiveGlbCameraName(glbCamerasRef.current);
-        const glbCamHandoffToScene =
-          prevGlbCamWinner != null && glbCamWinner == null;
-        if (glbCamWinner == null) {
+        const glbCamBlend = resolveGlbCameraBlendWeights(glbCamerasRef.current);
+        const glbCamActive = glbCamBlend.length > 0;
+        const glbCamHandoffToScene = prevGlbCamActive && !glbCamActive;
+        if (!glbCamActive) {
           const camDriveKey = cameraDriveKeyFromScene3d(s);
           if (glbCamHandoffToScene || camDriveKey !== lastCameraDriveKey) {
             lastCameraDriveKey = camDriveKey;
@@ -1175,10 +1175,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
             );
           }
         }
-        prevGlbCamWinner = glbCamWinner;
+        prevGlbCamActive = glbCamActive;
         camera.updateProjectionMatrix();
-        if (glbCamWinner != null) {
-          applyStudioCameraFromNamedGlbCamera(modelRoot, glbCamWinner, camera, controls);
+        if (glbCamActive) {
+          applyStudioCameraFromBlendedGlbCameras(modelRoot, glbCamBlend, camera, controls);
         }
 
         const mk = modelLoadKey(s);
