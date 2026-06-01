@@ -171,6 +171,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 ## Phase 9+ — Shipped (catalog)
 
 - **Math** node — 13 ops (node-animator parity), **`math-operations.ts`**, catalog + dataflow eval + card/inspector UI + NA import (**2026-05-31**)
+- **Math v1.1** — unary ops hide **B** input via **`computeMathInputHandles`**; inspector **`selectedNode`** prop fix (**2026-05-31**)
 
 ## Phase 9+ — Planned
 

@@ -273,13 +273,20 @@ export function StudioNodeCard(props: NodeProps) {
     data.nodeId === "event-trigger-glb-anim" ||
     isStudioSensorSocketPreviewNodeId(data.nodeId);
 
+  const mathOperation =
+    data.nodeId === "math" && typeof data.defaultConfig.operation === "string"
+      ? data.defaultConfig.operation
+      : null;
+
   useLayoutEffect(() => {
-    if (data.nodeId === "camera-view" || data.nodeId === "environment") {
+    if (data.nodeId === "camera-view" || data.nodeId === "environment" || data.nodeId === "math") {
       updateNodeInternals(id);
     }
   }, [
     id,
     data.nodeId,
+    mathOperation,
+    data.inputHandles?.length,
     cameraViewControlsExpanded,
     environmentControlsExpanded,
     updateNodeInternals,

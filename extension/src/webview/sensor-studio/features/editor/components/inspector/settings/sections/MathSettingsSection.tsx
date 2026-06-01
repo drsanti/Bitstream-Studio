@@ -9,9 +9,10 @@ import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 export function MathSettingsSection(props: NodeInspectorSettingsSectionProps) {
-  const { defaultConfig: dc, onUpdateConfigField } = props;
+  const { selectedNode, onUpdateConfigField } = props;
+  const cfg = selectedNode.data.defaultConfig;
   const operation = normalizeMathOperation(
-    typeof dc.operation === "string" ? dc.operation : undefined,
+    typeof cfg.operation === "string" ? cfg.operation : undefined,
   );
 
   return (

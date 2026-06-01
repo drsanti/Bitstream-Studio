@@ -34,6 +34,10 @@ import {
   runFlowEventDispatch,
 } from "../../../core/flow/flow-event-runner";
 import { evaluateMathOperation } from "../../../core/flow/math-operations";
+import {
+  computeMathInputHandles,
+  MATH_OUTPUT_HANDLE,
+} from "../../../core/flow/math-node-inputs";
 import { resolveSingleClipAutoBindPatchesForGlbAnimNodes } from "../gltf/glb-anim-clip-auto-bind";
 import {
   buildFlowClipboardPayload,
@@ -691,6 +695,12 @@ function inferPortTypes(entry: NodeCatalogEntry): {
       inputHandles: [],
     };
   }
+  if (entry.id === "math") {
+    return {
+      inputHandles: computeMathInputHandles(entry.defaultConfig),
+      outputHandles: [MATH_OUTPUT_HANDLE],
+    };
+  }
   if (entry.inputPorts != null && entry.inputPorts.length > 0) {
     const inputHandles = entry.inputPorts.map((p) => ({
       id: p.id,
@@ -1092,6 +1102,15 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
           ...dcAnim,
           clips: w.clips,
         },
+      };
+    }
+    if (piped.nodeId === "math") {
+      piped = {
+        ...piped,
+        inputHandles: computeMathInputHandles(piped.defaultConfig),
+        outputHandles: [MATH_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
       };
     }
     const errors = validateStudioNodeConfig(piped.nodeId, piped.defaultConfig);

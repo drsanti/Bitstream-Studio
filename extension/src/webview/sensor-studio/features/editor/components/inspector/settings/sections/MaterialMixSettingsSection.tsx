@@ -2,7 +2,8 @@ import { TRNFormField, TRNParameterSlider } from "../../../../../../../ui/TRN";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 export function MaterialMixSettingsSection(props: NodeInspectorSettingsSectionProps) {
-  const { defaultConfig: dc, onUpdateConfigField } = props;
+  const { selectedNode, onUpdateConfigField } = props;
+  const dc = selectedNode.data.defaultConfig;
   const factor =
     typeof dc.factor === "number" && Number.isFinite(dc.factor) ? dc.factor : 0.5;
 

@@ -43,6 +43,14 @@ test("isUnaryMathOperation matches node-animator unary set", () => {
   assert.equal(isUnaryMathOperation("add"), false);
 });
 
+test("computeMathInputHandles hides B for unary ops", async () => {
+  const { computeMathInputHandles } = await import(
+    "../../src/webview/sensor-studio/core/flow/math-node-inputs"
+  );
+  assert.deepEqual(computeMathInputHandles({ operation: "add" }).map((h) => h.id), ["a", "b"]);
+  assert.deepEqual(computeMathInputHandles({ operation: "sin" }).map((h) => h.id), ["a"]);
+});
+
 test("normalizeNodeAssetForStudio maps node-animator math nodes", () => {
   const asset = normalizeNodeAssetForStudio({
     marker: "trn-node-asset",

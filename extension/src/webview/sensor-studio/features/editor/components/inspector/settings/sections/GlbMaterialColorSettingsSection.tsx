@@ -11,7 +11,8 @@ import {
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 export function GlbMaterialColorSettingsSection(props: NodeInspectorSettingsSectionProps) {
-  const { defaultConfig: dc, onUpdateConfigField } = props;
+  const { selectedNode, onUpdateConfigField } = props;
+  const dc = selectedNode.data.defaultConfig;
   const target = readGlbMaterialColorTarget(dc);
   const hex =
     typeof dc[STUDIO_GLB_MATERIAL_COLOR_HEX_KEY] === "string"
