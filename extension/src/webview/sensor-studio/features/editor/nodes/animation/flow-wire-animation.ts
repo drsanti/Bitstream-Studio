@@ -2,7 +2,9 @@ import type { StudioGlbAnimationPlaybackModeV1 } from "../../gltf/studio-glb-ani
 import {
   isStudioGlbAnimationPlaybackModeV1,
   readStudioGlbAnimationPlaybackMode,
+  resolveStudioGlbAnimationClipOrder,
 } from "../../gltf/studio-glb-animation-playback-mode";
+import { isGlbBundleInspectorTransportActive } from "../../components/inspector/settings/sections/glb-bundle-inspector-session";
 
 /** Loop mode mapped to THREE.AnimationAction in the studio GLB preview. */
 export type StudioGlbAnimationLoopModeV1 = "once" | "loop" | "pingpong";
@@ -47,6 +49,11 @@ export type FlowWireAnimationV1 = {
   playbackMode?: StudioGlbAnimationPlaybackModeV1;
   /** Clip play order for **sequence** mode (inspector card order). */
   clipOrder?: string[];
+  /**
+   * When **false**, preview holds clip poses at scrub time (inspector paused).
+   * Set on bundle wires from {@link isGlbBundleInspectorTransportActive}.
+   */
+  inspectorTransportActive?: boolean;
 };
 
 function asFiniteNumber(value: unknown, fallback: number): number {
@@ -211,12 +218,19 @@ export function coerceFlowWireAnimationV1(raw: unknown): FlowWireAnimationV1 {
       .map((x) => x.trim());
     clipOrder = order.length > 0 ? order : undefined;
   }
+  const inspectorTransportActive =
+    o.inspectorTransportActive === true
+      ? true
+      : o.inspectorTransportActive === false
+        ? false
+        : undefined;
   return {
     version: 1,
     clips,
     soloClipName,
     playbackMode,
     clipOrder,
+    inspectorTransportActive,
   };
 }
 
@@ -226,18 +240,28 @@ export function flowAnimationWireFromBundleDefaultConfig(dc: Record<string, unkn
   const soloClipName =
     typeof soloRaw === "string" && soloRaw.trim().length > 0 ? soloRaw.trim() : null;
   const playbackMode = readStudioGlbAnimationPlaybackMode(dc);
+  const clipsRaw = dc.clips;
+  const clipKeys =
+    clipsRaw != null && typeof clipsRaw === "object" && !Array.isArray(clipsRaw)
+      ? Object.keys(clipsRaw as Record<string, unknown>).filter((k) => k.trim().length > 0)
+      : [];
   const orderRaw = dc.animationClipCardOrder;
-  const clipOrder = Array.isArray(orderRaw)
+  const storedOrder = Array.isArray(orderRaw)
     ? orderRaw
         .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
         .map((x) => x.trim())
     : undefined;
+  const clipOrder = resolveStudioGlbAnimationClipOrder({
+    clipOrder: storedOrder,
+    clipNames: clipKeys,
+  });
   return coerceFlowWireAnimationV1({
     version: 1,
-    clips: dc.clips ?? {},
+    clips: clipsRaw ?? {},
     soloClipName,
     playbackMode,
-    clipOrder,
+    clipOrder: clipOrder.length > 0 ? clipOrder : undefined,
+    inspectorTransportActive: isGlbBundleInspectorTransportActive(dc, playbackMode),
   });
 }
 
@@ -376,6 +400,12 @@ export function mergeFlowWireAnimationIntoClipDrives(args: {
         delete loops[name];
         delete weights[name];
       }
+    }
+  }
+
+  if (wire.inspectorTransportActive === false) {
+    for (const drive of Object.values(drives)) {
+      drive.holdTime = true;
     }
   }
 

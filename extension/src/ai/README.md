@@ -6,10 +6,11 @@ The AI bridge is a **Node process** that listens for WebSocket clients on **`AI_
 
 **`npm start`** runs **`start:inner`**, which starts three **`concurrently`** lanes:
 
-1. **`start:bridge`** — combined broker / serial side (**9998**).
+1. **`start:bridge`** — brokers **9998** (serial/bitstream) and **9999** (model catalog), plus both bridge clients.
 2. **`dev:all`** — extension watch + Vite.
-3. **`ai:bridge:no-serial`** — assistant WS (**9987**) **without** `HostSession` attach (avoids competing with the combined bridge for serial in typical setups).
-4. **`start:model-downloader-bridge`** — model broker (**9999**) + model bridge.
+3. **`ai:bridge:no-serial`** — assistant WS (**9987**) **without** `HostSession` attach.
+
+Do not add **`start:model-downloader-bridge`** to the same stack — **`start:bridge`** already owns **9999**.
 
 In full mode, `npm start` also defaults `BITSTREAM2_DEV_LOOPBACK=1` so Simulator dev works without hardware. Set `BITSTREAM2_DEV_LOOPBACK=0` to force real UART workflows.
 

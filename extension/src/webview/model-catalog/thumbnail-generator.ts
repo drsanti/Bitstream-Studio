@@ -202,27 +202,16 @@ export async function generateThumbnailDataUrl(
       camera.updateProjectionMatrix();
     }
   } else {
-    // No camera in file: center and scale model, then use default framing.
+    // No camera in file: frame authored transform without mutating the glTF root.
     const bbox = new THREE.Box3().setFromObject(root);
-    const center = bbox.getCenter(new THREE.Vector3());
-    const size = bbox.getSize(new THREE.Vector3());
-    const maxDim = Math.max(size.x, size.y, size.z) || 1;
-
-    root.position.sub(center);
-
-    bbox.setFromObject(root);
     const sphere = bbox.getBoundingSphere(new THREE.Sphere());
-    const radius = sphere.radius || maxDim / 2;
-
-    const targetRadius = 1.4;
-    const scale = targetRadius / radius;
-    root.scale.setScalar(scale);
+    const center = sphere.center.clone();
+    const radius = Math.max(sphere.radius, 1e-4);
 
     camera = new THREE.PerspectiveCamera(40, 1, 0.01, 1000);
-    const dist =
-      (radius * scale) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    camera.position.set(0, dist * 0.22, dist * 0.85);
-    camera.lookAt(0, 0, 0);
+    const dist = radius / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+    camera.position.copy(center).add(new THREE.Vector3(0, dist * 0.22, dist * 0.85));
+    camera.lookAt(center);
   }
 
   // Render one still frame.

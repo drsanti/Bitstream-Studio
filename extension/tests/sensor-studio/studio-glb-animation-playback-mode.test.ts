@@ -7,6 +7,7 @@ import {
   pickInitialSequenceClipName,
   readStudioGlbAnimationPlaybackMode,
   resetGlbAnimationSequencePlaybackState,
+  resolveStudioGlbAnimationClipOrder,
 } from "../../src/webview/sensor-studio/features/editor/gltf/studio-glb-animation-playback-mode";
 import type { GlbAnimationClipPreviewDrive } from "../../src/webview/sensor-studio/features/editor/gltf/studio-glb-animation-preview-mixer";
 
@@ -91,4 +92,27 @@ test("resetGlbAnimationSequencePlaybackState clears active clip", () => {
   const st = { activeClipName: "walk" as string | null };
   resetGlbAnimationSequencePlaybackState(st);
   assert.equal(st.activeClipName, null);
+});
+
+test("filterGlbAnimationDrivesForPreview sequence falls back to drive keys when clipOrder empty", () => {
+  const drives = {
+    alpha: drive(),
+    beta: drive(),
+  };
+  const sequenceState = { activeClipName: null as string | null };
+  const filtered = filterGlbAnimationDrivesForPreview({
+    drives,
+    playbackMode: "sequence",
+    clipOrder: [],
+    sequenceState,
+  });
+  assert.equal(Object.keys(filtered).length, 1);
+  assert.equal(sequenceState.activeClipName, "alpha");
+});
+
+test("resolveStudioGlbAnimationClipOrder appends unknown clips", () => {
+  assert.deepEqual(
+    resolveStudioGlbAnimationClipOrder({ clipOrder: ["b"], clipNames: ["a", "b"] }),
+    ["b", "a"],
+  );
 });

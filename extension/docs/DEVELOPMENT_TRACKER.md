@@ -71,6 +71,26 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-01** — **GLB Animation Lab — live mapping UI:** Inspector **Mapping** tab (all cards, one scroll): card parameter | sensor | sub-parameter; localStorage overrides; primary-on-card; wired to BS2 live merge + 3D tags.
+
+- **2026-06-01** — **GLB Animation Lab — shared 3D tag layout:** Card width, min height, 3D scale, and title/status/signal fonts are **global** (all CSS3D tags); per-subsystem overrides for title, offsets, visibility, and colors; persistence v2 with v1 migration.
+
+- **2026-06-01** — **GLB preview authored transform (all surfaces):** `GLB_PREVIEW_BODY_PLACEMENT_MODE = authored`, shared **`GlbPreviewModelRoot`**; removed bbox center / `0.5` scale / drei `<Center>` on previews; rule **`glb-preview-authored-transform.mdc`** + skill.
+
+- **2026-06-01** — **GLB Animation Bundle inspector:** dedicated **Animation** tab (connection on **Node**); mode/sequence change pauses transport; Model Viewer advances only when inspector **Play** is active (`inspectorTransportActive` on wire).
+- **2026-06-01** — **GLB Animation Lab (Phase D):** open lab from Model Catalog / Asset Browse; **Apply as Studio defaults** → new `glb-animation-bundle` spawn policy (`studio-glb-preview-defaults-from-lab.ts`).
+- **2026-06-01** — **GLB Animation Lab — digital twin CSS3D tags (Phase B):** `animation-lab/css3d/` billboard tags on subsystem anchors; viewport **Tags** / **Alerts only** toolbar; camera + anchor sync from R3F scene.
+- **2026-06-01** — **GLB Animation Lab — operational digital twin (Phase A):** sidebar **Machine twin** panel (simulated motor/sensor health), catalog **`digitalTwin`** metadata + clip heuristics, clip↔subsystem sync; spec **`docs/GLB_ANIMATION_LAB_DIGITAL_TWIN.md`**.
+- **2026-06-01** — **GLB Animation Lab — digital twin Phase D:** maintenance log (`animation-lab-twin-alerts.ts`), 60-sample signal sparklines, **Copy report** JSON export; unit test **`tests/bitstream-app/animation-lab-twin-alerts.test.ts`**.
+- **2026-06-01** — **GLB Animation Lab — digital twin live + polish (Phase C):** BS2 `liveSourceKey` merge (`animation-lab-twin-live.ts`), **Live / Mixed / Simulated** header; bundled **`assets/free/models/tesa-drone/tesa-drone_metadata.json`**; tag toolbar persistence + default **Alerts only** for 6+ subsystems; optional **`anchorOffset`** on anchors.
+- **2026-06-01** — **GLB Animation Lab polish:** inspector catalog id labels + copy URL/id; smoke checklist **`GLB_ANIMATION_LAB_SMOKE.md`**; Tesa Drone metadata example **`docs/examples/tesa-drone_animation-lab-metadata.example.json`**; Telemetry workbench = lab only.
+
+- **2026-06-01** — **GLB Animation Lab (Phase C):** read-only track overlap summary + parallel-risk hint; live time/frame readout; catalog `animationLab` metadata (`defaultPreviewClip`, `recommendedPlaybackMode`, `clipOrder`) via sidecar JSON — **`ANIMATION_LAB_CATALOG_METADATA.md`**.
+
+- **2026-06-01** — **GLB Animation Lab (Phase B):** Studio mixer (`applyStudioGlbAnimationMixerDrives`), sequence mode + clip reorder, per-clip weight/loop/trim/fade, solo cross-fade, legacy engine toggle; spec **`components/animation-lab/GLB_ANIMATION_LAB.md`**.
+
+- **2026-06-01** — **GLB Animation Lab (Phase A):** `components/animation-lab/` — solo vs parallel-all playback, clip list, scrub timeline, inspector + R3F viewport; stacked under Quaternion preview in **Telemetry** workbench; spec **`GLB_ANIMATION_LAB.md`**; orientation card unchanged (parallel transport only).
+
 - **2026-06-01** — **Shell toolbar — control deck + link metrics:** `ShellControlDeck` (workspace / Hardware|Simulator / Service); wire RX + decode FPS in `BitstreamMainToolbar` via `ShellLinkTelemetryCluster`; BS2 `evt/sensor` JSON byte window (`bs2WireRxWindowAccumulator`); unified header ☰ via `workspaceHeaderMenuSlot`; Studio canvas top-right is menu-only; freshness tooltips use **just now** / `<1s` (not `0ms ago`).
 - **2026-06-01** — **Sensor Studio — merged chrome bar:** `SensorStudioChromeBar` combines link lifecycle + studio menus; shell lifecycle hidden in Sensor Studio mode; collapses to **Link ready** when boot complete.
 - **2026-06-01** — **Sensor Studio — `StudioToolbar` cleanup:** three-zone header (title / FPS / grouped actions); **Insert**, **Edit**, **File**, **Layout** menus; **Devices** + **Assets** primaries; canvas actions stay on flow toolbars; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.

@@ -49,6 +49,37 @@ export function resetGlbAnimationSequencePlaybackState(st: GlbAnimationSequenceP
   st.activeClipName = null;
 }
 
+/** Resolve play order for sequence mode (persisted order, then wire keys, then stable fallback). */
+export function resolveStudioGlbAnimationClipOrder(args: {
+  clipOrder: readonly string[] | undefined;
+  clipNames: readonly string[];
+}): string[] {
+  const names = args.clipNames.filter((n) => n.trim().length > 0);
+  if (names.length === 0) {
+    return [];
+  }
+  const nameSet = new Set(names);
+  const fromOrder: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of args.clipOrder ?? []) {
+    const name = raw.trim();
+    if (name.length === 0 || !nameSet.has(name) || seen.has(name)) {
+      continue;
+    }
+    fromOrder.push(name);
+    seen.add(name);
+  }
+  if (fromOrder.length > 0) {
+    for (const name of names) {
+      if (!seen.has(name)) {
+        fromOrder.push(name);
+      }
+    }
+    return fromOrder;
+  }
+  return [...names];
+}
+
 /** Pick the first clip in `clipOrder` that exists in `drives`. */
 export function pickInitialSequenceClipName(
   clipOrder: readonly string[],
@@ -71,19 +102,27 @@ export function filterGlbAnimationDrivesForPreview(args: {
   playbackMode: StudioGlbAnimationPlaybackModeV1;
   clipOrder: readonly string[];
   sequenceState: GlbAnimationSequencePlaybackState;
+  /** When **false**, preview scrubs only (inspector paused). Default **true** when omitted. */
+  inspectorTransportActive?: boolean;
 }): Record<string, GlbAnimationClipPreviewDrive> {
+  const transportActive = args.inspectorTransportActive !== false;
+  const holdScrub = !transportActive;
+
   if (args.playbackMode === "parallel-all") {
     /** Blend-style playback: let the mixer advance time (model-catalog **Blend** mode). */
     const out: Record<string, GlbAnimationClipPreviewDrive> = {};
     for (const [name, src] of Object.entries(args.drives)) {
-      out[name] = { ...src, holdTime: false };
+      out[name] = { ...src, holdTime: holdScrub ? true : false };
     }
     return out;
   }
   if (args.playbackMode !== "sequence") {
     return args.drives;
   }
-  const order = args.clipOrder.filter((name) => args.drives[name] != null);
+  const order = resolveStudioGlbAnimationClipOrder({
+    clipOrder: args.clipOrder,
+    clipNames: Object.keys(args.drives),
+  });
   if (order.length === 0) {
     return {};
   }
@@ -99,7 +138,7 @@ export function filterGlbAnimationDrivesForPreview(args: {
   return {
     [active]: {
       ...src,
-      holdTime: false,
+      holdTime: holdScrub ? true : false,
       loopMode: src.loopMode ?? "once",
     },
   };
@@ -132,7 +171,10 @@ export function advanceGlbAnimationSequenceAfterMixerTick(args: {
   if (ac.time < end - 1e-3) {
     return;
   }
-  const order = args.clipOrder.filter((name) => args.drives[name] != null);
+  const order = resolveStudioGlbAnimationClipOrder({
+    clipOrder: args.clipOrder,
+    clipNames: Object.keys(args.drives),
+  });
   const idx = order.indexOf(active);
   const next = idx >= 0 && idx + 1 < order.length ? order[idx + 1]! : null;
   args.sequenceState.activeClipName = next;

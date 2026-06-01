@@ -4,6 +4,7 @@ import { useModelDownloaderOverWs } from "../model-downloader/useModelDownloader
 import type { ModelEntry } from "./modelCatalog-types";
 import { bridgeWebPathToCatalogModelUrl } from "./modelCatalogMerge";
 import { AlertDialog } from "../ui/components/AlertDialog";
+import { resolveCatalogBridgeListErrorPresentation } from "./catalog-bridge-list-error";
 
 function mapBridgeToModelEntries(entries: CatalogListDownloadedEntry[]): ModelEntry[] {
   return entries.map((e) => ({
@@ -43,8 +44,10 @@ export function ModelCatalogBridgeDownloaded({
 }: ModelCatalogBridgeDownloadedProps) {
   const [assetLayoutDialog, setAssetLayoutDialog] = useState<{
     open: boolean;
+    title: string;
     message: string;
-  }>({ open: false, message: "" });
+    detail?: string;
+  }>({ open: false, title: "", message: "" });
   const { connect, disconnect, listCatalogDownloadedModels, connectionState, error } =
     useModelDownloaderOverWs();
 
@@ -55,7 +58,7 @@ export function ModelCatalogBridgeDownloaded({
   useEffect(() => {
     if (!active) {
       onModels([]);
-      setAssetLayoutDialog({ open: false, message: "" });
+      setAssetLayoutDialog({ open: false, title: "", message: "" });
       return;
     }
 
@@ -67,14 +70,27 @@ export function ModelCatalogBridgeDownloaded({
         const raw = await listCatalogDownloadedModels();
         if (!cancelled) {
           onModels(mapBridgeToModelEntries(raw));
-          setAssetLayoutDialog({ open: false, message: "" });
+          setAssetLayoutDialog({ open: false, title: "", message: "" });
         }
       } catch (err) {
-        console.warn("[ModelCatalog] Bridge catalog list failed", err);
         if (!cancelled) {
           onModels([]);
-          const msg = err instanceof Error ? err.message : String(err);
-          setAssetLayoutDialog({ open: true, message: msg });
+          const presentation = resolveCatalogBridgeListErrorPresentation(err);
+          if (presentation.showDialog) {
+            console.warn("[ModelCatalog] Bridge catalog list failed", err);
+            setAssetLayoutDialog({
+              open: true,
+              title: presentation.title,
+              message: presentation.message,
+              detail: presentation.detail,
+            });
+          } else {
+            console.warn(
+              "[ModelCatalog] Bridge catalog list skipped (non-blocking):",
+              presentation.detail ?? presentation.message,
+            );
+            setAssetLayoutDialog({ open: false, title: "", message: "" });
+          }
         }
       }
     })();
@@ -101,9 +117,10 @@ export function ModelCatalogBridgeDownloaded({
     <>
       <AlertDialog
         open={assetLayoutDialog.open}
-        title="Local asset directories are not configured"
+        title={assetLayoutDialog.title}
         message={assetLayoutDialog.message}
-        onClose={() => setAssetLayoutDialog({ open: false, message: "" })}
+        detail={assetLayoutDialog.detail}
+        onClose={() => setAssetLayoutDialog({ open: false, title: "", message: "" })}
       />
     </>
   );

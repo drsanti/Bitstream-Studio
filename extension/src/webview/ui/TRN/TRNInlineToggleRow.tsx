@@ -33,32 +33,38 @@ export function TRNInlineToggleRow(props: TRNInlineToggleRowProps) {
     middleSlot,
   } = props;
 
+  const labelNode = (
+    <span className="inline-flex min-h-5 items-center text-xs font-semibold leading-none text-zinc-100">
+      {label}
+    </span>
+  );
+
   return (
     <div
       className={twMerge(
-        "flex items-start justify-between gap-3 rounded-xl border border-zinc-700/80 bg-zinc-950/75 p-3 backdrop-blur-sm",
+        "flex min-h-9.5 items-center justify-between gap-3 rounded-md border border-zinc-700/80 bg-zinc-950/75 p-2 backdrop-blur-sm",
         className,
       )}
     >
-      <div className="min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 items-center">
         {hint != null && hint.length > 0 ? (
           <TRNHintTooltip
+            className="inline-flex"
             trigger={
-              <span className="w-fit cursor-help text-xs font-semibold text-zinc-100">
-                {label}
-              </span>
+              <span className="inline-flex w-fit cursor-help items-center">{labelNode}</span>
             }
             content={hint}
             triggerAriaLabel={`About ${label}`}
             placement="top-start"
             triggerWrapper="span"
+            triggerClassName="!p-0"
             wide={hint.length > 120}
           />
         ) : (
-          <div className="text-xs font-semibold text-zinc-100">{label}</div>
+          labelNode
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2 pt-0.5">
+      <div className="flex shrink-0 items-center gap-2">
         {middleSlot}
         <TRNToggleSwitch
           checked={checked}

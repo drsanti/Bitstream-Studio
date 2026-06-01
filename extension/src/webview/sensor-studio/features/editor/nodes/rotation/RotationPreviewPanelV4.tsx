@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -90,6 +90,12 @@ import {
   type GlbAnimationSequencePlaybackState,
   type StudioGlbAnimationPlaybackModeV1,
 } from "../../gltf/studio-glb-animation-playback-mode";
+import {
+  applyUserPreviewTransportToClipActions,
+  flowOwnsGlbPreviewAnimation,
+  type GlbPreviewUserTransport,
+} from "../../gltf/glb-preview-user-transport";
+import { GlbPreviewPlaybackControls } from "./GlbPreviewPlaybackControls";
 import {
   applyStudioShadowMeshes,
   configureStudioDirectionalShadow,
@@ -226,15 +232,6 @@ function disposeObject3D(root: THREE.Object3D) {
     }
     (material as THREE.Material).dispose?.();
   });
-}
-
-function centerObjectToOrigin(root: THREE.Object3D) {
-  root.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(root);
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  root.position.sub(center);
-  root.updateMatrixWorld(true);
 }
 
 function degToRad(v: number): number {
@@ -395,6 +392,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const displayScaleRef = useRef(displayScale);
   const resizeRendererRef = useRef<(() => void) | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
+  const [hasGlbAnimations, setHasGlbAnimations] = useState(false);
+  const [userTransport, setUserTransport] = useState<GlbPreviewUserTransport>("stopped");
+  const userPreviewTransportRef = useRef<GlbPreviewUserTransport>("stopped");
 
   const glbMorphRef = useRef<Record<string, number>>({});
   const glbLightsRef = useRef<Record<string, number>>({});
@@ -405,6 +405,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const glbAnimDrivesRef = useRef<Record<string, GlbAnimationClipPreviewDrive>>({});
   const glbAnimPlaybackModeRef = useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
   const glbAnimClipOrderRef = useRef<string[]>([]);
+  const glbAnimInspectorTransportActiveRef = useRef(true);
   const glbAnimSequenceStateRef = useRef<GlbAnimationSequencePlaybackState>({ activeClipName: null });
   const glbAnimPlaybackModePrevRef = useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
   const glbPartsRef = useRef<Record<string, number>>({});
@@ -424,6 +425,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     glbAnimationClipDrivesByName?: Record<string, GlbAnimationClipPreviewDrive>;
     glbAnimationPlaybackMode?: StudioGlbAnimationPlaybackModeV1;
     glbAnimationClipOrder?: string[];
+    glbAnimationInspectorTransportActive?: boolean;
     glbPartVisibilityByPath?: Record<string, number>;
     glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
     glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
@@ -441,6 +443,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbAnimDrivesRef.current = scenePropsGlb.glbAnimationClipDrivesByName ?? {};
   glbAnimPlaybackModeRef.current = scenePropsGlb.glbAnimationPlaybackMode ?? "per-clip";
   glbAnimClipOrderRef.current = scenePropsGlb.glbAnimationClipOrder ?? [];
+  glbAnimInspectorTransportActiveRef.current =
+    scenePropsGlb.glbAnimationInspectorTransportActive !== false;
   if (glbAnimPlaybackModePrevRef.current !== glbAnimPlaybackModeRef.current) {
     resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
     glbAnimPlaybackModePrevRef.current = glbAnimPlaybackModeRef.current;
@@ -452,6 +456,35 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbCamerasRef.current = scenePropsGlb.glbCameraDriveByName ?? {};
   glbCameraSwitchIndexRef.current = scenePropsGlb.glbCameraSwitchIndex;
   glbCameraSwitchRigRef.current = scenePropsGlb.glbCameraSwitchRig;
+
+  const flowOwnsPlayback = useMemo(
+    () =>
+      flowOwnsGlbPreviewAnimation({
+        structuredDrives: scenePropsGlb.glbAnimationClipDrivesByName ?? {},
+        legacyTimesByClip: scenePropsGlb.glbAnimationTimeByClipName ?? {},
+      }),
+    [
+      scenePropsGlb.glbAnimationClipDrivesByName,
+      scenePropsGlb.glbAnimationTimeByClipName,
+    ],
+  );
+
+  useEffect(() => {
+    userPreviewTransportRef.current = userTransport;
+  }, [userTransport]);
+
+  const onPreviewPlay = useCallback(() => {
+    setUserTransport("playing");
+    userPreviewTransportRef.current = "playing";
+  }, []);
+  const onPreviewPause = useCallback(() => {
+    setUserTransport("paused");
+    userPreviewTransportRef.current = "paused";
+  }, []);
+  const onPreviewStop = useCallback(() => {
+    setUserTransport("stopped");
+    userPreviewTransportRef.current = "stopped";
+  }, []);
 
   const quatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
   useEffect(() => {
@@ -1006,6 +1039,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         const myGen = ++modelLoadGen;
         setInitError(null);
         inflightModelKey = reasonKey;
+        setHasGlbAnimations(false);
+        setUserTransport("stopped");
+        userPreviewTransportRef.current = "stopped";
         resetAnimationMixer();
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
@@ -1096,7 +1132,6 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
                 return;
               }
               modelRoot = gltf.scene;
-              centerObjectToOrigin(modelRoot);
               applyEmbeddedRigPolicy(modelRoot, scene3dRef.current.model.embeddedRigPolicy);
               root.add(modelRoot);
               embeddedCameraNames = collectEmbeddedGlbCameraNames(modelRoot);
@@ -1118,6 +1153,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
                   clipActions.set(nm, ac);
                 }
               }
+              setHasGlbAnimations(clipActions.size > 0);
+              setUserTransport("stopped");
+              userPreviewTransportRef.current = "stopped";
               loadedModelKey = reasonKey;
               frameCameraToObject({
                 camera,
@@ -1239,13 +1277,14 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
               playbackMode,
               clipOrder,
               sequenceState: glbAnimSequenceStateRef.current,
+              inspectorTransportActive: glbAnimInspectorTransportActiveRef.current,
             });
             applyStudioGlbAnimationMixerDrives({
               clipActions,
               drives: drivesForMixer,
               state: animationMixerState,
             });
-            if (playbackMode === "sequence") {
+            if (playbackMode === "sequence" && glbAnimInspectorTransportActiveRef.current) {
               animationMixer.update(deltaSec);
               advanceGlbAnimationSequenceAfterMixerTick({
                 clipActions,
@@ -1259,34 +1298,44 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
             const scales = glbAnimScalesRef.current;
             const loops = glbAnimLoopsRef.current;
             const weights = glbAnimWeightsRef.current;
-            for (const [nm, ac] of clipActions) {
-              const t = drives[nm];
-              if (typeof t === "number" && Number.isFinite(t)) {
-                ac.enabled = true;
-                ac.paused = false;
-                ac.time = Math.max(0, t);
-                const ts = scales[nm];
-                ac.timeScale =
-                  typeof ts === "number" && Number.isFinite(ts) && Math.abs(ts) < 1e6 ? ts : 1;
-                const mode = loops[nm] ?? "loop";
-                const threeLoop =
-                  mode === "once"
-                    ? THREE.LoopOnce
-                    : mode === "pingpong"
-                      ? THREE.LoopPingPong
-                      : THREE.LoopRepeat;
-                const reps = mode === "once" ? 1 : Infinity;
-                ac.setLoop(threeLoop, reps);
-                ac.clampWhenFinished = mode === "once";
-                const w = weights[nm];
-                ac.weight =
-                  typeof w === "number" && Number.isFinite(w) ? Math.min(1, Math.max(0, w)) : 1;
-              } else {
-                ac.paused = true;
-                ac.time = 0;
-                ac.timeScale = 1;
-                ac.weight = 1;
+            const hasLegacyDrive = Object.values(drives).some(
+              (t) => typeof t === "number" && Number.isFinite(t),
+            );
+            if (hasLegacyDrive) {
+              for (const [nm, ac] of clipActions) {
+                const t = drives[nm];
+                if (typeof t === "number" && Number.isFinite(t)) {
+                  ac.enabled = true;
+                  ac.paused = false;
+                  ac.time = Math.max(0, t);
+                  const ts = scales[nm];
+                  ac.timeScale =
+                    typeof ts === "number" && Number.isFinite(ts) && Math.abs(ts) < 1e6 ? ts : 1;
+                  const mode = loops[nm] ?? "loop";
+                  const threeLoop =
+                    mode === "once"
+                      ? THREE.LoopOnce
+                      : mode === "pingpong"
+                        ? THREE.LoopPingPong
+                        : THREE.LoopRepeat;
+                  const reps = mode === "once" ? 1 : Infinity;
+                  ac.setLoop(threeLoop, reps);
+                  ac.clampWhenFinished = mode === "once";
+                  const w = weights[nm];
+                  ac.weight =
+                    typeof w === "number" && Number.isFinite(w) ? Math.min(1, Math.max(0, w)) : 1;
+                } else {
+                  ac.paused = true;
+                  ac.time = 0;
+                  ac.timeScale = 1;
+                  ac.weight = 1;
+                }
               }
+            } else {
+              applyUserPreviewTransportToClipActions({
+                clipActions,
+                transport: userPreviewTransportRef.current,
+              });
             }
           }
           animationMixer.update(deltaSec);
@@ -1530,6 +1579,17 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
               }`}
             >
               {initError}
+            </div>
+          ) : null}
+          {hasGlbAnimations && initError == null ? (
+            <div className="absolute bottom-2 left-2 z-10">
+              <GlbPreviewPlaybackControls
+                transport={userTransport}
+                flowOwnsPlayback={flowOwnsPlayback}
+                onPlay={onPreviewPlay}
+                onPause={onPreviewPause}
+                onStop={onPreviewStop}
+              />
             </div>
           ) : null}
           <Suspense fallback={null}>

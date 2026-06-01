@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, ImageIcon, Menu, MonitorPlay, X } from 'lucide-react';
+import { Box, Clapperboard, ImageIcon, Menu, MonitorPlay, X } from 'lucide-react';
+import { openAnimationLabForCatalogModel } from '../bitstream-app/components/animation-lab/open-animation-lab-from-catalog.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -91,6 +92,8 @@ export interface ModelPreviewModalProps {
   onClose: () => void;
   modelUrl?: string | null;
   modelName?: string | null;
+  /** {@link ModelEntry.id} — enables “Open in GLB Animation Lab”. */
+  catalogModelId?: string | null;
   onCaptureThumbnail?: (dataUrl: string) => Promise<void> | void;
 }
 
@@ -104,6 +107,7 @@ export function ModelPreviewModal({
   onClose,
   modelUrl,
   modelName,
+  catalogModelId,
   onCaptureThumbnail,
 }: ModelPreviewModalProps) {
   const initialPreviewSettings = useRef<ModelPreviewSettings>(
@@ -1380,6 +1384,20 @@ export function ModelPreviewModal({
             ? 'bg-white/12 text-gray-100'
             : undefined,
       },
+      ...(catalogModelId != null && catalogModelId.trim().length > 0
+        ? [
+            {
+              id: 'open-animation-lab',
+              label: 'Open in GLB Animation Lab',
+              icon: <Clapperboard className="h-3.5 w-3.5 shrink-0" />,
+              onSelect: () => {
+                openAnimationLabForCatalogModel(catalogModelId);
+                onClose();
+              },
+              title: 'Sensor Telemetry workbench — multi-clip playback investigation',
+            } satisfies IconMenuItem,
+          ]
+        : []),
       {
         id: 'close',
         label: 'Close',
@@ -1388,7 +1406,7 @@ export function ModelPreviewModal({
         title: 'Close preview',
       },
     ],
-    [onClose, previewUIMode],
+    [catalogModelId, onClose, previewUIMode],
   );
 
   const windowTitle = useMemo(() => {

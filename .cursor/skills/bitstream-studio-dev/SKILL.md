@@ -81,3 +81,4 @@ Mutually exclusive — **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`**
 - **`bs2-protocol-change`** — wire / spec changes
 - **`bs2-uart-bringup`** — real MCU validation
 - **`bitstream-simulator-app`** — external sim VSIX
+- **`glb-preview-authored-transform`** — GLB preview mount, no bbox recenter / `0.5` scale

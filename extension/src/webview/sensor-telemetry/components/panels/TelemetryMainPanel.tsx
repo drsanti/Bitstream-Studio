@@ -1,7 +1,7 @@
 /*******************************************************************************
  * File Name : TelemetryMainPanel.tsx
  *
- * Description : Center workbench pane — BMI270 3D orientation (quaternion when on wire).
+ * Description : Center workbench pane — GLB Animation Lab (catalog GLB playback).
  *
  * Author : Asst.Prof.Santi Nuratch, Ph.D
  * Thailand Embedded Systems Association (TESA)
@@ -10,25 +10,18 @@
  *
  *******************************************************************************/
 
-import { useBitstreamLiveStore } from "../../../bitstream-app/state/bitstreamLive.store.js";
-import { BitstreamRotation3DFusionWorkspaceCard } from "../../../bitstream-app/workspace/BitstreamRotation3DFusionWorkspaceCard.js";
+import { GlbAnimationLabPreviewCard } from "../../../bitstream-app/components/animation-lab/GlbAnimationLabPreviewCard.js";
 
 /**
- * Focal 3D preview driven by live BMI270 fusion (quaternion preferred when QUAT is on the wire).
+ * Telemetry workbench focal surface: animation lab only (no IMU quaternion preview here).
+ * Live BMI270 orientation remains on the Bitstream rotation / fusion workspace when enabled elsewhere.
  */
-export function TelemetryMainPanel()
-{
-  const bmi270Sample = useBitstreamLiveStore((s) => s.latestByHint.bmi270);
-  const wireDiag = useBitstreamLiveStore((s) => s.bmi270WireDiag);
-
+export function TelemetryMainPanel() {
   return (
-    <div className="flex h-full min-h-0 flex-col p-1">
-      <BitstreamRotation3DFusionWorkspaceCard
-        sample={bmi270Sample}
-        wireDiag={wireDiag}
-        collapsible={false}
-        workspaceFill
-      />
+    <div className="flex h-full min-h-0 flex-col gap-1 p-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <GlbAnimationLabPreviewCard collapsible={false} />
+      </div>
     </div>
   );
 }

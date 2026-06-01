@@ -19,6 +19,7 @@ import {
 } from "../../../../bitstream-app/state/bitstreamDeviceSensorConfig.store";
 import { useBmi270FusionEulerWireTapStore } from "../../../../bitstream-app/state/bmi270FusionEulerWireTap.store";
 import { useBmi270FusionQuatOrientationStore } from "../../../../bitstream-app/state/bmi270FusionQuatOrientation.store";
+import { mergeLabDefaultsIntoGlbAnimationBundleConfig } from "../../../../bitstream-app/components/animation-lab/studio-glb-preview-defaults-from-lab.js";
 import {
   computeBmm350PinBundle,
   computeDps368PinBundle,
@@ -904,6 +905,11 @@ type FlowEditorState = {
    * Returns **false** for multi-edit or when nothing is selected.
    */
   applySelectedNodeConfigFieldLive: (key: string, value: unknown) => boolean;
+  /** Live config patch by flow node id (no undo) — used when inspector session outlives selection. */
+  applyNodeConfigFieldsLiveByNodeId: (
+    nodeId: string,
+    fields: Record<string, unknown>,
+  ) => boolean;
   updateSelectedNodeConfigFromJson: (nextJson: string) => { ok: true } | { ok: false; message: string };
   /** Replace plotter `defaultConfig` in one undo step (coerced + persisted). */
   updateSelectedNodePlotterConfig: (next: PlotterConfig) => void;
@@ -1773,7 +1779,10 @@ function createStudioNodeFromCatalogEntry(
       label: entry.title,
       category: entry.category,
       nodeId: entry.id,
-      defaultConfig: { ...entry.defaultConfig },
+      defaultConfig:
+        entry.id === "glb-animation-bundle"
+          ? mergeLabDefaultsIntoGlbAnimationBundleConfig({ ...entry.defaultConfig })
+          : { ...entry.defaultConfig },
       ui,
       inputType: inferred.inputType,
       outputType: inferred.outputType,
@@ -4627,6 +4636,39 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         state.edges,
       ),
     }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  applyNodeConfigFieldsLiveByNodeId: (nodeId, fields) => {
+    const id = nodeId.trim();
+    if (id.length === 0 || Object.keys(fields).length === 0) {
+      return false;
+    }
+    set((state) => {
+      const target = state.nodes.find((n) => n.id === id);
+      if (target == null) {
+        return state;
+      }
+      return {
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          state.nodes.map((node) =>
+            node.id === id
+              ? {
+                  ...node,
+                  data: {
+                    ...node.data,
+                    defaultConfig: {
+                      ...node.data.defaultConfig,
+                      ...fields,
+                    },
+                  },
+                }
+              : node,
+          ),
+          state.edges,
+        ),
+      };
+    });
     flushFlowSimulationPins(get);
     return true;
   },

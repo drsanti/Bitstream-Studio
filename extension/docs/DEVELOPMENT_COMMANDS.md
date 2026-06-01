@@ -76,10 +76,11 @@ flowchart TD
 
 **`npm start`** is the recommended “run everything for dev” command. It runs the Dev Supervisor and spawns **`start:inner`**, which starts:
 
-- **`start:bridge`** (serial/bitstream broker + bridges)
+- **`start:bridge`** (brokers **9998** + **9999**, serial/bitstream bridge, **and** model-downloader bridge — see `combined-bridge-entry.ts`)
 - **`dev:all`** (extension watch + Vite webview)
 - **`ai:bridge:no-serial`** (AI bridge WS on **9987**, no `HostSession` attach)
-- **`start:model-downloader-bridge`** (model broker on **9999** + model bridge)
+
+Do **not** also run **`start:model-downloader-bridge`** in the same stack — it starts a **second** WS server on **9999** and fails with **`EADDRINUSE`**. Use **`start:model-downloader-bridge`** only when you are **not** running **`start:bridge`** (e.g. **`dev:model-loader-browser`**).
 
 **Loopback default:** when `T3D_START_MODE=full`, `npm start` also defaults `BITSTREAM2_DEV_LOOPBACK=1` so Simulator mode “just works” without hardware. Set `BITSTREAM2_DEV_LOOPBACK=0` to force real UART workflows.
 
@@ -111,11 +112,11 @@ Use **`npm run start:inner:bitstream-ai`** if you already ran **`dev:clean`** ma
 
 | Command | What it runs | Use when |
 |---------|----------------|----------|
-| **`npm start`** | Runs **`prestart`** → **`dev:clean`**, then starts a **local Dev Supervisor** (**`127.0.0.1:9910`**) which spawns **`start:inner`** (**`start:bridge`** + **`dev:all`** + **`ai:bridge:no-serial`** + **`start:model-downloader-bridge`**). Defaults `BITSTREAM2_DEV_LOOPBACK=1` in full mode. | You want **one** command for the full dev stack (UI + bridge + assistant WS + model loader) with loopback simulator on by default. |
+| **`npm start`** | Runs **`prestart`** → **`dev:clean`**, then starts a **local Dev Supervisor** (**`127.0.0.1:9910`**) which spawns **`start:inner`** (**`start:bridge`** + **`dev:all`** + **`ai:bridge:no-serial`**). Defaults `BITSTREAM2_DEV_LOOPBACK=1` in full mode. | You want **one** command for the full dev stack (UI + brokers + assistant WS + model catalog on **9999** via combined bridge). |
 | **`npm run start:with-bitstream-mcp`** | **`prestart`** + **`start:inner:bitstream-ai`** (**`start:bridge`** + **`dev:all`** + **`ai:bridge`**). | One terminal — **broker + dev + MCP-capable AI bridge** (same layout as **`start:inner`**, attach-capable third lane). |
 | **`npm run start:inner`** | **`start:bridge`** + **`dev:all`** + **`ai:bridge:no-serial`** via **`concurrently`** (no supervisor). | Same stack as **`npm start`** without supervisor or **`start:with-bitstream-mcp`** without attach. |
 | **`npm run start:inner:bitstream-ai`** | **`start:bridge`** + **`dev:all`** + **`ai:bridge`**. | Inner stack only; use **`start:with-bitstream-mcp`** if you want **`prestart`** too. |
-| **`npm run start:inner:no-ai`** | **`start:bridge`** + **`dev:all`** + **`start:model-downloader-bridge`** (no AI process). | You run **`ai:bridge`** manually with custom flags or another port. |
+| **`npm run start:inner:no-ai`** | **`start:bridge`** + **`dev:all`** (no AI process). | You run **`ai:bridge`** manually with custom flags or another port. |
 | **`npm run start:no-clean`** | Alias of **`start:inner`** (skips the supervised wrapper). | Ports are already free, or you do not want `dev:clean`/supervisor. |
 
 **Cautions**

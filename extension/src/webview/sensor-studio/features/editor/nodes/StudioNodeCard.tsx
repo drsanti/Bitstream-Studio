@@ -56,6 +56,7 @@ import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
 import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
 import { MapRangeNodePanel } from "./transform/MapRangeNodePanel";
 import { ClampNodePanel } from "./transform/ClampNodePanel";
+import { GlbAnimationBundleNodePanel } from "./animation/glb-animation-bundle-node-panel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import { StudioFlowCanvasDisplayScaleProvider } from "./display/studio-canvas-display-scale";
 import {
@@ -276,6 +277,7 @@ export function StudioNodeCard(props: NodeProps) {
     data.nodeId === "event-toggle-glb-part" ||
     data.nodeId === "event-set-glb-part" ||
     data.nodeId === "event-trigger-glb-anim" ||
+    data.nodeId === "glb-animation-bundle" ||
     isStudioSensorSocketPreviewNodeId(data.nodeId);
 
   const canCollapseBody = studioNodeAllowsBodyCollapse(data);
@@ -1079,6 +1081,9 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "clamp" ? (
             <ClampNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "glb-animation-bundle" ? (
+            <GlbAnimationBundleNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel

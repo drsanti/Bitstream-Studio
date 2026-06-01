@@ -10,7 +10,7 @@
  *
  *******************************************************************************/
 
-import { Center, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo } from "react";
 import { SimulationSceneEnvironment } from "../../shared/canvas/SimulationSceneEnvironment.js";
 import { buildAbbArmLinks } from "../controller/buildAbbArmLinks.js";
@@ -55,9 +55,7 @@ export function AbbRobotScene({ modelUrl }: AbbRobotSceneProps)
   return (
     <>
       <SimulationSceneEnvironment />
-      <Center>
-        <primitive object={scene} />
-      </Center>
+      <primitive object={scene} />
     </>
   );
 }

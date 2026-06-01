@@ -10,7 +10,7 @@
  *
  *******************************************************************************/
 
-import { Center, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { useMemo } from "react";
 import { SimulationSceneEnvironment } from "../canvas/SimulationSceneEnvironment.js";
 
@@ -29,9 +29,7 @@ export function SimulationModelScene({ modelUrl }: SimulationModelSceneProps)
   return (
     <>
       <SimulationSceneEnvironment />
-      <Center>
-        <primitive object={scene} />
-      </Center>
+      <primitive object={scene} />
     </>
   );
 }

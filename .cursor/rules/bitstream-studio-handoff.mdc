@@ -28,6 +28,7 @@ After a substantial session, append **`AGENT_HANDOFF.md`** §7.
 | **`bs2-protocol-change`** | wire spec, codec, golden fixtures, broker topics |
 | **`bs2-uart-bringup`** | real COM / uart-probe / MCU soak |
 | **`bitstream-simulator-app`** | external sim VSIX, Simulator toolbar mode |
+| **`glb-preview-authored-transform`** | GLB placement, `useGLTF`, Animation Lab, Model Viewer, Blender parity |
 
 ## External repos
 

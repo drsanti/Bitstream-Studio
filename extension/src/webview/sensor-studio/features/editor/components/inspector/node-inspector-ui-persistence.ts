@@ -60,14 +60,20 @@ function safeLocalStorageRemove(key: string): void {
   }
 }
 
-export type InspectorMainTab = "details" | "live" | "node" | "device";
+export type InspectorMainTab = "details" | "live" | "node" | "device" | "animation";
 
 export function readStoredInspectorActiveTab(): InspectorMainTab {
   const raw = safeLocalStorageGet(KEYS.activeTab);
   if (raw === "settings") {
     return "node";
   }
-  if (raw === "details" || raw === "live" || raw === "node" || raw === "device") {
+  if (
+    raw === "details" ||
+    raw === "live" ||
+    raw === "node" ||
+    raw === "device" ||
+    raw === "animation"
+  ) {
     return raw;
   }
   return "details";

@@ -278,9 +278,10 @@ Return:
 - URL key: **`models/psoc-e84-ai/psoc-e84-ai.glb`** via **`resolveDefaultPreviewMeshGlbUrl()`**.
 - Source policy is runtime-configurable (`ternion.assets.sourceStrategy`): `local-only`, `local-first` (default), `online-only`.
 - In browser mode with local-first, this key resolves from **`/__ternion_user_free/models/...`** first (globalStorage free mirror). If missing there, other strategy-dependent fallbacks apply.
-- Clone loaded scene; **`centerObject3dBoundingBoxAtOrigin`** translates the root so the **AABB center** is at the origin (stable pivot vs. authored pivot).
-- Scale **`ROTATION_PREVIEW_BODY_GLB_SCALE`** = **0.5**.
-- Child group **`BOARD_GROUP_POSITION_Y`** = **0.08** offsets the mesh along **local +Y**; **body arrows** stay at the parent origin (**world (0,0,0)** when the outer group has no translation).
+- Cached **`useGLTF` scene** mounted via **`GlbPreviewModelRoot`** with **`GLB_PREVIEW_BODY_PLACEMENT_MODE = authored`** (default): keeps Blender export **position, rotation, and scale**; no bbox recenter or uniform `0.5` shrink.
+- **Body arrows** stay at the orientation marker origin; the GLB uses its authored pivot (no **`BOARD_GROUP_POSITION_Y`** offset).
+- **Catalog body picker** (Package control) can swap the GLB; animated models show **Play / Pause / Stop** at the **bottom-left** of **`RotationPreviewViewport`** (same transport as Sensor Studio **Model Viewer** via **`GlbPreviewPlaybackControls`** + **`glb-preview-user-transport`**). Clips play in parallel when no flow drives are attached. **`RotationPreviewBodyGlb`** must use the cached **`useGLTF` scene** (not `scene.clone`) so animation tracks keep valid bone bindings.
+- **Full clip control** (solo vs parallel, scrub, inspector) lives in **`components/animation-lab/`** — see **`GLB_ANIMATION_LAB.md`**. The Quaternion card is frozen for IMU preview; the Animation Lab card is for investigation and parity work.
 
 ### 8.2 Environment
 

@@ -1,0 +1,17 @@
+---
+description: GLB preview bodies use Blender export transform by default (no bbox recenter or 0.5 scale)
+globs: extension/src/webview/**/*
+alwaysApply: false
+---
+
+# GLB preview — authored transform
+
+Same policy as repo root **`.cursor/rules/glb-preview-authored-transform.mdc`**.
+
+Default: **`GLB_PREVIEW_BODY_PLACEMENT_MODE = "authored"`**, mount via **`GlbPreviewModelRoot`**, cached **`useGLTF` scene** (no clone for skinned rigs).
+
+Skill: **`.cursor/skills/glb-preview-authored-transform/SKILL.md`**
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

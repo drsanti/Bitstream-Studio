@@ -52,12 +52,10 @@ import {
   wireEulerZyxDegFromHundredths,
   type FusionQuat4,
 } from "./orientationPreviewMath.js";
-import {
-  devViteModelUrlFromCanonicalDedupeKey,
-} from "../../../../model-catalog/modelCatalogMerge.js";
 import { formatModelDisplayName } from "../../../../model-catalog/formatModelDisplayName.js";
 import { useAssetRegistry } from "../../../../assets-manager/registry/AssetRegistryProvider.js";
 import { resolveDefaultPreviewMeshGlbUrl } from "./resolveWebviewModelAssetUrl.js";
+import { resolveOrientationPreviewMeshFetchUrl } from "./resolve-orientation-preview-mesh-fetch-url.js";
 import {
   ROTATION_PREVIEW_SHARED_KEYS,
   persistRotationPreviewBool,
@@ -74,6 +72,8 @@ import {
   readRotationPreviewUseCubemapIbl,
 } from "./rotationPreviewViewportPersistence.js";
 import type { OrientationPreviewMappingMode } from "./orientationPreviewMapping.js";
+import { RotationPreviewGlbAnimationProvider } from "./rotation-preview-glb-animation-context.js";
+import { RotationPreviewGlbPlaybackHud } from "./RotationPreviewGlbPlaybackHud.js";
 
 const ROTATION_PREVIEW_DEFAULT_MODEL_ID = "__rotation_preview_psoc_e84__";
 
@@ -242,7 +242,7 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
   const [envMenuOpen, setEnvMenuOpen] = useState(false);
   const envMenuRef = useRef<HTMLDivElement>(null);
 
-  const { catalogModelEntries } = useAssetRegistry();
+  const { catalogModelEntries, descriptors: studioAssetDescriptors } = useAssetRegistry();
 
   const catalogModels = useMemo(
     () =>
@@ -263,20 +263,39 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
     persistRotationPreviewBodyModelId(previewBodyModelId, hudExpandedStorageKey);
   }, [previewBodyModelId, hudExpandedStorageKey]);
 
+  const previewMeshCatalogEntry = useMemo(() => {
+    if (previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID) {
+      return null;
+    }
+    return catalogModels.find((m) => m.id === previewBodyModelId) ?? null;
+  }, [catalogModels, previewBodyModelId]);
+
   const previewMeshGlbUrl = useMemo(() => {
     if (previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID) {
       return resolveDefaultPreviewMeshGlbUrl();
     }
-    const entry = catalogModels.find((m) => m.id === previewBodyModelId);
+    return resolveOrientationPreviewMeshFetchUrl(
+      previewMeshCatalogEntry,
+      studioAssetDescriptors,
+    );
+  }, [previewBodyModelId, previewMeshCatalogEntry, studioAssetDescriptors]);
+
+  const previewMeshGlbMeta = useMemo(() => {
+    if (previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID) {
+      return {
+        label: "PSoC E84 AI (default)",
+        dedupeKey: "models/psoc-e84-ai/psoc-e84-ai.glb",
+      };
+    }
+    const entry = previewMeshCatalogEntry;
     if (entry == null) {
-      return resolveDefaultPreviewMeshGlbUrl();
+      return { label: "Default preview mesh", dedupeKey: "" };
     }
-    const devFresh = devViteModelUrlFromCanonicalDedupeKey(entry.dedupeKey);
-    if (devFresh != null && devFresh.length > 0) {
-      return devFresh;
-    }
-    return entry.url ?? resolveDefaultPreviewMeshGlbUrl();
-  }, [catalogModels, previewBodyModelId]);
+    return {
+      label: formatModelDisplayName(entry.name),
+      dedupeKey: entry.dedupeKey,
+    };
+  }, [previewBodyModelId, previewMeshCatalogEntry]);
 
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -430,7 +449,12 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
   }, [scene.fusionEulerHundredths]);
 
   return (
-    <div ref={viewportBoundsRef} className={containerClass}>
+    <RotationPreviewGlbAnimationProvider
+      fetchUrl={previewMeshGlbUrl}
+      modelLabel={previewMeshGlbMeta.label}
+      dedupeKey={previewMeshGlbMeta.dedupeKey}
+    >
+      <div ref={viewportBoundsRef} className={containerClass}>
       <Canvas
         className="h-full w-full"
         gl={{ antialias: true, alpha: false }}
@@ -817,6 +841,7 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
           </div>
         </TRNToolboxPanel>
       ) : null}
+      <RotationPreviewGlbPlaybackHud />
       <ViewportTelemetryHud
         positionBoundsRef={viewportBoundsRef}
         persistRectStorageKey={`${hudExpandedStorageKey}:trn-window`}
@@ -843,5 +868,6 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
         onCycleOrientationMappingMode={cycleOrientationMappingMode}
       />
     </div>
+    </RotationPreviewGlbAnimationProvider>
   );
 }

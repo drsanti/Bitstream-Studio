@@ -12,7 +12,7 @@
 
 "use no memo";
 
-import { Center, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { gsap } from "gsap";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -149,9 +149,7 @@ export function E84RotationScene({ modelUrl }: E84RotationSceneProps)
   return (
     <>
       <SimulationSceneEnvironment />
-      <Center>
-        <primitive object={scene} />
-      </Center>
+      <primitive object={scene} />
       <E84TransformControls target={targetObject} />
     </>
   );

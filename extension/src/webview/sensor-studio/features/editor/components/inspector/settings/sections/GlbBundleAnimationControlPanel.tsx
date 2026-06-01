@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { AnimationBlendMode, AnimationClipLoop } from "../../../../../../../model-catalog/persisted-settings";
 import { PreviewAnimationCard } from "../../../../../../../model-catalog/components/PreviewAnimationCard";
-import { TRNHintText, TRNInlineToggleRow } from "../../../../../../../ui/TRN";
+import { GlbBundleAnimationTransportBar } from "./GlbBundleAnimationTransportBar";
 import {
   mergeGlbBundleClipState,
   resolveFlowWireClipTrimRange,
@@ -64,10 +64,17 @@ export type GlbBundleAnimationControlPanelProps = {
   playbackMode: StudioGlbAnimationPlaybackModeV1;
   soloClipRef: string;
   playingRefs: readonly string[];
+  blendPlaying: boolean;
+  onBlendPlayingChange: (playing: boolean) => void;
+  onPauseInspectorTransport: () => void;
   onUpdateConfigField: (key: string, value: unknown) => void;
   onCommitClipPatch: (ref: string, patch: Partial<FlowWireAnimationClipV1>) => void;
   onLiveClipPatch: (ref: string, patch: Partial<FlowWireAnimationClipV1>) => void;
   onSetPlayingRefs: (refs: readonly string[]) => void;
+  expandedClipIndices: readonly number[];
+  onExpandedClipIndicesChange: (
+    next: readonly number[] | ((prev: readonly number[]) => readonly number[]),
+  ) => void;
 };
 
 export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlPanelProps) {
@@ -80,10 +87,15 @@ export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlP
     playbackMode,
     soloClipRef,
     playingRefs,
+    blendPlaying,
+    onBlendPlayingChange,
+    onPauseInspectorTransport,
     onUpdateConfigField,
     onCommitClipPatch,
     onLiveClipPatch,
     onSetPlayingRefs,
+    expandedClipIndices,
+    onExpandedClipIndicesChange,
   } = props;
 
   const sequenceMode = playbackMode === "sequence";
@@ -151,7 +163,6 @@ export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlP
 
   const singleScrubTime = clipScrubTimes[currentClipIndex] ?? 0;
 
-  const [blendPlaying, setBlendPlaying] = useState(false);
   const isPlaying = catalogBlendMode === "single" ? playingRefs.length > 0 : blendPlaying;
 
   const lastNonSequenceRef = useRef<"per-clip" | "parallel-all">("parallel-all");
@@ -178,23 +189,25 @@ export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlP
 
   const onBlendModeChange = useCallback(
     (mode: AnimationBlendMode) => {
+      onPauseInspectorTransport();
       void onUpdateConfigField(
         STUDIO_ANIMATION_PLAYBACK_MODE_KEY,
         mode === "blend" ? "parallel-all" : "per-clip",
       );
     },
-    [onUpdateConfigField],
+    [onPauseInspectorTransport, onUpdateConfigField],
   );
 
   const onSequenceToggle = useCallback(
     (checked: boolean) => {
+      onPauseInspectorTransport();
       if (checked) {
         void onUpdateConfigField(STUDIO_ANIMATION_PLAYBACK_MODE_KEY, "sequence");
         return;
       }
       void onUpdateConfigField(STUDIO_ANIMATION_PLAYBACK_MODE_KEY, lastNonSequenceRef.current);
     },
-    [onUpdateConfigField],
+    [onPauseInspectorTransport, onUpdateConfigField],
   );
 
   const onClipChange = useCallback(
@@ -223,14 +236,21 @@ export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlP
         }
         return;
       }
-      setBlendPlaying(playing);
+      onBlendPlayingChange(playing);
       if (playing) {
         for (let i = 0; i < clipIdsOrdered.length; i++) {
           patchClipAtIndex(i, { enabled: true });
         }
       }
     },
-    [catalogBlendMode, clipIdsOrdered, currentClipIndex, onSetPlayingRefs, patchClipAtIndex],
+    [
+      catalogBlendMode,
+      clipIdsOrdered,
+      currentClipIndex,
+      onBlendPlayingChange,
+      onSetPlayingRefs,
+      patchClipAtIndex,
+    ],
   );
 
   const onClipWeightChange = useCallback(
@@ -310,14 +330,34 @@ export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlP
     void onUpdateConfigField("clips", next);
     void onUpdateConfigField(ANIMATION_CROSSFADE_S_KEY, 0.3);
     onSetPlayingRefs([]);
-    setBlendPlaying(false);
-  }, [clipIdsOrdered, defaultConfig, durationByRef, onSetPlayingRefs, onUpdateConfigField]);
+    onBlendPlayingChange(false);
+    onExpandedClipIndicesChange([0]);
+  }, [
+    clipIdsOrdered,
+    defaultConfig,
+    durationByRef,
+    onBlendPlayingChange,
+    onExpandedClipIndicesChange,
+    onSetPlayingRefs,
+    onUpdateConfigField,
+  ]);
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex min-h-0 flex-col gap-2">
+      <GlbBundleAnimationTransportBar
+        isPlaying={isPlaying}
+        catalogBlendMode={catalogBlendMode}
+        sequenceMode={sequenceMode}
+        showReset
+        onPlayPause={onPlayPause}
+        onReset={onReset}
+        onBlendModeChange={onBlendModeChange}
+        onSequenceToggle={onSequenceToggle}
+      />
       <PreviewAnimationCard
         contentOnly
-        hideModeSelector={sequenceMode}
+        hideModeSelector
+        hideTransport
         clipNames={clipNames}
         clipDurations={clipDurations}
         currentClipIndex={currentClipIndex}
@@ -341,18 +381,9 @@ export function GlbBundleAnimationControlPanel(props: GlbBundleAnimationControlP
         onScrubChange={onScrubChange}
         onBlendCompactViewChange={onBlendCompactViewChange}
         onReset={onReset}
+        expandedClipIndices={expandedClipIndices}
+        onExpandedClipIndicesChange={onExpandedClipIndicesChange}
       />
-      <TRNInlineToggleRow
-        label="Sequence (one clip at a time)"
-        hint="Plays enabled clips in list order; use card order from the GLB extraction list."
-        checked={sequenceMode}
-        onCheckedChange={onSequenceToggle}
-      />
-      {sequenceMode ? (
-        <TRNHintText className="text-[10px]">
-          Sequence mode uses the same per-clip controls as Blend. Clips advance when a once loop reaches trim end.
-        </TRNHintText>
-      ) : null}
     </div>
   );
 }

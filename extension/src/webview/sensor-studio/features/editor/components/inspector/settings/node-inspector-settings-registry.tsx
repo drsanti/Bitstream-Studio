@@ -6,7 +6,7 @@ import { ClampSettingsSection } from "./sections/ClampSettingsSection";
 import { EnvironmentSettingsSection } from "./sections/EnvironmentSettingsSection";
 import { GaugeSettingsSection } from "./sections/GaugeSettingsSection";
 import { GlbMaterialTextureSettingsSection } from "./sections/GlbMaterialTextureSettingsSection";
-import { GlbAnimationBundleSettingsSection } from "./sections/GlbAnimationBundleSettingsSection";
+import { GlbAnimationBundleConnectionSection } from "./sections/GlbAnimationBundleConnectionSection";
 import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
 import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSettingsSection";
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
@@ -65,7 +65,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   oscilloscope: PlotterSettingsSection,
   "sensor-input": SensorInputSettingsSection,
   environment: EnvironmentSettingsSection,
-  "glb-animation-bundle": GlbAnimationBundleSettingsSection,
+  "glb-animation-bundle": GlbAnimationBundleConnectionSection,
   "boolean-constant": BooleanConstantSettingsSection,
   "number-constant": NumberConstantSettingsSection,
   "glb-material-param": GlbMaterialParamSettingsSection,

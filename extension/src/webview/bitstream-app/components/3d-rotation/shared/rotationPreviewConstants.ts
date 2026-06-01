@@ -68,8 +68,10 @@ export const ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE = 0.55;
 
 export const GROUND_GRID_Y = -0.08;
 
-/** Offsets the GLB model along **local +Y**; body arrows stay at the parent origin. */
-export const BOARD_GROUP_POSITION_Y = 0.08;
+/**
+ * @deprecated No longer applied — GLB bodies use export-authored transforms. Kept for docs migration.
+ */
+export const BOARD_GROUP_POSITION_Y = 0;
 
 /**
  * If glTF leaves `envMapIntensity` at 0, `scene.environment` has no effect on that material.
@@ -95,8 +97,17 @@ export const EULER_WIRE_OVERLAY_STROKE_MATTE = {
 } as const;
 
 export const PSOC_E84_GLB_RELATIVE_PATH = "models/psoc-e84-ai/psoc-e84-ai.glb";
-/** Uniform scale for any GLB used as the rotation preview body mesh (not PSOC-specific). */
-export const ROTATION_PREVIEW_BODY_GLB_SCALE = 0.5;
+
+/**
+ * Default placement for all catalog / preview GLB bodies: keep Blender export
+ * position, rotation, and scale (`authored`). Use `bbox-floor` or `bbox-center` only when needed.
+ */
+export const GLB_PREVIEW_BODY_PLACEMENT_MODE = "authored" as const;
+
+/**
+ * @deprecated Preview bodies use export scale. Use catalog `animationLab.transform` to override.
+ */
+export const ROTATION_PREVIEW_BODY_GLB_SCALE = 1;
 
 /**
  * Initial perspective camera position (world, Y-up). Keep GLB at scale 1 and move the camera

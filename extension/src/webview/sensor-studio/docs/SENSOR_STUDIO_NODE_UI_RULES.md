@@ -22,6 +22,8 @@ Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMa
 
 **Not in the shell toolbar** (canvas toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
 
+**3D GLB preview transport** (`RotationPreviewPanelV4` — Model Viewer, 3D Rotation): when the loaded GLB has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
+
 Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on toolbar controls.
 
 ---

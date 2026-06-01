@@ -33,6 +33,10 @@ Do **not** use **“chrome”** for card UI — use **frame** / **shell** / **ca
 
 **`components/3d-rotation/shared/resolveWebviewModelAssetUrl.ts`** — canonical for Bitstream + Sensor Studio GLB paths. See **`extension/docs/ASSETS_LOCATION_SYSTEM.md`**.
 
+## GLB preview transform
+
+**`glb-preview-authored-transform.mdc`** — export position/rotation/scale by default; **`GlbPreviewModelRoot`**; no bbox recenter / `0.5` scale. Skill **`glb-preview-authored-transform`**.
+
 ## Communication
 
 **Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

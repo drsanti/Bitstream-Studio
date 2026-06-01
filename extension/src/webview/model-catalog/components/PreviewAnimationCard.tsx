@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   Play,
@@ -18,6 +18,8 @@ import {
 import {
   TRNButton,
   TRNCard,
+  TRNChipButtonGroup,
+  type TRNChipButtonGroupOption,
   TRNFormField,
   TRNIconOptionGroup,
   TRNInlineToggleRow,
@@ -62,6 +64,13 @@ export interface PreviewAnimationCardProps {
   contentOnly?: boolean;
   /** When true, skip the Single / Blend mode row (host supplies playback mode elsewhere). */
   hideModeSelector?: boolean;
+  /** When true, omit bottom Play / Reset rows (host supplies a transport bar). */
+  hideTransport?: boolean;
+  /** Controlled expanded blend clip cards in compact view (defaults to clip 0 when omitted). */
+  expandedClipIndices?: readonly number[];
+  onExpandedClipIndicesChange?: (
+    next: readonly number[] | ((prev: readonly number[]) => readonly number[]),
+  ) => void;
 }
 
 function formatDuration(sec: number): string {
@@ -69,193 +78,51 @@ function formatDuration(sec: number): string {
   return sec < 1 ? `${(sec * 1000).toFixed(0)}ms` : `${sec.toFixed(2)}s`;
 }
 
-function formatLoopLabel(loop: AnimationClipLoop): string {
-  if (loop === "once") return "Once";
-  if (loop === "loop") return "Loop";
-  return `${loop} times`;
+const LOOP_CHIP_PRESET_COUNTS = new Set<AnimationClipLoop>([2, 3, 5]);
+
+function buildLoopChipOptions(
+  value: AnimationClipLoop,
+): TRNChipButtonGroupOption<AnimationClipLoop>[] {
+  const base: TRNChipButtonGroupOption<AnimationClipLoop>[] = [
+    { value: "loop", label: "Loop", title: "Repeat continuously" },
+    { value: "once", label: "Once", title: "Play once per transport run" },
+    { value: 2, label: "×2", title: "Play 2 times" },
+    { value: 3, label: "×3", title: "Play 3 times" },
+    { value: 5, label: "×5", title: "Play 5 times" },
+  ];
+  if (typeof value === "number" && !LOOP_CHIP_PRESET_COUNTS.has(value)) {
+    return [{ value, label: `×${value}`, title: `Play ${value} times` }, ...base];
+  }
+  return base;
 }
 
-type LoopDropdownOption = {
-  value: AnimationClipLoop;
-  label: string;
-};
-
-type ClipDropdownOption = {
-  value: number;
-  label: string;
-};
-
-function LoopDropdown({
+function LoopChipButtonGroup({
   value,
   onChange,
 }: {
   value: AnimationClipLoop;
   onChange: (next: AnimationClipLoop) => void;
 }) {
-  const triggerRef = React.useRef<HTMLButtonElement | null>(null);
-  const menuRef = React.useRef<HTMLDivElement | null>(null);
-  const lastTriggerRectRef = React.useRef<DOMRect | null>(null);
-  const [open, setOpen] = React.useState(false);
-  const [menuPos, setMenuPos] = React.useState<{
-    top: number;
-    left: number;
-    width: number;
-  } | null>(null);
-
-  const computeMenuPos = () => {
-    const rect = triggerRef.current?.getBoundingClientRect();
-    lastTriggerRectRef.current = rect ?? null;
-    if (!rect) return null;
-    return {
-      top: rect.bottom + 6,
-      left: rect.left,
-      width: rect.width,
-    };
-  };
-
-  const effectiveMenuPos = menuPos
-    ? menuPos
-    : lastTriggerRectRef.current
-      ? {
-          top: lastTriggerRectRef.current.bottom + 6,
-          left: lastTriggerRectRef.current.left,
-          width: lastTriggerRectRef.current.width,
-        }
-      : null;
-
-  const options = React.useMemo<LoopDropdownOption[]>(() => {
-    const base: LoopDropdownOption[] = [
-      { value: "loop", label: "Loop" },
-      { value: "once", label: "Once" },
-      { value: 2, label: "2 times" },
-      { value: 3, label: "3 times" },
-      { value: 5, label: "5 times" },
-    ];
-
-    if (typeof value === "number") {
-      const presets = new Set([2, 3, 5]);
-      if (!presets.has(value)) {
-        return [{ value, label: `${value} times` }, ...base];
-      }
-    }
-
-    return base;
-  }, [value]);
-
-  React.useEffect(() => {
-    if (!open) return;
-
-    const updatePos = () => {
-      const computed = computeMenuPos();
-      if (!computed) return;
-      setMenuPos(computed);
-    };
-
-    updatePos();
-    window.addEventListener("resize", updatePos);
-    window.addEventListener("scroll", updatePos, true);
-
-    const onPointerDown = (e: PointerEvent) => {
-      const t = e.target as Node | null;
-      if (!t) return;
-      if (triggerRef.current?.contains(t)) return;
-      if (menuRef.current?.contains(t)) return;
-      setOpen(false);
-    };
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      window.removeEventListener("resize", updatePos);
-      window.removeEventListener("scroll", updatePos, true);
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
+  const options = useMemo(() => buildLoopChipOptions(value), [value]);
+  const columns = Math.min(6, Math.max(3, options.length)) as 3 | 4 | 5 | 6;
 
   return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        type="button"
-        className="w-full flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/5 backdrop-blur-md px-3 py-1 text-sm text-gray-200 focus:border-white/30 focus:outline-none focus:ring-1 focus:ring-white/20"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => {
-          if (open) {
-            setOpen(false);
-            return;
-          }
-          // Compute position synchronously so the menu can render on the first open render.
-          const computed = computeMenuPos();
-          if (computed) setMenuPos(computed);
-          setOpen(true);
-        }}
-      >
-        <span className="truncate">{formatLoopLabel(value)}</span>
-        <ChevronDown
-          className={`h-4 w-4 text-gray-300/80 transition-transform ${
-            open ? "rotate-180" : ""
-          }`}
-        />
-      </button>
-
-      {open &&
-        effectiveMenuPos &&
-        createPortal(
-          <div
-            ref={menuRef}
-            className="fixed z-50 outline-none"
-            style={{
-              top: effectiveMenuPos.top,
-              left: effectiveMenuPos.left,
-              width: effectiveMenuPos.width,
-            }}
-          >
-            <TRNMenuPanel
-              tone="glass-dropdown"
-              className="max-h-64 overflow-y-auto scrollbar-hide"
-            >
-              <div role="listbox" aria-label="Loop" className="flex flex-col gap-1">
-                {options.map((opt) => {
-                  const selected = opt.value === value;
-                  return (
-                    <TRNMenuItemButton
-                      key={String(opt.value)}
-                      tone="glass-dropdown"
-                      role="option"
-                      aria-selected={selected}
-                      label={opt.label}
-                      className={twMerge(
-                        TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                        "text-sm font-medium",
-                        selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
-                      )}
-                      rightSlot={
-                        selected ? (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                        ) : null
-                      }
-                      onClick={() => {
-                        onChange(opt.value);
-                        setOpen(false);
-                      }}
-                    />
-                  );
-                })}
-              </div>
-            </TRNMenuPanel>
-          </div>,
-          document.body,
-        )}
-    </div>
+    <TRNChipButtonGroup
+      value={value}
+      options={options}
+      onChange={onChange}
+      columns={columns}
+      size="sm"
+      ariaLabel="Loop"
+      className="space-y-1"
+    />
   );
 }
+
+type ClipDropdownOption = {
+  value: number;
+  label: string;
+};
 
 function ClipDropdown({
   value,
@@ -420,8 +287,8 @@ interface BlendClipControlCardProps {
   clipName: string;
   clipDuration: number;
   blendCompactView: boolean;
-  expandedClipIndex: number | null;
-  setExpandedClipIndex: React.Dispatch<React.SetStateAction<number | null>>;
+  expandedClipIndices: readonly number[];
+  onToggleClipExpanded: (index: number, collapsed: boolean) => void;
   speed: number;
   weight: number;
   loopValue: AnimationClipLoop;
@@ -437,8 +304,8 @@ function BlendClipControlCard({
   clipName,
   clipDuration,
   blendCompactView,
-  expandedClipIndex,
-  setExpandedClipIndex,
+  expandedClipIndices,
+  onToggleClipExpanded,
   speed,
   weight,
   loopValue,
@@ -448,7 +315,7 @@ function BlendClipControlCard({
   onClipLoopChange,
   onClipScrubChange,
 }: BlendClipControlCardProps) {
-  const collapsed = blendCompactView && expandedClipIndex !== index;
+  const collapsed = blendCompactView && !expandedClipIndices.includes(index);
   const showCompactSummary = blendCompactView && collapsed;
 
   return (
@@ -467,12 +334,12 @@ function BlendClipControlCard({
         if (!blendCompactView) {
           return;
         }
-        setExpandedClipIndex(nextCollapsed ? null : index);
+        onToggleClipExpanded(index, nextCollapsed);
       }}
       contentClassName="space-y-2 border-t border-zinc-700/60 pt-2"
     >
       <TRNFormField label="Loop">
-        <LoopDropdown
+        <LoopChipButtonGroup
           value={loopValue}
           onChange={(v) => onClipLoopChange(index, v)}
         />
@@ -541,8 +408,29 @@ export function PreviewAnimationCard({
   defaultExpanded = true,
   contentOnly = false,
   hideModeSelector = false,
+  hideTransport = false,
+  expandedClipIndices: expandedClipIndicesProp,
+  onExpandedClipIndicesChange,
 }: PreviewAnimationCardProps) {
-  const [expandedClipIndex, setExpandedClipIndex] = useState<number | null>(0);
+  const [expandedClipIndicesInternal, setExpandedClipIndicesInternal] = useState<number[]>([0]);
+  const expandedClipIndices = expandedClipIndicesProp ?? expandedClipIndicesInternal;
+  const setExpandedClipIndices =
+    onExpandedClipIndicesChange ?? setExpandedClipIndicesInternal;
+
+  const onToggleClipExpanded = useCallback(
+    (index: number, collapsed: boolean) => {
+      setExpandedClipIndices((prev) => {
+        const next = new Set(prev);
+        if (collapsed) {
+          next.delete(index);
+        } else {
+          next.add(index);
+        }
+        return [...next].sort((a, b) => a - b);
+      });
+    },
+    [setExpandedClipIndices],
+  );
   const clips: ClipInfo[] = clipNames.map((name, i) => ({
     name: name || `Clip ${i + 1}`,
     duration: clipDurations[i] ?? 0,
@@ -564,13 +452,12 @@ export function PreviewAnimationCard({
           />
         </TRNFormField>
       </div>
-      <div className="space-y-1.5">
-        <label className="block text-xs text-gray-400">Loop</label>
-        <LoopDropdown
-          value={clipLoops[currentClipIndex]}
+      <TRNFormField label="Loop">
+        <LoopChipButtonGroup
+          value={clipLoops[currentClipIndex] ?? "loop"}
           onChange={(v) => onClipLoopChange(currentClipIndex, v)}
         />
-      </div>
+      </TRNFormField>
       <TRNParameterSlider
         name="Speed"
         value={clipSpeeds[currentClipIndex] ?? 1}
@@ -601,21 +488,23 @@ export function PreviewAnimationCard({
           return `${((v ?? 0) * d).toFixed(2)}s`;
         }}
       />
-      <div className="flex items-center gap-2">
-        <TRNButton
-          size="compact"
-          onClick={() => onPlayPause(!isPlaying)}
-          prefixIcon={
-            isPlaying ? (
-              <Pause className="h-4 w-4" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )
-          }
-        >
-          {isPlaying ? "Pause" : "Play"}
-        </TRNButton>
-      </div>
+      {hideTransport ? null : (
+        <div className="flex items-center gap-2">
+          <TRNButton
+            size="compact"
+            onClick={() => onPlayPause(!isPlaying)}
+            prefixIcon={
+              isPlaying ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )
+            }
+          >
+            {isPlaying ? "Pause" : "Play"}
+          </TRNButton>
+        </div>
+      )}
     </div>
   );
 
@@ -634,8 +523,8 @@ export function PreviewAnimationCard({
             clipName={c.name}
             clipDuration={c.duration}
             blendCompactView={blendCompactView}
-            expandedClipIndex={expandedClipIndex}
-            setExpandedClipIndex={setExpandedClipIndex}
+            expandedClipIndices={expandedClipIndices}
+            onToggleClipExpanded={onToggleClipExpanded}
             speed={clipSpeeds[i] ?? 1}
             weight={clipWeights[i] ?? 0}
             loopValue={clipLoops[i]}
@@ -647,28 +536,30 @@ export function PreviewAnimationCard({
           />
         ))}
       </div>
-      <div className="flex items-center gap-2">
-        <TRNButton
-          size="compact"
-          onClick={() => onPlayPause(!isPlaying)}
-          prefixIcon={
-            isPlaying ? (
-              <Pause className="h-4 w-4" />
-            ) : (
-              <Play className="h-4 w-4" />
-            )
-          }
-        >
-          {isPlaying ? "Pause" : "Play"}
-        </TRNButton>
-        <TRNButton
-          size="compact"
-          onClick={onReset}
-          prefixIcon={<RotateCcw className="h-4 w-4" />}
-        >
-          Reset
-        </TRNButton>
-      </div>
+      {hideTransport ? null : (
+        <div className="flex items-center gap-2">
+          <TRNButton
+            size="compact"
+            onClick={() => onPlayPause(!isPlaying)}
+            prefixIcon={
+              isPlaying ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )
+            }
+          >
+            {isPlaying ? "Pause" : "Play"}
+          </TRNButton>
+          <TRNButton
+            size="compact"
+            onClick={onReset}
+            prefixIcon={<RotateCcw className="h-4 w-4" />}
+          >
+            Reset
+          </TRNButton>
+        </div>
+      )}
     </div>
   );
 

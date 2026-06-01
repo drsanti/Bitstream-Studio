@@ -1,0 +1,64 @@
+---
+description: GLB preview bodies use Blender export transform by default (no bbox recenter or 0.5 scale)
+globs: extension/src/webview/**/*
+alwaysApply: false
+---
+
+# GLB preview — authored transform (Blender export)
+
+**Policy:** All catalog / telemetry / Sensor Studio **GLB preview** viewports keep the glTF root **position, rotation, and scale** from the Blender export. Do **not** reintroduce host-side “helpful” framing unless explicitly requested.
+
+## Default
+
+| Constant | Value | File |
+|----------|--------|------|
+| `GLB_PREVIEW_BODY_PLACEMENT_MODE` | **`authored`** | `extension/src/webview/bitstream-app/components/3d-rotation/shared/rotationPreviewConstants.ts` |
+
+## Mount pattern
+
+- Use **`GlbPreviewModelRoot`** (`components/3d-rotation/shared/GlbPreviewModelRoot.tsx`) or **`<primitive object={scene} />`** on the cached **`useGLTF` scene**.
+- **Do not clone** skinned GLBs for display — clones break animation bindings (documented in rotation preview + animation lab).
+
+## Do not (unless user asks or catalog override)
+
+| Anti-pattern | Why |
+|--------------|-----|
+| `Box3.getCenter()` → `position.sub(center)` on load | Sinks top-heavy models (e.g. Tesa Drone) below the grid |
+| Uniform **`0.5`** scale wrapper (`ROTATION_PREVIEW_BODY_GLB_SCALE` was legacy) | Ignores export scale |
+| **`BOARD_GROUP_POSITION_Y`** offset on body mesh | Ignores export pivot |
+| drei **`<Center>`** around preview GLBs | Auto-recenter |
+| **`centerObjectToOrigin`** after `GLTFLoader.load` | Same as bbox center (Model Viewer) |
+| Thumbnail pipeline mutating **`root.position` / `root.scale`** | Frame **camera** to bbox instead |
+
+**OK:** Camera / orbit **target** from bounding sphere **without** moving the model (`frameCameraToObject`, `FitCameraToModel`).
+
+## Optional overrides
+
+1. **Global integrator:** set `GLB_PREVIEW_BODY_PLACEMENT_MODE` to `bbox-floor` or `bbox-center` (`compute-glb-preview-body-placement.ts`).
+2. **Per asset:** catalog sidecar `animationLab.transform` — see **`extension/src/webview/bitstream-app/components/animation-lab/ANIMATION_LAB_CATALOG_METADATA.md`**.
+
+## Surfaces using this policy
+
+- Animation Lab — `components/animation-lab/`
+- Rotation / quaternion preview — `RotationPreviewBodyGlb`, `OrientationMarkerMesh`
+- Sensor Studio Model Viewer — `RotationPreviewPanelV4.tsx` (no load-time center)
+- Model Loader R3F preview, Model Catalog modal (camera-only fit)
+- Simulation GLB stubs — `SimulationModelScene`, E84 / ABB scenes (no `<Center>`)
+
+## Out of scope (different requirements)
+
+- **Vehicle physics** — may center clones for Jolt colliders; not catalog preview policy.
+- **Procedural fallbacks** — e.g. `GlbMissingTesaiotFallback` may center generated geometry.
+
+## Docs
+
+- **`extension/src/webview/bitstream-app/docs/ROTATION_3D_PREVIEW.md`** § GLB model
+- **`extension/src/webview/bitstream-app/components/animation-lab/GLB_ANIMATION_LAB.md`** § Model transform
+
+## Skill
+
+**`.cursor/skills/glb-preview-authored-transform/SKILL.md`**
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

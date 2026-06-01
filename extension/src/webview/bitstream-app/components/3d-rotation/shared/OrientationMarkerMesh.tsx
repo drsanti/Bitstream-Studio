@@ -22,7 +22,6 @@ import {
 } from "./orientationPreviewMath.js";
 import { RotationPreviewBodyGlb } from "./RotationPreviewBodyGlb.js";
 import {
-  BOARD_GROUP_POSITION_Y,
   BODY_AXIS_ARROW_HEAD_LENGTH,
   BODY_AXIS_ARROW_HEAD_WIDTH,
   BODY_AXIS_ARROW_LENGTH,
@@ -33,13 +32,19 @@ import { resolveDefaultPreviewMeshGlbUrl } from "./resolveWebviewModelAssetUrl.j
 import { usePreviewMeshMissingUiStore } from "../../../state/previewMeshMissingUi.store.js";
 
 class PsocGlbErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode },
+  { children: ReactNode; fallback: ReactNode; resetKey: string },
   { hasError: boolean }
 > {
   state = { hasError: false };
 
   static getDerivedStateFromError(): { hasError: boolean } {
     return { hasError: true };
+  }
+
+  override componentDidUpdate(prevProps: { resetKey: string }): void {
+    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
   }
 
   override componentDidCatch(): void {
@@ -226,19 +231,19 @@ export function OrientationMarkerMesh(props: {
       <arrowHelper args={bodyAxisArrowArgs.x} />
       <arrowHelper args={bodyAxisArrowArgs.y} />
       <arrowHelper args={bodyAxisArrowArgs.z} />
-      <group position={[0, BOARD_GROUP_POSITION_Y, 0]}>
+      <Suspense fallback={null}>
         <PsocGlbErrorBoundary
+          key={resolvedGlbUrl}
+          resetKey={resolvedGlbUrl}
           fallback={
             <Suspense fallback={null}>
               <GlbMissingTesaiotFallback />
             </Suspense>
           }
         >
-          <Suspense fallback={null}>
-            <RotationPreviewBodyGlb key={resolvedGlbUrl} url={resolvedGlbUrl} />
-          </Suspense>
+          <RotationPreviewBodyGlb url={resolvedGlbUrl} />
         </PsocGlbErrorBoundary>
-      </group>
+      </Suspense>
     </group>
   );
 }

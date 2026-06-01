@@ -7,6 +7,7 @@ import {
   Image as ImageIcon,
   Map as MapIcon,
   MonitorPlay,
+  Clapperboard,
   RefreshCw,
   Search,
 } from "lucide-react";
@@ -14,6 +15,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AssetCategory } from "../registry/asset.types.js";
 import { resolveAsset } from "../registry/resolveAsset.js";
 import { useAssetRegistry } from "../registry/AssetRegistryProvider.js";
+import {
+  animationLabModelIdFromAssetDescriptor,
+  openAnimationLabForAssetDescriptor,
+} from "../../bitstream-app/components/animation-lab/open-animation-lab-from-catalog.js";
 import { TRNButton, TRNHintText } from "../../ui/TRN/index.js";
 import { useOpenAssetManager } from "../hooks/useOpenAssetManager.js";
 import { AssetBrowseEnvironmentPreview } from "./AssetBrowseEnvironmentPreview.js";
@@ -49,7 +54,7 @@ const CATEGORY_TABS: { id: AssetCategory; label: string; Icon: LucideIcon }[] = 
 export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
   const { borderColor, panelColor, variant = "default", showOpenManagerLink = false, initialCategory = "model" } = props;
   const embedded = variant === "embedded";
-  const { descriptors, bumpRefresh } = useAssetRegistry();
+  const { descriptors, catalogModelEntries, bumpRefresh } = useAssetRegistry();
   const { openAssetManager } = useOpenAssetManager();
   const [category, setCategory] = useState<AssetCategory>(initialCategory);
   const [query, setQuery] = useState("");
@@ -114,6 +119,13 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
   );
 
   const resolved = useMemo(() => (selected != null ? resolveAsset(selected) : null), [selected]);
+
+  const animationLabCatalogModelId = useMemo(() => {
+    if (selected == null) {
+      return null;
+    }
+    return animationLabModelIdFromAssetDescriptor(selected, catalogModelEntries);
+  }, [selected, catalogModelEntries]);
 
   useEffect(() => {
     if (sortedFiltered.some((f) => f.id === selectedId)) {
@@ -332,15 +344,31 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
         {selected != null && category === "model" ? (
           <div className="mt-2 shrink-0 space-y-1.5">
             {resolved != null && resolved.primaryUrl.length > 0 ? (
-              <TRNButton
-                type="button"
-                size="compact"
-                className="w-full justify-center gap-1.5"
-                onClick={() => setModelPreviewOpen(true)}
-              >
-                <MonitorPlay className="size-3.5 shrink-0" aria-hidden />
-                Preview 3D
-              </TRNButton>
+              <div className="flex flex-col gap-1">
+                <TRNButton
+                  type="button"
+                  size="compact"
+                  className="w-full justify-center gap-1.5"
+                  onClick={() => setModelPreviewOpen(true)}
+                >
+                  <MonitorPlay className="size-3.5 shrink-0" aria-hidden />
+                  Preview 3D
+                </TRNButton>
+                {selected != null && selected.id.startsWith("catalog-model:") ? (
+                  <TRNButton
+                    type="button"
+                    size="compact"
+                    className="w-full justify-center gap-1.5"
+                    hint="Open this catalog model in the Telemetry GLB Animation Lab workbench."
+                    onClick={() => {
+                      openAnimationLabForAssetDescriptor(selected, catalogModelEntries);
+                    }}
+                  >
+                    <Clapperboard className="size-3.5 shrink-0" aria-hidden />
+                    Animation Lab
+                  </TRNButton>
+                ) : null}
+              </div>
             ) : null}
             <TRNHintText tone="muted" className="text-[10px] leading-snug">
               Drag onto the canvas to add a model node, or pick from the Model node inspector.
@@ -352,6 +380,7 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
       <ModelPreviewModal
         open={modelPreviewOpen}
         onClose={() => setModelPreviewOpen(false)}
+        catalogModelId={animationLabCatalogModelId}
         modelUrl={resolved?.primaryUrl ?? null}
         modelName={selected?.label ?? null}
       />

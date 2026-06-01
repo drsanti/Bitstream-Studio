@@ -1,0 +1,110 @@
+{
+  "animationLab": {
+    "defaultPreviewClip": "Gimbal1Action",
+    "recommendedPlaybackMode": "per-clip",
+    "clipOrder": [
+      "Gimbal2Action",
+      "Gimbal1Action",
+      "CameraAction",
+      "Wing back leftAction",
+      "Wing back rightAction",
+      "Wing front leftAction",
+      "Wing front rightAction"
+    ],
+    "clipLabels": {
+      "Gimbal1Action": "Gimbal 1",
+      "Gimbal2Action": "Gimbal 2",
+      "CameraAction": "Camera pod",
+      "Wing back leftAction": "Rear left motor",
+      "Wing back rightAction": "Rear right motor",
+      "Wing front leftAction": "Front left motor",
+      "Wing front rightAction": "Front right motor"
+    }
+  },
+  "digitalTwin": {
+    "assetId": "tesa-drone",
+    "label": "Tesa Drone",
+    "components": [
+      {
+        "id": "gimbal-1",
+        "label": "Gimbal 1",
+        "labelTh": "กิมบอล 1",
+        "cardIcon": "gimbal",
+        "group": "Gimbal",
+        "glbAnchor": "Gimbal1Action",
+        "signals": [
+          {
+            "key": "gimbal1.load_pct",
+            "label": "Drive load",
+            "labelTh": "โหลดขับ",
+            "unit": "%",
+            "warn": 72,
+            "alarm": 90
+          },
+          { "key": "gimbal1.track_err", "label": "Tracking error", "unit": "°", "warn": 1.2, "alarm": 2.5 }
+        ]
+      },
+      {
+        "id": "gimbal-2",
+        "label": "Gimbal 2",
+        "group": "Gimbal",
+        "glbAnchor": "Gimbal2Action",
+        "signals": [
+          { "key": "gimbal2.load_pct", "label": "Drive load", "unit": "%", "warn": 72, "alarm": 90 },
+          { "key": "gimbal2.track_err", "label": "Tracking error", "unit": "°", "warn": 1.2, "alarm": 2.5 }
+        ]
+      },
+      {
+        "id": "camera",
+        "label": "Camera pod",
+        "group": "Payload",
+        "glbAnchor": "CameraAction",
+        "signals": [
+          { "key": "camera.stabilizer", "label": "Stabilizer load", "unit": "%", "warn": 65, "alarm": 85 },
+          {
+            "key": "camera.link_dbm",
+            "label": "Video link",
+            "unit": "dBm",
+            "warn": -78,
+            "alarm": -88,
+            "direction": "below"
+          }
+        ]
+      },
+      {
+        "id": "motor-fl",
+        "label": "Front left motor",
+        "cardIcon": "motor",
+        "group": "Propulsion",
+        "glbAnchor": "Wing front leftAction",
+        "signals": [
+          { "key": "motor.fl.current_a", "label": "Current", "unit": "A", "warn": 6.5, "alarm": 9 },
+          { "key": "motor.fl.temp_c", "label": "Temperature", "unit": "°C", "warn": 62, "alarm": 78 }
+        ]
+      },
+      {
+        "id": "imu",
+        "label": "Flight IMU",
+        "group": "Sensors",
+        "signals": [
+          {
+            "key": "imu.temp_c",
+            "label": "Die temperature",
+            "unit": "°C",
+            "warn": 70,
+            "alarm": 85,
+            "liveSourceKey": "bmi270.temperature"
+          },
+          {
+            "key": "imu.vibration",
+            "label": "Frame vibration",
+            "unit": "m/s²",
+            "warn": 12,
+            "alarm": 18,
+            "liveSourceKey": "bmi270.accel.magnitude"
+          }
+        ]
+      }
+    ]
+  }
+}

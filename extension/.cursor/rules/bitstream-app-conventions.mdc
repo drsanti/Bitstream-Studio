@@ -10,6 +10,8 @@ Same policy as repo root **`.cursor/rules/bitstream-app-conventions.mdc`**.
 
 Dual-runtime: **`bitstream-dual-runtime.mdc`**. Ingest gates: **`shouldIngestTelemetryForRoute`**, **`shouldAcceptBs2SampleOrigin`**.
 
+GLB previews: repo **`glb-preview-authored-transform.mdc`** (Blender export transform default).
+
 ## Communication
 
 **Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

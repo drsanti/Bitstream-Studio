@@ -1,4 +1,12 @@
-import { Activity, Box, ClipboardList, Cpu, SlidersHorizontal, type LucideIcon } from "lucide-react";
+import {
+  Activity,
+  Box,
+  Clapperboard,
+  ClipboardList,
+  Cpu,
+  SlidersHorizontal,
+  type LucideIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import { resolveStudioNodeSourceId } from "../../../core/device/resolve-studio-node-source-id";
@@ -20,6 +28,7 @@ import { NodeInspectorDeviceTab } from "./inspector/NodeInspectorDeviceTab";
 import { InspectorContextBar } from "./inspector/InspectorContextBar";
 import { NodeInspectorLiveTab } from "./inspector/NodeInspectorLiveTab";
 import { NodeInspectorMultiLiveReadouts } from "./inspector/NodeInspectorMultiLiveReadouts";
+import { GlbAnimationBundleAnimationInspectorTab } from "./inspector/GlbAnimationBundleAnimationInspectorTab";
 import { NodeInspectorNodeTab } from "./inspector/NodeInspectorNodeTab";
 import {
   CanvasInspectorPanel,
@@ -143,27 +152,25 @@ export function NodeInspector(props: NodeInspectorProps) {
     () => resolveStudioNodeSourceId(selectedNode),
     [selectedNode],
   );
-
-  const visibleTabs = useMemo(() => {
-    if (deviceSourceId != null) {
-      return [...CORE_INSPECTOR_TABS, DEVICE_INSPECTOR_TAB];
-    }
-    return CORE_INSPECTOR_TABS;
-  }, [deviceSourceId]);
+  const isGlbAnimationBundle =
+    selectedNode != null && selectedNode.data.nodeId === "glb-animation-bundle";
 
   useEffect(() => {
     if (deviceSourceId == null && activeTab === "device") {
       setActiveTabPersisted("node");
     }
-  }, [deviceSourceId, activeTab, setActiveTabPersisted]);
+    if (!isGlbAnimationBundle && activeTab === "animation") {
+      setActiveTabPersisted("node");
+    }
+  }, [deviceSourceId, activeTab, isGlbAnimationBundle, setActiveTabPersisted]);
 
-  /** Selection defaults: GLB bundle → Node; hardware-linked → Live. */
+  /** Selection defaults: GLB bundle → Animation; hardware-linked → Live. */
   useEffect(() => {
     if (selectedNode == null) {
       return;
     }
     if (selectedNode.data.nodeId === "glb-animation-bundle") {
-      setActiveTabPersisted("node");
+      setActiveTabPersisted("animation");
       return;
     }
     if (deviceSourceId != null) {
@@ -199,8 +206,29 @@ export function NodeInspector(props: NodeInspectorProps) {
   const isRotation3DNode =
     selectedNode != null && isRotation3DCatalogNodeId(selectedNode.data.nodeId);
 
+  const visibleTabs = useMemo(() => {
+    if (isGlbAnimationBundle) {
+      const tabs: { id: InspectorMainTab; label: string; Icon: LucideIcon }[] = [
+        { id: "node", label: "Node", Icon: Box },
+        { id: "animation", label: "Animation", Icon: Clapperboard },
+        { id: "details", label: "Details", Icon: ClipboardList },
+        { id: "live", label: "Live", Icon: Activity },
+      ];
+      if (deviceSourceId != null) {
+        tabs.push(DEVICE_INSPECTOR_TAB);
+      }
+      return tabs;
+    }
+    if (deviceSourceId != null) {
+      return [...CORE_INSPECTOR_TABS, DEVICE_INSPECTOR_TAB];
+    }
+    return CORE_INSPECTOR_TABS;
+  }, [deviceSourceId, isGlbAnimationBundle]);
+
   const tabPanelClassName =
-    activeTab === "node" || activeTab === "device"
+    activeTab === "node" ||
+    activeTab === "device" ||
+    activeTab === "animation"
       ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 pb-3 pt-2"
       : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
 
@@ -322,6 +350,17 @@ export function NodeInspector(props: NodeInspectorProps) {
                   ) : (
                     <NodeInspectorLiveTab selectedNode={selectedNode} />
                   )
+                ) : null}
+
+                {activeTab === "animation" && isGlbAnimationBundle ? (
+                  <GlbAnimationBundleAnimationInspectorTab
+                    selectedNode={selectedNode}
+                    onUpdateConfigField={onUpdateConfigField}
+                    sourceKeyDraft={sourceKeyDraft}
+                    setSourceKeyDraft={setSourceKeyDraft}
+                    sourceKeyFieldError={sourceKeyFieldError}
+                    setSourceKeyFieldError={setSourceKeyFieldError}
+                  />
                 ) : null}
 
                 {activeTab === "node" ? (

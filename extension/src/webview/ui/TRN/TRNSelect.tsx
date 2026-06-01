@@ -46,7 +46,49 @@ type MenuBox = {
   top: number;
   left: number;
   width: number;
+  maxHeight: number;
 };
+
+const MENU_VIEWPORT_PADDING_PX = 8;
+const MENU_GAP_PX = 4;
+const MENU_DEFAULT_MAX_HEIGHT_PX = 320;
+
+function estimateMenuHeightPx(optionCount: number): number {
+  const rowPx = 34;
+  const chromePx = 12;
+  return Math.min(MENU_DEFAULT_MAX_HEIGHT_PX, optionCount * rowPx + chromePx);
+}
+
+function resolveMenuPlacement(args: {
+  triggerRect: DOMRect;
+  menuHeightPx: number;
+  trigger: "default" | "icon";
+}): Pick<MenuBox, "top" | "maxHeight"> {
+  const maxMenuHeight = Math.min(MENU_DEFAULT_MAX_HEIGHT_PX, window.innerHeight * 0.5);
+  const menuHeight = Math.min(maxMenuHeight, Math.max(48, args.menuHeightPx));
+  const spaceBelow =
+    window.innerHeight - MENU_VIEWPORT_PADDING_PX - (args.triggerRect.bottom + MENU_GAP_PX);
+  const spaceAbove = args.triggerRect.top - MENU_GAP_PX - MENU_VIEWPORT_PADDING_PX;
+  const openBelow = spaceBelow >= menuHeight || spaceBelow >= spaceAbove;
+
+  if (openBelow) {
+    return {
+      top: args.triggerRect.bottom + MENU_GAP_PX,
+      maxHeight: Math.max(48, Math.min(menuHeight, spaceBelow)),
+    };
+  }
+
+  const fitHeight = Math.max(48, Math.min(menuHeight, spaceAbove));
+  let top = args.triggerRect.top - MENU_GAP_PX - fitHeight;
+  if (top < MENU_VIEWPORT_PADDING_PX) {
+    top = MENU_VIEWPORT_PADDING_PX;
+  }
+  const maxHeight = Math.max(
+    48,
+    Math.min(fitHeight, args.triggerRect.top - MENU_GAP_PX - top),
+  );
+  return { top, maxHeight };
+}
 
 export function TRNSelect(props: TRNSelectProps) {
   const {
@@ -88,24 +130,52 @@ export function TRNSelect(props: TRNSelectProps) {
         return;
       }
       const rect = root.getBoundingClientRect();
+      const measuredHeight = menuRef.current?.offsetHeight ?? estimateMenuHeightPx(options.length);
+      const placement = resolveMenuPlacement({
+        triggerRect: rect,
+        menuHeightPx: measuredHeight,
+        trigger,
+      });
+
       if (trigger === "icon") {
         const panelWidth = Math.min(window.innerWidth * 0.92, 288);
         let left = rect.left + rect.width / 2 - panelWidth / 2;
-        left = Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8));
-        setMenuBox({ top: rect.bottom + 4, left, width: panelWidth });
+        left = Math.max(
+          MENU_VIEWPORT_PADDING_PX,
+          Math.min(left, window.innerWidth - panelWidth - MENU_VIEWPORT_PADDING_PX),
+        );
+        setMenuBox({
+          left,
+          width: panelWidth,
+          top: placement.top,
+          maxHeight: placement.maxHeight,
+        });
       } else {
-        setMenuBox({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+        let left = rect.left;
+        const panelWidth = rect.width;
+        left = Math.max(
+          MENU_VIEWPORT_PADDING_PX,
+          Math.min(left, window.innerWidth - panelWidth - MENU_VIEWPORT_PADDING_PX),
+        );
+        setMenuBox({
+          left,
+          width: panelWidth,
+          top: placement.top,
+          maxHeight: placement.maxHeight,
+        });
       }
     };
 
     updateMenuBox();
+    const raf = window.requestAnimationFrame(updateMenuBox);
     window.addEventListener("resize", updateMenuBox);
     window.addEventListener("scroll", updateMenuBox, true);
     return () => {
+      window.cancelAnimationFrame(raf);
       window.removeEventListener("resize", updateMenuBox);
       window.removeEventListener("scroll", updateMenuBox, true);
     };
-  }, [open, trigger]);
+  }, [open, options.length, trigger]);
 
   useEffect(() => {
     if (!open) {
@@ -152,10 +222,8 @@ export function TRNSelect(props: TRNSelectProps) {
           >
             <TRNMenuPanel
               tone="glass-dropdown"
-              className={twMerge(
-                "max-h-[min(320px,50vh)] overflow-y-auto scrollbar-hide",
-                panelClassName,
-              )}
+              className={twMerge("overflow-y-auto scrollbar-hide", panelClassName)}
+              style={{ maxHeight: menuBox.maxHeight }}
             >
               <div className="flex flex-col gap-1">
                 {sectionTitle != null ? (

@@ -63,6 +63,8 @@ export type RotationPreviewSceneProps = {
   glbAnimationPlaybackMode?: StudioGlbAnimationPlaybackModeV1;
   /** Clip order for **sequence** mode. */
   glbAnimationClipOrder?: string[];
+  /** Bundle inspector Play active — when **false**, holds scrub pose. */
+  glbAnimationInspectorTransportActive?: boolean;
   /** Optional part visibility by object path (`> 0.5` visible), matching GLB extraction part refs. */
   glbPartVisibilityByPath?: Record<string, number>;
   /** Optional material PBR scalars by material **name** (emissive, roughness, metalness, opacity). */

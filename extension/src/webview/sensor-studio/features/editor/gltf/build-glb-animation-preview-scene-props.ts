@@ -1,6 +1,9 @@
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 import type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation";
-import { readStudioGlbAnimationPlaybackMode } from "./studio-glb-animation-playback-mode";
+import {
+  readStudioGlbAnimationPlaybackMode,
+  resolveStudioGlbAnimationClipOrder,
+} from "./studio-glb-animation-playback-mode";
 import type { StudioGlbAnimationPlaybackModeV1 } from "./studio-glb-animation-playback-mode";
 import {
   resolveStudioModelScopeNodeId,
@@ -26,6 +29,7 @@ export type GlbAnimationPreviewSceneProps = Pick<
   | "glbAnimationClipDrivesByName"
   | "glbAnimationPlaybackMode"
   | "glbAnimationClipOrder"
+  | "glbAnimationInspectorTransportActive"
 >;
 
 /**
@@ -65,13 +69,17 @@ export function buildGlbAnimationPreviewSceneProps(args: {
   const wire = args.liveAnimationWire ?? null;
   const playbackMode: StudioGlbAnimationPlaybackModeV1 =
     wire?.playbackMode ?? readStudioGlbAnimationPlaybackMode(args.defaultConfig);
-  const clipOrder =
+  const storedOrder =
     wire?.clipOrder ??
     (Array.isArray(args.defaultConfig.animationClipCardOrder)
       ? (args.defaultConfig.animationClipCardOrder as unknown[])
           .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
           .map((x) => x.trim())
       : undefined);
+  const clipOrder = resolveStudioGlbAnimationClipOrder({
+    clipOrder: storedOrder,
+    clipNames: Object.keys(mergedAnim.drives),
+  });
 
   const mergedAnimKeys = Object.keys(mergedAnim.times);
   const scaleKeys = Object.keys(mergedAnim.scales);
@@ -86,6 +94,7 @@ export function buildGlbAnimationPreviewSceneProps(args: {
     glbAnimationClipDrivesByName:
       Object.keys(mergedAnim.drives).length > 0 ? mergedAnim.drives : undefined,
     glbAnimationPlaybackMode: playbackMode,
-    glbAnimationClipOrder: clipOrder != null && clipOrder.length > 0 ? clipOrder : undefined,
+    glbAnimationClipOrder: clipOrder.length > 0 ? clipOrder : undefined,
+    glbAnimationInspectorTransportActive: wire?.inspectorTransportActive,
   };
 }

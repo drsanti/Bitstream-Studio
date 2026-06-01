@@ -30,6 +30,7 @@ import { buildGlobalDirectoryFallbackOptions } from "../asset-resolution/global-
 import { catalogDedupeKeyToResolveRelativePath } from "./modelCatalogMerge";
 import { preflightModelPreviewUrlWithGlobalDirectoryFallback } from "../model-loader/ui/preflightModelPreviewUrl";
 import { ModelPreviewModal } from "./ModelPreviewModal";
+import { openAnimationLabForCatalogEntry } from "../bitstream-app/components/animation-lab/open-animation-lab-from-catalog.js";
 import { resolveCatalogModelPreviewUrl } from "./resolve-catalog-model-preview-url";
 import { formatModelDisplayName } from "./formatModelDisplayName";
 import { useModalFullscreenFill } from "../ui/useModalFullscreenFill";
@@ -628,52 +629,62 @@ export function ModelCatalogDashboard({
                     const displayName = formatModelDisplayName(model.name);
 
                     return (
-                      <button
-                        key={model.id}
-                        type="button"
-                        className="text-left group disabled:cursor-wait"
-                        disabled={!thumbReady}
-                        onClick={() => {
-                          if (!thumbReady) {
-                            return;
-                          }
-                          setSelectedModelId(model.id);
-                          setSelectedModelUrl(
-                            resolveCatalogModelPreviewUrl(model),
-                          );
-                          setSelectedModelName(displayName);
-                        }}
-                        title={displayName}
-                      >
-                        <div className="relative rounded-lg border border-white/10 bg-neutral-950/75 backdrop-blur-xl p-2 shadow-md shadow-black/30 ring-1 ring-black/25 transition-colors group-hover:border-blue-400/35">
-                          <div className="pointer-events-none absolute inset-0 rounded-lg bg-linear-to-br from-white/6 via-transparent to-cyan-400/6" />
-                          <div className="aspect-square rounded-md overflow-hidden border border-border/60 bg-gray-900/40">
-                            {imgSrc ? (
-                              <img
-                                src={imgSrc}
-                                alt={displayName}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full bg-white/5 animate-pulse" aria-hidden />
-                            )}
-                          </div>
-                          <div className="mt-2">
-                            <div className="text-sm font-semibold truncate text-gray-100">
-                              {displayName}
+                      <div key={model.id} className="group flex flex-col gap-1 text-left">
+                        <button
+                          type="button"
+                          className="disabled:cursor-wait"
+                          disabled={!thumbReady}
+                          onClick={() => {
+                            if (!thumbReady) {
+                              return;
+                            }
+                            setSelectedModelId(model.id);
+                            setSelectedModelUrl(
+                              resolveCatalogModelPreviewUrl(model),
+                            );
+                            setSelectedModelName(displayName);
+                          }}
+                          title={displayName}
+                        >
+                          <div className="relative rounded-lg border border-white/10 bg-neutral-950/75 backdrop-blur-xl p-2 shadow-md shadow-black/30 ring-1 ring-black/25 transition-colors group-hover:border-blue-400/35">
+                            <div className="pointer-events-none absolute inset-0 rounded-lg bg-linear-to-br from-white/6 via-transparent to-cyan-400/6" />
+                            <div className="aspect-square rounded-md overflow-hidden border border-border/60 bg-gray-900/40">
+                              {imgSrc ? (
+                                <img
+                                  src={imgSrc}
+                                  alt={displayName}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full bg-white/5 animate-pulse" aria-hidden />
+                              )}
                             </div>
-                            <div className="text-xs text-gray-400 flex flex-col gap-1">
-                              <span
-                                className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[10px] ${resolveCategoryBadgeClassName(
-                                  model.modelCategory || "Uncategorized",
-                                )}`}
-                              >
-                                {model.modelCategory || "Uncategorized"}
-                              </span>
+                            <div className="mt-2">
+                              <div className="text-sm font-semibold truncate text-gray-100">
+                                {displayName}
+                              </div>
+                              <div className="text-xs text-gray-400 flex flex-col gap-1">
+                                <span
+                                  className={`inline-flex w-fit items-center rounded-full border px-2 py-0.5 text-[10px] ${resolveCategoryBadgeClassName(
+                                    model.modelCategory || "Uncategorized",
+                                  )}`}
+                                >
+                                  {model.modelCategory || "Uncategorized"}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </button>
+                        </button>
+                        {thumbReady ? (
+                          <button
+                            type="button"
+                            className="w-fit rounded border border-cyan-500/30 bg-cyan-950/30 px-2 py-0.5 text-[10px] font-medium text-cyan-100/90 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-cyan-900/40"
+                            onClick={() => openAnimationLabForCatalogEntry(model)}
+                          >
+                            Animation Lab
+                          </button>
+                        ) : null}
+                      </div>
                     );
                   })}
                 </div>
@@ -688,6 +699,7 @@ export function ModelCatalogDashboard({
               setSelectedModelUrl(null);
               setSelectedModelName(null);
             }}
+            catalogModelId={selectedModelId}
             modelUrl={selectedModelUrl}
             modelName={selectedModelName}
             onCaptureThumbnail={async (dataUrl) => {
