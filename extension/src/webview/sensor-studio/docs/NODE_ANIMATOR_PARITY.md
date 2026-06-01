@@ -8,7 +8,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 
 | | node-animator | Sensor Studio |
 |---|---------------|---------------|
-| Addable catalog entries | 54 (52 root) | 54 |
+| Addable catalog entries | 54 (52 root) | 56 |
 | Palette categories | 14 (Blender GN–style) | 7 schema categories + sensor subgroups |
 | React Flow node types | 74 | 5 (`studio` + 4 layout types) |
 
@@ -172,6 +172,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 - **Math** node — 13 ops (node-animator parity), **`math-operations.ts`**, catalog + dataflow eval + card/inspector UI + NA import (**2026-05-31**)
 - **Math v1.1** — unary ops hide **B** input via **`computeMathInputHandles`**; inspector **`selectedNode`** prop fix (**2026-05-31**)
+- **Compare** + **Lerp** nodes — node-animator utility parity, dataflow eval, NA import (**2026-05-31**)
 
 ## Phase 9+ — Planned
 

@@ -34,6 +34,12 @@ import {
   runFlowEventDispatch,
 } from "../../../core/flow/flow-event-runner";
 import { evaluateMathOperation } from "../../../core/flow/math-operations";
+import { evaluateCompareOperation } from "../../../core/flow/compare-operations";
+import {
+  evaluateLerp,
+  LERP_INPUT_DEFAULTS,
+  readLerpInputValue,
+} from "../../../core/flow/lerp-operations";
 import {
   computeMathInputHandles,
   MATH_OUTPUT_HANDLE,
@@ -4329,6 +4335,31 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateMathOperation(operation, a, b),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "compare") {
+          const a = narrowNumber(readIncoming(node.id, "a"));
+          const b = narrowNumber(readIncoming(node.id, "b"));
+          const operation =
+            typeof node.data.defaultConfig.operation === "string"
+              ? node.data.defaultConfig.operation
+              : undefined;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateCompareOperation(operation, a, b),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "lerp") {
+          const a = readLerpInputValue(readIncoming(node.id, "a"), LERP_INPUT_DEFAULTS.a);
+          const b = readLerpInputValue(readIncoming(node.id, "b"), LERP_INPUT_DEFAULTS.b);
+          const t = readLerpInputValue(readIncoming(node.id, "t"), LERP_INPUT_DEFAULTS.t);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateLerp(a, b, t),
           );
           continue;
         }

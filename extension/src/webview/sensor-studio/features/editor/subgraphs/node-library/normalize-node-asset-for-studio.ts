@@ -128,6 +128,34 @@ function normalizeInnerNode(node: Node): Node {
       },
     };
   }
+  if (node.type === "compare") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Compare",
+        category: "logic",
+        nodeId: "compare",
+        defaultConfig: {
+          operation: typeof data.operation === "string" ? data.operation : ">",
+        },
+      },
+    };
+  }
+  if (node.type === "lerp") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Lerp",
+        category: "utility",
+        nodeId: "lerp",
+        defaultConfig: {},
+      },
+    };
+  }
   if (node.type === "studio") {
     return node;
   }

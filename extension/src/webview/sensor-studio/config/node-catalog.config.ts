@@ -248,6 +248,39 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [{ id: "out", portType: "number", label: "Out" }],
       },
       {
+        id: "compare",
+        category: "logic",
+        title: "Compare",
+        description:
+          "Compare wired A and B with >, <, >=, <=, ==, !=. Unwired inputs count as 0. Boolean output on Out.",
+        icon: "git-compare",
+        defaultVisible: true,
+        defaultConfig: {
+          operation: ">",
+        },
+        inputPorts: [
+          { id: "a", portType: "number", label: "A" },
+          { id: "b", portType: "number", label: "B" },
+        ],
+        outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
+      },
+      {
+        id: "lerp",
+        category: "utility",
+        title: "Lerp",
+        description:
+          "Linear interpolation: A + (B − A) × Factor. Factor clamps to 0–1. Unwired defaults: A = 0, B = 1, Factor = 0.",
+        icon: "blend",
+        defaultVisible: true,
+        defaultConfig: {},
+        inputPorts: [
+          { id: "a", portType: "number", label: "A" },
+          { id: "b", portType: "number", label: "B" },
+          { id: "t", portType: "number", label: "Factor" },
+        ],
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
         id: "vector-splitter",
         category: "utility",
         title: "Vector Splitter",

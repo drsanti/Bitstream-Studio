@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { NodeInspectorSettingsSectionProps } from "./node-inspector-settings-types";
 import { BooleanConstantSettingsSection } from "./sections/BooleanConstantSettingsSection";
+import { CompareSettingsSection } from "./sections/CompareSettingsSection";
 import { ClampSettingsSection } from "./sections/ClampSettingsSection";
 import { EnvironmentSettingsSection } from "./sections/EnvironmentSettingsSection";
 import { GaugeSettingsSection } from "./sections/GaugeSettingsSection";
@@ -9,6 +10,7 @@ import { GlbAnimationBundleSettingsSection } from "./sections/GlbAnimationBundle
 import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
 import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSettingsSection";
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
+import { LerpSettingsSection } from "./sections/LerpSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
 import { MathSettingsSection } from "./sections/MathSettingsSection";
@@ -53,6 +55,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "glb-material-color": GlbMaterialColorSettingsSection,
   "material-mix": MaterialMixSettingsSection,
   math: MathSettingsSection,
+  compare: CompareSettingsSection,
+  lerp: LerpSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,

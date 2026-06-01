@@ -37,6 +37,7 @@ import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
 import { MathNodePanel } from "./math/MathNodePanel";
+import { CompareNodePanel } from "./math/CompareNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import {
   BooleanConstantNodePanel,
@@ -805,6 +806,9 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "math" ? (
             <MathNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "compare" ? (
+            <CompareNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel
