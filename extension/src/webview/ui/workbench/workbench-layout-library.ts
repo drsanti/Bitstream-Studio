@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import type { LayoutNode } from "./types";
 import type { WorkbenchDockSizeMemory } from "./workbench-dock-size-memory";
+import { notifyWorkbenchHostMirrorDirty } from "./workbench-host-mirror-notify";
 
 export const WORKBENCH_LAYOUT_LIBRARY_VERSION = 1 as const;
 export const MAX_NAMED_WORKBENCH_LAYOUTS = 12;
@@ -117,6 +118,7 @@ export function writeWorkbenchLayoutLibrary(library: WorkbenchLayoutLibraryV1): 
     workbenchLayoutLibraryStorageKey(library.appId),
     JSON.stringify(library),
   );
+  notifyWorkbenchHostMirrorDirty(library.appId);
 }
 
 export function normalizeWorkbenchLayoutName(name: string): string {
@@ -398,6 +400,7 @@ export function writeWorkbenchStartupPreference(
     return;
   }
   ls.setItem(workbenchStartupPreferenceStorageKey(appId), JSON.stringify(preference));
+  notifyWorkbenchHostMirrorDirty(appId);
 }
 
 export type WorkbenchLayoutExportV1 = {

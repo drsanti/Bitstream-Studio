@@ -6,6 +6,7 @@ import type {
   Viewport,
 } from "@xyflow/react";
 import type { RefObject } from "react";
+import type { RefObject } from "react";
 import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../core/config/config-types";
 import type { StudioGltfExtractRow } from "./gltf/studio-gltf-extract";
 import type { StudioAssetDragPayloadV1 } from "../asset-browser/studio-asset-drag";
@@ -13,6 +14,7 @@ import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/gl
 import type { FlowCanvasGraphHandle } from "./components/flow-canvas-graph-handle";
 import type { StudioDemoTemplateId, FlowGraphNode, StudioNode } from "./store/flow-editor.store";
 import type { FlowCanvasPreferences } from "./components/flow-canvas-ui-persistence";
+import type { StandaloneWorkbenchHandle } from "../../../ui/workbench";
 
 /** Props for `StudioLayout` and the Sensor Studio workbench panel context. */
 export type StudioLayoutProps = {
@@ -71,6 +73,7 @@ export type StudioLayoutProps = {
   onRestoreFlowViewport?: () => void;
   /** Reset workbench pane split layout (provided by StudioLayout). */
   onResetWorkspaceLayout?: () => void;
+  workbenchRef?: RefObject<StandaloneWorkbenchHandle | null>;
   flowCanvasPreferences: FlowCanvasPreferences;
   onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
   /** Empty flow canvas clicks — **On Click** event sources. */

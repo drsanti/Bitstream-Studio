@@ -138,6 +138,15 @@ export {
   type SaveWorkbenchLayoutResult,
   type WorkbenchLayoutExportV1,
 } from './workbench-layout-library';
+
+export {
+  WORKBENCH_FLOW_ATTACHMENT_VERSION,
+  createWorkbenchFlowAttachment,
+  coerceWorkbenchFlowAttachment,
+  type WorkbenchFlowAttachmentV1,
+} from './workbench-flow-attachment';
+
+export { installWorkbenchLayoutHostSync } from './install-workbench-layout-host-sync';
 export {
   useManagedWorkbench,
   type UseManagedWorkbenchOptions,

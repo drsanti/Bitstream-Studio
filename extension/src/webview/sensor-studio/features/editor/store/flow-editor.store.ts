@@ -208,6 +208,10 @@ import {
   type FlowCanvasPreferences,
 } from "../../../persistence/flow-canvas-preferences";
 import {
+  coerceWorkbenchFlowAttachment,
+  type WorkbenchFlowAttachmentV1,
+} from "../../../../ui/workbench/workbench-flow-attachment";
+import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
   persistScene3DConfig,
@@ -279,12 +283,22 @@ import {
 } from "../model/model-generated-bindings";
 import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
 import { splitEdgeWithReroute, applyRerouteBridgeOnEdgeRemoves, removeFlowNodesFromGraph } from "../layout/reroute-graph-ops";
+import { applyFlowAutoLayout as runFlowAutoLayout } from "../layout/flow-auto-layout";
 import {
   applyFlowFrameDragStop,
+  createFrameAroundNodes,
+  detachNodesFromFrame,
   dissolveStudioFrames,
   fitFramesToContents,
+  isLayoutOnlyForFrame,
+  isStudioFrameNode,
   sortFlowNodesParentFirst,
 } from "../layout/frame-flow-nodes";
+import {
+  nextBodyControlsVisibleForBatch,
+  nextSocketValuesVisibleForBatch,
+  nextSocketsExpandedForBatch,
+} from "../nodes/flow-node/socket-display";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
@@ -465,6 +479,12 @@ export type StudioNodeData = {
     resizable?: boolean;
     minWidth?: number;
     minHeight?: number;
+    /** Hide unwired socket rows when `false`. */
+    socketsExpanded?: boolean;
+    /** Hide Policy A socket live previews when `false`. */
+    socketValuesVisible?: boolean;
+    /** Hide card body panels when `false`. */
+    bodyControlsVisible?: boolean;
   };
   inputType?: StudioPortType;
   /** Single-output nodes (legacy); omit when `outputHandles` is set. */
@@ -766,11 +786,17 @@ type FlowEditorState = {
   exportFlowGraphJson: (options?: {
     viewport?: StudioPersistedViewport | null;
     canvasPreferences?: FlowCanvasPreferences;
+    workbenchLayout?: WorkbenchFlowAttachmentV1;
   }) => string;
   importFlowGraphJson: (
     json: string,
   ) =>
-    | { ok: true; viewport?: StudioPersistedViewport; canvasPreferences?: FlowCanvasPreferences }
+    | {
+        ok: true;
+        viewport?: StudioPersistedViewport;
+        canvasPreferences?: FlowCanvasPreferences;
+        workbenchLayout?: WorkbenchFlowAttachmentV1;
+      }
     | { ok: false; message: string };
   duplicateSelection: () => void;
   copyFlowSelectionToClipboard: () => Promise<boolean>;
@@ -830,6 +856,12 @@ type FlowEditorState = {
   applyFlowFrameDragStop: (dragged: FlowGraphNode) => void;
   fitSelectedFramesToContents: (frameIds?: string[]) => boolean;
   dissolveSelectedFrames: (frameIds?: string[]) => boolean;
+  createFrameAroundSelection: () => void;
+  detachSelectionFromFrame: () => boolean;
+  toggleSocketsExpandedForNodes: (nodeIds: string[]) => void;
+  toggleSocketValuesVisibleForNodes: (nodeIds: string[]) => void;
+  toggleBodyControlsVisibleForNodes: (nodeIds: string[]) => void;
+  applyFlowAutoLayout: (direction: "LR" | "TB") => void;
   updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
   /**
    * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
@@ -2318,6 +2350,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const viewportPayload =
       viewportArg != null && isValidStudioPersistedViewport(viewportArg) ? viewportArg : undefined;
     const canvasPreferences = options?.canvasPreferences;
+    const workbenchLayout = options?.workbenchLayout;
     return JSON.stringify(
       {
         version: 1 as const,
@@ -2332,6 +2365,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ...(st.rootNodes.length > 0 ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
         ...(viewportPayload != null ? { viewport: viewportPayload } : {}),
         ...(canvasPreferences != null ? { canvasPreferences } : {}),
+        ...(workbenchLayout != null ? { workbenchLayout } : {}),
       },
       null,
       2,
@@ -2382,6 +2416,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       o.canvasPreferences != null
         ? coerceFlowCanvasPreferences(o.canvasPreferences)
         : undefined;
+    const workbenchLayout = coerceWorkbenchFlowAttachment(o.workbenchLayout);
     const subgraphsRaw = o.subgraphs;
     const subgraphs =
       subgraphsRaw != null && typeof subgraphsRaw === "object" && !Array.isArray(subgraphsRaw)
@@ -2415,11 +2450,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       redoStack: [],
     });
     flushFlowSimulationPins(get);
-    if (viewport != null || canvasPreferences != null) {
+    if (viewport != null || canvasPreferences != null || workbenchLayout != null) {
       return {
         ok: true,
         ...(viewport != null ? { viewport } : {}),
         ...(canvasPreferences != null ? { canvasPreferences } : {}),
+        ...(workbenchLayout != null ? { workbenchLayout } : {}),
       };
     }
     return { ok: true };
@@ -3604,6 +3640,152 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }));
     flushFlowSimulationPins(get);
     return true;
+  },
+  createFrameAroundSelection: () => {
+    const st = get();
+    const selected = st.nodes.filter(
+      (n) =>
+        n.selected &&
+        !isStudioFrameNode(n) &&
+        n.type !== "studio-note" &&
+        n.type !== "studio-node-group" &&
+        n.type !== "studio-group-input" &&
+        n.type !== "studio-group-output" &&
+        !isLayoutOnlyForFrame(n) &&
+        n.parentId == null,
+    );
+    if (selected.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const { frame, children } = createFrameAroundNodes(selected);
+    const selectedIds = new Set(selected.map((n) => n.id));
+    const childById = new Map(children.map((c) => [c.id, c]));
+    const merged = st.nodes.map((n) => {
+      if (!selectedIds.has(n.id)) {
+        return { ...n, selected: false };
+      }
+      return { ...(childById.get(n.id) ?? n), selected: true };
+    });
+    const nextNodes = sortFlowNodesParentFirst([
+      { ...frame, selected: false },
+      ...merged,
+    ]);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, state.edges),
+      ...selectionFromIds([...selectedIds]),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  detachSelectionFromFrame: () => {
+    const st = get();
+    const selectedIds = st.nodes.filter((n) => n.selected).map((n) => n.id);
+    if (selectedIds.length === 0) {
+      return false;
+    }
+    const result = detachNodesFromFrame(selectedIds, st.nodes);
+    if (!result.changed) {
+      return false;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  toggleSocketsExpandedForNodes: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    const st = get();
+    const nextExpanded = nextSocketsExpandedForBatch(st.nodes, nodeIds);
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          return {
+            ...n,
+            data: {
+              ...data,
+              ui: { ...data.ui, socketsExpanded: nextExpanded },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  toggleSocketValuesVisibleForNodes: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    const st = get();
+    const nextVisible = nextSocketValuesVisibleForBatch(st.nodes, nodeIds);
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          return {
+            ...n,
+            data: {
+              ...data,
+              ui: { ...data.ui, socketValuesVisible: nextVisible },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  toggleBodyControlsVisibleForNodes: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    const st = get();
+    const nextVisible = nextBodyControlsVisibleForBatch(st.nodes, nodeIds);
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          return {
+            ...n,
+            data: {
+              ...data,
+              ui: { ...data.ui, bodyControlsVisible: nextVisible },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  applyFlowAutoLayout: (direction) => {
+    const st = get();
+    if (st.nodes.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const layouted = runFlowAutoLayout(st.nodes, st.edges, direction);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(layouted, state.edges),
+    }));
+    flushFlowSimulationPins(get);
   },
   updateLayoutNodeData: (flowNodeId, patch) => {
     set((state) => ({

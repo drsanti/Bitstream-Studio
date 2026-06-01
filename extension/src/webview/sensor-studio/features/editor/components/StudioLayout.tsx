@@ -53,9 +53,11 @@ export function StudioLayout(props: StudioLayoutProps) {
     onDeviceSensorSettingsOpenChange,
     deviceSensorSettingsInitialSourceId = null,
     onOpenDeviceSensorSettings,
+    workbenchRef: workbenchRefProp,
   } = props;
 
-  const workbenchRef = useRef<StandaloneWorkbenchHandle>(null);
+  const internalWorkbenchRef = useRef<StandaloneWorkbenchHandle>(null);
+  const workbenchRef = workbenchRefProp ?? internalWorkbenchRef;
   const [layoutMenuProps, setLayoutMenuProps] = useState<WorkbenchLayoutMenuProps | null>(null);
 
   const resetWorkspaceLayout = useCallback(() => {

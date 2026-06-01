@@ -8,6 +8,8 @@ import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickSched
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
+import type { StandaloneWorkbenchHandle } from "../../ui/workbench";
+import { createWorkbenchFlowAttachment } from "../../ui/workbench/workbench-flow-attachment";
 import type { FlowCanvasGraphHandle } from "../features/editor/components/flow-canvas-graph-handle";
 import { useFlowKeyboardShortcuts } from "../features/editor/keyboard/use-flow-keyboard-shortcuts";
 import { pushRecentCatalogNodeId } from "../features/editor/keyboard/recent-catalog-nodes";
@@ -174,6 +176,13 @@ export function SensorStudioMain() {
   const deleteSelection = useFlowEditorStore((s) => s.deleteSelection);
   const selectAllNodes = useFlowEditorStore((s) => s.selectAllNodes);
   const clearNodeSelection = useFlowEditorStore((s) => s.clearNodeSelection);
+  const toggleSocketsExpandedForNodes = useFlowEditorStore((s) => s.toggleSocketsExpandedForNodes);
+  const toggleSocketValuesVisibleForNodes = useFlowEditorStore(
+    (s) => s.toggleSocketValuesVisibleForNodes,
+  );
+  const toggleBodyControlsVisibleForNodes = useFlowEditorStore(
+    (s) => s.toggleBodyControlsVisibleForNodes,
+  );
 
   const onAddNode = useCallback(
     (entry: NodeCatalogEntry) => {
@@ -256,6 +265,7 @@ export function SensorStudioMain() {
   const viewportPersistRef = useRef<StudioPersistedViewport | null>(bootViewport);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>();
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  const workbenchRef = useRef<StandaloneWorkbenchHandle>(null);
 
   const openDeviceSensorSettings = useCallback((initialSourceId: number | null) => {
     setDeviceSensorSettingsInitialSourceId(initialSourceId);
@@ -643,8 +653,64 @@ export function SensorStudioMain() {
   }, [onClearCanvas]);
 
   const requestFitView = useCallback(() => {
+    flowCanvasGraphRef.current?.fitAllInView();
     setFitViewVersion((v) => v + 1);
   }, []);
+
+  const requestFitSelectionView = useCallback(() => {
+    const st = useFlowEditorStore.getState();
+    const fromRf = st.nodes.filter((n) => n.selected).map((n) => n.id);
+    const ids =
+      fromRf.length > 0
+        ? fromRf
+        : st.selectedNodeIds.length > 0
+          ? st.selectedNodeIds
+          : st.selectedNodeId != null
+            ? [st.selectedNodeId]
+            : [];
+    if (ids.length === 0) {
+      return;
+    }
+    flowCanvasGraphRef.current?.fitSelectionInView(ids);
+  }, []);
+
+  const selectedStudioNodeIdsForToggle = useCallback((): string[] => {
+    const st = useFlowEditorStore.getState();
+    const fromRf = st.nodes.filter((n) => n.selected).map((n) => n.id);
+    const ids =
+      fromRf.length > 0
+        ? fromRf
+        : st.selectedNodeIds.length > 0
+          ? st.selectedNodeIds
+          : st.selectedNodeId != null
+            ? [st.selectedNodeId]
+            : [];
+    return ids.filter((id) => st.nodes.find((n) => n.id === id)?.type === "studio");
+  }, []);
+
+  const toggleSelectionSocketsExpanded = useCallback(() => {
+    const studioIds = selectedStudioNodeIdsForToggle();
+    if (studioIds.length === 0) {
+      return;
+    }
+    toggleSocketsExpandedForNodes(studioIds);
+  }, [selectedStudioNodeIdsForToggle, toggleSocketsExpandedForNodes]);
+
+  const toggleSelectionSocketValuesVisible = useCallback(() => {
+    const studioIds = selectedStudioNodeIdsForToggle();
+    if (studioIds.length === 0) {
+      return;
+    }
+    toggleSocketValuesVisibleForNodes(studioIds);
+  }, [selectedStudioNodeIdsForToggle, toggleSocketValuesVisibleForNodes]);
+
+  const toggleSelectionBodyControlsVisible = useCallback(() => {
+    const studioIds = selectedStudioNodeIdsForToggle();
+    if (studioIds.length === 0) {
+      return;
+    }
+    toggleBodyControlsVisibleForNodes(studioIds);
+  }, [selectedStudioNodeIdsForToggle, toggleBodyControlsVisibleForNodes]);
 
   const onDuplicateFlowSelection = useCallback(() => {
     duplicateSelection();
@@ -663,9 +729,13 @@ export function SensorStudioMain() {
   }, [clearNodeSelection]);
 
   const onExportFlow = useCallback(() => {
+    const snapshot = workbenchRef.current?.exportLayoutSnapshot("Flow export");
+    const workbenchLayout =
+      snapshot != null ? createWorkbenchFlowAttachment(snapshot) : undefined;
     const json = useFlowEditorStore.getState().exportFlowGraphJson({
       viewport: viewportPersistRef.current ?? undefined,
       canvasPreferences: flowCanvasPrefsRef.current,
+      workbenchLayout,
     });
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -692,6 +762,9 @@ export function SensorStudioMain() {
         const text = String(reader.result ?? "");
         const r = useFlowEditorStore.getState().importFlowGraphJson(text);
         if (r.ok) {
+          if (r.workbenchLayout != null) {
+            workbenchRef.current?.applyImportedLayoutSnapshot(r.workbenchLayout.snapshot);
+          }
           if (r.canvasPreferences != null) {
             patchFlowCanvasPreferences(r.canvasPreferences);
           }
@@ -746,6 +819,10 @@ export function SensorStudioMain() {
       onExportFlow,
       onImportFlowPick,
       requestFitView,
+      requestFitSelectionView,
+      toggleSelectionSocketsExpanded,
+      toggleSelectionSocketValuesVisible,
+      toggleSelectionBodyControlsVisible,
       setTemplateId,
     }),
     [
@@ -766,6 +843,10 @@ export function SensorStudioMain() {
       onExportFlow,
       onImportFlowPick,
       requestFitView,
+      requestFitSelectionView,
+      toggleSelectionSocketsExpanded,
+      toggleSelectionSocketValuesVisible,
+      toggleSelectionBodyControlsVisible,
     ],
   );
 
@@ -902,6 +983,7 @@ export function SensorStudioMain() {
         flowCanvasGraphRef={flowCanvasGraphRef}
         onAddCatalogEntryAtFlowPosition={onAddCatalogEntryAtFlowPosition}
         defaultPaletteLayout={runtimeDefaults.nodePaletteLayout}
+        workbenchRef={workbenchRef}
       />
     </>
   );

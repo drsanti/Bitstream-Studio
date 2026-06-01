@@ -74,6 +74,9 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 - **2026-06-01** — **Sensor Studio — Policy A socket live previews:** all scalar output pins + wired input pins show live values on socket rows (`syncSocketLivePreviewHandlesFromPinValues`, clustered input layout, upstream semantic colors through map-range/clamp/lerp chain, empty when unwired); **`socket-live-preview.test.ts`**; rules in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
 - **2026-06-01** — **Sensor Studio — Studio Model socket labels:** **Studio Model** output and wired **Model** inputs show catalog-friendly names (`modelSelectEmitDisplayName`), not raw GLB URLs.
 - **2026-06-01** — **Sensor Studio — Environment/Camera socket badges:** wired **`env`** / **`cam`** inputs and source node outputs show compact tinted badges (preset name or FOV); **`structured-socket-preview-label.test.ts`**.
+- **2026-06-01** — **Sensor Studio — flow canvas + selection toolbars (Phase 10):** `FlowCanvasToolbar`, `NodeSelectionToolbar`, dagre auto-layout, socket/body toggles (**Shift+H/V/B**), frame-around-selection, slim **`StudioToolbar`**; **`flow-toolbar-parity.test.ts`**.
+
+- **2026-06-01** — **TRN workbench layout library (Phase 3):** optional **`workbenchLayout`** inline snapshot on Sensor Studio flow JSON export/import; VSIX host mirror (`workbench-mirror-{appId}.json` in extension global storage) via **`installWorkbenchLayoutHostSync`**; tests **`workbench-flow-attachment.test.ts`**.
 
 - **2026-06-01** — **TRN workbench layout library (Phase 2):** manage layouts panel (rename, duplicate, reorder, startup preference, per-row export), JSON export/import (`.trn-workbench-layout.json`), toolbar **Layout ▾** menu in Sensor Studio + Telemetry; command palette entries for manage/export/import.
 

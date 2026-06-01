@@ -30,6 +30,8 @@ import { useWorkbenchFloating } from "./useWorkbenchFloating";
 import { WorkbenchCommandOverlay } from "./WorkbenchCommandOverlay";
 import { WorkbenchSaveLayoutDialog } from "./WorkbenchSaveLayoutDialog";
 import { useWorkbenchKeyboardShortcuts } from "./use-workbench-keyboard-shortcuts";
+import { installWorkbenchLayoutHostSync } from "./install-workbench-layout-host-sync";
+import type { WorkbenchLayoutSnapshotV1 } from "./workbench-layout-library";
 
 export interface StandaloneWorkbenchProps {
   initialLayout: LayoutNode;
@@ -56,6 +58,10 @@ export type StandaloneWorkbenchHandle = {
   undoLayout: () => void;
   redoLayout: () => void;
   openCommandPalette: () => void;
+  exportLayoutSnapshot: (name?: string) => WorkbenchLayoutSnapshotV1 | null;
+  applyImportedLayoutSnapshot: (
+    snapshot: Pick<WorkbenchLayoutSnapshotV1, "layout" | "dockMemory">,
+  ) => void;
 };
 
 export const StandaloneWorkbench = memo(
@@ -96,6 +102,13 @@ export const StandaloneWorkbench = memo(
       onDetachRejected,
     });
     clearFloatingRef.current = floating.clearAllFloatingPanes;
+
+    useEffect(() => {
+      if (persistenceKey == null) {
+        return;
+      }
+      return installWorkbenchLayoutHostSync(persistenceKey);
+    }, [persistenceKey]);
 
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -227,8 +240,22 @@ export const StandaloneWorkbench = memo(
         undoLayout: managed.undoLayoutChange,
         redoLayout: managed.redoLayoutChange,
         openCommandPalette: () => setCommandPaletteOpen(true),
+        exportLayoutSnapshot: (name = "Flow export") => {
+          if (persistenceKey == null) {
+            return null;
+          }
+          return createWorkbenchLayoutSnapshotFromCurrent({
+            appId: persistenceKey,
+            name,
+            layout: managed.layout,
+            dockMemory: managed.dockMemory,
+          });
+        },
+        applyImportedLayoutSnapshot: (snapshot) => {
+          managed.applyLayoutSnapshot(snapshot.layout, snapshot.dockMemory ?? {});
+        },
       }),
-      [managed],
+      [managed, persistenceKey],
     );
 
     const handleCommandSelect = useCallback(

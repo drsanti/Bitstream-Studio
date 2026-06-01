@@ -1,4 +1,5 @@
 import type { LayoutNode } from "./types";
+import { notifyWorkbenchHostMirrorDirty } from "./workbench-host-mirror-notify";
 
 const STORAGE_PREFIX = "trn_workbench_";
 const LEGACY_STORAGE_PREFIX = "ternion_workbench_";
@@ -29,6 +30,7 @@ export function loadPersistedLayout(key: string): LayoutNode | null {
 
 export function savePersistedLayout(key: string, layout: LayoutNode): void {
   localStorage.setItem(workbenchPersistenceKey(key), JSON.stringify(layout));
+  notifyWorkbenchHostMirrorDirty(key);
 }
 
 export function clearPersistedLayout(key: string): void {

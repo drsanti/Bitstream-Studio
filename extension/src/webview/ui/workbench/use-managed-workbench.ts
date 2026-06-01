@@ -690,6 +690,7 @@ export function useManagedWorkbench({
     loadNamedLayout,
     deleteNamedLayout,
     bumpLibraryRevision,
+    applyLayoutSnapshot,
     commandItems,
     runCommand,
     workbenchProps,

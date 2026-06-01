@@ -548,6 +548,71 @@ export class TernionDigitalTwin {
         break;
       }
 
+      case "workbench-layout-host-pull": {
+        const appId =
+          typeof message.appId === "string" && message.appId.trim().length > 0
+            ? message.appId.trim()
+            : "sensor-studio";
+        const safeAppId = appId.replace(/[^a-zA-Z0-9_-]+/g, "-");
+        const configUri = vscode.Uri.joinPath(
+          this._context.globalStorageUri,
+          `workbench-mirror-${safeAppId}.json`,
+        );
+        void (async () => {
+          try {
+            const raw = await fs.readFile(configUri.fsPath, "utf8");
+            this._panel.webview.postMessage({
+              type: "workbench-layout-host-response",
+              appId,
+              configJson: raw,
+            });
+          } catch (e: unknown) {
+            const errno = e as NodeJS.ErrnoException;
+            if (errno?.code === "ENOENT") {
+              this._panel.webview.postMessage({
+                type: "workbench-layout-host-response",
+                appId,
+                configJson: null,
+              });
+            } else {
+              const errMsg = e instanceof Error ? e.message : String(e);
+              this._panel.webview.postMessage({
+                type: "workbench-layout-host-response",
+                appId,
+                configJson: null,
+                error: errMsg,
+              });
+            }
+          }
+        })();
+        break;
+      }
+
+      case "workbench-layout-host-push": {
+        const appId =
+          typeof message.appId === "string" && message.appId.trim().length > 0
+            ? message.appId.trim()
+            : "sensor-studio";
+        const safeAppId = appId.replace(/[^a-zA-Z0-9_-]+/g, "-");
+        const configUri = vscode.Uri.joinPath(
+          this._context.globalStorageUri,
+          `workbench-mirror-${safeAppId}.json`,
+        );
+        const raw = typeof message.configJson === "string" ? message.configJson : "";
+        void (async () => {
+          try {
+            await fs.mkdir(path.dirname(configUri.fsPath), { recursive: true });
+            await fs.writeFile(configUri.fsPath, raw, "utf8");
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            void vscode.window.showWarningMessage(
+              `Could not write workbench layout mirror (${appId}): ${errMsg}`,
+            );
+          }
+        })();
+        break;
+      }
+
       case "get-local-ips": {
         const os = await import("os");
         const ifaces = os.networkInterfaces();

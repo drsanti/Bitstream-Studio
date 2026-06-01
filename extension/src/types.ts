@@ -56,6 +56,8 @@ export interface WebviewMessage {
   | 'system-settings-update'
   | 'bitstream-dashboard-config-pull'
   | 'bitstream-dashboard-config-push'
+  | 'workbench-layout-host-pull'
+  | 'workbench-layout-host-push'
   | 'ternion-quick-action-toggle'
   | 'bitstream-simulator-start'
   | 'bitstream-simulator-stop';
@@ -88,6 +90,8 @@ export interface WebviewMessage {
   absolutePath?: string;
   /** JSON string of persisted Bitstream dashboard fields (mirror file in extension global storage). */
   configJson?: string;
+  /** Workbench layout mirror target app id (`sensor-studio`, `sensor-telemetry-v2`, …). */
+  appId?: string;
   /** When true (default), host starts serial bridge before launching external simulator. */
   ensureBackends?: boolean;
 }
@@ -133,6 +137,7 @@ export interface ExtensionMessage {
   | 'asset-reveal-path-result'
   | 'asset-default-download-paths-response'
   | 'bitstream-dashboard-config-response'
+  | 'workbench-layout-host-response'
   | 'bitstream-simulator-start-response'
   | 'bitstream-simulator-stop-response';
   topic?: string;
@@ -266,5 +271,6 @@ export interface ExtensionMessage {
   listError?: string;
   /** Host mirror of `bitstream-dashboard-config-v2` JSON; null when file is missing. */
   configJson?: string | null;
+  appId?: string;
 }
 
