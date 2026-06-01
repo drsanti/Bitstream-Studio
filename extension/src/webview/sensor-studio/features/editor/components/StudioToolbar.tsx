@@ -1,4 +1,5 @@
 import { FolderOpen } from "lucide-react";
+import type { ReactNode } from "react";
 import { useBitstreamTransportActions } from "../../../../bitstream-app/context/bitstreamTransportActions.context";
 import { BitstreamSensorSampleRxBadge } from "../../../../bitstream-shell/ui/BitstreamTelemetryRxBadges";
 import { useOpenAssetManager } from "../../../../assets-manager/hooks/useOpenAssetManager.js";
@@ -22,6 +23,7 @@ type StudioToolbarProps = {
   onClearCanvasSelection?: () => void;
   onExportFlow: () => void;
   onImportFlowPick: () => void;
+  layoutMenu?: ReactNode;
 };
 
 export function StudioToolbar(props: StudioToolbarProps) {
@@ -42,6 +44,7 @@ export function StudioToolbar(props: StudioToolbarProps) {
     onExportFlow,
     onImportFlowPick,
     onResetWorkspaceLayout,
+    layoutMenu,
   } = props;
   const { openAssetManager } = useOpenAssetManager();
   const { reconnectTelemetry } = useBitstreamTransportActions();
@@ -174,6 +177,7 @@ export function StudioToolbar(props: StudioToolbarProps) {
         >
           Import JSON
         </button>
+        {layoutMenu}
         {onResetWorkspaceLayout != null ? (
           <button
             type="button"

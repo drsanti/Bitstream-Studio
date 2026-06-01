@@ -1,0 +1,53 @@
+/**
+ * TRN Workbench theme tokens + text tone utilities for tiling chrome.
+ * Import from app.css alongside Tailwind.
+ */
+@theme {
+  --color-bg-main: #18181b;
+  --color-bg-panel: #18181b;
+  --color-bg-header: #202023;
+  --color-workbench-chrome-border: #2d2d32;
+  --color-accent-blue: #3b82f6;
+  --color-text-main: #f4f4f5;
+  --color-text-dim: #71717a;
+  --color-text-muted: #a1a1aa;
+  --color-text-primary: #f4f4f5;
+  --color-text-secondary: #a1a1aa;
+  --color-text-tertiary: #71717a;
+  --workbench-rail-px: 32px;
+
+  /* Legacy Bitstream workbench vars (PaneFrame / older CSS) */
+  --workbench-bg: rgba(20, 20, 25, 0.85);
+  --workbench-border: rgba(255, 255, 255, 0.08);
+  --workbench-accent: #3498db;
+  --workbench-text: #ffffff;
+  --workbench-text-dim: rgba(255, 255, 255, 0.5);
+  --workbench-header-height: 28px;
+}
+
+.text-primary {
+  color: var(--color-text-primary, var(--color-text-main));
+}
+
+.text-secondary {
+  color: var(--color-text-secondary, var(--color-text-muted));
+}
+
+.text-tertiary {
+  color: var(--color-text-tertiary, var(--color-text-dim));
+}
+
+.ternion-workbench {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  color: var(--workbench-text, var(--color-text-main));
+  font-family: Inter, Helvetica, Arial, sans-serif;
+}
+
+.wb-pane-chrome-header {
+  background: color-mix(in srgb, var(--color-bg-header, #202023) 88%, transparent);
+  border-bottom: 1px solid var(--color-workbench-chrome-border, #2d2d32);
+  backdrop-filter: blur(10px);
+}

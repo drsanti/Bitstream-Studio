@@ -1,14 +1,35 @@
-import { useCallback, useEffect, useRef } from "react";
-import { StandaloneWorkbench, type StandaloneWorkbenchHandle } from "../../../../ui/workbench";
+import { useCallback, useRef, useState } from "react";
+import {
+  StandaloneWorkbench,
+  WorkbenchLayoutMenu,
+  type StandaloneWorkbenchHandle,
+  type WorkbenchLayoutMenuProps,
+} from "../../../../ui/workbench";
 import { StudioToolbar } from "./StudioToolbar";
 import { DeviceSensorSettingsWindow } from "../../device-settings/DeviceSensorSettingsWindow";
 import type { StudioLayoutProps } from "../studio-layout.props";
 import { DEFAULT_STUDIO_WORKBENCH_LAYOUT } from "../workbench/default-studio-workbench-layout";
 import { StudioWorkbenchShellProvider } from "../workbench/studio-workbench-context";
 import { SENSOR_STUDIO_WORKBENCH_REGISTRY } from "../workbench/studio-workbench-registry";
-import { toggleEditorTypePaneCollapse } from "../workbench/studio-workbench-layout-helpers";
+import {
+  STUDIO_WORKBENCH_PRESETS,
+} from "../workbench/studio-workbench-presets";
+import {
+  toggleStudioPaneCollapseByEditorType,
+  validateStudioWorkbenchLayout,
+  type StudioWorkbenchEditorType,
+} from "../workbench/validate-studio-workbench-layout";
 
 export type { StudioLayoutProps } from "../studio-layout.props";
+
+const STUDIO_PANE_COMMANDS = [
+  { editorType: "library", label: "Open Library", keywords: "library palette nodes" },
+  { editorType: "assets", label: "Open Asset Browser", keywords: "assets models browser" },
+  { editorType: "flow", label: "Open Flow Canvas", keywords: "flow graph brain canvas" },
+  { editorType: "inspector", label: "Open Inspector", keywords: "inspector properties" },
+] as const;
+
+const STUDIO_SIDE_PANELS = ["library", "assets", "inspector"] as const;
 
 export function StudioLayout(props: StudioLayoutProps) {
   const {
@@ -35,60 +56,24 @@ export function StudioLayout(props: StudioLayoutProps) {
   } = props;
 
   const workbenchRef = useRef<StandaloneWorkbenchHandle>(null);
-  const libraryCollapsedRef = useRef(false);
-  const inspectorCollapsedRef = useRef(false);
-  const ratioStashRef = useRef<Partial<Record<"library" | "inspector", number>>>({});
+  const [layoutMenuProps, setLayoutMenuProps] = useState<WorkbenchLayoutMenuProps | null>(null);
 
   const resetWorkspaceLayout = useCallback(() => {
-    libraryCollapsedRef.current = false;
-    inspectorCollapsedRef.current = false;
-    ratioStashRef.current = {};
     workbenchRef.current?.resetLayout();
   }, []);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) {
-        return;
+  const toggleStudioPane = useCallback(
+    (layout: Parameters<typeof toggleStudioPaneCollapseByEditorType>[0], editorType: string) => {
+      if (editorType !== "library" && editorType !== "inspector") {
+        return layout;
       }
-      if (e.repeat) {
-        return;
-      }
-      const target = e.target as HTMLElement | null;
-      if (target?.closest("input, textarea, select, [contenteditable=true]")) {
-        return;
-      }
-
-      if (e.code === "KeyP") {
-        e.preventDefault();
-        workbenchRef.current?.setLayout((prev) => {
-          const nextCollapsed = !libraryCollapsedRef.current;
-          const after = toggleEditorTypePaneCollapse(prev, "library", nextCollapsed, ratioStashRef);
-          if (after === prev) {
-            return prev;
-          }
-          libraryCollapsedRef.current = nextCollapsed;
-          return after;
-        });
-        return;
-      }
-      if (e.code === "KeyI") {
-        e.preventDefault();
-        workbenchRef.current?.setLayout((prev) => {
-          const nextCollapsed = !inspectorCollapsedRef.current;
-          const after = toggleEditorTypePaneCollapse(prev, "inspector", nextCollapsed, ratioStashRef);
-          if (after === prev) {
-            return prev;
-          }
-          inspectorCollapsedRef.current = nextCollapsed;
-          return after;
-        });
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+      return toggleStudioPaneCollapseByEditorType(
+        layout,
+        editorType as StudioWorkbenchEditorType,
+      );
+    },
+    [],
+  );
 
   return (
     <div
@@ -115,6 +100,7 @@ export function StudioLayout(props: StudioLayoutProps) {
         onExportFlow={onExportFlow}
         onImportFlowPick={onImportFlowPick}
         onResetWorkspaceLayout={resetWorkspaceLayout}
+        layoutMenu={layoutMenuProps ? <WorkbenchLayoutMenu {...layoutMenuProps} /> : null}
       />
 
       <main className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 pt-0">
@@ -126,6 +112,15 @@ export function StudioLayout(props: StudioLayoutProps) {
             initialLayout={DEFAULT_STUDIO_WORKBENCH_LAYOUT}
             registry={SENSOR_STUDIO_WORKBENCH_REGISTRY}
             persistenceKey="sensor-studio"
+            validateLayout={validateStudioWorkbenchLayout}
+            sidePanelEditorTypes={STUDIO_SIDE_PANELS}
+            paneCommands={STUDIO_PANE_COMMANDS}
+            layoutPresets={STUDIO_WORKBENCH_PRESETS}
+            togglePaneByEditorType={toggleStudioPane}
+            onLayoutMenuPropsChange={setLayoutMenuProps}
+            onDetachRejected={() => {
+              // Last pane cannot float — ignore silently.
+            }}
           />
         </StudioWorkbenchShellProvider>
       </main>

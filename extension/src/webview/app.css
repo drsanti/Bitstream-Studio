@@ -8,6 +8,10 @@
 /* Shared T3D design tokens + base styles (synced from T3D/src/index.css) */
 @import './t3d-shared.css';
 
+/* TRN tiling workbench (Sensor Studio + Sensor Telemetry) */
+@import './ui/workbench/workbench-theme.css';
+@import './ui/workbench/workbench.css';
+
 /* Webview-specific hard resets / sizing */
 @layer base {
   body {

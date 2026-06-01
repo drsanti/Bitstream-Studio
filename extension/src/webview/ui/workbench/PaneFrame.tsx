@@ -1,108 +1,206 @@
-import { Columns2, Rows3, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { TRNMenuSectionTitle } from "../TRN/TRNMenu.js";
-import type { LayoutNode, WorkbenchRegistry } from "./types";
+import { useLayoutEffect, useRef, useState } from 'react';
+import {
+  Columns2,
+  Rows2,
+  X,
+  HelpCircle,
+  ChevronUp,
+  ChevronDown,
+  PanelLeftClose,
+  GripVertical,
+  Maximize2,
+  Minimize2,
+} from 'lucide-react';
+import type { LayoutNode, WorkbenchRegistry } from './types';
+import type { PaneDockZone } from './paneDock';
+import { PaneDockDropOverlay } from './PaneDockDropOverlay';
+import { PaneEditorTypeMenu } from './PaneEditorTypeMenu';
+import { WorkbenchHintButton } from './WorkbenchHintButton';
+import { cn } from './cn';
 
 interface PaneFrameProps {
-  node: Extract<LayoutNode, { type: "editor" }>;
+  node: Extract<LayoutNode, { type: 'editor' }>;
   registry: WorkbenchRegistry;
-  onSplit: (direction: "horizontal" | "vertical") => void;
+  onSplit: (direction: 'horizontal' | 'vertical') => void;
   onClose: () => void;
+  onCollapse: () => void;
   onChangeType: (type: string) => void;
+  onActivate?: () => void;
+  isActive?: boolean;
+  paneMaximized?: boolean;
+  onToggleMaximize?: () => void;
+  dockDragSourceId?: string | null;
+  dockHoverZone?: PaneDockZone | null;
+  onDockZoneChange?: (targetPaneId: string, zone: PaneDockZone | null) => void;
+  onDockDragStart?: (sourcePaneId: string) => void;
 }
 
-export function PaneFrame({ node, registry, onSplit, onClose, onChangeType }: PaneFrameProps) {
+export function PaneFrame({
+  node,
+  registry,
+  onSplit,
+  onClose,
+  onCollapse,
+  onChangeType,
+  onActivate,
+  isActive = false,
+  paneMaximized = false,
+  onToggleMaximize,
+  dockDragSourceId = null,
+  dockHoverZone = null,
+  onDockZoneChange,
+  onDockDragStart,
+}: PaneFrameProps) {
   const [showSelector, setShowSelector] = useState(false);
-  const currentInfo = registry[node.editorType] ?? {
-    icon: null as ReactNode,
-    label: "Unknown",
-    component: () => (
-      <div className="p-5 text-sm text-zinc-500">Panel type is not registered in the workbench.</div>
-    ),
+  const [selectorAnchorEl, setSelectorAnchorEl] = useState<HTMLElement | null>(null);
+  const selectorTriggerRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    setSelectorAnchorEl(showSelector ? selectorTriggerRef.current : null);
+  }, [showSelector]);
+  const currentInfo = registry[node.editorType] || {
+    icon: <HelpCircle size={14} />,
+    label: 'Unknown',
+    component: () => <div className="p-5 text-tertiary">Editor not found</div>,
   };
 
-  const Content = currentInfo.component;
+  const isDockDragging = dockDragSourceId != null;
+  const isDragSource = dockDragSourceId === node.id;
+  const showDropOverlay =
+    isDockDragging && !isDragSource && dockDragSourceId !== node.id;
 
   return (
-    <div className="workbench-pane flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+    <div className="flex flex-col flex-1 w-full h-full overflow-hidden min-h-0 bg-bg-panel">
       <div
-        className="workbench-header relative z-100 flex h-7 shrink-0 items-center gap-2 border-b px-2"
-        style={{
-          background: "var(--workbench-header-bg, rgba(20,20,25,0.85))",
-          borderColor: "var(--workbench-border, rgba(255,255,255,0.08))",
-          backdropFilter: "blur(10px)",
+        className={cn(
+          'wb-pane-chrome-header relative z-20 flex h-8 shrink-0 items-center gap-2 overflow-visible border-0 px-2 select-none ring-0 outline-none',
+          isDragSource && 'bg-zinc-900/30',
+          isActive && !isDragSource && 'bg-zinc-900/40',
+          paneMaximized && 'bg-zinc-900/50',
+        )}
+        onPointerDown={() => onActivate?.()}
+        onDoubleClick={(e) => {
+          if ((e.target as HTMLElement).closest('button')) return;
+          onToggleMaximize?.();
         }}
       >
-        <button
-          type="button"
-          onClick={() => setShowSelector((v) => !v)}
-          className="flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs transition-colors hover:bg-white/10"
-          style={{
-            background: showSelector ? "var(--workbench-accent, #3498db)" : "transparent",
+        <WorkbenchHintButton
+          hint="Drag — outside workbench to float; green ring = studio edge; blue = split or tabs"
+          ariaLabel="Drag pane to dock"
+          className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center rounded text-tertiary hover:bg-white/10 hover:text-primary active:cursor-grabbing"
+          onPointerDown={(e) => {
+            if (e.button !== 0) return;
+            e.stopPropagation();
+            onDockDragStart?.(node.id);
           }}
         >
-          <span className="flex size-4 items-center justify-center text-zinc-200">{currentInfo.icon}</span>
-          <span className="text-[10px] opacity-70">▾</span>
-        </button>
+          <GripVertical size={12} aria-hidden />
+        </WorkbenchHintButton>
 
-        <TRNMenuSectionTitle spacing="labelOnly">{currentInfo.label}</TRNMenuSectionTitle>
-
-        <div className="min-w-0 flex-1" />
-
-        <div className="workbench-controls flex gap-1">
-          <button
-            type="button"
-            title="Split vertically"
-            onClick={() => onSplit("vertical")}
-            className="workbench-control-btn rounded p-1"
-          >
-            <Rows3 className="size-3.5" aria-hidden />
-          </button>
-          <button
-            type="button"
-            title="Split horizontally"
-            onClick={() => onSplit("horizontal")}
-            className="workbench-control-btn rounded p-1"
-          >
-            <Columns2 className="size-3.5" aria-hidden />
-          </button>
-          <button type="button" title="Close pane" onClick={onClose} className="workbench-control-btn close rounded p-1">
-            <X className="size-3.5" aria-hidden />
-          </button>
+        <div
+          ref={selectorTriggerRef}
+          role="button"
+          tabIndex={0}
+          aria-expanded={showSelector}
+          aria-haspopup="listbox"
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowSelector((open) => !open);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setShowSelector((open) => !open);
+            }
+          }}
+          className={cn(
+            'flex cursor-pointer items-center rounded px-2 py-0.5 transition-colors',
+            showSelector ? 'bg-blue-600 text-white' : 'text-secondary hover:bg-white/10',
+          )}
+        >
+          <div className="flex items-center justify-center min-w-[14px]">
+            {currentInfo.icon}
+          </div>
+          <span className="ml-1.5 opacity-50">
+            {showSelector ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
+          </span>
         </div>
 
-        {showSelector ? (
-          <div
-            className="workbench-selector-menu absolute left-2 top-8 z-1000 w-44 rounded-lg border p-1 shadow-xl"
-            style={{
-              background: "var(--workbench-header-bg, #1a1a1f)",
-              borderColor: "var(--workbench-border, rgba(255,255,255,0.1))",
-              backdropFilter: "blur(20px)",
-            }}
+        <div className="text-[10px] font-bold text-tertiary uppercase tracking-widest">
+          {currentInfo.label}
+        </div>
+
+        <div className="flex-1" />
+
+        <div className="flex gap-0.5">
+          {onToggleMaximize ? (
+            <WorkbenchHintButton
+              hint={
+                paneMaximized
+                  ? "Restore pane size (double-click header)"
+                  : "Maximize pane in workbench (double-click header)"
+              }
+              ariaLabel={paneMaximized ? "Restore pane size" : "Maximize pane"}
+              className="flex items-center justify-center w-6 h-6 rounded text-tertiary hover:bg-white/10 hover:text-blue-400 transition-all"
+              onClick={onToggleMaximize}
+            >
+              {paneMaximized ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+            </WorkbenchHintButton>
+          ) : null}
+          <WorkbenchHintButton
+            hint="Split side-by-side (new column)"
+            ariaLabel="Split side-by-side"
+            className="flex items-center justify-center w-6 h-6 rounded text-tertiary hover:bg-white/10 hover:text-blue-400 transition-all"
+            onClick={() => onSplit("horizontal")}
           >
-            {Object.entries(registry).map(([key, info]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => {
-                  onChangeType(key);
-                  setShowSelector(false);
-                }}
-                className="workbench-menu-item flex w-full items-center gap-2 rounded px-2 py-2 text-left text-xs"
-                style={{
-                  color: node.editorType === key ? "var(--workbench-accent, #3498db)" : "rgb(244 244 245)",
-                }}
-              >
-                <span className="flex size-4 shrink-0 items-center justify-center">{info.icon}</span>
-                <span>{info.label}</span>
-              </button>
-            ))}
-          </div>
-        ) : null}
+            <Columns2 size={13} />
+          </WorkbenchHintButton>
+          <WorkbenchHintButton
+            hint="Split stacked (new row)"
+            ariaLabel="Split stacked"
+            className="flex items-center justify-center w-6 h-6 rounded text-tertiary hover:bg-white/10 hover:text-blue-400 transition-all"
+            onClick={() => onSplit("vertical")}
+          >
+            <Rows2 size={13} />
+          </WorkbenchHintButton>
+          <WorkbenchHintButton
+            hint="Collapse to edge strip (keeps slot — Ctrl+Shift+C)"
+            ariaLabel="Collapse pane to edge strip"
+            className="flex items-center justify-center w-6 h-6 rounded text-tertiary hover:bg-white/10 hover:text-primary transition-all"
+            onClick={onCollapse}
+          >
+            <PanelLeftClose size={13} />
+          </WorkbenchHintButton>
+          <WorkbenchHintButton
+            hint="Remove pane from layout"
+            ariaLabel="Remove pane from layout"
+            className="flex items-center justify-center w-6 h-6 rounded text-tertiary hover:bg-red-600/20 hover:text-red-500 transition-all ml-1"
+            onClick={onClose}
+          >
+            <X size={14} />
+          </WorkbenchHintButton>
+        </div>
+
+        <PaneEditorTypeMenu
+          open={showSelector}
+          anchorEl={selectorAnchorEl}
+          currentEditorType={node.editorType}
+          registry={registry}
+          onSelect={onChangeType}
+          onClose={() => setShowSelector(false)}
+        />
       </div>
 
-      <div className="workbench-content relative flex min-h-0 flex-1 flex-col overflow-hidden">
-        <Content />
+      <div className="relative z-0 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {currentInfo.component && <currentInfo.component />}
+        {showDropOverlay && onDockZoneChange ? (
+          <PaneDockDropOverlay
+            paneId={node.id}
+            visible
+            activeZone={dockHoverZone}
+            onZoneChange={onDockZoneChange}
+          />
+        ) : null}
       </div>
     </div>
   );
