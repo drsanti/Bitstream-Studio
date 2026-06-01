@@ -44,6 +44,11 @@ import {
   LERP_INPUT_DEFAULTS,
   readLerpInputValue,
 } from "../../../core/flow/lerp-operations";
+import { evaluateLogicGateOperation } from "../../../core/flow/logic-gate-operations";
+import {
+  computeLogicGateInputHandles,
+  LOGIC_GATE_OUTPUT_HANDLE,
+} from "../../../core/flow/logic-gate-inputs";
 import {
   computeMathInputHandles,
   MATH_OUTPUT_HANDLE,
@@ -711,6 +716,12 @@ function inferPortTypes(entry: NodeCatalogEntry): {
       outputHandles: [MATH_OUTPUT_HANDLE],
     };
   }
+  if (entry.id === "logic-gate") {
+    return {
+      inputHandles: computeLogicGateInputHandles(entry.defaultConfig),
+      outputHandles: [LOGIC_GATE_OUTPUT_HANDLE],
+    };
+  }
   if (entry.inputPorts != null && entry.inputPorts.length > 0) {
     const inputHandles = entry.inputPorts.map((p) => ({
       id: p.id,
@@ -1119,6 +1130,15 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
         ...piped,
         inputHandles: computeMathInputHandles(piped.defaultConfig),
         outputHandles: [MATH_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
+      };
+    }
+    if (piped.nodeId === "logic-gate") {
+      piped = {
+        ...piped,
+        inputHandles: computeLogicGateInputHandles(piped.defaultConfig),
+        outputHandles: [LOGIC_GATE_OUTPUT_HANDLE],
         inputType: undefined,
         outputType: undefined,
       };
@@ -4387,6 +4407,22 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               narrowNumber(readIncoming(node.id, "x")),
               narrowNumber(readIncoming(node.id, "y")),
               narrowNumber(readIncoming(node.id, "z")),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "logic-gate") {
+          const operation =
+            typeof node.data.defaultConfig.operation === "string"
+              ? node.data.defaultConfig.operation
+              : undefined;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateLogicGateOperation(
+              operation,
+              readIncoming(node.id, "a"),
+              readIncoming(node.id, "b"),
             ),
           );
           continue;

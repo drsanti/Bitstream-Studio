@@ -182,6 +182,21 @@ function normalizeInnerNode(node: Node): Node {
       },
     };
   }
+  if (node.type === "logicGate") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Logic Gate",
+        category: "logic",
+        nodeId: "logic-gate",
+        defaultConfig: {
+          operation: typeof data.operation === "string" ? data.operation : "and",
+        },
+      },
+    };
+  }
   if (node.type === "separateXYZ") {
     const data = node.data as Record<string, unknown>;
     return {

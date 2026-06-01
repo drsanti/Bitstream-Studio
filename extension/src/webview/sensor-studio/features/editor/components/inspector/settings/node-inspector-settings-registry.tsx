@@ -11,6 +11,7 @@ import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSett
 import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSettingsSection";
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
 import { LerpSettingsSection } from "./sections/LerpSettingsSection";
+import { LogicGateSettingsSection } from "./sections/LogicGateSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
 import { MathSettingsSection } from "./sections/MathSettingsSection";
@@ -63,6 +64,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   lerp: LerpSettingsSection,
   switch: SwitchSettingsSection,
   "combine-xyz": CombineXyzSettingsSection,
+  "logic-gate": LogicGateSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,

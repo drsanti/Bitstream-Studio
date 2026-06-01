@@ -312,6 +312,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [{ id: "out", portType: "vector3", label: "Vector" }],
       },
       {
+        id: "logic-gate",
+        category: "logic",
+        title: "Logic Gate",
+        description:
+          "Boolean AND, OR, NOT, or XOR on inputs A and B. Numbers > 0.5 count as true. NOT uses A only.",
+        icon: "toggle-left",
+        defaultVisible: true,
+        defaultConfig: {
+          operation: "and",
+        },
+        inputPorts: [
+          { id: "a", portType: "boolean", label: "A" },
+          { id: "b", portType: "boolean", label: "B" },
+        ],
+        outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
+      },
+      {
         id: "vector-splitter",
         category: "utility",
         title: "Vector Splitter",

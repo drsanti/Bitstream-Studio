@@ -38,6 +38,7 @@ import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePa
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
 import { MathNodePanel } from "./math/MathNodePanel";
 import { CompareNodePanel } from "./math/CompareNodePanel";
+import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import {
   BooleanConstantNodePanel,
@@ -278,15 +279,25 @@ export function StudioNodeCard(props: NodeProps) {
     data.nodeId === "math" && typeof data.defaultConfig.operation === "string"
       ? data.defaultConfig.operation
       : null;
+  const logicGateOperation =
+    data.nodeId === "logic-gate" && typeof data.defaultConfig.operation === "string"
+      ? data.defaultConfig.operation
+      : null;
 
   useLayoutEffect(() => {
-    if (data.nodeId === "camera-view" || data.nodeId === "environment" || data.nodeId === "math") {
+    if (
+      data.nodeId === "camera-view" ||
+      data.nodeId === "environment" ||
+      data.nodeId === "math" ||
+      data.nodeId === "logic-gate"
+    ) {
       updateNodeInternals(id);
     }
   }, [
     id,
     data.nodeId,
     mathOperation,
+    logicGateOperation,
     data.inputHandles?.length,
     cameraViewControlsExpanded,
     environmentControlsExpanded,
@@ -809,6 +820,9 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "compare" ? (
             <CompareNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "logic-gate" ? (
+            <LogicGateNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel
