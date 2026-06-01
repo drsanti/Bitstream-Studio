@@ -13,10 +13,21 @@ import {
   type StudioFlowEdgeLike,
 } from "../../model/model-generated-bindings";
 import { modelSelectEmitDisplayName } from "../animation/model-select-emit-display-name";
+import {
+  flowWireCameraFromNodeDefaultConfig,
+} from "../camera-view/flow-wire-camera";
+import {
+  flowWireEnvironmentFromNodeDefaultConfig,
+} from "../environment/flow-wire-environment";
 import { resolveLiveReadingStreamTone } from "./readings/live-reading-colors";
 import type { LiveScalarReadingColorHints, LiveReadingStreamTone } from "./readings/live-reading-colors";
 import { isStructuredSocketPreviewPortType } from "./sync-socket-live-preview-handles";
 import { SocketLivePreview } from "./SocketLivePreview";
+import { SocketStructuredWireBadge } from "./SocketStructuredWireBadge";
+import {
+  resolveCameraWireSocketLabel,
+  resolveEnvironmentWireSocketLabel,
+} from "./structured-socket-preview-label";
 
 export type SocketPreviewContext = {
   flowNodeId?: string;
@@ -71,6 +82,41 @@ function modelStringInputSocketLivePreview(
     config = { selectedModelUrl: url };
   }
   return modelStringSocketLivePreview(handleId, config, ctx.descriptors);
+}
+
+function structuredEnvironmentCameraSocketPreview(
+  data: StudioNodeData,
+  handleId: string,
+  portType: StudioPortType,
+  variant: "input" | "output",
+  ctx?: SocketPreviewContext,
+) {
+  if (portType !== "environment" && portType !== "camera") {
+    return null;
+  }
+
+  let label: string | undefined;
+  if (variant === "output") {
+    if (portType === "environment" && data.nodeId === "environment" && handleId === "out") {
+      label = resolveEnvironmentWireSocketLabel(
+        flowWireEnvironmentFromNodeDefaultConfig(data.defaultConfig),
+        ctx?.descriptors ?? [],
+      );
+    } else if (portType === "camera" && data.nodeId === "camera-view" && handleId === "out") {
+      label = resolveCameraWireSocketLabel(
+        flowWireCameraFromNodeDefaultConfig(data.defaultConfig),
+      );
+    }
+  } else if (portType === "environment" && handleId === "env" && data.liveEnvironmentWire != null) {
+    label = resolveEnvironmentWireSocketLabel(data.liveEnvironmentWire, ctx?.descriptors ?? []);
+  } else if (portType === "camera" && handleId === "cam" && data.liveCameraWire != null) {
+    label = resolveCameraWireSocketLabel(data.liveCameraWire);
+  }
+
+  if (label == null || label.length === 0) {
+    return null;
+  }
+  return <SocketStructuredWireBadge label={label} portType={portType} />;
 }
 
 function vector3PreviewHandleIdForTapNode(nodeId: string, handleId: string): string {
@@ -264,6 +310,9 @@ export function socketLivePreviewForInputHandle(
   ) {
     return modelStringInputSocketLivePreview(data, handleId, ctx);
   }
+  if (isStructuredSocketPreviewPortType(portType)) {
+    return structuredEnvironmentCameraSocketPreview(data, handleId, portType, "input", ctx);
+  }
   return genericInputSocketLivePreview(data, handleId, portType, portLabel);
 }
 
@@ -282,6 +331,10 @@ export function socketLivePreviewForOutputHandle(
     isModelStringSocketPort(nodeId, handleId)
   ) {
     return modelStringSocketLivePreview(handleId, data.defaultConfig, ctx?.descriptors);
+  }
+
+  if (isStructuredSocketPreviewPortType(portType)) {
+    return structuredEnvironmentCameraSocketPreview(data, handleId, portType, "output", ctx);
   }
 
   if (isStudioLiveReadingsInputNodeId(nodeId) || isStudioAlignedOutputSocketColumnsNodeId(nodeId)) {

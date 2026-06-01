@@ -185,6 +185,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-01 | **Sensor Studio — Environment/Camera socket badges:** wired **`env`**/**`cam`** inputs + **Environment**/**Camera / View** outputs show compact tinted badges (preset name or FOV) |
 | 2026-06-01 | **Sensor Studio — Studio Model socket labels:** **Studio Model** `out` and wired **Model** inputs show catalog-friendly names via **`modelSelectEmitDisplayName`** (not raw URLs); **`model-select-emit-display-name.test.ts`** |
 | 2026-05-31 | **Sensor Studio — node-animator parity Phases 1–3:** Shift+A add menu; keyboard registry + recent nodes + palette layout; layout RF nodes (reroute/frame/note/split), **R** shortcut via `reactFlowRef`, Layout inspector + tests; docs **`NODE_ANIMATOR_PARITY.md`**, tracker |
 | 2026-05-31 | **BMI270 Output profile + temperature:** Output profile card (presets + coordinated Apply); Operation **Both** label; Custom advanced channels; host EVT merge/finalize + Telemetry channels restore; firmware default mask 0x07; unit tests |

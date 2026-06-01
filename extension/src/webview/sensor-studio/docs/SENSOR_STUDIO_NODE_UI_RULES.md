@@ -52,7 +52,8 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | Rule | Detail |
 | ---- | ------ |
 | **Every scalar output pin** | Live preview on the socket row — **`syncSocketLivePreviewHandlesFromPinValues`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, **`liveStringByHandle`**, **`liveVector3ByHandle`** from evaluated pins |
-| **Bundled wire types** | No socket preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
+| **Bundled wire types** | No scalar preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
+| **Environment / Camera badges** | Wired **`env`** / **`cam`** inputs and **Environment** / **Camera / View** outputs show a compact tinted badge (preset name or **`45° FOV`**) via **`SocketStructuredWireBadge`** — empty when unwired |
 | **Boolean** | Display **`true`** / **`false`** (lowercase) |
 | **String** | Truncated preview (~14 chars); full value in **`title`** tooltip |
 | **Studio Model (`model-select` `out`)** | Friendly catalog label via **`modelSelectEmitDisplayName`** (same as card dropdown) — wire eval still emits the URL |
