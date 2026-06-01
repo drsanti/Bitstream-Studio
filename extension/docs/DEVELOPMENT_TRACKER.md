@@ -72,6 +72,11 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
 - **2026-06-01** — **Sensor Studio — Policy A socket live previews:** all scalar output pins + wired input pins show live values on socket rows (`syncSocketLivePreviewHandlesFromPinValues`, clustered input layout, upstream semantic colors through map-range/clamp/lerp chain, empty when unwired); **`socket-live-preview.test.ts`**; rules in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
+- **2026-06-01** — **Sensor Studio — Studio Model socket labels:** **Studio Model** output and wired **Model** inputs show catalog-friendly names (`modelSelectEmitDisplayName`), not raw GLB URLs.
+
+- **2026-06-01** — **TRN workbench layout library (Phase 2):** manage layouts panel (rename, duplicate, reorder, startup preference, per-row export), JSON export/import (`.trn-workbench-layout.json`), toolbar **Layout ▾** menu in Sensor Studio + Telemetry; command palette entries for manage/export/import.
+
+- **2026-06-01** — **TRN workbench layout library (Phase 1):** named layout save/load/delete (max 12 per app, `localStorage` key `trn_workbench_layout_lib_*`), built-in presets (Studio: default/graph-focus/inspector-wide/minimal; Telemetry: default/deck-focus/bring-up), command palette groups **Presets** / **Layout library** / **My layouts**, save-as dialog with overwrite confirm; float panes cleared on preset/named load; tests **`workbench-layout-library.test.ts`**.
 
 - **2026-06-01** — **TRN workbench app layer (node-animator parity):** layout undo/redo (`layout-history.ts`), dock split ratio memory + persistence, command palette (**Ctrl+Shift+L** via `TRNCommandPalette`), collapse/expand/rail/duplicate/float commands; keyboard shortcuts (**Ctrl+Shift+C/E/D/[ ]**, **Ctrl+Alt+Z** layout undo); wired in Sensor Studio + Sensor Telemetry `StandaloneWorkbench`.
 - **2026-06-01** — **TRN workbench (node-animator parity):** full `@ternion/trn-workbench` port into `ui/workbench/` — split/collapse/drag-dock/float/tabs + layout persistence; Sensor Studio + Sensor Telemetry wired via `StandaloneWorkbench` / `TRNWorkbenchHost`; tests **`trn-workbench-layout.test.ts`**.

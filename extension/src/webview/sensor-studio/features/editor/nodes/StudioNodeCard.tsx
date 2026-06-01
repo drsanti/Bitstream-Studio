@@ -14,7 +14,9 @@ import {
   isStudioAlignedOutputSocketColumnsNodeId,
   isStudioSensorSocketPreviewNodeId,
 } from "../store/flow-editor.store";
+import { useStudioAssetDescriptors } from "../../asset-browser/useStudioAssetDescriptors";
 import { useFlowEditorStore } from "../store/flow-editor.store";
+import type { SocketPreviewContext } from "./flow-node/socket-live-preview-for-handle";
 import { studioPortAccent } from "./port-accent";
 import {
   FlowNodeBody,
@@ -102,6 +104,13 @@ export function StudioNodeCard(props: NodeProps) {
   const flowZoom = useStore((s) => s.transform[2]);
   const isSelected = Boolean(
     selectedFromRf || selectedInDocument || primarySelectedId === id,
+  );
+  const { descriptors } = useStudioAssetDescriptors();
+  const flowNodes = useFlowEditorStore((s) => s.nodes);
+  const flowEdges = useFlowEditorStore((s) => s.edges);
+  const socketPreviewCtx = useMemo<SocketPreviewContext>(
+    () => ({ flowNodeId: id, descriptors, flowNodes, flowEdges }),
+    [id, descriptors, flowNodes, flowEdges],
   );
   const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
   const flowBodyFlexCol =
@@ -360,7 +369,13 @@ export function StudioNodeCard(props: NodeProps) {
   const inputSockets: ReactNode[] =
     data.inputHandles != null && data.inputHandles.length > 0
       ? data.inputHandles.map((h) => {
-          const preview = socketLivePreviewForInputHandle(data, h.id, h.portType, h.label);
+          const preview = socketLivePreviewForInputHandle(
+            data,
+            h.id,
+            h.portType,
+            h.label,
+            socketPreviewCtx,
+          );
           return (
           <FlowNodeSocketRow
             key={h.id}
@@ -387,6 +402,8 @@ export function StudioNodeCard(props: NodeProps) {
               data,
               "in",
               data.inputType,
+              undefined,
+              socketPreviewCtx,
             );
             return [
             <FlowNodeSocketRow
@@ -415,7 +432,13 @@ export function StudioNodeCard(props: NodeProps) {
   const outputSockets =
     data.outputHandles != null && data.outputHandles.length > 0
       ? data.outputHandles.map((h) => {
-          const preview = socketLivePreviewForOutputHandle(data, h.id, h.portType, h.label);
+          const preview = socketLivePreviewForOutputHandle(
+            data,
+            h.id,
+            h.portType,
+            h.label,
+            socketPreviewCtx,
+          );
           return (
           <FlowNodeSocketRow
             key={h.id}
@@ -443,6 +466,8 @@ export function StudioNodeCard(props: NodeProps) {
               data,
               "out",
               data.outputType,
+              undefined,
+              socketPreviewCtx,
             );
             return [
             <FlowNodeSocketRow
@@ -472,8 +497,6 @@ export function StudioNodeCard(props: NodeProps) {
       : true;
 
   const isRotation3dNode = isRotation3DCatalogNodeId(data.nodeId);
-  const flowNodes = useFlowEditorStore((s) => s.nodes);
-  const flowEdges = useFlowEditorStore((s) => s.edges);
 
   type RotationPreviewScenePropsV4 = RotationPreviewSceneProps & { scene3d?: unknown };
   const scene3d =

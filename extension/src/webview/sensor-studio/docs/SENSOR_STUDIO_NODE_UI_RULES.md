@@ -55,6 +55,8 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | **Bundled wire types** | No socket preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
 | **Boolean** | Display **`true`** / **`false`** (lowercase) |
 | **String** | Truncated preview (~14 chars); full value in **`title`** tooltip |
+| **Studio Model (`model-select` `out`)** | Friendly catalog label via **`modelSelectEmitDisplayName`** (same as card dropdown) — wire eval still emits the URL |
+| **Model string inputs** | **`model-viewer` `in`** and GLB event **`model`** show the wired **Studio Model** label, not the raw URL |
 | **Card body** | No fallback **`ReadingPanel`** for scalar-only utility nodes — socket row only |
 | **Input pins** | Wired scalar inputs use **`liveInput*ByHandle`** maps + **`socketLivePreviewForInputHandle`** (`trailingPreview` on input rows) |
 

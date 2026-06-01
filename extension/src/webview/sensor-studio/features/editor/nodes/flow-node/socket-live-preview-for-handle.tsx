@@ -1,3 +1,4 @@
+import type { StudioAssetDescriptor } from "../../../asset-browser/studio-asset.types";
 import type { StudioPortType } from "../port-accent";
 import type { StudioNodeData } from "../../store/flow-editor.store";
 import {
@@ -5,10 +6,72 @@ import {
   isStudioLiveReadingsInputNodeId,
   isStudioSensorTapNodeId,
 } from "../../store/flow-editor.store";
+import {
+  isGlbEventActionCatalogNodeId,
+  resolveWiredStudioModelSelectNodeId,
+  STUDIO_HANDLE_MODEL,
+  type StudioFlowEdgeLike,
+} from "../../model/model-generated-bindings";
+import { modelSelectEmitDisplayName } from "../animation/model-select-emit-display-name";
 import { resolveLiveReadingStreamTone } from "./readings/live-reading-colors";
 import type { LiveScalarReadingColorHints, LiveReadingStreamTone } from "./readings/live-reading-colors";
 import { isStructuredSocketPreviewPortType } from "./sync-socket-live-preview-handles";
 import { SocketLivePreview } from "./SocketLivePreview";
+
+export type SocketPreviewContext = {
+  flowNodeId?: string;
+  descriptors?: readonly StudioAssetDescriptor[];
+  flowNodes?: readonly { id: string; data: { nodeId: string; defaultConfig: Record<string, unknown> } }[];
+  flowEdges?: readonly StudioFlowEdgeLike[];
+};
+
+function isModelStringSocketPort(catalogNodeId: string, handleId: string): boolean {
+  return (
+    (catalogNodeId === "model-select" && handleId === "out") ||
+    (catalogNodeId === "model-viewer" && handleId === "in") ||
+    (isGlbEventActionCatalogNodeId(catalogNodeId) && handleId === STUDIO_HANDLE_MODEL)
+  );
+}
+
+function modelStringSocketLivePreview(
+  handleId: string,
+  defaultConfig: Record<string, unknown>,
+  descriptors: readonly StudioAssetDescriptor[] | undefined,
+) {
+  const label = modelSelectEmitDisplayName(defaultConfig, descriptors ?? []);
+  if (label.length === 0) {
+    return null;
+  }
+  return <SocketLivePreview portType="string" handleId={handleId} stringValue={label} />;
+}
+
+function modelStringInputSocketLivePreview(
+  data: StudioNodeData,
+  handleId: string,
+  ctx: SocketPreviewContext,
+) {
+  let config: Record<string, unknown> | undefined;
+  if (ctx.flowNodeId != null && ctx.flowNodes != null && ctx.flowEdges != null) {
+    const wiredId = resolveWiredStudioModelSelectNodeId({
+      targetFlowNodeId: ctx.flowNodeId,
+      targetHandle: handleId,
+      edges: ctx.flowEdges,
+      nodes: ctx.flowNodes,
+    });
+    if (wiredId != null) {
+      const parent = ctx.flowNodes.find((n) => n.id === wiredId);
+      config = parent?.data.defaultConfig;
+    }
+  }
+  if (config == null) {
+    const url = data.liveInputStringByHandle?.[handleId];
+    if (url == null || url.length === 0) {
+      return null;
+    }
+    config = { selectedModelUrl: url };
+  }
+  return modelStringSocketLivePreview(handleId, config, ctx.descriptors);
+}
 
 function vector3PreviewHandleIdForTapNode(nodeId: string, handleId: string): string {
   switch (nodeId) {
@@ -192,7 +255,15 @@ export function socketLivePreviewForInputHandle(
   handleId: string,
   portType: StudioPortType,
   portLabel?: string,
+  ctx?: SocketPreviewContext,
 ) {
+  if (
+    portType === "string" &&
+    isModelStringSocketPort(data.nodeId, handleId) &&
+    ctx != null
+  ) {
+    return modelStringInputSocketLivePreview(data, handleId, ctx);
+  }
   return genericInputSocketLivePreview(data, handleId, portType, portLabel);
 }
 
@@ -202,8 +273,16 @@ export function socketLivePreviewForOutputHandle(
   handleId: string,
   portType: StudioPortType,
   portLabel?: string,
+  ctx?: SocketPreviewContext,
 ) {
   const { nodeId } = data;
+
+  if (
+    portType === "string" &&
+    isModelStringSocketPort(nodeId, handleId)
+  ) {
+    return modelStringSocketLivePreview(handleId, data.defaultConfig, ctx?.descriptors);
+  }
 
   if (isStudioLiveReadingsInputNodeId(nodeId) || isStudioAlignedOutputSocketColumnsNodeId(nodeId)) {
     if (portType === "vector3") {
