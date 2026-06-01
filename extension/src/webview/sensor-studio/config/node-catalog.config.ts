@@ -798,6 +798,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "settings", portType: "number", label: "Exposure" },
           { id: "fog", portType: "fog", label: "Fog" },
           { id: "lite", portType: "studioLight", label: "Studio Light" },
+          { id: "post", portType: "postProcessing", label: "Post-FX" },
+          { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
         ],
       },
       {
@@ -821,6 +823,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "settings", portType: "number", label: "Exposure" },
           { id: "fog", portType: "fog", label: "Fog" },
           { id: "lite", portType: "studioLight", label: "Studio Light" },
+          { id: "post", portType: "postProcessing", label: "Post-FX" },
+          { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
         ],
       },
       {
@@ -828,7 +832,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "Model Viewer",
         description:
-          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, and **Studio Light** inputs override saved scene settings while connected.",
+          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, **Studio Light**, **Post-FX**, and **Contact Shadows** inputs override saved scene settings while connected.",
         icon: "scan-line",
         defaultVisible: true,
         defaultConfig: {
@@ -845,6 +849,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "settings", portType: "number", label: "Exposure" },
           { id: "fog", portType: "fog", label: "Fog" },
           { id: "lite", portType: "studioLight", label: "Studio Light" },
+          { id: "post", portType: "postProcessing", label: "Post-FX" },
+          { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
         ],
       },
       // ── Display / Control nodes ──────────────────────────────────────────
@@ -1137,6 +1143,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "bloomThreshold", portType: "number", label: "Bloom Threshold" },
         ],
         outputPorts: [
+          { id: "out", portType: "postProcessing", label: "Post-FX" },
           { id: "bloomIntensity", portType: "number", label: "Bloom Intensity" },
           { id: "bloomThreshold", portType: "number", label: "Bloom Threshold" },
         ],
@@ -1145,11 +1152,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "contact-shadows",
         category: "utility",
         title: "Contact Shadows",
-        description: "Contact shadow opacity, blur, far, and scale scalars.",
+        description: "Contact shadow disc for Model Viewer ground (opacity, blur, scale).",
         icon: "layers",
         defaultVisible: false,
-        defaultConfig: { opacity: 0.5, blur: 2, far: 10, scale: 10 },
+        defaultConfig: { opacity: 0.5, blur: 2, far: 10, scale: 10, color: "#000000" },
         outputPorts: [
+          { id: "out", portType: "contactShadows", label: "Contact Shadows" },
           { id: "opacity", portType: "number", label: "Opacity" },
           { id: "blur", portType: "number", label: "Blur" },
           { id: "far", portType: "number", label: "Far" },

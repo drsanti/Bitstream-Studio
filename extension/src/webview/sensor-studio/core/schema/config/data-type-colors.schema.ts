@@ -16,5 +16,7 @@ export const dataTypeColorsSchema = z.object({
     transform: z.string().min(1).default("#FB923C"),
     fog: z.string().min(1).default("#A78BFA"),
     studioLight: z.string().min(1).default("#FDE047"),
+    postProcessing: z.string().min(1).default("#E879F9"),
+    contactShadows: z.string().min(1).default("#C084FC"),
   }),
 });

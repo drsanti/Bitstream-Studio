@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -27,6 +27,10 @@ import {
 } from "../../../../../asset-resolution/global-directory-online-fallback";
 import { preflightModelPreviewUrlWithGlobalDirectoryFallback } from "../../../../../model-loader/ui/preflightModelPreviewUrl.js";
 import {
+  resolveStudioWebGlPixelRatio,
+} from "../display/canvas-hi-dpi";
+import { useStudioCanvasDisplayScale } from "../display/studio-canvas-display-scale";
+import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
   parseHexToThreeColor,
@@ -38,6 +42,13 @@ import {
   createPreviewFogRuntimeState,
   syncPreviewSceneFog,
 } from "./rotation-preview-fog-runtime";
+import {
+  createPreviewBloomRuntimeState,
+  createPreviewContactShadowRuntimeState,
+  disposePreviewCompositorRuntime,
+  renderPreviewFrame,
+  syncPreviewContactShadows,
+} from "./rotation-preview-compositor-runtime";
 import type { GlbMaterialPbrDriveRow } from "../../gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../gltf/studio-glb-material-texture";
 import type { GlbMaterialColorDriveRow } from "../../gltf/studio-glb-material-color";
@@ -156,6 +167,8 @@ export type RotationPreviewPanelV4Props = {
   sceneProps: RotationPreviewSceneProps;
   /** When set and no model URL is configured, show this instead of loading a default GLB. */
   emptyHint?: string;
+  /** Optional override; flow cards inherit zoom from {@link StudioFlowCanvasDisplayScaleProvider}. */
+  displayScale?: number;
 };
 
 function modelLoadKey(s: Scene3DConfigV1): string {
@@ -224,11 +237,9 @@ function degToRad(v: number): number {
 function applyPreviewPixelRatio(
   renderer: THREE.WebGLRenderer,
   rendererCfg: Scene3DConfigV1["renderer"],
+  displayScale: number,
 ): void {
-  const sys = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
-  const lo = Math.min(rendererCfg.dprMin, rendererCfg.dprMax);
-  const hi = Math.max(rendererCfg.dprMin, rendererCfg.dprMax);
-  renderer.setPixelRatio(Math.min(hi, Math.max(lo, sys)));
+  renderer.setPixelRatio(resolveStudioWebGlPixelRatio(rendererCfg, displayScale));
 }
 
 function setSceneEnvRotationY(scene: THREE.Scene, yawDeg: number) {
@@ -248,7 +259,6 @@ function setSceneEnvRotationY(scene: THREE.Scene, yawDeg: number) {
   anyScene.environmentRotation.y = yaw;
 }
 
-/** Stable key for inspector-driven camera pose (orbit/pan must not be overwritten every frame). */
 function cameraDriveKeyFromScene3d(s: Scene3DConfigV1): string {
   const { position, target } = s.camera.transform;
   return JSON.stringify({
@@ -259,6 +269,24 @@ function cameraDriveKeyFromScene3d(s: Scene3DConfigV1): string {
     ty: target.y,
     tz: target.z,
   });
+}
+
+/** Ground plane Y for flow contact-shadow disc (grid when enabled, else model bbox min). */
+function resolvePreviewContactShadowGroundY(
+  scene3d: Scene3DConfigV1,
+  modelRoot: THREE.Object3D | null,
+  root: THREE.Object3D,
+): number {
+  if (scene3d.helpers.grid.enabled) {
+    return scene3d.helpers.grid.y;
+  }
+  if (modelRoot != null) {
+    root.updateMatrixWorld(true);
+    modelRoot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(modelRoot);
+    return box.min.y;
+  }
+  return 0;
 }
 
 function applyOrbitControlsFromScene3d(controls: OrbitControls, c: Scene3DConfigV1["controls"]) {
@@ -506,6 +534,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
 
       const scene = new THREE.Scene();
       const fogRuntime = createPreviewFogRuntimeState();
+      const contactShadowRuntime = createPreviewContactShadowRuntimeState();
+      const bloomRuntime = createPreviewBloomRuntimeState();
       let cubeTexture: THREE.CubeTexture | null = null;
 
       let lastEnvKey = "";
@@ -1096,13 +1126,18 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         const w = Math.max(1, Math.round(host.clientWidth));
         const h = Math.max(1, Math.round(host.clientHeight));
         if (renderer != null) {
-          applyPreviewPixelRatio(renderer, scene3dRef.current.renderer);
+          applyPreviewPixelRatio(
+            renderer,
+            scene3dRef.current.renderer,
+            displayScaleRef.current,
+          );
           renderer.setSize(w, h, false);
         }
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
       };
 
+      resizeRendererRef.current = resize;
       resize();
       const ro = new ResizeObserver(() => resize());
       ro.observe(host);
@@ -1132,6 +1167,12 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         ambient.intensity = s.lights.ambient.intensity;
         syncStudioDirectionals(s.lights.directionals);
         syncPreviewSceneFog(scene, fogRuntime, s.fog);
+        syncPreviewContactShadows(
+          scene,
+          contactShadowRuntime,
+          s.contactShadows,
+          resolvePreviewContactShadowGroundY(s, modelRoot, root),
+        );
         syncShadowRendering(modelRoot);
 
         applyGlbPartVisibilityByPathMap(glbPathIndex, glbPartsRef.current, partVisibilityDriveState);
@@ -1309,6 +1350,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       renderer.domElement.addEventListener("webglcontextrestored", onContextRestored, false);
 
       return () => {
+        resizeRendererRef.current = null;
         cancelAnimationFrame(raf);
         ro.disconnect();
         controls.dispose();
@@ -1346,6 +1388,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           directionalLightHelper = null;
         }
         disposeAllStudioDirectionals();
+        disposePreviewCompositorRuntime(scene, contactShadowRuntime, bloomRuntime);
         scene.remove(ambient);
         ambient.dispose();
         if (cubeTexture != null) {

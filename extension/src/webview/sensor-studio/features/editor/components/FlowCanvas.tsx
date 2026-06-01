@@ -81,6 +81,8 @@ type FlowCanvasProps = {
   transformColor: string;
   fogColor: string;
   studioLightColor: string;
+  postProcessingColor: string;
+  contactShadowsColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   catalogEntries: readonly NodeCatalogEntry[];
   onAddCatalogEntryAtFlowPosition: (
@@ -132,6 +134,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     transformColor,
     fogColor,
     studioLightColor,
+    postProcessingColor,
+    contactShadowsColor,
     minimapCategoryColors,
     catalogEntries,
     onAddCatalogEntryAtFlowPosition,
@@ -183,6 +187,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
         transformColor,
         fogColor,
         studioLightColor,
+        postProcessingColor,
+        contactShadowsColor,
       }),
     [
       numberColor,
@@ -197,6 +203,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
       transformColor,
       fogColor,
       studioLightColor,
+      postProcessingColor,
+      contactShadowsColor,
     ],
   );
 

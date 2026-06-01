@@ -199,7 +199,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 ## Phase 9+ — Planned (full NA parity roadmap)
 
-**Baseline after Tier A–C slice 2 + scene wiring:** ~40 / 53 NA root types with import or eval parity; fog / exposure / studio light / morph wired into Model Viewer preview.
+**Baseline after Tier A–C slice 2 + scene wiring + compositor preview:** ~40 / 53 NA root types with import or eval parity; fog / exposure / studio light / morph / bloom / contact shadows wired into Model Viewer preview.
 
 ### Tier A — Utility / sim quick wins
 
@@ -227,7 +227,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 - [x] **Material / world:** `sceneSettings`, `fog` (slice 1)
 - [x] **Material:** `uvTransform` → **`uv-transform`**, `materialVariant` → **`material-variant`**, `material` → **`glb-material-color`** import (slice 2)
 - [x] **Light / camera:** `light` → **`scene-light`**, `cameraSwitch` → **`camera-switch`** (slice 2; rig routing backlog)
-- [x] **Compositor / FX:** `postProcessing`, `contactShadows`, `emitter` → **`post-processing`**, **`contact-shadows`**, **`particle-emitter`** (slice 2)
+- [x] **Compositor / FX:** `postProcessing`, `contactShadows`, `emitter` → **`post-processing`**, **`contact-shadows`**, **`particle-emitter`** (slice 2; bloom + contact shadows in preview **2026-05-31**)
 
 ### Tier D — Deferred (Digital Twin / physics epic)
 

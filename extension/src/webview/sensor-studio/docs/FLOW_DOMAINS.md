@@ -31,7 +31,7 @@ Trying to drive **keyboard events**, **per-frame animation**, **UART samples**, 
 | Telemetry-driven ticks | Shipped | `sampleCount` ↑, wire taps, graph flush — not fixed Hz |
 | **`event` port type** | Shipped (slice 1) | **`on-key`**, **`event-toggle-boolean`**, **`dispatchFlowKeyboardEvent`** |
 | **Plotter** | Shipped | One point per channel per dataflow tick |
-| **3D preview** | Partial | `model-viewer`, `environment`, `camera-view`, rotation nodes; **fog / exposure / studio light / morph** wired (**2026-05-31**) |
+| **3D preview** | Partial | `model-viewer`, `environment`, `camera-view`, rotation nodes; **fog / exposure / studio light / morph / bloom / contact shadows** wired (**2026-05-31**) |
 | **GLB animation wire** | Partial | `FlowWireAnimationV1`, `glb-animation-bundle`, mixer drives |
 | **GLB scalar drives** | Partial | Morph, light, anim time, part visibility, emissive, camera |
 | **Transform graph** | Partial | Quaternion / Euler rotation — not full loc/scale/parent |

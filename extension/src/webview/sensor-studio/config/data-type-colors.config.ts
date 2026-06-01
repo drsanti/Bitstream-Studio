@@ -16,5 +16,7 @@ export const DATA_TYPE_COLORS_DEFAULTS: DataTypeColorsConfig = {
     transform: "#FB923C",
     fog: "#A78BFA",
     studioLight: "#FDE047",
+    postProcessing: "#E879F9",
+    contactShadows: "#C084FC",
   },
 };

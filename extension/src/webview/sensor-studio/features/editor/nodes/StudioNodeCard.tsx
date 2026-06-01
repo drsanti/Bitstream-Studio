@@ -521,6 +521,8 @@ export function StudioNodeCard(props: NodeProps) {
           fog: data.liveFogWire ?? null,
           exposure: data.liveSettingsExposure ?? null,
           studioLight: data.liveStudioLightWire ?? null,
+          postProcessing: data.livePostProcessingWire ?? null,
+          contactShadows: data.liveContactShadowsWire ?? null,
         },
       ),
     [
@@ -531,6 +533,8 @@ export function StudioNodeCard(props: NodeProps) {
       data.liveFogWire,
       data.liveSettingsExposure,
       data.liveStudioLightWire,
+      data.livePostProcessingWire,
+      data.liveContactShadowsWire,
     ],
   );
 
@@ -871,6 +875,8 @@ export function StudioNodeCard(props: NodeProps) {
               liveFogWire={data.liveFogWire}
               liveSettingsExposure={data.liveSettingsExposure ?? null}
               liveStudioLightWire={data.liveStudioLightWire}
+              livePostProcessingWire={data.livePostProcessingWire}
+              liveContactShadowsWire={data.liveContactShadowsWire}
               defaultConfig={data.defaultConfig}
             />
           ) : null}

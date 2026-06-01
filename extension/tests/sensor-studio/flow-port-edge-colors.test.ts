@@ -19,6 +19,8 @@ const theme = {
   transformColor: "#444444",
   fogColor: "#555555",
   studioLightColor: "#666666",
+  postProcessingColor: "#777777",
+  contactShadowsColor: "#888888",
 };
 
 describe("flow-port-edge-colors", () => {
@@ -26,6 +28,8 @@ describe("flow-port-edge-colors", () => {
     const map = buildFlowPortColorMap(theme);
     assert.equal(strokeForPortType(map, "number"), "#ff0000");
     assert.equal(strokeForPortType(map, "event"), "#ffff00");
+    assert.equal(strokeForPortType(map, "postProcessing"), "#777777");
+    assert.equal(strokeForPortType(map, "contactShadows"), "#888888");
     assert.match(strokeForPortType(map, null), /113/);
   });
 

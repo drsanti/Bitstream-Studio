@@ -247,6 +247,22 @@ export type Scene3DConfigV1 = {
     density: number;
     colorHex: string;
   };
+  /** Optional bloom post-processing (flow **`postProcessing`** wire). */
+  postProcessing: {
+    enabled: boolean;
+    enableBloom: boolean;
+    bloomIntensity: number;
+    bloomThreshold: number;
+  };
+  /** Optional ground contact shadow disc (flow **`contactShadows`** wire). */
+  contactShadows: {
+    enabled: boolean;
+    opacity: number;
+    blur: number;
+    far: number;
+    scale: number;
+    colorHex: string;
+  };
 };
 
 export type Scene3DConfig = Scene3DConfigV1;
@@ -373,6 +389,20 @@ export const DEFAULT_SCENE3D_CONFIG_V1: Scene3DConfigV1 = {
     far: 50,
     density: 0.05,
     colorHex: "#1a1a2e",
+  },
+  postProcessing: {
+    enabled: false,
+    enableBloom: true,
+    bloomIntensity: 1.5,
+    bloomThreshold: 1.0,
+  },
+  contactShadows: {
+    enabled: false,
+    opacity: 0.5,
+    blur: 2,
+    far: 10,
+    scale: 10,
+    colorHex: "#000000",
   },
 };
 
@@ -538,6 +568,8 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
   const camHelpRaw = ((helpersRaw.camera ?? {}) as Record<string, unknown>) ?? {};
   const dirHelpRaw = ((helpersRaw.directionalLight ?? {}) as Record<string, unknown>) ?? {};
   const fogRaw = (o.fog ?? {}) as Record<string, unknown>;
+  const postRaw = (o.postProcessing ?? {}) as Record<string, unknown>;
+  const contactRaw = (o.contactShadows ?? {}) as Record<string, unknown>;
 
   const ambientRaw = ((lightsRaw.ambient ?? {}) as Record<string, unknown>) ?? {};
 
@@ -758,6 +790,28 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
       far: clamp(asFiniteNumber(fogRaw.far, d.fog.far), 0.001, 1e6),
       density: clamp(asFiniteNumber(fogRaw.density, d.fog.density), 0, 1),
       colorHex: asHexColor(fogRaw.colorHex, d.fog.colorHex),
+    },
+    postProcessing: {
+      enabled: asBool(postRaw.enabled, d.postProcessing.enabled),
+      enableBloom: asBool(postRaw.enableBloom, d.postProcessing.enableBloom),
+      bloomIntensity: clamp(
+        asFiniteNumber(postRaw.bloomIntensity, d.postProcessing.bloomIntensity),
+        0,
+        8,
+      ),
+      bloomThreshold: clamp(
+        asFiniteNumber(postRaw.bloomThreshold, d.postProcessing.bloomThreshold),
+        0,
+        2,
+      ),
+    },
+    contactShadows: {
+      enabled: asBool(contactRaw.enabled, d.contactShadows.enabled),
+      opacity: clamp(asFiniteNumber(contactRaw.opacity, d.contactShadows.opacity), 0, 1),
+      blur: clamp(asFiniteNumber(contactRaw.blur, d.contactShadows.blur), 0.1, 20),
+      far: clamp(asFiniteNumber(contactRaw.far, d.contactShadows.far), 0.1, 100),
+      scale: clamp(asFiniteNumber(contactRaw.scale, d.contactShadows.scale), 0.1, 100),
+      colorHex: asHexColor(contactRaw.colorHex, d.contactShadows.colorHex),
     },
   };
 }

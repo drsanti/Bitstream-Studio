@@ -39,6 +39,8 @@ export type DataTypeColorsPayload = {
   transform: string;
   fog: string;
   studioLight: string;
+  postProcessing: string;
+  contactShadows: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -56,7 +58,9 @@ export type NodeCatalogOutputPort = {
     | "glbAnimation"
     | "transform"
     | "fog"
-    | "studioLight";
+    | "studioLight"
+    | "postProcessing"
+    | "contactShadows";
   label: string;
 };
 

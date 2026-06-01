@@ -100,6 +100,18 @@ import {
   flowWireStudioLightFromEval,
   isFlowWireStudioLightV1,
 } from "../nodes/scene-fx/flow-wire-studio-light";
+import type { FlowWireContactShadowsV1 } from "../nodes/scene-fx/flow-wire-contact-shadows";
+import {
+  coerceFlowWireContactShadowsV1,
+  flowWireContactShadowsFromEval,
+  isFlowWireContactShadowsV1,
+} from "../nodes/scene-fx/flow-wire-contact-shadows";
+import type { FlowWirePostProcessingV1 } from "../nodes/scene-fx/flow-wire-post-processing";
+import {
+  coerceFlowWirePostProcessingV1,
+  flowWirePostProcessingFromEval,
+  isFlowWirePostProcessingV1,
+} from "../nodes/scene-fx/flow-wire-post-processing";
 import { evaluateSceneSettingsExposure } from "../../../core/flow/scene-settings-operations";
 import {
   evaluateTransformPartialVec3,
@@ -278,6 +290,8 @@ export type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation
 export type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
 export type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
 export type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
+export type { FlowWirePostProcessingV1 } from "../nodes/scene-fx/flow-wire-post-processing";
+export type { FlowWireContactShadowsV1 } from "../nodes/scene-fx/flow-wire-contact-shadows";
 
 export type StudioPortType =
   | "number"
@@ -291,7 +305,9 @@ export type StudioPortType =
   | "glbAnimation"
   | "transform"
   | "fog"
-  | "studioLight";
+  | "studioLight"
+  | "postProcessing"
+  | "contactShadows";
 
 /** Present only while Bitstream provides a matching hardware sample for this node. */
 export type SensorHardwareStreamLive = "live";
@@ -320,6 +336,10 @@ export const STUDIO_HANDLE_SETTINGS = "settings";
 export const STUDIO_HANDLE_FOG = "fog";
 /** Optional studio rig light override on 3D canvas nodes. */
 export const STUDIO_HANDLE_LITE = "lite";
+/** Optional bloom post-processing on 3D canvas nodes. */
+export const STUDIO_HANDLE_POST = "post";
+/** Optional contact-shadow disc on 3D canvas nodes. */
+export const STUDIO_HANDLE_CSHADOW = "cshadow";
 
 /** Single-output nodes that mirror one BMI270 stream (live hardware or synthesized feed). */
 export const BMI270_TAP_NODE_IDS = [
@@ -460,6 +480,10 @@ export type StudioNodeData = {
   liveFogWire?: FlowWireFogV1;
   /** Incoming **`lite`** pin snapshot for 3D canvas nodes (studio rig light). */
   liveStudioLightWire?: FlowWireStudioLightV1;
+  /** Incoming **`post`** pin snapshot for 3D canvas nodes (bloom). */
+  livePostProcessingWire?: FlowWirePostProcessingV1;
+  /** Incoming **`cshadow`** pin snapshot for 3D canvas nodes. */
+  liveContactShadowsWire?: FlowWireContactShadowsV1;
   liveHistory?: number[];
   /** Multi-channel numeric history for plotter (`handleId` → samples). */
   livePlotHistory?: Record<string, number[]>;
@@ -1748,6 +1772,20 @@ function flowValueAsStudioLight(v: unknown): FlowWireStudioLightV1 | null {
   return coerceFlowWireStudioLightV1(v);
 }
 
+function flowValueAsPostProcessing(v: unknown): FlowWirePostProcessingV1 | null {
+  if (!isFlowWirePostProcessingV1(v)) {
+    return null;
+  }
+  return coerceFlowWirePostProcessingV1(v);
+}
+
+function flowValueAsContactShadows(v: unknown): FlowWireContactShadowsV1 | null {
+  if (!isFlowWireContactShadowsV1(v)) {
+    return null;
+  }
+  return coerceFlowWireContactShadowsV1(v);
+}
+
 function applyIncomingSceneFxWires(
   base: StudioNodeData,
   nodeId: string,
@@ -1770,6 +1808,18 @@ function applyIncomingSceneFxWires(
     base.liveStudioLightWire = liteWire;
   } else {
     delete base.liveStudioLightWire;
+  }
+  const postWire = flowValueAsPostProcessing(readIncomingForNode(STUDIO_HANDLE_POST));
+  if (postWire != null) {
+    base.livePostProcessingWire = postWire;
+  } else {
+    delete base.livePostProcessingWire;
+  }
+  const cshadowWire = flowValueAsContactShadows(readIncomingForNode(STUDIO_HANDLE_CSHADOW));
+  if (cshadowWire != null) {
+    base.liveContactShadowsWire = cshadowWire;
+  } else {
+    delete base.liveContactShadowsWire;
   }
 }
 
@@ -4724,6 +4774,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           );
           pinValues.set(studioFlowPinKey(node.id, "bloomIntensity"), pp.bloomIntensity);
           pinValues.set(studioFlowPinKey(node.id, "bloomThreshold"), pp.bloomThreshold);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            flowWirePostProcessingFromEval(pp, cfg as Record<string, unknown>),
+          );
           continue;
         }
 
@@ -4734,6 +4788,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(studioFlowPinKey(node.id, "blur"), cs.blur);
           pinValues.set(studioFlowPinKey(node.id, "far"), cs.far);
           pinValues.set(studioFlowPinKey(node.id, "scale"), cs.scale);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            flowWireContactShadowsFromEval(cs, cfg),
+          );
           continue;
         }
 
@@ -5355,6 +5413,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           delete dataWithoutSensorMode.liveSettingsExposure;
           delete dataWithoutSensorMode.liveFogWire;
           delete dataWithoutSensorMode.liveStudioLightWire;
+          delete dataWithoutSensorMode.livePostProcessingWire;
+          delete dataWithoutSensorMode.liveContactShadowsWire;
         }
         if (
           node.data.nodeId !== "bmi270-input" &&
@@ -5389,6 +5449,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "transform-from-euler" ||
           node.data.nodeId === "fog" ||
           node.data.nodeId === "scene-light" ||
+          node.data.nodeId === "post-processing" ||
+          node.data.nodeId === "contact-shadows" ||
           isPlotterNodeId(node.data.nodeId) ||
           BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
           ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
