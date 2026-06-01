@@ -71,6 +71,7 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-01** — **Sensor Studio — `StudioToolbar` cleanup:** three-zone header (title / FPS / grouped actions); **Insert**, **Edit**, **File**, **Layout** menus; **Devices** + **Assets** primaries; canvas actions stay on flow toolbars; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
 - **2026-06-01** — **Sensor Studio — Node Palette live row labels:** `sensor-port-labels.ts` (`name (unit)` in label, values right); primary + tap rows via **`primaryBundle`**; BMI270 canvas temp **`Temp (°C)`**; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
 - **2026-06-01** — **Sensor Studio — Node Inspector TRN pass:** Node tab first, scrollable sections, **`TRNScrubNumberInput`** / **`TRNSelect`**, label **`TRNHintTooltip`** (no inline hint paragraphs); dense field grid for gauge rows.
 - **2026-06-01** — **Sensor Studio — Policy A socket live previews:** all scalar output pins + wired input pins show live values on socket rows (`syncSocketLivePreviewHandlesFromPinValues`, clustered input layout, upstream semantic colors through map-range/clamp/lerp chain, empty when unwired); **`socket-live-preview.test.ts`**; rules in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.

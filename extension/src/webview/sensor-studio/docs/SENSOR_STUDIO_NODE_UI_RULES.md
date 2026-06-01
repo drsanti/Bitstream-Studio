@@ -4,6 +4,29 @@ Short conventions for **flow node cards** and the **Node Inspector**, aligned wi
 
 ---
 
+## Application toolbar (`StudioToolbar`)
+
+Three zones on one row (no wrap at typical widths):
+
+| Zone | Content |
+| ---- | ------- |
+| **Identity** | `Sensor Studio` title |
+| **Status** | `BitstreamSensorSampleRxBadge` (aggregate FPS, centered) |
+| **Actions** | **Devices** + **Assets** primaries, then **Insert ▾** / **Edit ▾** / **File ▾** / **Layout ▾** |
+
+| Menu | Items |
+| ---- | ----- |
+| **Insert** | Catalog quick-add (`studio-toolbar-insert-sections.ts`) — sensors + threshold; full catalog remains in the **Library** pane |
+| **Edit** | Duplicate, Delete, Select all, Clear selection |
+| **File** | Export / import flow JSON |
+| **Layout** | `WorkbenchLayoutMenu` (presets, saved layouts, reset) |
+
+**Not in the header** (canvas / selection toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
+
+Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on header controls.
+
+---
+
 ## Inspector shell
 
 | Element            | Rule                                                                                                      |

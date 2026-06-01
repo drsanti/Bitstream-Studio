@@ -1,24 +1,28 @@
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, Microchip } from "lucide-react";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { useBitstreamTransportActions } from "../../../../bitstream-app/context/bitstreamTransportActions.context";
 import { BitstreamSensorSampleRxBadge } from "../../../../bitstream-shell/ui/BitstreamTelemetryRxBadges";
 import { useOpenAssetManager } from "../../../../assets-manager/hooks/useOpenAssetManager.js";
+import {
+  TRNMenuItemButton,
+  TRNMenuPanel,
+  TRNMenuSectionTitle,
+} from "../../../../ui/TRN/TRNMenu";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
-import type { StudioDemoTemplateId } from "../store/flow-editor.store";
+import {
+  STUDIO_TOOLBAR_DIVIDER_CLASS,
+  StudioToolbarMenu,
+} from "./studio-toolbar/StudioToolbarMenu";
+import { STUDIO_TOOLBAR_INSERT_SECTIONS } from "./studio-toolbar/studio-toolbar-insert-sections";
 
 type StudioToolbarProps = {
   borderColor: string;
-  onResetWorkspaceLayout?: () => void;
   entries: NodeCatalogEntry[];
   onAddNode: (entry: NodeCatalogEntry) => void;
   onOpenDeviceSensorSettings?: () => void;
-  templateId: StudioDemoTemplateId;
-  onTemplateIdChange: (templateId: StudioDemoTemplateId) => void;
-  onRunTemplate: () => void;
-  onClearCanvas: () => void;
   onDuplicateSelection?: () => void;
   onDeleteSelection?: () => void;
-  onFitView?: () => void;
   onSelectAllNodes?: () => void;
   onClearCanvasSelection?: () => void;
   onExportFlow: () => void;
@@ -32,164 +36,168 @@ export function StudioToolbar(props: StudioToolbarProps) {
     entries,
     onAddNode,
     onOpenDeviceSensorSettings,
-    templateId,
-    onTemplateIdChange,
-    onRunTemplate,
-    onClearCanvas,
     onDuplicateSelection,
     onDeleteSelection,
-    onFitView,
     onSelectAllNodes,
     onClearCanvasSelection,
     onExportFlow,
     onImportFlowPick,
-    onResetWorkspaceLayout,
     layoutMenu,
   } = props;
   const { openAssetManager } = useOpenAssetManager();
   const { reconnectTelemetry } = useBitstreamTransportActions();
-  const sensorEntry = entries.find((entry) => entry.id === "bmi270-input");
-  const thresholdEntry = entries.find((entry) => entry.id === "threshold");
+
+  const entryById = useMemo(() => {
+    const m = new Map<string, NodeCatalogEntry>();
+    for (const entry of entries) {
+      m.set(entry.id, entry);
+    }
+    return m;
+  }, [entries]);
+
+  const insertSections = useMemo(() => {
+    return STUDIO_TOOLBAR_INSERT_SECTIONS.map((section) => ({
+      title: section.title,
+      entries: section.nodeIds
+        .map((id) => entryById.get(id))
+        .filter((entry): entry is NodeCatalogEntry => entry != null),
+    })).filter((section) => section.entries.length > 0);
+  }, [entryById]);
+
   return (
     <header
-      className="relative flex flex-wrap items-center gap-3 border-b px-3 py-2"
+      className="relative flex min-h-[42px] flex-nowrap items-center gap-2 border-b px-3 py-2"
       style={{ borderColor }}
     >
-      <div className="shrink-0 text-sm font-semibold">Sensor Studio</div>
-      <div className="ml-auto flex min-w-0 shrink items-center">
+      <div className="flex min-w-0 shrink-0 items-center gap-2">
+        <div className="shrink-0 text-sm font-semibold text-zinc-100">Sensor Studio</div>
+      </div>
+
+      <div className="flex min-w-0 flex-1 items-center justify-center px-2">
         <BitstreamSensorSampleRxBadge
           variant="chip"
           chipMetric="aggregateFps"
           onReconnectTelemetry={reconnectTelemetry}
         />
       </div>
-      <div className="flex flex-wrap items-center gap-1.5">
+
+      <div className="flex min-w-0 shrink-0 flex-nowrap items-center gap-1.5">
         <button
           type="button"
-          title="Open Asset Manager (floating window)"
+          className="inline-flex items-center gap-1 rounded border border-amber-700/50 bg-amber-950/25 px-2 py-1 text-[11px] text-amber-100/90 hover:bg-amber-900/20"
+          onClick={() => {
+            onOpenDeviceSensorSettings?.();
+          }}
+        >
+          <Microchip className="size-3 shrink-0 opacity-90" aria-hidden />
+          Devices
+        </button>
+        <button
+          type="button"
           className="inline-flex items-center gap-1 rounded border border-cyan-900/50 bg-cyan-950/20 px-2 py-1 text-[11px] text-cyan-100/90 hover:bg-cyan-950/35"
           onClick={() => {
             openAssetManager({ globalDirectoriesTab: "overview" });
           }}
         >
           <FolderOpen className="size-3 shrink-0 opacity-90" aria-hidden />
-          Asset Manager
+          Assets
         </button>
-        <button
-          type="button"
-          className="rounded border border-amber-700/50 bg-amber-950/25 px-2 py-1 text-[11px] text-amber-100/90 hover:bg-amber-900/20"
-          onClick={() => {
-            onOpenDeviceSensorSettings?.();
-          }}
-        >
-          Device sensors…
-        </button>
-        <button
-          type="button"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            if (sensorEntry != null) {
-              onAddNode(sensorEntry);
-            }
-          }}
-        >
-          Add BMI270
-        </button>
-        <button
-          type="button"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            if (thresholdEntry != null) {
-              onAddNode(thresholdEntry);
-            }
-          }}
-        >
-          Add Threshold
-        </button>
-        <button
-          type="button"
-          title="Duplicate selection (Ctrl+D)"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            onDuplicateSelection?.();
-          }}
-        >
-          Duplicate
-        </button>
-        <button
-          type="button"
-          title="Delete selected nodes"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            onDeleteSelection?.();
-          }}
-        >
-          Delete
-        </button>
-        <button
-          type="button"
-          title="Fit view (Ctrl+Shift+F)"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            onFitView?.();
-          }}
-        >
-          Fit view
-        </button>
-        <button
-          type="button"
-          title="Select all nodes"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            onSelectAllNodes?.();
-          }}
-        >
-          Select all
-        </button>
-        <button
-          type="button"
-          title="Clear selection (Esc)"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={() => {
-            onClearCanvasSelection?.();
-          }}
-        >
-          Clear sel.
-        </button>
-        <button
-          type="button"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={onClearCanvas}
-        >
-          Clear graph
-        </button>
-        <button
-          type="button"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={onExportFlow}
-        >
-          Export JSON
-        </button>
-        <button
-          type="button"
-          className="rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] hover:bg-zinc-800/80"
-          onClick={onImportFlowPick}
-        >
-          Import JSON
-        </button>
-        {layoutMenu}
-        {onResetWorkspaceLayout != null ? (
-          <button
-            type="button"
-            title="Reset workbench panes to default (clears saved split layout)"
-            className="rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-[11px] text-sky-100/90 hover:bg-sky-900/25"
-            onClick={() => {
-              onResetWorkspaceLayout();
-            }}
+
+        <div className={STUDIO_TOOLBAR_DIVIDER_CLASS} aria-hidden />
+
+        {insertSections.length > 0 ? (
+          <StudioToolbarMenu
+            label="Insert"
+            hint="Add a catalog node to the flow (also available in the Library pane)"
           >
-            Reset workspace
-          </button>
+            <TRNMenuPanel
+              tone="glass-dropdown"
+              className="min-w-48 py-1 scrollbar-hide max-h-80 overflow-y-auto"
+            >
+              <div className="flex flex-col gap-0.5">
+                {insertSections.map((section, sectionIndex) => (
+                  <div key={section.title}>
+                    <TRNMenuSectionTitle spacing={sectionIndex === 0 ? "menuFirst" : "menuNext"}>
+                      {section.title}
+                    </TRNMenuSectionTitle>
+                    {section.entries.map((entry) => (
+                      <TRNMenuItemButton
+                        key={entry.id}
+                        role="menuitem"
+                        tone="glass-dropdown"
+                        label={entry.title}
+                        onClick={() => {
+                          onAddNode(entry);
+                        }}
+                      />
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </TRNMenuPanel>
+          </StudioToolbarMenu>
         ) : null}
+
+        <StudioToolbarMenu label="Edit" hint="Selection and clipboard actions on the flow canvas">
+          <TRNMenuPanel tone="glass-dropdown" className="min-w-44 py-1">
+            <div className="flex flex-col gap-0.5">
+              <TRNMenuItemButton
+                role="menuitem"
+                tone="glass-dropdown"
+                label="Duplicate"
+                onClick={() => {
+                  onDuplicateSelection?.();
+                }}
+              />
+              <TRNMenuItemButton
+                role="menuitem"
+                tone="glass-dropdown"
+                label="Delete"
+                onClick={() => {
+                  onDeleteSelection?.();
+                }}
+              />
+              <TRNMenuSectionTitle spacing="menuNext">Selection</TRNMenuSectionTitle>
+              <TRNMenuItemButton
+                role="menuitem"
+                tone="glass-dropdown"
+                label="Select all"
+                onClick={() => {
+                  onSelectAllNodes?.();
+                }}
+              />
+              <TRNMenuItemButton
+                role="menuitem"
+                tone="glass-dropdown"
+                label="Clear selection"
+                onClick={() => {
+                  onClearCanvasSelection?.();
+                }}
+              />
+            </div>
+          </TRNMenuPanel>
+        </StudioToolbarMenu>
+
+        <StudioToolbarMenu label="File" hint="Export or import the flow graph JSON">
+          <TRNMenuPanel tone="glass-dropdown" className="min-w-44 py-1">
+            <div className="flex flex-col gap-0.5">
+              <TRNMenuItemButton
+                role="menuitem"
+                tone="glass-dropdown"
+                label="Export flow JSON…"
+                onClick={onExportFlow}
+              />
+              <TRNMenuItemButton
+                role="menuitem"
+                tone="glass-dropdown"
+                label="Import flow JSON…"
+                onClick={onImportFlowPick}
+              />
+            </div>
+          </TRNMenuPanel>
+        </StudioToolbarMenu>
+
+        {layoutMenu}
       </div>
     </header>
   );

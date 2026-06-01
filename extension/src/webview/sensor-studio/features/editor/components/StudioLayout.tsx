@@ -38,13 +38,8 @@ export function StudioLayout(props: StudioLayoutProps) {
     borderColor,
     entries,
     onAddNode,
-    templateId,
-    onTemplateIdChange,
-    onRunTemplate,
-    onClearCanvas,
     onDuplicateSelection,
     onDeleteSelection,
-    onFitView,
     onSelectAllNodes,
     onClearCanvasSelection,
     onExportFlow,
@@ -90,18 +85,12 @@ export function StudioLayout(props: StudioLayoutProps) {
         entries={entries}
         onAddNode={onAddNode}
         onOpenDeviceSensorSettings={() => onOpenDeviceSensorSettings?.(null)}
-        templateId={templateId}
-        onTemplateIdChange={onTemplateIdChange}
-        onRunTemplate={onRunTemplate}
-        onClearCanvas={onClearCanvas}
         onDuplicateSelection={onDuplicateSelection}
         onDeleteSelection={onDeleteSelection}
-        onFitView={onFitView}
         onSelectAllNodes={onSelectAllNodes}
         onClearCanvasSelection={onClearCanvasSelection}
         onExportFlow={onExportFlow}
         onImportFlowPick={onImportFlowPick}
-        onResetWorkspaceLayout={resetWorkspaceLayout}
         layoutMenu={layoutMenuProps ? <WorkbenchLayoutMenu {...layoutMenuProps} /> : null}
       />
 
