@@ -58,7 +58,7 @@ export function buildFrameFlowNode(position: XYPosition): FrameFlowNode {
       headerHeight: FRAME_HEADER_H,
       padTop: 0,
     },
-    dragHandle: ".studio-frame-node__drag",
+    dragHandle: ".studio-frame-node__header",
     selectable: true,
     draggable: true,
     zIndex: -1,

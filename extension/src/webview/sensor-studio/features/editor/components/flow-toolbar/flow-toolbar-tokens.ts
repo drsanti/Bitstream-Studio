@@ -1,7 +1,7 @@
 import { twMerge } from "tailwind-merge";
 
 export const FLOW_TOOLBAR_PILL_CLASS =
-  "nodrag nowheel pointer-events-auto flex items-center gap-0.5 rounded-full border border-zinc-600/80 bg-zinc-950/90 p-1 shadow-lg backdrop-blur-sm";
+  "nodrag nowheel pointer-events-auto flex items-center gap-0.5 rounded-full border border-white/10 bg-zinc-950/55 p-1 shadow-lg shadow-black/30 ring-1 ring-white/5 backdrop-blur-md";
 
 export const FLOW_TOOLBAR_BTN_CLASS =
   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-zinc-400 transition-all hover:bg-zinc-800/80 hover:text-zinc-100 active:scale-95";

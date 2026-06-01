@@ -477,7 +477,7 @@ function buildFrameAroundEmpty(): FlowGraphNode {
       headerHeight: FRAME_HEADER_H,
       padTop: 4,
     },
-    dragHandle: ".studio-frame-node__drag",
+    dragHandle: ".studio-frame-node__header",
     selectable: true,
     draggable: true,
     zIndex: -1,

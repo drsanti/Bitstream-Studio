@@ -370,9 +370,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
       sortFlowNodesParentFirst(
         nodes.map((node) => {
           if (isStudioFrameNode(node)) {
-            return node.dragHandle === ".studio-frame-node__drag"
+            return node.dragHandle === ".studio-frame-node__header"
               ? node
-              : { ...node, dragHandle: ".studio-frame-node__drag" };
+              : { ...node, dragHandle: ".studio-frame-node__header" };
           }
           return node;
         }),
