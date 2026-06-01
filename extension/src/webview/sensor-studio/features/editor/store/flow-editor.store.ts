@@ -1294,6 +1294,14 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
           })()
         : coercedData;
     let piped: StudioNodeData = withScene3d;
+    // Default: every Studio node is resizable on canvas unless explicitly disabled.
+    piped = {
+      ...piped,
+      ui: {
+        ...piped.ui,
+        resizable: piped.ui?.resizable ?? true,
+      },
+    };
     if (piped.nodeId === "plotter") {
       const plotterCfg = persistPlotterConfig(piped.defaultConfig);
       piped = {
@@ -1301,7 +1309,6 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
         defaultConfig: { ...(plotterCfg as unknown as Record<string, unknown>) },
         ui: {
           ...piped.ui,
-          resizable: piped.ui?.resizable ?? true,
           minWidth: piped.ui?.minWidth ?? 280,
           minHeight: piped.ui?.minHeight ?? 168,
         },
@@ -1312,7 +1319,6 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
         ...piped,
         ui: {
           ...piped.ui,
-          resizable: piped.ui?.resizable ?? true,
           minWidth: piped.ui?.minWidth ?? 280,
           minHeight: piped.ui?.minHeight ?? 200,
         },
@@ -1725,6 +1731,10 @@ function createStudioNodeFromCatalogEntry(
 ): StudioNode {
   const id = `${entry.id}-${Date.now()}-${Math.round(Math.random() * 1000)}`;
   const inferred = inferPortTypes(entry);
+  const ui: StudioNodeData["ui"] =
+    options?.ui != null
+      ? { resizable: true, ...options.ui }
+      : { resizable: true };
   const base: StudioNode = {
     id,
     type: "studio",
@@ -1735,7 +1745,7 @@ function createStudioNodeFromCatalogEntry(
       category: entry.category,
       nodeId: entry.id,
       defaultConfig: { ...entry.defaultConfig },
-      ui: options?.ui,
+      ui,
       inputType: inferred.inputType,
       outputType: inferred.outputType,
       outputHandles: inferred.outputHandles,
