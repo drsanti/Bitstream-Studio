@@ -782,7 +782,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "3D Rotation (Euler)",
         description:
-          "Preview 3D object orientation from Euler vector input (rad), using a vanilla Three.js viewport for reliable resizing. Optional **Environment** input overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**; optional **Transform** overrides model position / rotation / scale.",
+          "Preview 3D object orientation from Euler vector input (rad), using a vanilla Three.js viewport for reliable resizing. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, and **Studio Light** inputs override saved scene settings while connected.",
         icon: "box",
         defaultVisible: true,
         defaultConfig: {
@@ -795,6 +795,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "cam", portType: "camera", label: "Camera" },
           { id: "anim", portType: "glbAnimation", label: "Animation" },
           { id: "xf", portType: "transform", label: "Transform" },
+          { id: "settings", portType: "number", label: "Exposure" },
+          { id: "fog", portType: "fog", label: "Fog" },
+          { id: "lite", portType: "studioLight", label: "Studio Light" },
         ],
       },
       {
@@ -802,7 +805,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "3D Rotation (Quaternion)",
         description:
-          "Preview 3D object orientation from quaternion input, using a vanilla Three.js viewport for reliable resizing. Optional **Environment** input overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**; optional **Transform** overrides model position / rotation / scale.",
+          "Preview 3D object orientation from quaternion input, using a vanilla Three.js viewport for reliable resizing. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, and **Studio Light** inputs override saved scene settings while connected.",
         icon: "box",
         defaultVisible: true,
         defaultConfig: {
@@ -815,6 +818,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "cam", portType: "camera", label: "Camera" },
           { id: "anim", portType: "glbAnimation", label: "Animation" },
           { id: "xf", portType: "transform", label: "Transform" },
+          { id: "settings", portType: "number", label: "Exposure" },
+          { id: "fog", portType: "fog", label: "Fog" },
+          { id: "lite", portType: "studioLight", label: "Studio Light" },
         ],
       },
       {
@@ -822,7 +828,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "output",
         title: "Model Viewer",
         description:
-          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment** overrides HDRI / background / IBL; optional **Camera** overrides orbit camera and limits; optional **Animation** carries a structured clip map from **GLB Animation Bundle**; optional **Transform** overrides model position / rotation / scale.",
+          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, and **Studio Light** inputs override saved scene settings while connected.",
         icon: "scan-line",
         defaultVisible: true,
         defaultConfig: {
@@ -836,6 +842,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "cam", portType: "camera", label: "Camera" },
           { id: "anim", portType: "glbAnimation", label: "Animation" },
           { id: "xf", portType: "transform", label: "Transform" },
+          { id: "settings", portType: "number", label: "Exposure" },
+          { id: "fog", portType: "fog", label: "Fog" },
+          { id: "lite", portType: "studioLight", label: "Studio Light" },
         ],
       },
       // ── Display / Control nodes ──────────────────────────────────────────
@@ -1042,13 +1051,14 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         description: "Fog near, far, and density scalars (node-animator parity outputs).",
         icon: "waves",
         defaultVisible: false,
-        defaultConfig: { near: 1, far: 50, density: 0.05 },
+        defaultConfig: { near: 1, far: 50, density: 0.05, mode: "linear", colorHex: "#1a1a2e" },
         inputPorts: [
           { id: "near", portType: "number", label: "Near" },
           { id: "far", portType: "number", label: "Far" },
           { id: "density", portType: "number", label: "Density" },
         ],
         outputPorts: [
+          { id: "out", portType: "fog", label: "Fog" },
           { id: "near", portType: "number", label: "Near" },
           { id: "far", portType: "number", label: "Far" },
           { id: "density", portType: "number", label: "Density" },
@@ -1093,6 +1103,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "z", portType: "number", label: "Z" },
         ],
         outputPorts: [
+          { id: "out", portType: "studioLight", label: "Light" },
           { id: "intensity", portType: "number", label: "Intensity" },
           { id: "r", portType: "number", label: "R" },
           { id: "g", portType: "number", label: "G" },

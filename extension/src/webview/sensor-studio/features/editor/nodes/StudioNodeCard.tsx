@@ -1,6 +1,7 @@
 import {
   Handle,
   Position,
+  useStore,
   useUpdateNodeInternals,
   type NodeProps,
 } from "@xyflow/react";
@@ -68,6 +69,7 @@ import { coerceScene3DConfigV1, defaultScene3DConfig } from "./rotation/scene3d-
 import { mergeFlowWireEnvironmentIntoScene3d } from "./environment/flow-wire-environment";
 import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
 import { mergeFlowWireTransformIntoScene3d } from "./transform/flow-wire-transform";
+import { mergeFlowSceneWiresIntoScene3d } from "./scene-fx/merge-flow-scene-wires";
 import { buildGlbAnimationPreviewSceneProps } from "../gltf/build-glb-animation-preview-scene-props";
 import { buildGlbScalarPreviewSceneProps } from "../gltf/build-glb-scalar-preview-scene-props";
 import { EventSetBooleanNodePanel, EventSetGlbPartNodePanel, EventToggleBooleanNodePanel, EventToggleGlbPartNodePanel, EventTriggerGlbAnimNodePanel, OnClickNodePanel, OnKeyNodePanel } from "./events/EventFlowNodePanels";
@@ -97,6 +99,7 @@ export function StudioNodeCard(props: NodeProps) {
     (s) => s.setStudioUtilityNodeBodyExpanded,
   );
   const updateNodeInternals = useUpdateNodeInternals();
+  const flowZoom = useStore((s) => s.transform[2]);
   const isSelected = Boolean(
     selectedFromRf || selectedInDocument || primarySelectedId === id,
   );
@@ -506,14 +509,29 @@ export function StudioNodeCard(props: NodeProps) {
 
   const scene3dForPreview = useMemo(
     () =>
-      mergeFlowWireTransformIntoScene3d(
-        mergeFlowWireCameraIntoScene3d(
-          mergeFlowWireEnvironmentIntoScene3d(scene3d, data.liveEnvironmentWire ?? null),
-          data.liveCameraWire ?? null,
+      mergeFlowSceneWiresIntoScene3d(
+        mergeFlowWireTransformIntoScene3d(
+          mergeFlowWireCameraIntoScene3d(
+            mergeFlowWireEnvironmentIntoScene3d(scene3d, data.liveEnvironmentWire ?? null),
+            data.liveCameraWire ?? null,
+          ),
+          data.liveTransformWire ?? null,
         ),
-        data.liveTransformWire ?? null,
+        {
+          fog: data.liveFogWire ?? null,
+          exposure: data.liveSettingsExposure ?? null,
+          studioLight: data.liveStudioLightWire ?? null,
+        },
       ),
-    [scene3d, data.liveEnvironmentWire, data.liveCameraWire, data.liveTransformWire],
+    [
+      scene3d,
+      data.liveEnvironmentWire,
+      data.liveCameraWire,
+      data.liveTransformWire,
+      data.liveFogWire,
+      data.liveSettingsExposure,
+      data.liveStudioLightWire,
+    ],
   );
 
   const rotationGlbSceneProps = useMemo(
@@ -526,6 +544,7 @@ export function StudioNodeCard(props: NodeProps) {
               flowNodeId: id,
               catalogNodeId: data.nodeId,
               defaultConfig: data.defaultConfig,
+              liveStudioLightWire: data.liveStudioLightWire ?? null,
             }),
             ...buildGlbAnimationPreviewSceneProps({
               nodes: flowNodes,
@@ -545,6 +564,7 @@ export function StudioNodeCard(props: NodeProps) {
       data.nodeId,
       data.defaultConfig,
       data.liveAnimationWire,
+      data.liveStudioLightWire,
     ],
   );
 
@@ -632,7 +652,11 @@ export function StudioNodeCard(props: NodeProps) {
             ? /* Keep base drop shadow + outer “ring” via shadow only (no border width jump). */
               "shadow-[0_8px_24px_rgba(0,0,0,0.35),0_0_0_2px_rgba(0,200,200,0.5)] transition-shadow duration-150"
             : "transition-shadow duration-150",
-          isPlotterNodeId(data.nodeId) || data.nodeId === "model-viewer"
+          isPlotterNodeId(data.nodeId) ||
+          data.nodeId === "model-viewer" ||
+          data.nodeId === "radial-gauge" ||
+          data.nodeId === "bar-meter" ||
+          data.nodeId === "knob"
             ? "min-h-0"
             : "",
         ]
@@ -844,6 +868,9 @@ export function StudioNodeCard(props: NodeProps) {
               liveCameraWire={data.liveCameraWire}
               liveAnimationWire={data.liveAnimationWire}
               liveTransformWire={data.liveTransformWire}
+              liveFogWire={data.liveFogWire}
+              liveSettingsExposure={data.liveSettingsExposure ?? null}
+              liveStudioLightWire={data.liveStudioLightWire}
               defaultConfig={data.defaultConfig}
             />
           ) : null}
@@ -917,6 +944,7 @@ export function StudioNodeCard(props: NodeProps) {
               className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
               value={typeof data.liveValue === "number" ? data.liveValue : null}
               defaultConfig={data.defaultConfig}
+              displayScale={flowZoom}
             />
           ) : null}
           {data.nodeId === "bar-meter" ? (
@@ -924,6 +952,7 @@ export function StudioNodeCard(props: NodeProps) {
               className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
               value={typeof data.liveValue === "number" ? data.liveValue : null}
               defaultConfig={data.defaultConfig}
+              displayScale={flowZoom}
             />
           ) : null}
           {data.nodeId === "led-indicator" ? (
@@ -934,9 +963,11 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "knob" ? (
             <KnobNodePanel
+              className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
               nodeId={id}
               defaultConfig={data.defaultConfig}
               updateValue={(nid, v) => updateNodeConfigFieldByNodeId(nid, "value", v)}
+              displayScale={flowZoom}
             />
           ) : null}
           {data.nodeId === "numeric-display" ? (
@@ -954,6 +985,7 @@ export function StudioNodeCard(props: NodeProps) {
                   data.inputHandles?.map((h) => h.id) ?? [...PLOTTER_INPUT_IDS]
                 }
                 config={coercePlotterConfig(data.defaultConfig)}
+                displayScale={flowZoom}
               />
             </ReadingPanel>
           ) : null}

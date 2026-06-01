@@ -199,7 +199,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 ## Phase 9+ — Planned (full NA parity roadmap)
 
-**Baseline after Tier A–C slice 2:** ~40 / 53 NA root types with import or full eval parity; **~13** still need physics epic or scene-domain wiring.
+**Baseline after Tier A–C slice 2 + scene wiring:** ~40 / 53 NA root types with import or eval parity; fog / exposure / studio light / morph wired into Model Viewer preview.
 
 ### Tier A — Utility / sim quick wins
 

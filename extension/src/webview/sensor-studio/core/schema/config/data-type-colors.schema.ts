@@ -14,5 +14,7 @@ export const dataTypeColorsSchema = z.object({
     camera: z.string().min(1).default("#93C5FD"),
     glbAnimation: z.string().min(1).default("#FBBF24"),
     transform: z.string().min(1).default("#FB923C"),
+    fog: z.string().min(1).default("#A78BFA"),
+    studioLight: z.string().min(1).default("#FDE047"),
   }),
 });

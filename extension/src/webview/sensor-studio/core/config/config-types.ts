@@ -37,6 +37,8 @@ export type DataTypeColorsPayload = {
   camera: string;
   glbAnimation: string;
   transform: string;
+  fog: string;
+  studioLight: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -52,7 +54,9 @@ export type NodeCatalogOutputPort = {
     | "environment"
     | "camera"
     | "glbAnimation"
-    | "transform";
+    | "transform"
+    | "fog"
+    | "studioLight";
   label: string;
 };
 

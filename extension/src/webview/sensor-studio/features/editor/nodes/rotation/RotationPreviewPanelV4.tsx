@@ -34,6 +34,10 @@ import {
   type Scene3DConfigV1,
   type StudioDirectionalLightV1,
 } from "./scene3d-config";
+import {
+  createPreviewFogRuntimeState,
+  syncPreviewSceneFog,
+} from "./rotation-preview-fog-runtime";
 import type { GlbMaterialPbrDriveRow } from "../../gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../gltf/studio-glb-material-texture";
 import type { GlbMaterialColorDriveRow } from "../../gltf/studio-glb-material-color";
@@ -501,6 +505,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       );
 
       const scene = new THREE.Scene();
+      const fogRuntime = createPreviewFogRuntimeState();
       let cubeTexture: THREE.CubeTexture | null = null;
 
       let lastEnvKey = "";
@@ -1126,6 +1131,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         ambient.color.copy(parseHexToThreeColor(s.lights.ambient.colorHex));
         ambient.intensity = s.lights.ambient.intensity;
         syncStudioDirectionals(s.lights.directionals);
+        syncPreviewSceneFog(scene, fogRuntime, s.fog);
         syncShadowRendering(modelRoot);
 
         applyGlbPartVisibilityByPathMap(glbPathIndex, glbPartsRef.current, partVisibilityDriveState);

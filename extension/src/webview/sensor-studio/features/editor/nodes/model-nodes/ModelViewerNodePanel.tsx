@@ -15,6 +15,9 @@ import { buildGlbAnimationPreviewSceneProps } from "../../gltf/build-glb-animati
 import { buildGlbScalarPreviewSceneProps } from "../../gltf/build-glb-scalar-preview-scene-props";
 import type { FlowWireTransformV1 } from "../transform/flow-wire-transform";
 import { mergeFlowWireTransformIntoScene3d } from "../transform/flow-wire-transform";
+import { mergeFlowSceneWiresIntoScene3d } from "../scene-fx/merge-flow-scene-wires";
+import type { FlowWireFogV1 } from "../scene-fx/flow-wire-fog";
+import type { FlowWireStudioLightV1 } from "../scene-fx/flow-wire-studio-light";
 import { rotationPreviewOrientationFromTransformWire } from "../transform/flow-wire-transform-preview-orientation";
 import { resolveStudioModelScopeNodeId, resolveStudioSourceModelGlbUrl } from "../../model/model-generated-bindings";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
@@ -26,6 +29,9 @@ export type ModelViewerNodePanelProps = {
   liveCameraWire?: FlowWireCameraV1 | null;
   liveAnimationWire?: FlowWireAnimationV1 | null;
   liveTransformWire?: FlowWireTransformV1 | null;
+  liveFogWire?: FlowWireFogV1 | null;
+  liveSettingsExposure?: number | null;
+  liveStudioLightWire?: FlowWireStudioLightV1 | null;
   defaultConfig: Record<string, unknown>;
 };
 
@@ -42,7 +48,7 @@ const MODEL_VIEWER_EMPTY_HINT =
  * No silent default mesh — stays empty until wired or linked to a configured Studio Model.
  */
 export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
-  const { nodeId, liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, liveTransformWire, defaultConfig } = props;
+  const { nodeId, liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, defaultConfig } = props;
 
   const nodes = useFlowEditorStore((s) => s.nodes);
   const edges = useFlowEditorStore((s) => s.edges);
@@ -95,8 +101,13 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
     };
     const withEnv = mergeFlowWireEnvironmentIntoScene3d(withModel, liveEnvironmentWire ?? null);
     const withCam = mergeFlowWireCameraIntoScene3d(withEnv, liveCameraWire ?? null);
-    return mergeFlowWireTransformIntoScene3d(withCam, liveTransformWire ?? null);
-  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire, liveTransformWire]);
+    const withXf = mergeFlowWireTransformIntoScene3d(withCam, liveTransformWire ?? null);
+    return mergeFlowSceneWiresIntoScene3d(withXf, {
+      fog: liveFogWire ?? null,
+      exposure: liveSettingsExposure ?? null,
+      studioLight: liveStudioLightWire ?? null,
+    });
+  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire]);
 
   const showGrid = readBoolean(defaultConfig, "showGrid", true);
 
@@ -108,8 +119,9 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
         flowNodeId: nodeId,
         catalogNodeId: "model-viewer",
         defaultConfig,
+        liveStudioLightWire: liveStudioLightWire ?? null,
       }),
-    [nodes, edges, nodeId, defaultConfig],
+    [nodes, edges, nodeId, defaultConfig, liveStudioLightWire],
   );
 
   const glbAnimationSceneProps = useMemo(

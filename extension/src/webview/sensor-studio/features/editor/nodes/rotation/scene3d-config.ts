@@ -238,6 +238,15 @@ export type Scene3DConfigV1 = {
       attachToDirectionalId: string | null;
     };
   };
+  /** Optional distance fog (flow **`fog`** wire or inspector). */
+  fog: {
+    enabled: boolean;
+    mode: "linear" | "exp2";
+    near: number;
+    far: number;
+    density: number;
+    colorHex: string;
+  };
 };
 
 export type Scene3DConfig = Scene3DConfigV1;
@@ -356,6 +365,14 @@ export const DEFAULT_SCENE3D_CONFIG_V1: Scene3DConfigV1 = {
       planeSize: 1,
       attachToDirectionalId: null,
     },
+  },
+  fog: {
+    enabled: false,
+    mode: "linear",
+    near: 1,
+    far: 50,
+    density: 0.05,
+    colorHex: "#1a1a2e",
   },
 };
 
@@ -520,6 +537,7 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
   const axesRaw = ((helpersRaw.axes ?? {}) as Record<string, unknown>) ?? {};
   const camHelpRaw = ((helpersRaw.camera ?? {}) as Record<string, unknown>) ?? {};
   const dirHelpRaw = ((helpersRaw.directionalLight ?? {}) as Record<string, unknown>) ?? {};
+  const fogRaw = (o.fog ?? {}) as Record<string, unknown>;
 
   const ambientRaw = ((lightsRaw.ambient ?? {}) as Record<string, unknown>) ?? {};
 
@@ -732,6 +750,14 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
           return id;
         })(),
       },
+    },
+    fog: {
+      enabled: asBool(fogRaw.enabled, d.fog.enabled),
+      mode: fogRaw.mode === "exp2" ? "exp2" : "linear",
+      near: clamp(asFiniteNumber(fogRaw.near, d.fog.near), 0.001, 1e6),
+      far: clamp(asFiniteNumber(fogRaw.far, d.fog.far), 0.001, 1e6),
+      density: clamp(asFiniteNumber(fogRaw.density, d.fog.density), 0, 1),
+      colorHex: asHexColor(fogRaw.colorHex, d.fog.colorHex),
     },
   };
 }

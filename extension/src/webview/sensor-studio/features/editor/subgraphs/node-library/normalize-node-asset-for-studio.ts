@@ -628,6 +628,7 @@ function normalizeInnerNode(node: Node): Node {
         nodeId: "scene-light",
         defaultConfig: {
           lightType,
+          lightTarget: typeof data.label === "string" ? data.label : "",
           intensity: typeof data.intensity === "number" ? data.intensity : 1,
           r: typeof data.r === "number" ? data.r : 1,
           g: typeof data.g === "number" ? data.g : 1,

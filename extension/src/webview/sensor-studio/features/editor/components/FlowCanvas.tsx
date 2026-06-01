@@ -79,6 +79,8 @@ type FlowCanvasProps = {
   cameraColor: string;
   glbAnimationColor: string;
   transformColor: string;
+  fogColor: string;
+  studioLightColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   catalogEntries: readonly NodeCatalogEntry[];
   onAddCatalogEntryAtFlowPosition: (
@@ -128,6 +130,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     cameraColor,
     glbAnimationColor,
     transformColor,
+    fogColor,
+    studioLightColor,
     minimapCategoryColors,
     catalogEntries,
     onAddCatalogEntryAtFlowPosition,
@@ -177,6 +181,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
         cameraColor,
         glbAnimationColor,
         transformColor,
+        fogColor,
+        studioLightColor,
       }),
     [
       numberColor,
@@ -189,6 +195,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
       cameraColor,
       glbAnimationColor,
       transformColor,
+      fogColor,
+      studioLightColor,
     ],
   );
 

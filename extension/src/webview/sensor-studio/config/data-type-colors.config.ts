@@ -14,5 +14,7 @@ export const DATA_TYPE_COLORS_DEFAULTS: DataTypeColorsConfig = {
     camera: "#93C5FD",
     glbAnimation: "#FBBF24",
     transform: "#FB923C",
+    fog: "#A78BFA",
+    studioLight: "#FDE047",
   },
 };

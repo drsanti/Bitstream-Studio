@@ -8,8 +8,11 @@ import {
   type StudioFlowEdgeLike,
 } from "../model/model-generated-bindings";
 import {
+  collectFlowMorphTargetDrivesForModel,
+  collectFlowSceneLightGlbDrivesForModel,
   collectGlbScalarDrivesForModel,
 } from "./studio-glb-flow-drives";
+import type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
 
 type FlowNodeLike = {
   id: string;
@@ -39,6 +42,7 @@ export function buildGlbScalarPreviewSceneProps(args: {
   flowNodeId: string;
   catalogNodeId: string;
   defaultConfig: Record<string, unknown>;
+  liveStudioLightWire?: FlowWireStudioLightV1 | null;
 }): GlbScalarPreviewSceneProps {
   const sourceModelNodeId = resolveStudioModelScopeNodeId({
     nodes: args.nodes,
@@ -49,16 +53,23 @@ export function buildGlbScalarPreviewSceneProps(args: {
   });
 
   const glbDrives = collectGlbScalarDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
+  const flowMorphs = collectFlowMorphTargetDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
+  const flowSceneLights = collectFlowSceneLightGlbDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
   const materialEval = evaluateMaterialGraphForModel(args.nodes, sourceModelNodeId, args.edges);
   const materialCompact = compactMaterialGraphEvaluation(materialEval);
-  const morphKeys = Object.keys(glbDrives.morphs);
-  const lightKeys = Object.keys(glbDrives.lights);
+  const morphs = { ...glbDrives.morphs, ...flowMorphs };
+  const lights = { ...glbDrives.lights, ...flowSceneLights };
+  if (args.liveStudioLightWire?.glbLightName) {
+    lights[args.liveStudioLightWire.glbLightName] = args.liveStudioLightWire.intensity;
+  }
+  const morphKeys = Object.keys(morphs);
+  const lightKeys = Object.keys(lights);
   const partKeys = Object.keys(glbDrives.parts);
   const cameraKeys = Object.keys(glbDrives.cameras);
 
   return {
-    glbMorphWeights: morphKeys.length > 0 ? glbDrives.morphs : undefined,
-    glbLightIntensityByName: lightKeys.length > 0 ? glbDrives.lights : undefined,
+    glbMorphWeights: morphKeys.length > 0 ? morphs : undefined,
+    glbLightIntensityByName: lightKeys.length > 0 ? lights : undefined,
     glbPartVisibilityByPath: partKeys.length > 0 ? glbDrives.parts : undefined,
     glbMaterialPbrByName: materialCompact.glbMaterialPbrByName,
     glbMaterialTexturesByName: materialCompact.glbMaterialTexturesByName,

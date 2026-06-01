@@ -17,6 +17,8 @@ const theme = {
   cameraColor: "#222222",
   glbAnimationColor: "#333333",
   transformColor: "#444444",
+  fogColor: "#555555",
+  studioLightColor: "#666666",
 };
 
 describe("flow-port-edge-colors", () => {

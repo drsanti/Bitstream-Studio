@@ -1,3 +1,4 @@
+import { evaluateMorphWeight } from "../../../core/flow/scene-fx-operations";
 import { buildGlbAnimEventPreviewDrive } from "../nodes/events/glb-anim-event-config";
 import { readGlbPartDriveScalar } from "../nodes/events/glb-part-event-config";
 import { coerceNumberConstantValue } from "../nodes/constants/number-constant-helpers";
@@ -252,4 +253,85 @@ export function collectGlbMaterialColorDrivesForModel(
     colors[tag.ref] = mergeGlbMaterialColorDriveRow(colors[tag.ref], target, rgb);
   }
   return colors;
+}
+
+function readMorphTargetId(cfg: Record<string, unknown>): string {
+  const raw =
+    typeof cfg.morphTargetId === "string"
+      ? cfg.morphTargetId
+      : typeof cfg.label === "string"
+        ? cfg.label
+        : "";
+  return raw.trim();
+}
+
+function readSceneLightGlbTarget(cfg: Record<string, unknown>): string {
+  const raw =
+    typeof cfg.lightTarget === "string"
+      ? cfg.lightTarget
+      : typeof cfg.label === "string"
+        ? cfg.label
+        : "";
+  return raw.trim();
+}
+
+/** Morph weights from **`morph-target`** nodes scoped to the active Model. */
+export function collectFlowMorphTargetDrivesForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): Record<string, number> {
+  const morphs: Record<string, number> = {};
+  if (sourceModelNodeId.trim().length === 0) {
+    return morphs;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "morph-target") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const ref = readMorphTargetId(n.data.defaultConfig);
+    if (ref.length === 0) {
+      continue;
+    }
+    const wired =
+      typeof n.data.liveValue === "number" && Number.isFinite(n.data.liveValue)
+        ? n.data.liveValue
+        : n.data.defaultConfig.value;
+    morphs[ref] = evaluateMorphWeight(wired, n.data.defaultConfig.value);
+  }
+  return morphs;
+}
+
+/** Embedded GLB light intensities from scoped **`scene-light`** nodes with a target name. */
+export function collectFlowSceneLightGlbDrivesForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): Record<string, number> {
+  const lights: Record<string, number> = {};
+  if (sourceModelNodeId.trim().length === 0) {
+    return lights;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "scene-light") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const name = readSceneLightGlbTarget(n.data.defaultConfig);
+    if (name.length === 0) {
+      continue;
+    }
+    const wired =
+      typeof n.data.liveValue === "number" && Number.isFinite(n.data.liveValue)
+        ? n.data.liveValue
+        : n.data.defaultConfig.intensity;
+    const v = typeof wired === "number" && Number.isFinite(wired) ? wired : Number(wired ?? 1);
+    lights[name] = Math.max(0, v);
+  }
+  return lights;
 }

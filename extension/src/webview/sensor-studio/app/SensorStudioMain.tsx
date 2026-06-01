@@ -845,6 +845,8 @@ export function SensorStudioMain() {
         cameraColor={dataTypeColors.camera}
         glbAnimationColor={dataTypeColors.glbAnimation}
         transformColor={dataTypeColors.transform}
+        fogColor={dataTypeColors.fog}
+        studioLightColor={dataTypeColors.studioLight}
         minimapCategoryColors={minimapCategoryColors}
         entries={catalog}
         nodes={nodes}

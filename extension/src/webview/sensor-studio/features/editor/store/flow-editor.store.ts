@@ -88,6 +88,18 @@ import {
   evaluateFrameDelta,
   evaluateSceneTime,
 } from "../../../core/flow/scene-time-operations";
+import type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
+import {
+  coerceFlowWireFogV1,
+  flowWireFogFromEval,
+  isFlowWireFogV1,
+} from "../nodes/scene-fx/flow-wire-fog";
+import type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
+import {
+  coerceFlowWireStudioLightV1,
+  flowWireStudioLightFromEval,
+  isFlowWireStudioLightV1,
+} from "../nodes/scene-fx/flow-wire-studio-light";
 import { evaluateSceneSettingsExposure } from "../../../core/flow/scene-settings-operations";
 import {
   evaluateTransformPartialVec3,
@@ -264,6 +276,8 @@ export type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-envir
 export type { FlowWireCameraV1 } from "../nodes/camera-view/flow-wire-camera";
 export type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation";
 export type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
+export type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
+export type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
 
 export type StudioPortType =
   | "number"
@@ -275,7 +289,9 @@ export type StudioPortType =
   | "environment"
   | "camera"
   | "glbAnimation"
-  | "transform";
+  | "transform"
+  | "fog"
+  | "studioLight";
 
 /** Present only while Bitstream provides a matching hardware sample for this node. */
 export type SensorHardwareStreamLive = "live";
@@ -298,6 +314,12 @@ export const STUDIO_HANDLE_CAM = "cam";
 export const STUDIO_HANDLE_ANIM = "anim";
 /** Optional transform input on 3D canvas nodes (model position / rotation / scale). */
 export const STUDIO_HANDLE_XF = "xf";
+/** Optional exposure override on 3D canvas nodes (from **Scene Settings** `out`). */
+export const STUDIO_HANDLE_SETTINGS = "settings";
+/** Optional fog override on 3D canvas nodes. */
+export const STUDIO_HANDLE_FOG = "fog";
+/** Optional studio rig light override on 3D canvas nodes. */
+export const STUDIO_HANDLE_LITE = "lite";
 
 /** Single-output nodes that mirror one BMI270 stream (live hardware or synthesized feed). */
 export const BMI270_TAP_NODE_IDS = [
@@ -432,6 +454,12 @@ export type StudioNodeData = {
   liveAnimationWire?: FlowWireAnimationV1;
   /** Incoming **`xf`** pin snapshot for 3D canvas nodes (model transform). */
   liveTransformWire?: FlowWireTransformV1;
+  /** Incoming **`settings`** pin snapshot (renderer exposure). */
+  liveSettingsExposure?: number;
+  /** Incoming **`fog`** pin snapshot for 3D canvas nodes. */
+  liveFogWire?: FlowWireFogV1;
+  /** Incoming **`lite`** pin snapshot for 3D canvas nodes (studio rig light). */
+  liveStudioLightWire?: FlowWireStudioLightV1;
   liveHistory?: number[];
   /** Multi-channel numeric history for plotter (`handleId` → samples). */
   livePlotHistory?: Record<string, number[]>;
@@ -1704,6 +1732,45 @@ function flowValueAsTransform(v: unknown): FlowWireTransformV1 | null {
     return null;
   }
   return coerceFlowWireTransformV1(v);
+}
+
+function flowValueAsFog(v: unknown): FlowWireFogV1 | null {
+  if (!isFlowWireFogV1(v)) {
+    return null;
+  }
+  return coerceFlowWireFogV1(v);
+}
+
+function flowValueAsStudioLight(v: unknown): FlowWireStudioLightV1 | null {
+  if (!isFlowWireStudioLightV1(v)) {
+    return null;
+  }
+  return coerceFlowWireStudioLightV1(v);
+}
+
+function applyIncomingSceneFxWires(
+  base: StudioNodeData,
+  nodeId: string,
+  readIncomingForNode: (handle: string) => unknown,
+): void {
+  const exp = narrowNumber(readIncomingForNode(STUDIO_HANDLE_SETTINGS));
+  if (exp != null) {
+    base.liveSettingsExposure = exp;
+  } else {
+    delete base.liveSettingsExposure;
+  }
+  const fogWire = flowValueAsFog(readIncomingForNode(STUDIO_HANDLE_FOG));
+  if (fogWire != null) {
+    base.liveFogWire = fogWire;
+  } else {
+    delete base.liveFogWire;
+  }
+  const liteWire = flowValueAsStudioLight(readIncomingForNode(STUDIO_HANDLE_LITE));
+  if (liteWire != null) {
+    base.liveStudioLightWire = liteWire;
+  } else {
+    delete base.liveStudioLightWire;
+  }
 }
 
 type StudioSimulationPinValue =
@@ -4590,6 +4657,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(studioFlowPinKey(node.id, "near"), out.near);
           pinValues.set(studioFlowPinKey(node.id, "far"), out.far);
           pinValues.set(studioFlowPinKey(node.id, "density"), out.density);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            flowWireFogFromEval(out, cfg as Record<string, unknown>),
+          );
           continue;
         }
 
@@ -4627,6 +4698,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(studioFlowPinKey(node.id, "x"), light.x);
           pinValues.set(studioFlowPinKey(node.id, "y"), light.y);
           pinValues.set(studioFlowPinKey(node.id, "z"), light.z);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            flowWireStudioLightFromEval(light, cfg as Record<string, unknown>),
+          );
           continue;
         }
 
@@ -5273,6 +5348,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           delete dataWithoutSensorMode.liveTransformWire;
         }
         if (
+          node.data.nodeId !== "rotation-3d-euler" &&
+          node.data.nodeId !== "rotation-3d-quaternion" &&
+          node.data.nodeId !== "model-viewer"
+        ) {
+          delete dataWithoutSensorMode.liveSettingsExposure;
+          delete dataWithoutSensorMode.liveFogWire;
+          delete dataWithoutSensorMode.liveStudioLightWire;
+        }
+        if (
           node.data.nodeId !== "bmi270-input" &&
           node.data.nodeId !== "dps368-input" &&
           node.data.nodeId !== "sht40-input" &&
@@ -5303,6 +5387,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "camera-view" ||
           node.data.nodeId === "object-transform" ||
           node.data.nodeId === "transform-from-euler" ||
+          node.data.nodeId === "fog" ||
+          node.data.nodeId === "scene-light" ||
           isPlotterNodeId(node.data.nodeId) ||
           BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
           ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
@@ -5643,6 +5729,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveAnimationWire;
           }
+          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
         }
 
         if (node.data.nodeId === "rotation-3d-quaternion") {
@@ -5676,6 +5763,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveAnimationWire;
           }
+          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
         }
 
         if (node.data.nodeId === "model-viewer") {
@@ -5724,6 +5812,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveTransformWire;
           }
+          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
+        }
+
+        if (node.data.nodeId === "morph-target") {
+          base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)) ?? null);
+        }
+
+        if (node.data.nodeId === "scene-light") {
+          base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, "intensity")) ?? null);
         }
 
         if (node.data.nodeId === "vector-splitter") {
