@@ -29,18 +29,11 @@ import {
   PaletteSensorTreeLayoutProvider,
 } from "./node-palette/palette-sensor-tree-layout-context";
 import {
-  SENSOR_FAMILY_TREE_LAYOUT_OPTIONS,
   type SensorFamilyTreeGutterRole,
 } from "./node-palette/sensor-family-tree-layout";
 import {
   readStoredPaletteCollapsedSubgroups,
-  readStoredPaletteDensity,
-  readStoredPaletteLayout,
-  readStoredPaletteSensorTreeLayout,
   writeStoredPaletteCollapsedSubgroups,
-  writeStoredPaletteDensity,
-  writeStoredPaletteLayout,
-  writeStoredPaletteSensorTreeLayout,
   type NodePaletteDensity,
   type SensorFamilyTreeLayout,
 } from "./node-palette/node-palette-ui-persistence";
@@ -49,7 +42,6 @@ import { NodePaletteClassic } from "./node-palette/NodePaletteClassic";
 import { NodePaletteSectioned } from "./node-palette/NodePaletteSectioned";
 import { NodePaletteTwoLine } from "./node-palette/NodePaletteTwoLine";
 import { NodePaletteAccordion } from "./node-palette/NodePaletteAccordion";
-import { PaletteLayoutSwitcher } from "./node-palette/PaletteLayoutSwitcher";
 
 type NodePaletteTabId = "nodes" | "simulation" | "glb" | "groups";
 
@@ -154,16 +146,13 @@ export function NodePalette(props: NodePaletteProps) {
   const [tab, setTab] = useState<NodePaletteTabId>("nodes");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sensorFamilyFilter, setSensorFamilyFilter] = useState<SensorFamilyFilter>("all");
-  const [density, setDensity] = useState<NodePaletteDensity>(() => readStoredPaletteDensity());
+  // Locked modes (for now): keep the palette in Dense + Compact tree + Sectioned layout.
+  const density: NodePaletteDensity = "dense";
   const [collapsedSubgroups, setCollapsedSubgroups] = useState<Set<PaletteSensorSubgroup>>(
     () => readStoredPaletteCollapsedSubgroups(),
   );
-  const [sensorTreeLayout, setSensorTreeLayout] = useState<SensorFamilyTreeLayout>(() =>
-    readStoredPaletteSensorTreeLayout(),
-  );
-  const [paletteLayout, setPaletteLayout] = useState<NodePaletteLayoutMode>(() =>
-    readStoredPaletteLayout(defaultPaletteLayout),
-  );
+  const sensorTreeLayout: SensorFamilyTreeLayout = "compact";
+  const paletteLayout: NodePaletteLayoutMode = "sectioned";
 
   const nodeGroupLibrary = useFlowEditorStore((s) => s.nodeGroupLibrary);
   const parentModelFlowNodeId = useFlowEditorStore((s) => resolveSingleModelSelectParentId(s));
@@ -226,18 +215,6 @@ export function NodePalette(props: NodePaletteProps) {
     }
     return set;
   }, [modelNodes, parentModelFlowNodeId]);
-
-  useEffect(() => {
-    writeStoredPaletteDensity(density);
-  }, [density]);
-
-  useEffect(() => {
-    writeStoredPaletteSensorTreeLayout(sensorTreeLayout);
-  }, [sensorTreeLayout]);
-
-  useEffect(() => {
-    writeStoredPaletteLayout(paletteLayout);
-  }, [paletteLayout]);
 
   const secondaryTextColor = mutedTextColor ?? "#a1a1aa";
 
@@ -708,68 +685,6 @@ export function NodePalette(props: NodePaletteProps) {
             Library
           </h2>
           <div className="min-w-0 flex-1" aria-hidden />
-          <div
-            className="flex shrink-0 items-center gap-0.5 rounded-md bg-zinc-950/50 p-0.5 ring-1 ring-zinc-800/80"
-            role="group"
-            aria-label="Library list density"
-          >
-            <button
-              type="button"
-              aria-pressed={density === "comfortable"}
-              onClick={() => setDensity("comfortable")}
-              className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
-                density === "comfortable"
-                  ? "bg-zinc-800 text-zinc-100 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-              title="Comfortable spacing and type sizes"
-            >
-              Comfort
-            </button>
-            <button
-              type="button"
-              aria-pressed={density === "dense"}
-              onClick={() => setDensity("dense")}
-              className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
-                density === "dense"
-                  ? "bg-zinc-800 text-zinc-100 shadow-sm"
-                  : "text-zinc-500 hover:text-zinc-300"
-              }`}
-              title="Dense list: smaller rows and live preview text"
-            >
-              Dense
-            </button>
-          </div>
-          <div
-            className="flex shrink-0 items-center gap-0.5 rounded-md bg-zinc-950/50 p-0.5 ring-1 ring-zinc-800/80"
-            role="group"
-            aria-label="Sensor family tree layout"
-          >
-            {SENSOR_FAMILY_TREE_LAYOUT_OPTIONS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                aria-pressed={sensorTreeLayout === opt.id}
-                onClick={() => setSensorTreeLayout(opt.id)}
-                className={`rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
-                  sensorTreeLayout === opt.id
-                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
-                    : "text-zinc-500 hover:text-zinc-300"
-                }`}
-                title={opt.title}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <div className="hidden min-[420px]:block w-28 shrink-0">
-            <PaletteLayoutSwitcher
-              value={paletteLayout}
-              onChange={setPaletteLayout}
-              borderColor={borderColor}
-              secondaryTextColor={secondaryTextColor}
-            />
-          </div>
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             <span
               className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium tabular-nums text-zinc-400"
