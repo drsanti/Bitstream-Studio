@@ -1,11 +1,14 @@
 import type { StudioNodeData } from "../../store/flow-editor.store";
-import { STUDIO_HANDLE_IN, STUDIO_HANDLE_OUT } from "../../store/flow-editor.store";
 import { isStudioFlowNode } from "../../layout/layout-port-resolution";
 import type {
   LiveReadingStreamTone,
   LiveScalarReadingColorHints,
 } from "./readings/live-reading-colors";
 import { resolveLiveReadingStreamTone } from "./readings/live-reading-colors";
+
+/** Local aliases — avoid importing runtime values from `flow-editor.store` (circular via sync helpers). */
+const STUDIO_HANDLE_IN = "in";
+const STUDIO_HANDLE_OUT = "out";
 
 export type IncomingFlowEdge = {
   source: string;

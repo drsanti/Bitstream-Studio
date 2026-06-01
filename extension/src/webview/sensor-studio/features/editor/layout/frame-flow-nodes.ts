@@ -422,3 +422,94 @@ export function applyFlowFrameDragStop(
 
   return { nodes: next, changed };
 }
+
+/** Wrap selected top-level nodes in a new frame (node-animator parity). */
+export function createFrameAroundNodes(
+  contentNodes: FlowGraphNode[],
+): { frame: FlowGraphNode; children: FlowGraphNode[] } {
+  if (contentNodes.length === 0) {
+    const frame = buildFrameAroundEmpty();
+    return { frame, children: [] };
+  }
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const n of contentNodes) {
+    const abs = nodeAbsolutePosition(n, contentNodes);
+    const { w, h } = getFlowNodeMeasuredSize(n);
+    minX = Math.min(minX, abs.x);
+    minY = Math.min(minY, abs.y);
+    maxX = Math.max(maxX, abs.x + w);
+    maxY = Math.max(maxY, abs.y + h);
+  }
+
+  const frame = buildFrameAroundEmpty();
+  const inset = resolveFrameInsets(frame.data as FrameLayoutNodeData);
+  const framePos = { x: minX - inset.left, y: minY - inset.contentTop };
+  const frameWidth = Math.max(FRAME_MIN_WIDTH, maxX - minX + inset.left + inset.right);
+  const frameHeight = Math.max(
+    FRAME_MIN_HEIGHT,
+    maxY - minY + inset.contentTop + inset.bottom,
+  );
+  const frameNode: FlowGraphNode = {
+    ...frame,
+    position: framePos,
+    style: { ...frame.style, width: frameWidth, height: frameHeight },
+    width: frameWidth,
+    height: frameHeight,
+  };
+
+  const children = contentNodes.map((n) => attachNodeToFrame(n, frameNode, contentNodes));
+  return { frame: frameNode, children };
+}
+
+function buildFrameAroundEmpty(): FlowGraphNode {
+  const id = `frame_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  return {
+    id,
+    type: "studio-frame",
+    position: { x: 0, y: 0 },
+    data: {
+      label: "Frame",
+      padding: FRAME_FIT_PAD,
+      headerHeight: FRAME_HEADER_H,
+      padTop: 4,
+    },
+    dragHandle: ".studio-frame-node__drag",
+    selectable: true,
+    draggable: true,
+    zIndex: -1,
+    style: {
+      width: DEFAULT_FRAME_SIZE.width,
+      height: DEFAULT_FRAME_SIZE.height,
+    },
+  };
+}
+
+/** Detach selected nodes from their parent frame (if any). */
+export function detachNodesFromFrame(
+  nodeIds: readonly string[],
+  nodes: FlowGraphNode[],
+): { nodes: FlowGraphNode[]; changed: boolean } {
+  const idSet = new Set(nodeIds);
+  let next = nodes;
+  let changed = false;
+  for (const id of nodeIds) {
+    if (!idSet.has(id)) {
+      continue;
+    }
+    const node = next.find((n) => n.id === id);
+    if (node?.parentId == null) {
+      continue;
+    }
+    const parent = next.find((p) => p.id === node.parentId);
+    if (parent == null || !isStudioFrameNode(parent)) {
+      continue;
+    }
+    next = next.map((n) => (n.id === id ? detachNodeFromFrame(node, next) : n));
+    changed = true;
+  }
+  return { nodes: changed ? next : nodes, changed };
+}

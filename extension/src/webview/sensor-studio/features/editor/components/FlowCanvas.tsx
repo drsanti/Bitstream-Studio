@@ -51,6 +51,8 @@ import { parseStudioGlbExtractDragData, type StudioGlbExtractDragPayloadV1 } fro
 import { parseStudioNodeGroupAssetDragData } from "./node-palette/node-group-asset-drag";
 import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
 import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
+import { FlowCanvasToolbar } from "./flow-toolbar/FlowCanvasToolbar";
+import { NodeSelectionToolbar } from "./flow-toolbar/NodeSelectionToolbar";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
 import { resolveFlowSourcePortType } from "../layout/layout-port-resolution";
@@ -220,6 +222,24 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     [connectingLineStroke],
   );
 
+  const fitAllInView = useCallback(() => {
+    reactFlowRef.current?.fitView({
+      duration: 240,
+      padding: 0.2,
+    });
+  }, []);
+
+  const fitSelectionInView = useCallback((nodeIds: string[]) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    reactFlowRef.current?.fitView({
+      nodes: nodeIds.map((id) => ({ id })),
+      padding: 0.45,
+      duration: 220,
+    });
+  }, []);
+
   const addableEntries = useMemo(() => listAddableCatalogEntries(catalogEntries), [catalogEntries]);
 
   useFlowCanvasLayoutShortcuts(lastPointerRef, reactFlowRef);
@@ -254,8 +274,10 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
         const group = selectedGroups[0]!;
         return group.data.subgraphId ?? group.id;
       },
+      fitSelectionInView,
+      fitAllInView,
     }),
-    [addNodeMenuAnchor, nodes],
+    [addNodeMenuAnchor, fitAllInView, fitSelectionInView, nodes],
   );
 
   const openAddNodeMenuAtPointer = useCallback((clientX: number, clientY: number) => {
@@ -511,6 +533,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
             <FlowGraphBreadcrumb />
           </div>
         </div>
+        <FlowCanvasToolbar onFitAll={fitAllInView} />
+        <NodeSelectionToolbar wrapperRef={graphWrapperRef} onFitSelection={fitSelectionInView} />
         <ReactFlow<FlowGraphNode>
           colorMode="dark"
           proOptions={{ hideAttribution: true }}

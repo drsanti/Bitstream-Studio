@@ -190,9 +190,30 @@ export const StandaloneWorkbench = memo(
       triggerImportLayout,
     ]);
 
+    const onLayoutMenuPropsChangeRef = useRef(onLayoutMenuPropsChange);
     useEffect(() => {
-      onLayoutMenuPropsChange?.(layoutMenuProps);
-    }, [layoutMenuProps, onLayoutMenuPropsChange]);
+      onLayoutMenuPropsChangeRef.current = onLayoutMenuPropsChange;
+    }, [onLayoutMenuPropsChange]);
+
+    const layoutMenuSignature = useMemo(() => {
+      if (layoutMenuProps == null) {
+        return "null";
+      }
+      const presetSig = layoutMenuProps.presets.map((p) => p.id).join("|");
+      const namedSig = layoutMenuProps.namedLayouts
+        .map((l) => `${l.id}:${l.updatedAt ?? ""}`)
+        .join("|");
+      return `${layoutMenuProps.startupPreference}__${presetSig}__${namedSig}`;
+    }, [layoutMenuProps]);
+
+    const lastLayoutMenuSignatureRef = useRef<string | null>(null);
+    useEffect(() => {
+      if (lastLayoutMenuSignatureRef.current === layoutMenuSignature) {
+        return;
+      }
+      lastLayoutMenuSignatureRef.current = layoutMenuSignature;
+      onLayoutMenuPropsChangeRef.current?.(layoutMenuProps);
+    }, [layoutMenuProps, layoutMenuSignature]);
 
     const commandItems = useMemo(() => {
       const items = [...managed.commandItems];

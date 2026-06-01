@@ -2,7 +2,6 @@ import type { StudioNodeData, StudioOutputHandleDef } from "../../store/flow-edi
 import {
   isStudioLiveReadingsInputNodeId,
   isStudioSensorTapNodeId,
-  STUDIO_HANDLE_IN,
   studioFlowPinKey,
 } from "../../store/flow-editor.store";
 import type {
@@ -14,6 +13,9 @@ import {
   type IncomingFlowEdge,
 } from "./resolve-input-scalar-hints";
 import type { StudioPortType } from "../port-accent";
+
+/** Local handle ids — avoid importing runtime values from `flow-editor.store` (circular init). */
+const STUDIO_HANDLE_IN = "in";
 
 /** Bundled wire types — no scalar/bool/string preview on the socket row. */
 export const SOCKET_PREVIEW_STRUCTURED_PORT_TYPES = new Set<StudioPortType>([
