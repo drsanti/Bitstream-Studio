@@ -692,10 +692,11 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "gauge",
         category: "output",
-        title: "Gauge",
-        description: "Show numeric value as a compact gauge tile.",
+        title: "Gauge (legacy)",
+        description:
+          "Deprecated — opens as Bar Meter on load. Use Bar Meter or Radial Gauge for new graphs.",
         icon: "gauge",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {
           unit: "",
           decimals: 3,
@@ -710,6 +711,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultVisible: true,
         defaultConfig: {
           historySize: 24,
+          strokeColor: "#22d3ee",
+          strokeWidth: 3,
         },
       },
       {

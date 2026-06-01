@@ -13,9 +13,14 @@ import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSectio
 import { LerpSettingsSection } from "./sections/LerpSettingsSection";
 import { LogicGateSettingsSection } from "./sections/LogicGateSettingsSection";
 import { MultiplexerSettingsSection } from "./sections/MultiplexerSettingsSection";
+import { LedIndicatorSettingsSection } from "./sections/LedIndicatorSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
 import { ValueNormalizerSettingsSection } from "./sections/ValueNormalizerSettingsSection";
+import { BarMeterSettingsSection } from "./sections/BarMeterSettingsSection";
+import { KnobSettingsSection } from "./sections/KnobSettingsSection";
+import { NumericDisplaySettingsSection } from "./sections/NumericDisplaySettingsSection";
+import { RadialGaugeSettingsSection } from "./sections/RadialGaugeSettingsSection";
 import { MathSettingsSection } from "./sections/MathSettingsSection";
 import { NumberConstantSettingsSection } from "./sections/NumberConstantSettingsSection";
 import { EventSetBooleanSettingsSection } from "./sections/EventSetBooleanSettingsSection";
@@ -47,7 +52,13 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "map-range": MapRangeSettingsSection,
   clamp: ClampSettingsSection,
   "low-pass": LowPassSettingsSection,
+  /** @deprecated Legacy gauge — migrates to bar-meter on hydrate. */
   gauge: GaugeSettingsSection,
+  "radial-gauge": RadialGaugeSettingsSection,
+  "bar-meter": BarMeterSettingsSection,
+  knob: KnobSettingsSection,
+  "numeric-display": NumericDisplaySettingsSection,
+  "led-indicator": LedIndicatorSettingsSection,
   sparkline: SparklineSettingsSection,
   plotter: PlotterSettingsSection,
   /** @deprecated Migrated to `plotter` on hydrate. */

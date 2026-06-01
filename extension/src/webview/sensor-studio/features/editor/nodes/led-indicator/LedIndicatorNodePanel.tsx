@@ -1,45 +1,28 @@
 /** LED indicator node panel — HTML/CSS (no canvas needed). */
 
-type LedConfig = {
-  label: string;
-  onColor: string;
-  offColor: string;
-  threshold: number;
-  blink: boolean;
-};
-
-function coerceConfig(dc: Record<string, unknown>): LedConfig {
-  return {
-    label: typeof dc.label === "string" ? dc.label : "LED",
-    onColor: typeof dc.onColor === "string" ? dc.onColor : "#22c55e",
-    offColor: typeof dc.offColor === "string" ? dc.offColor : "#18181b",
-    threshold: typeof dc.threshold === "number" ? dc.threshold : 0.5,
-    blink: dc.blink === true,
-  };
-}
-
-function isOn(value: number | boolean | string | null | undefined, threshold: number): boolean {
-  if (value == null) return false;
-  if (typeof value === "boolean") return value;
-  if (typeof value === "number") return value >= threshold;
-  if (typeof value === "string") return value === "true" || value === "1";
-  return false;
-}
+import {
+  coerceLedIndicatorConfig,
+  ledIndicatorIsOn,
+} from "../display/led-indicator-config";
+import { gaugeCanvasHealthPanelClassName } from "../display/gauge-canvas-health";
+import type { SensorHealthStatus } from "../../store/flow-editor.store";
 
 type Props = {
   value: number | boolean | string | null | undefined;
   defaultConfig: Record<string, unknown>;
+  sensorHealth?: SensorHealthStatus;
 };
 
-export function LedIndicatorNodePanel({ value, defaultConfig }: Props) {
-  const cfg = coerceConfig(defaultConfig);
-  const on = isOn(value, cfg.threshold);
+export function LedIndicatorNodePanel({ value, defaultConfig, sensorHealth }: Props) {
+  const cfg = coerceLedIndicatorConfig(defaultConfig);
+  const on = ledIndicatorIsOn(value, cfg.threshold);
+  const healthClass = gaugeCanvasHealthPanelClassName(sensorHealth);
 
   return (
-    <div className="nodrag flex items-center gap-2.5 px-3 py-2.5">
-      {/* LED bulb */}
+    <div
+      className={`nodrag flex items-center gap-2.5 px-3 py-2.5 transition-opacity duration-300 ${healthClass ?? ""}`}
+    >
       <div className="relative shrink-0">
-        {/* outer glow */}
         {on && (
           <div
             className="absolute inset-0 rounded-full"
@@ -49,9 +32,8 @@ export function LedIndicatorNodePanel({ value, defaultConfig }: Props) {
             }}
           />
         )}
-        {/* body */}
         <div
-          className={`h-5 w-5 rounded-full border transition-all duration-150 ${
+          className={`relative h-5 w-5 rounded-full border transition-all duration-150 ${
             cfg.blink && on ? "animate-pulse" : ""
           }`}
           style={{
@@ -62,7 +44,6 @@ export function LedIndicatorNodePanel({ value, defaultConfig }: Props) {
               : "inset 0 1px 2px rgba(0,0,0,0.4)",
           }}
         >
-          {/* specular highlight */}
           {on && (
             <div
               className="absolute rounded-full"
@@ -79,7 +60,6 @@ export function LedIndicatorNodePanel({ value, defaultConfig }: Props) {
         </div>
       </div>
 
-      {/* Label + state text */}
       <div className="flex min-w-0 flex-col gap-0.5">
         {cfg.label.length > 0 && (
           <span className="truncate text-[9px] font-medium uppercase tracking-widest text-zinc-500">

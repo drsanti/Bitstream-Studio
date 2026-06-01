@@ -1,4 +1,9 @@
 import { useLayoutEffect, useRef } from "react";
+import {
+  prepareHiDpiCanvas2d,
+  resolveStudioCanvasDpr,
+} from "../display/canvas-hi-dpi";
+import { useStudioCanvasDisplayScale } from "../display/studio-canvas-display-scale";
 import type { PlotterChannelStyle, PlotterConfig } from "./plotter-config";
 
 export type PlotterCanvasProps = {
@@ -6,6 +11,8 @@ export type PlotterCanvasProps = {
   histories: Record<string, number[]>;
   channelOrder: readonly string[];
   config: PlotterConfig;
+  /** React Flow viewport zoom on the canvas; omit (1) outside the flow pane. */
+  displayScale?: number;
 };
 
 function lineDash(style: PlotterChannelStyle["lineStyle"], lineWidth: number): number[] {
@@ -75,11 +82,18 @@ function legendBandPx(
 }
 
 export function PlotterCanvas(props: PlotterCanvasProps) {
-  const { className, histories, channelOrder, config } = props;
+  const {
+    className,
+    histories,
+    channelOrder,
+    config,
+    displayScale: displayScaleOverride,
+  } = props;
+  const displayScale = useStudioCanvasDisplayScale(displayScaleOverride);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dataRef = useRef({ histories, channelOrder, config });
-  dataRef.current = { histories, channelOrder, config };
+  const dataRef = useRef({ histories, channelOrder, config, displayScale });
+  dataRef.current = { histories, channelOrder, config, displayScale };
 
   const rafRef = useRef<number>(0);
 
@@ -96,17 +110,12 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
 
       const wCss = Math.max(1, wrap.clientWidth);
       const hCss = Math.max(1, wrap.clientHeight);
-      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-      canvas.width = Math.round(wCss * dpr);
-      canvas.height = Math.round(hCss * dpr);
-      canvas.style.removeProperty("width");
-      canvas.style.removeProperty("height");
-
       const ctx = canvas.getContext("2d");
       if (ctx == null) {
         return;
       }
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const dpr = resolveStudioCanvasDpr(dataRef.current.displayScale);
+      prepareHiDpiCanvas2d(canvas, ctx, wCss, hCss, dpr);
 
       const { histories: h, channelOrder: order, config: cfg } = dataRef.current;
 
@@ -283,7 +292,7 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
 
   useLayoutEffect(() => {
     schedulePaintRef.current();
-  }, [histories, channelOrder, config]);
+  }, [histories, channelOrder, config, displayScale]);
 
   const wrapClass =
     className ??

@@ -1,7 +1,19 @@
 # Tier D — Physics stack foundation (Sensor Studio / node-animator parity)
 
-**Status:** Planned — **Digital Twin gated** (Jolt / simulation hub in Bitstream Studio).  
+**Status:** **Future development** — design + tracker only (**D0 complete 2026-05-31**). No flow-canvas WASM runtime yet.  
+**Tracker:** [`extension/docs/DEVELOPMENT_TRACKER.md`](../../../docs/DEVELOPMENT_TRACKER.md) — *Planned / next → physics domain*, *Future / ideas → physics stack*.  
 **Related:** [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md), [`FLOW_DOMAINS.md`](./FLOW_DOMAINS.md), [`extension/docs/APPLICATION_MIGRATION_PLAN.md`](../../../docs/APPLICATION_MIGRATION_PLAN.md).
+
+## Current status (2026-05-31)
+
+| Milestone | State |
+|-----------|--------|
+| Scene FX preview (fog, bloom, contact shadows, camera-switch, particles) | **Shipped** — see scene wiring slices 1–3 |
+| Tier D physics nodes / evaluator | **Not started** (D1 next when scheduled) |
+| Digital Twin Jolt vehicle sim | **Partial** — `webview/simulations/vehicle-physics/` |
+| Rapier npm deps | Retained; no Sensor Studio integration |
+
+**Start condition:** Product un-gates physics after D1 stub slice is scheduled, or Digital Twin Phase 3 shares a reusable WASM bundle for Model Viewer preview.
 
 ## Scope (node-animator Tier D)
 
@@ -23,15 +35,30 @@ Sensor Studio **does not** ship a physics engine in the flow canvas today. Digit
 3. **Wire types, not raw numbers** — Follow Tier C scene FX: `FlowWireRigidBodyV1`, `FlowWireColliderV1`, merged into a `Scene3DConfigV1.physics` block or a parallel `PhysicsSceneV1` snapshot consumed by `RotationPreviewPanelV4` (or a dedicated physics viewport).
 4. **Reuse migration sources** — Port graph semantics from **node-animator** (`D:/CODE/2026/node-animator`) and **ternion-t3d** simulation stubs only as reference; canonical implementation lives under `extension/src/webview/sensor-studio/` when un-gated.
 
-## Phased delivery (when Digital Twin un-gates)
+## Phased delivery
 
-| Phase | Deliverable |
-|-------|-------------|
-| **D0** | This doc + tracker row; no runtime |
-| **D1** | Catalog stubs + NA import normalization + eval no-ops (parity count only) |
-| **D2** | `physics-world` + static colliders; Ammo/Jolt WASM in preview iframe |
-| **D3** | `rigid-body`, spawner, joints; Model Viewer optional **physics** input port |
-| **D4** | IK + animation-physics blend; E84 / vehicle sim hub integration |
+| Phase | Deliverable | Touch points (when implemented) |
+|-------|-------------|----------------------------------|
+| **D0** | This doc + tracker rows | **Done 2026-05-31** |
+| **D1** | Catalog stubs + NA import + eval no-ops | `node-catalog.config.ts`, `normalize-node-asset-for-studio.ts`, `flow-editor.store.ts`, `na-parity-tier-d.test.ts` |
+| **D2** | `physics-world` + static colliders; WASM in preview | `flow-wire-physics-scene.ts`, `scene3d-config.ts` **`physics`**, `rotation-preview-physics-runtime.ts`, Model Viewer **`phys`** port |
+| **D3** | Rigid bodies, spawner, joints | `physics-domain-eval.ts`, fixed-step tick in `useSensorStudioFlowTickScheduler` |
+| **D4** | IK + animation blend; hub integration | `studio-glb-preview-runtime.ts`, `simulations/vehicle-physics/` shared collider schema |
+
+### D1 checklist (first coding slice)
+
+- [ ] Add hidden catalog entries: `physics-world`, `rigid-body`, `box-collider`, `sphere-collider`, `object-spawner`, `fixed-joint`, `hinge-joint`, `ik-chain`
+- [ ] NA import mappings (`physics`, `rigidBody`, collider/joint types) in `normalize-node-asset-for-studio.ts`
+- [ ] Eval branches return empty / passthrough; no preview side effects
+- [ ] Port type **`physicsScene`** in schema + `data-type-colors` (wire color only)
+- [ ] Unit test: import round-trip + eval smoke
+
+### D2 checklist (first visible preview)
+
+- [ ] `FlowWirePhysicsSceneV1` merge into `scene3d.physics` (or parallel snapshot)
+- [ ] Lazy WASM init only when `physics-world.enabled` in merged config
+- [ ] Debug mesh for static colliders; no dynamics yet
+- [ ] Dev + VSIX smoke: graph without physics unchanged (no WASM load)
 
 ## Model Viewer integration (future)
 
@@ -42,6 +69,17 @@ Mirror scene FX ports:
 | `phys` | `physicsScene` | `physics-world` → `out` |
 
 Preview consumer: new `rotation-preview-physics-runtime.ts` stepping WASM and syncing Three.js mesh transforms (similar to `rotation-preview-particle-runtime.ts`).
+
+## Engine and product boundaries
+
+| Surface | Role |
+|---------|------|
+| **Hardware setup** | Physical truth — wheelbase, track width, wheel radius → collider placement |
+| **Physics setup (TRN)** | Engine gravity, solver iterations, debug draw (future) |
+| **Flow `physics-world`** | Graph-authoritative scene + body/collider/joint wiring |
+| **Simulation hub** | Standalone demos (E84, vehicle); may share WASM with D2+ |
+
+**Engine decision (open):** Prefer **Jolt** if vehicle hub WASM is packaged for webview reuse; **Rapier** remains fallback if flow-canvas needs lighter static/dynamic preview without hub coupling.
 
 ## Testing matrix (minimum when D2 ships)
 

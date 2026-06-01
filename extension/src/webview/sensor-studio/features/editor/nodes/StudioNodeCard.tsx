@@ -44,6 +44,7 @@ import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
 import { MapRangeNodePanel } from "./transform/MapRangeNodePanel";
 import { ClampNodePanel } from "./transform/ClampNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
+import { StudioFlowCanvasDisplayScaleProvider } from "./display/studio-canvas-display-scale";
 import {
   BooleanConstantNodePanel,
   NumberConstantNodePanel,
@@ -52,6 +53,7 @@ import { EnvironmentNodePanel } from "./environment/EnvironmentNodePanel";
 import { CameraViewNodePanel } from "./camera-view/CameraViewNodePanel";
 import { RotationPreviewPanelV4 } from "./rotation/RotationPreviewPanelV4";
 import { PlotterCanvas } from "./plotter/PlotterCanvas";
+import { SparklineNodePanel } from "./sparkline/SparklineNodePanel";
 import { RadialGaugeNodePanel } from "./radial-gauge/RadialGaugeNodePanel";
 import { BarMeterNodePanel } from "./bar-meter/BarMeterNodePanel";
 import { LedIndicatorNodePanel } from "./led-indicator/LedIndicatorNodePanel";
@@ -183,33 +185,7 @@ export function StudioNodeCard(props: NodeProps) {
         ? "-"
         : String(data.liveValue);
   const sparklineBars = (data.liveHistory ?? []).slice(-24);
-  const maxAbs = sparklineBars.reduce(
-    (acc, value) => Math.max(acc, Math.abs(value)),
-    1,
-  );
   const indicatorOn = data.nodeId === "indicator" && data.liveValue === true;
-  const gaugeValue = typeof data.liveValue === "number" ? data.liveValue : 0;
-  const gaugeRatio = Math.max(0, Math.min(1, (gaugeValue + 1) / 2));
-  const gaugeDecimals =
-    typeof data.defaultConfig.decimals === "number"
-      ? Math.max(0, Math.min(6, Math.round(data.defaultConfig.decimals)))
-      : 3;
-  const gaugeUnit =
-    typeof data.defaultConfig.unit === "string" ? data.defaultConfig.unit : "";
-  const sparkPoints =
-    sparklineBars.length > 0
-      ? sparklineBars
-          .map((value, index) => {
-            const x =
-              sparklineBars.length <= 1
-                ? 0
-                : (index / (sparklineBars.length - 1)) * 100;
-            const normalized = (value + maxAbs) / (maxAbs * 2);
-            const y = (1 - normalized) * 100;
-            return `${x.toFixed(2)},${y.toFixed(2)}`;
-          })
-          .join(" ")
-      : "";
 
   /** Hide `sim` — only surfaced when hardware stream is absent (no extra pill). */
   const sensorHealthBadge =
@@ -635,6 +611,7 @@ export function StudioNodeCard(props: NodeProps) {
   const resizeActive = isSelected && nodeResizable;
 
   return (
+    <StudioFlowCanvasDisplayScaleProvider value={flowZoom}>
     <div
       ref={shellRef}
       className={`relative w-full min-w-0 max-w-full ${utilityBodyFitsContent ? "h-auto" : "h-full"}`}
@@ -903,49 +880,14 @@ export function StudioNodeCard(props: NodeProps) {
               </span>
             </ReadingPanel>
           ) : null}
-          {data.nodeId === "gauge" ? (
-            <ReadingPanel className="space-y-1.5 text-xs">
-              <div className="text-right">
-                {typeof data.liveValue === "number" ? (
-                  <span className="inline-flex items-baseline justify-end gap-1 font-mono">
-                    <ReadingNumber
-                      value={data.liveValue}
-                      fractionDigits={gaugeDecimals}
-                      className="text-zinc-100"
-                    />
-                    {gaugeUnit.length > 0 ? (
-                      <span className="text-zinc-400">{gaugeUnit}</span>
-                    ) : null}
-                  </span>
-                ) : (
-                  <span className="font-mono text-zinc-300">—</span>
-                )}
-              </div>
-              <div className="h-2 w-full min-w-24 rounded bg-zinc-700/70">
-                <div
-                  className="h-2 rounded bg-cyan-400"
-                  style={{ width: `${Math.round(gaugeRatio * 100)}%` }}
-                />
-              </div>
-            </ReadingPanel>
-          ) : null}
           {data.nodeId === "sparkline" ? (
-            <ReadingPanel className="flex min-h-0 w-full max-w-full flex-col p-1">
-              <svg
-                viewBox="0 0 100 100"
-                preserveAspectRatio="none"
-                className="block h-10 w-full min-h-10 min-w-40 shrink-0"
-              >
-                <polyline
-                  fill="none"
-                  stroke="rgb(34 211 238)"
-                  strokeWidth="3"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                  vectorEffect="nonScalingStroke"
-                  points={sparkPoints}
-                />
-              </svg>
+            <ReadingPanel className="flex min-h-0 w-full max-w-full flex-col p-0">
+              <SparklineNodePanel
+                className="p-1"
+                history={data.liveHistory ?? sparklineBars}
+                defaultConfig={data.defaultConfig}
+                sensorHealth={data.sensorHealth}
+              />
             </ReadingPanel>
           ) : null}
           {data.nodeId === "radial-gauge" ? (
@@ -953,7 +895,7 @@ export function StudioNodeCard(props: NodeProps) {
               className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
               value={typeof data.liveValue === "number" ? data.liveValue : null}
               defaultConfig={data.defaultConfig}
-              displayScale={flowZoom}
+              sensorHealth={data.sensorHealth}
             />
           ) : null}
           {data.nodeId === "bar-meter" ? (
@@ -961,13 +903,14 @@ export function StudioNodeCard(props: NodeProps) {
               className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
               value={typeof data.liveValue === "number" ? data.liveValue : null}
               defaultConfig={data.defaultConfig}
-              displayScale={flowZoom}
+              sensorHealth={data.sensorHealth}
             />
           ) : null}
           {data.nodeId === "led-indicator" ? (
             <LedIndicatorNodePanel
               value={data.liveValue}
               defaultConfig={data.defaultConfig}
+              sensorHealth={data.sensorHealth}
             />
           ) : null}
           {data.nodeId === "knob" ? (
@@ -976,13 +919,13 @@ export function StudioNodeCard(props: NodeProps) {
               nodeId={id}
               defaultConfig={data.defaultConfig}
               updateValue={(nid, v) => updateNodeConfigFieldByNodeId(nid, "value", v)}
-              displayScale={flowZoom}
             />
           ) : null}
           {data.nodeId === "numeric-display" ? (
             <NumericDisplayNodePanel
               value={typeof data.liveValue === "number" ? data.liveValue : null}
               defaultConfig={data.defaultConfig}
+              sensorHealth={data.sensorHealth}
             />
           ) : null}
           {isPlotterNodeId(data.nodeId) ? (
@@ -994,7 +937,6 @@ export function StudioNodeCard(props: NodeProps) {
                   data.inputHandles?.map((h) => h.id) ?? [...PLOTTER_INPUT_IDS]
                 }
                 config={coercePlotterConfig(data.defaultConfig)}
-                displayScale={flowZoom}
               />
             </ReadingPanel>
           ) : null}
@@ -1052,5 +994,6 @@ export function StudioNodeCard(props: NodeProps) {
         ) : null}
       </FlowNodeShell>
     </div>
+    </StudioFlowCanvasDisplayScaleProvider>
   );
 }

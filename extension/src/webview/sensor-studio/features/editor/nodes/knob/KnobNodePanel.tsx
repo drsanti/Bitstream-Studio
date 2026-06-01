@@ -1,42 +1,17 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
-
-type Zone = { from: number; to: number; color: string };
-
-type KnobConfig = {
-  min: number;
-  max: number;
-  value: number;
-  step: number;
-  unit: string;
-  decimals: number;
-  zones: Zone[];
-};
+import {
+  prepareHiDpiCanvas2d,
+  resolveStudioCanvasDpr,
+} from "../display/canvas-hi-dpi";
+import { useStudioCanvasDisplayScale } from "../display/studio-canvas-display-scale";
+import {
+  coerceKnobConfig,
+  gaugeZoneColor,
+  type KnobConfig,
+} from "../display/gauge-display-config";
 
 function coerceConfig(dc: Record<string, unknown>): KnobConfig {
-  const min = typeof dc.min === "number" ? dc.min : 0;
-  const max = typeof dc.max === "number" ? dc.max : 100;
-  const val = typeof dc.value === "number" ? dc.value : min;
-  return {
-    min,
-    max,
-    value: Math.max(min, Math.min(max, val)),
-    step: typeof dc.step === "number" && dc.step > 0 ? dc.step : 0,
-    unit: typeof dc.unit === "string" ? dc.unit : "",
-    decimals: typeof dc.decimals === "number" ? Math.max(0, Math.min(4, Math.round(dc.decimals))) : 1,
-    zones: Array.isArray(dc.zones)
-      ? (dc.zones as Zone[]).filter(
-          (z) => typeof z?.from === "number" && typeof z?.to === "number" && typeof z?.color === "string",
-        )
-      : [],
-  };
-}
-
-function zoneColor(zones: Zone[], value: number, fallback: string): string {
-  let c = fallback;
-  for (const z of zones) {
-    if (value >= z.from && value <= z.to) c = z.color;
-  }
-  return c;
+  return coerceKnobConfig(dc);
 }
 
 const DEG = Math.PI / 180;
@@ -64,7 +39,7 @@ function draw(
 
   const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
   const valueRad = startRad + t * sweepRad;
-  const fillColor = zoneColor(zones, value, "#22d3ee");
+  const fillColor = gaugeZoneColor(zones, value, "#22d3ee");
 
   // track ring
   ctx.beginPath();
@@ -159,16 +134,26 @@ function draw(
 }
 
 type Props = {
+  className?: string;
   nodeId: string;
   defaultConfig: Record<string, unknown>;
   updateValue: (nodeId: string, value: number) => void;
+  /** React Flow viewport zoom on the canvas; omit (1) in the inspector preview. */
+  displayScale?: number;
 };
 
-export function KnobNodePanel({ nodeId, defaultConfig, updateValue }: Props) {
+export function KnobNodePanel({
+  className,
+  nodeId,
+  defaultConfig,
+  updateValue,
+  displayScale: displayScaleOverride,
+}: Props) {
+  const displayScale = useStudioCanvasDisplayScale(displayScaleOverride);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dataRef = useRef({ defaultConfig });
-  dataRef.current = { defaultConfig };
+  const dataRef = useRef({ defaultConfig, displayScale });
+  dataRef.current = { defaultConfig, displayScale };
 
   const draggingRef = useRef(false);
   const dragStartY = useRef(0);
@@ -185,12 +170,10 @@ export function KnobNodePanel({ nodeId, defaultConfig, updateValue }: Props) {
       if (!wrap || !canvas) return;
       const wCss = Math.max(1, wrap.clientWidth);
       const hCss = Math.max(1, wrap.clientHeight);
-      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-      canvas.width = Math.round(wCss * dpr);
-      canvas.height = Math.round(hCss * dpr);
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const dpr = resolveStudioCanvasDpr(dataRef.current.displayScale);
+      prepareHiDpiCanvas2d(canvas, ctx, wCss, hCss, dpr);
       const cfg = coerceConfig(dataRef.current.defaultConfig);
       draw(ctx, wCss, hCss, cfg.value, draggingRef.current, cfg);
     });
@@ -205,7 +188,7 @@ export function KnobNodePanel({ nodeId, defaultConfig, updateValue }: Props) {
     return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
   }, []);
 
-  useLayoutEffect(() => { schedulePaintRef.current(); }, [defaultConfig]);
+  useLayoutEffect(() => { schedulePaintRef.current(); }, [defaultConfig, displayScale]);
 
   const applyDelta = useCallback(
     (deltaY: number) => {
@@ -262,7 +245,10 @@ export function KnobNodePanel({ nodeId, defaultConfig, updateValue }: Props) {
   return (
     <div
       ref={wrapRef}
-      className="nodrag relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden"
+      className={
+        className ??
+        "nodrag relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden"
+      }
       style={{ minHeight: 100, cursor: draggingRef.current ? "ns-resize" : "pointer" }}
       onMouseDown={onMouseDown}
       onWheel={onWheel}

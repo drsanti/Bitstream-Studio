@@ -1,215 +1,325 @@
 import { useLayoutEffect, useRef } from "react";
-
-type Zone = { from: number; to: number; color: string };
-
-type RadialGaugeConfig = {
-  min: number;
-  max: number;
-  unit: string;
-  decimals: number;
-  zones: Zone[];
-};
-
-function coerceConfig(dc: Record<string, unknown>): RadialGaugeConfig {
-  const min = typeof dc.min === "number" ? dc.min : 0;
-  const max = typeof dc.max === "number" ? dc.max : 100;
-  const unit = typeof dc.unit === "string" ? dc.unit : "";
-  const decimals = typeof dc.decimals === "number" ? Math.max(0, Math.min(6, Math.round(dc.decimals))) : 1;
-  const zones: Zone[] = Array.isArray(dc.zones)
-    ? (dc.zones as Zone[]).filter(
-        (z) => typeof z?.from === "number" && typeof z?.to === "number" && typeof z?.color === "string",
-      )
-    : [];
-  return { min, max, unit, decimals, zones };
-}
-
-function zoneColor(zones: Zone[], value: number, fallback: string): string {
-  let c = fallback;
-  for (const z of zones) {
-    if (value >= z.from && value <= z.to) c = z.color;
-  }
-  return c;
-}
+import {
+  prepareHiDpiCanvas2d,
+  resolveStudioCanvasDpr,
+} from "../display/canvas-hi-dpi";
+import { useStudioCanvasDisplayScale } from "../display/studio-canvas-display-scale";
+import {
+  beginGaugeCanvasHealthStyle,
+  endGaugeCanvasHealthStyle,
+} from "../display/gauge-canvas-health";
+import type { SensorHealthStatus } from "../../store/flow-editor.store";
+import {
+  clampGaugeScalar,
+  coerceRadialGaugeConfig,
+  gaugeNeedleSmoothingSettled,
+  gaugeZoneColor,
+  radialGaugeArcGeometry,
+  stepGaugeNeedleSmoothing,
+  type RadialGaugeConfig,
+} from "../display/gauge-display-config";
 
 const DEG = Math.PI / 180;
-const START_DEG = 225;
-const SWEEP_DEG = 270;
 
 function draw(
   ctx: CanvasRenderingContext2D,
   wCss: number,
   hCss: number,
-  value: number | null,
+  needleValue: number,
+  readoutValue: number | null,
   cfg: RadialGaugeConfig,
+  sensorHealth?: SensorHealthStatus,
 ): void {
-  const { min, max, unit, decimals, zones } = cfg;
-  const startRad = START_DEG * DEG;
-  const sweepRad = SWEEP_DEG * DEG;
+  const {
+    min,
+    max,
+    unit,
+    decimals,
+    zones,
+    arcPreset,
+    showFaceplate,
+    showTrack,
+    showTicks,
+    showTickLabels,
+    showNeedle,
+    showDigitalValue,
+    showUnit,
+    showSetpoint,
+    setpoint,
+    setpointColor,
+  } = cfg;
+  const { startDeg, sweepDeg } = radialGaugeArcGeometry(arcPreset);
+  const startRad = startDeg * DEG;
+  const sweepRad = sweepDeg * DEG;
+  const span = max - min;
 
   const cx = wCss / 2;
   const cy = hCss * 0.52;
-  const r = Math.min(wCss, hCss) * 0.40;
+  const r = Math.min(wCss, hCss) * 0.4;
 
-  // bg
+  const healthTone = beginGaugeCanvasHealthStyle(ctx, sensorHealth);
   ctx.clearRect(0, 0, wCss, hCss);
   ctx.fillStyle = "rgba(9,9,11,0)";
   ctx.fillRect(0, 0, wCss, hCss);
 
-  // faceplate
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-  ctx.fillStyle = "rgba(24,24,27,0.95)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(63,63,70,0.8)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // zone arcs
-  for (const z of zones) {
-    const t0 = (z.from - min) / (max - min);
-    const t1 = (z.to - min) / (max - min);
+  if (showFaceplate) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.80, startRad + t0 * sweepRad, startRad + t1 * sweepRad);
-    ctx.strokeStyle = z.color;
-    ctx.lineWidth = r * 0.09;
-    ctx.lineCap = "round";
+    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(24,24,27,0.95)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(63,63,70,0.8)";
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
 
-  // track arc
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * 0.80, startRad, startRad + sweepRad);
-  ctx.strokeStyle = "rgba(63,63,70,0.5)";
-  ctx.lineWidth = 1;
-  ctx.lineCap = "butt";
-  ctx.stroke();
-
-  // major ticks + labels
-  const majorCount = 5;
-  ctx.font = `${Math.round(Math.min(r * 0.16, 10))}px ui-monospace, monospace`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  for (let i = 0; i <= majorCount; i++) {
-    const angle = startRad + (i / majorCount) * sweepRad;
-    const cos = Math.cos(angle), sin = Math.sin(angle);
-    ctx.beginPath();
-    ctx.moveTo(cx + cos * r * 0.79, cy + sin * r * 0.79);
-    ctx.lineTo(cx + cos * r * 0.92, cy + sin * r * 0.92);
-    ctx.strokeStyle = "rgba(161,161,170,0.7)";
-    ctx.lineWidth = 1.2;
-    ctx.stroke();
-
-    const tv = min + (i / majorCount) * (max - min);
-    ctx.fillStyle = "rgba(161,161,170,0.75)";
-    ctx.fillText(
-      Number.isInteger(tv) ? String(tv) : tv.toFixed(1),
-      cx + cos * r * 0.63,
-      cy + sin * r * 0.63,
-    );
-
-    // minor ticks
-    for (let j = 1; j <= 4; j++) {
-      const mAngle = startRad + ((i + j / 5) / majorCount) * sweepRad;
-      if (i === majorCount) break;
-      const mc = Math.cos(mAngle), ms = Math.sin(mAngle);
+  if (Math.abs(span) > Number.EPSILON) {
+    for (const z of zones) {
+      const t0 = (z.from - min) / span;
+      const t1 = (z.to - min) / span;
       ctx.beginPath();
-      ctx.moveTo(cx + mc * r * 0.87, cy + ms * r * 0.87);
-      ctx.lineTo(cx + mc * r * 0.92, cy + ms * r * 0.92);
-      ctx.strokeStyle = "rgba(82,82,91,0.7)";
-      ctx.lineWidth = 0.8;
+      ctx.arc(cx, cy, r * 0.8, startRad + t0 * sweepRad, startRad + t1 * sweepRad);
+      ctx.strokeStyle = z.color;
+      ctx.lineWidth = r * 0.09;
+      ctx.lineCap = "round";
       ctx.stroke();
     }
   }
 
-  // needle
-  const v = value != null && Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : min;
-  const t = (v - min) / (max - min);
+  if (showTrack) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.8, startRad, startRad + sweepRad);
+    ctx.strokeStyle = "rgba(63,63,70,0.5)";
+    ctx.lineWidth = 1;
+    ctx.lineCap = "butt";
+    ctx.stroke();
+  }
+
+  if (
+    showSetpoint &&
+    Number.isFinite(setpoint) &&
+    Math.abs(span) > Number.EPSILON
+  ) {
+    const spT = Math.max(0, Math.min(1, (setpoint - min) / span));
+    const spAngle = startRad + spT * sweepRad;
+    const spCos = Math.cos(spAngle);
+    const spSin = Math.sin(spAngle);
+    ctx.beginPath();
+    ctx.moveTo(cx + spCos * r * 0.7, cy + spSin * r * 0.7);
+    ctx.lineTo(cx + spCos * r * 0.95, cy + spSin * r * 0.95);
+    ctx.strokeStyle = setpointColor;
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx + spCos * r * 0.95, cy + spSin * r * 0.95, r * 0.028, 0, 2 * Math.PI);
+    ctx.fillStyle = setpointColor;
+    ctx.fill();
+  }
+
+  const majorCount = 5;
+  if (showTicks || showTickLabels) {
+    ctx.font = `${Math.round(Math.min(r * 0.16, 10))}px ui-monospace, monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i <= majorCount; i++) {
+      const angle = startRad + (i / majorCount) * sweepRad;
+      const cos = Math.cos(angle);
+      const sin = Math.sin(angle);
+
+      if (showTicks) {
+        ctx.beginPath();
+        ctx.moveTo(cx + cos * r * 0.79, cy + sin * r * 0.79);
+        ctx.lineTo(cx + cos * r * 0.92, cy + sin * r * 0.92);
+        ctx.strokeStyle = "rgba(161,161,170,0.7)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+
+      if (showTickLabels && Math.abs(span) > Number.EPSILON) {
+        const tv = min + (i / majorCount) * span;
+        ctx.fillStyle = "rgba(161,161,170,0.75)";
+        ctx.fillText(
+          Number.isInteger(tv) ? String(tv) : tv.toFixed(1),
+          cx + cos * r * 0.63,
+          cy + sin * r * 0.63,
+        );
+      }
+
+      if (showTicks) {
+        for (let j = 1; j <= 4; j++) {
+          const mAngle = startRad + ((i + j / 5) / majorCount) * sweepRad;
+          if (i === majorCount) {
+            break;
+          }
+          const mc = Math.cos(mAngle);
+          const ms = Math.sin(mAngle);
+          ctx.beginPath();
+          ctx.moveTo(cx + mc * r * 0.87, cy + ms * r * 0.87);
+          ctx.lineTo(cx + mc * r * 0.92, cy + ms * r * 0.92);
+          ctx.strokeStyle = "rgba(82,82,91,0.7)";
+          ctx.lineWidth = 0.8;
+          ctx.stroke();
+        }
+      }
+    }
+  }
+
+  const v = needleValue;
+  const t = Math.abs(span) > Number.EPSILON ? (v - min) / span : 0;
   const needleAngle = startRad + t * sweepRad;
-  const nColor = zoneColor(zones, v, "#22d3ee");
+  const nColor = gaugeZoneColor(zones, v, "#22d3ee");
 
-  const nLen = r * 0.74, nBack = r * 0.16;
-  const nc = Math.cos(needleAngle), ns = Math.sin(needleAngle);
-  const bc = Math.cos(needleAngle + Math.PI), bs = Math.sin(needleAngle + Math.PI);
+  if (showNeedle) {
+    const nLen = r * 0.74;
+    const nBack = r * 0.16;
+    const nc = Math.cos(needleAngle);
+    const ns = Math.sin(needleAngle);
+    const bc = Math.cos(needleAngle + Math.PI);
+    const bs = Math.sin(needleAngle + Math.PI);
 
-  ctx.beginPath();
-  ctx.moveTo(cx + bc * nBack, cy + bs * nBack);
-  ctx.lineTo(cx + nc * nLen, cy + ns * nLen);
-  ctx.strokeStyle = nColor;
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.stroke();
-  ctx.lineCap = "butt";
+    ctx.beginPath();
+    ctx.moveTo(cx + bc * nBack, cy + bs * nBack);
+    ctx.lineTo(cx + nc * nLen, cy + ns * nLen);
+    ctx.strokeStyle = nColor;
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.lineCap = "butt";
 
-  // pivot
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * 0.07, 0, 2 * Math.PI);
-  ctx.fillStyle = nColor;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx, cy, r * 0.035, 0, 2 * Math.PI);
-  ctx.fillStyle = "rgba(24,24,27,1)";
-  ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.07, 0, 2 * Math.PI);
+    ctx.fillStyle = nColor;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.035, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(24,24,27,1)";
+    ctx.fill();
+  }
 
-  // value readout
-  const valStr = value != null && Number.isFinite(value) ? v.toFixed(decimals) : "—";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `bold ${Math.round(r * 0.28)}px ui-monospace, monospace`;
-  ctx.fillStyle = zoneColor(zones, v, "rgba(228,228,231,0.95)");
-  ctx.fillText(valStr, cx, cy + r * 0.38);
+  if (showDigitalValue) {
+    const valStr =
+      readoutValue != null && Number.isFinite(readoutValue)
+        ? readoutValue.toFixed(decimals)
+        : "—";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `bold ${Math.round(r * 0.28)}px ui-monospace, monospace`;
+    ctx.fillStyle = gaugeZoneColor(
+      zones,
+      readoutValue ?? v,
+      "rgba(228,228,231,0.95)",
+    );
+    ctx.fillText(valStr, cx, cy + r * 0.38);
+  }
 
-  if (unit) {
+  if (showUnit && unit.length > 0) {
     ctx.font = `${Math.round(r * 0.16)}px ui-monospace, monospace`;
     ctx.fillStyle = "rgba(161,161,170,0.8)";
     ctx.fillText(unit, cx, cy + r * 0.56);
   }
+  endGaugeCanvasHealthStyle(ctx, healthTone);
 }
 
 type Props = {
   className?: string;
   value: number | null;
   defaultConfig: Record<string, unknown>;
+  sensorHealth?: SensorHealthStatus;
+  /** React Flow viewport zoom on the canvas; omit (1) in the inspector preview. */
+  displayScale?: number;
 };
 
-export function RadialGaugeNodePanel({ className, value, defaultConfig }: Props) {
+export function RadialGaugeNodePanel({
+  className,
+  value,
+  defaultConfig,
+  sensorHealth,
+  displayScale: displayScaleOverride,
+}: Props) {
+  const displayScale = useStudioCanvasDisplayScale(displayScaleOverride);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dataRef = useRef({ value, defaultConfig });
-  dataRef.current = { value, defaultConfig };
+  const dataRef = useRef({ value, defaultConfig, displayScale, sensorHealth });
+  dataRef.current = { value, defaultConfig, displayScale, sensorHealth };
 
-  const rafRef = useRef<number>(0);
+  const smoothedRef = useRef<number | null>(null);
+  const lastFrameMsRef = useRef(performance.now());
+  const animRef = useRef<number>(0);
+
+  const paintFrame = () => {
+    const wrap = wrapRef.current;
+    const canvas = canvasRef.current;
+    if (!wrap || !canvas) {
+      return;
+    }
+    const cfg = coerceRadialGaugeConfig(dataRef.current.defaultConfig);
+    const readout = clampGaugeScalar(dataRef.current.value, cfg.min, cfg.max);
+    const lo = Math.min(cfg.min, cfg.max);
+    const target = readout ?? lo;
+    if (smoothedRef.current == null) {
+      smoothedRef.current = target;
+    }
+
+    const now = performance.now();
+    const dt = Math.max(0, now - lastFrameMsRef.current);
+    lastFrameMsRef.current = now;
+    if (cfg.needleSmoothingMs > 0) {
+      smoothedRef.current = stepGaugeNeedleSmoothing(
+        smoothedRef.current,
+        target,
+        dt,
+        cfg.needleSmoothingMs,
+      );
+    } else {
+      smoothedRef.current = target;
+    }
+
+    const wCss = Math.max(1, wrap.clientWidth);
+    const hCss = Math.max(1, wrap.clientHeight);
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      return;
+    }
+    const dpr = resolveStudioCanvasDpr(dataRef.current.displayScale);
+    prepareHiDpiCanvas2d(canvas, ctx, wCss, hCss, dpr);
+    draw(ctx, wCss, hCss, smoothedRef.current, readout, cfg, dataRef.current.sensorHealth);
+
+    const settled = gaugeNeedleSmoothingSettled(
+      smoothedRef.current,
+      target,
+      cfg.min,
+      cfg.max,
+    );
+    if (cfg.needleSmoothingMs > 0 && !settled) {
+      animRef.current = requestAnimationFrame(paintFrame);
+    }
+  };
+
   const schedulePaintRef = useRef<() => void>(() => {});
-
   schedulePaintRef.current = () => {
-    cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      const wrap = wrapRef.current;
-      const canvas = canvasRef.current;
-      if (!wrap || !canvas) return;
-      const wCss = Math.max(1, wrap.clientWidth);
-      const hCss = Math.max(1, wrap.clientHeight);
-      const dpr = Math.min(2.5, window.devicePixelRatio || 1);
-      canvas.width = Math.round(wCss * dpr);
-      canvas.height = Math.round(hCss * dpr);
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const cfg = coerceConfig(dataRef.current.defaultConfig);
-      const v = dataRef.current.value;
-      draw(ctx, wCss, hCss, v, cfg);
-    });
+    cancelAnimationFrame(animRef.current);
+    animRef.current = requestAnimationFrame(paintFrame);
   };
 
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
-    if (!wrap) return;
+    if (!wrap) {
+      return;
+    }
     const ro = new ResizeObserver(() => schedulePaintRef.current());
     ro.observe(wrap);
     schedulePaintRef.current();
-    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      ro.disconnect();
+    };
   }, []);
 
-  useLayoutEffect(() => { schedulePaintRef.current(); }, [value, defaultConfig]);
+  useLayoutEffect(() => {
+    smoothedRef.current = null;
+    lastFrameMsRef.current = performance.now();
+    schedulePaintRef.current();
+  }, [value, defaultConfig, displayScale, sensorHealth]);
 
   return (
     <div

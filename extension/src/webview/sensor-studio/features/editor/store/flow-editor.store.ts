@@ -215,6 +215,7 @@ import {
   persistPlotterConfig,
   type PlotterConfig,
 } from "../nodes/plotter/plotter-config";
+import { migrateLegacyGaugeNodeData } from "../nodes/display/gauge-display-config";
 import type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
 import {
   coerceFlowWireEnvironmentV1,
@@ -1007,9 +1008,10 @@ function migrateStudioEdgesMapRange(nodes: StudioNode[], edges: Edge[]): Edge[] 
   });
 }
 
-/** Legacy graph migration before catalog refresh (e.g. oscilloscope → plotter). */
+/** Legacy graph migration before catalog refresh (e.g. oscilloscope → plotter, gauge → bar-meter). */
 function migrateFlowNodeFromLegacy(node: StudioNode): StudioNode {
-  const data = migrateLegacyPlotterNodeData(node.data) as StudioNodeData;
+  let data = migrateLegacyPlotterNodeData(node.data) as StudioNodeData;
+  data = migrateLegacyGaugeNodeData(data) as StudioNodeData;
   return { ...node, data };
 }
 
@@ -3888,18 +3890,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (templateId === "bmi270-gauge-z") {
       const bmi270Entry = catalog.find((entry) => entry.id === "bmi270-input");
       const vectorSplitterEntry = catalog.find((entry) => entry.id === "vector-splitter");
-      const gaugeEntry = catalog.find((entry) => entry.id === "gauge");
-      if (bmi270Entry == null || vectorSplitterEntry == null || gaugeEntry == null) {
+      const barMeterEntry = catalog.find((entry) => entry.id === "bar-meter");
+      if (bmi270Entry == null || vectorSplitterEntry == null || barMeterEntry == null) {
         return;
       }
       const bmiNode = makeNode(bmi270Entry, "demo-bmi270", 72, 156);
       const splitNode = makeNode(vectorSplitterEntry, "demo-vec-split", 360, 156);
-      const gaugeNode = makeNode(gaugeEntry, "demo-gauge-bmi", 660, 156);
-      gaugeNode.data.label = "Gauge (accel Z)";
+      const gaugeNode = makeNode(barMeterEntry, "demo-bar-meter-bmi", 660, 156);
+      gaugeNode.data.label = "Bar meter (accel Z)";
       gaugeNode.data.defaultConfig = {
         ...gaugeNode.data.defaultConfig,
+        min: -5,
+        max: 5,
         decimals: 3,
         unit: " m/s²",
+        orientation: "horizontal",
       };
       get().pushUndoSnapshot();
       const bmiDemoEdges: Edge[] = [
@@ -3939,7 +3944,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const lowPass = catalog.find((entry) => entry.id === "low-pass");
     const threshold = catalog.find((entry) => entry.id === "threshold");
     const indicator = catalog.find((entry) => entry.id === "indicator");
-    const gauge = catalog.find((entry) => entry.id === "gauge");
+    const barMeter = catalog.find((entry) => entry.id === "bar-meter");
     const sparkline = catalog.find((entry) => entry.id === "sparkline");
 
     if (
@@ -3947,7 +3952,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       lowPass == null ||
       threshold == null ||
       indicator == null ||
-      gauge == null ||
+      barMeter == null ||
       sparkline == null
     ) {
       return;
@@ -3958,7 +3963,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const lowPassNode = makeNode(lowPass, "demo-lowpass", 330, 140);
     const thresholdNode = makeNode(threshold, "demo-threshold", 580, 140);
     const indicatorNode = makeNode(indicator, "demo-indicator", 840, 120);
-    const gaugeNode = makeNode(gauge, "demo-gauge", 840, 220);
+    const gaugeNode = makeNode(barMeter, "demo-bar-meter", 840, 220);
+    gaugeNode.data.defaultConfig = {
+      ...gaugeNode.data.defaultConfig,
+      orientation: "horizontal",
+    };
     const sparklineNode = makeNode(sparkline, "demo-sparkline", 580, 300);
 
     let templateNodes: StudioNode[] = [];

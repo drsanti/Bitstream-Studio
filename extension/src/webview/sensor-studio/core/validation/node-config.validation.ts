@@ -152,7 +152,9 @@ function validateGauge(cfg: Record<string, unknown>): string[] {
 
 function validateSparkline(cfg: Record<string, unknown>): string[] {
   const schema = z.object({
-    historySize: z.number().finite().int().min(8).max(512).optional(),
+    historySize: z.number().finite().int().min(4).max(512).optional(),
+    strokeColor: z.string().optional(),
+    strokeWidth: z.number().finite().min(1).max(8).optional(),
   });
   const r = schema.safeParse(cfg);
   const out: string[] = [];

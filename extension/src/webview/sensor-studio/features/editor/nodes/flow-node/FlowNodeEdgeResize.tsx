@@ -1,4 +1,4 @@
-import { useStore } from "@xyflow/react";
+import { useStore, type NodeChange } from "@xyflow/react";
 import {
   useCallback,
   useRef,
@@ -6,7 +6,6 @@ import {
   type RefObject,
 } from "react";
 import {
-  computeResizedWindowRect,
   type TRNWindowRect,
   type TRNWindowResizeEdge,
 } from "../../../../../ui/TRN/TRNWindow";
@@ -17,7 +16,21 @@ import type { StudioNode } from "../../store/flow-editor.store";
 const EDGE_HIT_PX = 5;
 const CORNER_HIT_PX = 12;
 
-const NO_VIEWPORT_CLAMP = 1_000_000;
+function resizeEdgeUsesEast(edge: TRNWindowResizeEdge): boolean {
+  return edge === "e" || edge === "ne" || edge === "se";
+}
+
+function resizeEdgeUsesWest(edge: TRNWindowResizeEdge): boolean {
+  return edge === "w" || edge === "nw" || edge === "sw";
+}
+
+function resizeEdgeUsesSouth(edge: TRNWindowResizeEdge): boolean {
+  return edge === "s" || edge === "se" || edge === "sw";
+}
+
+function resizeEdgeUsesNorth(edge: TRNWindowResizeEdge): boolean {
+  return edge === "n" || edge === "ne" || edge === "nw";
+}
 
 export type FlowNodeEdgeResizeProps = {
   nodeId: string;
@@ -28,25 +41,92 @@ export type FlowNodeEdgeResizeProps = {
   shellRef: RefObject<HTMLElement | null>;
 };
 
-function readNodeLayoutRect(node: StudioNode, shellEl: HTMLElement | null): TRNWindowRect {
+/** Prefer live shell size so west/north resize anchors match what the operator sees. */
+export function readNodeLayoutRect(node: StudioNode, shellEl: HTMLElement | null): TRNWindowRect {
+  const shellWidth =
+    shellEl != null && shellEl.offsetWidth > 0 ? shellEl.offsetWidth : undefined;
+  const shellHeight =
+    shellEl != null && shellEl.offsetHeight > 0 ? shellEl.offsetHeight : undefined;
   const widthRaw =
-    typeof node.width === "number" && node.width > 0
-      ? node.width
-      : typeof node.measured?.width === "number" && node.measured.width > 0
-        ? node.measured.width
-        : shellEl?.offsetWidth ?? 170;
+    shellWidth ??
+    (typeof node.width === "number" && node.width > 0 ? node.width : undefined) ??
+    (typeof node.measured?.width === "number" && node.measured.width > 0
+      ? node.measured.width
+      : 170);
   const heightRaw =
-    typeof node.height === "number" && node.height > 0
-      ? node.height
-      : typeof node.measured?.height === "number" && node.measured.height > 0
-        ? node.measured.height
-        : shellEl?.offsetHeight ?? 64;
+    shellHeight ??
+    (typeof node.height === "number" && node.height > 0 ? node.height : undefined) ??
+    (typeof node.measured?.height === "number" && node.measured.height > 0
+      ? node.measured.height
+      : 64);
   return {
     x: node.position.x,
     y: node.position.y,
     width: Math.max(1, Math.round(widthRaw)),
     height: Math.max(1, Math.round(heightRaw)),
   };
+}
+
+/** Flow-canvas resize — no TRNWindow viewport clamp (flow coords may be negative). */
+export function computeResizedFlowNodeRect(
+  edge: TRNWindowResizeEdge,
+  base: TRNWindowRect,
+  dx: number,
+  dy: number,
+  minWidth: number,
+  minHeight: number,
+): TRNWindowRect {
+  let x = base.x;
+  let y = base.y;
+  let width = base.width;
+  let height = base.height;
+
+  if (resizeEdgeUsesEast(edge)) {
+    width = Math.max(minWidth, base.width + dx);
+  }
+  if (resizeEdgeUsesWest(edge)) {
+    const nextWidth = Math.max(minWidth, base.width - dx);
+    x = base.x + base.width - nextWidth;
+    width = nextWidth;
+  }
+  if (resizeEdgeUsesSouth(edge)) {
+    height = Math.max(minHeight, base.height + dy);
+  }
+  if (resizeEdgeUsesNorth(edge)) {
+    const nextHeight = Math.max(minHeight, base.height - dy);
+    y = base.y + base.height - nextHeight;
+    height = nextHeight;
+  }
+
+  return {
+    x: Math.round(x),
+    y: Math.round(y),
+    width: Math.round(Math.max(minWidth, width)),
+    height: Math.round(Math.max(minHeight, height)),
+  };
+}
+
+function flowNodeResizeChanges(
+  nodeId: string,
+  edge: TRNWindowResizeEdge,
+  rect: TRNWindowRect,
+): NodeChange[] {
+  const changes: NodeChange[] = [
+    {
+      id: nodeId,
+      type: "dimensions",
+      dimensions: { width: rect.width, height: rect.height },
+      setAttributes: true,
+    },
+  ];
+  if (resizeEdgeUsesWest(edge) || resizeEdgeUsesNorth(edge)) {
+    changes.unshift({
+      id: nodeId,
+      type: "position",
+      position: { x: rect.x, y: rect.y },
+    });
+  }
+  return changes;
 }
 
 function FlowNodeResizeHandle(props: {
@@ -84,20 +164,8 @@ export function FlowNodeEdgeResize(props: FlowNodeEdgeResizeProps) {
   } | null>(null);
 
   const applyLayoutRect = useCallback(
-    (rect: TRNWindowRect) => {
-      onNodesChange([
-        {
-          id: nodeId,
-          type: "position",
-          position: { x: rect.x, y: rect.y },
-        },
-        {
-          id: nodeId,
-          type: "dimensions",
-          dimensions: { width: rect.width, height: rect.height },
-          setAttributes: true,
-        },
-      ]);
+    (edge: TRNWindowResizeEdge, rect: TRNWindowRect) => {
+      onNodesChange(flowNodeResizeChanges(nodeId, edge, rect));
     },
     [nodeId, onNodesChange],
   );
@@ -128,17 +196,15 @@ export function FlowNodeEdgeResize(props: FlowNodeEdgeResizeProps) {
         const scale = zoom > 0 ? zoom : 1;
         const dx = (moveEvt.clientX - drag.startClientX) / scale;
         const dy = (moveEvt.clientY - drag.startClientY) / scale;
-        const next = computeResizedWindowRect(
+        const next = computeResizedFlowNodeRect(
           drag.edge,
           drag.base,
           dx,
           dy,
-          NO_VIEWPORT_CLAMP,
-          NO_VIEWPORT_CLAMP,
           minWidth,
           minHeight,
         );
-        applyLayoutRect(next);
+        applyLayoutRect(drag.edge, next);
       };
 
       const onPointerUp = (upEvt: PointerEvent) => {

@@ -229,9 +229,18 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 - [x] **Light / camera:** `light` → **`scene-light`**, `cameraSwitch` → **`camera-switch`** (slice 2; rig routing in preview **2026-05-31**)
 - [x] **Compositor / FX:** `postProcessing`, `contactShadows`, `emitter` → **`post-processing`**, **`contact-shadows`**, **`particle-emitter`** (slice 2; bloom + contact shadows + particles in preview **2026-05-31**)
 
-### Tier D — Deferred (Digital Twin / physics epic)
+### Tier D — Physics (future development)
 
-- [ ] **Physics stack:** `physics`, `rigidBody`, `objectSpawner`, colliders, `joint` variants, `ik` — see **[`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md)**
+**Plan:** [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md) · **Tracker:** *Planned / next → physics domain*
+
+| Slice | NA types | Studio target | Status |
+|-------|----------|---------------|--------|
+| **D1** | `physics`, colliders, `rigidBody`, `objectSpawner`, `joint`*, `ik` | Catalog + import + eval stubs | [ ] |
+| **D2** | — | `physics-world`, static colliders, **`phys`** wire | [ ] |
+| **D3** | — | Dynamics + spawner + joints | [ ] |
+| **D4** | — | IK + hub / hardware collider integration | [ ] |
+
+- [ ] **Physics stack:** `physics`, `rigidBody`, `objectSpawner`, colliders, `joint` variants, `ik` — implement per slices above (Digital Twin / Jolt gating)
 
 Track slices in **`extension/docs/DEVELOPMENT_TRACKER.md`** (*In progress* / *Recently completed*).
 

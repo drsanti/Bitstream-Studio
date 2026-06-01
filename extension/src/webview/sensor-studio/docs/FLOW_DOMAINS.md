@@ -2,9 +2,9 @@
 
 **Status:** **In progress** — Phase 0 aligned **2026-05-31**; Phase 1 foundation started **2026-05-31**.
 
-**Goal:** One React Flow canvas can host **sensor dataflow**, **3D scene control**, **input/event logic**, and (later) **material authoring** — but each domain needs its **own evaluation model and tick source**, not a single global loop.
+**Goal:** One React Flow canvas can host **sensor dataflow**, **3D scene control**, **input/event logic**, **material authoring**, and (future) **physics** — but each domain needs its **own evaluation model and tick source**, not a single global loop.
 
-**Related:** [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md) (current dataflow), [`ROTATION_SCENE3D_CONFIG.md`](./ROTATION_SCENE3D_CONFIG.md), [`../../../../docs/DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md) (*Planned / next → Flow domains*).
+**Related:** [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md) (current dataflow), [`ROTATION_SCENE3D_CONFIG.md`](./ROTATION_SCENE3D_CONFIG.md), [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md), [`../../../../docs/DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md) (*Planned / next → physics domain*).
 
 ---
 
@@ -37,19 +37,21 @@ Trying to drive **keyboard events**, **per-frame animation**, **UART samples**, 
 | **Transform graph** | Partial | Quaternion / Euler rotation — not full loc/scale/parent |
 | **Keyboard / mouse in graph** | No | Orbit lives in viewer chrome, not flow nodes |
 | **PBR material graph** | No | Import GLB materials; limited emissive scalar drive |
+| **Physics (flow canvas)** | Planned | Tier D — see [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md) |
 | **Geometry nodes** | No | No procedural mesh DAG |
 
 Device **`publishMode`** (periodic / on_change / hybrid) controls **UART event rate**, not engine type. See **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`**.
 
 ---
 
-## Target domains (one canvas, four evaluators)
+## Target domains (one canvas, five evaluators)
 
 ```text
 Telemetry tick   →  Sensor dataflow     (tickSimulation @ sample / graph flush)
 Frame tick       →  Scene + animation   (requestAnimationFrame)
 Event dispatch   →  Input + logic       (exec graph, on demand)
 Material compile →  Shader / PBR DAG    (on edit or bake — not every UART frame)
+Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PLANNED)
 ```
 
 ### Domain A — Telemetry dataflow (keep)
@@ -178,6 +180,17 @@ Practical **Domain D v2** slice before a full BSDF DAG: separate material evalua
 - [ ] Geometry-style mesh ops (backlog)
 - [ ] Full shader DAG compile (backlog)
 
+### Phase 7 — Physics domain (Domain E) — **planned / future**
+
+**Canonical plan:** [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md). **Not in progress** until D1 slice is scheduled.
+
+- [ ] **D1** — Catalog stubs + NA import + eval no-ops + `physicsScene` port type
+- [ ] **D2** — `FlowWirePhysicsSceneV1`, Model Viewer **`phys`**, static colliders + WASM lazy load
+- [ ] **D3** — Rigid bodies, spawner, joints; fixed-step physics tick
+- [ ] **D4** — IK, animation blend, Digital Twin / hardware collider integration
+
+**Trigger (future):** Fixed timestep while `graphNeedsPhysicsDomainEvalInGraph()`; coalesce with scene rAF (same scheduler pattern as material domain).
+
 ---
 
 ## Testing matrix (when implementation starts)
@@ -188,6 +201,7 @@ Practical **Domain D v2** slice before a full BSDF DAG: separate material evalua
 | B — Scene / anim | rAF preview without UART | Same |
 | C — Events | Key/mouse nodes fire subgraph | Same |
 | D — Material params | GLB material tweak visible in viewer | Same |
+| E — Physics (planned) | Static collider debug draw; one dynamic body | Same; WASM bundle in VSIX |
 
 UART vs Simulator telemetry rules (**`bitstream-dual-runtime.mdc`**) apply to Domain A only.
 

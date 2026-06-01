@@ -71,6 +71,10 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-01** — **Sensor Studio — indicator parity (legacy gauge, setpoint, LED/sparkline inspectors):** hydrate migrates **`gauge` → `bar-meter`** (`migrateLegacyGaugeNodeData`); radial gauge **setpoint** marker + inspector; **`LedIndicatorSettingsSection`** + **`SparklineNodePanel`** with stroke/history inspector; demo templates use bar meter.
+- **2026-06-01** — **Sensor Studio — indicator canvas health + bar fill smoothing:** shared **`gauge-canvas-health.ts`** dims radial/bar canvas and numeric readouts when **`sensorHealth`** is stale/offline; bar meter **`fillSmoothingMs`** (inspector + rAF easing, same kernel as radial needle); **`StudioFlowCanvasDisplayScaleProvider`** on flow cards for hi-DPI zoom.
+- **2026-06-01** — **Sensor Studio — canvas hi-DPI sharpness:** **`canvas-hi-dpi.ts`** + **`useStudioCanvasDisplayScale`** multiply backing store by React Flow viewport zoom; applied to radial gauge, bar meter, knob, plotter, and **`RotationPreviewPanelV4`** WebGL pixel ratio; tests **`canvas-hi-dpi.test.ts`**.
+
 You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 - **2026-05-31** — **Sensor Studio — node-animator Phase 8 (frame inspector):** auto-fit toggle, fit-to-contents, dissolve frame, padding sliders in `FrameLayoutInspectorSection`.
@@ -406,14 +410,19 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 ## In progress
 
 - **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
-- **Sensor Studio — node-animator NA parity Tier D** — foundation doc **`TIER_D_PHYSICS_FOUNDATION.md`**; runtime gated on Digital Twin / Jolt (D1 catalog stubs next).
 
 ---
 
 ## Planned / next
 
+- **Sensor Studio — physics domain (Tier D / evaluator E)** — **Future development** (no WASM runtime yet). Canonical plan: **[`src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)**. **Gated** on Digital Twin hub maturity + engine choice (Jolt for vehicle sim hub; Rapier deps retained for possible Sensor Studio preview). Ordered slices:
+  - [ ] **D1 — Parity shell** — catalog stubs (`physics-world`, `rigid-body`, collider variants, joints, `object-spawner`, `ik-chain`); NA import normalization; eval no-ops + unit tests; **`physicsScene`** port type (schema/colors only).
+  - [ ] **D2 — Static preview** — `FlowWirePhysicsSceneV1`; Model Viewer **`phys`** input; `rotation-preview-physics-runtime.ts` (WASM load only when graph has active world); static box/sphere colliders + debug draw.
+  - [ ] **D3 — Dynamics** — rigid bodies, spawner, fixed/hinge joints; fixed-step physics tick coalesced with scene rAF; mesh transform sync to Three.js.
+  - [ ] **D4 — Integration** — IK + animation blend; share collider/material truth with **Hardware setup** (see inbox **2026-05-11** physics-ready planning); E84 / vehicle sim hub reuse where applicable.
+  - **Dependencies:** [`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md) Phase 3 (Jolt vehicle); [`FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md) Domain E section; node-animator reference evaluators under `D:/CODE/2026/node-animator`.
 - **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31**. Utility parity slices ongoing.
-- **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
+- **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators today** (A–D); **physics (E) planned** — see *Planned / next → physics domain*:
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)
   - [x] Phase 2 — **`FlowWireTransformV1`** + model-viewer / rotation **`xf`** consumer (**2026-05-31**)
@@ -517,6 +526,33 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Future / ideas
 
+### Sensor Studio — physics stack (Tier D / Domain E)
+
+**Logged 2026-05-31; expanded 2026-05-31.** Scene wiring (fog, compositor, camera-switch, particles) is **shipped**; **physics remains future work**. Full design: **[`TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)**.
+
+**Why deferred**
+
+- Host-side WASM physics (Jolt / Rapier) adds bundle size, worker/COI constraints, and a **fifth evaluator** tick — not required for v0.1 Sensor Studio telemetry + 3D preview goals.
+- **Digital Twin** vehicle sim (`webview/simulations/vehicle-physics/`) is the first Jolt consumer; flow-canvas physics should **reuse** that WASM packaging and collider conventions when un-gated, not fork a second engine path.
+
+**Engine options (decision backlog)**
+
+| Engine | Pros | Cons | Where used today |
+|--------|------|------|------------------|
+| **Jolt** | Vehicle sim already partial in hub; CM55 not involved | Heavier WASM; worker setup | `simulations/vehicle-physics/` |
+| **Rapier** | npm deps retained post-2026-05-30 cleanup | No shipped Bitstream integration yet | — |
+| **Ammo.js** | node-animator reference | Legacy; prefer Jolt/Rapier for new work | node-animator (reference only) |
+
+**Product surfaces (when scheduled)**
+
+- **Flow canvas** — `physics-world` subgraph + **`phys`** wire into Model Viewer (mirror post-processing / particles).
+- **Physics setup TRN panel** — engine-specific options (**inbox 2026-05-11**); **Hardware setup** owns physical dimensions (track width, wheelbase, wheel radius) as collider truth.
+- **Simulation hub** — optional “open in Sensor Studio graph” bridge for E84 / vehicle demos (backlog).
+
+**Suggested order after D1 stubs:** static colliders (D2) → one dynamic rigid body drop test → spawner → joints → IK (D4).
+
+---
+
 ### Configurable Bitstream broker port (unified client + server)
 
 **Logged 2026-05-31.** Connection panel **Expert → Broker URL** can change the webview client target (`useWsClientStore`, persisted in `localStorage` **`ternion-ws-config`**), and **`connect()`** uses that URL — but the **combined bridge listen port** is configured separately (**VS Code** **`ternion.ws.brokerPort`**, default **9998**; dev **`T3D_WS_PORT`** / **`combined-bridge-entry.ts`**). Changing the Expert field only works when a broker is already listening on that URL; otherwise step 2 (WebSocket) fails. **VSIX** Expert URL is **read-only** (injected **`window.T3D_BITSTREAM_WS_URL`** from **`brokerPort`**).
@@ -595,6 +631,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 | Logged `YYYY-MM-DD` | Source | Requirement | Status |
 |---------------------|--------|--------------|--------|
+| **2026-05-31** | User / Sensor Studio | **Flow-canvas physics (Tier D):** Add physics nodes + fifth evaluator when Digital Twin / engine path is ready; track in **`TIER_D_PHYSICS_FOUNDATION.md`** and *Planned / next → physics domain*; start with D1 catalog/import stubs only. | `accepted` |
 | **2026-05-31** | User / Sensor Studio | **Multi-domain flow editor:** Support keyboard/mouse events and Blender-like goals (geometry/shader parity targets) — 3D transforms, GLB animations, PBR materials — via **separate evaluators** on one canvas; plan in **`FLOW_DOMAINS.md`**; **implementation gated** until user says start. | `accepted` |
 | **2026-05-31** | User / extension | **Unified configurable Bitstream broker port:** Expert Connection **Broker URL** should eventually align with bridge listen port (**`ternion.ws.brokerPort`** / dev **`T3D_WS_PORT`**), not only **`ws-client-store`**. Single setting for webview + extension spawn + external sim + diagnostics. | `accepted` |
 | **2026-05-30** | User / extension | **Migrate Digital Twin sims** (E84 rotation, ABB robot, vehicle physics) from `ternion-t3d` welcome cards into Bitstream Studio without `@ternion/t3d` (R3F + mqtt; Jolt for vehicle). Track in **`APPLICATION_MIGRATION_PLAN.md`**. | `accepted` |
@@ -604,7 +641,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 | **2026-05-09** | User / extension | **HTML fenced-code preview rollout**: Extend **`htmlPreviewDelivery`** UI + reliable **Open in browser** (optional **`openExternal`** temp file) to assistants beyond **Bitstream**. **Deferred** — **near-term focus remains Bitstream / Sensor Studio Assistant** (tracked under **Planned / next**). | `deferred` |
 | **2026-05-11** | User / Project 4 | **Twin 3D scene tuning:** Add a **background environment** to the twin canvas and drive **reflections / IBL** from that environment onto robot materials (**`scene.environment`**; **`@react-three/drei`** **`Environment`** pattern). Clarify naming (**IBL** vs mesh **“HID”**) in **`PROJECT_INFO.md`** § *3D scene environment (tuning)* — **`DEV_TRACKER.md`** backlog. | `deferred` |
 | **2026-05-11** | User / extension | **System status panel:** Aggregated **services health** UI (AI bridge, Bitstream transport, MQTT/transporter, bridges, etc.) — triaged into **Planned / next** (**System status**). | `accepted` |
-| **2026-05-11** | User / Project 4 | **Physics-ready planning:** When adding a **physics engine**, expose **engine-specific** options in a **separate Physics setup** surface (**`TRNWindow`**); keep **hardware geometry** (**track width**, **wheelbase**, **wheel radius**, and future offsets) in **Hardware setup** as the **physical truth** for **colliders** (wheel placement, chassis compound shapes). Logged under **`DEV_TRACKER.md`** / roadmap. | `deferred` |
+| **2026-05-11** | User / Project 4 | **Physics-ready planning:** When adding a **physics engine**, expose **engine-specific** options in a **separate Physics setup** surface (**`TRNWindow`**); keep **hardware geometry** (**track width**, **wheelbase**, **wheel radius**, and future offsets) in **Hardware setup** as the **physical truth** for **colliders** (wheel placement, chassis compound shapes). Cross-ref **`TIER_D_PHYSICS_FOUNDATION.md`** + *Future / ideas → physics stack*. | `deferred` |
 | **2026-05-11** | User / Project 4 | **Fullscreen 3D twin**; **`MCU telemetry`** **`TRNInteractiveCard`** as **overlay** (not sidebar); **all HUD overlays draggable** (grip header). Implemented — **`DEV_TRACKER.md`** User requirements + **`PROJECT_INFO.md`** § Overlay. | `deferred` |
 | **2026-05-10** | Product / UX review | **AI Dev Trace (`AiDevTracePanel`)**: Answer area must show **progress / empty-state copy** (not blank); **new Send** must **isolate** the run vs prior events (clear + active-request scope); **timeline** timestamps **human-readable**, **`requestId`** non-blocking (short label, full in tooltip). Track shipped work in **Recently completed**. | `accepted` |
 | `YYYY-MM-DD` | e.g. user, PM, issue # | One sentence | `inbox` |
@@ -622,5 +659,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Related documents
 
+- [Tier D physics foundation](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md) — flow-canvas physics roadmap (D0–D4)
+- [Flow domains](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md) — multi-evaluator plan (Domain E physics)
 - [Development commands](./DEVELOPMENT_COMMANDS.md) — scripts, ports, AI bridge (**§ Sensor Studio Assistant + Bitstream MCP tools**).
 - [MVP1 node editor task board](./MVP1_NODE_EDITOR_TASK_BOARD.md) — Sensor Studio / node editor milestones (if still in use).
