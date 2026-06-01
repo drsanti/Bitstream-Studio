@@ -35,6 +35,10 @@ import {
   formatTelemetryDeltaFixed,
   normalizeDeviceBadgeDeltaMs,
 } from "../../bitstream-app/utils/telemetryDeltaDisplay.js";
+import {
+  BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS,
+  BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS,
+} from "./workspace-chrome-chip.js";
 
 export type SensorRxChipMetric = "freshness" | "aggregateFps";
 
@@ -1373,10 +1377,12 @@ export function BitstreamSensorSampleRxBadge(props: {
     );
   }
 
+  const chipSurfaceClass = `${BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS} ${BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS} ${borderClass} text-zinc-200/95`;
+
   const chipTrigger = staleReconnectEnabled ? (
     <button
       type="button"
-      className={`inline-flex min-w-0 max-w-full cursor-pointer items-center justify-end gap-1 truncate rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-300/60 ${borderClass} text-zinc-200/95`}
+      className={`${chipSurfaceClass} cursor-pointer transition-colors hover:brightness-110 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-300/60`}
       aria-label={`${triggerAriaLabel} Click to reconnect telemetry.`}
       onClick={(e) => {
         e.stopPropagation();
@@ -1387,9 +1393,7 @@ export function BitstreamSensorSampleRxBadge(props: {
       <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
     </button>
   ) : (
-    <span
-      className={`inline-flex min-w-0 max-w-full select-none items-center justify-end gap-1 truncate rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums ${borderClass} text-zinc-200/95`}
-    >
+    <span className={`${chipSurfaceClass} select-none`}>
       <Radio size={12} aria-hidden="true" className={`shrink-0 ${toneClass}`} />
       <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
     </span>

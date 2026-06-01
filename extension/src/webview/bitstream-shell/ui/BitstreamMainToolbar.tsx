@@ -6,7 +6,6 @@ import {
   Play,
   Plug,
   RefreshCcw,
-  ScrollText,
   Unplug,
   Workflow,
 } from "lucide-react";
@@ -165,7 +164,6 @@ export function BitstreamMainToolbar(props: {
   brokerWsConnecting?: boolean;
   onConnect?: () => void;
   onDisconnect?: () => void;
-  onOpenSystemLogs?: () => void;
   onOpenFirmwareLogLevel?: () => void;
   onOpenWifiPanel?: () => void;
   onOpenSystemDiagnostics?: () => void;
@@ -179,7 +177,6 @@ export function BitstreamMainToolbar(props: {
     brokerWsConnecting = false,
     onConnect,
     onDisconnect,
-    onOpenSystemLogs,
     onOpenFirmwareLogLevel,
     onOpenWifiPanel,
     onOpenSystemDiagnostics,
@@ -225,22 +222,6 @@ export function BitstreamMainToolbar(props: {
 
   const assistantOpen = useSensorStudioAssistantUiStore((s) => s.assistantOpen);
   const toggleAssistant = useSensorStudioAssistantUiStore((s) => s.toggleAssistant);
-
-  const [devRestartBusy, setDevRestartBusy] = useState(false);
-  const devRestart = useCallback(async () => {
-    if (!import.meta.env.DEV) {
-      return;
-    }
-    if (devRestartBusy) {
-      return;
-    }
-    setDevRestartBusy(true);
-    try {
-      await fetch("http://127.0.0.1:9910/restart", { method: "POST" });
-    } finally {
-      setTimeout(() => setDevRestartBusy(false), 800);
-    }
-  }, [devRestartBusy]);
 
   return (
     <header className="m-0 w-full shrink-0 border-b border-zinc-700/80 bg-zinc-950/95 p-0">
@@ -425,29 +406,6 @@ export function BitstreamMainToolbar(props: {
         />
 
         <TRNToolbarGroup gap="xs" align="end">
-          {import.meta.env.DEV ? (
-            <TRNIconButton
-              icon={
-                <RefreshCcw
-                  size={16}
-                  className={devRestartBusy ? "text-amber-200/90" : "text-zinc-400 hover:text-zinc-100"}
-                  strokeWidth={2.25}
-                />
-              }
-              label={devRestartBusy ? "Restarting dev server…" : "Restart dev server"}
-              onClick={devRestart}
-              disabled={devRestartBusy}
-              className="border border-zinc-700/80 bg-zinc-900/75 text-zinc-200 hover:bg-zinc-800/80"
-            />
-          ) : null}
-          <TRNIconButton
-            icon={<ScrollText size={16} className="text-zinc-400 hover:text-zinc-100" strokeWidth={2.25} />}
-            label="System logs"
-            aria-haspopup="dialog"
-            onClick={onOpenSystemLogs}
-            disabled={!onOpenSystemLogs}
-            className="border border-zinc-700/80 bg-zinc-900/75 text-zinc-200 hover:bg-zinc-800/80"
-          />
           <TRNIconButton
             icon={<Menu size={16} className="text-zinc-400 hover:text-zinc-100" strokeWidth={2.25} />}
             label="Menu"

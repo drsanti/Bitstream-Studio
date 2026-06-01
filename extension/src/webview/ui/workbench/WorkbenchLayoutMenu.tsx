@@ -1,14 +1,18 @@
-import { ChevronDown, LayoutTemplate } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { twMerge } from "tailwind-merge";
-import { TRN_HINT_HOVER_DELAY_MS } from "../TRN/TRNHintText.js";
+import { LayoutTemplate } from "lucide-react";
+import { ToolbarDropdownMenu } from "../components/ToolbarDropdownMenu";
 import {
   TRNMenuItemButton,
   TRNMenuPanel,
   TRNMenuSectionTitle,
 } from "../TRN/TRNMenu.js";
-import { TRNTooltip } from "../TRN/TRNTooltip.js";
 import type { WorkbenchLayoutMenuProps } from "./workbench-layout-menu.types";
+import {
+  WORKBENCH_LAYOUT_MENU_ICONS,
+  WORKBENCH_LAYOUT_MENU_ITEM_CLASS,
+  WORKBENCH_LAYOUT_MENU_PANEL_CLASS,
+  workbenchLayoutMenuIcon,
+  workbenchLayoutPresetIcon,
+} from "./workbench-layout-menu-ui";
 
 export function WorkbenchLayoutMenu({
   presets,
@@ -21,59 +25,16 @@ export function WorkbenchLayoutMenu({
   onImport,
   onReset,
 }: WorkbenchLayoutMenuProps) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-      if (!target || rootRef.current?.contains(target)) {
-        return;
-      }
-      setOpen(false);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-      }
-    };
-    window.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
-
   return (
-    <div className="relative" ref={rootRef}>
-      <TRNTooltip
-        content="Presets, saved layouts, export/import"
-        side="bottom"
-        delayMs={TRN_HINT_HOVER_DELAY_MS}
+    <div className="relative shrink-0">
+      <ToolbarDropdownMenu
+        label="Layout"
+        hint="Presets, saved layouts, export and import."
+        align="right"
+        prefixIcon={<LayoutTemplate className="size-3 shrink-0 opacity-90" aria-hidden />}
+        buttonClassName="inline-flex items-center gap-1 rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-[11px] text-sky-100/90 hover:bg-sky-900/25"
       >
-        <button
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          className={twMerge(
-            "inline-flex items-center gap-1 rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-[11px] text-sky-100/90 hover:bg-sky-900/25",
-          )}
-          onClick={() => setOpen((value) => !value)}
-        >
-          <LayoutTemplate className="size-3 shrink-0 opacity-90" aria-hidden />
-          Layout
-          <ChevronDown className="size-3 shrink-0 opacity-70" aria-hidden />
-        </button>
-      </TRNTooltip>
-      {open ? (
-        <TRNMenuPanel
-          tone="glass-dropdown"
-          className="absolute right-0 top-full z-[70] mt-1 min-w-52 py-1 scrollbar-hide max-h-80 overflow-y-auto"
-        >
+        <TRNMenuPanel tone="glass-dropdown" className={WORKBENCH_LAYOUT_MENU_PANEL_CLASS}>
           <div className="flex flex-col gap-0.5" role="menu">
             {presets.length > 0 ? (
               <>
@@ -83,9 +44,10 @@ export function WorkbenchLayoutMenu({
                     key={preset.id}
                     role="menuitem"
                     tone="glass-dropdown"
+                    className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+                    icon={workbenchLayoutPresetIcon(preset.id)}
                     label={preset.label}
                     onClick={() => {
-                      setOpen(false);
                       onLoadPreset(preset.id);
                     }}
                   />
@@ -100,9 +62,10 @@ export function WorkbenchLayoutMenu({
                     key={row.id}
                     role="menuitem"
                     tone="glass-dropdown"
+                    className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+                    icon={workbenchLayoutMenuIcon(WORKBENCH_LAYOUT_MENU_ICONS.namedLayout)}
                     label={row.name}
                     onClick={() => {
-                      setOpen(false);
                       onLoadNamed(row.id);
                     }}
                   />
@@ -113,52 +76,47 @@ export function WorkbenchLayoutMenu({
             <TRNMenuItemButton
               role="menuitem"
               tone="glass-dropdown"
+              className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+              icon={workbenchLayoutMenuIcon(WORKBENCH_LAYOUT_MENU_ICONS.saveAs)}
               label="Save current layout as…"
-              onClick={() => {
-                setOpen(false);
-                onSaveAs();
-              }}
+              onClick={onSaveAs}
             />
             <TRNMenuItemButton
               role="menuitem"
               tone="glass-dropdown"
+              className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+              icon={workbenchLayoutMenuIcon(WORKBENCH_LAYOUT_MENU_ICONS.manage)}
               label="Manage layouts…"
-              onClick={() => {
-                setOpen(false);
-                onManage();
-              }}
+              onClick={onManage}
             />
             <TRNMenuItemButton
               role="menuitem"
               tone="glass-dropdown"
+              className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+              icon={workbenchLayoutMenuIcon(WORKBENCH_LAYOUT_MENU_ICONS.exportCurrent)}
               label="Export current layout…"
-              onClick={() => {
-                setOpen(false);
-                onExportCurrent();
-              }}
+              onClick={onExportCurrent}
             />
             <TRNMenuItemButton
               role="menuitem"
               tone="glass-dropdown"
+              className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+              icon={workbenchLayoutMenuIcon(WORKBENCH_LAYOUT_MENU_ICONS.importLayout)}
               label="Import layout…"
-              onClick={() => {
-                setOpen(false);
-                onImport();
-              }}
+              onClick={onImport}
             />
             <TRNMenuSectionTitle spacing="menuNext">Reset</TRNMenuSectionTitle>
             <TRNMenuItemButton
               role="menuitem"
               tone="glass-dropdown"
+              className={WORKBENCH_LAYOUT_MENU_ITEM_CLASS}
+              icon={workbenchLayoutMenuIcon(WORKBENCH_LAYOUT_MENU_ICONS.reset)}
               label="Reset to factory default"
-              onClick={() => {
-                setOpen(false);
-                onReset();
-              }}
+              onClick={onReset}
             />
           </div>
         </TRNMenuPanel>
-      ) : null}
+      </ToolbarDropdownMenu>
     </div>
   );
 }

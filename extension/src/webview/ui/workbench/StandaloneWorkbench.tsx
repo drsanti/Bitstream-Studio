@@ -58,6 +58,8 @@ export type StandaloneWorkbenchHandle = {
   undoLayout: () => void;
   redoLayout: () => void;
   openCommandPalette: () => void;
+  /** Expand or split-open a pane by editor type (same as command palette pane items). */
+  focusPane: (editorType: string) => void;
   exportLayoutSnapshot: (name?: string) => WorkbenchLayoutSnapshotV1 | null;
   applyImportedLayoutSnapshot: (
     snapshot: Pick<WorkbenchLayoutSnapshotV1, "layout" | "dockMemory">,
@@ -261,6 +263,9 @@ export const StandaloneWorkbench = memo(
         undoLayout: managed.undoLayoutChange,
         redoLayout: managed.redoLayoutChange,
         openCommandPalette: () => setCommandPaletteOpen(true),
+        focusPane: (editorType) => {
+          managed.focusOrOpenPane(editorType);
+        },
         exportLayoutSnapshot: (name = "Flow export") => {
           if (persistenceKey == null) {
             return null;

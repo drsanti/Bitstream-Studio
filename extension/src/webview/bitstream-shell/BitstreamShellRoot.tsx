@@ -208,6 +208,8 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
   const { children } = props;
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
   const sensorStudioMode = workspace === "sensor-studio";
+  const hideShellBootLifecycleBar =
+    workspace === "sensor-studio" || workspace === "sensor-telemetry";
   const { state: windows, actions: windowActions } = useBitstreamShellWindowsState();
   const sensorStudioWorkspaceBoundsRef = useRef<HTMLDivElement>(null);
 
@@ -747,12 +749,11 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
             });
           }}
           onDisconnect={() => void disconnectSession({ userInitiated: true })}
-          onOpenSystemLogs={windowActions.openSystemLogs}
           onOpenFirmwareLogLevel={openFirmwareLogLevelFromMenu}
           onOpenWifiPanel={openWifiPanelFromMenu}
           onOpenSystemDiagnostics={openSystemDiagnosticsFromMenu}
         />
-        {!sensorStudioMode ? (
+        {!hideShellBootLifecycleBar ? (
           <BitstreamBootLifecycleBar
             connected={connected}
             connecting={connecting}
@@ -785,6 +786,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
                 onOpenTelemetryLinkDiagnostics={openTelemetryLinkDiagnosticsFromMenu}
                 onOpenSystemDiagnostics={openSystemDiagnosticsFromMenu}
                 onOpenConnection={openConnectionFromMenu}
+                onOpenSystemLogs={windowActions.openSystemLogs}
               />
 
             </div>

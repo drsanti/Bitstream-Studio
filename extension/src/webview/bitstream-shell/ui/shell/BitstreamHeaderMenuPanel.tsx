@@ -7,12 +7,14 @@ import {
   LayoutTemplate,
   MessageSquareText,
   Radio,
+  RefreshCcw,
+  ScrollText,
   ShieldCheck,
   Usb,
   Wifi,
   Workflow,
 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useSensorStudioAssistantUiStore } from "../../../sensor-studio/state/sensorStudioAssistantUi.store";
 import { useBitstreamWorkspaceModeStore } from "../../../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { useTelemetryWorkbenchUiStore } from "../../../sensor-telemetry/store/telemetryWorkbenchUi.store.js";
@@ -46,6 +48,7 @@ export function BitstreamHeaderMenuPanel(props: {
   onOpenTelemetryLinkDiagnostics: () => void;
   onOpenSystemDiagnostics: () => void;
   onOpenConnection: () => void;
+  onOpenSystemLogs: () => void;
 }) {
   const {
     menu,
@@ -61,6 +64,7 @@ export function BitstreamHeaderMenuPanel(props: {
     onOpenTelemetryLinkDiagnostics,
     onOpenSystemDiagnostics,
     onOpenConnection,
+    onOpenSystemLogs,
   } = props;
 
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
@@ -139,6 +143,25 @@ export function BitstreamHeaderMenuPanel(props: {
     onOpenConnection();
     menu.closeMenu();
   }, [menu, onOpenConnection]);
+
+  const handleOpenSystemLogs = useCallback(() => {
+    onOpenSystemLogs();
+    menu.closeMenu();
+  }, [menu, onOpenSystemLogs]);
+
+  const [devRestartBusy, setDevRestartBusy] = useState(false);
+  const handleDevRestart = useCallback(async () => {
+    if (!import.meta.env.DEV || devRestartBusy) {
+      return;
+    }
+    setDevRestartBusy(true);
+    try {
+      await fetch("http://127.0.0.1:9910/restart", { method: "POST" });
+    } finally {
+      setTimeout(() => setDevRestartBusy(false), 800);
+      menu.closeMenu();
+    }
+  }, [devRestartBusy, menu]);
 
   const handleToggleBitstreamAssistant = useCallback(() => {
     toggleAssistant();
@@ -266,6 +289,12 @@ export function BitstreamHeaderMenuPanel(props: {
           />
           <TRNMenuItemButton
             role="menuitem"
+            onClick={handleOpenSystemLogs}
+            icon={<ScrollText className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />}
+            label="System logs"
+          />
+          <TRNMenuItemButton
+            role="menuitem"
             onClick={handleOpenSystemDiagnostics}
             icon={<Gauge className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />}
             label="Diagnostics & runtime services"
@@ -300,6 +329,18 @@ export function BitstreamHeaderMenuPanel(props: {
             icon={<Gauge className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />}
             label="PostMessage Trace"
           />
+          {import.meta.env.DEV ? (
+            <>
+              <TRNMenuSectionTitle spacing="menuNext">Developer</TRNMenuSectionTitle>
+              <TRNMenuItemButton
+                role="menuitem"
+                onClick={() => void handleDevRestart()}
+                disabled={devRestartBusy}
+                icon={<RefreshCcw className="h-3.5 w-3.5 shrink-0 opacity-85" aria-hidden />}
+                label={devRestartBusy ? "Restarting dev server…" : "Restart dev server"}
+              />
+            </>
+          ) : null}
         </div>
       </TRNMenuPanel>
     </GlassModalHamburgerMenuPanel>
