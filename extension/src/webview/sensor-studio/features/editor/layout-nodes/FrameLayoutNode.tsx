@@ -65,7 +65,7 @@ export const FrameLayoutNode = memo(function FrameLayoutNode(props: NodeProps) {
           />
         ) : (
           <div
-            className="nodrag nopan pointer-events-auto min-w-0 flex-1 select-none truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-300"
+            className="pointer-events-auto min-w-0 flex-1 select-none truncate text-[10px] font-semibold uppercase tracking-wider text-zinc-300"
             title="Double-click to rename"
           >
             {label}
