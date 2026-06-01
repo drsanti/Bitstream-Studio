@@ -18,7 +18,14 @@ export const SCENE_FRAME_WIRE_NODE_IDS: ReadonlySet<string> = new Set([
 ]);
 
 /** Time-based sources — only advance when the graph is ticked (not UART-bound). */
-export const SCENE_FRAME_TIME_SOURCE_NODE_IDS: ReadonlySet<string> = new Set(["sine-wave"]);
+export const SCENE_FRAME_TIME_SOURCE_NODE_IDS: ReadonlySet<string> = new Set([
+  "sine-wave",
+  "ramp-sim",
+  "step-sim",
+  "noise-sim",
+  "scene-time",
+  "frame-delta",
+]);
 
 export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
   return (

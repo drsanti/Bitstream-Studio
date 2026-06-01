@@ -39,7 +39,7 @@ export function MapRangeSettingsSection(props: NodeInspectorSettingsSectionProps
       <InspectorCollapsibleSection
         title="Map range"
         icon={<ArrowLeftRight className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
-        iconHint="Linearly remaps the incoming float from an input range to an output range. Wired in pins override unwired defaults on the node card when present."
+        iconHint="Linearly remaps Value from an input domain to an output domain. Wired pins override the defaults on the node card."
         defaultExpanded
       >
         <TRNInlineToggleRow

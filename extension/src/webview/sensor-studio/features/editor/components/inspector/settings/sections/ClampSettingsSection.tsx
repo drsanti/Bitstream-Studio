@@ -19,7 +19,7 @@ export function ClampSettingsSection(props: NodeInspectorSettingsSectionProps) {
     <InspectorCollapsibleSection
       title="Clamp"
       icon={<Shrink className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
-      iconHint="Limits the incoming float to the configured minimum and maximum. Wired in pins override unwired defaults on the node card when present."
+      iconHint="Limits Value to Min and Max. Wired pins override defaults on the node card."
       defaultExpanded
     >
       <InspectorNumericScrubRow

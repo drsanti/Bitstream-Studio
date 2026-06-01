@@ -48,6 +48,51 @@ import {
   evaluateMultiplexer,
   readMultiplexerPaths,
 } from "../../../core/flow/json-path";
+import {
+  evaluateClamp,
+  CLAMP_INPUT_DEFAULTS,
+  readClampInput,
+} from "../../../core/flow/clamp-operations";
+import {
+  evaluateMapRange,
+  MAP_RANGE_INPUT_DEFAULTS,
+  readMapRangeInput,
+} from "../../../core/flow/map-range-operations";
+import {
+  evaluateNoiseSim,
+  evaluateRampSim,
+  evaluateSineWave,
+  evaluateStepSim,
+  readSimInput,
+} from "../../../core/flow/sim-generator-operations";
+import {
+  evaluateVectorConstant,
+  VECTOR_CONSTANT_DEFAULTS,
+  readVectorAxisInput,
+} from "../../../core/flow/vector-constant-operations";
+import { advanceFlowClock } from "../../../core/flow/flow-clock";
+import { evaluateDebugValue } from "../../../core/flow/debug-node-operations";
+import { evaluateFogOutputs } from "../../../core/flow/fog-operations";
+import {
+  evaluateCameraSwitchIndex,
+  evaluateContactShadowsOutputs,
+  evaluateEmitterOutputs,
+  evaluateMaterialVariantName,
+  evaluateMorphWeight,
+  evaluatePostProcessingOutputs,
+  evaluateSceneLightOutputs,
+  evaluateUvTransformOutputs,
+  UV_TRANSFORM_KEYS,
+} from "../../../core/flow/scene-fx-operations";
+import {
+  evaluateFrameDelta,
+  evaluateSceneTime,
+} from "../../../core/flow/scene-time-operations";
+import { evaluateSceneSettingsExposure } from "../../../core/flow/scene-settings-operations";
+import {
+  evaluateTransformPartialVec3,
+  readTransformAxisInput,
+} from "../../../core/flow/transform-partial-operations";
 import { evaluateLogicGateOperation } from "../../../core/flow/logic-gate-operations";
 import {
   evaluateValueNormalizer,
@@ -515,6 +560,50 @@ function nodeChangesAreLayoutOnly(
   return changes.every((ch) => ch.type === "position" || ch.type === "dimensions");
 }
 
+/** Keep RF wrapper style in sync when edge-resize sets explicit width/height. */
+function syncStudioNodeLayoutStyleFromDimensionChanges(
+  nodes: StudioNode[],
+  changes: Parameters<typeof applyNodeChanges<StudioNode>>[0],
+): StudioNode[] {
+  const dimById = new Map<string, { width: number; height: number }>();
+  for (const ch of changes) {
+    if (ch.type !== "dimensions" || ch.dimensions == null) {
+      continue;
+    }
+    const { width, height } = ch.dimensions;
+    if (
+      typeof width === "number" &&
+      Number.isFinite(width) &&
+      typeof height === "number" &&
+      Number.isFinite(height)
+    ) {
+      dimById.set(ch.id, {
+        width: Math.max(1, Math.round(width)),
+        height: Math.max(1, Math.round(height)),
+      });
+    }
+  }
+  if (dimById.size === 0) {
+    return nodes;
+  }
+  return nodes.map((node) => {
+    const dim = dimById.get(node.id);
+    if (dim == null) {
+      return node;
+    }
+    return {
+      ...node,
+      width: dim.width,
+      height: dim.height,
+      style: {
+        ...(node.style ?? {}),
+        width: dim.width,
+        height: dim.height,
+      },
+    };
+  });
+}
+
 /** Re-run the pin solver so config-driven sources (e.g. `model-select`) refresh downstream `liveValue` without waiting for UART ticks. */
 function flushFlowSimulationPins(get: () => { tickSimulation: () => void }): void {
   get().tickSimulation();
@@ -825,6 +914,35 @@ function migrateStudioEdgesFusionQuat(edges: Edge[]): Edge[] {
   }));
 }
 
+function migrateStudioEdgesMapRange(nodes: StudioNode[], edges: Edge[]): Edge[] {
+  const mapRangeIds = new Set(
+    nodes
+      .filter((n) => n.type === "studio" && n.data.nodeId === "map-range")
+      .map((n) => n.id),
+  );
+  const clampIds = new Set(
+    nodes.filter((n) => n.type === "studio" && n.data.nodeId === "clamp").map((n) => n.id),
+  );
+  if (mapRangeIds.size === 0 && clampIds.size === 0) {
+    return edges;
+  }
+  return edges.map((e) => {
+    if (mapRangeIds.has(e.target)) {
+      const handle = e.targetHandle ?? STUDIO_HANDLE_IN;
+      if (handle === STUDIO_HANDLE_IN) {
+        return { ...e, targetHandle: "value" };
+      }
+    }
+    if (clampIds.has(e.target)) {
+      const handle = e.targetHandle ?? STUDIO_HANDLE_IN;
+      if (handle === STUDIO_HANDLE_IN) {
+        return { ...e, targetHandle: "value" };
+      }
+    }
+    return e;
+  });
+}
+
 /** Legacy graph migration before catalog refresh (e.g. oscilloscope → plotter). */
 function migrateFlowNodeFromLegacy(node: StudioNode): StudioNode {
   const data = migrateLegacyPlotterNodeData(node.data) as StudioNodeData;
@@ -1075,6 +1193,20 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
           resizable: piped.ui?.resizable ?? true,
           minWidth: piped.ui?.minWidth ?? 280,
           minHeight: piped.ui?.minHeight ?? 200,
+        },
+      };
+    }
+    if (
+      piped.nodeId === "radial-gauge" ||
+      piped.nodeId === "bar-meter" ||
+      piped.nodeId === "knob"
+    ) {
+      piped = {
+        ...piped,
+        ui: {
+          ...piped.ui,
+          minWidth: piped.ui?.minWidth ?? 170,
+          minHeight: piped.ui?.minHeight ?? 180,
         },
       };
     }
@@ -2059,9 +2191,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       selectedNodeIds: selectedNodeIdsFromFile,
     });
     get().pushUndoSnapshot();
-    const migratedEdges = migrateStudioEdgesFusionQuat(o.edges as Edge[]);
     const migratedNodes = (o.nodes as StudioNode[]).map((n) =>
       refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n)),
+    );
+    const migratedEdges = migrateStudioEdgesMapRange(
+      migratedNodes,
+      migrateStudioEdgesFusionQuat(o.edges as Edge[]),
     );
     const vpRaw = o.viewport;
     const viewport =
@@ -3023,7 +3158,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       get().pushUndoSnapshot();
     }
     set((state) => {
-      const nextNodes = applyNodeChanges(changes, state.nodes);
+      let nextNodes = applyNodeChanges(changes, state.nodes);
+      if (layoutOnly) {
+        nextNodes = syncStudioNodeLayoutStyleFromDimensionChanges(nextNodes, changes);
+      }
       const reconciled = layoutOnly
         ? nextNodes
         : reconcileStudioModelGeneratedChildIds(nextNodes);
@@ -4170,6 +4308,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
 
+    advanceFlowClock();
+
     type FlowValue =
       | number
       | boolean
@@ -4287,13 +4427,269 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
         if (node.data.nodeId === "sine-wave") {
-          const freq = asFiniteNumber(node.data.defaultConfig.frequency, 1);
-          const amp = asFiniteNumber(node.data.defaultConfig.amplitude, 1);
-          const offset = asFiniteNumber(node.data.defaultConfig.offset, 0);
-          const phase = asFiniteNumber(node.data.defaultConfig.phase, 0);
+          const cfg = node.data.defaultConfig;
           const t = Date.now() / 1000;
-          const val = amp * Math.sin(2 * Math.PI * freq * t + phase) + offset;
-          pinValues.set(studioFlowPinKey(node.id, "out"), val);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateSineWave(
+              t,
+              readSimInput(readIncoming(node.id, "amplitude"), cfg.amplitude, 1),
+              readSimInput(readIncoming(node.id, "frequency"), cfg.frequency, 1),
+              readSimInput(readIncoming(node.id, "phase"), cfg.phase, 0),
+              readSimInput(readIncoming(node.id, "offset"), cfg.offset, 0),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "ramp-sim") {
+          const cfg = node.data.defaultConfig;
+          const t = Date.now() / 1000;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateRampSim(
+              t,
+              readSimInput(readIncoming(node.id, "rate"), cfg.rate, 0.1),
+              readSimInput(readIncoming(node.id, "min"), cfg.min, 0),
+              readSimInput(readIncoming(node.id, "max"), cfg.max, 1),
+              cfg.wrap !== false,
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "step-sim") {
+          const cfg = node.data.defaultConfig;
+          const t = Date.now() / 1000;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateStepSim(
+              t,
+              readSimInput(readIncoming(node.id, "interval"), cfg.interval, 1),
+              readSimInput(readIncoming(node.id, "low"), cfg.low, 0),
+              readSimInput(readIncoming(node.id, "high"), cfg.high, 1),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "noise-sim") {
+          const cfg = node.data.defaultConfig;
+          const t = Date.now() / 1000;
+          const smoothRaw = cfg.smooth;
+          const smooth =
+            typeof smoothRaw === "number" && Number.isFinite(smoothRaw) ? smoothRaw : 0.25;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateNoiseSim(
+              t,
+              readSimInput(readIncoming(node.id, "seed"), cfg.seed, 1),
+              readSimInput(readIncoming(node.id, "amplitude"), cfg.amplitude, 1),
+              readSimInput(readIncoming(node.id, "offset"), cfg.offset, 0),
+              smooth,
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "vector-constant") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateVectorConstant(
+              readVectorAxisInput(readIncoming(node.id, "x"), cfg.x, VECTOR_CONSTANT_DEFAULTS.x),
+              readVectorAxisInput(readIncoming(node.id, "y"), cfg.y, VECTOR_CONSTANT_DEFAULTS.y),
+              readVectorAxisInput(readIncoming(node.id, "z"), cfg.z, VECTOR_CONSTANT_DEFAULTS.z),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "scene-time") {
+          const t = evaluateSceneTime();
+          pinValues.set(studioFlowPinKey(node.id, "seconds"), t.seconds);
+          pinValues.set(studioFlowPinKey(node.id, "frames"), t.frames);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), t.seconds);
+          continue;
+        }
+
+        if (node.data.nodeId === "frame-delta") {
+          const d = evaluateFrameDelta();
+          pinValues.set(studioFlowPinKey(node.id, "delta"), d.delta);
+          pinValues.set(studioFlowPinKey(node.id, "fps"), d.fps);
+          continue;
+        }
+
+        if (node.data.nodeId === "debug") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateDebugValue(readIncoming(node.id, "value"), cfg.value, 0),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "position") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateTransformPartialVec3(
+              readTransformAxisInput(readIncoming(node.id, "x"), cfg.px, 0),
+              readTransformAxisInput(readIncoming(node.id, "y"), cfg.py, 0),
+              readTransformAxisInput(readIncoming(node.id, "z"), cfg.pz, 0),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "rotation") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateTransformPartialVec3(
+              readTransformAxisInput(readIncoming(node.id, "x"), cfg.rx, 0),
+              readTransformAxisInput(readIncoming(node.id, "y"), cfg.ry, 0),
+              readTransformAxisInput(readIncoming(node.id, "z"), cfg.rz, 0),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "scale") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateTransformPartialVec3(
+              readTransformAxisInput(readIncoming(node.id, "x"), cfg.sx, 1),
+              readTransformAxisInput(readIncoming(node.id, "y"), cfg.sy, 1),
+              readTransformAxisInput(readIncoming(node.id, "z"), cfg.sz, 1),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "scene-settings") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateSceneSettingsExposure(readIncoming(node.id, "exposure"), cfg.exposure, 1),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "fog") {
+          const cfg = node.data.defaultConfig;
+          const out = evaluateFogOutputs(
+            readIncoming(node.id, "near"),
+            cfg.near,
+            readIncoming(node.id, "far"),
+            cfg.far,
+            readIncoming(node.id, "density"),
+            cfg.density,
+          );
+          pinValues.set(studioFlowPinKey(node.id, "near"), out.near);
+          pinValues.set(studioFlowPinKey(node.id, "far"), out.far);
+          pinValues.set(studioFlowPinKey(node.id, "density"), out.density);
+          continue;
+        }
+
+        if (node.data.nodeId === "morph-target") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateMorphWeight(readIncoming(node.id, "value"), cfg.value),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "scene-light") {
+          const cfg = node.data.defaultConfig;
+          const light = evaluateSceneLightOutputs(
+            readIncoming(node.id, "intensity"),
+            cfg.intensity,
+            readIncoming(node.id, "r"),
+            cfg.r,
+            readIncoming(node.id, "g"),
+            cfg.g,
+            readIncoming(node.id, "b"),
+            cfg.b,
+            readIncoming(node.id, "x"),
+            cfg.x,
+            readIncoming(node.id, "y"),
+            cfg.y,
+            readIncoming(node.id, "z"),
+            cfg.z,
+          );
+          pinValues.set(studioFlowPinKey(node.id, "intensity"), light.intensity);
+          pinValues.set(studioFlowPinKey(node.id, "r"), light.r);
+          pinValues.set(studioFlowPinKey(node.id, "g"), light.g);
+          pinValues.set(studioFlowPinKey(node.id, "b"), light.b);
+          pinValues.set(studioFlowPinKey(node.id, "x"), light.x);
+          pinValues.set(studioFlowPinKey(node.id, "y"), light.y);
+          pinValues.set(studioFlowPinKey(node.id, "z"), light.z);
+          continue;
+        }
+
+        if (node.data.nodeId === "camera-switch") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateCameraSwitchIndex(readIncoming(node.id, "index"), cfg.index),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "post-processing") {
+          const cfg = node.data.defaultConfig;
+          const pp = evaluatePostProcessingOutputs(
+            readIncoming(node.id, "bloomIntensity"),
+            cfg.bloomIntensity,
+            readIncoming(node.id, "bloomThreshold"),
+            cfg.bloomThreshold,
+          );
+          pinValues.set(studioFlowPinKey(node.id, "bloomIntensity"), pp.bloomIntensity);
+          pinValues.set(studioFlowPinKey(node.id, "bloomThreshold"), pp.bloomThreshold);
+          continue;
+        }
+
+        if (node.data.nodeId === "contact-shadows") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const cs = evaluateContactShadowsOutputs(cfg);
+          pinValues.set(studioFlowPinKey(node.id, "opacity"), cs.opacity);
+          pinValues.set(studioFlowPinKey(node.id, "blur"), cs.blur);
+          pinValues.set(studioFlowPinKey(node.id, "far"), cs.far);
+          pinValues.set(studioFlowPinKey(node.id, "scale"), cs.scale);
+          continue;
+        }
+
+        if (node.data.nodeId === "particle-emitter") {
+          const cfg = node.data.defaultConfig;
+          const em = evaluateEmitterOutputs(
+            readIncoming(node.id, "trigger"),
+            cfg.trigger,
+            readIncoming(node.id, "rate"),
+            cfg.rate,
+          );
+          pinValues.set(studioFlowPinKey(node.id, "trigger"), em.trigger);
+          pinValues.set(studioFlowPinKey(node.id, "rate"), em.rate);
+          continue;
+        }
+
+        if (node.data.nodeId === "uv-transform") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const uv = evaluateUvTransformOutputs(cfg, (key) => readIncoming(node.id, key));
+          for (const key of UV_TRANSFORM_KEYS) {
+            pinValues.set(studioFlowPinKey(node.id, key), uv[key]);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "material-variant") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateMaterialVariantName(readIncoming(node.id, "variant"), cfg.variant),
+          );
           continue;
         }
 
@@ -4455,6 +4851,39 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               readValueNormalizerInput(readIncoming(node.id, "inMax"), cfg.inMax, 1),
               readValueNormalizerInput(readIncoming(node.id, "outMin"), cfg.outMin, 0),
               readValueNormalizerInput(readIncoming(node.id, "outMax"), cfg.outMax, 1),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "map-range") {
+          const cfg = node.data.defaultConfig;
+          const wiredValue =
+            readIncoming(node.id, "value") ?? readIncoming(node.id, STUDIO_HANDLE_IN);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateMapRange(
+              readMapRangeInput(wiredValue, cfg.value, MAP_RANGE_INPUT_DEFAULTS.value),
+              readMapRangeInput(readIncoming(node.id, "inMin"), cfg.inMin, MAP_RANGE_INPUT_DEFAULTS.inMin),
+              readMapRangeInput(readIncoming(node.id, "inMax"), cfg.inMax, MAP_RANGE_INPUT_DEFAULTS.inMax),
+              readMapRangeInput(readIncoming(node.id, "outMin"), cfg.outMin, MAP_RANGE_INPUT_DEFAULTS.outMin),
+              readMapRangeInput(readIncoming(node.id, "outMax"), cfg.outMax, MAP_RANGE_INPUT_DEFAULTS.outMax),
+              cfg.clamp !== false,
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "clamp") {
+          const cfg = node.data.defaultConfig;
+          const wiredValue =
+            readIncoming(node.id, "value") ?? readIncoming(node.id, STUDIO_HANDLE_IN);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateClamp(
+              readClampInput(wiredValue, cfg.value, CLAMP_INPUT_DEFAULTS.value),
+              readClampInput(readIncoming(node.id, "min"), cfg.min, CLAMP_INPUT_DEFAULTS.min),
+              readClampInput(readIncoming(node.id, "max"), cfg.max, CLAMP_INPUT_DEFAULTS.max),
             ),
           );
           continue;
@@ -4740,37 +5169,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const result =
             operator === ">" ? numericIncoming > threshold : numericIncoming < threshold;
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), result);
-          continue;
-        }
-
-        if (node.data.nodeId === "map-range") {
-          const inMin = asFiniteNumber(node.data.defaultConfig.inMin, 0);
-          const inMax = asFiniteNumber(node.data.defaultConfig.inMax, 1);
-          const outMin = asFiniteNumber(node.data.defaultConfig.outMin, -1);
-          const outMax = asFiniteNumber(node.data.defaultConfig.outMax, 1);
-          const clampResult = node.data.defaultConfig.clamp !== false;
-          const numericIncoming = narrowNumber(incomingValue);
-          const inSpan = inMax - inMin;
-          if (Math.abs(inSpan) < 1e-9) {
-            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), outMin);
-            continue;
-          }
-          const normalized = (numericIncoming - inMin) / inSpan;
-          let mapped = outMin + normalized * (outMax - outMin);
-          if (clampResult) {
-            const lo = Math.min(outMin, outMax);
-            const hi = Math.max(outMin, outMax);
-            mapped = clampNumber(mapped, lo, hi);
-          }
-          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), mapped);
-          continue;
-        }
-
-        if (node.data.nodeId === "clamp") {
-          const min = asFiniteNumber(node.data.defaultConfig.min, -1);
-          const max = asFiniteNumber(node.data.defaultConfig.max, 1);
-          const numericIncoming = narrowNumber(incomingValue);
-          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), clampNumber(numericIncoming, min, max));
           continue;
         }
 

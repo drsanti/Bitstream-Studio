@@ -82,6 +82,10 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-31** — **Sensor Studio — node-animator Phase 2 (keyboard + palette):** central **`flow-keyboard-shortcuts.ts`**, recent nodes in **`FlowAddNodeMenu`**, **`nodePaletteLayout`** from runtime defaults + Library switcher, **`palette-display-meta.ts`** 9-group add menu taxonomy.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 1 (Shift+A add menu):** **`FlowAddNodeMenu`** (search + category browse), pointer anchor, right-click spawn, Esc priority; parity doc **`NODE_ANIMATOR_PARITY.md`**.
 - **2026-05-31** — **Sensor Studio — Logic Gate (node-animator parity):** **`logic-gate-operations.ts`**, dynamic input handles, catalog + eval + NA import; **`logic-gate-operations.test.ts`**.
+- **2026-05-31** — **Sensor Studio — NA parity Tier C slice 2:** morph-target, scene-light, camera-switch, post-processing, contact-shadows, particle-emitter, uv-transform, material-variant + eval; dataSource/wsClient/wsClientOut → sensor-input import; **`na-parity-tier-c-slice2.test.ts`**, **`scene-fx-operations.ts`**.
+- **2026-05-31** — **Sensor Studio — NA parity Tier C slice 1:** scene-time, frame-delta, debug, position/rotation/scale, scene-settings, fog + import; **`na-parity-tier-c.test.ts`**.
+- **2026-05-31** — **Sensor Studio — NA parity Tier A–B slice 1:** Clamp 3-pin + card; Bool/Sine/Ramp/Step/Noise/Vector import + eval; best-effort environment/texture/camera/transform/animation/visibility import; **`na-parity-tier-a-b.test.ts`**.
+- **2026-05-31** — **Sensor Studio — Map Range NA parity:** five wired inputs (`value`, `inMin`, `inMax`, `outMin`, `outMax`), card panel + shared eval module, legacy `in` → `value` edge migration, `mapRange` import; **`map-range-operations.test.ts`**.
 - **2026-05-31** — **Sensor Studio — Multiplexer + Value Normalizer (node-animator parity):** **`json-path.ts`**, **`value-normalizer-operations.ts`**, catalog + eval + card/inspector + NA import; **`multiplexer-normalizer-cache.test.ts`**.
 - **2026-05-31** — **Sensor Studio — group library feed cache:** sessionStorage cache for official presets, Live / Cached / Offline badges, retry + refresh in **Groups** tab.
 - **2026-05-31** — **Sensor Studio — Switch + Combine XYZ (node-animator parity):** **`switch-combine-operations.ts`**, catalog + eval + NA import handle remap; **`switch-combine-operations.test.ts`**.
@@ -398,13 +402,15 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- **Sensor Studio — flow domains Phase 5** — material v1 complete (PBR + texture + demo template); full shader graph backlog.
+- **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
+- **Sensor Studio — node-animator NA parity Tier D** — physics stack (Digital Twin gated).
 
 ---
 
 ## Planned / next
 
-- **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31** (local + remote + linked UI + node-animator import). Next: feed cache polish.
+- **Sensor Studio — node-animator NA parity (scene wiring backlog)** — Tier C nodes emit dataflow scalars; model-viewer / compositor apply for fog, lights, morph, post-FX still backlog.
+- **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31**. Utility parity slices ongoing.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)

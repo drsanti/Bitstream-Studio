@@ -8,7 +8,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 
 | | node-animator | Sensor Studio |
 |---|---------------|---------------|
-| Addable catalog entries | 54 (52 root) | 61 |
+| Addable catalog entries | 54 (52 root) | 85 |
 | Palette categories | 14 (Blender GN–style) | 7 schema categories + sensor subgroups |
 | React Flow node types | 74 | 5 (`studio` + 4 layout types) |
 
@@ -176,12 +176,64 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 - **Switch** + **Combine XYZ** — boolean/number branch + vector3 combine; **ifElse** / **combineXYZ** / **separateXYZ** NA import (**2026-05-31**)
 - **Logic Gate** — AND / OR / NOT / XOR; dynamic **B** pin hide for NOT (**2026-05-31**)
 - **Multiplexer** + **Value Normalizer** — JSON path extract + clamped range map; NA import (**2026-05-31**)
+- **Map Range v2** — five wired inputs + card clamp/range defaults + `mapRange` NA import (**2026-05-31**)
+
+## Phase 9+ — Shipped (NA parity Tier A + B slice 1)
+
+- **Clamp v2** — wired `value`/`min`/`max`, card panel, `clamp` NA import (**2026-05-31**)
+- **Bool import** — `bool` → `boolean-constant` (**2026-05-31**)
+- **Sim generators** — Sine wired params + `ramp-sim` / `step-sim` / `noise-sim` + NA import (**2026-05-31**)
+- **Vector constant** — `vector-constant` + `vector` NA import (**2026-05-31**)
+- **Tier B import (best-effort)** — `environment*`, `texture`, `camera`, `transform`, `animation*`, `visibility` (**2026-05-31**)
+
+## Phase 9+ — Shipped (NA parity Tier C slice 1)
+
+- **Scene Time** + **Frame Delta** — flow clock + multi-output eval + NA import (**2026-05-31**)
+- **Debug** — numeric passthrough + NA import (**2026-05-31**)
+- **Position / Rotation / Scale** — partial vec3 builders + NA import (**2026-05-31**)
+- **Scene Settings** + **Fog** — scalar outputs + NA import (**2026-05-31**)
 
 ## Phase 9+ — Shipped (group library)
 
 - Feed cache badges / offline sync UX — sessionStorage cache, Live / Cached / Offline badges, retry + refresh (**2026-05-31**)
 
-## Phase 9+ — Planned
+## Phase 9+ — Planned (full NA parity roadmap)
+
+**Baseline after Tier A–C slice 2:** ~40 / 53 NA root types with import or full eval parity; **~13** still need physics epic or scene-domain wiring.
+
+### Tier A — Utility / sim quick wins
+
+- [x] **Clamp** — wired `value` + `min` + `max`
+- [x] **Bool** — `bool` → `boolean-constant` NA import
+- [x] **Sine Wave** — wired amp/freq/phase/offset + `sineWaveSim` import
+- [x] **Ramp / Step / Noise** — generator nodes + NA import
+- [x] **Vector** — `vector-constant` + NA `vector` import
+
+### Tier B — Scene / material import (partial analog exists)
+
+- [x] **Environment** — `environment` / `environmentHdri` / `environmentCubemap` → `environment` (import; pin parity backlog)
+- [x] **Texture** — `texture` → `glb-material-texture` (import)
+- [x] **Camera** — `camera` → `camera-view` (import)
+- [x] **Transform** — `transform` → `object-transform` (import)
+- [x] **Animation** — `animationClip` / `animationPlayer` → `glb-animation-bundle` (import)
+- [x] **Visibility** — `visibility` → `event-toggle-glb-part` (best-effort import)
+
+### Tier C — New catalog nodes (no Studio analog yet)
+
+- [x] **Input / debug:** `time`, `frameDelta`, `debug` (slice 1)
+- [x] **Input / debug:** `dataSource`, `wsClient`, `wsClientOut` → **`sensor-input`** (Bitstream telemetry substitute; channel/url → `sourceKey`)
+- [x] **Geometry split:** `position`, `rotation`, `scale` (slice 1)
+- [x] **Geometry:** `morph` → **`morph-target`** (slice 2; scene apply backlog)
+- [x] **Material / world:** `sceneSettings`, `fog` (slice 1)
+- [x] **Material:** `uvTransform` → **`uv-transform`**, `materialVariant` → **`material-variant`**, `material` → **`glb-material-color`** import (slice 2)
+- [x] **Light / camera:** `light` → **`scene-light`**, `cameraSwitch` → **`camera-switch`** (slice 2; rig routing backlog)
+- [x] **Compositor / FX:** `postProcessing`, `contactShadows`, `emitter` → **`post-processing`**, **`contact-shadows`**, **`particle-emitter`** (slice 2)
+
+### Tier D — Deferred (Digital Twin / physics epic)
+
+- [ ] **Physics stack:** `physics`, `rigidBody`, `objectSpawner`, colliders, `joint` variants, `ik`
+
+Track slices in **`extension/docs/DEVELOPMENT_TRACKER.md`** (*In progress* / *Recently completed*).
 
 ## Shortcuts (current)
 

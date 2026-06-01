@@ -94,10 +94,12 @@ function validateLowPass(cfg: Record<string, unknown>): string[] {
 
 function validateMapRange(cfg: Record<string, unknown>): string[] {
   const schema = z.object({
+    value: z.number().finite().optional(),
     inMin: z.number().finite().optional(),
     inMax: z.number().finite().optional(),
     outMin: z.number().finite().optional(),
     outMax: z.number().finite().optional(),
+    clamp: z.boolean().optional(),
   });
   const r = schema.safeParse(cfg);
   const out: string[] = [];
@@ -118,6 +120,7 @@ function validateMapRange(cfg: Record<string, unknown>): string[] {
 
 function validateClamp(cfg: Record<string, unknown>): string[] {
   const schema = z.object({
+    value: z.number().finite().optional(),
     min: z.number().finite().optional(),
     max: z.number().finite().optional(),
   });
