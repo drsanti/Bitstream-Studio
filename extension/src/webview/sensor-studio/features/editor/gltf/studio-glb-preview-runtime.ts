@@ -591,6 +591,48 @@ const glbCamScratch = {
   dir: new THREE.Vector3(),
 };
 
+/** Sorted embedded camera object names from a loaded GLB root. */
+export function collectEmbeddedGlbCameraNames(root: THREE.Object3D): string[] {
+  const names = new Set<string>();
+  root.traverse((obj) => {
+    if ((obj as THREE.Camera).isCamera) {
+      const name = obj.name.trim();
+      if (name.length > 0) {
+        names.add(name);
+      }
+    }
+  });
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+/** Apply **`camera-switch`** slot index as a one-hot GLB camera drive map. */
+export function resolveGlbCameraDrivesWithSwitch(
+  baseDrives: Record<string, number> | undefined,
+  switchIndex: number | undefined,
+  rigNames: readonly string[] | undefined,
+  embeddedNames: readonly string[],
+): Record<string, number> | undefined {
+  if (switchIndex == null || !Number.isFinite(switchIndex)) {
+    return baseDrives;
+  }
+  const names =
+    rigNames != null && rigNames.length > 0
+      ? [...rigNames]
+      : embeddedNames.length > 0
+        ? [...embeddedNames]
+        : [];
+  if (names.length === 0) {
+    return baseDrives;
+  }
+  const slot = Math.floor(switchIndex);
+  const idx = Math.max(0, Math.min(names.length - 1, slot));
+  const activeName = names[idx];
+  if (activeName == null || activeName.length === 0) {
+    return baseDrives;
+  }
+  return { [activeName]: 1 };
+}
+
 /** Pick the GLB camera name with the strongest drive value (must be **> 0.5** to activate). */
 export function pickActiveGlbCameraName(cameras: Record<string, number> | undefined): string | null {
   const blend = resolveGlbCameraBlendWeights(cameras);

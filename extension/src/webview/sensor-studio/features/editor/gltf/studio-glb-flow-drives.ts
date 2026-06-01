@@ -1,4 +1,4 @@
-import { evaluateMorphWeight } from "../../../core/flow/scene-fx-operations";
+import { evaluateCameraSwitchIndex, evaluateMorphWeight } from "../../../core/flow/scene-fx-operations";
 import { buildGlbAnimEventPreviewDrive } from "../nodes/events/glb-anim-event-config";
 import { readGlbPartDriveScalar } from "../nodes/events/glb-part-event-config";
 import { coerceNumberConstantValue } from "../nodes/constants/number-constant-helpers";
@@ -334,4 +334,63 @@ export function collectFlowSceneLightGlbDrivesForModel(
     lights[name] = Math.max(0, v);
   }
   return lights;
+}
+
+function readCameraSwitchIndex(cfg: Record<string, unknown>, liveValue: unknown): number {
+  const wired =
+    typeof liveValue === "number" && Number.isFinite(liveValue) ? liveValue : cfg.index;
+  return evaluateCameraSwitchIndex(null, wired);
+}
+
+/** Active GLB camera slot index from scoped **`camera-switch`** nodes (0–7). */
+export function collectFlowCameraSwitchIndexForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): number | null {
+  if (sourceModelNodeId.trim().length === 0) {
+    return null;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "camera-switch") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    return readCameraSwitchIndex(n.data.defaultConfig, n.data.liveValue);
+  }
+  return null;
+}
+
+function readCameraRigNames(cfg: Record<string, unknown>): string[] {
+  const raw = cfg.cameraRig;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  return raw
+    .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+    .map((v) => v.trim());
+}
+
+/** Optional explicit camera name ordering from **`camera-switch`** node config. */
+export function collectFlowCameraSwitchRigForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): string[] | null {
+  if (sourceModelNodeId.trim().length === 0) {
+    return null;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "camera-switch") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const rig = readCameraRigNames(n.data.defaultConfig);
+    return rig.length > 0 ? rig : null;
+  }
+  return null;
 }

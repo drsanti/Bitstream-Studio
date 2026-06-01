@@ -199,7 +199,7 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 
 ## Phase 9+ — Planned (full NA parity roadmap)
 
-**Baseline after Tier A–C slice 2 + scene wiring + compositor preview:** ~40 / 53 NA root types with import or eval parity; fog / exposure / studio light / morph / bloom / contact shadows wired into Model Viewer preview.
+**Baseline after Tier A–C slice 2 + scene wiring + compositor + camera/particles:** ~40 / 53 NA root types with import or eval parity; fog / exposure / studio light / morph / bloom / contact shadows / camera-switch / particles wired into Model Viewer preview.
 
 ### Tier A — Utility / sim quick wins
 
@@ -226,12 +226,12 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 - [x] **Geometry:** `morph` → **`morph-target`** (slice 2; scene apply backlog)
 - [x] **Material / world:** `sceneSettings`, `fog` (slice 1)
 - [x] **Material:** `uvTransform` → **`uv-transform`**, `materialVariant` → **`material-variant`**, `material` → **`glb-material-color`** import (slice 2)
-- [x] **Light / camera:** `light` → **`scene-light`**, `cameraSwitch` → **`camera-switch`** (slice 2; rig routing backlog)
-- [x] **Compositor / FX:** `postProcessing`, `contactShadows`, `emitter` → **`post-processing`**, **`contact-shadows`**, **`particle-emitter`** (slice 2; bloom + contact shadows in preview **2026-05-31**)
+- [x] **Light / camera:** `light` → **`scene-light`**, `cameraSwitch` → **`camera-switch`** (slice 2; rig routing in preview **2026-05-31**)
+- [x] **Compositor / FX:** `postProcessing`, `contactShadows`, `emitter` → **`post-processing`**, **`contact-shadows`**, **`particle-emitter`** (slice 2; bloom + contact shadows + particles in preview **2026-05-31**)
 
 ### Tier D — Deferred (Digital Twin / physics epic)
 
-- [ ] **Physics stack:** `physics`, `rigidBody`, `objectSpawner`, colliders, `joint` variants, `ik`
+- [ ] **Physics stack:** `physics`, `rigidBody`, `objectSpawner`, colliders, `joint` variants, `ik` — see **[`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md)**
 
 Track slices in **`extension/docs/DEVELOPMENT_TRACKER.md`** (*In progress* / *Recently completed*).
 

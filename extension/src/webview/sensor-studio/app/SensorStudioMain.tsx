@@ -849,6 +849,7 @@ export function SensorStudioMain() {
         studioLightColor={dataTypeColors.studioLight}
         postProcessingColor={dataTypeColors.postProcessing}
         contactShadowsColor={dataTypeColors.contactShadows}
+        particleEmitterColor={dataTypeColors.particleEmitter}
         minimapCategoryColors={minimapCategoryColors}
         entries={catalog}
         nodes={nodes}

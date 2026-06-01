@@ -78,6 +78,10 @@ export type RotationPreviewSceneProps = {
    * copies that camera’s pose into the studio orbit camera for the frame.
    */
   glbCameraDriveByName?: Record<string, number>;
+  /** Active embedded camera slot from flow **`camera-switch`** (0–7). */
+  glbCameraSwitchIndex?: number;
+  /** Optional explicit camera name ordering for slot index resolution. */
+  glbCameraSwitchRig?: string[];
 };
 
 export function RotationPreviewScene(props: RotationPreviewSceneProps) {

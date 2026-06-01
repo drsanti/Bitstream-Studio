@@ -642,6 +642,10 @@ function normalizeInnerNode(node: Node): Node {
   }
   if (node.type === "cameraSwitch") {
     const data = node.data as Record<string, unknown>;
+    const rigRaw = data.cameraRig;
+    const cameraRig = Array.isArray(rigRaw)
+      ? rigRaw.filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+      : [];
     return {
       ...node,
       type: "studio",
@@ -651,6 +655,7 @@ function normalizeInnerNode(node: Node): Node {
         nodeId: "camera-switch",
         defaultConfig: {
           index: typeof data.index === "number" ? data.index : 0,
+          cameraRig,
         },
       },
     };
@@ -705,6 +710,7 @@ function normalizeInnerNode(node: Node): Node {
           life: typeof data.life === "number" ? data.life : 1,
           color: typeof data.color === "string" ? data.color : "#ffaa00",
           trigger: typeof data.trigger === "number" ? data.trigger : 0,
+          target: typeof data.target === "string" ? data.target : "",
         },
       },
     };

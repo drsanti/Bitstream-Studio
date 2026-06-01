@@ -17,8 +17,10 @@ import type { FlowWireTransformV1 } from "../transform/flow-wire-transform";
 import { mergeFlowWireTransformIntoScene3d } from "../transform/flow-wire-transform";
 import { mergeFlowSceneWiresIntoScene3d } from "../scene-fx/merge-flow-scene-wires";
 import type { FlowWireFogV1 } from "../scene-fx/flow-wire-fog";
+import type { FlowWireStudioLightV1 } from "../scene-fx/flow-wire-studio-light";
 import type { FlowWirePostProcessingV1 } from "../scene-fx/flow-wire-post-processing";
 import type { FlowWireContactShadowsV1 } from "../scene-fx/flow-wire-contact-shadows";
+import type { FlowWireParticleEmitterV1 } from "../scene-fx/flow-wire-particle-emitter";
 import { rotationPreviewOrientationFromTransformWire } from "../transform/flow-wire-transform-preview-orientation";
 import { resolveStudioModelScopeNodeId, resolveStudioSourceModelGlbUrl } from "../../model/model-generated-bindings";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
@@ -35,6 +37,7 @@ export type ModelViewerNodePanelProps = {
   liveStudioLightWire?: FlowWireStudioLightV1 | null;
   livePostProcessingWire?: FlowWirePostProcessingV1 | null;
   liveContactShadowsWire?: FlowWireContactShadowsV1 | null;
+  liveParticleEmitterWire?: FlowWireParticleEmitterV1 | null;
   defaultConfig: Record<string, unknown>;
 };
 
@@ -51,7 +54,7 @@ const MODEL_VIEWER_EMPTY_HINT =
  * No silent default mesh — stays empty until wired or linked to a configured Studio Model.
  */
 export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
-  const { nodeId, liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, livePostProcessingWire, liveContactShadowsWire, defaultConfig } = props;
+  const { nodeId, liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, livePostProcessingWire, liveContactShadowsWire, liveParticleEmitterWire, defaultConfig } = props;
 
   const nodes = useFlowEditorStore((s) => s.nodes);
   const edges = useFlowEditorStore((s) => s.edges);
@@ -111,8 +114,9 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       studioLight: liveStudioLightWire ?? null,
       postProcessing: livePostProcessingWire ?? null,
       contactShadows: liveContactShadowsWire ?? null,
+      particleEmitter: liveParticleEmitterWire ?? null,
     });
-  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, livePostProcessingWire, liveContactShadowsWire]);
+  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, livePostProcessingWire, liveContactShadowsWire, liveParticleEmitterWire]);
 
   const showGrid = readBoolean(defaultConfig, "showGrid", true);
 

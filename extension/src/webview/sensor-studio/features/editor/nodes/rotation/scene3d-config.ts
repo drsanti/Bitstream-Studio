@@ -263,6 +263,16 @@ export type Scene3DConfigV1 = {
     scale: number;
     colorHex: string;
   };
+  /** Optional particle VFX (flow **`particleEmitter`** wire). */
+  particleEmitter: {
+    enabled: boolean;
+    preset: string;
+    trigger: number;
+    rate: number;
+    life: number;
+    colorHex: string;
+    target: string;
+  };
 };
 
 export type Scene3DConfig = Scene3DConfigV1;
@@ -403,6 +413,15 @@ export const DEFAULT_SCENE3D_CONFIG_V1: Scene3DConfigV1 = {
     far: 10,
     scale: 10,
     colorHex: "#000000",
+  },
+  particleEmitter: {
+    enabled: false,
+    preset: "sparks",
+    trigger: 0,
+    rate: 0,
+    life: 1,
+    colorHex: "#ffaa00",
+    target: "",
   },
 };
 
@@ -570,6 +589,7 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
   const fogRaw = (o.fog ?? {}) as Record<string, unknown>;
   const postRaw = (o.postProcessing ?? {}) as Record<string, unknown>;
   const contactRaw = (o.contactShadows ?? {}) as Record<string, unknown>;
+  const particleRaw = (o.particleEmitter ?? {}) as Record<string, unknown>;
 
   const ambientRaw = ((lightsRaw.ambient ?? {}) as Record<string, unknown>) ?? {};
 
@@ -812,6 +832,18 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
       far: clamp(asFiniteNumber(contactRaw.far, d.contactShadows.far), 0.1, 100),
       scale: clamp(asFiniteNumber(contactRaw.scale, d.contactShadows.scale), 0.1, 100),
       colorHex: asHexColor(contactRaw.colorHex, d.contactShadows.colorHex),
+    },
+    particleEmitter: {
+      enabled: asBool(particleRaw.enabled, d.particleEmitter.enabled),
+      preset:
+        typeof particleRaw.preset === "string" && particleRaw.preset.trim().length > 0
+          ? particleRaw.preset.trim()
+          : d.particleEmitter.preset,
+      trigger: asFiniteNumber(particleRaw.trigger, d.particleEmitter.trigger),
+      rate: Math.max(0, asFiniteNumber(particleRaw.rate, d.particleEmitter.rate)),
+      life: clamp(asFiniteNumber(particleRaw.life, d.particleEmitter.life), 0.05, 30),
+      colorHex: asHexColor(particleRaw.colorHex ?? particleRaw.color, d.particleEmitter.colorHex),
+      target: typeof particleRaw.target === "string" ? particleRaw.target.trim() : d.particleEmitter.target,
     },
   };
 }

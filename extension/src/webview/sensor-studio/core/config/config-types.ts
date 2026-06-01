@@ -41,6 +41,7 @@ export type DataTypeColorsPayload = {
   studioLight: string;
   postProcessing: string;
   contactShadows: string;
+  particleEmitter: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -60,7 +61,8 @@ export type NodeCatalogOutputPort = {
     | "fog"
     | "studioLight"
     | "postProcessing"
-    | "contactShadows";
+    | "contactShadows"
+    | "particleEmitter";
   label: string;
 };
 

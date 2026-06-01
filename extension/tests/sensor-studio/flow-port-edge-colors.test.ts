@@ -21,6 +21,7 @@ const theme = {
   studioLightColor: "#666666",
   postProcessingColor: "#777777",
   contactShadowsColor: "#888888",
+  particleEmitterColor: "#999999",
 };
 
 describe("flow-port-edge-colors", () => {
@@ -30,6 +31,7 @@ describe("flow-port-edge-colors", () => {
     assert.equal(strokeForPortType(map, "event"), "#ffff00");
     assert.equal(strokeForPortType(map, "postProcessing"), "#777777");
     assert.equal(strokeForPortType(map, "contactShadows"), "#888888");
+    assert.equal(strokeForPortType(map, "particleEmitter"), "#999999");
     assert.match(strokeForPortType(map, null), /113/);
   });
 

@@ -523,6 +523,7 @@ export function StudioNodeCard(props: NodeProps) {
           studioLight: data.liveStudioLightWire ?? null,
           postProcessing: data.livePostProcessingWire ?? null,
           contactShadows: data.liveContactShadowsWire ?? null,
+          particleEmitter: data.liveParticleEmitterWire ?? null,
         },
       ),
     [
@@ -535,6 +536,7 @@ export function StudioNodeCard(props: NodeProps) {
       data.liveStudioLightWire,
       data.livePostProcessingWire,
       data.liveContactShadowsWire,
+      data.liveParticleEmitterWire,
     ],
   );
 
@@ -877,6 +879,7 @@ export function StudioNodeCard(props: NodeProps) {
               liveStudioLightWire={data.liveStudioLightWire}
               livePostProcessingWire={data.livePostProcessingWire}
               liveContactShadowsWire={data.liveContactShadowsWire}
+              liveParticleEmitterWire={data.liveParticleEmitterWire}
               defaultConfig={data.defaultConfig}
             />
           ) : null}

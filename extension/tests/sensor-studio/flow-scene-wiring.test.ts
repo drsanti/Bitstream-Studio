@@ -5,11 +5,19 @@ import {
   collectFlowMorphTargetDrivesForModel,
   collectFlowSceneLightGlbDrivesForModel,
 } from "../../src/webview/sensor-studio/features/editor/gltf/studio-glb-flow-drives";
+import {
+  collectFlowCameraSwitchIndexForModel,
+  collectFlowCameraSwitchRigForModel,
+  collectFlowMorphTargetDrivesForModel,
+  collectFlowSceneLightGlbDrivesForModel,
+} from "../../src/webview/sensor-studio/features/editor/gltf/studio-glb-flow-drives";
+import { resolveGlbCameraDrivesWithSwitch } from "../../src/webview/sensor-studio/features/editor/gltf/studio-glb-preview-runtime";
 import { mergeFlowSceneWiresIntoScene3d } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/merge-flow-scene-wires";
 import { flowWireFogFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-fog";
 import { flowWireStudioLightFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-studio-light";
 import { flowWirePostProcessingFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-post-processing";
 import { flowWireContactShadowsFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-contact-shadows";
+import { flowWireParticleEmitterFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-particle-emitter";
 import { defaultScene3DConfig } from "../../src/webview/sensor-studio/features/editor/nodes/rotation/scene3d-config";
 
 test("mergeFlowSceneWiresIntoScene3d applies exposure fog and studio light", () => {
@@ -54,6 +62,43 @@ test("mergeFlowSceneWiresIntoScene3d applies post-processing and contact shadows
   assert.equal(merged.contactShadows.blur, 3);
   assert.equal(merged.contactShadows.scale, 8);
   assert.equal(merged.contactShadows.colorHex, "#333333");
+});
+
+test("mergeFlowSceneWiresIntoScene3d applies particle emitter wire", () => {
+  const base = defaultScene3DConfig();
+  const emitterWire = flowWireParticleEmitterFromEval(
+    { trigger: 1, rate: 2 },
+    { enabled: true, preset: "steam", life: 2, color: "#aabbcc", target: "Nozzle" },
+  );
+  const merged = mergeFlowSceneWiresIntoScene3d(base, { particleEmitter: emitterWire });
+  assert.equal(merged.particleEmitter.enabled, true);
+  assert.equal(merged.particleEmitter.preset, "steam");
+  assert.equal(merged.particleEmitter.trigger, 1);
+  assert.equal(merged.particleEmitter.rate, 2);
+  assert.equal(merged.particleEmitter.colorHex, "#aabbcc");
+  assert.equal(merged.particleEmitter.target, "Nozzle");
+});
+
+test("collectFlowCameraSwitchIndexForModel reads scoped camera-switch live index", () => {
+  const index = collectFlowCameraSwitchIndexForModel(
+    [
+      {
+        id: "cs1",
+        data: {
+          nodeId: "camera-switch",
+          defaultConfig: { index: 0, sourceModelNodeId: "model1" },
+          liveValue: 2,
+        },
+      },
+    ],
+    "model1",
+  );
+  assert.equal(index, 2);
+});
+
+test("resolveGlbCameraDrivesWithSwitch maps slot index to one-hot drive", () => {
+  const drives = resolveGlbCameraDrivesWithSwitch({}, 1, ["CamA", "CamB", "CamC"], []);
+  assert.deepEqual(drives, { CamB: 1 });
 });
 
 test("collectFlowMorphTargetDrivesForModel reads morph-target nodes", () => {

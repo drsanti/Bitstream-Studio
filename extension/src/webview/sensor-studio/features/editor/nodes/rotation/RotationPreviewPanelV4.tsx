@@ -49,6 +49,11 @@ import {
   renderPreviewFrame,
   syncPreviewContactShadows,
 } from "./rotation-preview-compositor-runtime";
+import {
+  createPreviewParticleRuntimeState,
+  disposePreviewParticleRuntime,
+  tickPreviewParticleEmitter,
+} from "./rotation-preview-particle-runtime";
 import type { GlbMaterialPbrDriveRow } from "../../gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../gltf/studio-glb-material-texture";
 import type { GlbMaterialColorDriveRow } from "../../gltf/studio-glb-material-color";
@@ -61,11 +66,13 @@ import {
   applyGlbPartVisibilityByPathMap,
   applyStudioCameraFromBlendedGlbCameras,
   buildStudioGlbPathIndex,
+  collectEmbeddedGlbCameraNames,
   resetGlbMaterialColorDriveState,
   resetGlbMaterialPbrDriveState,
   resetGlbMaterialTextureDriveState,
   resetGlbPartVisibilityDriveState,
   resolveGlbCameraBlendWeights,
+  resolveGlbCameraDrivesWithSwitch,
   type GlbMaterialColorDriveState,
   type GlbMaterialPbrDriveState,
   type GlbMaterialTextureDriveState,
@@ -402,6 +409,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const glbMaterialTexturesRef = useRef<Record<string, GlbMaterialTextureDriveRow>>({});
   const glbMaterialColorsRef = useRef<Record<string, GlbMaterialColorDriveRow>>({});
   const glbCamerasRef = useRef<Record<string, number>>({});
+  const glbCameraSwitchIndexRef = useRef<number | undefined>(undefined);
+  const glbCameraSwitchRigRef = useRef<string[] | undefined>(undefined);
   const scenePropsGlb = props.sceneProps as RotationPreviewSceneProps & {
     glbMorphWeights?: Record<string, number>;
     glbLightIntensityByName?: Record<string, number>;
@@ -417,6 +426,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
     glbMaterialColorsByName?: Record<string, GlbMaterialColorDriveRow>;
     glbCameraDriveByName?: Record<string, number>;
+    glbCameraSwitchIndex?: number;
+    glbCameraSwitchRig?: string[];
   };
   glbMorphRef.current = scenePropsGlb.glbMorphWeights ?? {};
   glbLightsRef.current = scenePropsGlb.glbLightIntensityByName ?? {};
@@ -436,6 +447,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbMaterialTexturesRef.current = scenePropsGlb.glbMaterialTexturesByName ?? {};
   glbMaterialColorsRef.current = scenePropsGlb.glbMaterialColorsByName ?? {};
   glbCamerasRef.current = scenePropsGlb.glbCameraDriveByName ?? {};
+  glbCameraSwitchIndexRef.current = scenePropsGlb.glbCameraSwitchIndex;
+  glbCameraSwitchRigRef.current = scenePropsGlb.glbCameraSwitchRig;
 
   const quatRef = useRef<THREE.Quaternion>(new THREE.Quaternion());
   useEffect(() => {
@@ -536,6 +549,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       const fogRuntime = createPreviewFogRuntimeState();
       const contactShadowRuntime = createPreviewContactShadowRuntimeState();
       const bloomRuntime = createPreviewBloomRuntimeState();
+      const particleRuntime = createPreviewParticleRuntimeState();
+      const particleOriginScratch = new THREE.Vector3();
+      let embeddedCameraNames: string[] = [];
       let cubeTexture: THREE.CubeTexture | null = null;
 
       let lastEnvKey = "";
@@ -993,6 +1009,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           root.remove(modelRoot);
           disposeObject3D(modelRoot);
           modelRoot = null;
+          embeddedCameraNames = [];
         }
         const logicalUrl = scene3dRef.current.model.url.trim();
         const fallbackModelUrl =
@@ -1074,6 +1091,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
               centerObjectToOrigin(modelRoot);
               applyEmbeddedRigPolicy(modelRoot, scene3dRef.current.model.embeddedRigPolicy);
               root.add(modelRoot);
+              embeddedCameraNames = collectEmbeddedGlbCameraNames(modelRoot);
               resetAnimationMixer();
               glbPathIndex = buildStudioGlbPathIndex(modelRoot);
               const clips = gltf.animations ?? [];
@@ -1172,6 +1190,14 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           contactShadowRuntime,
           s.contactShadows,
           resolvePreviewContactShadowGroundY(s, modelRoot, root),
+        );
+        tickPreviewParticleEmitter(
+          scene,
+          particleRuntime,
+          s.particleEmitter,
+          modelRoot,
+          deltaSec,
+          particleOriginScratch,
         );
         syncShadowRendering(modelRoot);
 
@@ -1282,7 +1308,13 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         }
 
         camera.fov = s.camera.fovDeg;
-        const glbCamBlend = resolveGlbCameraBlendWeights(glbCamerasRef.current);
+        const effectiveGlbCameras = resolveGlbCameraDrivesWithSwitch(
+          glbCamerasRef.current,
+          glbCameraSwitchIndexRef.current,
+          glbCameraSwitchRigRef.current,
+          embeddedCameraNames,
+        );
+        const glbCamBlend = resolveGlbCameraBlendWeights(effectiveGlbCameras);
         const glbCamActive = glbCamBlend.length > 0;
         const glbCamHandoffToScene = prevGlbCamActive && !glbCamActive;
         if (!glbCamActive) {
@@ -1365,6 +1397,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           root.remove(modelRoot);
           disposeObject3D(modelRoot);
           modelRoot = null;
+          embeddedCameraNames = [];
         }
         if (gridHelper != null) {
           scene.remove(gridHelper);
@@ -1389,6 +1422,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         }
         disposeAllStudioDirectionals();
         disposePreviewCompositorRuntime(scene, contactShadowRuntime, bloomRuntime);
+        disposePreviewParticleRuntime(particleRuntime, scene);
         scene.remove(ambient);
         ambient.dispose();
         if (cubeTexture != null) {

@@ -8,6 +8,8 @@ import {
   type StudioFlowEdgeLike,
 } from "../model/model-generated-bindings";
 import {
+  collectFlowCameraSwitchIndexForModel,
+  collectFlowCameraSwitchRigForModel,
   collectFlowMorphTargetDrivesForModel,
   collectFlowSceneLightGlbDrivesForModel,
   collectGlbScalarDrivesForModel,
@@ -33,6 +35,8 @@ export type GlbScalarPreviewSceneProps = Pick<
   | "glbMaterialTexturesByName"
   | "glbMaterialColorsByName"
   | "glbCameraDriveByName"
+  | "glbCameraSwitchIndex"
+  | "glbCameraSwitchRig"
 >;
 
 /** GLB scalar + material drive maps for 3D previews. */
@@ -55,6 +59,8 @@ export function buildGlbScalarPreviewSceneProps(args: {
   const glbDrives = collectGlbScalarDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
   const flowMorphs = collectFlowMorphTargetDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
   const flowSceneLights = collectFlowSceneLightGlbDrivesForModel(args.nodes, sourceModelNodeId, args.edges);
+  const cameraSwitchIndex = collectFlowCameraSwitchIndexForModel(args.nodes, sourceModelNodeId, args.edges);
+  const cameraSwitchRig = collectFlowCameraSwitchRigForModel(args.nodes, sourceModelNodeId, args.edges);
   const materialEval = evaluateMaterialGraphForModel(args.nodes, sourceModelNodeId, args.edges);
   const materialCompact = compactMaterialGraphEvaluation(materialEval);
   const morphs = { ...glbDrives.morphs, ...flowMorphs };
@@ -75,5 +81,7 @@ export function buildGlbScalarPreviewSceneProps(args: {
     glbMaterialTexturesByName: materialCompact.glbMaterialTexturesByName,
     glbMaterialColorsByName: materialCompact.glbMaterialColorsByName,
     glbCameraDriveByName: cameraKeys.length > 0 ? glbDrives.cameras : undefined,
+    glbCameraSwitchIndex: cameraSwitchIndex ?? undefined,
+    glbCameraSwitchRig: cameraSwitchRig ?? undefined,
   };
 }

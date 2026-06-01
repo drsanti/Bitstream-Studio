@@ -18,5 +18,6 @@ export const DATA_TYPE_COLORS_DEFAULTS: DataTypeColorsConfig = {
     studioLight: "#FDE047",
     postProcessing: "#E879F9",
     contactShadows: "#C084FC",
+    particleEmitter: "#FB923C",
   },
 };

@@ -18,5 +18,6 @@ export const dataTypeColorsSchema = z.object({
     studioLight: z.string().min(1).default("#FDE047"),
     postProcessing: z.string().min(1).default("#E879F9"),
     contactShadows: z.string().min(1).default("#C084FC"),
+    particleEmitter: z.string().min(1).default("#FB923C"),
   }),
 });

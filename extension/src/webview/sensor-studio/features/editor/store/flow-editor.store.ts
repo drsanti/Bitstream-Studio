@@ -112,6 +112,12 @@ import {
   flowWirePostProcessingFromEval,
   isFlowWirePostProcessingV1,
 } from "../nodes/scene-fx/flow-wire-post-processing";
+import type { FlowWireParticleEmitterV1 } from "../nodes/scene-fx/flow-wire-particle-emitter";
+import {
+  coerceFlowWireParticleEmitterV1,
+  flowWireParticleEmitterFromEval,
+  isFlowWireParticleEmitterV1,
+} from "../nodes/scene-fx/flow-wire-particle-emitter";
 import { evaluateSceneSettingsExposure } from "../../../core/flow/scene-settings-operations";
 import {
   evaluateTransformPartialVec3,
@@ -292,6 +298,7 @@ export type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
 export type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
 export type { FlowWirePostProcessingV1 } from "../nodes/scene-fx/flow-wire-post-processing";
 export type { FlowWireContactShadowsV1 } from "../nodes/scene-fx/flow-wire-contact-shadows";
+export type { FlowWireParticleEmitterV1 } from "../nodes/scene-fx/flow-wire-particle-emitter";
 
 export type StudioPortType =
   | "number"
@@ -307,7 +314,8 @@ export type StudioPortType =
   | "fog"
   | "studioLight"
   | "postProcessing"
-  | "contactShadows";
+  | "contactShadows"
+  | "particleEmitter";
 
 /** Present only while Bitstream provides a matching hardware sample for this node. */
 export type SensorHardwareStreamLive = "live";
@@ -340,6 +348,8 @@ export const STUDIO_HANDLE_LITE = "lite";
 export const STUDIO_HANDLE_POST = "post";
 /** Optional contact-shadow disc on 3D canvas nodes. */
 export const STUDIO_HANDLE_CSHADOW = "cshadow";
+/** Optional particle VFX on 3D canvas nodes. */
+export const STUDIO_HANDLE_EMITTER = "emitter";
 
 /** Single-output nodes that mirror one BMI270 stream (live hardware or synthesized feed). */
 export const BMI270_TAP_NODE_IDS = [
@@ -484,6 +494,8 @@ export type StudioNodeData = {
   livePostProcessingWire?: FlowWirePostProcessingV1;
   /** Incoming **`cshadow`** pin snapshot for 3D canvas nodes. */
   liveContactShadowsWire?: FlowWireContactShadowsV1;
+  /** Incoming **`emitter`** pin snapshot for 3D canvas nodes. */
+  liveParticleEmitterWire?: FlowWireParticleEmitterV1;
   liveHistory?: number[];
   /** Multi-channel numeric history for plotter (`handleId` → samples). */
   livePlotHistory?: Record<string, number[]>;
@@ -1786,6 +1798,13 @@ function flowValueAsContactShadows(v: unknown): FlowWireContactShadowsV1 | null 
   return coerceFlowWireContactShadowsV1(v);
 }
 
+function flowValueAsParticleEmitter(v: unknown): FlowWireParticleEmitterV1 | null {
+  if (!isFlowWireParticleEmitterV1(v)) {
+    return null;
+  }
+  return coerceFlowWireParticleEmitterV1(v);
+}
+
 function applyIncomingSceneFxWires(
   base: StudioNodeData,
   nodeId: string,
@@ -1820,6 +1839,12 @@ function applyIncomingSceneFxWires(
     base.liveContactShadowsWire = cshadowWire;
   } else {
     delete base.liveContactShadowsWire;
+  }
+  const emitterWire = flowValueAsParticleEmitter(readIncomingForNode(STUDIO_HANDLE_EMITTER));
+  if (emitterWire != null) {
+    base.liveParticleEmitterWire = emitterWire;
+  } else {
+    delete base.liveParticleEmitterWire;
   }
 }
 
@@ -4805,6 +4830,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           );
           pinValues.set(studioFlowPinKey(node.id, "trigger"), em.trigger);
           pinValues.set(studioFlowPinKey(node.id, "rate"), em.rate);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            flowWireParticleEmitterFromEval(em, cfg as Record<string, unknown>),
+          );
           continue;
         }
 
@@ -5415,6 +5444,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           delete dataWithoutSensorMode.liveStudioLightWire;
           delete dataWithoutSensorMode.livePostProcessingWire;
           delete dataWithoutSensorMode.liveContactShadowsWire;
+          delete dataWithoutSensorMode.liveParticleEmitterWire;
         }
         if (
           node.data.nodeId !== "bmi270-input" &&
@@ -5451,6 +5481,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "scene-light" ||
           node.data.nodeId === "post-processing" ||
           node.data.nodeId === "contact-shadows" ||
+          node.data.nodeId === "particle-emitter" ||
           isPlotterNodeId(node.data.nodeId) ||
           BMI270_TAP_NODE_ID_SET.has(node.data.nodeId) ||
           ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
@@ -5883,6 +5914,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "scene-light") {
           base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, "intensity")) ?? null);
+        }
+
+        if (node.data.nodeId === "camera-switch") {
+          base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)) ?? null);
         }
 
         if (node.data.nodeId === "vector-splitter") {

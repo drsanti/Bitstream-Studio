@@ -9,6 +9,10 @@ import {
   type FlowWirePostProcessingV1,
 } from "./flow-wire-post-processing";
 import {
+  mergeFlowWireParticleEmitterIntoScene3d,
+  type FlowWireParticleEmitterV1,
+} from "./flow-wire-particle-emitter";
+import {
   mergeFlowSceneSettingsExposureIntoScene3d,
   mergeFlowWireStudioLightIntoScene3d,
   type FlowWireStudioLightV1,
@@ -20,6 +24,7 @@ export type FlowSceneWireMergeArgs = {
   studioLight?: FlowWireStudioLightV1 | null;
   postProcessing?: FlowWirePostProcessingV1 | null;
   contactShadows?: FlowWireContactShadowsV1 | null;
+  particleEmitter?: FlowWireParticleEmitterV1 | null;
 };
 
 /** Apply optional scene FX wires over a base `scene3d` snapshot. */
@@ -33,5 +38,6 @@ export function mergeFlowSceneWiresIntoScene3d(
   next = mergeFlowWireStudioLightIntoScene3d(next, args.studioLight);
   next = mergeFlowWirePostProcessingIntoScene3d(next, args.postProcessing);
   next = mergeFlowWireContactShadowsIntoScene3d(next, args.contactShadows);
+  next = mergeFlowWireParticleEmitterIntoScene3d(next, args.particleEmitter);
   return next;
 }

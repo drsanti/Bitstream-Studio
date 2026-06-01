@@ -800,6 +800,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "lite", portType: "studioLight", label: "Studio Light" },
           { id: "post", portType: "postProcessing", label: "Post-FX" },
           { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
+          { id: "emitter", portType: "particleEmitter", label: "Particles" },
         ],
       },
       {
@@ -825,6 +826,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "lite", portType: "studioLight", label: "Studio Light" },
           { id: "post", portType: "postProcessing", label: "Post-FX" },
           { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
+          { id: "emitter", portType: "particleEmitter", label: "Particles" },
         ],
       },
       {
@@ -851,6 +853,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "lite", portType: "studioLight", label: "Studio Light" },
           { id: "post", portType: "postProcessing", label: "Post-FX" },
           { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
+          { id: "emitter", portType: "particleEmitter", label: "Particles" },
         ],
       },
       // ── Display / Control nodes ──────────────────────────────────────────
@@ -1123,10 +1126,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "camera-switch",
         category: "utility",
         title: "Camera Switch",
-        description: "Active camera slot index 0–7 (node-animator parity; rig routing backlog).",
+        description: "Active camera slot index 0–7; scoped to Model selects embedded GLB camera by sorted name.",
         icon: "clapperboard",
         defaultVisible: false,
-        defaultConfig: { index: 0 },
+        defaultConfig: { index: 0, cameraRig: [] as string[] },
         inputPorts: [{ id: "index", portType: "number", label: "Index" }],
         outputPorts: [{ id: "out", portType: "number", label: "Index" }],
       },
@@ -1177,6 +1180,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "rate", portType: "number", label: "Rate" },
         ],
         outputPorts: [
+          { id: "out", portType: "particleEmitter", label: "Particles" },
           { id: "trigger", portType: "number", label: "Trigger" },
           { id: "rate", portType: "number", label: "Rate" },
         ],

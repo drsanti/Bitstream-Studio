@@ -82,6 +82,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **2026-05-31** — **Sensor Studio — node-animator Phase 2 (keyboard + palette):** central **`flow-keyboard-shortcuts.ts`**, recent nodes in **`FlowAddNodeMenu`**, **`nodePaletteLayout`** from runtime defaults + Library switcher, **`palette-display-meta.ts`** 9-group add menu taxonomy.
 - **2026-05-31** — **Sensor Studio — node-animator Phase 1 (Shift+A add menu):** **`FlowAddNodeMenu`** (search + category browse), pointer anchor, right-click spawn, Esc priority; parity doc **`NODE_ANIMATOR_PARITY.md`**.
 - **2026-05-31** — **Sensor Studio — Logic Gate (node-animator parity):** **`logic-gate-operations.ts`**, dynamic input handles, catalog + eval + NA import; **`logic-gate-operations.test.ts`**.
+- **2026-05-31** — **Sensor Studio — flow scene wiring slice 3:** `camera-switch` rig routing → embedded GLB camera one-hot drives; `particle-emitter` → `FlowWireParticleEmitterV1` + `THREE.Points` preview; Tier D physics foundation doc (**`TIER_D_PHYSICS_FOUNDATION.md`**).
 - **2026-05-31** — **Sensor Studio — flow compositor preview (Tier C slice 3):** `postProcessing` / `contactShadows` ports on Model Viewer + 3D rotation nodes; bloom (`EffectComposer` + `UnrealBloomPass`) + ground contact-shadow disc in **`RotationPreviewPanelV4`**; `rotation-preview-compositor-runtime.ts`; extended **`flow-scene-wiring.test.ts`**.
 - **2026-05-31** — **Sensor Studio — flow scene wiring (Tier C → preview):** `fog` / `studioLight` / `settings` ports on Model Viewer + 3D rotation nodes; `FlowWireFogV1` + studio light merge into `scene3d`; morph-target + scene-light GLB drives; Three.js fog runtime; **`flow-scene-wiring.test.ts`**.
 - **2026-05-31** — **Sensor Studio — NA parity Tier C slice 2:** morph-target, scene-light, camera-switch, post-processing, contact-shadows, particle-emitter, uv-transform, material-variant + eval; dataSource/wsClient/wsClientOut → sensor-input import; **`na-parity-tier-c-slice2.test.ts`**, **`scene-fx-operations.ts`**.
@@ -405,13 +406,12 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 ## In progress
 
 - **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
-- **Sensor Studio — node-animator NA parity Tier D** — physics stack (Digital Twin gated).
+- **Sensor Studio — node-animator NA parity Tier D** — foundation doc **`TIER_D_PHYSICS_FOUNDATION.md`**; runtime gated on Digital Twin / Jolt (D1 catalog stubs next).
 
 ---
 
 ## Planned / next
 
-- **Sensor Studio — node-animator NA parity (scene wiring backlog)** — camera-switch rig routing + particle emitter VFX in preview (dataflow only today).
 - **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31**. Utility parity slices ongoing.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators**: (A) telemetry **dataflow** (keep), (B) **scene + animation** (rAF + transform / GLB wires), (C) **keyboard/mouse events** (event runner), (D) **material / PBR** (parameter wiring first, full shader graph later).
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
