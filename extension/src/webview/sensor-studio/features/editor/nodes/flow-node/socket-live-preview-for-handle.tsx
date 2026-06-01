@@ -21,6 +21,7 @@ import {
 } from "../environment/flow-wire-environment";
 import { resolveLiveReadingStreamTone } from "./readings/live-reading-colors";
 import type { LiveScalarReadingColorHints, LiveReadingStreamTone } from "./readings/live-reading-colors";
+import { isSocketValuesVisible } from "./socket-display";
 import { isStructuredSocketPreviewPortType } from "./sync-socket-live-preview-handles";
 import { SocketLivePreview } from "./SocketLivePreview";
 import { SocketStructuredWireBadge } from "./SocketStructuredWireBadge";
@@ -303,6 +304,9 @@ export function socketLivePreviewForInputHandle(
   portLabel?: string,
   ctx?: SocketPreviewContext,
 ) {
+  if (!isSocketValuesVisible(data.ui)) {
+    return null;
+  }
   if (
     portType === "string" &&
     isModelStringSocketPort(data.nodeId, handleId) &&
@@ -324,6 +328,9 @@ export function socketLivePreviewForOutputHandle(
   portLabel?: string,
   ctx?: SocketPreviewContext,
 ) {
+  if (!isSocketValuesVisible(data.ui)) {
+    return null;
+  }
   const { nodeId } = data;
 
   if (

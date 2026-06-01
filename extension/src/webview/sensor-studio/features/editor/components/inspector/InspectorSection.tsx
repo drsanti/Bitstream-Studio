@@ -13,7 +13,7 @@ export type InspectorSectionProps = {
   defaultExpanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
   collapsible?: boolean;
-  variant?: "default" | "error";
+  variant?: "default" | "compact" | "error";
   children: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -22,11 +22,12 @@ export type InspectorSectionProps = {
 function InspectorSectionTitle(props: {
   title: string;
   hint?: ReactNode;
-  variant: "default" | "error";
+  variant: "default" | "compact" | "error";
 }) {
   const { title, hint, variant } = props;
   const titleClass = twMerge(
-    "block min-w-0 truncate text-[11px] font-semibold tracking-wide",
+    "block min-w-0 truncate font-semibold tracking-wide",
+    variant === "compact" ? "text-[10px]" : "text-[11px]",
     variant === "error" ? "text-rose-200/95" : "text-zinc-200/95",
     hint != null ? "cursor-help" : null,
   );
@@ -62,11 +63,16 @@ export function InspectorSection(props: InspectorSectionProps) {
     variant = "default",
     children,
     className = "",
-    contentClassName = "px-2.5 py-2",
+    contentClassName,
   } = props;
+
+  const resolvedContentClassName =
+    contentClassName ??
+    (variant === "compact" ? "space-y-1 px-2 py-1.5" : "px-2.5 py-2");
 
   const [expanded, setExpanded] = useState(defaultExpanded);
   const isOpen = collapsible ? expanded : true;
+  const headerPaddingClass = variant === "compact" ? "py-1" : "py-1.5";
 
   const setOpen = (next: boolean) => {
     if (collapsible) {
@@ -96,20 +102,25 @@ export function InspectorSection(props: InspectorSectionProps) {
   const headerRow = collapsible ? (
     <button
       type="button"
-      className="flex w-full min-w-0 cursor-pointer items-center gap-2 py-1.5 text-left hover:text-zinc-100"
+      className={twMerge(
+        "flex w-full min-w-0 cursor-pointer items-center gap-2 text-left hover:text-zinc-100",
+        headerPaddingClass,
+      )}
       aria-expanded={isOpen}
       onClick={() => setOpen(!isOpen)}
     >
       {headerInner}
     </button>
   ) : (
-    <div className="flex w-full min-w-0 items-center gap-2 py-1.5">{headerInner}</div>
+    <div className={twMerge("flex w-full min-w-0 items-center gap-2", headerPaddingClass)}>
+      {headerInner}
+    </div>
   );
 
   return (
     <section
       className={twMerge(
-        "min-w-0 rounded-md border border-zinc-800/80 bg-zinc-950/30",
+        "min-w-0 shrink-0 rounded-md border border-zinc-800/80 bg-zinc-950/30",
         variant === "error" ? "border-rose-900/40 bg-rose-950/15" : null,
         className,
       )}
@@ -123,7 +134,7 @@ export function InspectorSection(props: InspectorSectionProps) {
       >
         {headerRow}
       </div>
-      {isOpen ? <div className={contentClassName}>{children}</div> : null}
+      {isOpen ? <div className={resolvedContentClassName}>{children}</div> : null}
     </section>
   );
 }

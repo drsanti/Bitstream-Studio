@@ -1,6 +1,5 @@
 import { Hash } from "lucide-react";
 import { useMemo } from "react";
-import { TRNInlineToggleRow } from "../../../../../../../ui/TRN";
 import { NumericDisplayNodePanel } from "../../../../nodes/numeric-display/NumericDisplayNodePanel";
 import {
   coerceNumericDisplayConfig,
@@ -8,13 +7,10 @@ import {
   numericDisplayZonePresetBounds,
 } from "../../../../nodes/display/gauge-display-config";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
-import { InspectorPropertyRow } from "../../InspectorPropertyRow";
-import { InspectorScrubNumberInput } from "../../InspectorScrubNumberInput";
+import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
+import { InspectorNumericScrubRow, InspectorTextRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 import { GaugeZonesEditor } from "../GaugeZonesEditor";
-
-const controlClass =
-  "w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-100";
 
 export function NumericDisplaySettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -48,47 +44,39 @@ export function NumericDisplaySettingsSection(props: NodeInspectorSettingsSectio
         iconHint="Label, unit, precision, and status bar under the value."
         defaultExpanded
       >
-        <InspectorPropertyRow
+        <InspectorTextRow
           label="Label"
           description="Optional caption above the value (uppercase styling on canvas)."
-        >
-          <input
-            type="text"
-            className={controlClass}
-            value={cfg.label}
-            placeholder="e.g. Tank pressure"
-            aria-label="Numeric display label"
-            onChange={(event) => {
-              onUpdateConfigField("label", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
-        <InspectorPropertyRow label="Unit" description="Suffix beside the live value.">
-          <input
-            type="text"
-            className={controlClass}
-            value={cfg.unit}
-            placeholder="e.g. kPa"
-            aria-label="Numeric display unit"
-            onChange={(event) => {
-              onUpdateConfigField("unit", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
-        <InspectorPropertyRow label="Decimals">
-          <InspectorScrubNumberInput
-            aria-label="Numeric display decimal places"
-            className={controlClass}
-            value={cfg.decimals}
-            min={0}
-            max={6}
-            step={1}
-            onCommit={(next) => {
-              onUpdateConfigField("decimals", Math.round(next));
-            }}
-          />
-        </InspectorPropertyRow>
-        <TRNInlineToggleRow
+          ariaLabel="Numeric display label"
+          value={cfg.label}
+          placeholder="e.g. Tank pressure"
+          onChange={(next) => {
+            onUpdateConfigField("label", next);
+          }}
+        />
+        <InspectorTextRow
+          label="Unit"
+          description="Suffix beside the live value."
+          ariaLabel="Numeric display unit"
+          value={cfg.unit}
+          placeholder="e.g. kPa"
+          onChange={(next) => {
+            onUpdateConfigField("unit", next);
+          }}
+        />
+        <InspectorNumericScrubRow
+          label="Decimals"
+          ariaLabel="Numeric display decimal places"
+          value={cfg.decimals}
+          min={0}
+          max={6}
+          step={1}
+          fractionDigits={0}
+          onCommit={(next) => {
+            onUpdateConfigField("decimals", Math.round(next));
+          }}
+        />
+        <InspectorCompactToggleRow
           label="Status bar"
           hint="Thin colored bar under the value reflecting the active zone."
           checked={cfg.showStatusBar}

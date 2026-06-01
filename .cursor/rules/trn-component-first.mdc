@@ -7,11 +7,12 @@ alwaysApply: true
 
 When adding UI under **`extension/src/webview/`**:
 
-1. **Prefer TRN** — **`extension/src/webview/ui/TRN`** (`TRNFormField`, `TRNSectionContainer`, `TRNSelect`, etc.).
-2. **Match sibling panels** — reuse patterns from Bitstream / Sensor Studio before inventing new styles.
-3. **Catalog widgets** — shared non-TRN pieces live in **`extension/src/webview/ui/catalog/`** (Phase 3 decoupling complete; no `@ternion/t3d`).
+1. **Use TRN components if possible** — prefer **`extension/src/webview/ui/TRN`** (`TRNSelect`, `TRNScrubNumberInput`, `TRNFormField`, `TRNToggleSwitch`, `TRNButton`, hints, menus, etc.) over native `<select>`, raw `<input>`, or one-off styled controls.
+2. **Inspector rows** — use shared wrappers (`InspectorSelectField` → **`TRNSelect`**, `InspectorNumericField` → **`TRNScrubNumberInput`**, `InspectorCompactToggleRow`, …) under **`sensor-studio/.../inspector/`**.
+3. **Match sibling panels** — reuse patterns from Bitstream / Sensor Studio before inventing new styles.
+4. **Catalog widgets** — shared non-TRN pieces live in **`extension/src/webview/ui/catalog/`** (no `@ternion/t3d`).
 
-Scrollable lists: **`trn-glass-dropdown-scrollbars.mdc`**.
+Scrollable TRN menus: **`trn-glass-dropdown-scrollbars.mdc`** (`scrollbar-hide` on list panels).
 
 ## Communication
 

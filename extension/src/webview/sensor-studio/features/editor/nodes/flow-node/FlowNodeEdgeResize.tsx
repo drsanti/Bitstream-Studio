@@ -12,9 +12,8 @@ import {
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import type { StudioNode } from "../../store/flow-editor.store";
 
-/** Match {@link TRNWindow} `resizeEdges="all"` — no pure north edge strip. */
+/** Invisible edge strips for resize (no corner grip elements — operators resize from edges). */
 const EDGE_HIT_PX = 5;
-const CORNER_HIT_PX = 12;
 
 function resizeEdgeUsesEast(edge: TRNWindowResizeEdge): boolean {
   return edge === "e" || edge === "ne" || edge === "se";
@@ -104,6 +103,39 @@ export function computeResizedFlowNodeRect(
     width: Math.round(Math.max(minWidth, width)),
     height: Math.round(Math.max(minHeight, height)),
   };
+}
+
+export function flowNodeDimensionChanges(
+  nodeId: string,
+  width: number,
+  height: number,
+): NodeChange[] {
+  return [
+    {
+      id: nodeId,
+      type: "dimensions",
+      dimensions: { width, height },
+      setAttributes: true,
+    },
+  ];
+}
+
+/** Shrink/grow RF node box to match measured shell after body show/hide. */
+export function syncFlowNodeShellDimensions(
+  nodeId: string,
+  shellEl: HTMLElement,
+  minWidth: number,
+  minHeight: number,
+  currentWidth: number | undefined,
+  currentHeight: number | undefined,
+  onNodesChange: (changes: NodeChange[]) => void,
+): void {
+  const width = Math.max(minWidth, Math.round(shellEl.offsetWidth));
+  const height = Math.max(minHeight, Math.round(shellEl.offsetHeight));
+  if (currentWidth === width && currentHeight === height) {
+    return;
+  }
+  onNodesChange(flowNodeDimensionChanges(nodeId, width, height));
 }
 
 function flowNodeResizeChanges(
@@ -230,58 +262,28 @@ export function FlowNodeEdgeResize(props: FlowNodeEdgeResizeProps) {
   }
 
   const edgeHit = `${EDGE_HIT_PX}px`;
-  const cornerHit = `${CORNER_HIT_PX}px`;
-  const edgeInset = CORNER_HIT_PX;
 
   return (
     <>
       <FlowNodeResizeHandle
         edge="w"
         className="cursor-w-resize"
-        style={{ top: edgeInset, bottom: edgeInset, left: 0, width: edgeHit }}
+        style={{ top: 0, bottom: 0, left: 0, width: edgeHit }}
         ariaLabel="Resize node from left edge"
         onResizeStart={onResizeStart}
       />
       <FlowNodeResizeHandle
         edge="e"
         className="cursor-e-resize"
-        style={{ top: edgeInset, bottom: edgeInset, right: 0, width: edgeHit }}
+        style={{ top: 0, bottom: 0, right: 0, width: edgeHit }}
         ariaLabel="Resize node from right edge"
         onResizeStart={onResizeStart}
       />
       <FlowNodeResizeHandle
         edge="s"
         className="cursor-s-resize"
-        style={{ left: edgeInset, right: edgeInset, bottom: 0, height: edgeHit }}
+        style={{ left: 0, right: 0, bottom: 0, height: edgeHit }}
         ariaLabel="Resize node from bottom edge"
-        onResizeStart={onResizeStart}
-      />
-      <FlowNodeResizeHandle
-        edge="nw"
-        className="cursor-nw-resize"
-        style={{ left: 0, top: 0, width: cornerHit, height: cornerHit }}
-        ariaLabel="Resize node from top-left corner"
-        onResizeStart={onResizeStart}
-      />
-      <FlowNodeResizeHandle
-        edge="ne"
-        className="cursor-ne-resize"
-        style={{ right: 0, top: 0, width: cornerHit, height: cornerHit }}
-        ariaLabel="Resize node from top-right corner"
-        onResizeStart={onResizeStart}
-      />
-      <FlowNodeResizeHandle
-        edge="sw"
-        className="cursor-sw-resize"
-        style={{ left: 0, bottom: 0, width: cornerHit, height: cornerHit }}
-        ariaLabel="Resize node from bottom-left corner"
-        onResizeStart={onResizeStart}
-      />
-      <FlowNodeResizeHandle
-        edge="se"
-        className="cursor-se-resize"
-        style={{ right: 0, bottom: 0, width: cornerHit, height: cornerHit }}
-        ariaLabel="Resize node from bottom-right corner"
         onResizeStart={onResizeStart}
       />
     </>

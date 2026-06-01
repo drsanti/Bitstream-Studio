@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
-import { TRNHintText } from "./TRNHintText.js";
+import { TRNHintTooltip } from "./TRNHintTooltip.js";
 import { TRNToggleSwitch } from "./TRNToggleSwitch.js";
 
 export type TRNInlineToggleRowProps = {
   label: string;
+  /** Hover tooltip on the label ({@link TRNHintTooltip}) — not inline helper copy. */
   hint?: string;
   checked: boolean;
   onCheckedChange: (next: boolean) => void;
@@ -40,10 +41,22 @@ export function TRNInlineToggleRow(props: TRNInlineToggleRowProps) {
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold text-zinc-100">{label}</div>
         {hint != null && hint.length > 0 ? (
-          <TRNHintText className="mt-1">{hint}</TRNHintText>
-        ) : null}
+          <TRNHintTooltip
+            trigger={
+              <span className="w-fit cursor-help text-xs font-semibold text-zinc-100">
+                {label}
+              </span>
+            }
+            content={hint}
+            triggerAriaLabel={`About ${label}`}
+            placement="top-start"
+            triggerWrapper="span"
+            wide={hint.length > 120}
+          />
+        ) : (
+          <div className="text-xs font-semibold text-zinc-100">{label}</div>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-2 pt-0.5">
         {middleSlot}

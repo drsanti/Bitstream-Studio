@@ -4,6 +4,7 @@ import { useFlowEditorStore } from "../../store/flow-editor.store";
 import {
   getSocketValuesVisibleUIState,
   getSocketsExpandedUIState,
+  graphSupportsSocketCollapse,
   graphSocketToolbarNodeIds,
 } from "../../nodes/flow-node/socket-display";
 import {
@@ -22,6 +23,7 @@ export type FlowCanvasToolbarProps = {
 export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
   const { onFitAll } = props;
   const nodes = useFlowEditorStore((s) => s.nodes);
+  const edges = useFlowEditorStore((s) => s.edges);
   const applyFlowAutoLayout = useFlowEditorStore((s) => s.applyFlowAutoLayout);
   const resetCanvas = useFlowEditorStore((s) => s.resetCanvas);
   const toggleSocketsExpandedForNodes = useFlowEditorStore((s) => s.toggleSocketsExpandedForNodes);
@@ -40,6 +42,12 @@ export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
     () => getSocketValuesVisibleUIState(nodes, graphNodeIds),
     [nodes, graphNodeIds],
   );
+  const socketDisplayToggleDisabled = useMemo(() => {
+    if (graphNodeIds.length === 0) {
+      return true;
+    }
+    return !graphSupportsSocketCollapse(nodes, edges);
+  }, [nodes, edges, graphNodeIds.length]);
 
   const onLayout = useCallback(
     (direction: "LR" | "TB") => {
@@ -114,10 +122,13 @@ export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
           <SocketDisplayToggle
             pressed={graphSocketsExpanded}
             onToggle={() => toggleSocketsExpandedForNodes(graphNodeIds)}
+            disabled={socketDisplayToggleDisabled}
             title={
-              graphSocketsExpanded
-                ? "Collapse unwired sockets on all nodes (Shift+H)"
-                : "Expand all sockets on all nodes (Shift+H)"
+              socketDisplayToggleDisabled
+                ? "No unused sockets to collapse"
+                : graphSocketsExpanded
+                  ? "Collapse unwired sockets on all nodes (Shift+H)"
+                  : "Expand all sockets on all nodes (Shift+H)"
             }
             ariaLabel={
               graphSocketsExpanded ? "Collapse sockets on all nodes" : "Expand sockets on all nodes"

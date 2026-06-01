@@ -8,6 +8,16 @@ import {
 import type { FlowWireQuaternion, FlowWireVec3 } from "../../../../core/live/flow-wire-types";
 import { resolveLiveNumericFromLatestByHint } from "../../../../core/live/resolve-sensor-source-key";
 import type { MetricsSnapshot } from "../../../../../bitstream-app/state/bitstreamLive.store";
+import {
+  PALETTE_ACCEL_ROW_LABEL,
+  PALETTE_EULER_ROW_LABEL,
+  PALETTE_GYRO_ROW_LABEL,
+  PALETTE_HUMIDITY_ROW_LABEL,
+  PALETTE_MAGNETIC_ROW_LABEL,
+  PALETTE_PRESSURE_ROW_LABEL,
+  PALETTE_QUATERNION_ROW_LABEL,
+  PALETTE_TEMPERATURE_ROW_LABEL,
+} from "../../../../core/sensor-port-labels";
 
 export type PalettePreviewStreamTone = "live" | "idle";
 
@@ -147,15 +157,46 @@ function vector3HandleIdForTap(nodeId: string): string {
   }
 }
 
+function paletteVector3RowLabel(nodeId: string): string {
+  switch (nodeId) {
+    case "bmi270-tap-euler":
+      return PALETTE_EULER_ROW_LABEL;
+    case "bmi270-tap-gyro":
+      return PALETTE_GYRO_ROW_LABEL;
+    case "bmi270-tap-accel":
+      return PALETTE_ACCEL_ROW_LABEL;
+    case "bmm350-tap-magnetic":
+      return PALETTE_MAGNETIC_ROW_LABEL;
+    default:
+      return "Vector";
+  }
+}
+
+function vector3TapPrimaryBundlePreview(
+  nodeId: string,
+  vector: FlowWireVec3,
+  streamLive: boolean,
+): PalettePreview {
+  const handleId = vector3HandleIdForTap(nodeId);
+  return {
+    kind: "primaryBundle",
+    streamMode: streamLive ? "live" : "idle",
+    rows: [
+      {
+        kind: "vector3",
+        label: paletteVector3RowLabel(nodeId),
+        handleId,
+        vector,
+        fractionDigits: handleId === "euler" ? 3 : 2,
+      },
+    ],
+  };
+}
+
 function vector3TapPreview(nodeId: string, latestByHint: HintMap): PalettePreview {
   if (nodeId === "bmm350-tap-magnetic") {
     const b = computeBmm350PinBundle(latestByHint);
-    return {
-      kind: "vector3",
-      streamMode: b.streamLive ? "live" : "idle",
-      vector: b.magneticUt,
-      handleId: "magnetic",
-    };
+    return vector3TapPrimaryBundlePreview(nodeId, b.magneticUt, b.streamLive);
   }
   const bundle = computeBmi270PinBundle(latestByHint);
   let v: FlowWireVec3;
@@ -171,21 +212,68 @@ function vector3TapPreview(nodeId: string, latestByHint: HintMap): PalettePrevie
       v = bundle.accel;
       break;
   }
+  return vector3TapPrimaryBundlePreview(nodeId, v, bundle.streamLive);
+}
+
+function quaternionTapPrimaryBundlePreview(
+  quaternion: FlowWireQuaternion,
+  streamLive: boolean,
+): PalettePreview {
   return {
-    kind: "vector3",
-    streamMode: bundle.streamLive ? "live" : "idle",
-    vector: v,
-    handleId: vector3HandleIdForTap(nodeId),
+    kind: "primaryBundle",
+    streamMode: streamLive ? "live" : "idle",
+    rows: [
+      {
+        kind: "quaternion",
+        label: PALETTE_QUATERNION_ROW_LABEL,
+        quaternion,
+        fractionDigits: 3,
+      },
+    ],
   };
 }
 
 function quaternionTapPreview(latestByHint: HintMap): PalettePreview {
   const bundle = computeBmi270PinBundle(latestByHint);
+  return quaternionTapPrimaryBundlePreview(bundle.quaternion, bundle.streamLive);
+}
+
+function temperatureTapPrimaryBundlePreview(
+  tempC: number,
+  streamLive: boolean,
+): PalettePreview {
   return {
-    kind: "quaternion",
-    streamMode: bundle.streamLive ? "live" : "idle",
-    quaternion: bundle.quaternion,
-    fractionDigits: 3,
+    kind: "primaryBundle",
+    streamMode: streamLive ? "live" : "idle",
+    rows: [
+      {
+        kind: "scalar",
+        label: PALETTE_TEMPERATURE_ROW_LABEL,
+        value: tempC,
+        fractionDigits: 2,
+        signedPositive: false,
+        unavailableWhenIdle: true,
+      },
+    ],
+  };
+}
+
+function humidityTapPrimaryBundlePreview(
+  humidityPct: number,
+  streamLive: boolean,
+): PalettePreview {
+  return {
+    kind: "primaryBundle",
+    streamMode: streamLive ? "live" : "idle",
+    rows: [
+      {
+        kind: "scalar",
+        label: PALETTE_HUMIDITY_ROW_LABEL,
+        value: humidityPct,
+        fractionDigits: 2,
+        signedPositive: false,
+      },
+    ],
   };
 }
 
@@ -203,23 +291,23 @@ function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PaletteP
     }
     case "dps368-tap-temp": {
       const b = computeDps368PinBundle(latestByHint);
-      return scalarPreview(b.tempC, "°C", b.streamLive ? "live" : "idle", true);
+      return temperatureTapPrimaryBundlePreview(b.tempC, b.streamLive);
     }
     case "sht40-tap-humidity": {
       const b = computeSht40PinBundle(latestByHint);
-      return scalarPreview(b.humidityPct, "%RH", b.streamLive ? "live" : "idle");
+      return humidityTapPrimaryBundlePreview(b.humidityPct, b.streamLive);
     }
     case "sht40-tap-temp": {
       const b = computeSht40PinBundle(latestByHint);
-      return scalarPreview(b.tempC, "°C", b.streamLive ? "live" : "idle", true);
+      return temperatureTapPrimaryBundlePreview(b.tempC, b.streamLive);
     }
     case "bmm350-tap-temp": {
       const b = computeBmm350PinBundle(latestByHint);
-      return scalarPreview(b.tempC, "°C", b.streamLive ? "live" : "idle", true);
+      return temperatureTapPrimaryBundlePreview(b.tempC, b.streamLive);
     }
     case "bmi270-tap-temp": {
       const b = computeBmi270PinBundle(latestByHint);
-      return scalarPreview(b.temp, "°C", b.streamLive ? "live" : "idle", true);
+      return temperatureTapPrimaryBundlePreview(b.temp, b.streamLive);
     }
     default:
       return { kind: "unavailable" };
@@ -243,20 +331,37 @@ function bmi270PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
     kind: "primaryBundle",
     streamMode,
     rows: [
-      { kind: "vector3", label: "Accel", handleId: "accel", vector: b.accel, fractionDigits: 2 },
-      { kind: "vector3", label: "Gyro", handleId: "gyro", vector: b.gyro, fractionDigits: 2 },
-      { kind: "vector3", label: "Euler", handleId: "euler", vector: b.euler, fractionDigits: 3 },
+      {
+        kind: "vector3",
+        label: PALETTE_ACCEL_ROW_LABEL,
+        handleId: "accel",
+        vector: b.accel,
+        fractionDigits: 2,
+      },
+      {
+        kind: "vector3",
+        label: PALETTE_GYRO_ROW_LABEL,
+        handleId: "gyro",
+        vector: b.gyro,
+        fractionDigits: 2,
+      },
+      {
+        kind: "vector3",
+        label: PALETTE_EULER_ROW_LABEL,
+        handleId: "euler",
+        vector: b.euler,
+        fractionDigits: 3,
+      },
       {
         kind: "quaternion",
-        label: "Quat",
+        label: PALETTE_QUATERNION_ROW_LABEL,
         quaternion: b.quaternion,
         fractionDigits: 3,
       },
       {
         kind: "scalar",
-        label: "Temp",
+        label: PALETTE_TEMPERATURE_ROW_LABEL,
         value: b.temp,
-        unit: "°C",
         fractionDigits: 2,
         signedPositive: false,
         unavailableWhenIdle: true,
@@ -274,17 +379,15 @@ function dps368PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
     rows: [
       {
         kind: "scalar",
-        label: "Pressure",
+        label: PALETTE_PRESSURE_ROW_LABEL,
         value: b.pressureHpa,
-        unit: "hPa",
         fractionDigits: 1,
         signedPositive: false,
       },
       {
         kind: "scalar",
-        label: "Temp",
+        label: PALETTE_TEMPERATURE_ROW_LABEL,
         value: b.tempC,
-        unit: "°C",
         fractionDigits: 2,
         signedPositive: false,
         unavailableWhenIdle: true,
@@ -302,17 +405,15 @@ function sht40PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
     rows: [
       {
         kind: "scalar",
-        label: "RH",
+        label: PALETTE_HUMIDITY_ROW_LABEL,
         value: b.humidityPct,
-        unit: "%RH",
         fractionDigits: 2,
         signedPositive: false,
       },
       {
         kind: "scalar",
-        label: "Temp",
+        label: PALETTE_TEMPERATURE_ROW_LABEL,
         value: b.tempC,
-        unit: "°C",
         fractionDigits: 2,
         signedPositive: false,
         unavailableWhenIdle: true,
@@ -330,16 +431,15 @@ function bmm350PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
     rows: [
       {
         kind: "vector3",
-        label: "Mag",
+        label: PALETTE_MAGNETIC_ROW_LABEL,
         handleId: "magnetic",
         vector: b.magneticUt,
         fractionDigits: 2,
       },
       {
         kind: "scalar",
-        label: "Temp",
+        label: PALETTE_TEMPERATURE_ROW_LABEL,
         value: b.tempC,
-        unit: "°C",
         fractionDigits: 2,
         signedPositive: false,
         unavailableWhenIdle: true,

@@ -299,6 +299,7 @@ import {
   nextSocketValuesVisibleForBatch,
   nextSocketsExpandedForBatch,
 } from "../nodes/flow-node/socket-display";
+import { studioNodeDefaultAllowBodyCollapse } from "../nodes/flow-node/studio-body-collapse";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
@@ -485,6 +486,11 @@ export type StudioNodeData = {
     socketValuesVisible?: boolean;
     /** Hide card body panels when `false`. */
     bodyControlsVisible?: boolean;
+    /**
+     * When `false`, canvas toolbar cannot collapse the body (visual nodes default off).
+     * Enable per node in Inspector → Canvas.
+     */
+    allowBodyCollapse?: boolean;
   };
   inputType?: StudioPortType;
   /** Single-output nodes (legacy); omit when `outputHandles` is set. */
@@ -892,6 +898,7 @@ type FlowEditorState = {
   /** Patch multiple config keys on the selected node in one undo step. */
   patchSelectedNodeConfigFields: (fields: Record<string, unknown>) => boolean;
   updateSelectedNodeUiResizable: (resizable: boolean) => void;
+  updateSelectedNodeUiAllowBodyCollapse: (allow: boolean) => void;
   /**
    * Single-selection config patch without pushing an undo snapshot (e.g. animation playback ticks).
    * Returns **false** for multi-edit or when nothing is selected.
@@ -1300,6 +1307,9 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
       ui: {
         ...piped.ui,
         resizable: piped.ui?.resizable ?? true,
+        allowBodyCollapse:
+          piped.ui?.allowBodyCollapse ??
+          studioNodeDefaultAllowBodyCollapse(piped.nodeId),
       },
     };
     if (piped.nodeId === "plotter") {
@@ -1733,8 +1743,15 @@ function createStudioNodeFromCatalogEntry(
   const inferred = inferPortTypes(entry);
   const ui: StudioNodeData["ui"] =
     options?.ui != null
-      ? { resizable: true, ...options.ui }
-      : { resizable: true };
+      ? {
+          resizable: true,
+          allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
+          ...options.ui,
+        }
+      : {
+          resizable: true,
+          allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
+        };
   const base: StudioNode = {
     id,
     type: "studio",
@@ -4522,6 +4539,41 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                   ui: {
                     ...node.data.ui,
                     resizable,
+                  },
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+  },
+  updateSelectedNodeUiAllowBodyCollapse: (allow) => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    const targetIds =
+      multiIds != null
+        ? multiIds
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    if (targetIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(targetIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          idSet.has(node.id)
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  ui: {
+                    ...node.data.ui,
+                    allowBodyCollapse: allow,
+                    ...(allow ? {} : { bodyControlsVisible: true }),
                   },
                 },
               }

@@ -3,11 +3,18 @@ import test from "node:test";
 
 import {
   filterInputHandlesForDisplay,
+  isBodyControlsVisible,
   isSocketValuesVisible,
   isSocketsExpanded,
   nextSocketsExpandedForBatch,
   shouldShowSocketRow,
+  studioNodeHasHideableBody,
 } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/socket-display";
+import type { StudioNodeData } from "../../src/webview/sensor-studio/features/editor/store/flow-editor.store";
+import {
+  studioNodeAllowsBodyCollapse,
+  studioNodeDefaultAllowBodyCollapse,
+} from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/studio-body-collapse";
 import { createFrameAroundNodes } from "../../src/webview/sensor-studio/features/editor/layout/frame-flow-nodes";
 import type { FlowGraphNode } from "../../src/webview/sensor-studio/features/editor/store/flow-editor.store";
 
@@ -19,6 +26,46 @@ test("isSocketsExpanded defaults to true", () => {
 test("isSocketValuesVisible defaults to true", () => {
   assert.equal(isSocketValuesVisible(undefined), true);
   assert.equal(isSocketValuesVisible({ socketValuesVisible: false }), false);
+});
+
+test("isBodyControlsVisible defaults to true", () => {
+  assert.equal(isBodyControlsVisible(undefined), true);
+  assert.equal(isBodyControlsVisible({ bodyControlsVisible: false }), false);
+});
+
+test("studioNodeDefaultAllowBodyCollapse disables visual nodes by default", () => {
+  assert.equal(studioNodeDefaultAllowBodyCollapse("compare"), true);
+  assert.equal(studioNodeDefaultAllowBodyCollapse("radial-gauge"), false);
+  assert.equal(studioNodeDefaultAllowBodyCollapse("plotter"), false);
+});
+
+test("studioNodeAllowsBodyCollapse respects inspector override", () => {
+  const gaugeData = {
+    label: "Gauge",
+    category: "visual",
+    nodeId: "radial-gauge",
+    defaultConfig: {},
+    ui: { allowBodyCollapse: true },
+  } as StudioNodeData;
+  assert.equal(studioNodeAllowsBodyCollapse(gaugeData), true);
+});
+
+test("studioNodeHasHideableBody matches compact vs panel nodes", () => {
+  const compareData = {
+    label: "Compare",
+    category: "logic",
+    nodeId: "compare",
+    defaultConfig: { operation: ">" },
+  } as StudioNodeData;
+  assert.equal(studioNodeHasHideableBody(compareData), true);
+
+  const sensorTap = {
+    label: "Temp",
+    category: "sensor",
+    nodeId: "dps368-tap-temp",
+    defaultConfig: {},
+  } as StudioNodeData;
+  assert.equal(studioNodeHasHideableBody(sensorTap), false);
 });
 
 test("shouldShowSocketRow hides unwired pins when collapsed", () => {

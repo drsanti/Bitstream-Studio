@@ -1,10 +1,10 @@
-import { InspectorNumericScrubRow } from "../InspectorNumericScrubRow";
-import { InspectorPropertyRow } from "../InspectorPropertyRow";
-import { InspectorScrubNumberInput } from "../InspectorScrubNumberInput";
+import {
+  InspectorFieldGrid,
+  InspectorFieldGridControls,
+  InspectorFieldGridLabels,
+} from "../InspectorFieldGrid";
+import { InspectorNumericField, InspectorTextField } from "../InspectorNumericScrubRow";
 import type { GaugeScaleReadoutConfig } from "../../../nodes/display/gauge-display-config";
-
-const controlClass =
-  "w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-100";
 
 export type GaugeScaleReadoutInspectorFieldsProps = {
   cfg: GaugeScaleReadoutConfig;
@@ -28,54 +28,69 @@ export function GaugeScaleReadoutInspectorFields(props: GaugeScaleReadoutInspect
 
   return (
     <>
-      <InspectorNumericScrubRow
-        label="Min"
-        description={minDescription}
-        ariaLabel={`${labelPrefix} minimum`}
-        value={cfg.min}
-        step={0.01}
-        onCommit={(next) => {
-          onUpdateConfigField("min", next);
-        }}
-      />
-      <InspectorNumericScrubRow
-        label="Max"
-        description={maxDescription}
-        ariaLabel={`${labelPrefix} maximum`}
-        value={cfg.max}
-        step={0.01}
-        onCommit={(next) => {
-          onUpdateConfigField("max", next);
-        }}
-      />
-      <InspectorPropertyRow
-        label="Unit"
-        description="Suffix shown next to the live value (optional)."
-      >
-        <input
-          type="text"
-          className={controlClass}
-          value={cfg.unit}
-          placeholder="e.g. °C"
-          aria-label={`${labelPrefix} unit`}
-          onChange={(event) => {
-            onUpdateConfigField("unit", event.target.value);
-          }}
+      <InspectorFieldGrid>
+        <InspectorFieldGridLabels
+          left={{ label: "Min", description: minDescription }}
+          right={{ label: "Max", description: maxDescription }}
         />
-      </InspectorPropertyRow>
-      <InspectorPropertyRow label="Decimals">
-        <InspectorScrubNumberInput
-          aria-label={`${labelPrefix} decimal places`}
-          className={controlClass}
-          value={cfg.decimals}
-          min={0}
-          max={decimalsMax}
-          step={1}
-          onCommit={(next) => {
-            onUpdateConfigField("decimals", Math.round(next));
-          }}
+        <InspectorFieldGridControls
+          left={
+            <InspectorNumericField
+              ariaLabel={`${labelPrefix} minimum`}
+              value={cfg.min}
+              step={0.01}
+              onCommit={(next) => {
+                onUpdateConfigField("min", next);
+              }}
+            />
+          }
+          right={
+            <InspectorNumericField
+              ariaLabel={`${labelPrefix} maximum`}
+              value={cfg.max}
+              step={0.01}
+              onCommit={(next) => {
+                onUpdateConfigField("max", next);
+              }}
+            />
+          }
         />
-      </InspectorPropertyRow>
+      </InspectorFieldGrid>
+
+      <InspectorFieldGrid>
+        <InspectorFieldGridLabels
+          left={{
+            label: "Unit",
+            description: "Suffix shown next to the live value (optional).",
+          }}
+          right={{ label: "Decimals" }}
+        />
+        <InspectorFieldGridControls
+          left={
+            <InspectorTextField
+              ariaLabel={`${labelPrefix} unit`}
+              value={cfg.unit}
+              placeholder="e.g. °C"
+              onChange={(next) => {
+                onUpdateConfigField("unit", next);
+              }}
+            />
+          }
+          right={
+            <InspectorNumericField
+              ariaLabel={`${labelPrefix} decimal places`}
+              value={cfg.decimals}
+              min={0}
+              max={decimalsMax}
+              step={1}
+              fractionDigits={0}
+              onCommit={(next) => {
+                onUpdateConfigField("decimals", Math.round(next));
+              }}
+            />
+          }
+        />
+      </InspectorFieldGrid>
     </>
   );
 }

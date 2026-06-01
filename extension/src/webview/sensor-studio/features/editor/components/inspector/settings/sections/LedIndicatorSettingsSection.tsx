@@ -1,15 +1,12 @@
 import { CircleDot } from "lucide-react";
 import { useMemo, useState } from "react";
-import { TRNInlineToggleRow } from "../../../../../../../ui/TRN";
 import { LedIndicatorNodePanel } from "../../../../nodes/led-indicator/LedIndicatorNodePanel";
 import { coerceLedIndicatorConfig } from "../../../../nodes/display/led-indicator-config";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
-import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
-import { InspectorPropertyRow } from "../../InspectorPropertyRow";
+import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
+import { InspectorColorRow } from "../../InspectorDenseControls";
+import { InspectorNumericScrubRow, InspectorTextRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
-
-const controlClass =
-  "w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-100";
 
 export function LedIndicatorSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -37,7 +34,7 @@ export function LedIndicatorSettingsSection(props: NodeInspectorSettingsSectionP
             defaultConfig={previewConfig}
           />
         </div>
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Preview ON"
           hint="Design-time state only — not saved on the node."
           checked={previewOn}
@@ -51,41 +48,35 @@ export function LedIndicatorSettingsSection(props: NodeInspectorSettingsSectionP
         iconHint="Label, colors, and blink when the LED is on."
         defaultExpanded
       >
-        <InspectorPropertyRow label="Label" description="Optional caption beside the bulb.">
-          <input
-            type="text"
-            className={controlClass}
-            value={cfg.label}
-            placeholder="e.g. Alarm"
-            aria-label="LED indicator label"
-            onChange={(event) => {
-              onUpdateConfigField("label", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
-        <InspectorPropertyRow label="On color" description="Fill and glow when active.">
-          <input
-            type="color"
-            className="h-8 w-full cursor-pointer rounded border border-zinc-700/80 bg-zinc-900/60"
-            value={cfg.onColor}
-            aria-label="LED on color"
-            onChange={(event) => {
-              onUpdateConfigField("onColor", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
-        <InspectorPropertyRow label="Off color" description="Bulb body when inactive.">
-          <input
-            type="color"
-            className="h-8 w-full cursor-pointer rounded border border-zinc-700/80 bg-zinc-900/60"
-            value={cfg.offColor}
-            aria-label="LED off color"
-            onChange={(event) => {
-              onUpdateConfigField("offColor", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
-        <TRNInlineToggleRow
+        <InspectorTextRow
+          label="Label"
+          description="Optional caption beside the bulb."
+          ariaLabel="LED indicator label"
+          value={cfg.label}
+          placeholder="e.g. Alarm"
+          onChange={(next) => {
+            onUpdateConfigField("label", next);
+          }}
+        />
+        <InspectorColorRow
+          label="On color"
+          description="Fill and glow when active."
+          ariaLabel="LED on color"
+          value={cfg.onColor}
+          onChange={(next) => {
+            onUpdateConfigField("onColor", next);
+          }}
+        />
+        <InspectorColorRow
+          label="Off color"
+          description="Bulb body when inactive."
+          ariaLabel="LED off color"
+          value={cfg.offColor}
+          onChange={(next) => {
+            onUpdateConfigField("offColor", next);
+          }}
+        />
+        <InspectorCompactToggleRow
           label="Blink when ON"
           hint="Pulse animation while the LED is active."
           checked={cfg.blink}

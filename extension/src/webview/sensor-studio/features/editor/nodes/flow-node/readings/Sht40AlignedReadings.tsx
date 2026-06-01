@@ -5,6 +5,7 @@ import {
   INSPECTOR_READINGS_ROW_CLASS,
   INSPECTOR_READINGS_VALUE_CELL,
 } from "./inspector-readings-grid";
+import { SENSOR_TEMPERATURE_PORT_LABEL } from "../../../../../core/sensor-port-labels";
 
 export type Sht40AlignedReadingsProps = {
   humidity: number | null | undefined;
@@ -18,7 +19,7 @@ export function Sht40AlignedReadings(props: Sht40AlignedReadingsProps) {
   return (
     <div className="min-w-0 w-full">
       <ScalarReadingRow label="Humidity (%RH)" value={humidity} fractionDigits={2} />
-      <ScalarReadingRow label="Temp (°C)" value={temp} fractionDigits={2} />
+      <ScalarReadingRow label={SENSOR_TEMPERATURE_PORT_LABEL} value={temp} fractionDigits={2} />
     </div>
   );
 }

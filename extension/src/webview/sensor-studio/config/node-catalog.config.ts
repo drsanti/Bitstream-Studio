@@ -1,4 +1,8 @@
 import type { NodeCatalogConfig } from "../core/config/config-types";
+import {
+  PALETTE_TEMPERATURE_ROW_LABEL,
+  SENSOR_TEMPERATURE_PORT_LABEL,
+} from "../core/sensor-port-labels";
 import { PSOC_E84_GLB_RELATIVE_PATH } from "../../bitstream-app/components/3d-rotation/shared/rotationPreviewConstants";
 import { defaultFlowWireCameraV1 } from "../features/editor/nodes/camera-view/flow-wire-camera";
 import { defaultFlowWireTransformV1 } from "../features/editor/nodes/transform/flow-wire-transform";
@@ -45,7 +49,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             portType: "quaternion",
             label: "Quaternion",
           },
-          { id: "temp", portType: "number", label: "Temp (°C)" },
+          { id: "temp", portType: "number", label: PALETTE_TEMPERATURE_ROW_LABEL },
         ],
       },
       {
@@ -97,7 +101,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: "Temp (°C)" }],
+        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
       },
       {
         id: "dps368-input",
@@ -110,7 +114,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "pressure", portType: "number", label: "Pressure (hPa)" },
-          { id: "temp", portType: "number", label: "Temp (°C)" },
+          { id: "temp", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL },
         ],
       },
       {
@@ -124,7 +128,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "humidity", portType: "number", label: "Humidity (%RH)" },
-          { id: "temp", portType: "number", label: "Temp (°C)" },
+          { id: "temp", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL },
         ],
       },
       {
@@ -138,7 +142,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "magnetic", portType: "vector3", label: "Magnetic (µT)" },
-          { id: "temp", portType: "number", label: "Temp (°C)" },
+          { id: "temp", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL },
         ],
       },
       {
@@ -161,7 +165,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: "Temperature (°C)" }],
+        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
       },
       {
         id: "sht40-tap-humidity",
@@ -183,7 +187,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: "Temperature (°C)" }],
+        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
       },
       {
         id: "bmm350-tap-magnetic",
@@ -205,7 +209,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: "Temperature (°C)" }],
+        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
       },
       {
         // NOTE: disabled for Bitstream workflows (not needed).

@@ -5,6 +5,7 @@ import {
   INSPECTOR_READINGS_ROW_CLASS,
   INSPECTOR_READINGS_VALUE_CELL,
 } from "./inspector-readings-grid";
+import { SENSOR_TEMPERATURE_PORT_LABEL } from "../../../../../core/sensor-port-labels";
 
 export type Dps368AlignedReadingsProps = {
   pressure: number | null | undefined;
@@ -18,7 +19,7 @@ export function Dps368AlignedReadings(props: Dps368AlignedReadingsProps) {
   return (
     <div className="min-w-0 w-full">
       <ScalarReadingRow label="Pressure (hPa)" value={pressure} fractionDigits={1} />
-      <ScalarReadingRow label="Temp (°C)" value={temp} fractionDigits={2} />
+      <ScalarReadingRow label={SENSOR_TEMPERATURE_PORT_LABEL} value={temp} fractionDigits={2} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { ArrowLeftRight } from "lucide-react";
-import { TRNInlineToggleRow } from "../../../../../../../ui/TRN";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
 import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
@@ -42,7 +42,7 @@ export function MapRangeSettingsSection(props: NodeInspectorSettingsSectionProps
         iconHint="Linearly remaps Value from an input domain to an output domain. Wired pins override the defaults on the node card."
         defaultExpanded
       >
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Clamp result to out min / max"
           hint="When enabled, values below out min or above out max are clipped after mapping."
           checked={clampEnabled}

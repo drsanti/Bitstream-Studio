@@ -6,8 +6,8 @@ import {
   coerceSparklineConfig,
 } from "../../../../nodes/display/sparkline-display-config";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { InspectorColorRow } from "../../InspectorDenseControls";
 import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
-import { InspectorPropertyRow } from "../../InspectorPropertyRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 const PREVIEW_WAVE = [
@@ -64,17 +64,15 @@ export function SparklineSettingsSection(props: NodeInspectorSettingsSectionProp
             onUpdateConfigField("historySize", Math.round(next));
           }}
         />
-        <InspectorPropertyRow label="Stroke color" description="Polyline color on the canvas.">
-          <input
-            type="color"
-            className="h-8 w-full cursor-pointer rounded border border-zinc-700/80 bg-zinc-900/60"
-            value={cfg.strokeColor}
-            aria-label="Sparkline stroke color"
-            onChange={(event) => {
-              onUpdateConfigField("strokeColor", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
+        <InspectorColorRow
+          label="Stroke color"
+          description="Polyline color on the canvas."
+          ariaLabel="Sparkline stroke color"
+          value={cfg.strokeColor}
+          onChange={(next) => {
+            onUpdateConfigField("strokeColor", next);
+          }}
+        />
         <InspectorNumericScrubRow
           label="Stroke width"
           description="Line thickness in CSS pixels (non-scaling stroke)."

@@ -158,6 +158,9 @@ export function SensorStudioMain() {
   const onRunTemplate = useFlowEditorStore((s) => s.runDemoTemplate);
   const onUpdateLabel = useFlowEditorStore((s) => s.updateSelectedNodeLabel);
   const onUpdateNodeUiResizable = useFlowEditorStore((s) => s.updateSelectedNodeUiResizable);
+  const onUpdateNodeUiAllowBodyCollapse = useFlowEditorStore(
+    (s) => s.updateSelectedNodeUiAllowBodyCollapse,
+  );
   const onUpdateConfigField = useFlowEditorStore((s) => s.updateSelectedNodeConfigField);
   const onUpdateConfigJson = useFlowEditorStore((s) => s.updateSelectedNodeConfigFromJson);
   const tickSimulation = useFlowEditorStore((s) => s.tickSimulation);
@@ -944,6 +947,7 @@ export function SensorStudioMain() {
         onSelectionChange={onSelectionChange}
         onUpdateLabel={onUpdateLabel}
         onUpdateNodeUiResizable={onUpdateNodeUiResizable}
+        onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
         onUpdateConfigField={onUpdateConfigField}
         onUpdateConfigJson={onUpdateConfigJson}
         templateId={templateId}

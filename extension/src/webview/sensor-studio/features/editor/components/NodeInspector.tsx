@@ -36,9 +36,9 @@ const CORE_INSPECTOR_TABS: readonly {
   label: string;
   Icon: LucideIcon;
 }[] = [
+  { id: "node", label: "Node", Icon: Box },
   { id: "details", label: "Details", Icon: ClipboardList },
   { id: "live", label: "Live", Icon: Activity },
-  { id: "node", label: "Node", Icon: Box },
 ];
 
 const DEVICE_INSPECTOR_TAB = {
@@ -59,6 +59,7 @@ export type NodeInspectorProps = {
   categoryColors: Record<NodeCatalogEntry["category"], string>;
   onUpdateLabel: (nextLabel: string) => void;
   onUpdateNodeUiResizable: (resizable: boolean) => void;
+  onUpdateNodeUiAllowBodyCollapse: (allow: boolean) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (
     nextJson: string,
@@ -83,6 +84,7 @@ export function NodeInspector(props: NodeInspectorProps) {
     categoryColors,
     onUpdateLabel,
     onUpdateNodeUiResizable,
+    onUpdateNodeUiAllowBodyCollapse,
     onUpdateConfigField,
     onUpdateConfigJson,
     canvasInspector,
@@ -198,11 +200,9 @@ export function NodeInspector(props: NodeInspectorProps) {
     selectedNode != null && isRotation3DCatalogNodeId(selectedNode.data.nodeId);
 
   const tabPanelClassName =
-    activeTab === "node"
-      ? "scrollbar-hide flex min-h-0 flex-1 flex-col gap-2 overflow-hidden overflow-x-hidden px-2.5 pb-3 pt-2"
-      : activeTab === "device"
-        ? "scrollbar-hide flex min-h-0 flex-1 flex-col overflow-hidden overflow-x-hidden px-2.5 pb-3 pt-2"
-        : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
+    activeTab === "node" || activeTab === "device"
+      ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 pb-3 pt-2"
+      : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
 
   return (
     <section
@@ -332,6 +332,7 @@ export function NodeInspector(props: NodeInspectorProps) {
                     suppressDefaultConfigJson={homogeneousMultiEdit}
                     onUpdateLabel={onUpdateLabel}
                     onUpdateNodeUiResizable={onUpdateNodeUiResizable}
+                    onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
                     onUpdateConfigField={onUpdateConfigField}
                     onUpdateConfigJson={onUpdateConfigJson}
                     jsonDraft={jsonDraft}

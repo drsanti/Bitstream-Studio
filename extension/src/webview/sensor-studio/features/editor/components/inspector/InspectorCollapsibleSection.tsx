@@ -42,7 +42,7 @@ export function InspectorCollapsibleSection(props: InspectorCollapsibleSectionPr
 
   return (
     <TRNCard
-      className={className}
+      className={"shrink-0 " + className}
       title={title}
       icon={headerIcon}
       titleTrailing={badge}
@@ -50,7 +50,7 @@ export function InspectorCollapsibleSection(props: InspectorCollapsibleSectionPr
       collapsible
       glass
       glassPreset="soft"
-      contentClassName="space-y-2"
+      contentClassName="space-y-1.5"
     >
       {children}
     </TRNCard>

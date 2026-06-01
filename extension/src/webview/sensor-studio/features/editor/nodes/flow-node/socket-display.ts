@@ -1,6 +1,8 @@
 import type { Edge } from "@xyflow/react";
 import type { StudioNodeData, StudioOutputHandleDef } from "../../store/flow-editor.store";
 import type { FlowGraphNode } from "../../store/flow-editor.store";
+import { isStudioSensorSocketPreviewNodeId } from "../../store/flow-editor.store";
+import { studioNodeAllowsBodyCollapse } from "./studio-body-collapse";
 
 export type StudioNodeUiFlags = NonNullable<StudioNodeData["ui"]>;
 
@@ -17,6 +19,69 @@ export function isSocketValuesVisible(ui: StudioNodeUiFlags | undefined): boolea
 /** `true` or unset = show card body controls / previews. */
 export function isBodyControlsVisible(ui: StudioNodeUiFlags | undefined): boolean {
   return ui?.bodyControlsVisible !== false;
+}
+
+const STUDIO_NODES_WITHOUT_BODY_PANEL = new Set([
+  "object-transform",
+  "transform-from-euler",
+  "on-key",
+  "on-click",
+  "event-toggle-boolean",
+  "event-set-boolean",
+  "event-toggle-glb-part",
+  "event-set-glb-part",
+  "event-trigger-glb-anim",
+]);
+
+/** `true` when the node renders a `FlowNodeBody` region that can be hidden via `bodyControlsVisible`. */
+export function studioNodeHasHideableBody(data: StudioNodeData): boolean {
+  const dc = data.defaultConfig;
+  if (data.nodeId === "environment") {
+    return typeof dc.environmentControlsExpanded === "boolean"
+      ? dc.environmentControlsExpanded
+      : true;
+  }
+  if (data.nodeId === "camera-view") {
+    return typeof dc.cameraViewControlsExpanded === "boolean"
+      ? dc.cameraViewControlsExpanded
+      : true;
+  }
+  if (STUDIO_NODES_WITHOUT_BODY_PANEL.has(data.nodeId)) {
+    return false;
+  }
+  if (isStudioSensorSocketPreviewNodeId(data.nodeId)) {
+    return false;
+  }
+  return true;
+}
+
+/** `true` when the selection contains at least one Studio node with a hideable body panel. */
+export function selectionHasHideableBody(
+  nodes: readonly FlowGraphNode[],
+  nodeIds: readonly string[],
+): boolean {
+  const idSet = new Set(nodeIds);
+  return nodes.some(
+    (n) =>
+      idSet.has(n.id) &&
+      n.type === "studio" &&
+      studioNodeHasHideableBody(n.data as StudioNodeData),
+  );
+}
+
+/** `true` when the selection can use canvas toolbar / Shift+B to collapse the node body. */
+export function selectionAllowsBodyCollapse(
+  nodes: readonly FlowGraphNode[],
+  nodeIds: readonly string[],
+): boolean {
+  const idSet = new Set(nodeIds);
+  return nodes.some((n) => {
+    if (!idSet.has(n.id) || n.type !== "studio") {
+      return false;
+    }
+    const data = n.data as StudioNodeData;
+    return studioNodeHasHideableBody(data) && studioNodeAllowsBodyCollapse(data);
+  });
 }
 
 function edgeMatchesInput(
@@ -88,6 +153,65 @@ export function filterOutputHandlesForDisplay(
     return handles;
   }
   return handles.filter((h) => shouldShowSocketRow(nodeId, h.id, edges, "output", expanded));
+}
+
+function nodeHasCollapsibleSockets(node: FlowGraphNode, edges: readonly Edge[]): boolean {
+  if (node.type !== "studio") {
+    return false;
+  }
+  const data = node.data as StudioNodeData;
+
+  const inputHandles: StudioOutputHandleDef[] =
+    data.inputHandles != null && data.inputHandles.length > 0
+      ? data.inputHandles
+      : data.inputType != null
+        ? [{ id: "in", portType: data.inputType, label: "In" }]
+        : [];
+
+  const outputHandles: StudioOutputHandleDef[] =
+    data.outputHandles != null && data.outputHandles.length > 0
+      ? data.outputHandles
+      : data.outputType != null
+        ? [{ id: "out", portType: data.outputType, label: "Out" }]
+        : [];
+
+  const totalSockets = inputHandles.length + outputHandles.length;
+  // New rule: nodes with only one socket must always show it — no-op for collapse/expand.
+  if (totalSockets <= 1) {
+    return false;
+  }
+
+  // Collapsing only has a visible effect if at least one socket would be hidden when collapsed.
+  for (const h of inputHandles) {
+    if (!shouldShowSocketRow(node.id, h.id, edges, "input", false, inputHandles)) {
+      return true;
+    }
+  }
+  for (const h of outputHandles) {
+    if (!shouldShowSocketRow(node.id, h.id, edges, "output", false)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/** `true` when the selection contains at least one Studio node with sockets that can be collapsed. */
+export function selectionSupportsSocketCollapse(
+  nodes: readonly FlowGraphNode[],
+  edges: readonly Edge[],
+  nodeIds: readonly string[],
+): boolean {
+  const idSet = new Set(nodeIds);
+  return nodes.some((n) => idSet.has(n.id) && nodeHasCollapsibleSockets(n, edges));
+}
+
+/** `true` when the graph contains at least one Studio node with sockets that can be collapsed. */
+export function graphSupportsSocketCollapse(
+  nodes: readonly FlowGraphNode[],
+  edges: readonly Edge[],
+): boolean {
+  return nodes.some((n) => nodeHasCollapsibleSockets(n, edges));
 }
 
 export function nextSocketsExpandedForBatch(

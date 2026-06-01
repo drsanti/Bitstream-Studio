@@ -130,7 +130,7 @@ function PrimaryBundleRow(props: {
 /** Compact multi-row live matrix for primary sensor stream nodes in the library. */
 export function PalettePrimaryReadingsPreview(props: PalettePrimaryReadingsPreviewProps) {
   const { streamMode, rows, align = "end" } = props;
-  const labelClass = twMerge("shrink-0 truncate w-[3rem]", PALETTE_ROW_LABEL_TYPOGRAPHY);
+  const labelClass = twMerge("shrink-0 truncate max-w-[7.5rem]", PALETTE_ROW_LABEL_TYPOGRAPHY);
 
   return (
     <div

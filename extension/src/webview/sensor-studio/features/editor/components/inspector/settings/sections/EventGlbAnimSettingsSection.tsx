@@ -19,6 +19,7 @@ import type { StudioGlbAnimationLoopModeV1 } from "../../../../nodes/animation/f
 import { useStudioGltfExtraction } from "../../../../gltf/useStudioGltfExtraction";
 import { useFlowEditorStore } from "../../../../store/flow-editor.store";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { InspectorNumericField } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 const LOOP_OPTIONS: TRNSelectOption[] = [
@@ -282,32 +283,24 @@ export function EventTriggerGlbAnimSettingsSection(props: NodeInspectorSettingsS
       </TRNFormField>
       <div className="grid grid-cols-2 gap-2">
         <TRNFormField label="Speed" id="event-trigger-glb-anim-speed" className="space-y-1">
-          <input
-            type="number"
-            step={0.1}
-            className="nodrag w-full rounded border border-zinc-700/80 bg-zinc-950/45 px-2 py-1.5 text-[11px] text-zinc-200"
+          <InspectorNumericField
+            ariaLabel="GLB animation speed"
             value={speed}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (Number.isFinite(n)) {
-                props.onUpdateConfigField("speed", n);
-              }
+            step={0.1}
+            onCommit={(n) => {
+              props.onUpdateConfigField("speed", n);
             }}
           />
         </TRNFormField>
         <TRNFormField label="Weight" id="event-trigger-glb-anim-weight" className="space-y-1">
-          <input
-            type="number"
+          <InspectorNumericField
+            ariaLabel="GLB animation weight"
+            value={weight}
             min={0}
             max={1}
             step={0.05}
-            className="nodrag w-full rounded border border-zinc-700/80 bg-zinc-950/45 px-2 py-1.5 text-[11px] text-zinc-200"
-            value={weight}
-            onChange={(e) => {
-              const n = Number(e.target.value);
-              if (Number.isFinite(n)) {
-                props.onUpdateConfigField("weight", Math.min(1, Math.max(0, n)));
-              }
+            onCommit={(n) => {
+              props.onUpdateConfigField("weight", Math.min(1, Math.max(0, n)));
             }}
           />
         </TRNFormField>

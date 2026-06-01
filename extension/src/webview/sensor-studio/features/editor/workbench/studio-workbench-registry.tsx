@@ -94,6 +94,7 @@ export function WorkbenchInspectorPanel() {
       categoryColors={p.minimapCategoryColors}
       onUpdateLabel={p.onUpdateLabel}
       onUpdateNodeUiResizable={p.onUpdateNodeUiResizable}
+      onUpdateNodeUiAllowBodyCollapse={p.onUpdateNodeUiAllowBodyCollapse}
       onUpdateConfigField={p.onUpdateConfigField}
       onUpdateConfigJson={p.onUpdateConfigJson}
       nodes={p.nodes}

@@ -132,7 +132,7 @@ test("resolveInputScalarHintFromUpstream inherits sensor semantic kinds", () => 
           category: "sensor" as const,
           defaultConfig: {},
           sensorHealth: "live" as const,
-          outputHandles: [{ id: "temp", portType: "number" as const, label: "Temp (°C)" }],
+          outputHandles: [{ id: "temp", portType: "number" as const, label: "Temperature (°C)" }],
         },
       },
     ],

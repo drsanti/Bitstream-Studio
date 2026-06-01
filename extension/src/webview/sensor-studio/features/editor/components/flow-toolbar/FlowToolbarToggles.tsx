@@ -7,20 +7,25 @@ type ToggleProps = {
   onToggle: () => void;
   title: string;
   ariaLabel: string;
+  disabled?: boolean;
   className?: string;
 };
 
 export function SocketValuesToggle(props: ToggleProps) {
-  const { pressed, onToggle, title, ariaLabel, className } = props;
+  const { pressed, onToggle, title, ariaLabel, disabled = false, className } = props;
   return (
     <button
       type="button"
-      className={twMerge(flowToolbarBtnClass(), className)}
+      className={twMerge(flowToolbarBtnClass(disabled), className)}
       aria-label={ariaLabel}
       aria-pressed={pressed}
       title={title}
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
+        if (disabled) {
+          return;
+        }
         onToggle();
       }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -31,16 +36,20 @@ export function SocketValuesToggle(props: ToggleProps) {
 }
 
 export function SocketDisplayToggle(props: ToggleProps) {
-  const { pressed, onToggle, title, ariaLabel, className } = props;
+  const { pressed, onToggle, title, ariaLabel, disabled = false, className } = props;
   return (
     <button
       type="button"
-      className={twMerge(flowToolbarBtnClass(), className)}
+      className={twMerge(flowToolbarBtnClass(disabled), className)}
       aria-label={ariaLabel}
       aria-pressed={pressed}
       title={title}
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
+        if (disabled) {
+          return;
+        }
         onToggle();
       }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -51,16 +60,20 @@ export function SocketDisplayToggle(props: ToggleProps) {
 }
 
 export function BodyControlsToggle(props: ToggleProps) {
-  const { pressed, onToggle, title, ariaLabel, className } = props;
+  const { pressed, onToggle, title, ariaLabel, disabled = false, className } = props;
   return (
     <button
       type="button"
-      className={twMerge(flowToolbarBtnClass(), className)}
+      className={twMerge(flowToolbarBtnClass(disabled), className)}
       aria-label={ariaLabel}
       aria-pressed={pressed}
       title={title}
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
+        if (disabled) {
+          return;
+        }
         onToggle();
       }}
       onPointerDown={(e) => e.stopPropagation()}

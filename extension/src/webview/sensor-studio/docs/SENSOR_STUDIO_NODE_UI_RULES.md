@@ -35,7 +35,22 @@ Short conventions for **flow node cards** and the **Node Inspector**, aligned wi
 
 Registry: **`isStudioAlignedOutputSocketColumnsNodeId`** (subgrid), **`isStudioSensorSocketPreviewNodeId`** (no card body panel). Socket UI: **`socketLivePreviewForOutputHandle`**.
 
-**Catalog:** BMI270/BMM350 — **`Temp (°C)`** last. DPS368/SHT40 — **`Temp (°C)`** last.
+**Catalog sockets:** DPS368 / SHT40 / BMM350 temp ports use **`SENSOR_TEMPERATURE_PORT_LABEL`** (`Temperature (°C)`). **BMI270 hardware** temp socket uses **`PALETTE_TEMPERATURE_ROW_LABEL`** (`Temp (°C)`). Put temperature last on multi-output sensors when present.
+
+### Node Palette live row format
+
+Library **line-2** previews for sensor catalog entries use **`PrimaryBundleRow`** via **`kind: "primaryBundle"`** in **`palette-live-preview.ts`**. Labels and units are centralized in **`core/sensor-port-labels.ts`**.
+
+| Pattern | Rule |
+| ------- | ---- |
+| **Layout** | **`[label left]`** (zinc-500, 11px, `max-w-[7.5rem]`) + **values right** — no trailing unit suffix after the number |
+| **Scalars** | Unit in the label: `Temp (°C)`, `Pressure (hPa)`, `Humidity (%RH)` |
+| **Vectors** | Unit in the label: `Accel (m/s²)`, `Gyro (rad/s)`, `Euler (rad)`, `Mag (µT)` — axis values only on the right |
+| **Quaternion** | Label `Quaternion`; **w x y z** on the right |
+| **Primary cards** | Multi-row bundle (BMI270, DPS368, SHT40, BMM350) — one row per port |
+| **Tap nodes** | Single-row **`primaryBundle`** (same row component as primary cards) — do not use bare **`kind: "scalar"`** / **`vector3`** inline previews for sensor taps |
+
+Constants: **`PALETTE_*_ROW_LABEL`** for palette; **`SENSOR_TEMPERATURE_PORT_LABEL`** for non–BMI270 canvas sockets and tap temp ports. Extend **`sensor-port-labels.ts`** when adding a new sensor family — do not hardcode labels in **`palette-live-preview.ts`**.
 
 ### Single-output sensor tap nodes (BMI270 / DPS368 / SHT40 / BMM350 taps)
 
@@ -54,7 +69,7 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | **Every scalar output pin** | Live preview on the socket row — **`syncSocketLivePreviewHandlesFromPinValues`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, **`liveStringByHandle`**, **`liveVector3ByHandle`** from evaluated pins |
 | **Bundled wire types** | No scalar preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
 | **Environment / Camera badges** | Wired **`env`** / **`cam`** inputs and **Environment** / **Camera / View** outputs show a compact tinted badge (preset name or **`45° FOV`**) via **`SocketStructuredWireBadge`** — empty when unwired |
-| **Boolean** | Display **`true`** / **`false`** (lowercase) |
+| **Boolean** | Display **`true`** / **`false`** (lowercase); **`true`** → emerald (`text-emerald-300`), **`false`** → muted zinc (`text-zinc-400`) |
 | **String** | Truncated preview (~14 chars); full value in **`title`** tooltip |
 | **Studio Model (`model-select` `out`)** | Friendly catalog label via **`modelSelectEmitDisplayName`** (same as card dropdown) — wire eval still emits the URL |
 | **Model string inputs** | **`model-viewer` `in`** and GLB event **`model`** show the wired **Studio Model** label, not the raw URL |
@@ -189,9 +204,10 @@ Follow **node-animator** `socketGridLayout` / `SocketHandle` — zero-width anch
 
 1. Register in **`node-inspector-settings-registry.tsx`** (`nodeId` → section component).
 2. Prefer **`InspectorCollapsibleSection`** (`TRNCard` soft glass, collapsible).
-3. Numeric fields: **`InspectorNumericScrubRow`** + **`TRNScrubNumberInput`** (`pointerScrubEnabled={false}` in inspector).
-4. Booleans: **`TRNInlineToggleRow`**.
-5. Long copy: **`TRNHintTooltip`** on section icons — not inline walls of text.
+3. Numeric fields: **`InspectorNumericScrubRow`** + **`TRNScrubNumberInput`** — drag on the value to scrub (Shift = finer); arrow keys and typing still work. Use `pointerScrubEnabled={false}` only when each tick must not scrub (e.g. number constant undo batching).
+4. Dropdowns: **`InspectorSelectRow`** + **`TRNSelect`** (glass menu) — not native `<select>`.
+5. Booleans in collapsible cards: **`InspectorCompactToggleRow`** (slim) — not **`TRNInlineToggleRow`** card chrome unless the node body uses it.
+6. Long copy: **`TRNHintTooltip`** on labels — not inline walls of text.
 
 **Reference implementation:** **`MapRangeSettingsSection.tsx`** (map-range + clamp toggle + grouped range inputs).
 
@@ -290,7 +306,7 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 
 ## Adding a new catalog node
 
-1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temp (°C)`** last on BMI270).
+1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temperature (°C)`** last on BMI270).
 2. **Typography** — follow **Typography** (Inter; node title **`text-[13px]`**, socket labels/previews **`11px`**).
 3. **Live reading colors** — follow **Live reading semantic colors**; socket previews must use **`socketLivePreviewForOutputHandle`** (or **`getLiveScalarReadingColorClass`** / **`ReadingAxisNumber`** for custom readouts).
 4. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
@@ -303,7 +319,7 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 When adding a multi-output sensor source:
 
 1. Add id to **`STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_IDS`** and **`isStudioAlignedOutputSocketColumnsNodeId`**.
-2. **`outputPorts`** — display order; put **`Temp (°C)`** last when present.
+2. **`outputPorts`** — display order; put temperature last (`Temp (°C)` on BMI270, `Temperature (°C)` on other sensors).
 3. **`StudioNodeCard`** — **`isStudioAlignedOutputSocketColumnsNodeId`** enables subgrid; wire **`socketLivePreviewForOutputHandle`**.
 4. **Do not** add a card **`ReadingPanel`**.
 5. **Inspector → Live** — extend **`LiveSensorInspectorReadings`** (multi-output: aligned matrix; taps: **`SensorTapInspectorReadings`**). Register via **`isStudioLiveInspectorReadingsNodeId`**.

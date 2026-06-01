@@ -3,7 +3,7 @@ import { InspectorFieldStack } from "./InspectorFieldStack";
 
 export type InspectorPropertyRowProps = {
   label: string;
-  /** Optional muted helper under the label. */
+  /** Hover tooltip on the label ({@link TRNHintTooltip} via {@link InspectorFieldStack}). */
   description?: string;
   children: ReactNode;
   /** @deprecated Column layout is always used in the Node Inspector. */

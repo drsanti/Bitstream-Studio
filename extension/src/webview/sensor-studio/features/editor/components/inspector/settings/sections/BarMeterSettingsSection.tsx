@@ -1,20 +1,17 @@
 import { BarChart2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { TRNInlineToggleRow } from "../../../../../../../ui/TRN";
 import { BarMeterNodePanel } from "../../../../nodes/bar-meter/BarMeterNodePanel";
 import {
   coerceBarMeterConfig,
   gaugePreviewValue,
 } from "../../../../nodes/display/gauge-display-config";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
+import { InspectorSelectRow } from "../../InspectorDenseControls";
 import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
-import { InspectorPropertyRow } from "../../InspectorPropertyRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 import { GaugeScaleReadoutInspectorFields } from "../GaugeScaleReadoutInspectorFields";
 import { GaugeZonesEditor } from "../GaugeZonesEditor";
-
-const controlClass =
-  "w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-100";
 
 export function BarMeterSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -44,7 +41,7 @@ export function BarMeterSettingsSection(props: NodeInspectorSettingsSectionProps
       >
         <div className="overflow-hidden rounded border border-zinc-800/80 bg-zinc-950/80">
           <BarMeterNodePanel
-            className="relative box-border h-32 min-h-32 w-full min-w-0 overflow-hidden"
+            className="relative box-border h-28 max-h-28 w-full min-w-0 overflow-hidden"
             value={previewValue}
             defaultConfig={previewConfig}
           />
@@ -81,23 +78,22 @@ export function BarMeterSettingsSection(props: NodeInspectorSettingsSectionProps
         iconHint="Orientation and peak-hold marker behavior."
         defaultExpanded
       >
-        <InspectorPropertyRow label="Orientation">
-          <select
-            className={controlClass}
-            value={cfg.orientation}
-            aria-label="Bar meter orientation"
-            onChange={(event) => {
-              onUpdateConfigField(
-                "orientation",
-                event.target.value === "horizontal" ? "horizontal" : "vertical",
-              );
-            }}
-          >
-            <option value="vertical">Vertical</option>
-            <option value="horizontal">Horizontal</option>
-          </select>
-        </InspectorPropertyRow>
-        <TRNInlineToggleRow
+        <InspectorSelectRow
+          label="Orientation"
+          ariaLabel="Bar meter orientation"
+          value={cfg.orientation}
+          options={[
+            { value: "vertical", label: "Vertical" },
+            { value: "horizontal", label: "Horizontal" },
+          ]}
+          onChange={(next) => {
+            onUpdateConfigField(
+              "orientation",
+              next === "horizontal" ? "horizontal" : "vertical",
+            );
+          }}
+        />
+        <InspectorCompactToggleRow
           label="Peak hold"
           hint="Shows a marker at the recent maximum; decays after two seconds."
           checked={cfg.showPeakHold}
@@ -123,7 +119,7 @@ export function BarMeterSettingsSection(props: NodeInspectorSettingsSectionProps
         title="Zones & alarms"
         icon={<BarChart2 className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
         iconHint="Background bands and fill tint by value range."
-        defaultExpanded
+        defaultExpanded={false}
       >
         <GaugeZonesEditor
           zones={cfg.zones}

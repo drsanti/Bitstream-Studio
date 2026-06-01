@@ -1,8 +1,13 @@
 import { Plus, Trash2 } from "lucide-react";
-import { useCallback } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { TRNButton, TRNHintText } from "../../../../../../ui/TRN";
-import { InspectorNumericScrubRow } from "../InspectorNumericScrubRow";
-import { InspectorPropertyRow } from "../InspectorPropertyRow";
+import {
+  InspectorFieldGrid,
+  InspectorFieldGridControls,
+  InspectorFieldGridLabels,
+} from "../InspectorFieldGrid";
+import { InspectorColorRow, InspectorSelectRow } from "../InspectorDenseControls";
+import { InspectorNumericField } from "../InspectorNumericScrubRow";
 import {
   GAUGE_ZONE_PRESET_OPTIONS,
   type GaugeDisplayZone,
@@ -20,6 +25,7 @@ export type GaugeZonesEditorProps = {
 
 export function GaugeZonesEditor(props: GaugeZonesEditorProps) {
   const { zones, min, max, onChange } = props;
+  const [presetValue, setPresetValue] = useState("");
 
   const patchZone = useCallback(
     (index: number, patch: Partial<GaugeDisplayZone>) => {
@@ -62,32 +68,32 @@ export function GaugeZonesEditor(props: GaugeZonesEditorProps) {
     [max, min, onChange],
   );
 
+  const presetOptions = useMemo(
+    () => [
+      { value: "", label: "Apply preset…" },
+      ...GAUGE_ZONE_PRESET_OPTIONS.map((preset) => ({
+        value: preset.id,
+        label: preset.label,
+      })),
+    ],
+    [],
+  );
+
   return (
     <div className="space-y-2">
-      <InspectorPropertyRow
+      <InspectorSelectRow
         label="Preset"
         description="Replace all zones with a template mapped to the current min/max scale."
-      >
-        <select
-          className="w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-100"
-          defaultValue=""
-          aria-label="Gauge zone preset"
-          onChange={(event) => {
-            const next = event.target.value;
-            if (next.length > 0) {
-              applyPreset(next);
-            }
-            event.target.value = "";
-          }}
-        >
-          <option value="">Apply preset…</option>
-          {GAUGE_ZONE_PRESET_OPTIONS.map((preset) => (
-            <option key={preset.id} value={preset.id}>
-              {preset.label}
-            </option>
-          ))}
-        </select>
-      </InspectorPropertyRow>
+        ariaLabel="Gauge zone preset"
+        value={presetValue}
+        options={presetOptions}
+        onChange={(next) => {
+          setPresetValue("");
+          if (next.length > 0) {
+            applyPreset(next);
+          }
+        }}
+      />
 
       {zones.length === 0 ? (
         <TRNHintText>No zones — needle and readout use default accent colors.</TRNHintText>
@@ -116,37 +122,42 @@ export function GaugeZonesEditor(props: GaugeZonesEditorProps) {
                 <Trash2 className="h-3.5 w-3.5" aria-hidden />
               </TRNButton>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <InspectorNumericScrubRow
-                label="From"
-                ariaLabel={`Zone ${index + 1} from value`}
-                value={zone.from}
-                step={0.01}
-                onCommit={(next) => {
-                  patchZone(index, { from: next });
-                }}
+            <InspectorFieldGrid>
+              <InspectorFieldGridLabels
+                left={{ label: "From" }}
+                right={{ label: "To" }}
               />
-              <InspectorNumericScrubRow
-                label="To"
-                ariaLabel={`Zone ${index + 1} to value`}
-                value={zone.to}
-                step={0.01}
-                onCommit={(next) => {
-                  patchZone(index, { to: next });
-                }}
+              <InspectorFieldGridControls
+                left={
+                  <InspectorNumericField
+                    ariaLabel={`Zone ${index + 1} from value`}
+                    value={zone.from}
+                    step={0.01}
+                    onCommit={(next) => {
+                      patchZone(index, { from: next });
+                    }}
+                  />
+                }
+                right={
+                  <InspectorNumericField
+                    ariaLabel={`Zone ${index + 1} to value`}
+                    value={zone.to}
+                    step={0.01}
+                    onCommit={(next) => {
+                      patchZone(index, { to: next });
+                    }}
+                  />
+                }
               />
-            </div>
-            <InspectorPropertyRow label="Color">
-              <input
-                type="color"
-                className="h-8 w-full cursor-pointer rounded border border-zinc-700 bg-zinc-900"
-                value={normalizeGaugeHexColor(zone.color, "#22d3ee")}
-                aria-label={`Zone ${index + 1} color`}
-                onChange={(event) => {
-                  patchZone(index, { color: event.target.value });
-                }}
-              />
-            </InspectorPropertyRow>
+            </InspectorFieldGrid>
+            <InspectorColorRow
+              label="Color"
+              ariaLabel={`Zone ${index + 1} color`}
+              value={normalizeGaugeHexColor(zone.color, "#22d3ee")}
+              onChange={(next) => {
+                patchZone(index, { color: next });
+              }}
+            />
           </div>
         ))}
       </div>

@@ -7,7 +7,7 @@ alwaysApply: true
 
 When **adding a new UI component** or **non-trivial panel section** under **`src/webview/`** (Bitstream, Sensor Studio, Assets Manager, Project4, AI bridge, shared dialogs, etc.):
 
-1. **Prefer TRN first** — Use building blocks from **`src/webview/ui/TRN`** (barrel **`../ui/TRN`** or **`../../ui/TRN`** depending on depth): forms (`TRNFormField`, …), hints (`TRNHintText`, `TRNHintTooltip`), chrome (`TRNSectionContainer`, `TRNMenuSectionTitle`), inputs (`TRNSelect`, toggles, shared rows), tables, tooltips, and other exports in **`src/webview/ui/TRN/index.ts`**. Extend an existing TRN primitive when the pattern is clearly shared.
+1. **Use TRN components if possible** — prefer building blocks from **`src/webview/ui/TRN`** (`TRNSelect`, `TRNScrubNumberInput`, `TRNFormField`, toggles, menus, hints, …) over native `<select>`, ad-hoc `<input>`, or duplicate styling.
 
 2. **Check existing usage before inventing styles** — Search the codebase for the same interaction (inspector rows, settings cards, telemetry rows, menus). Reuse the same TRN component and className patterns so typography, spacing, borders, and hint copy stay aligned.
 

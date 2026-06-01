@@ -9,6 +9,7 @@ import {
   INSPECTOR_READINGS_VALUE_CELL,
 } from "./inspector-readings-grid";
 import { readingParamAxisValueClass } from "./param-axis-classes";
+import { SENSOR_TEMPERATURE_PORT_LABEL } from "../../../../../core/sensor-port-labels";
 
 export type SensorTapInspectorReadingsProps = {
   nodeId: string;
@@ -71,25 +72,25 @@ export function SensorTapInspectorReadings(props: SensorTapInspectorReadingsProp
         <Vec3TapRow label="Gyro (rad/s)" vector={vec3} fractionDigits={2} />
       );
     case "bmi270-tap-temp":
-      return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;
+      return <ScalarTapRow label={SENSOR_TEMPERATURE_PORT_LABEL} value={scalar} fractionDigits={2} />;
     case "bmm350-tap-magnetic":
       return (
         <Vec3TapRow label="Magnetic (µT)" vector={vec3} fractionDigits={2} />
       );
     case "bmm350-tap-temp":
-      return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;
+      return <ScalarTapRow label={SENSOR_TEMPERATURE_PORT_LABEL} value={scalar} fractionDigits={2} />;
     case "dps368-tap-pressure":
       return (
         <ScalarTapRow label="Pressure (hPa)" value={scalar} fractionDigits={1} />
       );
     case "dps368-tap-temp":
-      return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;
+      return <ScalarTapRow label={SENSOR_TEMPERATURE_PORT_LABEL} value={scalar} fractionDigits={2} />;
     case "sht40-tap-humidity":
       return (
         <ScalarTapRow label="Humidity (%RH)" value={scalar} fractionDigits={2} />
       );
     case "sht40-tap-temp":
-      return <ScalarTapRow label="Temp (°C)" value={scalar} fractionDigits={2} />;
+      return <ScalarTapRow label={SENSOR_TEMPERATURE_PORT_LABEL} value={scalar} fractionDigits={2} />;
     default:
       return null;
   }

@@ -8,6 +8,7 @@ import {
   INSPECTOR_READINGS_VALUE_CELL,
 } from "./inspector-readings-grid";
 import { readingParamAxisValueClass } from "./param-axis-classes";
+import { PALETTE_TEMPERATURE_ROW_LABEL } from "../../../../../core/sensor-port-labels";
 
 /** Wire snapshots passed from `tickSimulation` (same layout as graph pins). */
 export type Bmi270Vec3Snapshot = { x: number; y: number; z: number };
@@ -39,7 +40,7 @@ export function Bmi270AlignedReadings(props: Bmi270AlignedReadingsProps) {
       <Vec3ReadingRow label="Gyro (rad/s)" v={gyro} fractionDigits={2} />
       <Vec3ReadingRow label="Euler (rad)" v={euler} fractionDigits={3} />
       <QuaternionReadingRow quaternion={quaternion} />
-      <ScalarFooterRow label="Temp (°C)" value={temp} fractionDigits={2} />
+      <ScalarFooterRow label={PALETTE_TEMPERATURE_ROW_LABEL} value={temp} fractionDigits={2} />
     </div>
   );
 }

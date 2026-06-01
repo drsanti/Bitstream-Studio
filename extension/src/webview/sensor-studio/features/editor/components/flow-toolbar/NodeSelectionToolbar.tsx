@@ -17,7 +17,9 @@ import {
   getBodyControlsVisibleUIState,
   getSocketValuesVisibleUIState,
   getSocketsExpandedUIState,
-  selectionSupportsBodyControlsToolbar,
+  selectionAllowsBodyCollapse,
+  selectionHasHideableBody,
+  selectionSupportsSocketCollapse,
   selectionSupportsSocketToolbar,
 } from "../../nodes/flow-node/socket-display";
 import {
@@ -75,6 +77,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
 }) {
   const { wrapperRef, onFitSelection } = props;
   const nodes = useFlowEditorStore((s) => s.nodes);
+  const edges = useFlowEditorStore((s) => s.edges);
   const selectedNodeId = useFlowEditorStore((s) => s.selectedNodeId);
   const selectedNodeIdsFromStore = useFlowEditorStore((s) => s.selectedNodeIds);
   const duplicateSelection = useFlowEditorStore((s) => s.duplicateSelection);
@@ -163,6 +166,12 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   );
   const showSocketControls = studioSelectedIds.length > 0;
   const showBodyControls = studioSelectedIds.length > 0;
+  const bodyControlsToggleDisabled = useMemo(() => {
+    if (studioSelectedIds.length === 0) {
+      return true;
+    }
+    return !selectionAllowsBodyCollapse(nodes, studioSelectedIds);
+  }, [nodes, studioSelectedIds]);
 
   const socketsExpanded = useMemo(
     () => getSocketsExpandedUIState(nodes, studioSelectedIds),
@@ -176,6 +185,15 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     () => getBodyControlsVisibleUIState(nodes, studioSelectedIds),
     [nodes, studioSelectedIds],
   );
+
+  const socketDisplayToggleDisabled = useMemo(() => {
+    if (studioSelectedIds.length === 0) {
+      return true;
+    }
+    // Disable when collapsing/expanding would be a no-op for the entire selection
+    // (e.g. all selected nodes have only one socket, or all sockets are wired already).
+    return !selectionSupportsSocketCollapse(nodes, edges, studioSelectedIds);
+  }, [nodes, edges, studioSelectedIds]);
 
   const isDraggingSelection = useMemo(
     () => selectedNodes.some((n) => (n as FlowGraphNode & { dragging?: boolean }).dragging),
@@ -332,10 +350,13 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           <SocketDisplayToggle
             pressed={socketsExpanded}
             onToggle={() => toggleSocketsExpandedForNodes(studioSelectedIds)}
+            disabled={socketDisplayToggleDisabled}
             title={
-              socketsExpanded
-                ? "Collapse unwired sockets on selection (Shift+H)"
-                : "Expand all sockets on selection (Shift+H)"
+              socketDisplayToggleDisabled
+                ? "No unused sockets to collapse"
+                : socketsExpanded
+                  ? "Collapse unwired sockets on selection (Shift+H)"
+                  : "Expand all sockets on selection (Shift+H)"
             }
             ariaLabel={
               socketsExpanded ? "Collapse sockets on selection" : "Expand sockets on selection"
@@ -349,10 +370,13 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           <BodyControlsToggle
             pressed={bodyControlsVisible}
             onToggle={() => toggleBodyControlsVisibleForNodes(studioSelectedIds)}
+            disabled={bodyControlsToggleDisabled}
             title={
-              bodyControlsVisible
-                ? "Hide node body on selection (Shift+B)"
-                : "Show node body on selection (Shift+B)"
+              bodyControlsToggleDisabled
+                ? "Node body collapse disabled — enable in Inspector → Canvas"
+                : bodyControlsVisible
+                  ? "Hide node body on selection (Shift+B)"
+                  : "Show node body on selection (Shift+B)"
             }
             ariaLabel={
               bodyControlsVisible ? "Hide node body on selection" : "Show node body on selection"

@@ -109,7 +109,11 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   if (portType === "boolean" && booleanValue !== undefined) {
     return (
       <span
-        className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "block text-right text-zinc-200")}
+        className={twMerge(
+          SOCKET_LIVE_VALUE_TYPOGRAPHY,
+          "block text-right font-medium",
+          booleanValue ? "text-emerald-300" : "text-zinc-400",
+        )}
       >
         {booleanValue ? "true" : "false"}
       </span>

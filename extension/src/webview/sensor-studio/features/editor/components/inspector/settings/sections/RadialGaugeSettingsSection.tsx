@@ -1,6 +1,5 @@
 import { Gauge, Palette, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { TRNInlineToggleRow } from "../../../../../../../ui/TRN";
 import { RadialGaugeNodePanel } from "../../../../nodes/radial-gauge/RadialGaugeNodePanel";
 import {
   coerceRadialGaugeConfig,
@@ -9,14 +8,12 @@ import {
   type RadialGaugeArcPresetId,
 } from "../../../../nodes/display/gauge-display-config";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
+import { InspectorColorRow, InspectorSelectRow } from "../../InspectorDenseControls";
 import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
-import { InspectorPropertyRow } from "../../InspectorPropertyRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 import { GaugeScaleReadoutInspectorFields } from "../GaugeScaleReadoutInspectorFields";
 import { GaugeZonesEditor } from "../GaugeZonesEditor";
-
-const controlClass =
-  "w-full rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-xs text-zinc-100";
 
 export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -46,7 +43,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
       >
         <div className="overflow-hidden rounded border border-zinc-800/80 bg-zinc-950/80">
           <RadialGaugeNodePanel
-            className="relative box-border h-40 min-h-40 w-full min-w-0 overflow-hidden"
+            className="relative box-border aspect-[2/1] max-h-32 w-full min-w-0 overflow-hidden"
             value={previewValue}
             defaultConfig={previewConfig}
           />
@@ -83,7 +80,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
         iconHint="Reference marker on the arc for target or alarm levels."
         defaultExpanded={false}
       >
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Show setpoint"
           hint="Radial tick and dot at the configured setpoint value."
           checked={cfg.showSetpoint}
@@ -103,24 +100,22 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("setpoint", next);
           }}
         />
-        <InspectorPropertyRow label="Setpoint color" description="Marker stroke and dot fill.">
-          <input
-            type="color"
-            className="h-8 w-full cursor-pointer rounded border border-zinc-700/80 bg-zinc-900/60"
-            value={cfg.setpointColor}
-            aria-label="Radial gauge setpoint color"
-            onChange={(event) => {
-              onUpdateConfigField("setpointColor", event.target.value);
-            }}
-          />
-        </InspectorPropertyRow>
+        <InspectorColorRow
+          label="Setpoint color"
+          description="Marker stroke and dot fill."
+          ariaLabel="Radial gauge setpoint color"
+          value={cfg.setpointColor}
+          onChange={(next) => {
+            onUpdateConfigField("setpointColor", next);
+          }}
+        />
       </InspectorCollapsibleSection>
 
       <InspectorCollapsibleSection
         title="Zones & alarms"
         icon={<Gauge className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
         iconHint="Colored arc bands and needle tint by value range."
-        defaultExpanded
+        defaultExpanded={false}
       >
         <GaugeZonesEditor
           zones={cfg.zones}
@@ -138,26 +133,20 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
         iconHint="Arc geometry and which chrome elements are drawn on the canvas."
         defaultExpanded={false}
       >
-        <InspectorPropertyRow
+        <InspectorSelectRow
           label="Arc preset"
           description="Sweep angle and rotation of the scale arc."
-        >
-          <select
-            className={controlClass}
-            value={cfg.arcPreset}
-            aria-label="Radial gauge arc preset"
-            onChange={(event) => {
-              onUpdateConfigField("arcPreset", event.target.value as RadialGaugeArcPresetId);
-            }}
-          >
-            {RADIAL_GAUGE_ARC_PRESET_OPTIONS.map((preset) => (
-              <option key={preset.id} value={preset.id}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
-        </InspectorPropertyRow>
-        <TRNInlineToggleRow
+          ariaLabel="Radial gauge arc preset"
+          value={cfg.arcPreset}
+          options={RADIAL_GAUGE_ARC_PRESET_OPTIONS.map((preset) => ({
+            value: preset.id,
+            label: preset.label,
+          }))}
+          onChange={(next) => {
+            onUpdateConfigField("arcPreset", next as RadialGaugeArcPresetId);
+          }}
+        />
+        <InspectorCompactToggleRow
           label="Faceplate"
           hint="Circular background behind the arc."
           checked={cfg.showFaceplate}
@@ -165,7 +154,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("showFaceplate", next);
           }}
         />
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Track arc"
           hint="Neutral rail behind colored zones."
           checked={cfg.showTrack}
@@ -173,7 +162,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("showTrack", next);
           }}
         />
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Tick marks"
           hint="Major and minor ticks along the arc."
           checked={cfg.showTicks}
@@ -181,7 +170,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("showTicks", next);
           }}
         />
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Tick labels"
           hint="Numeric labels at major ticks."
           checked={cfg.showTickLabels}
@@ -189,7 +178,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("showTickLabels", next);
           }}
         />
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Needle"
           hint="Pointer and hub pivot."
           checked={cfg.showNeedle}
@@ -209,7 +198,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("needleSmoothingMs", Math.round(Math.max(0, next)));
           }}
         />
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Digital value"
           hint="Large numeric readout under the needle."
           checked={cfg.showDigitalValue}
@@ -217,7 +206,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
             onUpdateConfigField("showDigitalValue", next);
           }}
         />
-        <TRNInlineToggleRow
+        <InspectorCompactToggleRow
           label="Unit label"
           hint="Unit suffix on canvas when unit is set in Scale & readout."
           checked={cfg.showUnit}

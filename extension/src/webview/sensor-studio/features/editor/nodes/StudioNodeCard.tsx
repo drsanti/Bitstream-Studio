@@ -4,6 +4,7 @@ import {
   useStore,
   useUpdateNodeInternals,
   type NodeProps,
+  type Edge,
 } from "@xyflow/react";
 import { ChevronDown } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
@@ -31,14 +32,25 @@ import {
   ReadingPanel,
   ReadingNumber,
 } from "./flow-node";
+import { syncFlowNodeShellDimensions } from "./flow-node/FlowNodeEdgeResize";
 import { socketLivePreviewForInputHandle, socketLivePreviewForOutputHandle } from "./flow-node/socket-live-preview-for-handle";
 import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
+import {
+  isBodyControlsVisible,
+  isSocketsExpanded,
+  shouldShowSocketRow,
+  studioNodeHasHideableBody,
+} from "./flow-node/socket-display";
+import { studioNodeAllowsBodyCollapse } from "./flow-node/studio-body-collapse";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
 import { MathNodePanel } from "./math/MathNodePanel";
-import { CompareNodePanel } from "./math/CompareNodePanel";
+import { CompareNodePanel, CompareOperationHeaderChip } from "./math/CompareNodePanel";
+import {
+  normalizeCompareOperation,
+} from "../../../core/flow/compare-operations";
 import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
 import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
 import { MapRangeNodePanel } from "./transform/MapRangeNodePanel";
@@ -97,6 +109,9 @@ export function StudioNodeCard(props: NodeProps) {
   const updateNodeConfigFieldByNodeId = useFlowEditorStore(
     (s) => s.updateNodeConfigFieldByNodeId,
   );
+  const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
+  const flowNodeWidth = useFlowEditorStore((s) => s.nodes.find((n) => n.id === id)?.width);
+  const flowNodeHeight = useFlowEditorStore((s) => s.nodes.find((n) => n.id === id)?.height);
   const setStudioUtilityNodeBodyExpanded = useFlowEditorStore(
     (s) => s.setStudioUtilityNodeBodyExpanded,
   );
@@ -112,6 +127,9 @@ export function StudioNodeCard(props: NodeProps) {
     () => ({ flowNodeId: id, descriptors, flowNodes, flowEdges }),
     [id, descriptors, flowNodes, flowEdges],
   );
+  const socketsExpanded = isSocketsExpanded(data.ui);
+  const bodyControlsVisible = isBodyControlsVisible(data.ui);
+  const edges = flowEdges as unknown as readonly Edge[];
   const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
   const flowBodyFlexCol =
     isRotationNode ||
@@ -258,6 +276,21 @@ export function StudioNodeCard(props: NodeProps) {
     data.nodeId === "event-trigger-glb-anim" ||
     isStudioSensorSocketPreviewNodeId(data.nodeId);
 
+  const canCollapseBody = studioNodeAllowsBodyCollapse(data);
+  const showNodeBody =
+    studioNodeHasHideableBody(data) && (!canCollapseBody || bodyControlsVisible);
+  const compactConfigBodyNode =
+    data.nodeId === "compare" ||
+    data.nodeId === "math" ||
+    data.nodeId === "logic-gate" ||
+    data.nodeId === "map-range" ||
+    data.nodeId === "clamp" ||
+    data.nodeId === "multiplexer";
+  const shellFitsContent =
+    utilityBodyFitsContent ||
+    !showNodeBody ||
+    (showNodeBody && compactConfigBodyNode);
+
   const mathOperation =
     data.nodeId === "math" && typeof data.defaultConfig.operation === "string"
       ? data.defaultConfig.operation
@@ -284,6 +317,8 @@ export function StudioNodeCard(props: NodeProps) {
     data.inputHandles?.length,
     cameraViewControlsExpanded,
     environmentControlsExpanded,
+    bodyControlsVisible,
+    showNodeBody,
     updateNodeInternals,
   ]);
 
@@ -331,15 +366,27 @@ export function StudioNodeCard(props: NodeProps) {
       </button>
     ) : null;
 
+  const compareOperation =
+    data.nodeId === "compare" && typeof data.defaultConfig.operation === "string"
+      ? normalizeCompareOperation(data.defaultConfig.operation)
+      : null;
+
+  const compareOperationChip =
+    compareOperation != null && !showNodeBody ? (
+      <CompareOperationHeaderChip operation={compareOperation} />
+    ) : null;
+
   const headerTrailing =
     data.nodeId === "environment" ||
     data.nodeId === "camera-view" ||
+    compareOperationChip != null ||
     sensorHealthBadge != null ||
     invalidBadge != null ||
     sensorFamilyTag != null ? (
       <div className="inline-flex items-center gap-1.5">
         {environmentBodyToggle}
         {cameraViewBodyToggle}
+        {compareOperationChip}
         {sensorHealthBadge != null || invalidBadge != null || sensorFamilyTag != null ? (
           <div className="inline-flex flex-row-reverse items-center gap-1">
             {sensorFamilyTag}
@@ -366,9 +413,23 @@ export function StudioNodeCard(props: NodeProps) {
       ? Math.round(data.ui.minHeight)
       : 64;
 
+  const visibleInputHandles = (() => {
+    if (data.inputHandles != null && data.inputHandles.length > 0) {
+      const filtered = data.inputHandles.filter((h) =>
+        shouldShowSocketRow(id, h.id, edges, "input", socketsExpanded, data.inputHandles),
+      );
+      // New rule: a node must show at least one socket; single-socket nodes keep their only socket even if unwired.
+      if (!socketsExpanded && filtered.length === 0 && data.inputHandles.length === 1) {
+        return data.inputHandles;
+      }
+      return filtered;
+    }
+    return null;
+  })();
+
   const inputSockets: ReactNode[] =
-    data.inputHandles != null && data.inputHandles.length > 0
-      ? data.inputHandles.map((h) => {
+    visibleInputHandles != null
+      ? visibleInputHandles.map((h) => {
           const preview = socketLivePreviewForInputHandle(
             data,
             h.id,
@@ -398,6 +459,18 @@ export function StudioNodeCard(props: NodeProps) {
         })
       : data.inputType != null
         ? (() => {
+            // New rule: a node must show at least one socket; keep the single `in` handle visible even if unwired.
+            const showRow =
+              socketsExpanded ||
+              shouldShowSocketRow(
+                id,
+                "in",
+                edges,
+                "input",
+                socketsExpanded,
+                [{ id: "in", portType: data.inputType, label: "In" }],
+              );
+            if (!showRow) return [];
             const preview = socketLivePreviewForInputHandle(
               data,
               "in",
@@ -429,9 +502,23 @@ export function StudioNodeCard(props: NodeProps) {
 
   const alignedOutputSocketColumns = isStudioAlignedOutputSocketColumnsNodeId(data.nodeId);
 
+  const visibleOutputHandles = (() => {
+    if (data.outputHandles != null && data.outputHandles.length > 0) {
+      const filtered = data.outputHandles.filter((h) =>
+        shouldShowSocketRow(id, h.id, edges, "output", socketsExpanded),
+      );
+      // New rule: a node must show at least one socket; single-socket nodes keep their only socket even if unwired.
+      if (!socketsExpanded && filtered.length === 0 && data.outputHandles.length === 1) {
+        return data.outputHandles;
+      }
+      return filtered;
+    }
+    return null;
+  })();
+
   const outputSockets =
-    data.outputHandles != null && data.outputHandles.length > 0
-      ? data.outputHandles.map((h) => {
+    visibleOutputHandles != null
+      ? visibleOutputHandles.map((h) => {
           const preview = socketLivePreviewForOutputHandle(
             data,
             h.id,
@@ -462,6 +549,10 @@ export function StudioNodeCard(props: NodeProps) {
         })
       : data.outputType != null
         ? (() => {
+            // New rule: a node must show at least one socket; keep the single `out` handle visible even if unwired.
+            const showRow =
+              socketsExpanded || shouldShowSocketRow(id, "out", edges, "output", socketsExpanded);
+            if (!showRow) return [];
             const preview = socketLivePreviewForOutputHandle(
               data,
               "out",
@@ -490,6 +581,122 @@ export function StudioNodeCard(props: NodeProps) {
           ];
           })()
         : [];
+
+  // New rule: collapsed mode should never hide *all* sockets.
+  if (!socketsExpanded && inputSockets.length === 0 && outputSockets.length === 0) {
+    if (data.inputHandles != null && data.inputHandles.length > 0) {
+      const h = data.inputHandles[0];
+      const preview = socketLivePreviewForInputHandle(
+        data,
+        h.id,
+        h.portType,
+        h.label,
+        socketPreviewCtx,
+      );
+      inputSockets.push(
+        <FlowNodeSocketRow
+          key={h.id}
+          variant="input"
+          label={h.label}
+          trailingPreview={preview ?? undefined}
+          socket={
+            <FlowNodeSocketDot className={handleDotClass}>
+              <Handle
+                id={h.id}
+                type="target"
+                position={Position.Left}
+                className={handleBaseClass}
+                style={flowNodeHandleStyle("left", studioPortAccent(h.portType))}
+              />
+            </FlowNodeSocketDot>
+          }
+        />,
+      );
+    } else if (data.inputType != null) {
+      const preview = socketLivePreviewForInputHandle(
+        data,
+        "in",
+        data.inputType,
+        undefined,
+        socketPreviewCtx,
+      );
+      inputSockets.push(
+        <FlowNodeSocketRow
+          key="in"
+          variant="input"
+          label={`In · ${data.inputType}`}
+          trailingPreview={preview ?? undefined}
+          socket={
+            <FlowNodeSocketDot className={handleDotClass}>
+              <Handle
+                id="in"
+                type="target"
+                position={Position.Left}
+                className={handleBaseClass}
+                style={flowNodeHandleStyle("left", studioPortAccent(data.inputType))}
+              />
+            </FlowNodeSocketDot>
+          }
+        />,
+      );
+    } else if (data.outputHandles != null && data.outputHandles.length > 0) {
+      const h = data.outputHandles[0];
+      const preview = socketLivePreviewForOutputHandle(
+        data,
+        h.id,
+        h.portType,
+        h.label,
+        socketPreviewCtx,
+      );
+      outputSockets.push(
+        <FlowNodeSocketRow
+          key={h.id}
+          variant="output"
+          alignedOutputColumns={alignedOutputSocketColumns}
+          leadingPreview={preview ?? undefined}
+          label={h.label}
+          socket={
+            <FlowNodeSocketDot className={handleDotClass}>
+              <Handle
+                id={h.id}
+                type="source"
+                position={Position.Right}
+                className={handleBaseClass}
+                style={flowNodeHandleStyle("right", studioPortAccent(h.portType))}
+              />
+            </FlowNodeSocketDot>
+          }
+        />,
+      );
+    } else if (data.outputType != null) {
+      const preview = socketLivePreviewForOutputHandle(
+        data,
+        "out",
+        data.outputType,
+        undefined,
+        socketPreviewCtx,
+      );
+      outputSockets.push(
+        <FlowNodeSocketRow
+          key="out"
+          variant="output"
+          leadingPreview={preview ?? undefined}
+          label={`Out · ${data.outputType}`}
+          socket={
+            <FlowNodeSocketDot className={handleDotClass}>
+              <Handle
+                id="out"
+                type="source"
+                position={Position.Right}
+                className={handleBaseClass}
+                style={flowNodeHandleStyle("right", studioPortAccent(data.outputType))}
+              />
+            </FlowNodeSocketDot>
+          }
+        />,
+      );
+    }
+  }
 
   const rotationShowGrid =
     typeof data.defaultConfig.showGrid === "boolean"
@@ -631,11 +838,45 @@ export function StudioNodeCard(props: NodeProps) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const resizeActive = isSelected && nodeResizable;
 
+  useLayoutEffect(() => {
+    if (!shellFitsContent) {
+      return;
+    }
+    let frame = 0;
+    frame = requestAnimationFrame(() => {
+      const shellEl = shellRef.current;
+      if (shellEl == null) {
+        return;
+      }
+      syncFlowNodeShellDimensions(
+        id,
+        shellEl,
+        minNodeWidth,
+        minNodeHeight,
+        flowNodeWidth,
+        flowNodeHeight,
+        onNodesChange,
+      );
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, [
+    showNodeBody,
+    shellFitsContent,
+    id,
+    minNodeWidth,
+    minNodeHeight,
+    flowNodeWidth,
+    flowNodeHeight,
+    onNodesChange,
+  ]);
+
   return (
     <StudioFlowCanvasDisplayScaleProvider value={flowZoom}>
     <div
       ref={shellRef}
-      className={`relative w-full min-w-0 max-w-full ${utilityBodyFitsContent ? "h-auto" : "h-full"}`}
+      className={`relative w-full min-w-0 max-w-full ${shellFitsContent ? "h-auto" : "h-full"}`}
     >
       <FlowNodeEdgeResize
         nodeId={id}
@@ -649,7 +890,7 @@ export function StudioNodeCard(props: NodeProps) {
         glassPreset="medium"
         style={{
           width: "100%",
-          height: utilityBodyFitsContent ? "auto" : "100%",
+          height: shellFitsContent ? "auto" : "100%",
         }}
         className={[
           isSelected
@@ -714,10 +955,12 @@ export function StudioNodeCard(props: NodeProps) {
           </div>
         ) : null}
 
-        {!utilityBodyFitsContent ? (
+        {showNodeBody ? (
         <FlowNodeBody
           className={
-            flowBodyFlexCol
+            compactConfigBodyNode
+              ? "px-0 pb-0 pt-0"
+              : flowBodyFlexCol
               ? isPlotterNodeId(data.nodeId)
                 ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
                 : "flex min-h-0 flex-1 flex-col"
