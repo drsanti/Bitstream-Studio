@@ -47,6 +47,48 @@ Registry: **`isStudioAlignedOutputSocketColumnsNodeId`** (subgrid), **`isStudioS
 
 Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**, **`liveVector3Wire`**, or **`liveValue`** via **`socketLivePreviewForOutputHandle`**.
 
+### Policy A — all scalar outputs (utility / dataflow)
+
+| Rule | Detail |
+| ---- | ------ |
+| **Every scalar output pin** | Live preview on the socket row — **`syncSocketLivePreviewHandlesFromPinValues`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, **`liveStringByHandle`**, **`liveVector3ByHandle`** from evaluated pins |
+| **Bundled wire types** | No socket preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
+| **Boolean** | Display **`true`** / **`false`** (lowercase) |
+| **String** | Truncated preview (~14 chars); full value in **`title`** tooltip |
+| **Card body** | No fallback **`ReadingPanel`** for scalar-only utility nodes — socket row only |
+| **Input pins** | Wired scalar inputs use **`liveInput*ByHandle`** maps + **`socketLivePreviewForInputHandle`** (`trailingPreview` on input rows) |
+
+---
+
+## Input socket row layout
+
+Mirror **output** handle rules on the **left** border; label and live value form a **left cluster** (do not stretch live data to the node’s right edge).
+
+### Column layout (flex)
+
+```text
+[ 0px handle anchor ] [ pl-2 label gap-1 live preview ] …empty…
+```
+
+- **Handle anchor** — first column, **`w-0`**, flush to the card’s **left border** (`FlowNodeSocketRegion` **`pl-0`**).
+- **Label + live** — one **`flex`** group with **`gap-1`** (~4px); both **`shrink-0`**; row is **`w-fit`** / **`self-start`**.
+- **Live preview** — immediately after the port name, not **`flex-1 justify-end`**.
+
+Example:
+
+```text
+●  A  +37.48
+●  B
+↑  ↑   ↑
+│  │   └── live (11px tabular-nums) — omitted when unwired / no finite value
+│  └────── port label
+└───────── handle center on left border
+```
+
+Structured / unwired inputs show the label only (no spacer column).
+
+**Upstream semantic tint:** wired **number** inputs copy color hints from the source pin. Walk **`studio-reroute`** / **`studio-split`**, then **`map-range`**, **`clamp`**, **`lerp`**, **`material-mix`**, **`value-normalizer`** (follow **Out → value/A** chain) to the originating sensor. Math **A** ← Map Range ← SHT40 **humidity** → cyan on Math **A**. Utility-only sources (bare Math **out**) stay neutral.
+
 ---
 
 ## Node Inspector shell
@@ -89,7 +131,7 @@ Parent **`FlowNodeSocketRegion`** with **`alignedOutputColumns`**:
 ```
 
 - **Subgrid** — every row shares the label column width (widest port name wins).
-- **Region padding** — **`pl-2 pr-0`** so the handle anchor sits on the card’s **right border** (no right inset).
+- **Region padding** — **`pl-0 pr-0`** so handle anchors sit on the card borders; inset **`pl-2`** / **`pr-3`** on label cells only.
 - **Grid gap** — **`gap-x-0`** between tracks; do **not** add column gap before the handle column (it would inset plugs from the border).
 
 ### Label spacing

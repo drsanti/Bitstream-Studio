@@ -120,6 +120,10 @@ import {
 } from "../nodes/scene-fx/flow-wire-particle-emitter";
 import { evaluateSceneSettingsExposure } from "../../../core/flow/scene-settings-operations";
 import {
+  syncSocketLivePreviewHandlesFromPinValues,
+  syncSocketLivePreviewInputHandlesFromIncoming,
+} from "../nodes/flow-node/sync-socket-live-preview-handles";
+import {
   evaluateTransformPartialVec3,
   readTransformAxisInput,
 } from "../../../core/flow/transform-partial-operations";
@@ -473,6 +477,26 @@ export type StudioNodeData = {
   liveVector3ByHandle?: Record<string, { x: number; y: number; z: number }>;
   /** Populated for multi-output nodes with scalar pins (e.g. BMI270 temp). */
   liveNumberByHandle?: Record<string, number>;
+  /** Populated for boolean output pins (Policy A socket preview). */
+  liveBooleanByHandle?: Record<string, boolean>;
+  /** Populated for string output pins (Policy A socket preview). */
+  liveStringByHandle?: Record<string, string>;
+  /** Populated for scalar **input** pins (wired incoming values). */
+  liveInputNumberByHandle?: Record<string, number>;
+  liveInputBooleanByHandle?: Record<string, boolean>;
+  liveInputStringByHandle?: Record<string, string>;
+  liveInputVector3ByHandle?: Record<string, { x: number; y: number; z: number }>;
+  /** Upstream semantic tint hints for wired scalar inputs (temp / humidity / pressure). */
+  liveInputScalarHintsByHandle?: Record<
+    string,
+    {
+      handleId?: string;
+      nodeId?: string;
+      unit?: string;
+      label?: string;
+      streamMode: "live" | "idle";
+    }
+  >;
   /** BMI270 quaternion pin snapshot for the aligned readings panel. */
   liveQuaternionWire?: FlowWireQuaternion;
   /** Single vector3 from BMI270 tap nodes (Euler / Accel / Gyro). */
@@ -1805,6 +1829,13 @@ function flowValueAsParticleEmitter(v: unknown): FlowWireParticleEmitterV1 | nul
     return null;
   }
   return coerceFlowWireParticleEmitterV1(v);
+}
+
+function narrowNumber(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) {
+    return v;
+  }
+  return null;
 }
 
 function applyIncomingSceneFxWires(
@@ -5386,6 +5417,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       plotterHistUpdates.set(node.id, nextCh);
     }
 
+    const nodeById = new Map(
+      nodes.map((n) => [n.id, { id: n.id, type: n.type, data: n.data }]),
+    );
+
     set((state) => ({
       nodes: state.nodes.map((node) => {
         const dataWithoutSensorMode: StudioNodeData = { ...node.data };
@@ -5394,9 +5429,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         delete dataWithoutSensorMode.sensorInvalidReason;
         delete dataWithoutSensorMode.sensorLastValidAtByHandle;
         delete dataWithoutSensorMode.sensorInvalidByHandle;
-        if (node.data.nodeId !== "bmi270-input" && node.data.nodeId !== "bmm350-input") {
-          delete dataWithoutSensorMode.liveVector3ByHandle;
-        }
+        delete dataWithoutSensorMode.liveVector3ByHandle;
+        delete dataWithoutSensorMode.liveNumberByHandle;
+        delete dataWithoutSensorMode.liveBooleanByHandle;
+        delete dataWithoutSensorMode.liveStringByHandle;
+        delete dataWithoutSensorMode.liveInputNumberByHandle;
+        delete dataWithoutSensorMode.liveInputBooleanByHandle;
+        delete dataWithoutSensorMode.liveInputStringByHandle;
+        delete dataWithoutSensorMode.liveInputVector3ByHandle;
+        delete dataWithoutSensorMode.liveInputScalarHintsByHandle;
         if (
           node.data.nodeId !== "bmi270-tap-euler" &&
           node.data.nodeId !== "bmi270-tap-accel" &&
@@ -5454,16 +5495,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           delete dataWithoutSensorMode.livePostProcessingWire;
           delete dataWithoutSensorMode.liveContactShadowsWire;
           delete dataWithoutSensorMode.liveParticleEmitterWire;
-        }
-        if (
-          node.data.nodeId !== "bmi270-input" &&
-          node.data.nodeId !== "dps368-input" &&
-          node.data.nodeId !== "sht40-input" &&
-          node.data.nodeId !== "bmm350-input" &&
-          node.data.nodeId !== "vector-splitter" &&
-          node.data.nodeId !== "quaternion-splitter"
-        ) {
-          delete dataWithoutSensorMode.liveNumberByHandle;
         }
         if (!isPlotterNodeId(node.data.nodeId)) {
           delete dataWithoutSensorMode.livePlotHistory;
@@ -5917,34 +5948,23 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
         }
 
-        if (node.data.nodeId === "morph-target") {
-          base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)) ?? null);
-        }
+        syncSocketLivePreviewHandlesFromPinValues({
+          nodeId: node.data.nodeId,
+          flowNodeId: node.id,
+          data: node.data,
+          pinValues,
+          base,
+        });
 
-        if (node.data.nodeId === "scene-light") {
-          base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, "intensity")) ?? null);
-        }
-
-        if (node.data.nodeId === "camera-switch") {
-          base.liveValue = narrowNumber(pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)) ?? null);
-        }
-
-        if (node.data.nodeId === "vector-splitter") {
-          base.liveNumberByHandle = {
-            x: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "x")) ?? null),
-            y: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "y")) ?? null),
-            z: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "z")) ?? null),
-          };
-        }
-
-        if (node.data.nodeId === "quaternion-splitter") {
-          base.liveNumberByHandle = {
-            x: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "x")) ?? null),
-            y: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "y")) ?? null),
-            z: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "z")) ?? null),
-            w: narrowNumber(pinValues.get(studioFlowPinKey(node.id, "w")) ?? null),
-          };
-        }
+        syncSocketLivePreviewInputHandlesFromIncoming({
+          nodeId: node.data.nodeId,
+          flowNodeId: node.id,
+          readIncoming: (handle) => readIncoming(node.id, handle),
+          data: node.data,
+          base,
+          incomingByTarget,
+          nodeById,
+        });
 
         const sensorTelemetryHint = inferSensorHintFromNode(node);
         const caresAboutSensorHealth =

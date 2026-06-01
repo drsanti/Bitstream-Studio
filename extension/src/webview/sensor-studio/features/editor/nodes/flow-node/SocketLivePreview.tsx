@@ -11,6 +11,7 @@ import {
   type LiveReadingStreamTone,
 } from "./readings/live-reading-colors";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./readings/socket-live-value-cell";
+import { truncateSocketStringPreview } from "./truncate-socket-string";
 import { twMerge } from "tailwind-merge";
 
 export type SocketLivePreviewProps = {
@@ -26,6 +27,8 @@ export type SocketLivePreviewProps = {
   vector3?: { x: number; y: number; z: number } | null;
   quaternion?: { w: number; x: number; y: number; z: number } | null;
   scalar?: number | null | undefined;
+  booleanValue?: boolean;
+  stringValue?: string;
 };
 
 /**
@@ -41,6 +44,8 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
     vector3,
     quaternion,
     scalar,
+    booleanValue,
+    stringValue,
   } = props;
 
   if (portType === "vector3" && vector3 != null) {
@@ -86,6 +91,9 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   }
 
   if (portType === "number") {
+    if (typeof scalar !== "number" || !Number.isFinite(scalar)) {
+      return null;
+    }
     const hints = { handleId, nodeId, label: portLabel };
     const scalarTone = getLiveScalarReadingColorClass(streamMode, hints);
     const fractionDigits = resolveLiveScalarReadingFractionDigits(hints);
@@ -95,6 +103,30 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
         fractionDigits={fractionDigits}
         className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "block text-right", scalarTone)}
       />
+    );
+  }
+
+  if (portType === "boolean" && booleanValue !== undefined) {
+    return (
+      <span
+        className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "block text-right text-zinc-200")}
+      >
+        {booleanValue ? "true" : "false"}
+      </span>
+    );
+  }
+
+  if (portType === "string" && stringValue !== undefined) {
+    return (
+      <span
+        className={twMerge(
+          SOCKET_LIVE_VALUE_TYPOGRAPHY,
+          "block max-w-[9rem] truncate text-right text-zinc-200",
+        )}
+        title={stringValue}
+      >
+        {truncateSocketStringPreview(stringValue)}
+      </span>
     );
   }
 

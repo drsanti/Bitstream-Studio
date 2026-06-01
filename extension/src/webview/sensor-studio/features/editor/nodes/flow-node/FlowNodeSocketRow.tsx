@@ -10,9 +10,11 @@ export type FlowNodeSocketRowProps = HTMLAttributes<HTMLDivElement> & {
   /** Typically `<Handle />` optionally wrapped by `FlowNodeSocketDot`. */
   socket: ReactNode;
   /**
-   * Output rows only: compact live readout before the port label (right-aligned toward the label).
+   * Output rows: compact live readout before the port label (right-aligned toward the label).
+   * Input rows: compact live readout immediately after the port label (`gap-1` cluster).
    */
   leadingPreview?: ReactNode;
+  trailingPreview?: ReactNode;
   /** Share label column width across rows via parent subgrid ({@link FlowNodeSocketRegion}). */
   alignedOutputColumns?: boolean;
 };
@@ -28,6 +30,7 @@ export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
     label,
     socket,
     leadingPreview,
+    trailingPreview,
     alignedOutputColumns = false,
     className,
     ...rest
@@ -53,9 +56,14 @@ export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
 
   const row =
     variant === "input" ? (
-      <div className="flex min-h-[24px] w-fit max-w-full min-w-0 items-center gap-2">
+      <div className="flex min-h-[24px] w-fit max-w-full min-w-0 items-center">
         <div className="relative flex h-6 w-0 shrink-0 items-center justify-center">{socket}</div>
-        <div className="min-w-0 text-[11px] leading-tight text-zinc-300">{label}</div>
+        <div className="flex min-w-0 shrink-0 items-center gap-1 pl-2">
+          <div className="whitespace-nowrap text-[11px] leading-tight text-zinc-300">{label}</div>
+          {trailingPreview != null ? (
+            <div className="nodrag shrink-0">{trailingPreview}</div>
+          ) : null}
+        </div>
       </div>
     ) : (
       <div

@@ -24,14 +24,12 @@ import {
   FlowNodeSocketDot,
   FlowNodeSocketRegion,
   FlowNodeSocketRow,
-  QuaternionScalarsGrid,
   ReadingAxisNumber,
   ReadingLabel,
   ReadingPanel,
   ReadingNumber,
-  Vec3ReadingRow,
 } from "./flow-node";
-import { socketLivePreviewForOutputHandle } from "./flow-node/socket-live-preview-for-handle";
+import { socketLivePreviewForInputHandle, socketLivePreviewForOutputHandle } from "./flow-node/socket-live-preview-for-handle";
 import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
@@ -178,12 +176,6 @@ export function StudioNodeCard(props: NodeProps) {
       </span>
     );
   };
-  const liveValue =
-    typeof data.liveValue === "number"
-      ? data.liveValue.toFixed(4)
-      : data.liveValue == null
-        ? "-"
-        : String(data.liveValue);
   const sparklineBars = (data.liveHistory ?? []).slice(-24);
   const indicatorOn = data.nodeId === "indicator" && data.liveValue === true;
 
@@ -367,11 +359,14 @@ export function StudioNodeCard(props: NodeProps) {
 
   const inputSockets: ReactNode[] =
     data.inputHandles != null && data.inputHandles.length > 0
-      ? data.inputHandles.map((h) => (
+      ? data.inputHandles.map((h) => {
+          const preview = socketLivePreviewForInputHandle(data, h.id, h.portType, h.label);
+          return (
           <FlowNodeSocketRow
             key={h.id}
             variant="input"
-            label={<span className="text-zinc-400">{h.label}</span>}
+            label={h.label}
+            trailingPreview={preview ?? undefined}
             socket={
               <FlowNodeSocketDot className={handleDotClass}>
                 <Handle
@@ -384,17 +379,21 @@ export function StudioNodeCard(props: NodeProps) {
               </FlowNodeSocketDot>
             }
           />
-        ))
+          );
+        })
       : data.inputType != null
-        ? [
+        ? (() => {
+            const preview = socketLivePreviewForInputHandle(
+              data,
+              "in",
+              data.inputType,
+            );
+            return [
             <FlowNodeSocketRow
               key="in"
               variant="input"
-              label={
-                <span className="font-medium text-zinc-200">
-                  In · {data.inputType}
-                </span>
-              }
+              label={`In · ${data.inputType}`}
+              trailingPreview={preview ?? undefined}
               socket={
                 <FlowNodeSocketDot className={handleDotClass}>
                   <Handle
@@ -407,7 +406,8 @@ export function StudioNodeCard(props: NodeProps) {
                 </FlowNodeSocketDot>
               }
             />,
-          ]
+          ];
+          })()
         : [];
 
   const alignedOutputSocketColumns = isStudioAlignedOutputSocketColumnsNodeId(data.nodeId);
@@ -422,7 +422,7 @@ export function StudioNodeCard(props: NodeProps) {
             variant="output"
             alignedOutputColumns={alignedOutputSocketColumns}
             leadingPreview={preview ?? undefined}
-            label={<span className="text-zinc-400">{h.label}</span>}
+            label={h.label}
             socket={
               <FlowNodeSocketDot className={handleDotClass}>
                 <Handle
@@ -449,9 +449,7 @@ export function StudioNodeCard(props: NodeProps) {
               key="out"
               variant="output"
               leadingPreview={preview ?? undefined}
-              label={
-                <span className="text-zinc-400">Out · {data.outputType}</span>
-              }
+              label={`Out · ${data.outputType}`}
               socket={
                 <FlowNodeSocketDot className={handleDotClass}>
                   <Handle
@@ -703,45 +701,6 @@ export function StudioNodeCard(props: NodeProps) {
               : "space-y-0"
           }
         >
-          {data.nodeId === "vector-splitter" &&
-          data.liveNumberByHandle != null ? (
-            <ReadingPanel>
-              <ReadingLabel className="mb-1 block">Scalars</ReadingLabel>
-              <Vec3ReadingRow
-                vector={{
-                  x: data.liveNumberByHandle.x ?? Number.NaN,
-                  y: data.liveNumberByHandle.y ?? Number.NaN,
-                  z: data.liveNumberByHandle.z ?? Number.NaN,
-                }}
-                fractionDigits={3}
-              />
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "quaternion-splitter" &&
-          data.liveNumberByHandle != null ? (
-            <ReadingPanel>
-              <ReadingLabel className="mb-1 block">Scalars</ReadingLabel>
-              <QuaternionScalarsGrid
-                w={data.liveNumberByHandle.w}
-                x={data.liveNumberByHandle.x}
-                y={data.liveNumberByHandle.y}
-                z={data.liveNumberByHandle.z}
-                fractionDigits={3}
-              />
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "quat-input" && data.liveQuaternionWire != null ? (
-            <ReadingPanel>
-              <ReadingLabel className="mb-1 block">Quaternion</ReadingLabel>
-              <QuaternionScalarsGrid
-                w={data.liveQuaternionWire.w}
-                x={data.liveQuaternionWire.x}
-                y={data.liveQuaternionWire.y}
-                z={data.liveQuaternionWire.z}
-                fractionDigits={3}
-              />
-            </ReadingPanel>
-          ) : null}
           {data.nodeId === "rotation-3d-euler" ? (
             <RotationPreviewPanelV4
               title="3D Scene (Euler)"
@@ -938,56 +897,6 @@ export function StudioNodeCard(props: NodeProps) {
                 }
                 config={coercePlotterConfig(data.defaultConfig)}
               />
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId !== "bmi270-input" &&
-          data.nodeId !== "dps368-input" &&
-          data.nodeId !== "sht40-input" &&
-          data.nodeId !== "bmm350-input" &&
-          data.nodeId !== "vector-splitter" &&
-          data.nodeId !== "quaternion-splitter" &&
-          data.nodeId !== "rotation-3d-euler" &&
-          data.nodeId !== "rotation-3d-quaternion" &&
-          data.nodeId !== "model-select" &&
-          data.nodeId !== "model-viewer" &&
-          data.nodeId !== "boolean-constant" &&
-          data.nodeId !== "event-toggle-boolean" &&
-          data.nodeId !== "on-key" &&
-          data.nodeId !== "on-click" &&
-          data.nodeId !== "event-set-boolean" &&
-          data.nodeId !== "event-toggle-glb-part" &&
-          data.nodeId !== "event-set-glb-part" &&
-          data.nodeId !== "event-trigger-glb-anim" &&
-          data.nodeId !== "number-constant" &&
-          data.nodeId !== "glb-material-param" &&
-          data.nodeId !== "glb-material-texture" &&
-          data.nodeId !== "glb-material-color" &&
-          data.nodeId !== "environment" &&
-          data.nodeId !== "camera-view" &&
-          data.nodeId !== "object-transform" &&
-          data.nodeId !== "transform-from-euler" &&
-          data.nodeId !== "glb-animation-bundle" &&
-          data.nodeId !== "quat-input" &&
-          !isStudioSensorTapNodeId(data.nodeId) &&
-          data.nodeId !== "indicator" &&
-          data.nodeId !== "gauge" &&
-          data.nodeId !== "sparkline" &&
-          !isPlotterNodeId(data.nodeId) &&
-          data.nodeId !== "radial-gauge" &&
-          data.nodeId !== "bar-meter" &&
-          data.nodeId !== "led-indicator" &&
-          data.nodeId !== "knob" &&
-          data.nodeId !== "numeric-display" ? (
-            <ReadingPanel className="text-right text-xs">
-              {typeof data.liveValue === "number" ? (
-                <ReadingNumber
-                  value={data.liveValue}
-                  fractionDigits={4}
-                  className="font-mono text-zinc-100"
-                />
-              ) : (
-                <span className="font-mono text-zinc-300">{liveValue}</span>
-              )}
             </ReadingPanel>
           ) : null}
         </FlowNodeBody>

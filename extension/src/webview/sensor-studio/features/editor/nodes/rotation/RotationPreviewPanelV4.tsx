@@ -391,6 +391,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   descriptorsRef.current = descriptors;
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const displayScale = useStudioCanvasDisplayScale();
+  const displayScaleRef = useRef(displayScale);
+  const resizeRendererRef = useRef<(() => void) | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
 
   const glbMorphRef = useRef<Record<string, number>>({});
@@ -476,6 +479,11 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   }, [scene3d]);
 
   useEffect(() => {
+    displayScaleRef.current = displayScale;
+    resizeRendererRef.current?.();
+  }, [displayScale]);
+
+  useEffect(() => {
     const host = viewportRef.current;
     const canvas = canvasRef.current;
     if (host == null || canvas == null) {
@@ -532,7 +540,7 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       }
       renderer = nextRenderer;
 
-      applyPreviewPixelRatio(renderer, scene3dRef.current.renderer);
+      applyPreviewPixelRatio(renderer, scene3dRef.current.renderer, displayScaleRef.current);
 
       // Match RotationPreviewViewport onCreated(gl): tone mapping + exposure + sRGB output.
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
