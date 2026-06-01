@@ -36,6 +36,10 @@ import {
 import { evaluateMathOperation } from "../../../core/flow/math-operations";
 import { evaluateCompareOperation } from "../../../core/flow/compare-operations";
 import {
+  evaluateCombineXyz,
+  evaluateSwitchNumber,
+} from "../../../core/flow/switch-combine-operations";
+import {
   evaluateLerp,
   LERP_INPUT_DEFAULTS,
   readLerpInputValue,
@@ -4360,6 +4364,30 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateLerp(a, b, t),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "switch") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateSwitchNumber(
+              readIncoming(node.id, "condition"),
+              readIncoming(node.id, "ifTrue"),
+              readIncoming(node.id, "ifFalse"),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "combine-xyz") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateCombineXyz(
+              narrowNumber(readIncoming(node.id, "x")),
+              narrowNumber(readIncoming(node.id, "y")),
+              narrowNumber(readIncoming(node.id, "z")),
+            ),
           );
           continue;
         }

@@ -281,6 +281,37 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [{ id: "out", portType: "number", label: "Out" }],
       },
       {
+        id: "switch",
+        category: "logic",
+        title: "Switch",
+        description:
+          "When Condition is true, pass If True to Out; otherwise If False. Unwired numbers count as 0.",
+        icon: "toggle-left",
+        defaultVisible: true,
+        defaultConfig: {},
+        inputPorts: [
+          { id: "condition", portType: "boolean", label: "Condition" },
+          { id: "ifTrue", portType: "number", label: "If True" },
+          { id: "ifFalse", portType: "number", label: "If False" },
+        ],
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
+        id: "combine-xyz",
+        category: "utility",
+        title: "Combine XYZ",
+        description: "Build a vector3 from wired X, Y, and Z numbers. Unwired inputs count as 0.",
+        icon: "git-branch",
+        defaultVisible: true,
+        defaultConfig: {},
+        inputPorts: [
+          { id: "x", portType: "number", label: "X" },
+          { id: "y", portType: "number", label: "Y" },
+          { id: "z", portType: "number", label: "Z" },
+        ],
+        outputPorts: [{ id: "out", portType: "vector3", label: "Vector" }],
+      },
+      {
         id: "vector-splitter",
         category: "utility",
         title: "Vector Splitter",

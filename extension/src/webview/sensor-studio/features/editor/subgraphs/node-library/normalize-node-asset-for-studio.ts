@@ -156,10 +156,79 @@ function normalizeInnerNode(node: Node): Node {
       },
     };
   }
+  if (node.type === "switch" || node.type === "ifElse") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : node.type === "ifElse" ? "If / Else" : "Switch",
+        category: "logic",
+        nodeId: "switch",
+        defaultConfig: {},
+      },
+    };
+  }
+  if (node.type === "combineXYZ") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Combine XYZ",
+        category: "utility",
+        nodeId: "combine-xyz",
+        defaultConfig: {},
+      },
+    };
+  }
+  if (node.type === "separateXYZ") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Vector Splitter",
+        category: "utility",
+        nodeId: "vector-splitter",
+        defaultConfig: {},
+      },
+    };
+  }
   if (node.type === "studio") {
     return node;
   }
   return node;
+}
+
+function remapNaEdgeHandle(handle: string | null | undefined): string | undefined {
+  if (handle == null) {
+    return handle;
+  }
+  switch (handle) {
+    case "inX":
+      return "x";
+    case "inY":
+      return "y";
+    case "inZ":
+      return "z";
+    case "outX":
+      return "x";
+    case "outY":
+      return "y";
+    case "outZ":
+      return "z";
+    default:
+      return handle;
+  }
+}
+
+function normalizeSubgraphEdge(edge: Edge): Edge {
+  return {
+    ...edge,
+    sourceHandle: remapNaEdgeHandle(edge.sourceHandle ?? undefined),
+    targetHandle: remapNaEdgeHandle(edge.targetHandle ?? undefined),
+  };
 }
 
 function normalizeSubgraphDocument(doc: StudioSubgraphDocument): StudioSubgraphDocument {
@@ -180,7 +249,7 @@ function normalizeSubgraphDocument(doc: StudioSubgraphDocument): StudioSubgraphD
       }
       return normalized;
     }) as Node[],
-    edges: doc.edges.map((edge) => ({ ...edge })) as Edge[],
+    edges: doc.edges.map((edge) => normalizeSubgraphEdge(edge as Edge)) as Edge[],
   };
 }
 

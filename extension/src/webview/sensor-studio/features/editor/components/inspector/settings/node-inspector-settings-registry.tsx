@@ -25,6 +25,10 @@ import { OnClickSettingsSection } from "./sections/OnClickSettingsSection";
 import { OnKeySettingsSection } from "./sections/OnKeySettingsSection";
 import { PlotterSettingsSection } from "./sections/PlotterSettingsSection";
 import { SensorInputSettingsSection } from "./sections/SensorInputSettingsSection";
+import {
+  CombineXyzSettingsSection,
+  SwitchSettingsSection,
+} from "./sections/SwitchCombineSettingsSections";
 import { SparklineSettingsSection } from "./sections/SparklineSettingsSection";
 import { ThresholdSettingsSection } from "./sections/ThresholdSettingsSection";
 import { TransformFromEulerSettingsSection } from "./sections/TransformFromEulerSettingsSection";
@@ -57,6 +61,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   math: MathSettingsSection,
   compare: CompareSettingsSection,
   lerp: LerpSettingsSection,
+  switch: SwitchSettingsSection,
+  "combine-xyz": CombineXyzSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,
