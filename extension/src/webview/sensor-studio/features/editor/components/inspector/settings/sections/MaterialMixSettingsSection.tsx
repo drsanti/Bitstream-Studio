@@ -1,4 +1,4 @@
-import { TRNFormField, TRNParameterSlider } from "../../../../../ui/TRN";
+import { TRNFormField, TRNParameterSlider } from "../../../../../../../ui/TRN";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 export function MaterialMixSettingsSection(props: NodeInspectorSettingsSectionProps) {

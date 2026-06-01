@@ -31,6 +31,7 @@ import {
   ToggleLeft,
   Waves,
   Eye,
+  Zap,
 } from "lucide-react";
 
 /** Maps `NodeCatalogEntry.icon` (kebab-style slug) → Lucide component. */
@@ -65,6 +66,7 @@ const CATALOG_LUCIDE_BY_SLUG: Record<string, LucideIcon> = {
   palette: Palette,
   image: Image,
   eye: Eye,
+  zap: Zap,
 };
 
 export function getCatalogLucideIcon(slug: string): LucideIcon {

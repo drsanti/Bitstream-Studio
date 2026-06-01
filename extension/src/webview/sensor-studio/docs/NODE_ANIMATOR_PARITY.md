@@ -8,7 +8,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 
 | | node-animator | Sensor Studio |
 |---|---------------|---------------|
-| Addable catalog entries | 54 (52 root) | 53 |
+| Addable catalog entries | 54 (52 root) | 54 |
 | Palette categories | 14 (Blender GN–style) | 7 schema categories + sensor subgroups |
 | React Flow node types | 74 | 5 (`studio` + 4 layout types) |
 
@@ -167,6 +167,10 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 ## Phase 9+ — Shipped (flow domains)
 
 - Material domain rAF tick — `graphNeedsMaterialDomainEvalInGraph` in **`useSensorStudioFlowTickScheduler`** (**2026-05-31** slice 4)
+
+## Phase 9+ — Shipped (catalog)
+
+- **Math** node — 13 ops (node-animator parity), **`math-operations.ts`**, catalog + dataflow eval + card/inspector UI + NA import (**2026-05-31**)
 
 ## Phase 9+ — Planned
 

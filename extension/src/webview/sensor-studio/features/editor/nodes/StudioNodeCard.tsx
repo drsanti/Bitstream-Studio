@@ -36,6 +36,7 @@ import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
+import { MathNodePanel } from "./math/MathNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import {
   BooleanConstantNodePanel,
@@ -794,6 +795,9 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "glb-material-color" ? (
             <GlbMaterialColorNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "math" ? (
+            <MathNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel

@@ -1,4 +1,4 @@
-import { TRNFormField, TRNSelect } from "../../../../../ui/TRN";
+import { TRNColorRingPicker, TRNFormField, TRNSelect } from "../../../../../../../ui/TRN";
 import {
   defaultGlbMaterialColorHex,
   materialColorTargetLabel,
@@ -9,7 +9,6 @@ import {
   type StudioGlbMaterialColorTargetV1,
 } from "../../../../gltf/studio-glb-material-color";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
-import { TRNColorRingPicker } from "../../../../../ui/TRN";
 
 export function GlbMaterialColorSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { defaultConfig: dc, onUpdateConfigField } = props;

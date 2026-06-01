@@ -231,6 +231,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
       },
       {
+        id: "math",
+        category: "utility",
+        title: "Math",
+        description:
+          "Binary and unary float math on wired inputs A and B. Unwired inputs count as 0. sin/cos use radians.",
+        icon: "zap",
+        defaultVisible: true,
+        defaultConfig: {
+          operation: "add",
+        },
+        inputPorts: [
+          { id: "a", portType: "number", label: "A" },
+          { id: "b", portType: "number", label: "B" },
+        ],
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
         id: "vector-splitter",
         category: "utility",
         title: "Vector Splitter",

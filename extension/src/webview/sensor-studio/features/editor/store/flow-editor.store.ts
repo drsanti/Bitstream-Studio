@@ -33,6 +33,7 @@ import {
   readEventBooleanValue,
   runFlowEventDispatch,
 } from "../../../core/flow/flow-event-runner";
+import { evaluateMathOperation } from "../../../core/flow/math-operations";
 import { resolveSingleClipAutoBindPatchesForGlbAnimNodes } from "../gltf/glb-anim-clip-auto-bind";
 import {
   buildFlowClipboardPayload,
@@ -4295,6 +4296,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             a * (1 - factor) + b * factor,
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "math") {
+          const a = narrowNumber(readIncoming(node.id, "a"));
+          const b = narrowNumber(readIncoming(node.id, "b"));
+          const operation =
+            typeof node.data.defaultConfig.operation === "string"
+              ? node.data.defaultConfig.operation
+              : undefined;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateMathOperation(operation, a, b),
           );
           continue;
         }

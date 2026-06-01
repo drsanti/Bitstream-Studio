@@ -113,6 +113,21 @@ function normalizeInnerNode(node: Node): Node {
       },
     };
   }
+  if (node.type === "math") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Math",
+        category: "utility",
+        nodeId: "math",
+        defaultConfig: {
+          operation: typeof data.operation === "string" ? data.operation : "add",
+        },
+      },
+    };
+  }
   if (node.type === "studio") {
     return node;
   }

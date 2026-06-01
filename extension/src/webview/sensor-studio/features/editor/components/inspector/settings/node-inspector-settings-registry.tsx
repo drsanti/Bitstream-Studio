@@ -11,6 +11,7 @@ import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSett
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
+import { MathSettingsSection } from "./sections/MathSettingsSection";
 import { NumberConstantSettingsSection } from "./sections/NumberConstantSettingsSection";
 import { EventSetBooleanSettingsSection } from "./sections/EventSetBooleanSettingsSection";
 import { EventTriggerGlbAnimSettingsSection } from "./sections/EventGlbAnimSettingsSection";
@@ -51,6 +52,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "glb-material-texture": GlbMaterialTextureSettingsSection,
   "glb-material-color": GlbMaterialColorSettingsSection,
   "material-mix": MaterialMixSettingsSection,
+  math: MathSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,
