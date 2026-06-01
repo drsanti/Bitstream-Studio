@@ -12,8 +12,10 @@ import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSett
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
 import { LerpSettingsSection } from "./sections/LerpSettingsSection";
 import { LogicGateSettingsSection } from "./sections/LogicGateSettingsSection";
+import { MultiplexerSettingsSection } from "./sections/MultiplexerSettingsSection";
 import { LowPassSettingsSection } from "./sections/LowPassSettingsSection";
 import { MapRangeSettingsSection } from "./sections/MapRangeSettingsSection";
+import { ValueNormalizerSettingsSection } from "./sections/ValueNormalizerSettingsSection";
 import { MathSettingsSection } from "./sections/MathSettingsSection";
 import { NumberConstantSettingsSection } from "./sections/NumberConstantSettingsSection";
 import { EventSetBooleanSettingsSection } from "./sections/EventSetBooleanSettingsSection";
@@ -65,6 +67,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   switch: SwitchSettingsSection,
   "combine-xyz": CombineXyzSettingsSection,
   "logic-gate": LogicGateSettingsSection,
+  multiplexer: MultiplexerSettingsSection,
+  "value-normalizer": ValueNormalizerSettingsSection,
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,

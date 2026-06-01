@@ -44,7 +44,15 @@ import {
   LERP_INPUT_DEFAULTS,
   readLerpInputValue,
 } from "../../../core/flow/lerp-operations";
+import {
+  evaluateMultiplexer,
+  readMultiplexerPaths,
+} from "../../../core/flow/json-path";
 import { evaluateLogicGateOperation } from "../../../core/flow/logic-gate-operations";
+import {
+  evaluateValueNormalizer,
+  readValueNormalizerInput,
+} from "../../../core/flow/value-normalizer-operations";
 import {
   computeLogicGateInputHandles,
   LOGIC_GATE_OUTPUT_HANDLE,
@@ -4423,6 +4431,30 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               operation,
               readIncoming(node.id, "a"),
               readIncoming(node.id, "b"),
+            ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "multiplexer") {
+          const paths = readMultiplexerPaths(node.data.defaultConfig);
+          const results = evaluateMultiplexer(readIncoming(node.id, "payload"), paths);
+          for (const [handleId, value] of Object.entries(results)) {
+            pinValues.set(studioFlowPinKey(node.id, handleId), value);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "value-normalizer") {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateValueNormalizer(
+              readValueNormalizerInput(readIncoming(node.id, "value"), cfg.value, 0),
+              readValueNormalizerInput(readIncoming(node.id, "inMin"), cfg.inMin, 0),
+              readValueNormalizerInput(readIncoming(node.id, "inMax"), cfg.inMax, 1),
+              readValueNormalizerInput(readIncoming(node.id, "outMin"), cfg.outMin, 0),
+              readValueNormalizerInput(readIncoming(node.id, "outMax"), cfg.outMax, 1),
             ),
           );
           continue;

@@ -1,9 +1,10 @@
-import { Cloud, Download, FolderInput, Trash2 } from "lucide-react";
+import { Cloud, Download, FolderInput, RefreshCw, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useRef } from "react";
 import { TRNButton, TRNHintText } from "../../../../../ui/TRN";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { parseStudioNodeAssetFile } from "../../subgraphs/node-library/studio-node-asset-file";
 import type { StudioNodeAssetFile } from "../../subgraphs/node-library/studio-node-asset-file";
+import { formatRemoteCacheAge } from "../../subgraphs/node-library/node-group-remote-cache";
 import { useRemoteNodeGraphPresets } from "../../subgraphs/node-library/use-remote-node-graph-presets";
 import { setStudioNodeGroupAssetDragData } from "./node-group-asset-drag";
 
@@ -109,6 +110,22 @@ function PresetRow(props: {
   );
 }
 
+function officialSyncBadgeLabel(
+  syncState: ReturnType<typeof useRemoteNodeGraphPresets>["syncState"],
+  fetchedAtMs: number | null,
+): string | null {
+  switch (syncState) {
+    case "fresh":
+      return "Live";
+    case "cached":
+      return fetchedAtMs != null ? `Cached · ${formatRemoteCacheAge(fetchedAtMs)}` : "Cached";
+    case "offline":
+      return "Offline";
+    default:
+      return null;
+  }
+}
+
 export function GroupLibraryTabPanel(props: GroupLibraryTabPanelProps) {
   const { dense = false, query, borderColor, remoteEnabled = false } = props;
   const library = useFlowEditorStore((s) => s.nodeGroupLibrary);
@@ -117,7 +134,14 @@ export function GroupLibraryTabPanel(props: GroupLibraryTabPanelProps) {
   const exportNodeAssetById = useFlowEditorStore((s) => s.exportNodeAssetById);
   const removeNodeAssetFromLibrary = useFlowEditorStore((s) => s.removeNodeAssetFromLibrary);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { state: remoteState, entries: remoteEntries } = useRemoteNodeGraphPresets(remoteEnabled);
+  const {
+    state: remoteState,
+    syncState,
+    entries: remoteEntries,
+    fetchedAtMs,
+    retry,
+    refreshFromNetwork,
+  } = useRemoteNodeGraphPresets(remoteEnabled);
 
   const projectFiltered = useMemo(() => filterAssets(library, query), [library, query]);
   const officialFiltered = useMemo(() => {
@@ -126,6 +150,9 @@ export function GroupLibraryTabPanel(props: GroupLibraryTabPanelProps) {
       .filter((asset): asset is StudioNodeAssetFile => asset != null);
     return filterAssets(assets, query);
   }, [query, remoteAssets, remoteEntries]);
+
+  const officialRowBadge = syncState === "cached" ? "Cached" : "Official";
+  const syncBadge = officialSyncBadgeLabel(syncState, fetchedAtMs);
 
   const onImportFile = useCallback(
     (file: File) => {
@@ -147,7 +174,7 @@ export function GroupLibraryTabPanel(props: GroupLibraryTabPanelProps) {
     <div className={dense ? "space-y-2 pt-2" : "space-y-3 pt-3"}>
       <TRNHintText tone="muted" className={dense ? "text-[10px]" : "text-[11px]"}>
         Drag a preset onto the canvas to spawn a deep copy. Official presets sync from the online
-        asset pack; Project presets are saved locally on this machine.
+        asset pack (session cache when offline); Project presets are saved locally on this machine.
       </TRNHintText>
 
       <div className="flex flex-wrap gap-2">
@@ -177,21 +204,60 @@ export function GroupLibraryTabPanel(props: GroupLibraryTabPanelProps) {
       </div>
 
       <section className="space-y-2">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
-          <Cloud className="h-3.5 w-3.5 opacity-80" aria-hidden />
-          Official
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+            <Cloud className="h-3.5 w-3.5 opacity-80" aria-hidden />
+            Official
+            {remoteEnabled && officialFiltered.length > 0 ? (
+              <span className="font-normal normal-case text-zinc-500">({officialFiltered.length})</span>
+            ) : null}
+          </div>
+          {syncBadge != null ? (
+            <span
+              className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${
+                syncState === "fresh"
+                  ? "bg-emerald-950/50 text-emerald-200/90"
+                  : syncState === "cached"
+                    ? "bg-amber-950/50 text-amber-200/90"
+                    : "bg-zinc-800/80 text-zinc-400"
+              }`}
+            >
+              {syncBadge}
+            </span>
+          ) : null}
+          {remoteEnabled && (syncState === "offline" || syncState === "cached" || syncState === "fresh") ? (
+            <TRNButton
+              type="button"
+              size="compact"
+              prefixIcon={<RefreshCw className="h-3.5 w-3.5" aria-hidden />}
+              onClick={() => {
+                if (syncState === "fresh") {
+                  refreshFromNetwork();
+                } else {
+                  retry();
+                }
+              }}
+            >
+              {syncState === "fresh" ? "Refresh" : "Retry"}
+            </TRNButton>
+          ) : null}
         </div>
         {remoteState === "loading" ? (
           <div className="rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-3 text-center text-[11px] text-zinc-500">
             Loading remote node-graph index…
           </div>
-        ) : remoteState === "error" ? (
-          <div className="rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-3 text-center text-[11px] text-zinc-500">
-            Remote presets unavailable (check online asset base in Asset Manager).
+        ) : remoteState === "error" && officialFiltered.length === 0 ? (
+          <div className="space-y-2 rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-3 text-center text-[11px] text-zinc-500">
+            <p>Remote presets unavailable — check the online asset base in Asset Manager.</p>
+            <TRNButton type="button" size="compact" onClick={retry}>
+              Retry sync
+            </TRNButton>
           </div>
         ) : officialFiltered.length === 0 ? (
           <div className="rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-3 text-center text-[11px] text-zinc-500">
-            No official presets match your search.
+            {syncState === "cached" || syncState === "offline"
+              ? "No cached official presets match your search."
+              : "No official presets match your search."}
           </div>
         ) : (
           <ul className={`space-y-1.5 ${dense ? "text-[10px]" : "text-[11px]"}`}>
@@ -201,15 +267,26 @@ export function GroupLibraryTabPanel(props: GroupLibraryTabPanelProps) {
                 asset={asset}
                 borderColor={borderColor}
                 dense={dense}
-                badge="Official"
+                badge={officialRowBadge}
               />
             ))}
           </ul>
         )}
+        {syncState === "cached" && officialFiltered.length > 0 ? (
+          <TRNHintText tone="muted" className="text-[10px]">
+            Showing session cache from {fetchedAtMs != null ? formatRemoteCacheAge(fetchedAtMs) : "earlier"}.
+            Use Retry to attempt a live sync.
+          </TRNHintText>
+        ) : null}
       </section>
 
       <section className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">Project</div>
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
+          Project
+          {projectFiltered.length > 0 ? (
+            <span className="ml-1 font-normal normal-case text-zinc-500">({projectFiltered.length})</span>
+          ) : null}
+        </div>
         {projectFiltered.length === 0 ? (
           <div className="rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-4 text-center text-[11px] text-zinc-500">
             {library.length === 0

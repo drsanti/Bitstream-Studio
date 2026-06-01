@@ -39,6 +39,7 @@ import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel"
 import { MathNodePanel } from "./math/MathNodePanel";
 import { CompareNodePanel } from "./math/CompareNodePanel";
 import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
+import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import {
   BooleanConstantNodePanel,
@@ -823,6 +824,9 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
           {data.nodeId === "logic-gate" ? (
             <LogicGateNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+          ) : null}
+          {data.nodeId === "multiplexer" ? (
+            <MultiplexerNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
           {data.nodeId === "model-viewer" ? (
             <ModelViewerNodePanel

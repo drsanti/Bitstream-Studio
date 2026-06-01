@@ -329,6 +329,47 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
       },
       {
+        id: "multiplexer",
+        category: "utility",
+        title: "Multiplexer",
+        description:
+          "Extract numeric fields from a JSON payload using dot paths on outputs A, B, and C. Missing paths output 0.",
+        icon: "split",
+        defaultVisible: true,
+        defaultConfig: {
+          paths: { a: "a", b: "b", c: "c" },
+        },
+        inputPorts: [{ id: "payload", portType: "string", label: "Payload" }],
+        outputPorts: [
+          { id: "a", portType: "number", label: "A" },
+          { id: "b", portType: "number", label: "B" },
+          { id: "c", portType: "number", label: "C" },
+        ],
+      },
+      {
+        id: "value-normalizer",
+        category: "utility",
+        title: "Normalize",
+        description:
+          "Map Value from input domain [In min, In max] to output domain [Out min, Out max] with clamp. Wired pins override defaults.",
+        icon: "arrow-left-right",
+        defaultVisible: true,
+        defaultConfig: {
+          inMin: 0,
+          inMax: 1,
+          outMin: 0,
+          outMax: 1,
+        },
+        inputPorts: [
+          { id: "value", portType: "number", label: "Value" },
+          { id: "inMin", portType: "number", label: "In min" },
+          { id: "inMax", portType: "number", label: "In max" },
+          { id: "outMin", portType: "number", label: "Out min" },
+          { id: "outMax", portType: "number", label: "Out max" },
+        ],
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
         id: "vector-splitter",
         category: "utility",
         title: "Vector Splitter",

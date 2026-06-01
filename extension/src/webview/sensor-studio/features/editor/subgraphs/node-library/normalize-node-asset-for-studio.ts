@@ -197,6 +197,42 @@ function normalizeInnerNode(node: Node): Node {
       },
     };
   }
+  if (node.type === "multiplexer") {
+    const data = node.data as Record<string, unknown>;
+    const pathsRaw = data.paths;
+    const paths =
+      pathsRaw != null && typeof pathsRaw === "object" && !Array.isArray(pathsRaw)
+        ? (pathsRaw as Record<string, string>)
+        : { a: "a", b: "b", c: "c" };
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Multiplexer",
+        category: "utility",
+        nodeId: "multiplexer",
+        defaultConfig: { paths },
+      },
+    };
+  }
+  if (node.type === "valueNormalizer") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Normalize",
+        category: "utility",
+        nodeId: "value-normalizer",
+        defaultConfig: {
+          inMin: typeof data.inMin === "number" ? data.inMin : 0,
+          inMax: typeof data.inMax === "number" ? data.inMax : 1,
+          outMin: typeof data.outMin === "number" ? data.outMin : 0,
+          outMax: typeof data.outMax === "number" ? data.outMax : 1,
+        },
+      },
+    };
+  }
   if (node.type === "separateXYZ") {
     const data = node.data as Record<string, unknown>;
     return {
