@@ -137,16 +137,13 @@ export function selectionSupportsSocketToolbar(
   nodeIds: readonly string[],
 ): boolean {
   const idSet = new Set(nodeIds);
-  return nodes.some(
-    (n) =>
-      idSet.has(n.id) &&
-      n.type !== "studio-note" &&
-      n.type !== "studio-frame",
-  );
+  // These toggles only affect Studio flow nodes (layout nodes do not store `data.ui` flags).
+  return nodes.some((n) => idSet.has(n.id) && n.type === "studio");
 }
 
 export function graphSocketToolbarNodeIds(nodes: readonly FlowGraphNode[]): string[] {
-  return nodes.filter((n) => n.type !== "studio-note").map((n) => n.id);
+  // Global socket toggles target Studio flow nodes only.
+  return nodes.filter((n) => n.type === "studio").map((n) => n.id);
 }
 
 export function selectionSupportsBodyControlsToolbar(

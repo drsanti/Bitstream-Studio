@@ -153,15 +153,6 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   const showFrameActions =
     canFrameSelection || canFitSelectedFrames || canDetachFromFrame || selectedFrameIds.length > 0;
 
-  const showSocketControls = useMemo(
-    () => selectionSupportsSocketToolbar(nodes, selectedIds),
-    [nodes, selectedIds],
-  );
-  const showBodyControls = useMemo(
-    () => selectionSupportsBodyControlsToolbar(nodes, selectedIds),
-    [nodes, selectedIds],
-  );
-
   const studioSelectedIds = useMemo(
     () =>
       selectedIds.filter((id) => {
@@ -170,6 +161,8 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       }),
     [selectedIds, nodes],
   );
+  const showSocketControls = studioSelectedIds.length > 0;
+  const showBodyControls = studioSelectedIds.length > 0;
 
   const socketsExpanded = useMemo(
     () => getSocketsExpandedUIState(nodes, studioSelectedIds),
