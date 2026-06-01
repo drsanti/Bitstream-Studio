@@ -4,15 +4,19 @@ Short conventions for **flow node cards** and the **Node Inspector**, aligned wi
 
 ---
 
-## Application toolbar (`StudioToolbar`)
+## Application chrome (`SensorStudioChromeBar`)
 
-Three zones on one row (no wrap at typical widths):
+Replaces separate shell **`BitstreamBootLifecycleBar`** + **`StudioToolbar`** when `workspace === "sensor-studio"` (lifecycle strip is hidden in **`BitstreamShellRoot`**).
+
+**Row 1** — studio actions (always):
 
 | Zone | Content |
 | ---- | ------- |
-| **Identity** | `Sensor Studio` title |
+| **Identity** | `Sensor Studio` + compact **`Link ready`** pill when boot complete |
 | **Status** | `BitstreamSensorSampleRxBadge` (aggregate FPS, centered) |
-| **Actions** | **Devices** + **Assets** primaries, then **Insert ▾** / **Edit ▾** / **File ▾** / **Layout ▾** |
+| **Actions** | **Devices** + **Assets**, then **Insert ▾** / **Edit ▾** / **File ▾** / **Layout ▾** |
+
+**Row 2** — link lifecycle (only while not ready): **`LinkLifecycleStrip`** (UART, broker, handshake, sensor cfg, Wi‑Fi) + status prose + **Connection…**
 
 | Menu | Items |
 | ---- | ----- |
@@ -23,7 +27,7 @@ Three zones on one row (no wrap at typical widths):
 
 **Not in the header** (canvas / selection toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
 
-Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on header controls.
+Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on header controls. Lifecycle UI: **`LinkLifecycleStrip`**, **`useLinkLifecycleBarInputs`**.
 
 ---
 

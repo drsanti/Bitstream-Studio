@@ -10,7 +10,7 @@ import { TRNSidePanel } from "../../../../ui/TRN";
 import { FlowCanvas } from "./FlowCanvas";
 import { NodeInspector } from "./NodeInspector";
 import { NodePalette } from "./NodePalette";
-import { StudioToolbar } from "./StudioToolbar";
+import { SensorStudioChromeBar } from "./SensorStudioChromeBar";
 import { DeviceSensorSettingsWindow } from "../../device-settings/DeviceSensorSettingsWindow";
 
 type StudioLayoutProps = {
@@ -168,7 +168,7 @@ export function StudioLayout(props: StudioLayoutProps) {
         color: primaryTextColor,
       }}
     >
-      <StudioToolbar
+      <SensorStudioChromeBar
         borderColor={borderColor}
         entries={entries}
         onAddNode={onAddNode}

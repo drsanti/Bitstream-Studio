@@ -5,7 +5,7 @@ import {
   type StandaloneWorkbenchHandle,
   type WorkbenchLayoutMenuProps,
 } from "../../../../ui/workbench";
-import { StudioToolbar } from "./StudioToolbar";
+import { SensorStudioChromeBar } from "./SensorStudioChromeBar";
 import { DeviceSensorSettingsWindow } from "../../device-settings/DeviceSensorSettingsWindow";
 import type { StudioLayoutProps } from "../studio-layout.props";
 import { DEFAULT_STUDIO_WORKBENCH_LAYOUT } from "../workbench/default-studio-workbench-layout";
@@ -80,7 +80,7 @@ export function StudioLayout(props: StudioLayoutProps) {
         color: primaryTextColor,
       }}
     >
-      <StudioToolbar
+      <SensorStudioChromeBar
         borderColor={borderColor}
         entries={entries}
         onAddNode={onAddNode}

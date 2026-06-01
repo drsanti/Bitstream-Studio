@@ -28,6 +28,7 @@ import {
 import type { HandshakeLifecycleState } from "../bitstream-app/state/bitstreamLive.store.js";
 import { useBitstreamLiveStore } from "../bitstream-app/state/bitstreamLive.store.js";
 import { usePreviewMeshMissingUiStore } from "../bitstream-app/state/previewMeshMissingUi.store.js";
+import { useBitstreamWorkspaceModeStore } from "../bitstream-app/state/bitstreamWorkspaceMode.store.js";
 import { useBitstreamWifiStore } from "../bitstream-app/state/bitstreamWifi.store.js";
 import { TRNAlertOverlay } from "../ui/TRN/TRNAlertOverlay.js";
 import { TRNContainer } from "../ui/TRN/TRNContainer.js";
@@ -205,6 +206,8 @@ export { BitstreamShellRoot as BitstreamAppWrapper };
  */
 export function BitstreamShellRoot(props: { children?: ReactNode }) {
   const { children } = props;
+  const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
+  const sensorStudioMode = workspace === "sensor-studio";
   const { state: windows, actions: windowActions } = useBitstreamShellWindowsState();
   const sensorStudioWorkspaceBoundsRef = useRef<HTMLDivElement>(null);
 
@@ -749,15 +752,17 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
           onOpenWifiPanel={openWifiPanelFromMenu}
           onOpenSystemDiagnostics={openSystemDiagnosticsFromMenu}
         />
-        <BitstreamBootLifecycleBar
-          connected={connected}
-          connecting={connecting}
-          transportState={transportState}
-          runtimeSyncState={runtimeSyncState}
-          handshakeState={handshakeState}
-          firmwareSensorTruthReady={firmwareSensorTruthReady}
-          onOpenConnection={openConnectionWithStep}
-        />
+        {!sensorStudioMode ? (
+          <BitstreamBootLifecycleBar
+            connected={connected}
+            connecting={connecting}
+            transportState={transportState}
+            runtimeSyncState={runtimeSyncState}
+            handshakeState={handshakeState}
+            firmwareSensorTruthReady={firmwareSensorTruthReady}
+            onOpenConnection={openConnectionWithStep}
+          />
+        ) : null}
         <main className="flex min-h-0 w-full flex-1 flex-col">
           <TRNScrollableEdgeHints
             className="relative box-border flex min-h-0 min-w-0 flex-1 flex-col border-0 p-0"
