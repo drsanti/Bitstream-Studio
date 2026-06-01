@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import { ToolbarDropdownMenu } from "../../../../../ui/components/ToolbarDropdownMenu";
+import { WORKSPACE_CHROME_TOOLBAR_BTN_CLASS } from "../../../../../ui/components/workspace-chrome-toolbar-ui";
 
-export const STUDIO_TOOLBAR_MENU_BTN_CLASS =
-  "inline-flex items-center gap-1 rounded border border-zinc-700/80 bg-zinc-900/60 px-2 py-1 text-[11px] text-zinc-200/90 hover:bg-zinc-800/80";
+/** @deprecated Use {@link WORKSPACE_CHROME_TOOLBAR_BTN_CLASS} — kept for existing imports. */
+export const STUDIO_TOOLBAR_MENU_BTN_CLASS = WORKSPACE_CHROME_TOOLBAR_BTN_CLASS;
 
 export const STUDIO_TOOLBAR_DIVIDER_CLASS = "mx-0.5 h-4 w-px shrink-0 bg-zinc-600/60";
 

@@ -26,6 +26,7 @@ import {
   GlassModalHamburgerMenuPanel,
   useGlassModalHamburgerMenu,
 } from "../../../ui/components/common/index.js";
+import { useWorkspaceHeaderMenuSlotStore } from "../../state/workspaceHeaderMenuSlot.store.js";
 import {
   TRNMenuItemButton,
   TRNMenuPanel,
@@ -73,6 +74,7 @@ export function BitstreamHeaderMenuPanel(props: {
 
   const assistantOpen = useSensorStudioAssistantUiStore((s) => s.assistantOpen);
   const toggleAssistant = useSensorStudioAssistantUiStore((s) => s.toggleAssistant);
+  const workspaceMenuSections = useWorkspaceHeaderMenuSlotStore((s) => s.sections);
 
   const { openAssetManager } = useOpenAssetManager();
   const openPortAdmin = usePortAdminStore((s) => s.open);
@@ -224,6 +226,7 @@ export function BitstreamHeaderMenuPanel(props: {
             label="Reset telemetry layout"
             title="Restore default config · main · live · activity pane split"
           />
+          {workspaceMenuSections}
           <TRNMenuSectionTitle spacing="menuNext">Assets</TRNMenuSectionTitle>
           <TRNMenuItemButton
             role="menuitem"

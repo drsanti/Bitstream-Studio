@@ -258,6 +258,25 @@ function temperatureTapPrimaryBundlePreview(
   };
 }
 
+function pressureTapPrimaryBundlePreview(
+  pressureHpa: number,
+  streamLive: boolean,
+): PalettePreview {
+  return {
+    kind: "primaryBundle",
+    streamMode: streamLive ? "live" : "idle",
+    rows: [
+      {
+        kind: "scalar",
+        label: PALETTE_PRESSURE_ROW_LABEL,
+        value: pressureHpa,
+        fractionDigits: 1,
+        signedPositive: false,
+      },
+    ],
+  };
+}
+
 function humidityTapPrimaryBundlePreview(
   humidityPct: number,
   streamLive: boolean,
@@ -281,13 +300,7 @@ function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PaletteP
   switch (nodeId) {
     case "dps368-tap-pressure": {
       const b = computeDps368PinBundle(latestByHint);
-      return scalarPreview(
-        b.pressureHpa,
-        "hPa",
-        b.streamLive ? "live" : "idle",
-        false,
-        1,
-      );
+      return pressureTapPrimaryBundlePreview(b.pressureHpa, b.streamLive);
     }
     case "dps368-tap-temp": {
       const b = computeDps368PinBundle(latestByHint);

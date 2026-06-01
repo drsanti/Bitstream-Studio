@@ -23,7 +23,7 @@ export interface BitstreamBootLifecycleBarProps {
 export function BitstreamBootLifecycleBar(props: BitstreamBootLifecycleBarProps) {
   return (
     <div className="z-20 flex min-h-8 shrink-0 flex-wrap items-center gap-x-2 gap-y-1 border-b border-white/10 bg-black/70 px-2 py-1 backdrop-blur-md">
-      <LinkLifecycleStrip {...props} />
+      <LinkLifecycleStrip {...props} showConnectionButton={false} />
     </div>
   );
 }

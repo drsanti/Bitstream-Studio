@@ -28,6 +28,7 @@ import {
 } from "../utils/bitstreamTelemetryTransport.js";
 import { useWsClientStore } from "../../ws-client-store";
 import type { HandshakeSummary } from "../state/bitstreamLive.store";
+import { Bs2WireRxWindowAccumulator } from "../bridge/bs2WireRxWindowAccumulator";
 
 const LISTENER_ID = "bitstream-app-bs2-telemetry-bridge";
 
@@ -72,6 +73,7 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
 
   const bmi270GapsRef = useRef<number[]>([]);
   const bmi270LastPerfRef = useRef<number | null>(null);
+  const wireRxWindowRef = useRef<Bs2WireRxWindowAccumulator | null>(null);
 
   const getTelemetryConnSnapshot = useCallback(() => {
     const c = useBitstreamConnectionStore.getState();
@@ -188,6 +190,27 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
 
   useEffect(() => {
     if (!isConnected) {
+      wireRxWindowRef.current?.stop();
+      wireRxWindowRef.current = null;
+      return;
+    }
+
+    const wireRx = new Bs2WireRxWindowAccumulator((stats) => {
+      useBitstreamConnectionStore.getState().setSerialRxWireStats(stats);
+    });
+    wireRxWindowRef.current = wireRx;
+    wireRx.start();
+
+    return () => {
+      wireRx.stop();
+      if (wireRxWindowRef.current === wireRx) {
+        wireRxWindowRef.current = null;
+      }
+    };
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) {
       return;
     }
 
@@ -285,6 +308,8 @@ export function useBitstream2TelemetryBridge(handlers: Bitstream2TelemetryBridge
       if (!shouldAcceptBs2SampleOrigin(bs2)) {
         return;
       }
+
+      wireRxWindowRef.current?.recordEvtSensorPayload(bs2);
 
       useBitstreamLiveStore.getState().bumpBs2EvtSensorRx();
       const mapped = bs2SampleToBitstreamSensorSampleV2(bs2);

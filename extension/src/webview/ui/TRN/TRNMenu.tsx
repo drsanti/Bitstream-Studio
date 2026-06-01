@@ -1,5 +1,6 @@
-import type { ButtonHTMLAttributes, HTMLAttributes, ReactNode } from "react";
+import { useRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
+import { useScrollContainerEdgeAutoScroll } from "../hooks/useScrollContainerEdgeAutoScroll";
 
 export type TRNMenuPanelTone = "glass-dropdown" | "subtle" | "card";
 export type TRNMenuItemTone = "glass-dropdown" | "subtle" | "card";
@@ -34,12 +35,18 @@ export const TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME = "py-1 leading-tigh
 
 export type TRNMenuPanelProps = HTMLAttributes<HTMLDivElement> & {
   tone?: TRNMenuPanelTone;
+  /** Scroll when the pointer hovers the top/bottom edge (for `overflow-y-auto` + hidden scrollbar). */
+  edgeAutoScroll?: boolean;
 };
 
 export function TRNMenuPanel(props: TRNMenuPanelProps) {
-  const { className, tone = "glass-dropdown", children, ...rest } = props;
+  const { className, tone = "glass-dropdown", edgeAutoScroll = false, children, ...rest } =
+    props;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollContainerEdgeAutoScroll(scrollRef, edgeAutoScroll);
+
   return (
-    <div className={twMerge(PANEL_TONE_CLASS[tone], className)} {...rest}>
+    <div ref={scrollRef} className={twMerge(PANEL_TONE_CLASS[tone], className)} {...rest}>
       {children}
     </div>
   );
@@ -70,7 +77,7 @@ export function TRNMenuItemButton(props: TRNMenuItemButtonProps) {
     <button
       type={type}
       className={twMerge(
-        "flex h-auto w-full shrink-0 items-center justify-start gap-1.5 px-3.5 py-2.5 text-left text-sm font-normal leading-snug shadow-none transition-colors",
+        "flex h-auto w-full shrink-0 items-center justify-start gap-1.5 px-3.5 py-1.5 text-left text-sm font-normal leading-tight shadow-none transition-colors",
         ITEM_TONE_CLASS[tone],
         className,
       )}

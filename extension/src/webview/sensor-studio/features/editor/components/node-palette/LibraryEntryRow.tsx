@@ -187,19 +187,19 @@ export function LibraryEntryRow(props: {
 
   const cardPadClass = isHeaderRootRow
     ? dense
-      ? "px-1.5 py-1.5"
-      : "px-2 py-2"
+      ? "px-1.5 py-1"
+      : "px-2 py-1.5"
     : isPrimary
       ? dense
-        ? "px-2 py-2"
-        : "px-2.5 py-2.5"
+        ? "px-2 py-1"
+        : "px-2.5 py-1.5"
       : isTap
         ? dense
-          ? "px-2 py-1.5"
-          : "px-2.5 py-2"
+          ? "px-2 py-1"
+          : "px-2.5 py-1.5"
         : dense
-          ? "px-2 py-1.5"
-          : "px-2.5 py-2";
+          ? "px-2 py-1"
+          : "px-2.5 py-1.5";
 
   const cardChromeClass = isHeaderRootRow
     ? "rounded-none border-0 bg-transparent hover:bg-zinc-800/45"
@@ -236,7 +236,7 @@ export function LibraryEntryRow(props: {
         {entry.description}
       </span>
       <div
-        className={`w-full ${grouped && !isHeaderRootRow ? "px-1.5 pb-1" : ""}`}
+        className={`w-full ${grouped && !isHeaderRootRow ? "px-1.5 pb-0.5" : ""}`}
         onMouseEnter={() => {
           clearLeaveDismissTimer();
           scheduleHint();

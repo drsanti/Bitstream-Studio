@@ -15,9 +15,9 @@ export type BitstreamTelemetryBackend = "uart" | "simulator";
 /** Alias kept for transport helpers that previously resolved Auto → effective route. */
 export type BitstreamTelemetryEffectiveBackend = BitstreamTelemetryBackend;
 
-/** User-facing Source dropdown labels (`backend` store values unchanged). */
+/** User-facing data-source labels (`backend` store values unchanged). */
 export const BITSTREAM_TELEMETRY_SOURCE_LABELS: Record<BitstreamTelemetryBackend, string> = {
-  uart: "Bitstream",
+  uart: "Hardware",
   simulator: "Simulator",
 };
 

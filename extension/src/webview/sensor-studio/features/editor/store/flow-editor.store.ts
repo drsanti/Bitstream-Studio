@@ -1615,7 +1615,7 @@ function readStudioNodeLayoutHeightPx(node: StudioNode): number | undefined {
   return undefined;
 }
 
-/** Drop fixed height so the node can shrink to header + sockets when a utility body is collapsed. */
+/** Drop fixed height so auto-height shells can remeasure (socket toggles, utility collapse). */
 function stripStudioNodeFixedHeight(node: StudioNode): StudioNode {
   const { height: _height, measured, style, ...rest } = node;
   let nextStyle: StudioNode["style"];
@@ -1635,6 +1635,18 @@ function stripStudioNodeFixedHeight(node: StudioNode): StudioNode {
     style: nextStyle,
     measured: nextMeasured,
   };
+}
+
+/** Non-resizable studio nodes should reflow shell height when socket rows change. */
+function prepareStudioNodeShellRemeasure(node: StudioNode): StudioNode {
+  if (node.type !== "studio") {
+    return node;
+  }
+  const data = node.data as StudioNodeData;
+  if (data.ui?.resizable === true) {
+    return node;
+  }
+  return stripStudioNodeFixedHeight(node);
 }
 
 function applyStudioNodeLayoutHeight(node: StudioNode, heightPx: number): StudioNode {
@@ -3736,8 +3748,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             return n;
           }
           const data = n.data as StudioNodeData;
+          const base = prepareStudioNodeShellRemeasure(n as StudioNode);
           return {
-            ...n,
+            ...base,
             data: {
               ...data,
               ui: { ...data.ui, socketsExpanded: nextExpanded },
@@ -3763,8 +3776,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             return n;
           }
           const data = n.data as StudioNodeData;
+          const base = prepareStudioNodeShellRemeasure(n as StudioNode);
           return {
-            ...n,
+            ...base,
             data: {
               ...data,
               ui: { ...data.ui, socketValuesVisible: nextVisible },

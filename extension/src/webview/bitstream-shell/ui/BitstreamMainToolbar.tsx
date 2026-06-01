@@ -1,31 +1,16 @@
-import {
-  Activity,
-  Globe2,
-  Menu,
-  MessageSquareText,
-  Play,
-  Plug,
-  RefreshCcw,
-  Unplug,
-  Workflow,
-} from "lucide-react";
-import { ensureBitstreamSimulatorReady } from "../../bitstream-app/bridge/requestBitstreamSimulatorHost";
-import { isVsCodeExtensionWebview } from "../../isVsCodeExtensionWebview";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { useSensorStudioAssistantUiStore } from "../../sensor-studio/state/sensorStudioAssistantUi.store";
+import { Globe2, Menu } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useBitstreamTelemetrySourceStore } from "../../bitstream-app/state/bitstreamTelemetrySource.store";
-import { useBitstreamWorkspaceModeStore } from "../../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { BitstreamSystemStatusIndicators } from "./BitstreamSystemStatusIndicators";
+import { ShellLinkTelemetryCluster } from "./ShellLinkTelemetryCluster";
+import { ShellControlDeck } from "./ShellControlDeck";
 import {
   BRAND_TITLE_GRADIENT,
   BRAND_WAVE_DURATION_S,
   BRAND_WAVE_GRADIENT_ID,
 } from "./bitstreamBrandWaveConstants";
 import { TRNIconButton } from "../../ui/TRN/TRNIconButton.js";
-import { TRNButton } from "../../ui/TRN/TRNButton";
 import { TRNToolbar, TRNToolbarGroup } from "../../ui/TRN/TRNToolbar.js";
-import { TRNTooltip } from "../../ui/TRN/TRNTooltip.js";
-import { BitstreamTelemetrySourceField } from "./BitstreamTelemetrySourceField";
 
 function clearBrandTitleGradientStyles(el: HTMLHeadingElement) {
   el.style.removeProperty("background-image");
@@ -102,7 +87,7 @@ function BitstreamToolbarBrand() {
         </span>
         <div>
           <h1 className="text-sm font-semibold tracking-tight text-zinc-100">
-            TESAIoT Digital Twin
+            TERNION Bitstream
           </h1>
         </div>
       </>
@@ -146,7 +131,7 @@ function BitstreamToolbarBrand() {
           ref={titleRef}
           className="text-sm font-semibold tracking-tight text-zinc-100"
         >
-          TESAIoT Digital Twin
+          TERNION Bitstream
         </h1>
       </div>
     </>
@@ -186,30 +171,7 @@ export function BitstreamMainToolbar(props: {
   const linkConnecting = brokerWsConnecting || connecting;
 
   const telemetryBackend = useBitstreamTelemetrySourceStore((s) => s.backend);
-  const loopbackAvailable = useBitstreamTelemetrySourceStore((s) => s.loopbackAvailable);
   const sourceIsUart = telemetryBackend === "uart";
-  const showStartSimulator =
-    telemetryBackend === "simulator" &&
-    !loopbackAvailable &&
-    isVsCodeExtensionWebview();
-
-  const [simulatorStartBusy, setSimulatorStartBusy] = useState(false);
-  const startSimulator = useCallback(async () =>
-  {
-    if (simulatorStartBusy)
-    {
-      return;
-    }
-    setSimulatorStartBusy(true);
-    try
-    {
-      await ensureBitstreamSimulatorReady();
-    }
-    finally
-    {
-      setSimulatorStartBusy(false);
-    }
-  }, [simulatorStartBusy]);
 
   const linkStatusLabel = linkConnecting
     ? "Connecting…"
@@ -217,204 +179,53 @@ export function BitstreamMainToolbar(props: {
       ? "Connected"
       : "Not connected";
 
-  const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
-  const setWorkspace = useBitstreamWorkspaceModeStore((s) => s.setWorkspace);
-
-  const assistantOpen = useSensorStudioAssistantUiStore((s) => s.assistantOpen);
-  const toggleAssistant = useSensorStudioAssistantUiStore((s) => s.toggleAssistant);
-
   return (
     <header className="m-0 w-full shrink-0 border-b border-zinc-700/80 bg-zinc-950/95 p-0">
       <TRNToolbar
+        density="sm"
         tone="default"
-        wrap
-        className="flex flex-row items-center justify-between gap-y-1 border-0 bg-transparent shadow-none"
+        wrap={false}
+        className="!grid w-full !min-h-7 !py-0.5 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 border-0 bg-transparent shadow-none"
       >
         <TRNToolbarGroup
           gap="sm"
           align="start"
-          className="min-w-0 flex-1 overflow-x-auto scrollbar-hide"
+          className="min-w-0 self-center justify-self-start overflow-x-auto scrollbar-hide"
         >
           <BitstreamToolbarBrand />
-          <div
-            className="ml-2 inline-flex items-center rounded-md border border-zinc-700/80 bg-zinc-900/60 p-0.5"
-            role="group"
-            aria-label="Workspace"
-          >
-            <button
-              type="button"
-              className={
-                workspace === "sensor-telemetry"
-                  ? "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium bg-zinc-700/90 text-zinc-50"
-                  : "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
-              }
-              aria-pressed={workspace === "sensor-telemetry"}
-              title="Sensor Telemetry — configuration + live deck"
-              onClick={() => setWorkspace("sensor-telemetry")}
-            >
-              <Activity
-                className={
-                  workspace === "sensor-telemetry"
-                    ? "h-3.5 w-3.5 shrink-0 text-emerald-200/95"
-                    : "h-3.5 w-3.5 shrink-0 opacity-80"
-                }
-                strokeWidth={2.25}
-                aria-hidden
-              />
-              Sensor Telemetry
-            </button>
-            <button
-              type="button"
-              className={
-                workspace === "sensor-studio"
-                  ? "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium bg-zinc-700/90 text-zinc-50"
-                  : "inline-flex items-center gap-1 rounded px-2 py-1 text-[11px] font-medium text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200"
-              }
-              aria-pressed={workspace === "sensor-studio"}
-              title="Sensor Studio — flow editor workspace"
-              onClick={() => setWorkspace("sensor-studio")}
-            >
-              <Workflow
-                className={
-                  workspace === "sensor-studio"
-                    ? "h-3.5 w-3.5 shrink-0 text-violet-200/95"
-                    : "h-3.5 w-3.5 shrink-0 opacity-80"
-                }
-                strokeWidth={2.25}
-                aria-hidden
-              />
-              Sensor Studio
-            </button>
-          </div>
-          <div className="ml-2 inline-flex items-center gap-2">
-            <BitstreamTelemetrySourceField />
-            {showStartSimulator ? (
-              <TRNIconButton
-                icon={
-                  <Play
-                    size={16}
-                    className="text-violet-200/90"
-                    strokeWidth={2.25}
-                  />
-                }
-                label={simulatorStartBusy ? "Starting simulator…" : "Start simulator"}
-                nativeTitle={false}
-                disabled={simulatorStartBusy}
-                onClick={() => void startSimulator()}
-                className="border border-violet-700/60 bg-violet-950/25 text-zinc-200 hover:bg-violet-900/15"
-              />
-            ) : null}
-            <div
-              className="inline-flex shrink-0 items-center gap-1.5 border-l border-zinc-700/80 pl-2"
-              role="group"
-              aria-label="Connection to board"
-            >
-              <span className="text-[10px] font-medium tracking-wide text-zinc-500 uppercase">
-                Link
-              </span>
-              <TRNTooltip
-                placement="bottom-end"
-                openDelayMs={650}
-                disableHoverFx
-                triggerWrapper="span"
-                content={
-                  <div className="min-w-0 max-w-xs whitespace-pre-line text-left">
-                    <div className="font-semibold text-zinc-100">Connection</div>
-                    <div className="text-zinc-300">Status: {linkStatusLabel}</div>
-                    {linkConnected ? (
-                      <div className="mt-1 text-zinc-400">
-                        You are linked to the TESAIoT service on this computer. Sensor data and
-                        settings can flow between this window and your board.
-                      </div>
-                    ) : (
-                      <div className="mt-1 text-zinc-400">
-                        Press Connect to start. The service on this computer must be running (start
-                        it from the project scripts if the link stays off).
-                      </div>
-                    )}
-                    <div className="mt-1 text-zinc-500">
-                      {sourceIsUart
-                        ? linkConnected
-                          ? "Disconnect releases the USB serial port so other apps can use it. With Bitstream selected, the app finds your port and checks the board after you connect."
-                          : "Bitstream: plug in the board via USB, then Connect. The app will pick the port and finish setup automatically."
-                        : linkConnected
-                          ? "Simulator mode uses sample data on this computer—no USB cable required. Disconnect when you want to stop."
-                          : "Simulator mode uses sample data on this computer—no USB cable required."}
-                    </div>
-                  </div>
-                }
-                trigger={
-                  <TRNIconButton
-                    nativeTitle={false}
-                    icon={
-                    linkConnecting ? (
-                      <RefreshCcw
-                        size={16}
-                        className="text-amber-200/90"
-                        strokeWidth={2.25}
-                      />
-                    ) : linkConnected ? (
-                      <Unplug
-                        size={16}
-                        className="text-rose-200/90"
-                        strokeWidth={2.25}
-                      />
-                    ) : (
-                      <Plug
-                        size={16}
-                        className="text-emerald-200/90"
-                        strokeWidth={2.25}
-                      />
-                    )
-                  }
-                  label={
-                    linkConnecting
-                      ? "Connecting…"
-                      : linkConnected
-                        ? "Disconnect"
-                        : "Connect"
-                  }
-                  aria-pressed={linkConnected || linkConnecting}
-                  onClick={() => {
-                    if (linkConnected || linkConnecting) {
-                      onDisconnect?.();
-                    } else {
-                      onConnect?.();
-                    }
-                  }}
-                  disabled={
-                    linkConnected || linkConnecting ? !onDisconnect : !onConnect
-                  }
-                  className={
-                    linkConnecting
-                        ? "border border-amber-700/60 bg-amber-950/25 text-zinc-200 hover:bg-amber-900/15"
-                      : linkConnected
-                        ? "border border-rose-700/60 bg-rose-950/25 text-zinc-200 hover:bg-rose-900/15"
-                        : "border border-emerald-700/60 bg-emerald-950/20 text-zinc-200 hover:bg-emerald-900/15"
-                    }
-                  />
-                }
-              />
-            </div>
-          </div>
         </TRNToolbarGroup>
 
-        <BitstreamSystemStatusIndicators
-          onOpenFirmwareLogLevel={onOpenFirmwareLogLevel}
-          onOpenWifiPanel={onOpenWifiPanel}
-          onOpenSystemDiagnostics={onOpenSystemDiagnostics}
-        />
+        <div className="flex min-w-0 justify-center justify-self-center px-1">
+          <ShellControlDeck
+            linkConnected={linkConnected}
+            linkConnecting={linkConnecting}
+            sourceIsUart={sourceIsUart}
+            linkStatusLabel={linkStatusLabel}
+            onConnect={onConnect}
+            onDisconnect={onDisconnect}
+          />
+        </div>
 
-        <TRNToolbarGroup gap="xs" align="end">
+        <TRNToolbarGroup
+          gap="xs"
+          align="end"
+          className="min-w-0 self-center justify-self-end overflow-x-auto scrollbar-hide"
+        >
+          <ShellLinkTelemetryCluster />
+          <BitstreamSystemStatusIndicators
+            onOpenFirmwareLogLevel={onOpenFirmwareLogLevel}
+            onOpenWifiPanel={onOpenWifiPanel}
+            onOpenSystemDiagnostics={onOpenSystemDiagnostics}
+          />
           <TRNIconButton
-            icon={<Menu size={16} className="text-zinc-400 hover:text-zinc-100" strokeWidth={2.25} />}
+            icon={<Menu size={16} className="text-zinc-400" strokeWidth={2.25} />}
             label="Menu"
             aria-expanded={menuOpen}
             aria-haspopup="menu"
             aria-pressed={menuOpen}
             data-bitstream-header-menu="true"
             onClick={onMenuClick}
-            className="border border-zinc-700/80 bg-zinc-900/75 text-zinc-200 hover:bg-zinc-800/80"
+            className="!h-6 !w-6 !rounded-md !border-0 !bg-transparent shadow-none hover:!bg-zinc-800/50 hover:text-zinc-100"
           />
         </TRNToolbarGroup>
       </TRNToolbar>

@@ -190,6 +190,7 @@ export function DeviceSensorSettingsWindow(props: {
     () => ({
       enabled: false,
       publishMode: 2,
+      mask: 0xff,
       samplingIntervalMs: 200,
       deltaX100: 0,
       minPublishIntervalMs: 200,
@@ -197,10 +198,29 @@ export function DeviceSensorSettingsWindow(props: {
     [],
   );
 
-  const bmi270 = rows.bmi270 ?? rowFallback;
-  const dps368 = rows.dps368 ?? rowFallback;
-  const sht40 = rows.sht40 ?? rowFallback;
-  const bmm350 = rows.bmm350 ?? rowFallback;
+  const bmi270 = {
+    ...rowFallback,
+    mask: 0x1f,
+    samplingIntervalMs: 25,
+    minPublishIntervalMs: 0,
+    ...rows.bmi270,
+    mask: (rows.bmi270?.mask ?? 0x1f) & 0xff,
+  };
+  const dps368 = { ...rowFallback, ...rows.dps368, mask: (rows.dps368?.mask ?? 0xff) & 0xff };
+  const sht40 = {
+    ...rowFallback,
+    samplingIntervalMs: 500,
+    deltaX100: 50,
+    ...rows.sht40,
+    mask: (rows.sht40?.mask ?? 0xff) & 0xff,
+  };
+  const bmm350 = {
+    ...rowFallback,
+    samplingIntervalMs: 50,
+    minPublishIntervalMs: 0,
+    ...rows.bmm350,
+    mask: (rows.bmm350?.mask ?? 0xff) & 0xff,
+  };
 
   return (
     <TRNWindow
@@ -270,7 +290,7 @@ export function DeviceSensorSettingsWindow(props: {
               enabled={bmi270.enabled}
               onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMI270, { enabled: v })}
               dataRateMs={bmi270.samplingIntervalMs}
-              onSamplingIntervalChange={(v) =>
+              onSamplingFrequencyChange={(v) =>
                 setSensorConfig(SENSOR_SOURCE_ID_BMI270, { samplingIntervalMs: v })
               }
               publishMode={coercePublishMode(bmi270.publishMode)}
@@ -283,6 +303,8 @@ export function DeviceSensorSettingsWindow(props: {
               onMinPublishIntervalMsChange={(v) =>
                 setSensorConfig(SENSOR_SOURCE_ID_BMI270, { minPublishIntervalMs: v })
               }
+              mask={bmi270.mask}
+              onMaskChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMI270, { mask: v })}
               ack={sensorConfigAck}
               ackSensorSourceId={SENSOR_SOURCE_ID_BMI270}
               fusionFeedIntervalMs={bmi270FusionFeedIntervalMs}
@@ -300,7 +322,7 @@ export function DeviceSensorSettingsWindow(props: {
               enabled={dps368.enabled}
               onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_DPS368, { enabled: v })}
               dataRateMs={dps368.samplingIntervalMs}
-              onSamplingIntervalChange={(v) =>
+              onSamplingFrequencyChange={(v) =>
                 setSensorConfig(SENSOR_SOURCE_ID_DPS368, { samplingIntervalMs: v })
               }
               publishMode={coercePublishMode(dps368.publishMode)}
@@ -327,7 +349,7 @@ export function DeviceSensorSettingsWindow(props: {
               enabled={sht40.enabled}
               onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_SHT40, { enabled: v })}
               dataRateMs={sht40.samplingIntervalMs}
-              onSamplingIntervalChange={(v) =>
+              onSamplingFrequencyChange={(v) =>
                 setSensorConfig(SENSOR_SOURCE_ID_SHT40, { samplingIntervalMs: v })
               }
               publishMode={coercePublishMode(sht40.publishMode)}
@@ -354,7 +376,7 @@ export function DeviceSensorSettingsWindow(props: {
               enabled={bmm350.enabled}
               onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMM350, { enabled: v })}
               dataRateMs={bmm350.samplingIntervalMs}
-              onSamplingIntervalChange={(v) =>
+              onSamplingFrequencyChange={(v) =>
                 setSensorConfig(SENSOR_SOURCE_ID_BMM350, { samplingIntervalMs: v })
               }
               publishMode={coercePublishMode(bmm350.publishMode)}

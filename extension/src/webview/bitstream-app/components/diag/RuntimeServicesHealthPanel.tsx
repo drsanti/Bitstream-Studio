@@ -289,7 +289,7 @@ function suggestConnectionFocusStep(input: {
   serialOpen: boolean;
   backend: string;
 }): ConnectionStepId | undefined {
-  if (ext && !input.bridgeHostRunning) {
+  if (input.ext && !input.bridgeHostRunning) {
     return "bridge";
   }
   if (!input.wsConnected) {

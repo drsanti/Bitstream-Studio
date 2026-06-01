@@ -8,6 +8,10 @@ export type ToolbarDropdownMenuProps = {
   label: string;
   hint?: string;
   prefixIcon?: ReactNode;
+  /** When true, only `prefixIcon` is shown; `label` remains for aria. */
+  iconOnly?: boolean;
+  /** Chevron after label (default true when not icon-only). */
+  showChevron?: boolean;
   buttonClassName?: string;
   panelClassName?: string;
   align?: "left" | "right";
@@ -25,11 +29,14 @@ export function ToolbarDropdownMenu(props: ToolbarDropdownMenuProps) {
     label,
     hint,
     prefixIcon,
+    iconOnly = false,
+    showChevron: showChevronProp,
     buttonClassName,
     panelClassName,
     align = "left",
     children,
   } = props;
+  const showChevron = showChevronProp ?? !iconOnly;
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const { placement, panelRef } = useFixedMenuAnchor(open, triggerRef, align);
@@ -96,8 +103,10 @@ export function ToolbarDropdownMenu(props: ToolbarDropdownMenuProps) {
         onClick={() => setOpen((value) => !value)}
       >
         {prefixIcon}
-        {label}
-        <ChevronDown className="size-3 shrink-0 opacity-70" aria-hidden />
+        {iconOnly ? null : label}
+        {showChevron ? (
+          <ChevronDown className="size-3 shrink-0 opacity-70" aria-hidden />
+        ) : null}
       </button>
       {menuPanel}
     </>

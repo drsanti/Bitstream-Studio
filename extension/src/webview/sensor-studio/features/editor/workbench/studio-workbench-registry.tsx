@@ -65,6 +65,7 @@ export function WorkbenchFlowPanel() {
       onDropNodeGroupAsset={p.onDropNodeGroupAsset}
       canvasBackgroundColor={p.canvasBackgroundColor}
       flowCanvasPreferences={p.flowCanvasPreferences}
+      onFlowCanvasPreferencesChange={p.onFlowCanvasPreferencesChange}
       onFlowPanePointerEvent={p.onFlowPanePointerEvent}
     />
   );

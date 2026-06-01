@@ -1,0 +1,116 @@
+/* Shell control deck — pill hover glow + one-shot shimmer (motion-safe). */
+
+.shell-deck-pill {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.shell-deck-pill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 62%
+  );
+  transform: translateX(-120%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .shell-deck-pill {
+    transition:
+      border-color 0.2s ease,
+      background-color 0.2s ease,
+      color 0.2s ease,
+      box-shadow 0.28s ease;
+  }
+
+  .shell-deck-pill:hover::after {
+    animation: shell-deck-pill-shimmer 0.55s ease-out forwards;
+  }
+
+  @keyframes shell-deck-pill-shimmer {
+    0% {
+      opacity: 0;
+      transform: translateX(-120%);
+    }
+    18% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+      transform: translateX(120%);
+    }
+  }
+}
+
+/* Workspace */
+.shell-deck-pill--ws-telemetry:hover {
+  border-color: rgb(52 211 153 / 0.5);
+  box-shadow:
+    0 0 0 1px rgb(52 211 153 / 0.22),
+    0 0 14px rgb(52 211 153 / 0.32);
+}
+
+.shell-deck-pill--ws-studio:hover {
+  border-color: rgb(167 139 250 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(167 139 250 / 0.24),
+    0 0 14px rgb(139 92 246 / 0.34);
+}
+
+/* Data source */
+.shell-deck-pill--src-hardware:hover {
+  border-color: rgb(56 189 248 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(56 189 248 / 0.22),
+    0 0 14px rgb(56 189 248 / 0.3);
+}
+
+.shell-deck-pill--src-simulator:hover {
+  border-color: rgb(167 139 250 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(167 139 250 / 0.22),
+    0 0 14px rgb(139 92 246 / 0.32);
+}
+
+.shell-deck-pill--src-simulator-offline:hover {
+  border-color: rgb(251 191 36 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(251 191 36 / 0.22),
+    0 0 14px rgb(251 191 36 / 0.28);
+}
+
+/* Service */
+.shell-deck-pill--service-connect:hover {
+  border-color: rgb(52 211 153 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(52 211 153 / 0.22),
+    0 0 14px rgb(52 211 153 / 0.3);
+}
+
+.shell-deck-pill--service-disconnect:hover {
+  border-color: rgb(251 113 133 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(251 113 133 / 0.22),
+    0 0 14px rgb(244 63 94 / 0.3);
+}
+
+.shell-deck-pill--service-connecting:hover {
+  border-color: rgb(251 191 36 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(251 191 36 / 0.22),
+    0 0 14px rgb(251 191 36 / 0.28);
+}
+
+.shell-deck-pill > * {
+  position: relative;
+  z-index: 1;
+}

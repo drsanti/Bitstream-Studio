@@ -22,7 +22,8 @@ test("findWorstEnabledSensorAge picks the oldest enabled decode", () => {
 });
 
 test("formatSensorDecodeChipLabel names the pinned sensor", () => {
-  assert.equal(formatSensorDecodeChipLabel("sht40", 961), "SHT · 961ms ago");
+  assert.equal(formatSensorDecodeChipLabel("sht40", 961), "SHT · just now");
+  assert.equal(formatSensorDecodeChipLabel("sht40", 1200), "SHT · 1.2s ago");
 });
 
 test("resolveStickyWorstSensorDisplay keeps climbing one sensor until it updates", () => {

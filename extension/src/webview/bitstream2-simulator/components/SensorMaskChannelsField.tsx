@@ -37,6 +37,8 @@ export function SensorMaskChannelsField({
 }: Props) {
   const baseId = useId();
   const [showHex, setShowHex] = useState(false);
+  const maskBits = (mask ?? 0) & 0xff;
+  const appliedMaskBits = (appliedMask ?? 0) & 0xff;
   const spec = getSensorMaskUiSpec(sensorId);
 
   if (!spec) {
@@ -45,7 +47,7 @@ export function SensorMaskChannelsField({
         <input
           id={`${baseId}-mask-hex`}
           className={inputClass}
-          value={mask.toString(16)}
+          value={maskBits.toString(16)}
           disabled={disabled}
           onChange={(e) => onMaskChange(parseInt(e.target.value.trim() || "0", 16) & 0xff)}
         />
@@ -67,13 +69,13 @@ export function SensorMaskChannelsField({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-xs font-medium text-zinc-300">Channels</span>
         {showMaskHex ? (
-          <span className="font-mono text-xs text-zinc-500">mask 0x{mask.toString(16)}</span>
+          <span className="font-mono text-xs text-zinc-500">mask 0x{maskBits.toString(16)}</span>
         ) : null}
       </div>
 
       <div className="flex flex-wrap gap-x-4 gap-y-2">
         {spec.channels.map((ch) => {
-          const checked = (mask & ch.bit) !== 0;
+          const checked = (maskBits & ch.bit) !== 0;
           const id = `${baseId}-ch-${ch.bit}`;
           return (
             <label key={ch.bit} htmlFor={id} className="flex cursor-pointer items-center gap-2 text-sm">
@@ -83,7 +85,7 @@ export function SensorMaskChannelsField({
                 className="h-4 w-4 rounded border-zinc-600"
                 checked={checked}
                 disabled={disabled}
-                onChange={(e) => onMaskChange(toggleMaskBit(mask, ch.bit, e.target.checked))}
+                onChange={(e) => onMaskChange(toggleMaskBit(maskBits, ch.bit, e.target.checked))}
               />
               <span className="text-zinc-200">{ch.label}</span>
             </label>
@@ -121,14 +123,14 @@ export function SensorMaskChannelsField({
         <input
           id={`${baseId}-mask-hex`}
           className={inputClass}
-          value={mask.toString(16)}
+          value={maskBits.toString(16)}
           disabled={disabled}
           onChange={(e) => onMaskChange(parseInt(e.target.value.trim() || "0", 16) & 0xff)}
         />
       ) : null}
 
       {showAppliedHex && dirty ? (
-        <p className="text-[10px] text-amber-200/70">Applied: 0x{appliedMask.toString(16)}</p>
+        <p className="text-[10px] text-amber-200/70">Applied: 0x{appliedMaskBits.toString(16)}</p>
       ) : null}
     </div>
   );

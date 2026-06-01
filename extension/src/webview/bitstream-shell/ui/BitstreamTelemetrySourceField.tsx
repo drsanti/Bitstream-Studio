@@ -1,54 +1,120 @@
 import { Cpu, FlaskConical } from "lucide-react";
-import { TRNSelect } from "../../ui/TRN/TRNSelect";
+import type { LucideIcon } from "lucide-react";
 import {
   BITSTREAM_TELEMETRY_SOURCE_LABELS,
   useBitstreamTelemetrySourceStore,
   type BitstreamTelemetryBackend,
 } from "../../bitstream-app/state/bitstreamTelemetrySource.store";
+import {
+  SHELL_CONTROL_DECK_ZONE_CLASS,
+  SHELL_DECK_PILL_ACTIVE_BASE_CLASS,
+  SHELL_DECK_PILL_INACTIVE_CLASS,
+} from "./shell-control-deck-ui";
+import {
+  SHELL_DECK_PILL_HOVER,
+  SHELL_DECK_PILL_INTERACTIVE_CLASS,
+} from "./shell-deck-pill-hover";
+import { TRN_HINT_HOVER_DELAY_MS } from "../../ui/TRN/TRNHintText";
+import { TRNTooltip } from "../../ui/TRN/TRNTooltip";
 
-const OPTIONS = [
-  { value: "uart" as const, label: BITSTREAM_TELEMETRY_SOURCE_LABELS.uart },
-  { value: "simulator" as const, label: BITSTREAM_TELEMETRY_SOURCE_LABELS.simulator },
+type SourceSegment = {
+  id: BitstreamTelemetryBackend;
+  label: string;
+  Icon: LucideIcon;
+  activeSurfaceClass: string;
+  activeIconClass: string;
+};
+
+const SOURCE_SEGMENTS: readonly SourceSegment[] = [
+  {
+    id: "uart",
+    label: BITSTREAM_TELEMETRY_SOURCE_LABELS.uart,
+    Icon: Cpu,
+    activeSurfaceClass:
+      "border-sky-500/45 bg-sky-500/15 text-sky-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    activeIconClass: "text-sky-300",
+  },
+  {
+    id: "simulator",
+    label: BITSTREAM_TELEMETRY_SOURCE_LABELS.simulator,
+    Icon: FlaskConical,
+    activeSurfaceClass:
+      "border-violet-500/45 bg-violet-500/15 text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    activeIconClass: "text-violet-300",
+  },
 ];
 
-export function BitstreamTelemetrySourceField()
-{
+function sourceHint(
+  segmentId: BitstreamTelemetryBackend,
+  loopbackAvailable: boolean,
+): string {
+  if (segmentId === "simulator") {
+    return loopbackAvailable
+      ? "Simulator — synthetic BS2 via bitstream-simulator; USB serial stays closed. Applies to both workspaces."
+      : "Simulator — start the bitstream-simulator extension and bridge (npm run start:bridge). Applies to both workspaces.";
+  }
+  return "Hardware — live MCU on USB (BS2 UART). Simulator stays idle. Applies to both workspaces.";
+}
+
+/** Data source segmented control — Hardware (UART) vs Simulator. */
+export function BitstreamTelemetrySourceField() {
   const backend = useBitstreamTelemetrySourceStore((s) => s.backend);
   const loopbackAvailable = useBitstreamTelemetrySourceStore((s) => s.loopbackAvailable);
   const setBackend = useBitstreamTelemetrySourceStore((s) => s.setBackend);
 
-  const hint =
-    backend === "simulator"
-      ? loopbackAvailable
-        ? "External bitstream-simulator online — synthetic BS2 stream; open COM is closed automatically."
-        : "External data source — start the bitstream-simulator extension + bridge (npm run start:bridge)."
-      : "Data from firmware on serial (USB COM). Simulator stays idle while Bitstream is selected.";
-
-  const Icon = backend === "simulator" ? FlaskConical : Cpu;
-
-  const iconClassName =
-    backend === "simulator" && loopbackAvailable
-      ? "h-3.5 w-3.5 shrink-0 text-violet-300"
-      : "h-3.5 w-3.5 shrink-0 text-zinc-500";
-
   return (
-    <div
-      className="inline-flex shrink-0 items-center gap-1.5"
-      title={hint}
-    >
-      <span className="text-[10px] font-medium tracking-wide text-zinc-500 uppercase">
-        Source
-      </span>
-      <TRNSelect
-        ariaLabel="Source"
-        value={backend}
-        size="sm"
-        options={OPTIONS.map((opt) => ({ value: opt.value, label: opt.label }))}
-        onValueChange={(value) => setBackend(value as BitstreamTelemetryBackend)}
-        className="w-38 shrink-0"
-        buttonClassName="h-7 w-full shrink-0 border-violet-700/40 bg-zinc-900/90 px-2 text-[11px] font-medium text-zinc-100"
-        leadingIcon={<Icon className={iconClassName} strokeWidth={2.25} aria-hidden />}
-      />
+    <div className={SHELL_CONTROL_DECK_ZONE_CLASS} role="group" aria-label="Data source">
+      {SOURCE_SEGMENTS.map((segment) => {
+        const active = backend === segment.id;
+        const { Icon } = segment;
+        const simOffline = segment.id === "simulator" && !loopbackAvailable;
+        const hoverClass =
+          segment.id === "uart"
+            ? SHELL_DECK_PILL_HOVER.sourceHardware
+            : simOffline
+              ? SHELL_DECK_PILL_HOVER.sourceSimulatorOffline
+              : SHELL_DECK_PILL_HOVER.sourceSimulator;
+        const iconClass = simOffline
+          ? active
+            ? "text-amber-300"
+            : "text-amber-500/85"
+          : active
+            ? segment.activeIconClass
+            : "text-zinc-500 opacity-85";
+        const trigger = (
+          <button
+            type="button"
+            aria-pressed={active}
+            className={`${SHELL_DECK_PILL_INTERACTIVE_CLASS} ${hoverClass} ${
+              active
+                ? `${SHELL_DECK_PILL_ACTIVE_BASE_CLASS} ${segment.activeSurfaceClass}`
+                : SHELL_DECK_PILL_INACTIVE_CLASS
+            }`}
+            onClick={() => {
+              if (!active) {
+                setBackend(segment.id);
+              }
+            }}
+          >
+            <Icon className={`size-3.5 shrink-0 ${iconClass}`} strokeWidth={2.25} aria-hidden />
+            {segment.label}
+          </button>
+        );
+
+        return (
+          <TRNTooltip
+            key={segment.id}
+            content={sourceHint(segment.id, loopbackAvailable)}
+            placement="bottom-start"
+            openDelayMs={TRN_HINT_HOVER_DELAY_MS}
+            disableHoverFx
+            triggerWrapper="span"
+            triggerClassName="!p-0"
+            triggerAriaLabel={segment.label}
+            trigger={trigger}
+          />
+        );
+      })}
     </div>
   );
 }

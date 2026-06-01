@@ -505,7 +505,7 @@ export function NodePalette(props: NodePaletteProps) {
                     )}
                   </div>
                   {!collapsed && children.length > 0 ? (
-                    <div className={`relative ${dense ? "pb-1 pt-1" : "pb-1.5 pt-1.5"}`}>
+                    <div className={`relative ${dense ? "py-0.5" : "pb-1.5 pt-1.5"}`}>
                       {renderSensorFamilyTreeRows(list, sensorTreeLayout)}
                     </div>
                   ) : null}
@@ -541,7 +541,7 @@ export function NodePalette(props: NodePaletteProps) {
                   <span className="shrink-0 tabular-nums text-zinc-600">{list.length}</span>
                 </button>
                 {!collapsed ? (
-                  <div className={`relative ${dense ? "pb-1 pt-1" : "pb-1.5 pt-1.5"}`}>
+                  <div className={`relative ${dense ? "py-0.5" : "pb-1.5 pt-1.5"}`}>
                     {renderSensorFamilyTreeRows(list, sensorTreeLayout)}
                   </div>
                 ) : null}

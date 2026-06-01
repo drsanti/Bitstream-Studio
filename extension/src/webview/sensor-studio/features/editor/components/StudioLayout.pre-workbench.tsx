@@ -170,8 +170,6 @@ export function StudioLayout(props: StudioLayoutProps) {
     >
       <SensorStudioChromeBar
         borderColor={borderColor}
-        entries={entries}
-        onAddNode={onAddNode}
         onOpenDeviceSensorSettings={() => onOpenDeviceSensorSettings?.(null)}
         onDuplicateSelection={onDuplicateSelection}
         onDeleteSelection={onDeleteSelection}

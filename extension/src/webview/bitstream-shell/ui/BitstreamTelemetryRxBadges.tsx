@@ -37,6 +37,7 @@ import {
 } from "../../bitstream-app/utils/telemetryDeltaDisplay.js";
 import {
   BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS,
+  BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS,
   BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS,
 } from "./workspace-chrome-chip.js";
 
@@ -170,7 +171,7 @@ function hintToChipShortLabel(hint: (typeof SENSOR_RX_HINTS)[number]): string {
 
 /** Toolbar chip label — wall age for the pinned worst sensor (not inter-arrival Δ). */
 export function formatSensorDecodeChipLabel(hint: (typeof SENSOR_RX_HINTS)[number], ageMs: number): string {
-  return `${hintToChipShortLabel(hint)} · ${formatSampleAge(ageMs)} ago`;
+  return `${hintToChipShortLabel(hint)} · ${formatWallClockAgeAgo(ageMs)}`;
 }
 
 export type StickyWorstSensorPin = {
@@ -250,12 +251,23 @@ function formatSampleAge(ageMs: number): string {
     return "—";
   }
   if (ageMs < 1000) {
-    return `${Math.round(ageMs)}ms`;
+    return "<1s";
   }
   if (ageMs < 60_000) {
     return `${(ageMs / 1000).toFixed(1)}s`;
   }
   return `${Math.floor(ageMs / 60_000)}m`;
+}
+
+/** Wall-clock age since last decode — avoids misleading `0ms ago` while samples are streaming. */
+export function formatWallClockAgeAgo(ageMs: number): string {
+  if (!Number.isFinite(ageMs) || ageMs < 0) {
+    return "—";
+  }
+  if (ageMs < 1000) {
+    return "just now";
+  }
+  return `${formatSampleAge(ageMs)} ago`;
 }
 
 function hintToSensorTitle(hint: (typeof SENSOR_RX_HINTS)[number]): string {
@@ -288,7 +300,7 @@ type PerSensorDecodeRowModel = {
 };
 
 function formatPerSensorWallAgeLabel(ageMs: number): string {
-  return `${formatSampleAge(ageMs)} ago`;
+  return formatWallClockAgeAgo(ageMs);
 }
 
 function buildPerSensorDecodeDualLabels(args: {
@@ -1081,7 +1093,7 @@ export function BitstreamSensorSampleRxBadge(props: {
     stickyWorstDisplay != null
       ? formatSensorDecodeChipLabel(stickyWorstDisplay.hint, stickyWorstDisplay.ageMs)
       : worstSampleAgeMs != null
-        ? `${formatSampleAge(worstSampleAgeMs)} ago`
+        ? formatWallClockAgeAgo(worstSampleAgeMs)
         : null;
   const sensorRowValueLabel =
     (variant === "panel" || variant === "cardRow") && decodeAgeLabel != null
@@ -1102,7 +1114,7 @@ export function BitstreamSensorSampleRxBadge(props: {
     const i = clampSamplingIntervalMs(row?.samplingIntervalMs);
     const tier = tierForSensorAge(a, row?.samplingIntervalMs);
     const tierLabel = tier === 0 ? "ok" : tier === 1 ? "warn" : "stale";
-    return `${hint}: ${formatSampleAge(a)} ago · ≤${2 * i}ms fresh · ${tierLabel}`;
+    return `${hint}: ${formatWallClockAgeAgo(a)} · ≤${2 * i}ms fresh · ${tierLabel}`;
   }).join("\n");
 
   const triggerAriaLabel = useMemo(() => {
@@ -1129,7 +1141,7 @@ export function BitstreamSensorSampleRxBadge(props: {
     }
     const age = worstSampleAgeMs ?? 0;
     const pinned = stickyWorstDisplay?.hint ?? "sensor";
-    return `Sensor decode freshness: slowest enabled sensor (${pinned}) last decode ${formatSampleAge(age)} ago (${label}). Color uses worst age across all enabled sensors (emerald ≤2× interval, amber ≤4×). See tooltip.`;
+    return `Sensor decode freshness: slowest enabled sensor (${pinned}) last decode ${formatWallClockAgeAgo(age)} (${label}). Color uses worst age across all enabled sensors (emerald ≤2× interval, amber ≤4×). See tooltip.`;
   }, [
     displayFps,
     hasEnabledFreshnessSignal,
@@ -1157,7 +1169,7 @@ export function BitstreamSensorSampleRxBadge(props: {
       <div className="mt-1 text-zinc-400">
         Last frame (any sensor):{" "}
         {newestSampleAtMs != null ? formatTime(newestSampleAtMs) : "none yet"}
-        {pipelineAgeMs != null ? ` · ${formatSampleAge(pipelineAgeMs)} ago` : null}
+        {pipelineAgeMs != null ? ` · ${formatWallClockAgeAgo(pipelineAgeMs)}` : null}
       </div>
       <div className="mt-2 text-zinc-500">
         Rate is derived from the global decode counter, not per-sensor spacing. Per-sensor freshness remains in
@@ -1389,12 +1401,12 @@ export function BitstreamSensorSampleRxBadge(props: {
         onReconnectTelemetry?.();
       }}
     >
-      <Radio size={12} aria-hidden="true" className={`shrink-0 ${toneClass}`} />
+      <Radio size={12} aria-hidden="true" className={`${BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS} ${toneClass}`} />
       <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
     </button>
   ) : (
     <span className={`${chipSurfaceClass} select-none`}>
-      <Radio size={12} aria-hidden="true" className={`shrink-0 ${toneClass}`} />
+      <Radio size={12} aria-hidden="true" className={`${BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS} ${toneClass}`} />
       <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
     </span>
   );

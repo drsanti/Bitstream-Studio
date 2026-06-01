@@ -15,18 +15,16 @@ import {
   Upload,
 } from "lucide-react";
 import type { ReactNode } from "react";
+import {
+  TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
+  TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS,
+  toolbarHeaderDropdownMenuIcon,
+} from "../components/toolbar-header-dropdown-menu-ui";
 
-/** Half-radius vs default glass `TRNMenuPanel` (`rounded-xl` → `rounded-md`). */
-export const WORKBENCH_LAYOUT_MENU_PANEL_CLASS =
-  "min-w-52 max-h-80 overflow-y-auto scrollbar-hide rounded-md px-1 py-0.5";
+export const WORKBENCH_LAYOUT_MENU_PANEL_CLASS = TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS;
+export const WORKBENCH_LAYOUT_MENU_ITEM_CLASS = TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS;
 
-/** Denser rows than default `TRNMenuItemButton` (`rounded-md` → `rounded-sm`). */
-export const WORKBENCH_LAYOUT_MENU_ITEM_CLASS =
-  "gap-1.5 rounded-sm px-2 py-1 text-[13px] leading-tight";
-
-export function workbenchLayoutMenuIcon(Icon: LucideIcon): ReactNode {
-  return <Icon className="size-3.5 shrink-0 text-zinc-400" aria-hidden />;
-}
+export const workbenchLayoutMenuIcon = toolbarHeaderDropdownMenuIcon;
 
 export function workbenchLayoutPresetIcon(presetId: string): ReactNode {
   switch (presetId) {
@@ -54,4 +52,4 @@ export const WORKBENCH_LAYOUT_MENU_ICONS = {
   exportCurrent: Download,
   importLayout: Upload,
   reset: RotateCcw,
-} as const;
+} as const satisfies Record<string, LucideIcon>;

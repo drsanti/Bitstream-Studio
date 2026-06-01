@@ -26,6 +26,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import "../nodes/flow-node/flow-node-handles.css";
 import "../flow-canvas-minimap.css";
+import "../flow-canvas-interaction.css";
 import "../layout-nodes/layout-flow-nodes.css";
 import "../layout-nodes/subgraph-flow-nodes.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
@@ -36,7 +37,7 @@ import { SplitLayoutNode } from "../layout-nodes/SplitLayoutNode";
 import { NodeGroupLayoutNode } from "../layout-nodes/NodeGroupLayoutNode";
 import { GroupInputLayoutNode } from "../layout-nodes/GroupInputLayoutNode";
 import { GroupOutputLayoutNode } from "../layout-nodes/GroupOutputLayoutNode";
-import { FlowGraphBreadcrumb } from "./FlowGraphBreadcrumb";
+import { FlowGraphBreadcrumbChrome } from "./FlowGraphBreadcrumb";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import type { FlowGraphNode } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
@@ -52,6 +53,7 @@ import { parseStudioNodeGroupAssetDragData } from "./node-palette/node-group-ass
 import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
 import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { FlowCanvasToolbar } from "./flow-toolbar/FlowCanvasToolbar";
+import { FlowCanvasTopLeftChrome } from "./flow-toolbar/FlowCanvasTopLeftChrome";
 import { NodeSelectionToolbar } from "./flow-toolbar/NodeSelectionToolbar";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
@@ -118,6 +120,7 @@ type FlowCanvasProps = {
   onDropNodeGroupAsset?: (assetId: string, flowPosition: { x: number; y: number }) => void;
   canvasBackgroundColor: string;
   flowCanvasPreferences: FlowCanvasPreferences;
+  onFlowCanvasPreferencesChange?: (patch: Partial<FlowCanvasPreferences>) => void;
   onFlowPanePointerEvent?: (event: { button: number }) => void;
 };
 
@@ -160,8 +163,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     onDropNodeGroupAsset,
     canvasBackgroundColor,
     flowCanvasPreferences,
+    onFlowCanvasPreferencesChange,
     onFlowPanePointerEvent,
   } = props;
+
+  const interactionMode = flowCanvasPreferences.interactionMode ?? "select";
+  const isPanMode = interactionMode === "pan";
 
   const reactFlowRef = useRef<ReactFlowInstance<FlowGraphNode> | null>(null);
   const graphWrapperRef = useRef<HTMLDivElement>(null);
@@ -520,7 +527,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
     >
       <div
         ref={graphWrapperRef}
-        className="relative min-h-0 flex-1"
+        className={
+          isPanMode ? "studio-flow-canvas--pan relative min-h-0 flex-1" : "studio-flow-canvas--select relative min-h-0 flex-1"
+        }
         style={{ borderColor }}
         onDragOver={handleCanvasDragOver}
         onDrop={handleCanvasDrop}
@@ -528,12 +537,17 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           lastPointerRef.current = { clientX: event.clientX, clientY: event.clientY };
         }}
       >
-        <div className="pointer-events-none absolute left-3 top-3 z-20">
-          <div className="pointer-events-auto rounded border border-zinc-700/70 bg-zinc-950/80 px-2 py-1 backdrop-blur-sm">
-            <FlowGraphBreadcrumb />
-          </div>
+        <FlowGraphBreadcrumbChrome />
+        <div className="pointer-events-none absolute right-3 top-3 z-20 flex max-w-[min(calc(100%-1.5rem),520px)] flex-col items-end gap-2">
+          <FlowCanvasTopLeftChrome />
         </div>
-        <FlowCanvasToolbar onFitAll={fitAllInView} />
+        <FlowCanvasToolbar
+          onFitAll={fitAllInView}
+          interactionMode={interactionMode}
+          onInteractionModeChange={(mode) => {
+            onFlowCanvasPreferencesChange?.({ interactionMode: mode });
+          }}
+        />
         <NodeSelectionToolbar wrapperRef={graphWrapperRef} onFitSelection={fitSelectionInView} />
         <ReactFlow<FlowGraphNode>
           colorMode="dark"
@@ -543,6 +557,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(fun
           edges={coloredEdges}
           nodeTypes={nodeTypes}
           elementsSelectable
+          panOnDrag={isPanMode}
+          selectionOnDrag={!isPanMode}
           snapToGrid={flowCanvasPreferences.snapToGrid}
           snapGrid={snapGrid}
           defaultEdgeOptions={{

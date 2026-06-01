@@ -1,3 +1,4 @@
+import { Link2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useBitstreamTransportActions } from "../../bitstream-app/context/bitstreamTransportActions.context";
 import { BitstreamSensorSampleRxBadge } from "./BitstreamTelemetryRxBadges";
@@ -9,6 +10,7 @@ import { TRN_HINT_HOVER_DELAY_MS } from "../../ui/TRN/TRNHintText";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip";
 import {
   BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS,
+  BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS,
   BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS,
 } from "./workspace-chrome-chip";
 
@@ -19,8 +21,7 @@ export type WorkspaceChromeBarProps = {
 };
 
 /**
- * Merged app header: title + link-ready pill + telemetry FPS + actions row,
- * with full {@link LinkLifecycleStrip} when the link is not ready.
+ * Merged workspace header: title, center (lifecycle strip or FPS), and actions on one row.
  */
 export function WorkspaceChromeBar(props: WorkspaceChromeBarProps) {
   const { title, actions, borderColor } = props;
@@ -52,34 +53,40 @@ export function WorkspaceChromeBar(props: WorkspaceChromeBarProps) {
                   className={`${BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS} border-emerald-400/35 bg-emerald-500/15 ${BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS} text-emerald-100/95 hover:brightness-110`}
                   onClick={() => lifecycleInputs.onOpenConnection?.()}
                 >
-                  Link ready
+                  <Link2
+                    size={12}
+                    aria-hidden
+                    className={`${BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS} text-emerald-200/95`}
+                  />
+                  <span className="shrink-0">Link ready</span>
                 </button>
               }
             />
           ) : null}
         </div>
 
-        <div className="flex min-w-0 flex-1 items-center justify-center px-2">
-          <BitstreamSensorSampleRxBadge
-            variant="chip"
-            chipMetric="aggregateFps"
-            onReconnectTelemetry={reconnectTelemetry}
-          />
+        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden px-1">
+          {linkReady ? (
+            <BitstreamSensorSampleRxBadge
+              variant="chip"
+              chipMetric="aggregateFps"
+              onReconnectTelemetry={reconnectTelemetry}
+            />
+          ) : (
+            <LinkLifecycleStrip
+              {...lifecycleInputs}
+              wrapPills={false}
+              showStatusText={false}
+              showConnectionButton={false}
+              className="flex min-w-0 w-full flex-nowrap items-center gap-2 overflow-x-auto scrollbar-hide"
+            />
+          )}
         </div>
 
         <div className="flex shrink-0 flex-nowrap items-center justify-end gap-1.5 overflow-x-auto scrollbar-hide">
           {actions}
         </div>
       </div>
-
-      {!linkReady ? (
-        <div className="border-t border-white/5 px-2 py-1">
-          <LinkLifecycleStrip
-            {...lifecycleInputs}
-            className="flex min-w-0 w-full flex-wrap items-center gap-x-2 gap-y-1"
-          />
-        </div>
-      ) : null}
     </header>
   );
 }

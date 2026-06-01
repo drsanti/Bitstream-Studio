@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   StandaloneWorkbench,
-  WorkbenchLayoutMenu,
   type StandaloneWorkbenchHandle,
   type WorkbenchLayoutMenuProps,
 } from "../../../../ui/workbench";
-import { SensorStudioChromeBar } from "./SensorStudioChromeBar";
+import { StudioFlowCanvasChromeProvider } from "../studio-flow-canvas-chrome.context";
+import type { StudioOverflowMenuProps } from "./StudioOverflowMenu";
 import { DeviceSensorSettingsWindow } from "../../device-settings/DeviceSensorSettingsWindow";
 import type { StudioLayoutProps } from "../studio-layout.props";
 import { DEFAULT_STUDIO_WORKBENCH_LAYOUT } from "../workbench/default-studio-workbench-layout";
@@ -55,6 +55,28 @@ export function StudioLayout(props: StudioLayoutProps) {
   const workbenchRef = workbenchRefProp ?? internalWorkbenchRef;
   const [layoutMenuProps, setLayoutMenuProps] = useState<WorkbenchLayoutMenuProps | null>(null);
 
+  const flowCanvasChrome = useMemo((): StudioOverflowMenuProps => {
+    return {
+      onOpenDeviceSensorSettings: () => onOpenDeviceSensorSettings?.(null),
+      onDuplicateSelection,
+      onDeleteSelection,
+      onSelectAllNodes,
+      onClearCanvasSelection,
+      onExportFlow,
+      onImportFlowPick,
+      layoutMenuProps,
+    };
+  }, [
+    layoutMenuProps,
+    onClearCanvasSelection,
+    onDeleteSelection,
+    onDuplicateSelection,
+    onExportFlow,
+    onImportFlowPick,
+    onOpenDeviceSensorSettings,
+    onSelectAllNodes,
+  ]);
+
   const resetWorkspaceLayout = useCallback(() => {
     workbenchRef.current?.resetLayout();
   }, []);
@@ -80,24 +102,11 @@ export function StudioLayout(props: StudioLayoutProps) {
         color: primaryTextColor,
       }}
     >
-      <SensorStudioChromeBar
-        borderColor={borderColor}
-        entries={entries}
-        onAddNode={onAddNode}
-        onOpenDeviceSensorSettings={() => onOpenDeviceSensorSettings?.(null)}
-        onDuplicateSelection={onDuplicateSelection}
-        onDeleteSelection={onDeleteSelection}
-        onSelectAllNodes={onSelectAllNodes}
-        onClearCanvasSelection={onClearCanvasSelection}
-        onExportFlow={onExportFlow}
-        onImportFlowPick={onImportFlowPick}
-        layoutMenu={layoutMenuProps ? <WorkbenchLayoutMenu {...layoutMenuProps} /> : null}
-      />
-
       <main className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 pt-0">
         <StudioWorkbenchShellProvider
           value={{ ...props, onResetWorkspaceLayout: resetWorkspaceLayout }}
         >
+          <StudioFlowCanvasChromeProvider value={flowCanvasChrome}>
           <StandaloneWorkbench
             ref={workbenchRef}
             initialLayout={DEFAULT_STUDIO_WORKBENCH_LAYOUT}
@@ -113,6 +122,7 @@ export function StudioLayout(props: StudioLayoutProps) {
               // Last pane cannot float — ignore silently.
             }}
           />
+          </StudioFlowCanvasChromeProvider>
         </StudioWorkbenchShellProvider>
       </main>
 

@@ -1,11 +1,17 @@
-import { FolderOpen, Microchip } from "lucide-react";
+import { FolderOpen, Microchip, PanelsTopLeft } from "lucide-react";
 import type { ReactNode } from "react";
 import { useOpenAssetManager } from "../assets-manager/hooks/useOpenAssetManager.js";
 import {
   STUDIO_TOOLBAR_DIVIDER_CLASS,
   StudioToolbarMenu,
 } from "../sensor-studio/features/editor/components/studio-toolbar/StudioToolbarMenu";
+import {
+  TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
+  TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS,
+  toolbarHeaderDropdownMenuIcon,
+} from "../ui/components/toolbar-header-dropdown-menu-ui";
 import { TRNMenuItemButton, TRNMenuPanel } from "../ui/TRN/TRNMenu";
+import { telemetryPaneMenuIcon } from "./telemetry-view-menu-ui";
 
 export type TelemetryPaneCommand = {
   editorType: string;
@@ -57,15 +63,22 @@ export function TelemetryToolbarActions(props: TelemetryToolbarActionsProps) {
       <StudioToolbarMenu
         label="View"
         align="right"
+        prefixIcon={toolbarHeaderDropdownMenuIcon(PanelsTopLeft)}
         hint="Show or expand a telemetry workbench pane (config, 3D, deck, activity)"
       >
-        <TRNMenuPanel tone="glass-dropdown" className="min-w-48 py-1 scrollbar-hide max-h-80 overflow-y-auto">
+        <TRNMenuPanel
+          tone="glass-dropdown"
+          edgeAutoScroll
+          className={TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS}
+        >
           <div className="flex flex-col gap-0.5">
             {paneCommands.map((pane) => (
               <TRNMenuItemButton
                 key={pane.editorType}
                 role="menuitem"
                 tone="glass-dropdown"
+                className={TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS}
+                icon={telemetryPaneMenuIcon(pane.editorType)}
                 label={pane.label}
                 onClick={() => {
                   onFocusPane?.(pane.editorType);

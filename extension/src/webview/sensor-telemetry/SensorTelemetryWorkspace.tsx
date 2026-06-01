@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRegisterWorkspaceHeaderMenuSlot } from "../bitstream-shell/hooks/useRegisterWorkspaceHeaderMenuSlot";
 import {
   StandaloneWorkbench,
-  WorkbenchLayoutMenu,
   type StandaloneWorkbenchHandle,
   type WorkbenchLayoutMenuProps,
 } from "../ui/workbench";
 import { DeviceSensorSettingsWindow } from "../sensor-studio/features/device-settings/DeviceSensorSettingsWindow";
-import { SensorTelemetryChromeBar } from "./SensorTelemetryChromeBar";
+import { TelemetryOverflowMenuSections } from "./TelemetryOverflowMenu";
 import { DEFAULT_TELEMETRY_WORKBENCH_LAYOUT } from "./workbench/default-telemetry-workbench-layout";
 import { TELEMETRY_WORKBENCH_REGISTRY } from "./workbench/telemetry-workbench-registry";
 import { validateTelemetryWorkbenchLayout } from "./workbench/validate-telemetry-workbench-layout";
@@ -40,18 +40,25 @@ export function SensorTelemetryWorkspace() {
     workbenchRef.current?.focusPane(editorType);
   }, []);
 
+  const workspaceHeaderMenuSections = useMemo(
+    () => (
+      <TelemetryOverflowMenuSections
+        omitAssets
+        onOpenDeviceSensorSettings={() => setDeviceSensorSettingsOpen(true)}
+        onFocusPane={focusPane}
+        paneCommands={TELEMETRY_WORKBENCH_PANE_COMMANDS}
+        layoutMenuProps={layoutMenuProps}
+      />
+    ),
+    [focusPane, layoutMenuProps],
+  );
+  useRegisterWorkspaceHeaderMenuSlot(workspaceHeaderMenuSections);
+
   return (
     <div
       className="flex min-h-0 min-w-0 flex-1 flex-col"
       data-bitstream-sensor-workspace-root
     >
-      <SensorTelemetryChromeBar
-        onOpenDeviceSensorSettings={() => setDeviceSensorSettingsOpen(true)}
-        onFocusPane={focusPane}
-        paneCommands={TELEMETRY_WORKBENCH_PANE_COMMANDS}
-        layoutMenu={layoutMenuProps ? <WorkbenchLayoutMenu {...layoutMenuProps} /> : null}
-      />
-
       <main className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 pt-0">
         <StandaloneWorkbench
           ref={workbenchRef}

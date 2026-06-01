@@ -1,6 +1,8 @@
 import { useCallback, useMemo } from "react";
 import { Target, Trash2, Wand2 } from "lucide-react";
+import type { FlowCanvasInteractionMode } from "../../../../persistence/flow-canvas-preferences";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
+import { FlowCanvasInteractionModeButtons } from "./FlowCanvasInteractionModeButtons";
 import {
   getSocketValuesVisibleUIState,
   getSocketsExpandedUIState,
@@ -18,10 +20,12 @@ import { SocketDisplayToggle, SocketValuesToggle } from "./FlowToolbarToggles";
 export type FlowCanvasToolbarProps = {
   onFitAll: () => void;
   onFitAllAndRemember?: () => void;
+  interactionMode: FlowCanvasInteractionMode;
+  onInteractionModeChange: (mode: FlowCanvasInteractionMode) => void;
 };
 
 export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
-  const { onFitAll } = props;
+  const { onFitAll, interactionMode, onInteractionModeChange } = props;
   const nodes = useFlowEditorStore((s) => s.nodes);
   const edges = useFlowEditorStore((s) => s.edges);
   const applyFlowAutoLayout = useFlowEditorStore((s) => s.applyFlowAutoLayout);
@@ -67,15 +71,20 @@ export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
     resetCanvas();
   }, [resetCanvas]);
 
-  if (nodes.length === 0) {
-    return null;
-  }
+  const hasGraph = nodes.length > 0;
 
   return (
     <div
       className={`${FLOW_TOOLBAR_PILL_CLASS} absolute left-1/2 top-3 z-20 -translate-x-1/2`}
       onMouseDown={(e) => e.stopPropagation()}
     >
+      <FlowCanvasInteractionModeButtons
+        mode={interactionMode}
+        onModeChange={onInteractionModeChange}
+        showTrailingDivider={hasGraph}
+      />
+      {!hasGraph ? null : (
+        <>
       <button
         type="button"
         className={flowToolbarBtnClass()}
@@ -146,6 +155,8 @@ export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
       >
         <Trash2 size={14} />
       </button>
+        </>
+      )}
     </div>
   );
 }

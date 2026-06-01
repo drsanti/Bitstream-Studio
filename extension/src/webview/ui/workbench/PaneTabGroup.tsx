@@ -139,7 +139,9 @@ export const PaneTabGroup = memo(function PaneTabGroup({
           onCollapse={() => onCollapse(activePane.id)}
           onChangeType={(type) => onChangeType(activePane.id, type)}
           onActivate={() => onActivate?.(activePane.id)}
-          onToggleMaximize={() => onToggleMaximize?.(activePane.id)}
+          onToggleMaximize={
+            onToggleMaximize != null ? () => onToggleMaximize(activePane.id) : undefined
+          }
           dockDragSourceId={dockDragSourceId}
           dockHoverZone={hoverZone}
           onDockZoneChange={onDockZoneChange}

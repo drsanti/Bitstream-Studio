@@ -1,6 +1,5 @@
 import { Cpu, Server, Usb, Wifi, WifiOff } from "lucide-react";
 import { useMemo } from "react";
-import { TRNToolbarGroup } from "../../ui/TRN/TRNToolbar.js";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip.js";
 import { useBitstreamConnectionStore } from "../../bitstream-app/state/bitstreamConnection.store";
 import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.store";
@@ -143,8 +142,11 @@ export function BitstreamSystemStatusIndicators(props: {
   }, [busyAction, firmwareLiveness, handshake, handshakeState, runtimeSyncState]);
 
   return (
-    <TRNToolbarGroup gap="xs" align="end">
-      <div className="flex flex-row gap-2">
+    <div
+      className="inline-flex shrink-0 items-center gap-2"
+      role="group"
+      aria-label="System status"
+    >
         <TRNTooltip
           placement="bottom-end"
           openDelayMs={650}
@@ -330,8 +332,7 @@ export function BitstreamSystemStatusIndicators(props: {
             </span>
           }
         />
-      </div>
-    </TRNToolbarGroup>
+    </div>
   );
 }
 

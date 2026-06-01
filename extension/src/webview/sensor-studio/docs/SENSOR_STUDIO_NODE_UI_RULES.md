@@ -4,30 +4,25 @@ Short conventions for **flow node cards** and the **Node Inspector**, aligned wi
 
 ---
 
-## Application chrome (`SensorStudioChromeBar`)
+## Application chrome (shell `TRNToolbar`)
 
-Replaces separate shell **`BitstreamBootLifecycleBar`** + **`StudioToolbar`** when `workspace === "sensor-studio"` (lifecycle strip is hidden in **`BitstreamShellRoot`**).
-
-**Row 1** — studio actions (always):
+Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMainToolbar`** when `workspace === "sensor-studio"`:
 
 | Zone | Content |
 | ---- | ------- |
-| **Identity** | `Sensor Studio` + compact **`Link ready`** pill when boot complete |
-| **Status** | `BitstreamSensorSampleRxBadge` (aggregate FPS, centered) |
-| **Actions** | **Devices** + **Assets**, then **Insert ▾** / **Edit ▾** / **File ▾** / **Layout ▾** |
+| **Left** (after LINK) | Brand, SOURCE, Link connect/disconnect |
+| **Center** | **`BitstreamWorkspaceSwitcher`** (Telemetry · Studio) |
+| **Right** | Telemetry: workspace ☰ · system indicators · shell ☰ |
 
-**Row 2** — link lifecycle (only while not ready): **`LinkLifecycleStrip`** (UART, broker, handshake, sensor cfg, Wi‑Fi) + status prose + **Connection…**
+**Floating footer** (`ShellLinkStatusFooter`): UART / broker / handshake / sensor-cfg / Wi‑Fi pills while link setup is incomplete (+ **Connection…**). Hidden in Studio when link is ready (wire/FPS only in the shell toolbar).
 
-| Menu | Items |
-| ---- | ----- |
-| **Insert** | Catalog quick-add (`studio-toolbar-insert-sections.ts`) — sensors + threshold; full catalog remains in the **Library** pane |
-| **Edit** | Duplicate, Delete, Select all, Clear selection |
-| **File** | Export / import flow JSON |
-| **Layout** | `WorkbenchLayoutMenu` (presets, saved layouts, reset) |
+**Flow canvas top-right** (`FlowCanvasTopLeftChrome`): **Studio ☰** only (wire/FPS metrics stay in the shell toolbar). Graph breadcrumb stays top-left when inside a node group.
 
-**Not in the header** (canvas / selection toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
+**Studio ☰** sections: Workspace (Devices, Assets), Flow graph (duplicate / delete / selection), Flow file (import / export JSON), Workbench layout (`WorkbenchLayoutMenuSections`).
 
-Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on header controls. Lifecycle UI: **`LinkLifecycleStrip`**, **`useLinkLifecycleBarInputs`**.
+**Not in the shell toolbar** (canvas toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
+
+Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on toolbar controls.
 
 ---
 

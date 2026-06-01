@@ -38,6 +38,7 @@ import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import {
   isBodyControlsVisible,
+  isSocketValuesVisible,
   isSocketsExpanded,
   shouldShowSocketRow,
   studioNodeHasHideableBody,
@@ -128,6 +129,7 @@ export function StudioNodeCard(props: NodeProps) {
     [id, descriptors, flowNodes, flowEdges],
   );
   const socketsExpanded = isSocketsExpanded(data.ui);
+  const socketValuesVisible = isSocketValuesVisible(data.ui);
   const bodyControlsVisible = isBodyControlsVisible(data.ui);
   const edges = flowEdges as unknown as readonly Edge[];
   const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
@@ -321,6 +323,10 @@ export function StudioNodeCard(props: NodeProps) {
     showNodeBody,
     updateNodeInternals,
   ]);
+
+  useLayoutEffect(() => {
+    updateNodeInternals(id);
+  }, [id, socketValuesVisible, socketsExpanded, updateNodeInternals]);
 
   const environmentBodyToggle =
     data.nodeId === "environment" ? (
@@ -864,12 +870,18 @@ export function StudioNodeCard(props: NodeProps) {
   }, [
     showNodeBody,
     shellFitsContent,
+    socketValuesVisible,
+    socketsExpanded,
     id,
     minNodeWidth,
     minNodeHeight,
     flowNodeWidth,
     flowNodeHeight,
     onNodesChange,
+    visibleInputHandles?.length ?? 0,
+    visibleOutputHandles?.length ?? 0,
+    inputSockets.length,
+    outputSockets.length,
   ]);
 
   return (

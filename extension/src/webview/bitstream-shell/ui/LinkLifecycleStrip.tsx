@@ -1,6 +1,7 @@
 import { Cable, Loader2, Radio, ShieldCheck, Usb, Wifi } from "lucide-react";
 import type { ReactNode } from "react";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip.js";
+import { ConnectionSetupButton } from "./ConnectionSetupButton";
 import { useLinkHandshakeSatisfied } from "../../bitstream-app/hooks/useLinkHandshakeSatisfied.js";
 import { useBitstreamWifiStore } from "../../bitstream-app/state/bitstreamWifi.store";
 import { useBitstreamTelemetrySourceStore } from "../../bitstream-app/state/bitstreamTelemetrySource.store";
@@ -19,6 +20,8 @@ export type LinkLifecycleStripProps = BitstreamBootLifecycleBarProps & {
   showStatusText?: boolean;
   /** Show the Connection… button on the right (default true). */
   showConnectionButton?: boolean;
+  /** When false, keep pills on one line (workspace chrome header). */
+  wrapPills?: boolean;
   className?: string;
 };
 
@@ -82,6 +85,7 @@ export function LinkLifecycleStrip(props: LinkLifecycleStripProps) {
     onOpenConnection,
     showStatusText = true,
     showConnectionButton = true,
+    wrapPills = true,
     className,
   } = props;
 
@@ -113,7 +117,13 @@ export function LinkLifecycleStrip(props: LinkLifecycleStripProps) {
         "flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1"
       }
     >
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-x-auto scrollbar-hide">
+      <div
+        className={
+          wrapPills
+            ? "flex min-w-0 flex-1 flex-wrap items-center gap-1.5 overflow-x-auto scrollbar-hide"
+            : "flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto scrollbar-hide"
+        }
+      >
         <StepPill
           icon={<Usb className="h-3 w-3" aria-hidden />}
           label={t.label}
@@ -181,15 +191,9 @@ export function LinkLifecycleStrip(props: LinkLifecycleStripProps) {
           <span className="ml-1 min-w-0 truncate text-[10px] text-white/50">{headerStatus}</span>
         ) : null}
       </div>
-      <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+      <div className="ml-auto flex shrink-0 flex-nowrap items-center justify-end gap-1.5">
         {showConnectionButton && onOpenConnection != null ? (
-          <button
-            type="button"
-            className="rounded border border-zinc-600/70 bg-zinc-900/60 px-2 py-0.5 text-[10px] font-medium text-zinc-200 hover:bg-zinc-800/80"
-            onClick={() => onOpenConnection()}
-          >
-            Connection…
-          </button>
+          <ConnectionSetupButton onClick={() => onOpenConnection()} />
         ) : null}
         {trailingSlot != null ? (
           <div className="flex shrink-0 items-center justify-end">{trailingSlot}</div>

@@ -1,0 +1,16 @@
+/** Flow canvas pointer — paired with `interactionMode` on {@link FlowCanvas}. */
+
+.studio-flow-canvas--select .react-flow__pane,
+.studio-flow-canvas--select .react-flow__pane.draggable,
+.studio-flow-canvas--select .react-flow__pane.selection {
+  cursor: default;
+}
+
+.studio-flow-canvas--pan .react-flow__pane,
+.studio-flow-canvas--pan .react-flow__pane.draggable {
+  cursor: grab;
+}
+
+.studio-flow-canvas--pan .react-flow__pane.draggable.dragging {
+  cursor: grabbing;
+}

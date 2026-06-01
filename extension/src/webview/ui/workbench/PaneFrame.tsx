@@ -73,7 +73,7 @@ export function PaneFrame({
     <div className="flex flex-col flex-1 w-full h-full overflow-hidden min-h-0 bg-bg-panel">
       <div
         className={cn(
-          'wb-pane-chrome-header relative z-20 flex h-8 shrink-0 items-center gap-2 overflow-visible border-0 px-2 select-none ring-0 outline-none',
+          'wb-pane-chrome-header relative z-20 flex h-8 shrink-0 items-center gap-0 overflow-visible border-0 pl-0 pr-2 select-none ring-0 outline-none',
           isDragSource && 'bg-zinc-900/30',
           isActive && !isDragSource && 'bg-zinc-900/40',
           paneMaximized && 'bg-zinc-900/50',
@@ -87,6 +87,8 @@ export function PaneFrame({
         <WorkbenchHintButton
           hint="Drag — outside workbench to float; green ring = studio edge; blue = split or tabs"
           ariaLabel="Drag pane to dock"
+          tooltipClassName="shrink-0 -ml-1"
+          triggerClassName="!p-0"
           className="flex h-6 w-5 shrink-0 cursor-grab items-center justify-center rounded text-tertiary hover:bg-white/10 hover:text-primary active:cursor-grabbing"
           onPointerDown={(e) => {
             if (e.button !== 0) return;

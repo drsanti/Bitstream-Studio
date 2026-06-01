@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import type { TRNCommandPaletteItem } from "../TRN/TRNCommandPalette.js";
 import {
   clearPersistedDockSizeMemory,
@@ -38,6 +46,7 @@ import {
   type WorkbenchDockSizeMemory,
 } from "./workbench-dock-size-memory";
 import {
+  closeNode,
   collapseEditorPane,
   expandEditorPane,
   findEditorPaneId,
@@ -46,6 +55,7 @@ import {
   WORKBENCH_EDGE_DOCK_RATIO,
   collectCollapsedEditorIds,
 } from "./utils";
+import { buildMaximizedLayoutRoot } from "./workbench-pane-maximize";
 import type { TRNWorkbenchProps } from "./TRNWorkbench";
 import {
   deleteNamedWorkbenchLayout,
@@ -165,6 +175,15 @@ export function useManagedWorkbench({
         : { kind: "session" },
   );
 
+  const layoutBeforeMaximizeRef = useRef<LayoutNode | null>(null);
+  const [maximizedPaneId, setMaximizedPaneId] = useState<string | null>(null);
+  const paneMaximized = maximizedPaneId != null;
+
+  const clearPaneMaximize = useCallback(() => {
+    layoutBeforeMaximizeRef.current = null;
+    setMaximizedPaneId(null);
+  }, []);
+
   const syncHistoryFlags = useCallback(() => {
     setLayoutCanUndo(canUndoLayout());
     setLayoutCanRedo(canRedoLayout());
@@ -188,11 +207,11 @@ export function useManagedWorkbench({
   );
 
   useEffect(() => {
-    if (persistenceKey == null || typeof window === "undefined") {
+    if (persistenceKey == null || typeof window === "undefined" || paneMaximized) {
       return;
     }
     savePersistedLayout(persistenceKey, layout);
-  }, [layout, persistenceKey]);
+  }, [layout, paneMaximized, persistenceKey]);
 
   useEffect(() => {
     if (persistenceKey == null || typeof window === "undefined") {
@@ -204,6 +223,7 @@ export function useManagedWorkbench({
   const applyLayoutSnapshot = useCallback(
     (nextLayout: LayoutNode, nextDockMemory: WorkbenchDockSizeMemory = {}) => {
       onClearFloatingPanes?.();
+      clearPaneMaximize();
       runWithoutLayoutHistory(() => {
         const validated = validateLayout ? validateLayout(nextLayout) : nextLayout;
         setLayoutState(validated);
@@ -213,7 +233,7 @@ export function useManagedWorkbench({
       });
       syncHistoryFlags();
     },
-    [onClearFloatingPanes, syncHistoryFlags, validateLayout],
+    [clearPaneMaximize, onClearFloatingPanes, syncHistoryFlags, validateLayout],
   );
 
   const loadLayoutPreset = useCallback(
@@ -270,6 +290,7 @@ export function useManagedWorkbench({
       clearPersistedDockSizeMemory(persistenceKey);
     }
     clearLayoutHistory();
+    clearPaneMaximize();
     runWithoutLayoutHistory(() => {
       setLayoutState(initialLayout);
       setDockMemory({});
@@ -277,9 +298,10 @@ export function useManagedWorkbench({
       setCollapsedRailFocusId(null);
     });
     syncHistoryFlags();
-  }, [initialLayout, persistenceKey, syncHistoryFlags]);
+  }, [clearPaneMaximize, initialLayout, persistenceKey, syncHistoryFlags]);
 
   const undoLayoutChange = useCallback(() => {
+    clearPaneMaximize();
     setLayoutState((current) => {
       const prev = undoLayout(current);
       if (!prev) {
@@ -288,9 +310,10 @@ export function useManagedWorkbench({
       syncHistoryFlags();
       return prev;
     });
-  }, [syncHistoryFlags]);
+  }, [clearPaneMaximize, syncHistoryFlags]);
 
   const redoLayoutChange = useCallback(() => {
+    clearPaneMaximize();
     setLayoutState((current) => {
       const next = redoLayout(current);
       if (!next) {
@@ -299,7 +322,43 @@ export function useManagedWorkbench({
       syncHistoryFlags();
       return next;
     });
-  }, [syncHistoryFlags]);
+  }, [clearPaneMaximize, syncHistoryFlags]);
+
+  const togglePaneMaximize = useCallback(
+    (paneId: string) => {
+      if (maximizedPaneId === paneId && layoutBeforeMaximizeRef.current != null) {
+        const restored = layoutBeforeMaximizeRef.current;
+        clearPaneMaximize();
+        setLayout(restored, true);
+        setActivePaneId(paneId);
+        return;
+      }
+
+      const root = buildMaximizedLayoutRoot(layout, paneId);
+      if (root == null) {
+        return;
+      }
+
+      layoutBeforeMaximizeRef.current = layout;
+      setMaximizedPaneId(paneId);
+      setLayout(root, true);
+      setActivePaneId(paneId);
+    },
+    [clearPaneMaximize, layout, maximizedPaneId, setLayout],
+  );
+
+  const handleClosePane = useCallback(
+    (paneId: string) => {
+      if (maximizedPaneId != null && layoutBeforeMaximizeRef.current != null) {
+        const saved = layoutBeforeMaximizeRef.current;
+        clearPaneMaximize();
+        setLayout(closeNode(saved, paneId), true);
+        return;
+      }
+      setLayout((current) => closeNode(current, paneId), true);
+    },
+    [clearPaneMaximize, maximizedPaneId, setLayout],
+  );
 
   const collapseActivePane = useCallback(() => {
     const target = resolveCollapseTargetPaneId(layout, activePaneId);
@@ -637,6 +696,9 @@ export function useManagedWorkbench({
     | "activePaneId"
     | "collapsedRailFocusId"
     | "onPaneActivate"
+    | "onClosePane"
+    | "onTogglePaneMaximize"
+    | "paneMaximized"
     | "resolveDockSplitRatio"
     | "resolveEdgeDockRatio"
     | "onDockSplitApplied"
@@ -648,6 +710,9 @@ export function useManagedWorkbench({
     activePaneId,
     collapsedRailFocusId,
     onPaneActivate: setActivePaneId,
+    onClosePane: handleClosePane,
+    onTogglePaneMaximize: togglePaneMaximize,
+    paneMaximized,
     resolveDockSplitRatio: (incomingType, targetType, zone, fallback = 0.55) =>
       resolveDockSplitRatio(dockMemory, incomingType, targetType, zone, fallback),
     resolveEdgeDockRatio: (editorType, zone, fallback) =>
@@ -670,7 +735,16 @@ export function useManagedWorkbench({
         rememberSplitResizeRatio(memory, firstType, secondType, direction, ratio),
       );
     },
-  }), [activePaneId, collapsedRailFocusId, dockMemory, layout, setLayout]);
+  }), [
+    activePaneId,
+    collapsedRailFocusId,
+    dockMemory,
+    handleClosePane,
+    layout,
+    paneMaximized,
+    setLayout,
+    togglePaneMaximize,
+  ]);
 
   return {
     layout,

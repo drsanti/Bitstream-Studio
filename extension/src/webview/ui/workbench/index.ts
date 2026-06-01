@@ -104,7 +104,7 @@ export { createWorkbenchLayoutValidator } from './create-workbench-layout-valida
 
 export { WorkbenchCommandOverlay } from './WorkbenchCommandOverlay';
 export { WorkbenchSaveLayoutDialog } from './WorkbenchSaveLayoutDialog';
-export { WorkbenchLayoutMenu } from './WorkbenchLayoutMenu';
+export { WorkbenchLayoutMenu, WorkbenchLayoutMenuSections } from './WorkbenchLayoutMenu';
 export { WorkbenchLayoutLibraryPanel } from './WorkbenchLayoutLibraryPanel';
 export type { WorkbenchLayoutMenuProps } from './workbench-layout-menu.types';
 export {

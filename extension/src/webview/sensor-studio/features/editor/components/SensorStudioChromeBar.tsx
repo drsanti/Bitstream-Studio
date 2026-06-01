@@ -6,8 +6,8 @@ export type SensorStudioChromeBarProps = StudioToolbarActionsProps & {
 };
 
 /**
- * Merged Sensor Studio header: studio actions + telemetry FPS + link lifecycle
- * (replaces separate `BitstreamBootLifecycleBar` + `StudioToolbar` in Sensor Studio mode).
+ * @deprecated Workspace chrome moved to `BitstreamMainToolbar` via `StudioOverflowMenu`
+ * Studio overflow on flow canvas; shell menu via `BitstreamHeaderMenuPanel`. Legacy imports only.
  */
 export function SensorStudioChromeBar(props: SensorStudioChromeBarProps) {
   const { borderColor, ...actionsProps } = props;

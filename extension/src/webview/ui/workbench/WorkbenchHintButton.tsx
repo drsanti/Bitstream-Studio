@@ -7,6 +7,10 @@ type WorkbenchHintButtonProps = {
   ariaLabel: string;
   children: ReactNode;
   className?: string;
+  /** Passed to {@link TRNTooltip} wrapper (e.g. `!p-0` on pane chrome drag handle). */
+  triggerClassName?: string;
+  /** Root {@link TRNTooltip} container (e.g. negative margin to align drag grip). */
+  tooltipClassName?: string;
 } & Pick<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "onClick" | "onPointerDown" | "onContextMenu" | "disabled" | "type"
@@ -18,6 +22,8 @@ export function WorkbenchHintButton({
   ariaLabel,
   children,
   className,
+  triggerClassName,
+  tooltipClassName,
   onClick,
   onPointerDown,
   onContextMenu,
@@ -27,6 +33,8 @@ export function WorkbenchHintButton({
   return (
     <TRNTooltip
       content={hint}
+      className={tooltipClassName}
+      triggerClassName={triggerClassName}
       trigger={
         <button
           type={type}

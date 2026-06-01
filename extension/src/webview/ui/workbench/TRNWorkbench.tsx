@@ -355,7 +355,9 @@ export const TRNWorkbench = memo(
           onCollapse={() => onLayoutChange(collapseEditorPane(layout, node.id))}
           onChangeType={(type) => onLayoutChange(changeNodeType(layout, node.id, type))}
           onActivate={() => onPaneActivate?.(node.id)}
-          onToggleMaximize={() => onTogglePaneMaximize?.(node.id)}
+          onToggleMaximize={
+            onTogglePaneMaximize != null ? () => onTogglePaneMaximize(node.id) : undefined
+          }
           dockDragSourceId={dockDrag?.sourcePaneId ?? null}
           dockHoverZone={hoverZone}
           onDockZoneChange={handleDockZoneChange}
@@ -403,8 +405,10 @@ export const TRNWorkbench = memo(
             onLayoutChange(changeNodeType(layout, paneId, type))
           }
           onActivate={(paneId) => onPaneActivate?.(paneId)}
-          onToggleMaximize={() =>
-            activePane ? onTogglePaneMaximize?.(activePane.id) : undefined
+          onToggleMaximize={
+            onTogglePaneMaximize != null && activePane != null
+              ? () => onTogglePaneMaximize(activePane.id)
+              : undefined
           }
           dockDragSourceId={dockDrag?.sourcePaneId ?? null}
           dockHoverZone={hoverZone}

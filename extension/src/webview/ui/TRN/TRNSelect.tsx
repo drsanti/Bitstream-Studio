@@ -16,6 +16,8 @@ export type TRNSelectOption = {
   value: string;
   label: ReactNode;
   disabled?: boolean;
+  /** Leading glyph in listbox rows (and optional trigger context). */
+  icon?: ReactNode;
 };
 
 export type TRNSelectProps = {
@@ -179,6 +181,7 @@ export function TRNSelect(props: TRNSelectProps) {
                         aria-disabled={optDisabled}
                         aria-selected={isSelected}
                         label={opt.label}
+                        icon={opt.icon}
                         className={twMerge(
                           TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
                           "font-sans font-medium tracking-wide",

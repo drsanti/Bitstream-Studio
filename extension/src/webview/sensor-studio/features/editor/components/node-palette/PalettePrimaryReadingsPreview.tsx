@@ -28,14 +28,18 @@ function textAlignForRow(align: "start" | "end"): "left" | "right" {
   return align === "start" ? "left" : "right";
 }
 
+const PRIMARY_BUNDLE_ROW_SHELL_CLASS = "flex min-w-0 items-baseline justify-between gap-2 py-px leading-none";
+
 function PrimaryBundleRow(props: {
   row: PalettePrimaryBundleRow;
   streamMode: PalettePreviewStreamTone;
   align: "start" | "end";
   labelClass: string;
+  rowClassName?: string;
 }) {
-  const { row, streamMode, align, labelClass } = props;
+  const { row, streamMode, align, labelClass, rowClassName } = props;
   const textAlign = textAlignForRow(align);
+  const rowShellClass = twMerge(PRIMARY_BUNDLE_ROW_SHELL_CLASS, rowClassName);
 
   if (row.kind === "scalar") {
     const unavailable =
@@ -47,7 +51,7 @@ function PrimaryBundleRow(props: {
       label: row.label,
     });
     return (
-      <div className="flex min-w-0 items-baseline justify-between gap-2">
+      <div className={rowShellClass}>
         <span className={labelClass}>{row.label}</span>
         {unavailable ? (
           <span className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "shrink-0 text-zinc-600")}>
@@ -78,7 +82,7 @@ function PrimaryBundleRow(props: {
   if (row.kind === "vector3") {
     const fractionDigits = row.handleId === "euler" ? 3 : row.fractionDigits;
     return (
-      <div className="flex min-w-0 items-baseline justify-between gap-2">
+      <div className={rowShellClass}>
         <span className={labelClass}>{row.label}</span>
         <ReadingValueGroup className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "gap-x-1 justify-end")}>
           <ReadingAxisNumber
@@ -111,7 +115,7 @@ function PrimaryBundleRow(props: {
   }
 
   return (
-    <div className="flex min-w-0 items-baseline justify-between gap-2">
+    <div className={rowShellClass}>
       <span className={labelClass}>{row.label}</span>
       <QuaternionScalarsGrid
         compact
@@ -129,13 +133,16 @@ function PrimaryBundleRow(props: {
 
 /** Compact multi-row live matrix for primary sensor stream nodes in the library. */
 export function PalettePrimaryReadingsPreview(props: PalettePrimaryReadingsPreviewProps) {
-  const { streamMode, rows, align = "end" } = props;
+  const { streamMode, rows, align = "end", density = "dense" } = props;
   const labelClass = twMerge("shrink-0 truncate max-w-[7.5rem]", PALETTE_ROW_LABEL_TYPOGRAPHY);
+  const stackGapClass = density === "dense" ? "gap-0" : "gap-0.5";
+  const rowPadClass = density === "dense" ? "py-px" : "py-0.5";
 
   return (
     <div
       className={twMerge(
-        "flex w-full min-w-0 flex-col gap-0.5",
+        "flex w-full min-w-0 flex-col",
+        stackGapClass,
         idleStreamClass(streamMode),
       )}
     >
@@ -146,6 +153,7 @@ export function PalettePrimaryReadingsPreview(props: PalettePrimaryReadingsPrevi
           streamMode={streamMode}
           align={align}
           labelClass={labelClass}
+          rowClassName={rowPadClass}
         />
       ))}
     </div>

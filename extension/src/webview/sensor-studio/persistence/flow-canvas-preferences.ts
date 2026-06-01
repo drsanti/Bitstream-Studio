@@ -9,6 +9,8 @@ export type FlowCanvasEdgeRoutingStyle =
   | "step"
   | "straight";
 
+export type FlowCanvasInteractionMode = "select" | "pan";
+
 export type FlowCanvasPreferences = {
   snapToGrid: boolean;
   gridSize: FlowCanvasGridSize;
@@ -19,6 +21,8 @@ export type FlowCanvasPreferences = {
   /** Fit view after demo template or JSON import without a saved viewport. */
   autoFitViewOnReplace: boolean;
   edgeRoutingStyle: FlowCanvasEdgeRoutingStyle;
+  /** Left-drag on empty pane: marquee select vs pan viewport. */
+  interactionMode: FlowCanvasInteractionMode;
 };
 
 export const DEFAULT_FLOW_CANVAS_PREFERENCES: FlowCanvasPreferences = {
@@ -29,11 +33,13 @@ export const DEFAULT_FLOW_CANVAS_PREFERENCES: FlowCanvasPreferences = {
   backgroundHex: null,
   autoFitViewOnReplace: true,
   edgeRoutingStyle: "bezier",
+  interactionMode: "select",
 };
 
 const GRID_SIZES = new Set<number>([12, 16, 20, 24, 32]);
 
 const EDGE_ROUTING_STYLES = new Set<string>(["bezier", "smoothstep", "step", "straight"]);
+const INTERACTION_MODES = new Set<string>(["select", "pan"]);
 
 function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
@@ -78,6 +84,10 @@ export function coerceFlowCanvasPreferences(raw: unknown): FlowCanvasPreferences
           : DEFAULT_FLOW_CANVAS_PREFERENCES.backgroundHex,
     autoFitViewOnReplace: o.autoFitViewOnReplace !== false,
     edgeRoutingStyle,
+    interactionMode:
+      typeof o.interactionMode === "string" && INTERACTION_MODES.has(o.interactionMode)
+        ? (o.interactionMode as FlowCanvasInteractionMode)
+        : DEFAULT_FLOW_CANVAS_PREFERENCES.interactionMode,
   };
 }
 
@@ -101,6 +111,12 @@ export function mergeFlowCanvasPreferences(
     !EDGE_ROUTING_STYLES.has(patch.edgeRoutingStyle)
   ) {
     merged.edgeRoutingStyle = prev.edgeRoutingStyle;
+  }
+  if (
+    patch.interactionMode != null &&
+    !INTERACTION_MODES.has(patch.interactionMode)
+  ) {
+    merged.interactionMode = prev.interactionMode;
   }
   return merged;
 }
