@@ -33,6 +33,12 @@ export type StudioLayoutProps = {
   cameraColor: string;
   glbAnimationColor: string;
   transformColor: string;
+  fogColor: string;
+  studioLightColor: string;
+  postProcessingColor: string;
+  contactShadowsColor: string;
+  particleEmitterColor: string;
+  audioBusColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   entries: NodeCatalogEntry[];
   nodes: FlowGraphNode[];

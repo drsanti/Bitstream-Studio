@@ -1,8 +1,10 @@
 import { TRNButton } from "../../../../../ui/TRN";
+import type { ReactNode } from "react";
 
 export type InspectorSegmentOption<T extends string | number> = {
   value: T;
   label: string;
+  icon?: ReactNode;
   hint?: string;
 };
 
@@ -33,8 +35,9 @@ export function InspectorSegmentButtonGroup<T extends string | number>(
         <TRNButton
           key={String(option.value)}
           size="compact"
-          className="min-w-0 flex-1 font-mono tabular-nums"
+          className="min-w-0 flex-1 font-sans"
           selected={value === option.value}
+          prefixIcon={option.icon}
           hint={option.hint}
           onClick={() => onChange(option.value)}
         >

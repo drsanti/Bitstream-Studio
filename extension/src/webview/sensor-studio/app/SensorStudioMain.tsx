@@ -212,6 +212,7 @@ export function SensorStudioMain() {
     (): Record<NodeCatalogEntry["category"], string> => ({
       sensor: "#34d399",
       input: "#64748b",
+      audio: "#fb7185",
       transform: "#fbbf24",
       logic: "#a78bfa",
       output: "#22d3ee",
@@ -816,6 +817,7 @@ export function SensorStudioMain() {
       exitGroup,
       undo,
       redo,
+      muteAllAudio: useFlowEditorStore.getState().muteAllAudio,
       clearNow,
       runTemplateNow,
       runSpecificTemplate,
@@ -934,6 +936,7 @@ export function SensorStudioMain() {
         postProcessingColor={dataTypeColors.postProcessing}
         contactShadowsColor={dataTypeColors.contactShadows}
         particleEmitterColor={dataTypeColors.particleEmitter}
+        audioBusColor={dataTypeColors.audioBus}
         minimapCategoryColors={minimapCategoryColors}
         entries={catalog}
         nodes={nodes}

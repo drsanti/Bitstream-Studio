@@ -3,6 +3,7 @@ import {
   ArrowRightLeft,
   Gauge,
   GitBranch,
+  Mic,
   Plug,
   Radio,
   Sparkles,
@@ -18,6 +19,7 @@ export type InspectorStreamStatusKind = "live" | "stale" | "offline" | "sim" | "
 const CATEGORY_FALLBACK_ICON: Record<NodeCatalogEntry["category"], LucideIcon> = {
   sensor: Radio,
   input: Plug,
+  audio: Mic,
   transform: ArrowRightLeft,
   logic: GitBranch,
   output: Gauge,

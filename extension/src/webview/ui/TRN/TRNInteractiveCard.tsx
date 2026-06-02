@@ -9,12 +9,55 @@ import {
 import { ChevronDown } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { TRNCardHeader } from "./TRNCardHeader.js";
+import { TRNHintTooltip } from "./TRNHintTooltip.js";
+import {
+  trnInteractiveCardPaddingClass,
+  trnInteractiveCardShellClass,
+  type TRNInteractiveCardShell,
+} from "./trnInteractiveCardShell.js";
+
+export type { TRNInteractiveCardShell } from "./trnInteractiveCardShell.js";
+
+function InteractiveCardTitle(props: {
+  title: ReactNode;
+  hint?: ReactNode;
+  titleClassName?: string;
+}) {
+  const { title, hint, titleClassName } = props;
+  const labelClass = twMerge(
+    "block min-w-0 truncate text-xs font-semibold leading-none normal-case tracking-normal text-zinc-100",
+    titleClassName,
+    hint != null ? "cursor-help" : null,
+  );
+
+  if (hint == null || (typeof hint === "string" && hint.trim().length === 0)) {
+    return typeof title === "string" ? <span className={labelClass}>{title}</span> : title;
+  }
+
+  const hintLabel = typeof title === "string" ? title : "section";
+
+  return (
+    <TRNHintTooltip
+      trigger={<span className={labelClass}>{title}</span>}
+      content={hint}
+      triggerAriaLabel={`About ${hintLabel}`}
+      placement="top-start"
+      triggerClassName="min-w-0 flex-1 text-left"
+      triggerWrapper="span"
+      wide={typeof hint === "string" ? hint.length > 120 : true}
+    />
+  );
+}
 
 export type TRNInteractiveCardProps = {
   title: ReactNode;
+  /** Hover tooltip on the title ({@link TRNHintTooltip}). */
+  hint?: ReactNode;
   titleLeadingSlot?: ReactNode;
   titleTrailingSlot?: ReactNode;
   children?: ReactNode;
+  /** Card surface chrome. Default `glass`. Use `className` for layout only (`h-auto`, `flex-1`, …). */
+  shell?: TRNInteractiveCardShell;
   className?: string;
   headerClassName?: string;
   headerTitleClassName?: string;
@@ -22,6 +65,8 @@ export type TRNInteractiveCardProps = {
   collapsible?: boolean;
   collapsed?: boolean;
   defaultCollapsed?: boolean;
+  /** When `collapsible`, start expanded (default `true`). Ignored if `defaultCollapsed` is set. */
+  defaultExpanded?: boolean;
   onCollapsedChange?: (next: boolean) => void;
   animationDurationMs?: number;
   animationEasing?: string;
@@ -36,16 +81,19 @@ export type TRNInteractiveCardProps = {
 export function TRNInteractiveCard(props: TRNInteractiveCardProps) {
   const {
     title,
+    hint,
     titleLeadingSlot,
     titleTrailingSlot,
     children,
+    shell = "glass",
     className = "",
     headerClassName = "",
     headerTitleClassName = "",
     contentClassName = "",
     collapsible = false,
     collapsed,
-    defaultCollapsed = false,
+    defaultCollapsed: defaultCollapsedProp,
+    defaultExpanded = true,
     onCollapsedChange,
     animationDurationMs = 220,
     animationEasing = "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -53,7 +101,8 @@ export function TRNInteractiveCard(props: TRNInteractiveCardProps) {
   } = props;
 
   const isCollapsedControlled = collapsed != null;
-  const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
+  const initialCollapsed = defaultCollapsedProp ?? !defaultExpanded;
+  const [internalCollapsed, setInternalCollapsed] = useState(initialCollapsed);
   const effectiveCollapsed = isCollapsedControlled
     ? (collapsed as boolean)
     : internalCollapsed;
@@ -138,12 +187,8 @@ export function TRNInteractiveCard(props: TRNInteractiveCardProps) {
   ) : null;
   const isCollapsedState = collapsible && effectiveCollapsed;
   const sectionClassName = twMerge(
-    "flex min-h-0 flex-col rounded-md border border-zinc-700/80 bg-black/40 shadow-[0_8px_24px_rgba(0,0,0,0.35)]",
-    collapsible
-      ? isCollapsedState
-        ? "px-2 pt-1 pb-1"
-        : "px-2 pt-1 pb-2"
-      : "p-2",
+    trnInteractiveCardShellClass(shell),
+    trnInteractiveCardPaddingClass(shell, collapsible, isCollapsedState),
     className,
   );
   /** Collapsed: no gap under header; collapsible cards keep header height identical (no extra py). */
@@ -156,7 +201,7 @@ export function TRNInteractiveCard(props: TRNInteractiveCardProps) {
   return (
     <section className={sectionClassName}>
       <TRNCardHeader
-        title={title}
+        title={<InteractiveCardTitle title={title} hint={hint} />}
         leadingSlot={titleLeadingSlot}
         trailingSlot={
           <>

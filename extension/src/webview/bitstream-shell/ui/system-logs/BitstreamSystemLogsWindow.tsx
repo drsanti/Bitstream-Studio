@@ -376,7 +376,7 @@ export function BitstreamSystemLogsWindow(props: { open: boolean; onClose: () =>
                   }
                   title={e.message}
                 >
-                  <span className={"shrink-0 tabular-nums text-zinc-400 " + LOGS_THEME.rowFontClass}>
+                  <span className={"shrink-0 text-zinc-400 " + LOGS_THEME.rowFontClass}>
                     {formatTime(e.tsMs)}
                   </span>
                   <span

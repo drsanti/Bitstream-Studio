@@ -6,8 +6,10 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { TRNSortableCard } from "./TRNSortableCard.js";
 import { TRNSortableContainer } from "./TRNSortableContainer.js";
+import { TRNSortableItem } from "./TRNSortableItem.js";
+import { TRNDragHandle } from "./TRNDragHandle.js";
+import { TRNInteractiveCard } from "./TRNInteractiveCard.js";
 import {
   loadTrnSortableSettingsCardData,
   saveTrnSortableSettingsCardData,
@@ -17,6 +19,7 @@ export type TRNSortableSettingsCardItem = {
   id: string;
   title: string;
   icon?: ReactNode;
+  titleTrailingSlot?: ReactNode;
   content: ReactNode;
   defaultExpanded?: boolean;
 };
@@ -157,18 +160,34 @@ export function TRNSortableSettingsCardList({
       className={className ?? "space-y-2"}
     >
       {finalItems.map((item) => (
-        <TRNSortableCard
+        <TRNSortableItem
           key={item.id}
           id={item.id}
-          title={item.title}
-          icon={item.icon}
-          expanded={expandedStates[item.id] ?? item.defaultExpanded ?? true}
-          onExpandedChange={(expanded) => handleCardToggle(item.id, expanded)}
-          glass
-          glassPreset="soft"
+          dragFx="tilt"
         >
-          {item.content}
-        </TRNSortableCard>
+          <TRNInteractiveCard
+            title={item.title}
+            titleLeadingSlot={
+              item.icon != null ? (
+                <span className="inline-flex shrink-0 items-center gap-2">
+                  <TRNDragHandle />
+                  {item.icon}
+                </span>
+              ) : (
+                <TRNDragHandle />
+              )
+            }
+            titleTrailingSlot={item.titleTrailingSlot}
+            collapsible
+            collapsed={!(expandedStates[item.id] ?? item.defaultExpanded ?? true)}
+            onCollapsedChange={(collapsed) => handleCardToggle(item.id, !collapsed)}
+            // Mapping / settings cards are typically intrinsic height lists.
+            collapsibleMeasureIntrinsic
+            contentClassName="border-t border-zinc-800/60 pt-2"
+          >
+            {item.content}
+          </TRNInteractiveCard>
+        </TRNSortableItem>
       ))}
     </TRNSortableContainer>
   );

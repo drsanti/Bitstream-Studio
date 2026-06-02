@@ -110,7 +110,7 @@ function TwinTagCardBody(props: {
         />
         {hasSignal ? (
           <div
-            className="truncate font-mono font-medium tabular-nums leading-tight"
+            className="truncate font-mono font-medium leading-tight"
             style={{ fontSize: style.signalFontPx }}
           >
             <span className="opacity-60">{topSignalLabel} </span>
@@ -136,7 +136,7 @@ function TwinTagCardBody(props: {
         />
         {hasSignal ? (
           <div
-            className="truncate font-mono font-semibold tabular-nums leading-tight text-zinc-50"
+            className="truncate font-mono font-semibold leading-tight text-zinc-50"
             style={{ fontSize: style.signalFontPx }}
           >
             <span className="text-zinc-500" style={{ color: mutedColor ?? undefined }}>
@@ -163,7 +163,7 @@ function TwinTagCardBody(props: {
           leadingIcon={props.leadingIcon}
         />
         {hasSignal ? (
-          <div className="flex min-w-0 items-baseline justify-between gap-2 tabular-nums">
+          <div className="flex min-w-0 items-baseline justify-between gap-2">
             <span
               className="truncate text-zinc-500"
               style={{
@@ -210,7 +210,7 @@ function TwinTagCardBody(props: {
             {topSignalLabel}
           </div>
           <div
-            className="mt-0.5 truncate font-mono font-medium tabular-nums leading-tight tracking-tight text-zinc-50"
+            className="mt-0.5 truncate font-mono font-medium leading-tight tracking-tight text-zinc-50"
             style={{ fontSize: style.signalFontPx + 1 }}
           >
             {topSignalValue}

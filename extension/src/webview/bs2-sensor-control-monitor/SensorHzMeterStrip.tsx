@@ -52,7 +52,7 @@ export function SensorHzMeterStrip(props: SensorHzMeterStripProps) {
             <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
               {SENSOR_TEST_LABEL[id]}
             </div>
-            <div className={`font-mono text-2xl font-bold tabular-nums leading-tight ${hzClass}`}>
+            <div className={`font-mono text-2xl font-bold leading-tight ${hzClass}`}>
               {hz.toFixed(2)}
             </div>
             <div className="text-[10px] text-zinc-500">Hz · target {targetHzLabel(cfg)}</div>

@@ -12,7 +12,7 @@ export type InspectorCompactToggleRowProps = {
 function InspectorCompactToggleLabel(props: { label: string; hint?: string }) {
   const { label, hint } = props;
   const labelClass =
-    "min-w-0 text-[11px] font-medium leading-snug text-zinc-200";
+    "inline-flex min-w-0 items-center text-[11px] font-medium leading-none text-zinc-200";
 
   if (hint != null && hint.length > 0) {
     return (
@@ -47,7 +47,7 @@ export function InspectorCompactToggleRow(props: InspectorCompactToggleRowProps)
   } = props;
 
   return (
-    <div className="flex items-center justify-between gap-3">
+    <div className="flex items-center justify-between gap-3 rounded border border-zinc-700/80 bg-transparent px-2 py-1">
       <InspectorCompactToggleLabel label={label} hint={hint} />
       <TRNToggleSwitch
         checked={checked}

@@ -1,6 +1,6 @@
 import {
-  TRNParameterSlider,
   TRNScrubNumberInput,
+  TRNScrubNumberField,
   TRNSegmentedControl,
   TRNToggleSwitch,
 } from "../../../../../ui/TRN";
@@ -67,8 +67,6 @@ export function NumberConstantNodePanel(props: NumberConstantNodePanelProps) {
   const step = readOptionalFiniteNumber(defaultConfig, "step");
   const rawValue = readFiniteNumber(defaultConfig.value, 0);
   const display = coerceNumberConstantValue(defaultConfig, rawValue);
-  const cardControl = readNumberConstantCardValueControl(defaultConfig);
-  const sliderRange = getNumberConstantSliderRange(defaultConfig, display);
   const valueStep =
     mode === "integer" ? Math.max(1, step ?? 1) : step != null && step > 0 ? step : 0.01;
 
@@ -79,75 +77,23 @@ export function NumberConstantNodePanel(props: NumberConstantNodePanelProps) {
   };
 
   return (
-    <ReadingPanel className="space-y-2">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-zinc-500">
-        <span className="rounded border border-zinc-700/60 px-1 py-px font-medium text-zinc-400">
-          {mode === "integer" ? "Integer" : "Float"}
-        </span>
-        {min != null ? <span>min {min}</span> : null}
-        {max != null ? <span>max {max}</span> : null}
-        {step != null ? <span>step {step}</span> : null}
-      </div>
-      <div className="space-y-1.5">
-        <span className="text-[11px] font-medium text-zinc-400">Output value</span>
-        <TRNSegmentedControl
-          ariaLabel="Number card editor mode"
-          className="nodrag w-full"
-          fullWidth
-          size="sm"
-          stopPointerDownPropagation
-          tone="neutral"
-          variant="surface"
-          value={cardControl}
-          options={[
-            { value: "input", label: "Input" },
-            { value: "slider", label: "Slider" },
-          ]}
-          onValueChange={(next) => {
-            if (next === "input" || next === "slider") {
-              updateField(nodeId, "cardValueControl", next);
-            }
-          }}
-        />
-        {cardControl === "input" ? (
-          <div className={"nodrag w-full " + TRN_DENSE_NUMERIC_FIELD_SHELL}>
-            <div className="flex min-w-0 flex-1 items-center gap-0.5">
-              <TRNScrubNumberInput
-                aria-label="Numeric constant value"
-                className="w-full"
-                inputClassName="text-xs"
-                value={display}
-                step={valueStep}
-                min={min}
-                max={max}
-                pointerScrubEnabled={false}
-                onChange={(next) => {
-                  commitValue(next);
-                }}
-              />
-            </div>
-          </div>
-        ) : (
-          <TRNParameterSlider
-            className="nodrag px-0 py-0"
-            appearance="divider"
-            name={<span className="sr-only">Numeric constant value</span>}
-            value={display}
-            min={sliderRange.min}
-            max={sliderRange.max}
-            step={sliderRange.step}
-            throttleMs={120}
-            animateExternalValueChange={false}
-            valueScrubEnabled={false}
-            valueFormatter={(v) =>
-              mode === "integer" ? String(Math.round(v)) : String(v)
-            }
-            onChange={(next) => {
-              commitValue(next);
-            }}
-          />
-        )}
-      </div>
-    </ReadingPanel>
+    <div className="nodrag mt-2 min-w-0 w-full max-w-full">
+      <TRNScrubNumberField
+        ariaLabel="Numeric constant value"
+        className="w-full"
+        inputClassName="text-xs"
+        value={display}
+        step={valueStep}
+        min={min}
+        max={max}
+        fractionDigits={mode === "integer" ? 0 : undefined}
+        settingsKey="number-constant"
+        appearance={{ variant: "full", buttonsVisible: "hover" }}
+        interaction={{ pointerScrubEnabled: true, wheelEnabled: true, wheelBoundedMode: "span-percent" }}
+        onChange={(next) => {
+          commitValue(next);
+        }}
+      />
+    </div>
   );
 }

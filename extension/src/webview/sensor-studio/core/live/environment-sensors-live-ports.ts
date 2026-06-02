@@ -25,6 +25,7 @@ export function computeDps368PinBundle(latestByHint: {
 }): {
   pressureHpa: number;
   tempC: number;
+  counter: number;
   streamLive: boolean;
 } {
   const s = latestByHint.dps368;
@@ -36,12 +37,14 @@ export function computeDps368PinBundle(latestByHint: {
         ? pressureHpaFromWireSecondaryX100(s.secondaryX100)
         : 0,
       tempC: hasTemp ? scaleInt16X100(s.temperatureCx100) : 0,
+      counter: s.counter,
       streamLive: true,
     };
   }
   return {
     pressureHpa: 0,
     tempC: 0,
+    counter: 0,
     streamLive: false,
   };
 }
@@ -52,6 +55,7 @@ export function computeSht40PinBundle(latestByHint: {
 }): {
   humidityPct: number;
   tempC: number;
+  counter: number;
   streamLive: boolean;
 } {
   const s = latestByHint.sht40;
@@ -61,12 +65,14 @@ export function computeSht40PinBundle(latestByHint: {
     return {
       humidityPct: hasHumidity ? scaleHumidityPctFromSecondaryX100(s.secondaryX100) : 0,
       tempC: hasTemp ? scaleInt16X100(s.temperatureCx100) : 0,
+      counter: s.counter,
       streamLive: true,
     };
   }
   return {
     humidityPct: 0,
     tempC: 0,
+    counter: 0,
     streamLive: false,
   };
 }
@@ -77,6 +83,7 @@ export function computeBmm350PinBundle(latestByHint: {
 }): {
   magneticUt: MagneticMicroteslaVec3;
   tempC: number;
+  counter: number;
   streamLive: boolean;
 } {
   const s = latestByHint.bmm350;
@@ -94,12 +101,14 @@ export function computeBmm350PinBundle(latestByHint: {
           }
         : { x: 0, y: 0, z: 0 },
       tempC: scaleInt16X100(s.temperatureCx100),
+      counter: s.counter,
       streamLive: true,
     };
   }
   return {
     magneticUt: { x: 0, y: 0, z: 0 },
     tempC: 0,
+    counter: 0,
     streamLive: false,
   };
 }

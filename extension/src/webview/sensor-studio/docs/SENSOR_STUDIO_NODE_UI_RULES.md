@@ -22,6 +22,8 @@ Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMa
 
 **Not in the shell toolbar** (canvas toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
 
+**Smart connect (planned):** drag from a socket and release on empty canvas → filtered **Add Node** menu (same as Shift+A) + optional auto-wire. Modifiers: **Shift** = full menu, **Alt** = place without connect. Footer hints while dragging. Spec: **`SMART_CONNECT.md`**.
+
 **3D GLB preview transport** (`RotationPreviewPanelV4` — Model Viewer, 3D Rotation): when the loaded GLB has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
 
 Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on toolbar controls.
@@ -138,7 +140,7 @@ Example:
 ●  A  +37.48
 ●  B
 ↑  ↑   ↑
-│  │   └── live (11px tabular-nums) — omitted when unwired / no finite value
+│  │   └── live (11px) — omitted when unwired / no finite value
 │  └────── port label
 └───────── handle center on left border
 ```
@@ -203,7 +205,7 @@ Apply on the label cell in **`FlowNodeSocketRow`** (aligned and flex rows with *
 
 ### Live value cells (no jitter)
 
-Use fixed-width **Inter** cells (`font-sans` + **`tabular-nums`**) so digits do not shift on tick — see **Typography** below. Helpers: **`SOCKET_LIVE_VALUE_TYPOGRAPHY`**, **`readings/socket-live-value-cell.ts`**, **`SocketLivePreview`**, **`QuaternionScalarsGrid`** (`socketFixedCell` when **`compact`**).
+Use fixed-width **Inter** cells (`font-sans`) so digits do not shift on tick — see **Typography** below. Helpers: **`SOCKET_LIVE_VALUE_TYPOGRAPHY`**, **`readings/socket-live-value-cell.ts`**, **`SocketLivePreview`**, **`QuaternionScalarsGrid`** (`socketFixedCell` when **`compact`**).
 
 | Data                         | Digits | Width                | Constant / prop                                                                |
 | ---------------------------- | ------ | -------------------- | ------------------------------------------------------------------------------ |
@@ -265,7 +267,7 @@ Default UI font is **Inter** (bundled via **`@fontsource-variable/inter`**, Tail
 | **Node header badges** (LIVE, family tag, Invalid) | **`FLOW_NODE_HEADER_BADGE_CLASS`** — `text-[8px] font-semibold uppercase tracking-wide leading-none` | 8px |
 | **Node header subtitle** (linked model, etc.) | **`text-[11px] uppercase tracking-wide text-zinc-400`** | 11px |
 | **Socket port label** | **`text-[11px] leading-tight text-zinc-300`** (+ muted span **`text-zinc-400`**) | 11px |
-| **Socket live preview** | **`SOCKET_LIVE_VALUE_TYPOGRAPHY`** — `font-sans text-[11px] leading-tight tabular-nums` | 11px |
+| **Socket live preview** | **`SOCKET_LIVE_VALUE_TYPOGRAPHY`** — `font-sans text-[11px] leading-tight` | 11px |
 | **Socket live preview tint** | Semantic scalar colors via **`getLiveScalarReadingColorClass`** — see **Live reading semantic colors** | — |
 | **Inspector `nodeId`, wire dumps** | **`font-mono`** | context-specific |
 

@@ -88,7 +88,7 @@ export function WifiStatusSummaryCard(props: {
             />
             <span className="text-[10px] uppercase tracking-wide">RSSI</span>
           </div>
-          <p className={`text-sm font-semibold tabular-nums ${toneValueClass(rssiToneState)}`}>{rssiText}</p>
+          <p className={`text-sm font-semibold ${toneValueClass(rssiToneState)}`}>{rssiText}</p>
         </div>
         <div className="rounded-md border border-zinc-700/80 bg-zinc-900/55 p-2">
           <div className="mb-1 text-[10px] uppercase tracking-wide text-zinc-400">SSID</div>

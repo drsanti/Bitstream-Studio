@@ -50,7 +50,15 @@ export type { TRNCardMode, TRNCardProps } from "./TRNCard.js";
 export { TRNCardHeader } from "./TRNCardHeader.js";
 export type { TRNCardHeaderProps } from "./TRNCardHeader.js";
 export { TRNInteractiveCard } from "./TRNInteractiveCard.js";
-export type { TRNInteractiveCardProps } from "./TRNInteractiveCard.js";
+export type {
+  TRNInteractiveCardProps,
+  TRNInteractiveCardShell,
+} from "./TRNInteractiveCard.js";
+export {
+  TRN_INTERACTIVE_CARD_SHELL_CLASS,
+  trnInteractiveCardPaddingClass,
+  trnInteractiveCardShellClass,
+} from "./trnInteractiveCardShell.js";
 
 export {
   TRNAccordion,
@@ -235,10 +243,14 @@ export type {
   TRNGlassButtonTone,
 } from "./TRNGlassButton.js";
 
+export { TRNContextDialog } from "./TRNContextDialog.js";
+export type { TRNContextDialogProps, TRNContextDialogAnchor } from "./TRNContextDialog.js";
+
 export { TRNRangeSlider } from './TRNRangeSlider.js';
 export type { TRNRangeSliderProps } from './TRNRangeSlider.js';
 export {
   TRNScrubNumberInput,
+  TRN_SCRUB_DEFAULT_ACTIVATION_THRESHOLD_PX,
   TRN_SCRUB_DEFAULT_HORIZONTAL_PX_PER_TENTH_PERCENT,
   TRN_SCRUB_DEFAULT_VERTICAL_PX_PER_PERCENT,
   TRN_SCRUB_WHEEL_PIXEL_ACCUM_THRESHOLD,
@@ -250,6 +262,13 @@ export type {
   TRNScrubInteractionConfig,
   TRNScrubNumberInputProps,
 } from "./TRNScrubNumberInput.js";
+export { TRNScrubNumberField } from "./TRNScrubNumberField.js";
+export type {
+  TRNScrubNumberFieldProps,
+  TRNScrubNumberFieldAppearance,
+  TRNScrubNumberFieldInteraction,
+  TRNScrubNumberFieldWheelBoundedMode,
+} from "./TRNScrubNumberField.js";
 export {
   TRNVector3Field,
   TRN_VECTOR3_AXIS_UNLOCKED,

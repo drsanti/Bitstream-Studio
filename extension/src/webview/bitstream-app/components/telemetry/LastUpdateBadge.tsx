@@ -76,7 +76,7 @@ function useWallAgeMsSinceLastAt(lastAtMs: number | null, tickMs: number): numbe
 }
 
 const DELTA_SLOT_CLASS =
-  "inline-block text-right tabular-nums whitespace-pre";
+  "inline-block text-right whitespace-pre";
 
 function DeltaSlot(props: {
   deltaMs: number | null | undefined;
@@ -190,7 +190,7 @@ export function LastUpdateBadge(props: {
   }
 
   return (
-    <span className={"text-[10px] tabular-nums " + (className ?? "")}>
+    <span className={"text-[10px] " + (className ?? "")}>
       {badgeMode === "both" || badgeMode === "timestamp" ? (
         <span className="text-zinc-400">{timeText ?? "--:--:--:---"}</span>
       ) : null}

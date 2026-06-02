@@ -1,13 +1,22 @@
 import type { Edge } from "@xyflow/react";
-import { Import, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { Import, Trash2, VolumeX } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { TRNButton, TRNSelect } from "../../../../../ui/TRN";
 import type { StudioDemoTemplateId, StudioNode } from "../../store/flow-editor.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { CANVAS_DEMO_TEMPLATE_OPTIONS } from "./canvas-inspector-demo-templates";
 import { CanvasInspectorStatCell } from "./CanvasInspectorStatCell";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
-import { InspectorSection } from "./InspectorSection";
+import { CanvasInspectorCard } from "./CanvasInspectorCard";
+import {
+  DEFAULT_DOCUMENT_TAB_CARD_ORDER,
+  mergeDocumentTabCardOrder,
+  readDocumentTabCardCollapsed,
+  readDocumentTabCardOrder,
+  writeDocumentTabCardCollapsed,
+  writeDocumentTabCardOrder,
+  type CanvasInspectorDocumentTabCardId,
+} from "./canvas-inspector-ui-persistence";
 
 export type CanvasInspectorDocumentTabProps = {
   nodes: StudioNode[];
@@ -35,6 +44,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
   } = props;
 
   const undoDepth = useFlowEditorStore((s) => s.undoStack.length);
+  const muteAllAudio = useFlowEditorStore((s) => s.muteAllAudio);
 
   const templateOptions = useMemo(
     () =>
@@ -58,9 +68,56 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
     onClearCanvas();
   };
 
-  return (
-    <div className="space-y-2">
-      <InspectorSection title="Document summary" hint="Counts for the current flow graph.">
+  const visibleCardIds = useMemo(
+    (): CanvasInspectorDocumentTabCardId[] => [...DEFAULT_DOCUMENT_TAB_CARD_ORDER],
+    [],
+  );
+  const [cardOrder, setCardOrder] = useState<CanvasInspectorDocumentTabCardId[]>(() =>
+    mergeDocumentTabCardOrder(readDocumentTabCardOrder(), visibleCardIds),
+  );
+  const [collapsedById, setCollapsedById] = useState<Record<CanvasInspectorDocumentTabCardId, boolean>>(
+    () => readDocumentTabCardCollapsed(),
+  );
+  const [dragId, setDragId] = useState<CanvasInspectorDocumentTabCardId | null>(null);
+
+  useEffect(() => {
+    setCardOrder((prev) => mergeDocumentTabCardOrder(prev, visibleCardIds));
+  }, [visibleCardIds]);
+
+  const onDropCard = (targetId: CanvasInspectorDocumentTabCardId) => {
+    if (dragId == null || dragId === targetId) {
+      return;
+    }
+    setCardOrder((prev) => {
+      const next = prev.filter((id) => id !== dragId);
+      const targetIdx = next.indexOf(targetId);
+      if (targetIdx < 0) {
+        return prev;
+      }
+      next.splice(targetIdx, 0, dragId);
+      writeDocumentTabCardOrder(next);
+      return next;
+    });
+  };
+
+  const setCardCollapsed = (id: CanvasInspectorDocumentTabCardId, collapsed: boolean) => {
+    setCollapsedById((prev) => {
+      const next = { ...prev, [id]: collapsed };
+      writeDocumentTabCardCollapsed(next);
+      return next;
+    });
+  };
+
+  const cardsById: Record<CanvasInspectorDocumentTabCardId, JSX.Element> = {
+    "document-summary": (
+      <CanvasInspectorCard
+        id="canvas-inspector-document-summary"
+        title="Document summary"
+        hint="Counts for the current flow graph."
+        collapsible
+        collapsed={collapsedById["document-summary"]}
+        onCollapsedChange={(next) => setCardCollapsed("document-summary", next)}
+      >
         <div className="grid grid-cols-2 gap-1.5">
           <CanvasInspectorStatCell label="Nodes" value={nodes.length} />
           <CanvasInspectorStatCell label="Edges" value={edges.length} />
@@ -71,11 +128,16 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
           />
           <CanvasInspectorStatCell label="Undo steps" value={undoDepth} />
         </div>
-      </InspectorSection>
-
-      <InspectorSection
+      </CanvasInspectorCard>
+    ),
+    "starter-graph": (
+      <CanvasInspectorCard
+        id="canvas-inspector-starter-graph"
         title="Starter graph"
         hint="Replace the canvas with a built-in demo template."
+        collapsible
+        collapsed={collapsedById["starter-graph"]}
+        onCollapsedChange={(next) => setCardCollapsed("starter-graph", next)}
       >
         <InspectorPropertyRow
           label="Template"
@@ -99,9 +161,37 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
             Run template
           </TRNButton>
         </div>
-      </InspectorSection>
-
-      <InspectorSection title="Import & export" hint="Flow JSON includes nodes, edges, viewport, and canvas prefs.">
+      </CanvasInspectorCard>
+    ),
+    "audio-safety": (
+      <CanvasInspectorCard
+        id="canvas-inspector-audio-safety"
+        title="Audio safety"
+        hint="Silence all playback and monitoring on the canvas."
+        collapsible
+        collapsed={collapsedById["audio-safety"]}
+        onCollapsedChange={(next) => setCardCollapsed("audio-safety", next)}
+      >
+        <TRNButton
+          size="compact"
+          className="w-full border-rose-900/45 text-rose-100/90"
+          prefixIcon={<VolumeX className="h-3 w-3" aria-hidden />}
+          hint="Turns off Gate on Audio Output, Oscillator, and File Player nodes and mutes all monitor paths immediately."
+          onClick={() => muteAllAudio()}
+        >
+          Mute all audio
+        </TRNButton>
+      </CanvasInspectorCard>
+    ),
+    "import-export": (
+      <CanvasInspectorCard
+        id="canvas-inspector-import-export"
+        title="Import & export"
+        hint="Flow JSON includes nodes, edges, viewport, and canvas prefs."
+        collapsible
+        collapsed={collapsedById["import-export"]}
+        onCollapsedChange={(next) => setCardCollapsed("import-export", next)}
+      >
         <div className="flex flex-wrap gap-1.5">
           <TRNButton
             size="compact"
@@ -132,7 +222,43 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
             Clear graph
           </TRNButton>
         </div>
-      </InspectorSection>
+      </CanvasInspectorCard>
+    ),
+  };
+
+  return (
+    <div className="space-y-2">
+      {cardOrder.map((id) => (
+        <div
+          key={id}
+          className="min-w-0"
+          draggable
+          onDragStart={(e) => {
+            const header = (e.target as HTMLElement | null)?.closest?.("[data-trn-card-header]");
+            if (header == null) {
+              e.preventDefault();
+              return;
+            }
+            setDragId(id);
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", id);
+          }}
+          onDragEnd={() => setDragId(null)}
+          onDragOver={(e) => {
+            if (dragId == null || dragId === id) {
+              return;
+            }
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            onDropCard(id);
+          }}
+        >
+          {cardsById[id]}
+        </div>
+      ))}
     </div>
   );
 }

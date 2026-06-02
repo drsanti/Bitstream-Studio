@@ -111,7 +111,7 @@ function PoseCheckMetricRow({
       <div className="font-medium text-zinc-500">{name}</div>
       <div className="flex min-w-0 items-center justify-between gap-2">
         <PoseCheckStatusPill mode={mode} ok={ok} />
-        <span className="font-mono tabular-nums text-zinc-400">{deltaLabel}</span>
+        <span className="text-zinc-400">{deltaLabel}</span>
       </div>
       {axisDelta != null ? (
         <div className="space-y-1 pt-0.5">
@@ -165,7 +165,7 @@ export function PreviewDebugPanel({
 
   const loadPoseHeaderSummary =
     driftMode ? (
-      <span className="font-mono text-[10px] tabular-nums text-amber-300/90">
+      <span className="text-[10px] text-amber-300/90">
         Δ {formatTrnAxisNumber(cameraDebug.posDiff, 2)}
       </span>
     ) : (
@@ -336,7 +336,7 @@ export function PreviewDebugPanel({
         <TRNKeyValueRow
           label="Canvas"
           value={
-            <span className="font-mono tabular-nums text-zinc-300">
+            <span className="text-zinc-300">
               {cameraDebug.canvasW} × {cameraDebug.canvasH}
               <span className="text-zinc-500"> · aspect </span>
               {formatTrnAxisNumber(cameraDebug.canvasAspect, 3)}
@@ -346,7 +346,7 @@ export function PreviewDebugPanel({
         <TRNKeyValueRow
           label="Projection"
           value={
-            <span className="font-mono tabular-nums text-zinc-300">
+            <span className="text-zinc-300">
               fov {formatTrnAxisNumber(current.fov, 1)}°
               <span className="text-zinc-500"> · near </span>
               {formatTrnAxisNumber(current.near, 3)}

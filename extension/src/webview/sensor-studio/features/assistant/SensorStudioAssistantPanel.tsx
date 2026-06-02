@@ -1191,16 +1191,16 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
                   {debugTraceHeaderMode === "simplified" ? (
                     <div className="mb-2 rounded-lg border border-zinc-700/55 bg-zinc-950/55 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[12px] leading-snug">
-                        <span className="tabular-nums text-[12px] font-bold tracking-tight text-zinc-500">
+                        <span className="text-[12px] font-bold tracking-tight text-zinc-500">
                           #{seq}
                         </span>
                         <span className="font-mono text-[12px] font-semibold text-sky-100/95">{row.event.kind}</span>
                         {deltaSincePrevMs != null ? (
-                          <span className="font-mono text-[11px] tabular-nums text-amber-200/88">
+                          <span className="font-mono text-[11px] text-amber-200/88">
                             Δprev&nbsp;{formatSignedRoundedMs(deltaSincePrevMs)}
                           </span>
                         ) : null}
-                        <span className="font-mono text-[11px] tabular-nums text-emerald-200/88">
+                        <span className="font-mono text-[11px] text-emerald-200/88">
                           Δreq&nbsp;{formatSignedRoundedMs(deltaSinceRequestStartMs)}
                         </span>
                         {caption != null ? (
@@ -1213,7 +1213,7 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
                   ) : (
                     <div className="mb-2.5 flex flex-col gap-2 rounded-lg border border-white/7 bg-black/30 px-2.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span className="tabular-nums text-[11px] font-bold tracking-tight text-zinc-400">
+                        <span className="text-[11px] font-bold tracking-tight text-zinc-400">
                           #{seq}
                         </span>
                         <span className="rounded-md border border-sky-500/30 bg-sky-950/40 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-sky-100/95">
@@ -1224,21 +1224,21 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
                         </span>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] leading-none">
-                        <span className="tabular-nums text-zinc-200/95" title="Bridge event time (UTC, ISO-8601)">
+                        <span className="text-zinc-200/95" title="Bridge event time (UTC, ISO-8601)">
                           {isoUtc}
                         </span>
                         {deltaSincePrevMs != null ? (
                           <span
-                            className="tabular-nums text-amber-200/90"
+                            className="text-amber-200/90"
                             title="Milliseconds since the previous event on this timeline"
                           >
                             Δprev&nbsp;{formatSignedRoundedMs(deltaSincePrevMs)}
                           </span>
                         ) : (
-                          <span className="tabular-nums text-zinc-600">Δprev —</span>
+                          <span className="text-zinc-600">Δprev —</span>
                         )}
                         <span
-                          className="tabular-nums text-emerald-200/90"
+                          className="text-emerald-200/90"
                           title="Milliseconds since the first event for this request id"
                         >
                           Δreq&nbsp;{formatSignedRoundedMs(deltaSinceRequestStartMs)}
@@ -1620,7 +1620,7 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
                   </TRNButton>
                   {extensionBridgeStatus?.running && extensionBridgeStatus.port != null ? (
                     <span className="text-[10px] text-zinc-600">
-                      Host reports port <span className="font-mono tabular-nums">{extensionBridgeStatus.port}</span>
+                      Host reports port <span className="font-mono">{extensionBridgeStatus.port}</span>
                     </span>
                   ) : null}
                 </div>
@@ -1928,7 +1928,7 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
           <>
             <p className="m-0 text-[11px] leading-snug text-zinc-400">
               Character length (UTF-16 code units):{" "}
-              <span className="tabular-nums font-medium text-zinc-300">
+              <span className="font-medium text-zinc-300">
                 {assistantRawReplyDialog.content.length.toLocaleString()}
               </span>
               . This string is what the panel merges from the bridge for this bubble and passes into the markdown

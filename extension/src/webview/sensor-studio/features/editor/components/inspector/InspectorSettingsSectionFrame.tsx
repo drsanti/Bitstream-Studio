@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
-import { TRNMenuSectionTitle } from "../../../../../ui/TRN";
+import { TRNInteractiveCard } from "../../../../../ui/TRN";
 
 export type InspectorSettingsSectionFrameProps = {
   title: string;
   children: ReactNode;
   /** Extra classes on the outer chrome (border panel). */
   className?: string;
+  collapsible?: boolean;
+  defaultExpanded?: boolean;
   /**
    * When true, the frame becomes a column flex child that fills remaining height (`flex-1 min-h-0`),
    * with scrollable content delegated to descendants. Use for tall inspector sections (e.g. clip lists).
@@ -15,32 +17,40 @@ export type InspectorSettingsSectionFrameProps = {
 
 /** Shared bordered “card” chrome for typed inspector sections. */
 export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFrameProps) {
-  const { title, children, className = "", fillAvailableHeight = false } = props;
+  const {
+    title,
+    children,
+    className = "",
+    collapsible = true,
+    defaultExpanded = true,
+    fillAvailableHeight = false,
+  } = props;
   if (fillAvailableHeight) {
     return (
-      <div
-        className={
-          "flex min-h-0 flex-1 flex-col gap-2 overflow-hidden rounded border border-zinc-700/80 bg-zinc-900/40 p-2 " +
-          className
-        }
+      <TRNInteractiveCard
+        title={title}
+        shell="glass"
+        className={"flex min-h-0 flex-1 flex-col " + className}
+        headerTitleClassName="text-[11px] font-semibold text-zinc-200/95"
+        contentClassName="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden border-t border-zinc-800/60 pt-2"
+        collapsible={collapsible}
+        defaultExpanded={defaultExpanded}
       >
-        <TRNMenuSectionTitle spacing="labelOnly" className="shrink-0 text-[11px]">
-          {title}
-        </TRNMenuSectionTitle>
-        <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">{children}</div>
-      </div>
+        {children}
+      </TRNInteractiveCard>
     );
   }
   return (
-    <div
-      className={
-        "space-y-3 rounded border border-zinc-700/80 bg-zinc-900/40 p-2.5 " + className
-      }
+    <TRNInteractiveCard
+      title={title}
+      shell="glass"
+      className={className}
+      headerTitleClassName="text-[11px] font-semibold text-zinc-200/95"
+      contentClassName="min-h-0 border-t border-zinc-800/60 pt-2"
+      collapsible={collapsible}
+      defaultExpanded={defaultExpanded}
     >
-      <TRNMenuSectionTitle spacing="labelOnly" className="text-[11px]">
-        {title}
-      </TRNMenuSectionTitle>
-      {children}
-    </div>
+      <div className="space-y-3">{children}</div>
+    </TRNInteractiveCard>
   );
 }

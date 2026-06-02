@@ -67,6 +67,7 @@ export type InspectorNumericFieldProps = {
   fractionDigits?: number;
   /** Drag / wheel scrub on the value (TRN default). Set false for high-frequency store writes. */
   pointerScrubEnabled?: boolean;
+  disabled?: boolean;
   onCommit: (next: number) => void;
 };
 
@@ -80,6 +81,7 @@ export function InspectorNumericField(props: InspectorNumericFieldProps) {
     step = 0.01,
     fractionDigits,
     pointerScrubEnabled = true,
+    disabled = false,
     onCommit,
   } = props;
 
@@ -95,6 +97,7 @@ export function InspectorNumericField(props: InspectorNumericFieldProps) {
         step={step}
         fractionDigits={fractionDigits}
         pointerScrubEnabled={pointerScrubEnabled}
+        disabled={disabled}
         onChange={onCommit}
       />
     </div>

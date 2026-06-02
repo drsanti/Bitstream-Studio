@@ -22,7 +22,7 @@ export function PortStatusText({
   baudRate,
   bytesRead = 0,
   bytesWritten = 0,
-  className = "tabular-nums text-xs font-normal text-gray-400 truncate",
+  className = "text-xs font-normal text-gray-400 truncate",
 }: PortStatusTextProps): React.ReactElement | null {
   if (path == null) return null;
   const baud = baudRate != null ? ` @ ${baudRate} baud` : "";

@@ -17,6 +17,14 @@ function safeSet(value: string): void {
   }
 }
 
+function safeRemove(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
 export function readRecentCatalogNodeIds(): string[] {
   const raw = safeGet();
   if (raw == null || raw.length === 0) {
@@ -54,6 +62,10 @@ export function pushRecentCatalogNodeId(nodeId: string): void {
   const prev = readRecentCatalogNodeIds().filter((id) => id !== trimmed);
   const next = [trimmed, ...prev].slice(0, MAX_RECENT);
   safeSet(JSON.stringify(next));
+}
+
+export function clearRecentCatalogNodeIds(): void {
+  safeRemove();
 }
 
 export function resolveRecentCatalogEntries<T extends { id: string }>(

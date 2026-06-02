@@ -28,6 +28,10 @@ import {
 import {
   readSettingsJsonAccordionValue,
   SETTINGS_JSON_ACCORDION_VALUE,
+  mergeNodeTabSectionOrder,
+  readNodeTabSectionOrder,
+  writeNodeTabSectionOrder,
+  type NodeInspectorSectionId,
   writeSettingsJsonAccordionValue,
 } from "./node-inspector-ui-persistence";
 
@@ -121,6 +125,52 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
 
   const showJsonSection = shouldShowJsonConfigSection(settingsSearch);
 
+  const visibleSectionIds = useMemo((): NodeInspectorSectionId[] => {
+    const out: NodeInspectorSectionId[] = ["linked-model", "identity", "canvas"];
+    if (showTypedSection && CatalogSection != null) {
+      out.push("typed");
+    }
+    if (showRotationBlock) {
+      out.push("rotation");
+    }
+    if (showJsonSection && !suppressDefaultConfigJson) {
+      out.push("advanced");
+    }
+    return out;
+  }, [
+    CatalogSection,
+    showJsonSection,
+    showRotationBlock,
+    showTypedSection,
+    suppressDefaultConfigJson,
+  ]);
+
+  const [sectionOrder, setSectionOrder] = useState<NodeInspectorSectionId[]>(
+    () => mergeNodeTabSectionOrder(readNodeTabSectionOrder(), visibleSectionIds),
+  );
+
+  useEffect(() => {
+    setSectionOrder((prev) => mergeNodeTabSectionOrder(prev, visibleSectionIds));
+  }, [visibleSectionIds]);
+
+  const [dragId, setDragId] = useState<NodeInspectorSectionId | null>(null);
+
+  const onDropSection = (targetId: NodeInspectorSectionId) => {
+    if (dragId == null || dragId === targetId) {
+      return;
+    }
+    setSectionOrder((prev) => {
+      const next = prev.filter((id) => id !== dragId);
+      const targetIdx = next.indexOf(targetId);
+      if (targetIdx < 0) {
+        return prev;
+      }
+      next.splice(targetIdx, 0, dragId);
+      writeNodeTabSectionOrder(next);
+      return next;
+    });
+  };
+
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden text-xs">
       <div className="shrink-0 pb-2">
@@ -137,7 +187,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
         </div>
       </div>
 
-      <div className="scrollbar-hide min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden pb-0.5">
+      <div className="scrollbar-hide min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pb-0.5">
         {selectedNode.data.configErrors != null &&
         selectedNode.data.configErrors.length > 0 ? (
           <div className="rounded border border-rose-700/70 bg-rose-950/35 px-2 py-1.5">
@@ -152,101 +202,135 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
           </div>
         ) : null}
 
-        <InspectorLinkedStudioModelSection selectedNode={selectedNode} />
-
-        <InspectorSection title="Identity" variant="compact">
-          <InspectorTextField
-            ariaLabel="Node label"
-            value={selectedNode.data.label}
-            placeholder="Display name on canvas"
-            leadingIcon={<Tag className="h-3.5 w-3.5" aria-hidden />}
-            onChange={onUpdateLabel}
-          />
-        </InspectorSection>
-
-        <NodeInspectorCanvasLayoutSection
-          selectedNode={selectedNode}
-          onResizableChange={onUpdateNodeUiResizable}
-          onAllowBodyCollapseChange={onUpdateNodeUiAllowBodyCollapse}
-        />
-
-        {showTypedSection && CatalogSection != null ? (
-          <CatalogSection {...sectionProps} />
-        ) : null}
-
-        {showRotationBlock ? (
-          <div className="space-y-2">
-            <div className="sticky top-0 z-1 border-b border-emerald-900/30 bg-zinc-950/92 py-1 text-[10px] font-semibold tracking-wide text-emerald-100/85 backdrop-blur-sm supports-backdrop-filter:bg-zinc-950/75">
-              3D Scene Settings
-            </div>
-            <Rotation3DInspectorCards
-              scene3dRaw={selectedNode.data.defaultConfig.scene3d}
-              inspectorRailResetKey={selectedNode.id}
-              onChangeScene3d={(next: Scene3DConfigV1) => {
-                const snap =
-                  next != null
-                    ? persistScene3DConfig(next)
-                    : defaultScene3DConfig();
-                onUpdateConfigField("scene3d", snap);
-              }}
-            />
-          </div>
-        ) : null}
-
-        {showJsonSection && !suppressDefaultConfigJson ? (
-          <InspectorSection
-            title="Advanced"
-            variant="compact"
-            collapsible
-            defaultExpanded={false}
-          >
-            <TRNAccordion
-              type="single"
-              collapsible
-              className="rounded-md border border-zinc-700/70 bg-zinc-950/40"
-              value={jsonAccordionValue}
-              onValueChange={(next) => {
-                const raw = typeof next === "string" ? next : "";
-                const normalized =
-                  raw === SETTINGS_JSON_ACCORDION_VALUE
-                    ? SETTINGS_JSON_ACCORDION_VALUE
-                    : "";
-                setJsonAccordionValue(normalized);
-                writeSettingsJsonAccordionValue(
-                  normalized === "" ? undefined : SETTINGS_JSON_ACCORDION_VALUE,
-                );
-              }}
-            >
-              <TRNAccordionItem value="default-config-json" className="border-0">
-                <TRNAccordionTrigger className="px-2 py-1.5 text-xs font-normal text-zinc-400 hover:bg-zinc-800/35">
-                  Default config (JSON)
-                </TRNAccordionTrigger>
-                <TRNAccordionContent
-                  className="border-t border-zinc-800/60 bg-zinc-950/35"
-                  innerClassName="flex flex-col gap-1 px-2 pb-2 pt-1 text-xs text-zinc-300"
-                >
-                  <TRNHighlightedJsonTextarea
-                    aria-label="Default node configuration JSON"
-                    className="min-h-[160px] w-full max-h-[min(40vh,360px)]"
-                    value={jsonDraft}
-                    onChange={setJsonDraft}
-                    onBlur={() => {
-                      const result = onUpdateConfigJson(jsonDraft);
-                      if (!result.ok) {
-                        setJsonError(result.message);
-                        return;
-                      }
-                      setJsonError(null);
+        {sectionOrder.map((id) => {
+          const content =
+            id === "linked-model" ? (
+              <InspectorLinkedStudioModelSection selectedNode={selectedNode} />
+            ) : id === "identity" ? (
+              <InspectorSection title="Identity" variant="compact">
+                <InspectorTextField
+                  ariaLabel="Node label"
+                  value={selectedNode.data.label}
+                  placeholder="Display name on canvas"
+                  leadingIcon={<Tag className="h-3.5 w-3.5" aria-hidden />}
+                  onChange={onUpdateLabel}
+                />
+              </InspectorSection>
+            ) : id === "canvas" ? (
+              <NodeInspectorCanvasLayoutSection
+                selectedNode={selectedNode}
+                onResizableChange={onUpdateNodeUiResizable}
+                onAllowBodyCollapseChange={onUpdateNodeUiAllowBodyCollapse}
+              />
+            ) : id === "typed" ? (
+              showTypedSection && CatalogSection != null ? (
+                <CatalogSection {...sectionProps} />
+              ) : null
+            ) : id === "rotation" ? (
+              showRotationBlock ? (
+                <div className="space-y-2">
+                  <div className="sticky top-0 z-1 border-b border-emerald-900/30 bg-zinc-950/92 py-1 text-[10px] font-semibold tracking-wide text-emerald-100/85 backdrop-blur-sm supports-backdrop-filter:bg-zinc-950/75">
+                    3D Scene Settings
+                  </div>
+                  <Rotation3DInspectorCards
+                    scene3dRaw={selectedNode.data.defaultConfig.scene3d}
+                    inspectorRailResetKey={selectedNode.id}
+                    onChangeScene3d={(next: Scene3DConfigV1) => {
+                      const snap =
+                        next != null ? persistScene3DConfig(next) : defaultScene3DConfig();
+                      onUpdateConfigField("scene3d", snap);
                     }}
                   />
-                  {jsonError != null ? (
-                    <div className="shrink-0 text-[11px] text-red-400">{jsonError}</div>
-                  ) : null}
-                </TRNAccordionContent>
-              </TRNAccordionItem>
-            </TRNAccordion>
-          </InspectorSection>
-        ) : null}
+                </div>
+              ) : null
+            ) : id === "advanced" ? (
+              showJsonSection && !suppressDefaultConfigJson ? (
+                <InspectorSection title="Advanced" variant="compact" defaultExpanded={false}>
+                  <TRNAccordion
+                    type="single"
+                    collapsible
+                    className="rounded-md border border-zinc-700/70 bg-zinc-950/40"
+                    value={jsonAccordionValue}
+                    onValueChange={(next) => {
+                      const raw = typeof next === "string" ? next : "";
+                      const normalized =
+                        raw === SETTINGS_JSON_ACCORDION_VALUE
+                          ? SETTINGS_JSON_ACCORDION_VALUE
+                          : "";
+                      setJsonAccordionValue(normalized);
+                      writeSettingsJsonAccordionValue(
+                        normalized === "" ? undefined : SETTINGS_JSON_ACCORDION_VALUE,
+                      );
+                    }}
+                  >
+                    <TRNAccordionItem value="default-config-json" className="border-0">
+                      <TRNAccordionTrigger className="px-2 py-1.5 text-xs font-normal text-zinc-400 hover:bg-zinc-800/35">
+                        Default config (JSON)
+                      </TRNAccordionTrigger>
+                      <TRNAccordionContent
+                        className="border-t border-zinc-800/60 bg-zinc-950/35"
+                        innerClassName="flex flex-col gap-1 px-2 pb-2 pt-1 text-xs text-zinc-300"
+                      >
+                        <TRNHighlightedJsonTextarea
+                          aria-label="Default node configuration JSON"
+                          className="min-h-[160px] w-full max-h-[min(40vh,360px)]"
+                          value={jsonDraft}
+                          onChange={setJsonDraft}
+                          onBlur={() => {
+                            const result = onUpdateConfigJson(jsonDraft);
+                            if (!result.ok) {
+                              setJsonError(result.message);
+                              return;
+                            }
+                            setJsonError(null);
+                          }}
+                        />
+                        {jsonError != null ? (
+                          <div className="shrink-0 text-[11px] text-red-400">{jsonError}</div>
+                        ) : null}
+                      </TRNAccordionContent>
+                    </TRNAccordionItem>
+                  </TRNAccordion>
+                </InspectorSection>
+              ) : null
+            ) : null;
+
+          if (content == null) {
+            return null;
+          }
+
+          return (
+            <div
+              key={id}
+              className="min-w-0"
+              draggable
+              onDragStart={(e) => {
+                const header = (e.target as HTMLElement | null)?.closest?.("[data-trn-card-header]");
+                if (header == null) {
+                  e.preventDefault();
+                  return;
+                }
+                setDragId(id);
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", id);
+              }}
+              onDragEnd={() => setDragId(null)}
+              onDragOver={(e) => {
+                if (dragId == null || dragId === id) {
+                  return;
+                }
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                onDropSection(id);
+              }}
+            >
+              {content}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

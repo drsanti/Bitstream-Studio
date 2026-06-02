@@ -25,7 +25,7 @@ export const SplitLayoutNode = memo(function SplitLayoutNode(props: NodeProps) {
       <div className="node-drag-handle mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300">
         <Split size={12} className="text-zinc-400" aria-hidden />
         Split
-        <span className="ml-auto tabular-nums text-zinc-500">{outputCount}×</span>
+        <span className="ml-auto text-zinc-500">{outputCount}×</span>
       </div>
       <Handle
         id="in"

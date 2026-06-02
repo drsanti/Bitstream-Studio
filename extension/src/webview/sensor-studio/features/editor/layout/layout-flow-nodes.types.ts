@@ -32,6 +32,19 @@ export type FrameLayoutNodeData = {
 export type NoteLayoutNodeData = {
   label?: string;
   text?: string;
+  locked?: boolean;
+  widthPreset?: "sm" | "md" | "lg";
+  markdownPreset?: "default" | "note" | "inspector";
+  markdownLinkBehavior?: "open" | "copy" | "disabled";
+  markdownShowHeadings?: boolean;
+  markdownShowLinks?: boolean;
+  markdownShowLists?: boolean;
+  markdownShowCode?: boolean;
+  markdownShowTables?: boolean;
+  markdownShowBlockquotes?: boolean;
+  markdownEnableCodeCopy?: boolean;
+  markdownEnableSyntaxHighlight?: boolean;
+  markdownEnableHtmlPreview?: boolean;
 };
 
 export type SplitLayoutNodeData = {

@@ -237,7 +237,7 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                   style={{ backgroundColor: panelColor, borderColor }}
                 >
                   {sec.title}
-                  <span className="ml-1 tabular-nums text-zinc-500">{list.length}</span>
+                  <span className="ml-1 text-zinc-500">{list.length}</span>
                 </h3>
                 <div className={dense ? "space-y-0.5" : "space-y-1"}>
                   {list.map((row) => {

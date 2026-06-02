@@ -3,7 +3,7 @@ import type { GlbAnimationLabPlaybackMode } from "./glb-animation-lab.types.js";
 export const ANIMATION_LAB_INSPECTOR_FONT_CLASS = "font-sans";
 
 export const ANIMATION_LAB_SCRUB_INPUT_CLASS =
-  "font-sans text-[11px] tabular-nums text-zinc-100";
+  "font-sans text-[11px] text-zinc-100";
 
 export type AnimationLabShowcasePlaybackModeOption = {
   value: GlbAnimationLabPlaybackMode;

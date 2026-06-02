@@ -1,4 +1,6 @@
 import { resolveStudioNodeSourceId } from "../../../../core/device/resolve-studio-node-source-id";
+import type { LucideIcon } from "lucide-react";
+import { ChartSpline, CornerDownRight, Minus, Route } from "lucide-react";
 import type { SensorHealthStatus, StudioNode } from "../../store/flow-editor.store";
 import type { FlowCanvasEdgeRoutingStyle, FlowCanvasGridSize } from "../flow-canvas-ui-persistence";
 
@@ -17,26 +19,31 @@ export const CANVAS_GRID_SIZE_OPTIONS: {
 export const CANVAS_EDGE_ROUTING_OPTIONS: {
   value: FlowCanvasEdgeRoutingStyle;
   label: string;
+  Icon?: LucideIcon;
   hint: string;
 }[] = [
   {
     value: "bezier",
     label: "Bezier",
+    Icon: ChartSpline,
     hint: "Curved wires (default React Flow bezier paths).",
   },
   {
     value: "smoothstep",
     label: "Smooth",
+    Icon: Route,
     hint: "Rounded corners with smooth horizontal/vertical segments.",
   },
   {
     value: "step",
     label: "Step",
+    Icon: CornerDownRight,
     hint: "Orthogonal step paths with sharp corners.",
   },
   {
     value: "straight",
     label: "Straight",
+    Icon: Minus,
     hint: "Direct straight lines between ports.",
   },
 ];

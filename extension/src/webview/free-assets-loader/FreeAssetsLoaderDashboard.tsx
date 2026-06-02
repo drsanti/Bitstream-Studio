@@ -895,7 +895,7 @@ export function FreeAssetsLoaderDashboard({
                                     ) : null}
                                   </div>
                                 </td>
-                                <td className="whitespace-nowrap px-3 py-2 text-right align-middle font-mono text-xs tabular-nums text-zinc-400">
+                                <td className="whitespace-nowrap px-3 py-2 text-right align-middle text-xs text-zinc-400">
                                   {formatBytes(row.sizeBytes)}
                                 </td>
                               </tr>
@@ -1031,10 +1031,10 @@ export function FreeAssetsLoaderDashboard({
                                     ) : null}
                                   </div>
                                 </td>
-                                <td className="whitespace-nowrap px-2 py-2 text-right align-middle font-mono text-xs tabular-nums text-zinc-400">
+                                <td className="whitespace-nowrap px-2 py-2 text-right align-middle text-xs text-zinc-400">
                                   {formatBytes(row.sizeBytes)}
                                 </td>
-                                <td className="whitespace-nowrap px-3 py-2 text-right align-middle font-mono text-[11px] tabular-nums text-zinc-500">
+                                <td className="whitespace-nowrap px-3 py-2 text-right align-middle text-[11px] text-zinc-500">
                                   {formatModified(row.modifiedAtMs)}
                                 </td>
                               </tr>

@@ -133,7 +133,7 @@ export function NodePaletteAccordion(props: NodePaletteAccordionProps) {
                     >
                       <span className="inline-flex w-full items-center justify-between gap-1">
                         <span>{getSubgroupLabel(sg)}</span>
-                        <span className="text-[10px] font-normal tabular-nums text-zinc-500">{list.length}</span>
+                        <span className="text-[10px] font-normal text-zinc-500">{list.length}</span>
                       </span>
                     </summary>
                     <div className="space-y-1 border-t border-zinc-800/80 px-1.5 py-1.5">

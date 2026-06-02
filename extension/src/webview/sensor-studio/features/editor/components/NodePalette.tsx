@@ -54,6 +54,7 @@ type NodePaletteTierFilter = "core" | "all";
 const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
   "sensor",
   "input",
+  "audio",
   "transform",
   "logic",
   "output",
@@ -64,6 +65,7 @@ const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
 const CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string> = {
   sensor: "Sensors",
   input: "Input",
+  audio: "Audio",
   transform: "Transform",
   logic: "Logic",
   output: "Output",
@@ -545,7 +547,7 @@ export function NodePalette(props: NodePaletteProps) {
                     aria-hidden
                   />
                   <span className="min-w-0 flex-1 truncate">{getSubgroupLabel(sg)}</span>
-                  <span className="shrink-0 tabular-nums text-zinc-600">{list.length}</span>
+                  <span className="shrink-0 text-zinc-600">{list.length}</span>
                 </button>
                 {!collapsed ? (
                   <div className={`relative ${dense ? "py-0.5" : "pb-1.5 pt-1.5"}`}>
@@ -578,7 +580,7 @@ export function NodePalette(props: NodePaletteProps) {
                   aria-hidden
                 />
                 <span className="min-w-0 flex-1 truncate">{getSubgroupLabel(sg)}</span>
-                <span className="shrink-0 tabular-nums opacity-70">{list.length}</span>
+                <span className="shrink-0 opacity-70">{list.length}</span>
               </button>
               {!collapsed ? (
                 <div className={dense ? "space-y-0.5" : "space-y-1"}>
@@ -694,7 +696,7 @@ export function NodePalette(props: NodePaletteProps) {
           <div className="min-w-0 flex-1" aria-hidden />
           <div className="flex shrink-0 flex-col items-end gap-0.5">
             <span
-              className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium tabular-nums text-zinc-400"
+              className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
               title={
                 tab === "glb"
                   ? paletteFilterActive
@@ -713,7 +715,7 @@ export function NodePalette(props: NodePaletteProps) {
             </span>
             {showFilterSecondary ? (
               <span
-                className="text-[9px] font-normal tabular-nums leading-none"
+                className="text-[9px] font-normal leading-none"
                 style={mutedTextColor != null ? { color: mutedTextColor } : undefined}
               >
                 Filtered
@@ -911,7 +913,7 @@ export function NodePalette(props: NodePaletteProps) {
                 }`}
               >
                 All
-                <span className="ml-1 tabular-nums opacity-70">{standardNodes.length}</span>
+                <span className="ml-1 opacity-70">{standardNodes.length}</span>
               </button>
               {CATEGORY_ORDER.map((cat) => {
                 const n = categoryCounts.get(cat) ?? 0;
@@ -943,7 +945,7 @@ export function NodePalette(props: NodePaletteProps) {
                       aria-hidden
                     />
                     {CATEGORY_LABEL[cat]}
-                    <span className="ml-0.5 tabular-nums opacity-70">{n}</span>
+                    <span className="ml-0.5 opacity-70">{n}</span>
                   </button>
                 );
               })}
@@ -966,7 +968,7 @@ export function NodePalette(props: NodePaletteProps) {
                   }`}
                 >
                   All sensors
-                  <span className="ml-1 tabular-nums opacity-70">
+                  <span className="ml-1 opacity-70">
                     {categoryCounts.get("sensor") ?? 0}
                   </span>
                 </button>
@@ -989,7 +991,7 @@ export function NodePalette(props: NodePaletteProps) {
                       }`}
                     >
                       {getSubgroupChip(sg)}
-                      <span className="ml-1 tabular-nums font-medium normal-case tracking-normal opacity-70">
+                      <span className="ml-1 font-medium normal-case tracking-normal opacity-70">
                         {n}
                       </span>
                     </button>

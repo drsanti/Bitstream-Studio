@@ -38,9 +38,9 @@ export const FrameLayoutNode = memo(function FrameLayoutNode(props: NodeProps) {
         lineClassName="studio-frame-node-resizer-line"
         handleClassName="studio-frame-node-resizer-handle"
       />
-      <div className="studio-frame-node__surface pointer-events-none absolute inset-0 z-[2] rounded-xl" />
+      <div className="studio-frame-node__surface pointer-events-none absolute inset-0 z-2 rounded-md" />
       <div
-        className="studio-frame-node__header relative z-[3] flex h-7 cursor-move items-center gap-1.5 rounded-t-xl px-2.5"
+        className="studio-frame-node__header relative z-3 flex h-7 cursor-move items-center gap-1.5 rounded-t-md px-2.5"
         onDoubleClick={(e) => {
           e.stopPropagation();
           setEditing(true);

@@ -5,7 +5,7 @@ import {
   type MathOperation,
 } from "../../../../core/flow/math-operations";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
-import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
+import { mathOperationSelectOptions } from "./math-operation-select-ui";
 
 export type MathNodePanelProps = {
   nodeId: string;
@@ -20,16 +20,15 @@ export function MathNodePanel(props: MathNodePanelProps) {
   );
 
   return (
-    <ReadingPanel className="nodrag nopan space-y-1.5">
-      <TRNSelect
-        ariaLabel="Math operation"
-        value={operation}
-        options={MATH_OPERATION_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-        triggerClassName="w-full"
-        onValueChange={(next) => {
-          updateField(nodeId, "operation", next as MathOperation);
-        }}
-      />
-    </ReadingPanel>
+    <TRNSelect
+      className="nodrag nopan mt-2 min-w-0 w-full max-w-full"
+      ariaLabel="Math operation"
+      value={operation}
+      options={mathOperationSelectOptions(MATH_OPERATION_OPTIONS)}
+      triggerClassName="w-full"
+      onValueChange={(next) => {
+        updateField(nodeId, "operation", next as MathOperation);
+      }}
+    />
   );
 }

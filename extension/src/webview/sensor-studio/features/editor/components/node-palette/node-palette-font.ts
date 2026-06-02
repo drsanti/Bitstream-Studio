@@ -3,7 +3,7 @@ export const NODE_PALETTE_FONT_CLASS =
   "font-sans [&_.font-mono]:font-sans";
 
 /** Live preview + port meta — Inter tabular figures (not mono stack). */
-export const NODE_PALETTE_TABULAR_CLASS = "font-sans tabular-nums";
+export const NODE_PALETTE_TABULAR_CLASS = "font-sans";
 
 /** Row labels and unit suffixes in library live previews (e.g. Accel, °C). */
 export const PALETTE_ROW_LABEL_TYPOGRAPHY =

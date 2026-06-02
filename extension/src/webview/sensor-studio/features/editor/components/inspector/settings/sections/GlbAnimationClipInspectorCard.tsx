@@ -141,7 +141,7 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
         step={0.01}
         onChange={(v) => onCommitClipPatch({ timeS: v })}
         valueFormatter={(v) => (
-          <span className="text-[10px] font-normal tabular-nums text-zinc-400">
+          <span className="text-[10px] font-normal text-zinc-400">
             {formatTimeS(v)} / {formatTimeS(trimEnd)} ({formatTimeS(trimSpan)} trim) · ~{approxFrame(v - trimStart, fps)}{" "}
             f @ {fps}
           </span>
@@ -359,7 +359,7 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
           max={1}
           step={0.01}
           onChange={(v) => onCommitClipPatch({ weight: v })}
-          valueFormatter={(v) => <span className="tabular-nums text-zinc-300">{v.toFixed(2)}</span>}
+          valueFormatter={(v) => <span className="text-zinc-300">{v.toFixed(2)}</span>}
           className="px-0 py-0"
         />
         <TRNFormField label="Mask preset" id={maskPresetFieldId} className="space-y-1.5">

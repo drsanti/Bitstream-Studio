@@ -55,7 +55,7 @@ export function NodeInspectorLiveTab(props: NodeInspectorLiveTabProps) {
         <LiveSensorInspectorReadings selectedNode={n} />
       ) : (
         <InspectorSection title="Primary output">
-          <div className="font-mono text-sm tabular-nums text-emerald-50/95">
+          <div className="text-sm text-emerald-50/95">
             {formatScalar(d.liveValue)}
           </div>
         </InspectorSection>

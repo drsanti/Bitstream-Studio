@@ -374,7 +374,7 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
         icon={<LogIn size={14} aria-hidden />}
         iconHint="Sockets on the left of the group shell — wires from the parent graph connect here."
         badge={
-          <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] tabular-nums text-zinc-300">
+          <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] text-zinc-300">
             {iface.inputs.length}
           </span>
         }
@@ -411,7 +411,7 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
         icon={<LogOut size={14} aria-hidden />}
         iconHint="Sockets on the right of the group shell — wires to the parent graph leave here."
         badge={
-          <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] tabular-nums text-zinc-300">
+          <span className="rounded bg-zinc-800/80 px-1.5 py-0.5 text-[10px] text-zinc-300">
             {iface.outputs.length}
           </span>
         }

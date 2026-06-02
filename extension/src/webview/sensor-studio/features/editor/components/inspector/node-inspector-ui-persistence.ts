@@ -12,6 +12,7 @@ const KEYS = {
   settingsSharedDeviceCollapsed: `${PREFIX}settingsSharedDeviceCollapsed.v1`,
   detailsSectionOrder: `${PREFIX}detailsSectionOrder.v1`,
   detailsSectionCollapsed: `${PREFIX}detailsSectionCollapsed.v1`,
+  nodeTabSectionOrder: `${PREFIX}nodeTabSectionOrder.v1`,
   rotationRailByNodeId: `${PREFIX}rotationRailByNodeId.v1`,
 } as const;
 
@@ -22,7 +23,25 @@ export const DEFAULT_DETAILS_SECTION_ORDER: readonly DetailsInspectorSectionId[]
   "specs",
 ];
 
+export type NodeInspectorSectionId =
+  | "linked-model"
+  | "identity"
+  | "canvas"
+  | "typed"
+  | "rotation"
+  | "advanced";
+
+export const DEFAULT_NODE_TAB_SECTION_ORDER: readonly NodeInspectorSectionId[] = [
+  "linked-model",
+  "identity",
+  "canvas",
+  "typed",
+  "rotation",
+  "advanced",
+];
+
 const DETAILS_SECTION_IDS = new Set<string>(DEFAULT_DETAILS_SECTION_ORDER);
+const NODE_TAB_SECTION_IDS = new Set<string>(DEFAULT_NODE_TAB_SECTION_ORDER);
 
 const ROTATION_RAIL_IDS = new Set<string>([
   "model",
@@ -162,6 +181,10 @@ function isDetailsSectionId(value: string): value is DetailsInspectorSectionId {
   return DETAILS_SECTION_IDS.has(value) || value === "about" || value === "shared-device";
 }
 
+function isNodeTabSectionId(value: string): value is NodeInspectorSectionId {
+  return NODE_TAB_SECTION_IDS.has(value);
+}
+
 function stripLegacyDetailsSectionIds(
   order: readonly DetailsInspectorSectionId[],
 ): DetailsInspectorSectionId[] {
@@ -225,6 +248,52 @@ export function mergeDetailsSectionOrder(
   stored: readonly DetailsInspectorSectionId[],
   visible: readonly DetailsInspectorSectionId[],
 ): DetailsInspectorSectionId[] {
+  const visibleSet = new Set(visible);
+  const ordered = stored.filter((id) => visibleSet.has(id));
+  for (const id of visible) {
+    if (!ordered.includes(id)) {
+      ordered.push(id);
+    }
+  }
+  const hiddenTail = stored.filter((id) => !visibleSet.has(id));
+  return [...ordered, ...hiddenTail];
+}
+
+export function readNodeTabSectionOrder(): NodeInspectorSectionId[] {
+  const raw = safeLocalStorageGet(KEYS.nodeTabSectionOrder);
+  if (raw == null || raw.length === 0) {
+    return [...DEFAULT_NODE_TAB_SECTION_ORDER];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [...DEFAULT_NODE_TAB_SECTION_ORDER];
+    }
+    const out: NodeInspectorSectionId[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string" && isNodeTabSectionId(item) && !out.includes(item)) {
+        out.push(item);
+      }
+    }
+    for (const id of DEFAULT_NODE_TAB_SECTION_ORDER) {
+      if (!out.includes(id)) {
+        out.push(id);
+      }
+    }
+    return out;
+  } catch {
+    return [...DEFAULT_NODE_TAB_SECTION_ORDER];
+  }
+}
+
+export function writeNodeTabSectionOrder(order: readonly NodeInspectorSectionId[]): void {
+  safeLocalStorageSet(KEYS.nodeTabSectionOrder, JSON.stringify([...order]));
+}
+
+export function mergeNodeTabSectionOrder(
+  stored: readonly NodeInspectorSectionId[],
+  visible: readonly NodeInspectorSectionId[],
+): NodeInspectorSectionId[] {
   const visibleSet = new Set(visible);
   const ordered = stored.filter((id) => visibleSet.has(id));
   for (const id of visible) {

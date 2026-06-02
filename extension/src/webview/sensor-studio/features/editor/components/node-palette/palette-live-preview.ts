@@ -80,6 +80,20 @@ export type PalettePreview =
 
 type HintMap = MetricsSnapshot["latestByHint"];
 
+const PALETTE_SAMPLES_ROW_LABEL = "Samples";
+
+function samplesCounterRow(args: { counter: number; streamLive: boolean }): PalettePrimaryBundleRow {
+  const { counter, streamLive } = args;
+  return {
+    kind: "scalar",
+    label: PALETTE_SAMPLES_ROW_LABEL,
+    value: streamLive ? counter : 0,
+    fractionDigits: 0,
+    signedPositive: false,
+    unavailableWhenIdle: true,
+  };
+}
+
 /** Rotation angle (degrees) from quaternion (same construction as common atan2 formulation). */
 export function quatRotationDeg(q: FlowWireQuaternion): number {
   const sinHalf = Math.sqrt(q.x * q.x + q.y * q.y + q.z * q.z);
@@ -297,6 +311,26 @@ function humidityTapPrimaryBundlePreview(
   };
 }
 
+function samplesTapPrimaryBundlePreview(
+  counter: number,
+  streamLive: boolean,
+): PalettePreview {
+  return {
+    kind: "primaryBundle",
+    streamMode: streamLive ? "live" : "idle",
+    rows: [
+      {
+        kind: "scalar",
+        label: PALETTE_SAMPLES_ROW_LABEL,
+        value: counter,
+        fractionDigits: 0,
+        signedPositive: false,
+        unavailableWhenIdle: true,
+      },
+    ],
+  };
+}
+
 function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PalettePreview {
   switch (nodeId) {
     case "dps368-tap-pressure": {
@@ -307,6 +341,10 @@ function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PaletteP
       const b = computeDps368PinBundle(latestByHint);
       return temperatureTapPrimaryBundlePreview(b.tempC, b.streamLive);
     }
+    case "dps368-tap-samples": {
+      const b = computeDps368PinBundle(latestByHint);
+      return samplesTapPrimaryBundlePreview(b.counter, b.streamLive);
+    }
     case "sht40-tap-humidity": {
       const b = computeSht40PinBundle(latestByHint);
       return humidityTapPrimaryBundlePreview(b.humidityPct, b.streamLive);
@@ -315,13 +353,25 @@ function scalarNumberTapPreview(nodeId: string, latestByHint: HintMap): PaletteP
       const b = computeSht40PinBundle(latestByHint);
       return temperatureTapPrimaryBundlePreview(b.tempC, b.streamLive);
     }
+    case "sht40-tap-samples": {
+      const b = computeSht40PinBundle(latestByHint);
+      return samplesTapPrimaryBundlePreview(b.counter, b.streamLive);
+    }
     case "bmm350-tap-temp": {
       const b = computeBmm350PinBundle(latestByHint);
       return temperatureTapPrimaryBundlePreview(b.tempC, b.streamLive);
     }
+    case "bmm350-tap-samples": {
+      const b = computeBmm350PinBundle(latestByHint);
+      return samplesTapPrimaryBundlePreview(b.counter, b.streamLive);
+    }
     case "bmi270-tap-temp": {
       const b = computeBmi270PinBundle(latestByHint);
       return temperatureTapPrimaryBundlePreview(b.temp, b.streamLive);
+    }
+    case "bmi270-tap-samples": {
+      const b = computeBmi270PinBundle(latestByHint);
+      return samplesTapPrimaryBundlePreview(b.counter, b.streamLive);
     }
     default:
       return { kind: "unavailable" };
@@ -380,6 +430,7 @@ function bmi270PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
         signedPositive: false,
         unavailableWhenIdle: true,
       },
+      samplesCounterRow({ counter: b.counter, streamLive: b.streamLive }),
     ],
   };
 }
@@ -406,6 +457,7 @@ function dps368PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
         signedPositive: false,
         unavailableWhenIdle: true,
       },
+      samplesCounterRow({ counter: b.counter, streamLive: b.streamLive }),
     ],
   };
 }
@@ -432,6 +484,7 @@ function sht40PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
         signedPositive: false,
         unavailableWhenIdle: true,
       },
+      samplesCounterRow({ counter: b.counter, streamLive: b.streamLive }),
     ],
   };
 }
@@ -458,6 +511,7 @@ function bmm350PrimaryBundlePreview(latestByHint: HintMap): PalettePreview {
         signedPositive: false,
         unavailableWhenIdle: true,
       },
+      samplesCounterRow({ counter: b.counter, streamLive: b.streamLive }),
     ],
   };
 }

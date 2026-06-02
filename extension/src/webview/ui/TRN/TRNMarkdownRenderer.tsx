@@ -7,6 +7,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type ReactElement,
 } from "react";
 import { twMerge } from "tailwind-merge";
@@ -36,6 +37,16 @@ export type TrnMarkdownRendererProps = {
    * This uses the global markdown zoom store.
    */
   enableZoom?: boolean;
+  /**
+   * Optional curated style preset (structure/spacing only).
+   * Colors should typically be provided via `className`.
+   */
+  preset?: "default" | "note" | "inspector";
+  /**
+   * Optional per-tag renderer overrides (React Markdown `components`).
+   * These shallow-merge over the TRN defaults.
+   */
+  components?: ComponentProps<typeof ReactMarkdown>["components"];
   onCopyCodeBlock?: (text: string, ok: boolean) => void;
   /**
    * When true, fenced ```html``` blocks show a sandboxed live preview tab (scripts off by default; Advanced can allow JS + popups).
@@ -87,6 +98,16 @@ function scrollbarClass(scrollbars: TrnMarkdownScrollbars | undefined): string {
   if (scrollbars === "dark-small") return "scrollbar-dark-small";
   if (scrollbars === "dark-micro") return "scrollbar-dark-micro";
   if (scrollbars === "edge-reveal") return "scrollbar-edge-reveal";
+  return "";
+}
+
+function presetClass(preset: TrnMarkdownRendererProps["preset"] | undefined): string {
+  if (preset === "note") {
+    return "text-[10px] leading-relaxed";
+  }
+  if (preset === "inspector") {
+    return "text-[11px] leading-relaxed";
+  }
   return "";
 }
 
@@ -456,6 +477,8 @@ export function TRNMarkdownRenderer({
   enableCodeCopy = true,
   enableSyntaxHighlight = true,
   enableZoom = true,
+  preset = "default",
+  components,
   onCopyCodeBlock,
   enableHtmlPreview = true,
   htmlFenceGenerationMayStillStream = false,
@@ -474,6 +497,7 @@ export function TRNMarkdownRenderer({
       data-trn-markdown-zoom-root={enableZoom ? "" : undefined}
       className={twMerge(
         "max-w-none text-sm text-zinc-200 outline-none",
+        presetClass(preset),
         scrollbarClass(scrollbars),
         className,
       )}
@@ -645,6 +669,7 @@ export function TRNMarkdownRenderer({
               {children}
             </blockquote>
           ),
+          ...components,
         }}
       >
         {markdown}

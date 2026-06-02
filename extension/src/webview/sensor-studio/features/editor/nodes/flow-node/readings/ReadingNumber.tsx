@@ -33,7 +33,7 @@ export function ReadingNumber(props: ReadingNumberProps) {
 
   return (
     <span
-      className={twMerge("font-mono tabular-nums text-zinc-100", className)}
+      className={twMerge("text-zinc-100", className)}
       {...rest}
     >
       {text}

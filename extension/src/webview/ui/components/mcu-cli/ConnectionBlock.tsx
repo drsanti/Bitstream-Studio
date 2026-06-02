@@ -226,7 +226,7 @@ export function ConnectionBlock({
           List ports
         </TRNGlassButton>
         {portCards.length > 0 ? (
-          <span className="text-xs tabular-nums text-zinc-400/90">
+          <span className="text-xs text-zinc-400/90">
             {portCards.length} port
             {portCards.length === 1 ? "" : "s"}
           </span>
@@ -257,7 +257,7 @@ export function ConnectionBlock({
                     bytesWritten={openForThis.bytesWritten}
                   />
                 ) : (
-                  <span className="tabular-nums text-xs font-normal text-gray-400 truncate">
+                  <span className="text-xs font-normal text-gray-400 truncate">
                     {path}
                   </span>
                 )

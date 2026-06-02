@@ -83,6 +83,7 @@ export function getSubgroupChip(subgroup: PaletteSensorSubgroup): string {
 export const PALETTE_CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string> = {
   sensor: "Sensors",
   input: "Input",
+  audio: "Audio",
   transform: "Transform",
   logic: "Logic",
   output: "Output",

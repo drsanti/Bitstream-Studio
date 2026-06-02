@@ -18,6 +18,7 @@ export function TRNCardHeader({
 }: TRNCardHeaderProps) {
   return (
     <div
+      data-trn-card-header
       className={twMerge(
         "mb-1 flex min-w-0 items-center justify-between gap-2",
         className,

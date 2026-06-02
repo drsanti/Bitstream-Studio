@@ -32,7 +32,7 @@ function BitstreamToolbarBrandTitle(props: { titleRef?: RefObject<HTMLHeadingEle
       >
         TERNION Bitstream
       </h1>
-      <span className="shrink-0 text-[10px] font-medium tabular-nums tracking-wide text-zinc-500">
+      <span className="shrink-0 text-[10px] font-medium tracking-wide text-zinc-500">
         {bitstreamProductVersionLabel()}
       </span>
     </div>

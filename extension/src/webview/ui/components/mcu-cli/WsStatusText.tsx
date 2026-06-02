@@ -19,7 +19,7 @@ export function WsStatusText({
   hostPort,
   bytesReceived = 0,
   bytesSent = 0,
-  className = "tabular-nums text-xs font-normal text-gray-400 truncate",
+  className = "text-xs font-normal text-gray-400 truncate",
 }: WsStatusTextProps): React.ReactElement | null {
   if (!hostPort) return null;
   const rx = bytesReceived > 0 ? ` · RX ${bytesReceived} B` : "";

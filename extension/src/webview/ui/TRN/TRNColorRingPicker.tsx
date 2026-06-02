@@ -227,7 +227,7 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
                     aria-hidden
                   />
                 </div>
-                <div className="text-[10px] tabular-nums text-zinc-300">{valueHex}</div>
+                <div className="text-[10px] text-zinc-300">{valueHex}</div>
               </div>
 
               <div className="min-w-0 flex-1">

@@ -133,9 +133,7 @@ export function PortAdminStatusStrip(props: PortAdminStatusStripProps)
           <StatusChip label="Handshake" value={handshakeLabel} tone={handshakeTone} />
         </div>
         <div className="inline-flex shrink-0 items-center gap-1.5 text-[11px] text-zinc-400">
-          <span className="tabular-nums">
-            {formatPortAdminRefreshAge(lastUpdatedAt)}
-          </span>
+          <span>{formatPortAdminRefreshAge(lastUpdatedAt)}</span>
           <button
             type="button"
             className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/75 bg-zinc-900/55 text-zinc-100 transition-colors hover:bg-zinc-800/65 disabled:cursor-not-allowed disabled:opacity-60"

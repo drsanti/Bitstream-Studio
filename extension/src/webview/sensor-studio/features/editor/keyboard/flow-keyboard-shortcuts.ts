@@ -16,6 +16,7 @@ export type FlowKeyboardShortcutActions = {
   exitGroup: () => void;
   undo: () => void;
   redo: () => void;
+  muteAllAudio: () => void;
   clearNow: () => void;
   runTemplateNow: () => void;
   runSpecificTemplate: (templateId: StudioDemoTemplateId) => void;
@@ -149,6 +150,11 @@ export function handleFlowKeyboardShortcut(
 
   if (mod && (key === "y" || key === "Y")) {
     ctx.redo();
+    return true;
+  }
+
+  if (!mod && !event.altKey && !event.shiftKey && (key === "m" || key === "M")) {
+    ctx.muteAllAudio();
     return true;
   }
 

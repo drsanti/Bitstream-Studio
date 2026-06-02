@@ -100,7 +100,7 @@ export function TRNAxisVectorReadout({
             </span>
             <span
               className={
-                "min-w-0 flex-1 truncate text-right font-mono text-[11px] tabular-nums leading-tight " +
+                "min-w-0 flex-1 truncate text-right text-[11px] leading-tight " +
                 meta.valueClass
               }
               title={formatted}

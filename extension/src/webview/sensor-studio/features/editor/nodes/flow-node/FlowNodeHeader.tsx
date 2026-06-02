@@ -29,7 +29,7 @@ export function FlowNodeHeader(props: FlowNodeHeaderProps) {
   return (
     <div
       className={twMerge(
-        "min-w-0 w-full border-b border-zinc-700/80 px-2 py-1.5",
+        "min-w-0 w-full overflow-hidden rounded-t-md border-b border-zinc-700/80 px-2 py-1",
         glass
           ? `bg-linear-to-r ${flowNodeHeaderGlassClass(glassPreset)}`
           : "bg-linear-to-r from-zinc-900/95 to-zinc-800/75",
@@ -50,10 +50,14 @@ export function FlowNodeHeader(props: FlowNodeHeaderProps) {
           {leading != null ? (
             <span className="inline-flex shrink-0 items-center">{leading}</span>
           ) : null}
-          <div className="min-w-0 flex-1">{primary}</div>
+          <div className="min-w-0 flex-1" data-flow-node-header-primary>
+            {primary}
+          </div>
         </div>
         {trailing != null ? (
-          <div className="inline-flex shrink-0 items-center">{trailing}</div>
+          <div className="inline-flex shrink-0 items-center" data-flow-node-header-trailing>
+            {trailing}
+          </div>
         ) : null}
       </div>
     </div>

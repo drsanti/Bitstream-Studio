@@ -31,6 +31,10 @@ export type SocketLivePreviewProps = {
   stringValue?: string;
   /** Text alignment for scalar/string previews. Defaults to `right` (classic socket row look). */
   textAlign?: "left" | "right";
+  /** When true, positive scalar values get a `+` prefix. Defaults to true for legacy parity. */
+  signedPositive?: boolean;
+  /** Override fraction digits (number ports only). */
+  fractionDigitsOverride?: number;
 };
 
 /**
@@ -49,6 +53,8 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
     booleanValue,
     stringValue,
     textAlign = "right",
+    signedPositive = true,
+    fractionDigitsOverride,
   } = props;
 
   if (portType === "vector3" && vector3 != null) {
@@ -99,14 +105,16 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
     }
     const hints = { handleId, nodeId, label: portLabel };
     const scalarTone = getLiveScalarReadingColorClass(streamMode, hints);
-    const fractionDigits = resolveLiveScalarReadingFractionDigits(hints);
+    const fractionDigits = fractionDigitsOverride ?? resolveLiveScalarReadingFractionDigits(hints);
     return (
       <ReadingNumber
+        data-flow-socket-live-preview
         value={scalar}
         fractionDigits={fractionDigits}
+        signedPositive={signedPositive}
         className={twMerge(
           SOCKET_LIVE_VALUE_TYPOGRAPHY,
-          "block",
+          "inline-block w-fit",
           textAlign === "left" ? "text-left" : "text-right",
           scalarTone,
         )}
@@ -117,9 +125,10 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   if (portType === "boolean" && booleanValue !== undefined) {
     return (
       <span
+        data-flow-socket-live-preview
         className={twMerge(
           SOCKET_LIVE_VALUE_TYPOGRAPHY,
-          "block text-right font-medium",
+          "inline-block w-fit text-right font-medium",
           booleanValue ? "text-emerald-300" : "text-zinc-400",
         )}
       >
@@ -131,9 +140,10 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   if (portType === "string" && stringValue !== undefined) {
     return (
       <span
+        data-flow-socket-live-preview
         className={twMerge(
           SOCKET_LIVE_VALUE_TYPOGRAPHY,
-          "block max-w-36 truncate text-zinc-200",
+          "inline-block w-fit max-w-36 truncate text-zinc-200",
           textAlign === "left" ? "text-left" : "text-right",
         )}
         title={stringValue}

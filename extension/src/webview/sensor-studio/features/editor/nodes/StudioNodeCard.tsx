@@ -7,11 +7,17 @@ import {
   type Edge,
 } from "@xyflow/react";
 import { ChevronDown } from "lucide-react";
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { twMerge } from "tailwind-merge";
 import type { StudioNodeData } from "../store/flow-editor.store";
 import {
-  isStudioSensorTapNodeId,
   STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID,
   isStudioAlignedOutputSocketColumnsNodeId,
   isStudioSensorSocketPreviewNodeId,
@@ -28,13 +34,16 @@ import {
   FlowNodeSocketDot,
   FlowNodeSocketRegion,
   FlowNodeSocketRow,
-  ReadingAxisNumber,
-  ReadingLabel,
   ReadingPanel,
-  ReadingNumber,
 } from "./flow-node";
-import { syncFlowNodeShellDimensions } from "./flow-node/FlowNodeEdgeResize";
-import { socketLivePreviewForInputHandle, socketLivePreviewForOutputHandle } from "./flow-node/socket-live-preview-for-handle";
+import {
+  flowNodeDimensionChanges,
+  syncFlowNodeShellDimensions,
+} from "./flow-node/FlowNodeEdgeResize";
+import {
+  socketLivePreviewForInputHandle,
+  socketLivePreviewForOutputHandle,
+} from "./flow-node/socket-live-preview-for-handle";
 import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import {
@@ -49,13 +58,13 @@ import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
 import { MathNodePanel } from "./math/MathNodePanel";
-import { CompareNodePanel, CompareOperationHeaderChip } from "./math/CompareNodePanel";
 import {
-  normalizeCompareOperation,
-} from "../../../core/flow/compare-operations";
+  CompareNodePanel,
+  CompareOperationHeaderChip,
+} from "./math/CompareNodePanel";
+import { normalizeCompareOperation } from "../../../core/flow/compare-operations";
 import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
 import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
-import { ClampNodePanel } from "./transform/ClampNodePanel";
 import { GlbAnimationBundleNodePanel } from "./animation/glb-animation-bundle-node-panel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import { StudioFlowCanvasDisplayScaleProvider } from "./display/studio-canvas-display-scale";
@@ -74,31 +83,44 @@ import { LedIndicatorNodePanel } from "./led-indicator/LedIndicatorNodePanel";
 import { KnobNodePanel } from "./knob/KnobNodePanel";
 import { NumericDisplayNodePanel } from "./numeric-display/NumericDisplayNodePanel";
 import {
+  AudioFilePlayerNodePanel,
+  AudioOscillatorNodePanel,
+  AudioOutputNodePanel,
+  AudioScopeNodePanel,
+  MicInputNodePanel,
+} from "./audio/AudioNodePanels";
+import {
   coercePlotterConfig,
   isPlotterNodeId,
   PLOTTER_INPUT_IDS,
 } from "./plotter/plotter-config";
+import { isRotation3DCatalogNodeId } from "./rotation/rotation-3d-node-ids";
 import {
-  isRotation3DCatalogNodeId,
-} from "./rotation/rotation-3d-node-ids";
-import { coerceScene3DConfigV1, defaultScene3DConfig } from "./rotation/scene3d-config";
+  coerceScene3DConfigV1,
+  defaultScene3DConfig,
+} from "./rotation/scene3d-config";
 import { mergeFlowWireEnvironmentIntoScene3d } from "./environment/flow-wire-environment";
 import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
 import { mergeFlowWireTransformIntoScene3d } from "./transform/flow-wire-transform";
 import { mergeFlowSceneWiresIntoScene3d } from "./scene-fx/merge-flow-scene-wires";
 import { buildGlbAnimationPreviewSceneProps } from "../gltf/build-glb-animation-preview-scene-props";
 import { buildGlbScalarPreviewSceneProps } from "../gltf/build-glb-scalar-preview-scene-props";
-import { EventSetBooleanNodePanel, EventSetGlbPartNodePanel, EventToggleBooleanNodePanel, EventToggleGlbPartNodePanel, EventTriggerGlbAnimNodePanel, OnClickNodePanel, OnKeyNodePanel } from "./events/EventFlowNodePanels";
+import {
+  EventSetBooleanNodePanel,
+  EventSetGlbPartNodePanel,
+  EventToggleBooleanNodePanel,
+  EventToggleGlbPartNodePanel,
+  EventTriggerGlbAnimNodePanel,
+  OnClickNodePanel,
+  OnKeyNodePanel,
+} from "./events/EventFlowNodePanels";
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 
 const handleBaseClass =
-  "!z-20 !h-2.5 !w-2.5 !border-2 !bg-zinc-900 [&.react-flow__handle]:pointer-events-auto";
+  "!z-20 !h-3 !w-3 !border-2 !bg-zinc-900 [&.react-flow__handle]:pointer-events-auto";
 
 const handleDotClass =
   "relative flex h-6 w-0 items-center justify-center overflow-visible";
-
-const AGE_BADGE_LIVE_MAX_SEC = 1;
-const AGE_BADGE_STALE_MAX_SEC = 3.5;
 
 export function StudioNodeCard(props: NodeProps) {
   const { id, selected: selectedFromRf } = props;
@@ -112,8 +134,12 @@ export function StudioNodeCard(props: NodeProps) {
     (s) => s.updateNodeConfigFieldByNodeId,
   );
   const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
-  const flowNodeWidth = useFlowEditorStore((s) => s.nodes.find((n) => n.id === id)?.width);
-  const flowNodeHeight = useFlowEditorStore((s) => s.nodes.find((n) => n.id === id)?.height);
+  const flowNodeWidth = useFlowEditorStore(
+    (s) => s.nodes.find((n) => n.id === id)?.width,
+  );
+  const flowNodeHeight = useFlowEditorStore(
+    (s) => s.nodes.find((n) => n.id === id)?.height,
+  );
   const setStudioUtilityNodeBodyExpanded = useFlowEditorStore(
     (s) => s.setStudioUtilityNodeBodyExpanded,
   );
@@ -125,9 +151,33 @@ export function StudioNodeCard(props: NodeProps) {
   const { descriptors } = useStudioAssetDescriptors();
   const flowNodes = useFlowEditorStore((s) => s.nodes);
   const flowEdges = useFlowEditorStore((s) => s.edges);
+
+  // Some editor graphs contain layout/reroute nodes that do not have `data.nodeId/defaultConfig`.
+  // Downstream preview helpers expect only "catalog-backed" studio nodes.
+  const flowNodesWithCatalogData = useMemo(
+    () =>
+      flowNodes.filter(
+        (n): n is typeof n & { data: { nodeId: string; defaultConfig: Record<string, unknown> } } =>
+          typeof (n as any)?.data?.nodeId === "string" &&
+          (n as any)?.data?.defaultConfig != null,
+      ),
+    [flowNodes],
+  );
+
+  const onNodesChangeAny = useCallback(
+    (changes: any[]) => {
+      (onNodesChange as unknown as (c: any[]) => void)(changes);
+    },
+    [onNodesChange],
+  );
   const socketPreviewCtx = useMemo<SocketPreviewContext>(
-    () => ({ flowNodeId: id, descriptors, flowNodes, flowEdges }),
-    [id, descriptors, flowNodes, flowEdges],
+    () => ({
+      flowNodeId: id,
+      descriptors,
+      flowNodes: flowNodesWithCatalogData as any,
+      flowEdges,
+    }),
+    [id, descriptors, flowNodesWithCatalogData, flowEdges],
   );
   const socketsExpanded = isSocketsExpanded(data.ui);
   const socketValuesVisible = isSocketValuesVisible(data.ui);
@@ -145,67 +195,6 @@ export function StudioNodeCard(props: NodeProps) {
       data.sensorInvalidReason.length > 0) ||
     (data.sensorInvalidByHandle != null &&
       Object.keys(data.sensorInvalidByHandle).length > 0);
-  const lastValidTitle = (handle: string): string | undefined => {
-    const iso = data.sensorLastValidAtByHandle?.[handle];
-    if (iso == null) {
-      return undefined;
-    }
-    const dt = new Date(iso);
-    if (Number.isNaN(dt.getTime())) {
-      return undefined;
-    }
-    return `Last valid: ${dt.toLocaleString()}`;
-  };
-  const lastValidAgeText = (handle: string): string | null => {
-    const iso = data.sensorLastValidAtByHandle?.[handle];
-    if (iso == null) {
-      return null;
-    }
-    const ts = new Date(iso).getTime();
-    if (Number.isNaN(ts)) {
-      return null;
-    }
-    const ageSec = Math.max(0, (Date.now() - ts) / 1000);
-    if (ageSec < 10) {
-      return `${ageSec.toFixed(1)}s`;
-    }
-    return `${Math.round(ageSec)}s`;
-  };
-  const renderLabelWithAge = (label: string, handle: string) => {
-    const age = lastValidAgeText(handle);
-    const ageSecRaw = (() => {
-      const iso = data.sensorLastValidAtByHandle?.[handle];
-      if (iso == null) {
-        return null;
-      }
-      const ts = new Date(iso).getTime();
-      if (Number.isNaN(ts)) {
-        return null;
-      }
-      return Math.max(0, (Date.now() - ts) / 1000);
-    })();
-    const ageBadgeClass =
-      ageSecRaw == null
-        ? "border-zinc-600/70 bg-zinc-900/70 text-zinc-300"
-        : ageSecRaw <= AGE_BADGE_LIVE_MAX_SEC
-          ? "border-emerald-500/60 bg-emerald-950/45 text-emerald-200"
-          : ageSecRaw <= AGE_BADGE_STALE_MAX_SEC
-            ? "border-amber-500/60 bg-amber-950/45 text-amber-200"
-            : "border-rose-500/65 bg-rose-950/45 text-rose-200";
-    return (
-      <span className="inline-flex items-center gap-1">
-        <span className="min-w-0">{label}</span>
-        {age != null ? (
-          <span
-            className={`rounded border px-1 py-px text-[9px] font-medium ${ageBadgeClass}`}
-            title={lastValidTitle(handle)}
-          >
-            {age}
-          </span>
-        ) : null}
-      </span>
-    );
-  };
   const sparklineBars = (data.liveHistory ?? []).slice(-24);
   const indicatorOn = data.nodeId === "indicator" && data.liveValue === true;
 
@@ -228,7 +217,9 @@ export function StudioNodeCard(props: NodeProps) {
     ) : null;
 
   const invalidBadge = hasInvalid ? (
-    <span className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-rose-500/70 bg-rose-950/45 text-rose-200`}>
+    <span
+      className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-rose-500/70 bg-rose-950/45 text-rose-200`}
+    >
       Invalid
     </span>
   ) : null;
@@ -242,12 +233,13 @@ export function StudioNodeCard(props: NodeProps) {
     tagNorm != null &&
     tagNorm.length > 0 &&
     labelNorm !== tagNorm;
-  const sensorFamilyTag =
-    showSensorFamilyTag ? (
-      <span className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-cyan-500/45 bg-cyan-950/35 text-cyan-200/90`}>
-        {sensorFamilyTagLabel}
-      </span>
-    ) : null;
+  const sensorFamilyTag = showSensorFamilyTag ? (
+    <span
+      className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-cyan-500/45 bg-cyan-950/35 text-cyan-200/90`}
+    >
+      {sensorFamilyTagLabel}
+    </span>
+  ) : null;
 
   const envDc = data.defaultConfig as Record<string, unknown>;
   const environmentControlsExpanded =
@@ -282,10 +274,10 @@ export function StudioNodeCard(props: NodeProps) {
 
   const canCollapseBody = studioNodeAllowsBodyCollapse(data);
   const showNodeBody =
-    studioNodeHasHideableBody(data) && (!canCollapseBody || bodyControlsVisible);
+    studioNodeHasHideableBody(data) &&
+    (!canCollapseBody || bodyControlsVisible);
   const compactConfigBodyNode =
     data.nodeId === "compare" ||
-    data.nodeId === "math" ||
     data.nodeId === "logic-gate" ||
     data.nodeId === "map-range" ||
     data.nodeId === "clamp" ||
@@ -295,12 +287,107 @@ export function StudioNodeCard(props: NodeProps) {
     !showNodeBody ||
     (showNodeBody && compactConfigBodyNode);
 
+  const nodeResizable = data.ui?.resizable === true;
+  const minNodeWidth =
+    typeof data.ui?.minWidth === "number" && Number.isFinite(data.ui.minWidth)
+      ? Math.round(data.ui.minWidth)
+      : 170;
+  const minNodeHeight =
+    typeof data.ui?.minHeight === "number" && Number.isFinite(data.ui.minHeight)
+      ? Math.round(data.ui.minHeight)
+      : 64;
+
+  const headerMeasureRef = useRef<HTMLDivElement | null>(null);
+  const socketsMeasureRef = useRef<HTMLDivElement | null>(null);
+  const headerTitleMeasureRef = useRef<HTMLDivElement | null>(null);
+  const headerTrailingMeasureRef = useRef<HTMLDivElement | null>(null);
+  const [measuredHeaderSocketsMinHeight, setMeasuredHeaderSocketsMinHeight] =
+    useState<number | null>(null);
+  const [measuredHeaderSocketsMinWidth, setMeasuredHeaderSocketsMinWidth] =
+    useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!nodeResizable) {
+      setMeasuredHeaderSocketsMinHeight(null);
+      setMeasuredHeaderSocketsMinWidth(null);
+      return;
+    }
+    const headerEl = headerMeasureRef.current;
+    const socketsEl = socketsMeasureRef.current;
+    if (headerEl == null || socketsEl == null) {
+      return;
+    }
+    const measure = () => {
+      const headerH = headerEl.offsetHeight;
+      const socketsH = socketsEl.offsetHeight;
+      const next = Math.max(0, Math.ceil(headerH + socketsH));
+      setMeasuredHeaderSocketsMinHeight((prev) =>
+        prev === next ? prev : next,
+      );
+
+      // Preserve spare space so longer live values don't hug the left edge.
+      // IMPORTANT: avoid using `socketsEl.scrollWidth` because the socket region is `w-full`,
+      // which creates a feedback loop (node grows => scrollWidth grows => node grows).
+      const SPARE_PX = 14;
+      const labels = socketsEl.querySelectorAll<HTMLElement>(
+        "[data-flow-socket-label]",
+      );
+      const previews = socketsEl.querySelectorAll<HTMLElement>(
+        "[data-flow-socket-live-preview]",
+      );
+      let maxLabelW = 0;
+      let maxPreviewW = 0;
+      labels.forEach((el) => {
+        maxLabelW = Math.max(maxLabelW, el.scrollWidth);
+      });
+      previews.forEach((el) => {
+        maxPreviewW = Math.max(maxPreviewW, el.scrollWidth);
+      });
+      // Rough fixed budget: socket dot + paddings + inter-column gaps.
+      const FIXED_PX = 46;
+      const socketsIntrinsicW = Math.ceil(maxLabelW + maxPreviewW + FIXED_PX);
+      const headerTitleW = headerTitleMeasureRef.current?.scrollWidth ?? 0;
+      const headerTrailingW =
+        headerTrailingMeasureRef.current?.scrollWidth ?? 0;
+      // Rough fixed budget: header padding + gap between title & trailing + optional leading.
+      const HEADER_FIXED_PX = 36;
+      const headerIntrinsicW = Math.ceil(
+        headerTitleW + headerTrailingW + HEADER_FIXED_PX,
+      );
+      const nextW = Math.max(
+        0,
+        Math.ceil(Math.max(headerIntrinsicW, socketsIntrinsicW) + SPARE_PX),
+      );
+      setMeasuredHeaderSocketsMinWidth((prev) =>
+        prev === nextW ? prev : nextW,
+      );
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(headerEl);
+    ro.observe(socketsEl);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    nodeResizable,
+    // Socket rows / visibility changes that can affect required minimum height.
+    socketsExpanded,
+    socketValuesVisible,
+    showNodeBody,
+    bodyControlsVisible,
+    data.inputHandles?.length,
+    data.outputHandles?.length,
+    data.inputType,
+    data.outputType,
+  ]);
+
   const mathOperation =
     data.nodeId === "math" && typeof data.defaultConfig.operation === "string"
       ? data.defaultConfig.operation
       : null;
   const logicGateOperation =
-    data.nodeId === "logic-gate" && typeof data.defaultConfig.operation === "string"
+    data.nodeId === "logic-gate" &&
+    typeof data.defaultConfig.operation === "string"
       ? data.defaultConfig.operation
       : null;
 
@@ -335,7 +422,11 @@ export function StudioNodeCard(props: NodeProps) {
       <button
         type="button"
         className="nodrag inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/80 bg-zinc-900/70 text-zinc-300 hover:bg-zinc-800/80"
-        title={environmentControlsExpanded ? "Hide environment controls" : "Show environment controls"}
+        title={
+          environmentControlsExpanded
+            ? "Hide environment controls"
+            : "Show environment controls"
+        }
         aria-expanded={environmentControlsExpanded}
         onClick={() => {
           setStudioUtilityNodeBodyExpanded(
@@ -357,7 +448,11 @@ export function StudioNodeCard(props: NodeProps) {
       <button
         type="button"
         className="nodrag inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/80 bg-zinc-900/70 text-zinc-300 hover:bg-zinc-800/80"
-        title={cameraViewControlsExpanded ? "Hide camera controls" : "Show camera controls"}
+        title={
+          cameraViewControlsExpanded
+            ? "Hide camera controls"
+            : "Show camera controls"
+        }
         aria-expanded={cameraViewControlsExpanded}
         onClick={() => {
           setStudioUtilityNodeBodyExpanded(
@@ -375,7 +470,8 @@ export function StudioNodeCard(props: NodeProps) {
     ) : null;
 
   const compareOperation =
-    data.nodeId === "compare" && typeof data.defaultConfig.operation === "string"
+    data.nodeId === "compare" &&
+    typeof data.defaultConfig.operation === "string"
       ? normalizeCompareOperation(data.defaultConfig.operation)
       : null;
 
@@ -395,7 +491,9 @@ export function StudioNodeCard(props: NodeProps) {
         {environmentBodyToggle}
         {cameraViewBodyToggle}
         {compareOperationChip}
-        {sensorHealthBadge != null || invalidBadge != null || sensorFamilyTag != null ? (
+        {sensorHealthBadge != null ||
+        invalidBadge != null ||
+        sensorFamilyTag != null ? (
           <div className="inline-flex flex-row-reverse items-center gap-1">
             {sensorFamilyTag}
             {invalidBadge}
@@ -411,23 +509,33 @@ export function StudioNodeCard(props: NodeProps) {
     data.outputType != null ||
     (data.outputHandles != null && data.outputHandles.length > 0);
 
-  const nodeResizable = data.ui?.resizable === true;
-  const minNodeWidth =
-    typeof data.ui?.minWidth === "number" && Number.isFinite(data.ui.minWidth)
-      ? Math.round(data.ui.minWidth)
-      : 170;
-  const minNodeHeight =
-    typeof data.ui?.minHeight === "number" && Number.isFinite(data.ui.minHeight)
-      ? Math.round(data.ui.minHeight)
-      : 64;
+  const effectiveMinNodeWidth = Math.max(
+    minNodeWidth,
+    measuredHeaderSocketsMinWidth ?? 0,
+  );
+  const effectiveMinNodeHeight = Math.max(
+    minNodeHeight,
+    measuredHeaderSocketsMinHeight ?? 0,
+  );
 
   const visibleInputHandles = (() => {
     if (data.inputHandles != null && data.inputHandles.length > 0) {
       const filtered = data.inputHandles.filter((h) =>
-        shouldShowSocketRow(id, h.id, edges, "input", socketsExpanded, data.inputHandles),
+        shouldShowSocketRow(
+          id,
+          h.id,
+          edges,
+          "input",
+          socketsExpanded,
+          data.inputHandles,
+        ),
       );
       // New rule: a node must show at least one socket; single-socket nodes keep their only socket even if unwired.
-      if (!socketsExpanded && filtered.length === 0 && data.inputHandles.length === 1) {
+      if (
+        !socketsExpanded &&
+        filtered.length === 0 &&
+        data.inputHandles.length === 1
+      ) {
         return data.inputHandles;
       }
       return filtered;
@@ -446,24 +554,27 @@ export function StudioNodeCard(props: NodeProps) {
             socketPreviewCtx,
           );
           return (
-          <FlowNodeSocketRow
-            key={h.id}
-            variant="input"
-            alignedInputColumns
-            label={h.label}
-            trailingPreview={preview ?? undefined}
-            socket={
-              <FlowNodeSocketDot className={handleDotClass}>
-                <Handle
-                  id={h.id}
-                  type="target"
-                  position={Position.Left}
-                  className={handleBaseClass}
-                  style={flowNodeHandleStyle("left", studioPortAccent(h.portType))}
-                />
-              </FlowNodeSocketDot>
-            }
-          />
+            <FlowNodeSocketRow
+              key={h.id}
+              variant="input"
+              alignedInputColumns
+              label={h.label}
+              trailingPreview={preview ?? undefined}
+              socket={
+                <FlowNodeSocketDot className={handleDotClass}>
+                  <Handle
+                    id={h.id}
+                    type="target"
+                    position={Position.Left}
+                    className={handleBaseClass}
+                    style={flowNodeHandleStyle(
+                      "left",
+                      studioPortAccent(h.portType),
+                    )}
+                  />
+                </FlowNodeSocketDot>
+              }
+            />
           );
         })
       : data.inputType != null
@@ -471,14 +582,9 @@ export function StudioNodeCard(props: NodeProps) {
             // New rule: a node must show at least one socket; keep the single `in` handle visible even if unwired.
             const showRow =
               socketsExpanded ||
-              shouldShowSocketRow(
-                id,
-                "in",
-                edges,
-                "input",
-                socketsExpanded,
-                [{ id: "in", portType: data.inputType, label: "In" }],
-              );
+              shouldShowSocketRow(id, "in", edges, "input", socketsExpanded, [
+                { id: "in", portType: data.inputType, label: "In" },
+              ]);
             if (!showRow) return [];
             const preview = socketLivePreviewForInputHandle(
               data,
@@ -488,29 +594,34 @@ export function StudioNodeCard(props: NodeProps) {
               socketPreviewCtx,
             );
             return [
-            <FlowNodeSocketRow
-              key="in"
-              variant="input"
-              alignedInputColumns
-              label={`In · ${data.inputType}`}
-              trailingPreview={preview ?? undefined}
-              socket={
-                <FlowNodeSocketDot className={handleDotClass}>
-                  <Handle
-                    id="in"
-                    type="target"
-                    position={Position.Left}
-                    className={handleBaseClass}
-                    style={flowNodeHandleStyle("left", studioPortAccent(data.inputType))}
-                  />
-                </FlowNodeSocketDot>
-              }
-            />,
-          ];
+              <FlowNodeSocketRow
+                key="in"
+                variant="input"
+                alignedInputColumns
+                label="In"
+                trailingPreview={preview ?? undefined}
+                socket={
+                  <FlowNodeSocketDot className={handleDotClass}>
+                    <Handle
+                      id="in"
+                      type="target"
+                      position={Position.Left}
+                      className={handleBaseClass}
+                      style={flowNodeHandleStyle(
+                        "left",
+                        studioPortAccent(data.inputType),
+                      )}
+                    />
+                  </FlowNodeSocketDot>
+                }
+              />,
+            ];
           })()
         : [];
 
-  const alignedOutputSocketColumns = isStudioAlignedOutputSocketColumnsNodeId(data.nodeId);
+  const alignedOutputSocketColumns = isStudioAlignedOutputSocketColumnsNodeId(
+    data.nodeId,
+  );
 
   const visibleOutputHandles = (() => {
     if (data.outputHandles != null && data.outputHandles.length > 0) {
@@ -518,7 +629,11 @@ export function StudioNodeCard(props: NodeProps) {
         shouldShowSocketRow(id, h.id, edges, "output", socketsExpanded),
       );
       // New rule: a node must show at least one socket; single-socket nodes keep their only socket even if unwired.
-      if (!socketsExpanded && filtered.length === 0 && data.outputHandles.length === 1) {
+      if (
+        !socketsExpanded &&
+        filtered.length === 0 &&
+        data.outputHandles.length === 1
+      ) {
         return data.outputHandles;
       }
       return filtered;
@@ -537,31 +652,35 @@ export function StudioNodeCard(props: NodeProps) {
             socketPreviewCtx,
           );
           return (
-          <FlowNodeSocketRow
-            key={h.id}
-            variant="output"
-            alignedOutputColumns={alignedOutputSocketColumns}
-            leadingPreview={preview ?? undefined}
-            label={h.label}
-            socket={
-              <FlowNodeSocketDot className={handleDotClass}>
-                <Handle
-                  id={h.id}
-                  type="source"
-                  position={Position.Right}
-                  className={handleBaseClass}
-                  style={flowNodeHandleStyle("right", studioPortAccent(h.portType))}
-                />
-              </FlowNodeSocketDot>
-            }
-          />
+            <FlowNodeSocketRow
+              key={h.id}
+              variant="output"
+              alignedOutputColumns={alignedOutputSocketColumns}
+              leadingPreview={preview ?? undefined}
+              label={h.label}
+              socket={
+                <FlowNodeSocketDot className={handleDotClass}>
+                  <Handle
+                    id={h.id}
+                    type="source"
+                    position={Position.Right}
+                    className={handleBaseClass}
+                    style={flowNodeHandleStyle(
+                      "right",
+                      studioPortAccent(h.portType),
+                    )}
+                  />
+                </FlowNodeSocketDot>
+              }
+            />
           );
         })
       : data.outputType != null
         ? (() => {
             // New rule: a node must show at least one socket; keep the single `out` handle visible even if unwired.
             const showRow =
-              socketsExpanded || shouldShowSocketRow(id, "out", edges, "output", socketsExpanded);
+              socketsExpanded ||
+              shouldShowSocketRow(id, "out", edges, "output", socketsExpanded);
             if (!showRow) return [];
             const preview = socketLivePreviewForOutputHandle(
               data,
@@ -571,29 +690,36 @@ export function StudioNodeCard(props: NodeProps) {
               socketPreviewCtx,
             );
             return [
-            <FlowNodeSocketRow
-              key="out"
-              variant="output"
-              leadingPreview={preview ?? undefined}
-              label={`Out · ${data.outputType}`}
-              socket={
-                <FlowNodeSocketDot className={handleDotClass}>
-                  <Handle
-                    id="out"
-                    type="source"
-                    position={Position.Right}
-                    className={handleBaseClass}
-                    style={flowNodeHandleStyle("right", studioPortAccent(data.outputType))}
-                  />
-                </FlowNodeSocketDot>
-              }
-            />,
-          ];
+              <FlowNodeSocketRow
+                key="out"
+                variant="output"
+                leadingPreview={preview ?? undefined}
+                label="Out"
+                socket={
+                  <FlowNodeSocketDot className={handleDotClass}>
+                    <Handle
+                      id="out"
+                      type="source"
+                      position={Position.Right}
+                      className={handleBaseClass}
+                      style={flowNodeHandleStyle(
+                        "right",
+                        studioPortAccent(data.outputType),
+                      )}
+                    />
+                  </FlowNodeSocketDot>
+                }
+              />,
+            ];
           })()
         : [];
 
   // New rule: collapsed mode should never hide *all* sockets.
-  if (!socketsExpanded && inputSockets.length === 0 && outputSockets.length === 0) {
+  if (
+    !socketsExpanded &&
+    inputSockets.length === 0 &&
+    outputSockets.length === 0
+  ) {
     if (data.inputHandles != null && data.inputHandles.length > 0) {
       const h = data.inputHandles[0];
       const preview = socketLivePreviewForInputHandle(
@@ -617,7 +743,10 @@ export function StudioNodeCard(props: NodeProps) {
                 type="target"
                 position={Position.Left}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle("left", studioPortAccent(h.portType))}
+                style={flowNodeHandleStyle(
+                  "left",
+                  studioPortAccent(h.portType),
+                )}
               />
             </FlowNodeSocketDot>
           }
@@ -636,7 +765,7 @@ export function StudioNodeCard(props: NodeProps) {
           key="in"
           variant="input"
           alignedInputColumns
-          label={`In · ${data.inputType}`}
+          label="In"
           trailingPreview={preview ?? undefined}
           socket={
             <FlowNodeSocketDot className={handleDotClass}>
@@ -645,7 +774,10 @@ export function StudioNodeCard(props: NodeProps) {
                 type="target"
                 position={Position.Left}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle("left", studioPortAccent(data.inputType))}
+                style={flowNodeHandleStyle(
+                  "left",
+                  studioPortAccent(data.inputType),
+                )}
               />
             </FlowNodeSocketDot>
           }
@@ -674,7 +806,10 @@ export function StudioNodeCard(props: NodeProps) {
                 type="source"
                 position={Position.Right}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle("right", studioPortAccent(h.portType))}
+                style={flowNodeHandleStyle(
+                  "right",
+                  studioPortAccent(h.portType),
+                )}
               />
             </FlowNodeSocketDot>
           }
@@ -693,7 +828,7 @@ export function StudioNodeCard(props: NodeProps) {
           key="out"
           variant="output"
           leadingPreview={preview ?? undefined}
-          label={`Out · ${data.outputType}`}
+          label="Out"
           socket={
             <FlowNodeSocketDot className={handleDotClass}>
               <Handle
@@ -701,7 +836,10 @@ export function StudioNodeCard(props: NodeProps) {
                 type="source"
                 position={Position.Right}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle("right", studioPortAccent(data.outputType))}
+                style={flowNodeHandleStyle(
+                  "right",
+                  studioPortAccent(data.outputType),
+                )}
               />
             </FlowNodeSocketDot>
           }
@@ -717,7 +855,9 @@ export function StudioNodeCard(props: NodeProps) {
 
   const isRotation3dNode = isRotation3DCatalogNodeId(data.nodeId);
 
-  type RotationPreviewScenePropsV4 = RotationPreviewSceneProps & { scene3d?: unknown };
+  type RotationPreviewScenePropsV4 = RotationPreviewSceneProps & {
+    scene3d?: unknown;
+  };
   const scene3d =
     data.defaultConfig.scene3d != null
       ? coerceScene3DConfigV1(data.defaultConfig.scene3d)
@@ -728,7 +868,10 @@ export function StudioNodeCard(props: NodeProps) {
       mergeFlowSceneWiresIntoScene3d(
         mergeFlowWireTransformIntoScene3d(
           mergeFlowWireCameraIntoScene3d(
-            mergeFlowWireEnvironmentIntoScene3d(scene3d, data.liveEnvironmentWire ?? null),
+            mergeFlowWireEnvironmentIntoScene3d(
+              scene3d,
+              data.liveEnvironmentWire ?? null,
+            ),
             data.liveCameraWire ?? null,
           ),
           data.liveTransformWire ?? null,
@@ -761,7 +904,7 @@ export function StudioNodeCard(props: NodeProps) {
       isRotation3dNode
         ? {
             ...buildGlbScalarPreviewSceneProps({
-              nodes: flowNodes,
+              nodes: flowNodesWithCatalogData as any,
               edges: flowEdges,
               flowNodeId: id,
               catalogNodeId: data.nodeId,
@@ -769,7 +912,7 @@ export function StudioNodeCard(props: NodeProps) {
               liveStudioLightWire: data.liveStudioLightWire ?? null,
             }),
             ...buildGlbAnimationPreviewSceneProps({
-              nodes: flowNodes,
+              nodes: flowNodesWithCatalogData as any,
               edges: flowEdges,
               flowNodeId: id,
               catalogNodeId: data.nodeId,
@@ -848,7 +991,50 @@ export function StudioNodeCard(props: NodeProps) {
   ]);
 
   const shellRef = useRef<HTMLDivElement | null>(null);
+  const flowNodeShellRef = useRef<HTMLDivElement | null>(null);
   const resizeActive = isSelected && nodeResizable;
+
+  useLayoutEffect(() => {
+    if (!nodeResizable) {
+      return;
+    }
+    if (
+      flowNodeWidth != null &&
+      Number.isFinite(flowNodeWidth) &&
+      flowNodeWidth < effectiveMinNodeWidth
+    ) {
+      onNodesChangeAny(
+        flowNodeDimensionChanges(
+          id,
+          effectiveMinNodeWidth,
+          flowNodeHeight ?? effectiveMinNodeHeight,
+        ),
+      );
+      return;
+    }
+    if (flowNodeHeight == null || !Number.isFinite(flowNodeHeight)) {
+      return;
+    }
+    if (flowNodeHeight >= effectiveMinNodeHeight) {
+      return;
+    }
+    // Ensure socket rows can never overflow outside the node shell after pins change.
+    onNodesChangeAny(
+      flowNodeDimensionChanges(
+        id,
+        flowNodeWidth ?? effectiveMinNodeWidth,
+        effectiveMinNodeHeight,
+      ),
+    );
+  }, [
+    id,
+    nodeResizable,
+    flowNodeHeight,
+    flowNodeWidth,
+    effectiveMinNodeWidth,
+    effectiveMinNodeHeight,
+    onNodesChange,
+  ]);
 
   useLayoutEffect(() => {
     if (!shellFitsContent) {
@@ -863,11 +1049,11 @@ export function StudioNodeCard(props: NodeProps) {
       syncFlowNodeShellDimensions(
         id,
         shellEl,
-        minNodeWidth,
-        minNodeHeight,
+        effectiveMinNodeWidth,
+        effectiveMinNodeHeight,
         flowNodeWidth,
         flowNodeHeight,
-        onNodesChange,
+        onNodesChangeAny,
       );
     });
     return () => {
@@ -879,8 +1065,8 @@ export function StudioNodeCard(props: NodeProps) {
     socketValuesVisible,
     socketsExpanded,
     id,
-    minNodeWidth,
-    minNodeHeight,
+    effectiveMinNodeWidth,
+    effectiveMinNodeHeight,
     flowNodeWidth,
     flowNodeHeight,
     onNodesChange,
@@ -892,310 +1078,414 @@ export function StudioNodeCard(props: NodeProps) {
 
   return (
     <StudioFlowCanvasDisplayScaleProvider value={flowZoom}>
-    <div
-      ref={shellRef}
-      className={`relative w-full min-w-0 max-w-full ${shellFitsContent ? "h-auto" : "h-full"}`}
-    >
-      <FlowNodeEdgeResize
-        nodeId={id}
-        active={resizeActive}
-        minWidth={minNodeWidth}
-        minHeight={minNodeHeight}
-        shellRef={shellRef}
-      />
-      <FlowNodeShell
-        glass
-        glassPreset="medium"
-        style={{
-          width: "100%",
-          height: shellFitsContent ? "auto" : "100%",
-        }}
-        className={[
-          isSelected
-            ? /* Keep base drop shadow + outer “ring” via shadow only (no border width jump). */
-              "shadow-[0_8px_24px_rgba(0,0,0,0.35),0_0_0_2px_rgba(0,200,200,0.5)] transition-shadow duration-150"
-            : "transition-shadow duration-150",
-          isPlotterNodeId(data.nodeId) ||
-          data.nodeId === "model-viewer" ||
-          data.nodeId === "radial-gauge" ||
-          data.nodeId === "bar-meter" ||
-          data.nodeId === "knob"
-            ? "min-h-0"
-            : "",
-        ]
-          .filter(Boolean)
-          .join(" ")}
+      <div
+        ref={shellRef}
+        className={`relative w-full min-w-0 max-w-full ${shellFitsContent ? "h-auto" : "h-full"}`}
       >
-        <FlowNodeHeader
+        <FlowNodeEdgeResize
+          nodeId={id}
+          active={resizeActive}
+          minWidth={effectiveMinNodeWidth}
+          minHeight={effectiveMinNodeHeight}
+          shellRef={shellRef}
+        />
+        <FlowNodeShell
+          ref={flowNodeShellRef}
           glass
           glassPreset="medium"
-          className="studio-node-drag-handle cursor-move"
-          primary={
-            <div className="text-[13px] font-semibold leading-tight text-zinc-100">
-              {data.label}
-            </div>
-          }
-          trailing={headerTrailing}
-        />
-
-        {hasSocketRegion ? (
-          <div
-            className={twMerge(
-              "nodrag min-w-0 w-full max-w-full overflow-visible border-b border-zinc-700/60 py-1.5 pl-0 pr-0",
-              isPlotterNodeId(data.nodeId) ? "pb-0 pt-1.5" : null,
-            )}
-          >
-            {inputSockets.length > 0 ? (
-              <FlowNodeSocketRegion
-                equalizeLabelWidth
-                className="grid grid-cols-[0_max-content_max-content] gap-x-1 gap-y-0.5"
-              >
-                {inputSockets}
-              </FlowNodeSocketRegion>
-            ) : null}
-            {outputSockets.length > 0 ? (
-              <FlowNodeSocketRegion
-                alignedOutputColumns={alignedOutputSocketColumns}
-                className={alignedOutputSocketColumns ? "w-full max-w-full" : undefined}
-              >
-                {outputSockets}
-              </FlowNodeSocketRegion>
-            ) : null}
-          </div>
-        ) : null}
-
-        {typeof data.sensorInvalidReason === "string" &&
-        data.sensorInvalidReason.length > 0 ? (
-          <div className="nodrag px-3 pt-2 text-[10px] text-rose-300/90">
-            {data.sensorInvalidReason}
-          </div>
-        ) : null}
-        {data.sensorInvalidByHandle != null &&
-        Object.keys(data.sensorInvalidByHandle).length > 0 ? (
-          <div className="nodrag px-3 pt-1 text-[10px] text-rose-200/85">
-            {Object.entries(data.sensorInvalidByHandle).map(
-              ([handle, reason]) => (
-                <div key={handle}>
-                  {handle}: {reason}
-                </div>
-              ),
-            )}
-          </div>
-        ) : null}
-
-        {showNodeBody ? (
-        <FlowNodeBody
-          className={
-            compactConfigBodyNode
-              ? "px-0 pb-0 pt-0"
-              : flowBodyFlexCol
-              ? isPlotterNodeId(data.nodeId)
-                ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
-                : "flex min-h-0 flex-1 flex-col"
-              : "space-y-0"
-          }
+          style={{
+            width: "100%",
+            height: shellFitsContent ? "auto" : "100%",
+          }}
+          className={[
+            "relative transition-shadow duration-150",
+            isSelected ? "studio-flow-node--selected" : null,
+            isPlotterNodeId(data.nodeId) ||
+            data.nodeId === "model-viewer" ||
+            data.nodeId === "radial-gauge" ||
+            data.nodeId === "bar-meter" ||
+            data.nodeId === "knob"
+              ? "min-h-0"
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
-          {data.nodeId === "rotation-3d-euler" ? (
-            <RotationPreviewPanelV4
-              title="3D Scene (Euler)"
-              sceneProps={
-                eulerScene ?? {
-                  qw: 1,
-                  qx: 0,
-                  qy: 0,
-                  qz: 0,
-                  fusionEulerHundredths: {
-                    roll: 0,
-                    pitch: 0,
-                    heading: 0,
-                  },
-                  meshOrientationFromEulerFallback: false,
-                  eulerOnly: true,
-                  showGrid: rotationShowGrid,
-                  scene3d: scene3dForPreview,
-                  ...rotationGlbSceneProps,
-                }
+          <div ref={headerMeasureRef}>
+            <FlowNodeHeader
+              glass
+              glassPreset="medium"
+              className="studio-node-drag-handle cursor-move"
+              primary={
+                <div
+                  ref={headerTitleMeasureRef}
+                  className="inline-block text-[12px] font-semibold leading-[14px] text-zinc-100"
+                >
+                  {data.label}
+                </div>
+              }
+              trailing={
+                headerTrailing != null ? (
+                  <div ref={headerTrailingMeasureRef}>{headerTrailing}</div>
+                ) : null
               }
             />
+          </div>
+
+          {hasSocketRegion ? (
+            <div
+              ref={socketsMeasureRef}
+              className={twMerge(
+                "nodrag min-w-0 w-full max-w-full overflow-visible py-1.5 pl-0 pr-0",
+                isPlotterNodeId(data.nodeId) ? "pb-0 pt-1.5" : null,
+              )}
+            >
+              {inputSockets.length > 0 ? (
+                <FlowNodeSocketRegion
+                  equalizeLabelWidth
+                  className="grid grid-cols-[0_max-content_max-content] gap-x-1 gap-y-0.5"
+                >
+                  {inputSockets}
+                </FlowNodeSocketRegion>
+              ) : null}
+              {outputSockets.length > 0 ? (
+                <FlowNodeSocketRegion
+                  alignedOutputColumns={alignedOutputSocketColumns}
+                  equalizeLabelWidth
+                  className={
+                    alignedOutputSocketColumns ? "w-full max-w-full" : undefined
+                  }
+                >
+                  {outputSockets}
+                </FlowNodeSocketRegion>
+              ) : null}
+            </div>
           ) : null}
-          {data.nodeId === "rotation-3d-quaternion" ? (
-            <RotationPreviewPanelV4
-              title="3D Scene (Quaternion)"
-              sceneProps={
-                quaternionScene ?? {
-                  qw: 1,
-                  qx: 0,
-                  qy: 0,
-                  qz: 0,
-                  fusionEulerHundredths: null,
-                  meshOrientationFromEulerFallback: false,
-                  showGrid: rotationShowGrid,
-                  scene3d: scene3dForPreview,
-                  ...rotationGlbSceneProps,
-                }
+
+          {typeof data.sensorInvalidReason === "string" &&
+          data.sensorInvalidReason.length > 0 ? (
+            <div className="nodrag px-3 pt-2 text-[10px] text-rose-300/90">
+              {data.sensorInvalidReason}
+            </div>
+          ) : null}
+          {data.sensorInvalidByHandle != null &&
+          Object.keys(data.sensorInvalidByHandle).length > 0 ? (
+            <div className="nodrag px-3 pt-1 text-[10px] text-rose-200/85">
+              {Object.entries(data.sensorInvalidByHandle).map(
+                ([handle, reason]) => (
+                  <div key={handle}>
+                    {handle}: {reason}
+                  </div>
+                ),
+              )}
+            </div>
+          ) : null}
+
+          {showNodeBody ? (
+            <FlowNodeBody
+              className={
+                compactConfigBodyNode
+                  ? "px-0 pb-0 pt-0"
+                  : flowBodyFlexCol
+                    ? isPlotterNodeId(data.nodeId)
+                      ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
+                      : "flex min-h-0 flex-1 flex-col"
+                    : "space-y-0"
               }
-            />
+            >
+              {data.nodeId === "rotation-3d-euler" ? (
+                <RotationPreviewPanelV4
+                  title="3D Scene (Euler)"
+                  sceneProps={
+                    eulerScene ?? {
+                      qw: 1,
+                      qx: 0,
+                      qy: 0,
+                      qz: 0,
+                      fusionEulerHundredths: {
+                        roll: 0,
+                        pitch: 0,
+                        heading: 0,
+                      },
+                      meshOrientationFromEulerFallback: false,
+                      eulerOnly: true,
+                      showGrid: rotationShowGrid,
+                      scene3d: scene3dForPreview,
+                      ...rotationGlbSceneProps,
+                    }
+                  }
+                />
+              ) : null}
+              {data.nodeId === "rotation-3d-quaternion" ? (
+                <RotationPreviewPanelV4
+                  title="3D Scene (Quaternion)"
+                  sceneProps={
+                    quaternionScene ?? {
+                      qw: 1,
+                      qx: 0,
+                      qy: 0,
+                      qz: 0,
+                      fusionEulerHundredths: null,
+                      meshOrientationFromEulerFallback: false,
+                      showGrid: rotationShowGrid,
+                      scene3d: scene3dForPreview,
+                      ...rotationGlbSceneProps,
+                    }
+                  }
+                />
+              ) : null}
+              {data.nodeId === "model-select" ? (
+                <ModelSelectNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "mic-input" ? (
+                <MicInputNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "audio-output" ? (
+                <AudioOutputNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "audio-scope" ? (
+                <AudioScopeNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "audio-file-player" ? (
+                <AudioFilePlayerNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "audio-oscillator" ? (
+                <AudioOscillatorNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "boolean-constant" ? (
+                <BooleanConstantNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "event-toggle-boolean" ? (
+                <EventToggleBooleanNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "on-key" ? (
+                <OnKeyNodePanel
+                  defaultConfig={data.defaultConfig}
+                  lastFiredAtMs={data.flowEventLastFiredAtMs}
+                />
+              ) : null}
+              {data.nodeId === "on-click" ? (
+                <OnClickNodePanel
+                  defaultConfig={data.defaultConfig}
+                  lastFiredAtMs={data.flowEventLastFiredAtMs}
+                />
+              ) : null}
+              {data.nodeId === "event-set-boolean" ? (
+                <EventSetBooleanNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "event-toggle-glb-part" ? (
+                <EventToggleGlbPartNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "event-set-glb-part" ? (
+                <EventSetGlbPartNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "event-trigger-glb-anim" ? (
+                <EventTriggerGlbAnimNodePanel
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "number-constant" ||
+              data.nodeId === "float-constant" ||
+              data.nodeId === "integer-constant" ||
+              data.nodeId === "glb-material-param" ? (
+                <NumberConstantNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "glb-material-texture" ? (
+                <GlbMaterialTextureNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "glb-material-color" ? (
+                <GlbMaterialColorNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "math" ? (
+                <MathNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+              ) : null}
+              {data.nodeId === "compare" ? (
+                <CompareNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "logic-gate" ? (
+                <LogicGateNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "multiplexer" ? (
+                <MultiplexerNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {/* Map Range has no body panel — values and defaults are displayed on socket rows. */}
+              {/* Clamp has no body panel — Min/Max are displayed on socket rows. */}
+              {data.nodeId === "glb-animation-bundle" ? (
+                <GlbAnimationBundleNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "model-viewer" ? (
+                <ModelViewerNodePanel
+                  nodeId={id}
+                  liveValue={data.liveValue}
+                  liveEnvironmentWire={data.liveEnvironmentWire}
+                  liveCameraWire={data.liveCameraWire}
+                  liveAnimationWire={data.liveAnimationWire}
+                  liveTransformWire={data.liveTransformWire}
+                  liveFogWire={data.liveFogWire}
+                  liveSettingsExposure={data.liveSettingsExposure ?? null}
+                  liveStudioLightWire={data.liveStudioLightWire}
+                  livePostProcessingWire={data.livePostProcessingWire}
+                  liveContactShadowsWire={data.liveContactShadowsWire}
+                  liveParticleEmitterWire={data.liveParticleEmitterWire}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "environment" && environmentControlsExpanded ? (
+                <EnvironmentNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "camera-view" && cameraViewControlsExpanded ? (
+                <CameraViewNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "indicator" ? (
+                <ReadingPanel className="flex items-center gap-2 text-xs">
+                  <span
+                    className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${
+                      indicatorOn ? "bg-emerald-400" : "bg-zinc-500"
+                    }`}
+                  />
+                  <span
+                    className={
+                      indicatorOn ? "text-emerald-300" : "text-zinc-300"
+                    }
+                  >
+                    {indicatorOn ? "ON" : "OFF"}
+                  </span>
+                </ReadingPanel>
+              ) : null}
+              {data.nodeId === "sparkline" ? (
+                <ReadingPanel className="flex min-h-0 w-full max-w-full flex-col p-0">
+                  <SparklineNodePanel
+                    className="p-1"
+                    history={data.liveHistory ?? sparklineBars}
+                    defaultConfig={data.defaultConfig}
+                    sensorHealth={data.sensorHealth}
+                  />
+                </ReadingPanel>
+              ) : null}
+              {data.nodeId === "radial-gauge" ? (
+                <RadialGaugeNodePanel
+                  className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
+                  value={
+                    typeof data.liveValue === "number" ? data.liveValue : null
+                  }
+                  defaultConfig={data.defaultConfig}
+                  sensorHealth={data.sensorHealth}
+                />
+              ) : null}
+              {data.nodeId === "bar-meter" ? (
+                <BarMeterNodePanel
+                  className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
+                  value={
+                    typeof data.liveValue === "number" ? data.liveValue : null
+                  }
+                  defaultConfig={data.defaultConfig}
+                  sensorHealth={data.sensorHealth}
+                />
+              ) : null}
+              {data.nodeId === "led-indicator" ? (
+                <LedIndicatorNodePanel
+                  value={data.liveValue}
+                  defaultConfig={data.defaultConfig}
+                  sensorHealth={data.sensorHealth}
+                />
+              ) : null}
+              {data.nodeId === "knob" ? (
+                <KnobNodePanel
+                  className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                  updateValue={(nid, v) =>
+                    updateNodeConfigFieldByNodeId(nid, "value", v)
+                  }
+                />
+              ) : null}
+              {data.nodeId === "numeric-display" ? (
+                <NumericDisplayNodePanel
+                  value={
+                    typeof data.liveValue === "number" ? data.liveValue : null
+                  }
+                  defaultConfig={data.defaultConfig}
+                  sensorHealth={data.sensorHealth}
+                />
+              ) : null}
+              {isPlotterNodeId(data.nodeId) ? (
+                <ReadingPanel className="mt-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none ring-0">
+                  <PlotterCanvas
+                    className="relative box-border min-h-0 min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
+                    histories={data.livePlotHistory ?? {}}
+                    channelOrder={
+                      data.inputHandles?.map((h) => h.id) ?? [
+                        ...PLOTTER_INPUT_IDS,
+                      ]
+                    }
+                    config={coercePlotterConfig(data.defaultConfig)}
+                  />
+                </ReadingPanel>
+              ) : null}
+            </FlowNodeBody>
           ) : null}
-          {data.nodeId === "model-select" ? (
-            <ModelSelectNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "boolean-constant" ? (
-            <BooleanConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "event-toggle-boolean" ? (
-            <EventToggleBooleanNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "on-key" ? (
-            <OnKeyNodePanel
-              defaultConfig={data.defaultConfig}
-              lastFiredAtMs={data.flowEventLastFiredAtMs}
-            />
-          ) : null}
-          {data.nodeId === "on-click" ? (
-            <OnClickNodePanel
-              defaultConfig={data.defaultConfig}
-              lastFiredAtMs={data.flowEventLastFiredAtMs}
-            />
-          ) : null}
-          {data.nodeId === "event-set-boolean" ? (
-            <EventSetBooleanNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "event-toggle-glb-part" ? (
-            <EventToggleGlbPartNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "event-set-glb-part" ? (
-            <EventSetGlbPartNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "event-trigger-glb-anim" ? (
-            <EventTriggerGlbAnimNodePanel defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "number-constant" || data.nodeId === "glb-material-param" ? (
-            <NumberConstantNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "glb-material-texture" ? (
-            <GlbMaterialTextureNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "glb-material-color" ? (
-            <GlbMaterialColorNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "math" ? (
-            <MathNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "compare" ? (
-            <CompareNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "logic-gate" ? (
-            <LogicGateNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "multiplexer" ? (
-            <MultiplexerNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {/* Map Range has no body panel — values and defaults are displayed on socket rows. */}
-          {/* Clamp has no body panel — Min/Max are displayed on socket rows. */}
-          {data.nodeId === "glb-animation-bundle" ? (
-            <GlbAnimationBundleNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "model-viewer" ? (
-            <ModelViewerNodePanel
-              nodeId={id}
-              liveValue={data.liveValue}
-              liveEnvironmentWire={data.liveEnvironmentWire}
-              liveCameraWire={data.liveCameraWire}
-              liveAnimationWire={data.liveAnimationWire}
-              liveTransformWire={data.liveTransformWire}
-              liveFogWire={data.liveFogWire}
-              liveSettingsExposure={data.liveSettingsExposure ?? null}
-              liveStudioLightWire={data.liveStudioLightWire}
-              livePostProcessingWire={data.livePostProcessingWire}
-              liveContactShadowsWire={data.liveContactShadowsWire}
-              liveParticleEmitterWire={data.liveParticleEmitterWire}
-              defaultConfig={data.defaultConfig}
-            />
-          ) : null}
-          {data.nodeId === "environment" && environmentControlsExpanded ? (
-            <EnvironmentNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "camera-view" && cameraViewControlsExpanded ? (
-            <CameraViewNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "indicator" ? (
-            <ReadingPanel className="flex items-center gap-2 text-xs">
-              <span
-                className={`inline-flex h-2.5 w-2.5 shrink-0 rounded-full ${
-                  indicatorOn ? "bg-emerald-400" : "bg-zinc-500"
-                }`}
-              />
-              <span
-                className={indicatorOn ? "text-emerald-300" : "text-zinc-300"}
-              >
-                {indicatorOn ? "ON" : "OFF"}
-              </span>
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "sparkline" ? (
-            <ReadingPanel className="flex min-h-0 w-full max-w-full flex-col p-0">
-              <SparklineNodePanel
-                className="p-1"
-                history={data.liveHistory ?? sparklineBars}
-                defaultConfig={data.defaultConfig}
-                sensorHealth={data.sensorHealth}
-              />
-            </ReadingPanel>
-          ) : null}
-          {data.nodeId === "radial-gauge" ? (
-            <RadialGaugeNodePanel
-              className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
-              value={typeof data.liveValue === "number" ? data.liveValue : null}
-              defaultConfig={data.defaultConfig}
-              sensorHealth={data.sensorHealth}
-            />
-          ) : null}
-          {data.nodeId === "bar-meter" ? (
-            <BarMeterNodePanel
-              className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
-              value={typeof data.liveValue === "number" ? data.liveValue : null}
-              defaultConfig={data.defaultConfig}
-              sensorHealth={data.sensorHealth}
-            />
-          ) : null}
-          {data.nodeId === "led-indicator" ? (
-            <LedIndicatorNodePanel
-              value={data.liveValue}
-              defaultConfig={data.defaultConfig}
-              sensorHealth={data.sensorHealth}
-            />
-          ) : null}
-          {data.nodeId === "knob" ? (
-            <KnobNodePanel
-              className="relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden flex-1"
-              nodeId={id}
-              defaultConfig={data.defaultConfig}
-              updateValue={(nid, v) => updateNodeConfigFieldByNodeId(nid, "value", v)}
-            />
-          ) : null}
-          {data.nodeId === "numeric-display" ? (
-            <NumericDisplayNodePanel
-              value={typeof data.liveValue === "number" ? data.liveValue : null}
-              defaultConfig={data.defaultConfig}
-              sensorHealth={data.sensorHealth}
-            />
-          ) : null}
-          {isPlotterNodeId(data.nodeId) ? (
-            <ReadingPanel className="mt-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none ring-0">
-              <PlotterCanvas
-                className="relative box-border min-h-0 min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
-                histories={data.livePlotHistory ?? {}}
-                channelOrder={
-                  data.inputHandles?.map((h) => h.id) ?? [...PLOTTER_INPUT_IDS]
-                }
-                config={coercePlotterConfig(data.defaultConfig)}
-              />
-            </ReadingPanel>
-          ) : null}
-        </FlowNodeBody>
-        ) : null}
-      </FlowNodeShell>
-    </div>
+        </FlowNodeShell>
+      </div>
     </StudioFlowCanvasDisplayScaleProvider>
   );
 }

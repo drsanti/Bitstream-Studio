@@ -40,6 +40,13 @@ import {
 import { SparklineSettingsSection } from "./sections/SparklineSettingsSection";
 import { ThresholdSettingsSection } from "./sections/ThresholdSettingsSection";
 import { TransformFromEulerSettingsSection } from "./sections/TransformFromEulerSettingsSection";
+import {
+  AudioOutputSettingsSection,
+  AudioFilePlayerSettingsSection,
+  AudioOscillatorSettingsSection,
+  AudioScopeSettingsSection,
+  MicInputSettingsSection,
+} from "./sections/AudioSettingsSections";
 
 /**
  * Catalog `nodeId` → settings UI for the Node Inspector **Node** tab (above JSON / rotation blocks).
@@ -68,6 +75,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "glb-animation-bundle": GlbAnimationBundleConnectionSection,
   "boolean-constant": BooleanConstantSettingsSection,
   "number-constant": NumberConstantSettingsSection,
+  "float-constant": NumberConstantSettingsSection,
+  "integer-constant": NumberConstantSettingsSection,
   "glb-material-param": GlbMaterialParamSettingsSection,
   "glb-material-texture": GlbMaterialTextureSettingsSection,
   "glb-material-color": GlbMaterialColorSettingsSection,
@@ -87,4 +96,9 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "event-toggle-glb-part": EventToggleGlbPartSettingsSection,
   "event-set-glb-part": EventSetGlbPartSettingsSection,
   "event-trigger-glb-anim": EventTriggerGlbAnimSettingsSection,
+  "mic-input": MicInputSettingsSection,
+  "audio-output": AudioOutputSettingsSection,
+  "audio-scope": AudioScopeSettingsSection,
+  "audio-file-player": AudioFilePlayerSettingsSection,
+  "audio-oscillator": AudioOscillatorSettingsSection,
 };

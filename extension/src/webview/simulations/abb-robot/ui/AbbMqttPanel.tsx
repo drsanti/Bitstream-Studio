@@ -169,7 +169,7 @@ function MetricCard({
         {icon}
         {label}
       </div>
-      <div className="font-semibold tabular-nums text-zinc-100">{value}</div>
+      <div className="font-semibold text-zinc-100">{value}</div>
     </div>
   );
 }

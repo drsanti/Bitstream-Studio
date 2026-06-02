@@ -101,7 +101,7 @@ export function SensorHzRateField({
           disabled={disabled}
           onChange={(e) => handleSliderChange(Number(e.target.value))}
         />
-        <span className="shrink-0 text-xs font-medium text-emerald-400/90 tabular-nums">
+        <span className="shrink-0 text-xs font-medium text-emerald-400/90">
           {hzFromIntervalMs(clampedMs)}
         </span>
       </div>

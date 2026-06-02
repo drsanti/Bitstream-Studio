@@ -12,6 +12,6 @@ export const INSPECTOR_READINGS_GRID_4 =
 export const INSPECTOR_READINGS_ROW_CLASS =
   "grid w-full items-baseline gap-x-3 border-t border-zinc-800/50 py-1.5 text-[10px] first:border-t-0";
 
-export const INSPECTOR_READINGS_VALUE_CELL = "block w-full text-right tabular-nums";
+export const INSPECTOR_READINGS_VALUE_CELL = "block w-full text-right";
 
 export const INSPECTOR_READINGS_EMPTY_CELL = "block w-full min-h-[1em]";

@@ -1,0 +1,14 @@
+---
+description: Avoid tabular/monospace numeric fonts unless requested
+alwaysApply: true
+---
+
+# Typography: no tabular/monospace numbers by default
+
+In `extension/src/webview/**`, **do not** introduce tabular or monospace numeric typography unless the user explicitly asks for it.
+
+- Avoid Tailwind utilities like `tabular-nums`, `font-mono`, and similar “ledger”/fixed-width number styling.
+- Prefer the default UI font (Inter) with normal proportional numerals.
+
+If a UI needs a special numeric look (e.g., a debug console, code editor, or explicit “fixed-width numbers” requirement), do it **only** after the user requests it, and scope it narrowly (one component / one class override).
+

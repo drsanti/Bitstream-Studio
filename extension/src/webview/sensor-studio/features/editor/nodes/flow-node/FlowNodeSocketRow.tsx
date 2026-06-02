@@ -75,7 +75,13 @@ export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
         {...rest}
       >
         <div className="nodrag flex min-w-0 justify-end">{leadingPreview ?? null}</div>
-        <div className="whitespace-nowrap pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300">
+        <div
+          data-flow-socket-label
+          className="whitespace-nowrap pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
+          style={{
+            width: "var(--flow-socket-label-w, auto)",
+          }}
+        >
           {label}
         </div>
         <div className="relative flex h-6 w-0 shrink-0 items-center justify-center">{socket}</div>
@@ -106,11 +112,15 @@ export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
           <div className="nodrag flex min-w-0 flex-1 justify-end">{leadingPreview}</div>
         ) : null}
         <div
+          data-flow-socket-label
           className={
             leadingPreview != null
-              ? "min-w-0 shrink-0 pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
-              : "min-w-0 flex-1 truncate pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
+              ? "min-w-0 shrink-0 whitespace-nowrap pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
+              : "min-w-0 shrink-0 whitespace-nowrap pl-2 pr-3 text-right text-[11px] leading-tight text-zinc-300"
           }
+          style={{
+            width: "var(--flow-socket-label-w, auto)",
+          }}
         >
           {label}
         </div>

@@ -1,4 +1,12 @@
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -26,9 +34,7 @@ import {
   resolveGlobalDirectoryFetchFallbackUrl,
 } from "../../../../../asset-resolution/global-directory-online-fallback";
 import { preflightModelPreviewUrlWithGlobalDirectoryFallback } from "../../../../../model-loader/ui/preflightModelPreviewUrl.js";
-import {
-  resolveStudioWebGlPixelRatio,
-} from "../display/canvas-hi-dpi";
+import { resolveStudioWebGlPixelRatio } from "../display/canvas-hi-dpi";
 import { useStudioCanvasDisplayScale } from "../display/studio-canvas-display-scale";
 import {
   coerceScene3DConfigV1,
@@ -119,7 +125,8 @@ const eulerWireScratch = {
 function quaternionFromFusionEulerWireHundredths(
   hundredths: FusionEulerHundredths,
 ): THREE.Quaternion {
-  const { ex, ey, ez } = fusionWireEulerHundredthsToThreeEulerRadComponents(hundredths);
+  const { ex, ey, ez } =
+    fusionWireEulerHundredthsToThreeEulerRadComponents(hundredths);
   eulerWireScratch.euler.set(ex, ey, ez, FUSION_EULER_ORDER);
   eulerWireScratch.body.setFromEuler(eulerWireScratch.euler);
   eulerWireScratch.body.invert();
@@ -131,7 +138,9 @@ function quaternionFromFusionEulerWireHundredths(
   return eulerWireScratch.mapped;
 }
 
-function quaternionFromSceneProps(p: RotationPreviewSceneProps): THREE.Quaternion {
+function quaternionFromSceneProps(
+  p: RotationPreviewSceneProps,
+): THREE.Quaternion {
   // Match `OrientationMarkerMesh`: identity quaternion is a placeholder when driving from Euler wires.
   if (p.eulerOnly === true) {
     const h = p.fusionEulerHundredths ?? { roll: 0, pitch: 0, heading: 0 };
@@ -189,13 +198,19 @@ function modelLoadKey(s: Scene3DConfigV1): string {
 }
 
 /** Strip embedded GLTF lights/cameras under `root` according to studio policy. */
-function applyEmbeddedRigPolicy(root: THREE.Object3D, policy: EmbeddedRigPolicy): void {
+function applyEmbeddedRigPolicy(
+  root: THREE.Object3D,
+  policy: EmbeddedRigPolicy,
+): void {
   if (policy === "keep") {
     return;
   }
   const removeList: THREE.Object3D[] = [];
   root.traverse((obj) => {
-    const tagged = obj as THREE.Object3D & { isLight?: boolean; isCamera?: boolean };
+    const tagged = obj as THREE.Object3D & {
+      isLight?: boolean;
+      isCamera?: boolean;
+    };
     if (policy === "strip") {
       if (tagged.isLight === true || tagged.isCamera === true) {
         removeList.push(obj);
@@ -243,7 +258,9 @@ function applyPreviewPixelRatio(
   rendererCfg: Scene3DConfigV1["renderer"],
   displayScale: number,
 ): void {
-  renderer.setPixelRatio(resolveStudioWebGlPixelRatio(rendererCfg, displayScale));
+  renderer.setPixelRatio(
+    resolveStudioWebGlPixelRatio(rendererCfg, displayScale),
+  );
 }
 
 function setSceneEnvRotationY(scene: THREE.Scene, yawDeg: number) {
@@ -293,7 +310,10 @@ function resolvePreviewContactShadowGroundY(
   return 0;
 }
 
-function applyOrbitControlsFromScene3d(controls: OrbitControls, c: Scene3DConfigV1["controls"]) {
+function applyOrbitControlsFromScene3d(
+  controls: OrbitControls,
+  c: Scene3DConfigV1["controls"],
+) {
   controls.enableDamping = c.enableDamping;
   controls.dampingFactor = c.dampingFactor;
   controls.enablePan = c.enablePan;
@@ -312,8 +332,10 @@ function applyOrbitControlsFromScene3d(controls: OrbitControls, c: Scene3DConfig
   controls.maxDistance = c.maxDistance ?? Infinity;
   controls.minPolarAngle = degToRad(c.minPolarAngleDeg);
   controls.maxPolarAngle = degToRad(c.maxPolarAngleDeg);
-  controls.minAzimuthAngle = c.minAzimuthDeg != null ? degToRad(c.minAzimuthDeg) : -Infinity;
-  controls.maxAzimuthAngle = c.maxAzimuthDeg != null ? degToRad(c.maxAzimuthDeg) : Infinity;
+  controls.minAzimuthAngle =
+    c.minAzimuthDeg != null ? degToRad(c.minAzimuthDeg) : -Infinity;
+  controls.maxAzimuthAngle =
+    c.maxAzimuthDeg != null ? degToRad(c.maxAzimuthDeg) : Infinity;
   controls.minTargetRadius = c.minTargetRadius;
   controls.maxTargetRadius = c.maxTargetRadius ?? Infinity;
 
@@ -336,9 +358,12 @@ function applyOrbitControlsFromScene3d(controls: OrbitControls, c: Scene3DConfig
         ? THREE.MOUSE.DOLLY
         : THREE.MOUSE.PAN;
 
-  controls.touches.ONE = c.touches.one === "PAN" ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
+  controls.touches.ONE =
+    c.touches.one === "PAN" ? THREE.TOUCH.PAN : THREE.TOUCH.ROTATE;
   controls.touches.TWO =
-    c.touches.two === "DOLLY_ROTATE" ? THREE.TOUCH.DOLLY_ROTATE : THREE.TOUCH.DOLLY_PAN;
+    c.touches.two === "DOLLY_ROTATE"
+      ? THREE.TOUCH.DOLLY_ROTATE
+      : THREE.TOUCH.DOLLY_PAN;
 }
 
 function frameCameraToObject(params: {
@@ -393,25 +418,38 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   const resizeRendererRef = useRef<(() => void) | null>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [hasGlbAnimations, setHasGlbAnimations] = useState(false);
-  const [userTransport, setUserTransport] = useState<GlbPreviewUserTransport>("stopped");
+  const [userTransport, setUserTransport] =
+    useState<GlbPreviewUserTransport>("stopped");
   const userPreviewTransportRef = useRef<GlbPreviewUserTransport>("stopped");
 
   const glbMorphRef = useRef<Record<string, number>>({});
   const glbLightsRef = useRef<Record<string, number>>({});
   const glbAnimsRef = useRef<Record<string, number>>({});
   const glbAnimScalesRef = useRef<Record<string, number>>({});
-  const glbAnimLoopsRef = useRef<Record<string, "once" | "loop" | "pingpong">>({});
+  const glbAnimLoopsRef = useRef<Record<string, "once" | "loop" | "pingpong">>(
+    {},
+  );
   const glbAnimWeightsRef = useRef<Record<string, number>>({});
-  const glbAnimDrivesRef = useRef<Record<string, GlbAnimationClipPreviewDrive>>({});
-  const glbAnimPlaybackModeRef = useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
+  const glbAnimDrivesRef = useRef<Record<string, GlbAnimationClipPreviewDrive>>(
+    {},
+  );
+  const glbAnimPlaybackModeRef =
+    useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
   const glbAnimClipOrderRef = useRef<string[]>([]);
   const glbAnimInspectorTransportActiveRef = useRef(true);
-  const glbAnimSequenceStateRef = useRef<GlbAnimationSequencePlaybackState>({ activeClipName: null });
-  const glbAnimPlaybackModePrevRef = useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
+  const glbAnimSequenceStateRef = useRef<GlbAnimationSequencePlaybackState>({
+    activeClipName: null,
+  });
+  const glbAnimPlaybackModePrevRef =
+    useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
   const glbPartsRef = useRef<Record<string, number>>({});
   const glbMaterialPbrRef = useRef<Record<string, GlbMaterialPbrDriveRow>>({});
-  const glbMaterialTexturesRef = useRef<Record<string, GlbMaterialTextureDriveRow>>({});
-  const glbMaterialColorsRef = useRef<Record<string, GlbMaterialColorDriveRow>>({});
+  const glbMaterialTexturesRef = useRef<
+    Record<string, GlbMaterialTextureDriveRow>
+  >({});
+  const glbMaterialColorsRef = useRef<Record<string, GlbMaterialColorDriveRow>>(
+    {},
+  );
   const glbCamerasRef = useRef<Record<string, number>>({});
   const glbCameraSwitchIndexRef = useRef<number | undefined>(undefined);
   const glbCameraSwitchRigRef = useRef<string[] | undefined>(undefined);
@@ -437,11 +475,13 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   glbMorphRef.current = scenePropsGlb.glbMorphWeights ?? {};
   glbLightsRef.current = scenePropsGlb.glbLightIntensityByName ?? {};
   glbAnimsRef.current = scenePropsGlb.glbAnimationTimeByClipName ?? {};
-  glbAnimScalesRef.current = scenePropsGlb.glbAnimationTimeScaleByClipName ?? {};
+  glbAnimScalesRef.current =
+    scenePropsGlb.glbAnimationTimeScaleByClipName ?? {};
   glbAnimLoopsRef.current = scenePropsGlb.glbAnimationLoopByClipName ?? {};
   glbAnimWeightsRef.current = scenePropsGlb.glbAnimationWeightByClipName ?? {};
   glbAnimDrivesRef.current = scenePropsGlb.glbAnimationClipDrivesByName ?? {};
-  glbAnimPlaybackModeRef.current = scenePropsGlb.glbAnimationPlaybackMode ?? "per-clip";
+  glbAnimPlaybackModeRef.current =
+    scenePropsGlb.glbAnimationPlaybackMode ?? "per-clip";
   glbAnimClipOrderRef.current = scenePropsGlb.glbAnimationClipOrder ?? [];
   glbAnimInspectorTransportActiveRef.current =
     scenePropsGlb.glbAnimationInspectorTransportActive !== false;
@@ -451,7 +491,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
   }
   glbPartsRef.current = scenePropsGlb.glbPartVisibilityByPath ?? {};
   glbMaterialPbrRef.current = scenePropsGlb.glbMaterialPbrByName ?? {};
-  glbMaterialTexturesRef.current = scenePropsGlb.glbMaterialTexturesByName ?? {};
+  glbMaterialTexturesRef.current =
+    scenePropsGlb.glbMaterialTexturesByName ?? {};
   glbMaterialColorsRef.current = scenePropsGlb.glbMaterialColorsByName ?? {};
   glbCamerasRef.current = scenePropsGlb.glbCameraDriveByName ?? {};
   glbCameraSwitchIndexRef.current = scenePropsGlb.glbCameraSwitchIndex;
@@ -491,7 +532,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     quatRef.current.copy(quaternionFromSceneProps(props.sceneProps));
   }, [props.sceneProps]);
 
-  const showBackgroundTexture = props.sceneProps.showBackgroundTexture !== false;
+  const showBackgroundTexture =
+    props.sceneProps.showBackgroundTexture !== false;
   const useCubemapIbl = props.sceneProps.useCubemapIbl !== false;
   const environmentPresetIndex =
     typeof props.sceneProps.environmentPresetIndex === "number" &&
@@ -499,11 +541,16 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       ? Math.max(0, Math.round(props.sceneProps.environmentPresetIndex))
       : 0;
 
-  const rawScene3d = (props.sceneProps as RotationPreviewSceneProps & {
-    scene3d?: unknown;
-  }).scene3d;
+  const rawScene3d = (
+    props.sceneProps as RotationPreviewSceneProps & {
+      scene3d?: unknown;
+    }
+  ).scene3d;
   const scene3d = useMemo<Scene3DConfigV1>(
-    () => (rawScene3d != null ? coerceScene3DConfigV1(rawScene3d) : defaultScene3DConfig()),
+    () =>
+      rawScene3d != null
+        ? coerceScene3DConfigV1(rawScene3d)
+        : defaultScene3DConfig(),
     [rawScene3d],
   );
   const scene3dRef = useRef<Scene3DConfigV1>(scene3d);
@@ -573,12 +620,17 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       }
       renderer = nextRenderer;
 
-      applyPreviewPixelRatio(renderer, scene3dRef.current.renderer, displayScaleRef.current);
+      applyPreviewPixelRatio(
+        renderer,
+        scene3dRef.current.renderer,
+        displayScaleRef.current,
+      );
 
       // Match RotationPreviewViewport onCreated(gl): tone mapping + exposure + sRGB output.
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
       renderer.toneMappingExposure =
-        scene3dRef.current.renderer.toneMappingExposure ?? ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE;
+        scene3dRef.current.renderer.toneMappingExposure ??
+        ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE;
       renderer.outputColorSpace = THREE.SRGBColorSpace;
 
       renderer.setClearColor(
@@ -601,13 +653,17 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       const loadEnvironment = async () => {
         const s = scene3dRef.current;
         const presetIndex =
-          typeof s.environment.presetIndex === "number" && Number.isFinite(s.environment.presetIndex)
+          typeof s.environment.presetIndex === "number" &&
+          Number.isFinite(s.environment.presetIndex)
             ? Math.max(0, Math.round(s.environment.presetIndex))
             : environmentPresetIndex;
         const studioSid = s.environment.studioAssetId;
         const studioResolveKey =
           typeof studioSid === "string" && studioSid.length > 0
-            ? (getStudioEnvironmentDescriptorById(studioSid, descriptorsRef.current)?.id ?? `pending:${studioSid}`)
+            ? (getStudioEnvironmentDescriptorById(
+                studioSid,
+                descriptorsRef.current,
+              )?.id ?? `pending:${studioSid}`)
             : "";
         const envKey = [
           studioResolveKey,
@@ -622,7 +678,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
 
         // During HMR / fast refresh, avoid clearing the environment before the new cubemap is ready.
         // PBR metals go black without `scene.environment`, so keep the previous one until swap.
-        scene.background = parseHexToThreeColor(s.environment.backgroundColorHex);
+        scene.background = parseHexToThreeColor(
+          s.environment.backgroundColorHex,
+        );
 
         const applyLoadedCubeTexture = (tex: THREE.CubeTexture): void => {
           const latest = scene3dRef.current;
@@ -654,9 +712,16 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           const tryFaces = async (faceUrls: string[]): Promise<boolean> => {
             const token = (envLoadToken += 1);
             const loader = new THREE.CubeTextureLoader();
-            const tex = await new Promise<THREE.CubeTexture | null>((resolve) => {
-              loader.load(faceUrls, (t) => resolve(t), undefined, () => resolve(null));
-            });
+            const tex = await new Promise<THREE.CubeTexture | null>(
+              (resolve) => {
+                loader.load(
+                  faceUrls,
+                  (t) => resolve(t),
+                  undefined,
+                  () => resolve(null),
+                );
+              },
+            );
             if (disposed || tex == null || token !== envLoadToken) {
               tex?.dispose?.();
               return false;
@@ -678,7 +743,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         };
 
         if (typeof studioSid === "string" && studioSid.length > 0) {
-          const desc = getStudioEnvironmentDescriptorById(studioSid, descriptorsRef.current);
+          const desc = getStudioEnvironmentDescriptorById(
+            studioSid,
+            descriptorsRef.current,
+          );
           if (desc != null) {
             const resolved = resolveStudioAsset(desc);
             const urls = resolved.cubemapFaceUrls;
@@ -704,7 +772,12 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           const token = (envLoadToken += 1);
           const loader = new THREE.CubeTextureLoader();
           const tex = await new Promise<THREE.CubeTexture | null>((resolve) => {
-            loader.load(faceUrls, (t) => resolve(t), undefined, () => resolve(null));
+            loader.load(
+              faceUrls,
+              (t) => resolve(t),
+              undefined,
+              () => resolve(null),
+            );
           });
           if (disposed || tex == null || token !== envLoadToken) {
             tex?.dispose?.();
@@ -771,9 +844,14 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         directionalIdsKey = "";
       };
 
-      const syncStudioDirectionals = (list: StudioDirectionalLightV1[]): void => {
+      const syncStudioDirectionals = (
+        list: StudioDirectionalLightV1[],
+      ): void => {
         // Id-set only: reordering rows should not dispose/recreate lights (Auto helper still uses config order via `dirs[0]`).
-        const key = [...list].map((l) => l.id).sort().join("|");
+        const key = [...list]
+          .map((l) => l.id)
+          .sort()
+          .join("|");
         if (key !== directionalIdsKey) {
           if (directionalLightHelper != null) {
             scene.remove(directionalLightHelper);
@@ -806,7 +884,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         }
       };
 
-      const syncShadowRendering = (modelRootAtFrame: THREE.Object3D | null): void => {
+      const syncShadowRendering = (
+        modelRootAtFrame: THREE.Object3D | null,
+      ): void => {
         if (renderer == null) {
           return;
         }
@@ -827,7 +907,14 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         if (pk !== shadowPipelineKey) {
           shadowPipelineKey = pk;
           for (const dl of directionalById.values()) {
-            configureStudioDirectionalShadow(dl, enabled, mapSize, orthoExtent, bias, normalBias);
+            configureStudioDirectionalShadow(
+              dl,
+              enabled,
+              mapSize,
+              orthoExtent,
+              bias,
+              normalBias,
+            );
           }
         }
 
@@ -935,11 +1022,14 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         const h = s.helpers.directionalLight;
         const dirs = s.lights.directionals;
         const resolvedAttach =
-          h.attachToDirectionalId != null && h.attachToDirectionalId.trim().length > 0
+          h.attachToDirectionalId != null &&
+          h.attachToDirectionalId.trim().length > 0
             ? h.attachToDirectionalId.trim()
-            : dirs[0]?.id ?? "";
+            : (dirs[0]?.id ?? "");
         const targetLight =
-          (resolvedAttach.length > 0 ? directionalById.get(resolvedAttach) : undefined) ??
+          (resolvedAttach.length > 0
+            ? directionalById.get(resolvedAttach)
+            : undefined) ??
           (dirs[0]?.id != null ? directionalById.get(dirs[0].id) : undefined);
 
         const stateKey = `${h.enabled}|${h.planeSize}|${resolvedAttach}|${targetLight?.uuid ?? "none"}`;
@@ -961,7 +1051,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         }
 
         if (directionalLightHelper == null) {
-          directionalLightHelper = new THREE.DirectionalLightHelper(targetLight, h.planeSize);
+          directionalLightHelper = new THREE.DirectionalLightHelper(
+            targetLight,
+            h.planeSize,
+          );
           scene.add(directionalLightHelper);
           disableShadowOnObjectSubtree(directionalLightHelper);
           dirHelpStateKey = stateKey;
@@ -1132,7 +1225,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
                 return;
               }
               modelRoot = gltf.scene;
-              applyEmbeddedRigPolicy(modelRoot, scene3dRef.current.model.embeddedRigPolicy);
+              applyEmbeddedRigPolicy(
+                modelRoot,
+                scene3dRef.current.model.embeddedRigPolicy,
+              );
               root.add(modelRoot);
               embeddedCameraNames = collectEmbeddedGlbCameraNames(modelRoot);
               resetAnimationMixer();
@@ -1141,7 +1237,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
               if (clips.length > 0) {
                 animationMixer = new THREE.AnimationMixer(modelRoot);
                 for (const clip of clips) {
-                  const nm = typeof clip.name === "string" ? clip.name.trim() : "";
+                  const nm =
+                    typeof clip.name === "string" ? clip.name.trim() : "";
                   if (nm.length === 0) {
                     continue;
                   }
@@ -1168,7 +1265,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
             (err) => {
               inflightModelKey = null;
               if (!disposed) {
-                const msg = err instanceof Error ? err.message : "unknown error";
+                const msg =
+                  err instanceof Error ? err.message : "unknown error";
                 setInitError(`Failed to load model: ${msg}`);
                 usePreviewMeshMissingUiStore.getState().notifyMissingAsset({
                   dedupeKey: `studio-rotation-model-err:${urlAtStart}`,
@@ -1213,7 +1311,10 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       let lastPerfMs = performance.now();
       const loop = () => {
         const nowMs = performance.now();
-        const deltaSec = Math.min(0.05, Math.max(0, (nowMs - lastPerfMs) / 1000));
+        const deltaSec = Math.min(
+          0.05,
+          Math.max(0, (nowMs - lastPerfMs) / 1000),
+        );
         lastPerfMs = nowMs;
 
         const s = scene3dRef.current;
@@ -1224,8 +1325,12 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           return;
         }
         renderer.toneMappingExposure =
-          s.renderer.toneMappingExposure ?? ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE;
-        renderer.setClearColor(parseHexToThreeColor(s.renderer.clearColorHex), 1);
+          s.renderer.toneMappingExposure ??
+          ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE;
+        renderer.setClearColor(
+          parseHexToThreeColor(s.renderer.clearColorHex),
+          1,
+        );
 
         ambient.color.copy(parseHexToThreeColor(s.lights.ambient.colorHex));
         ambient.intensity = s.lights.ambient.intensity;
@@ -1247,9 +1352,17 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         );
         syncShadowRendering(modelRoot);
 
-        applyGlbPartVisibilityByPathMap(glbPathIndex, glbPartsRef.current, partVisibilityDriveState);
+        applyGlbPartVisibilityByPathMap(
+          glbPathIndex,
+          glbPartsRef.current,
+          partVisibilityDriveState,
+        );
         applyGlbMorphWeightsToModelRoot(modelRoot, glbMorphRef.current);
-        applyGlbMaterialPbrByName(modelRoot, glbMaterialPbrRef.current, materialPbrDriveState);
+        applyGlbMaterialPbrByName(
+          modelRoot,
+          glbMaterialPbrRef.current,
+          materialPbrDriveState,
+        );
         applyGlbMaterialTexturesByName(
           modelRoot,
           glbMaterialTexturesRef.current,
@@ -1277,14 +1390,18 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
               playbackMode,
               clipOrder,
               sequenceState: glbAnimSequenceStateRef.current,
-              inspectorTransportActive: glbAnimInspectorTransportActiveRef.current,
+              inspectorTransportActive:
+                glbAnimInspectorTransportActiveRef.current,
             });
             applyStudioGlbAnimationMixerDrives({
               clipActions,
               drives: drivesForMixer,
               state: animationMixerState,
             });
-            if (playbackMode === "sequence" && glbAnimInspectorTransportActiveRef.current) {
+            if (
+              playbackMode === "sequence" &&
+              glbAnimInspectorTransportActiveRef.current
+            ) {
               animationMixer.update(deltaSec);
               advanceGlbAnimationSequenceAfterMixerTick({
                 clipActions,
@@ -1310,7 +1427,11 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
                   ac.time = Math.max(0, t);
                   const ts = scales[nm];
                   ac.timeScale =
-                    typeof ts === "number" && Number.isFinite(ts) && Math.abs(ts) < 1e6 ? ts : 1;
+                    typeof ts === "number" &&
+                    Number.isFinite(ts) &&
+                    Math.abs(ts) < 1e6
+                      ? ts
+                      : 1;
                   const mode = loops[nm] ?? "loop";
                   const threeLoop =
                     mode === "once"
@@ -1323,7 +1444,9 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
                   ac.clampWhenFinished = mode === "once";
                   const w = weights[nm];
                   ac.weight =
-                    typeof w === "number" && Number.isFinite(w) ? Math.min(1, Math.max(0, w)) : 1;
+                    typeof w === "number" && Number.isFinite(w)
+                      ? Math.min(1, Math.max(0, w))
+                      : 1;
                 } else {
                   ac.paused = true;
                   ac.time = 0;
@@ -1393,7 +1516,12 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
         prevGlbCamActive = glbCamActive;
         camera.updateProjectionMatrix();
         if (glbCamActive) {
-          applyStudioCameraFromBlendedGlbCameras(modelRoot, glbCamBlend, camera, controls);
+          applyStudioCameraFromBlendedGlbCameras(
+            modelRoot,
+            glbCamBlend,
+            camera,
+            controls,
+          );
         }
 
         const mk = modelLoadKey(s);
@@ -1435,8 +1563,16 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
       const onContextRestored = () => {
         setInitError(null);
       };
-      renderer.domElement.addEventListener("webglcontextlost", onContextLost, false);
-      renderer.domElement.addEventListener("webglcontextrestored", onContextRestored, false);
+      renderer.domElement.addEventListener(
+        "webglcontextlost",
+        onContextLost,
+        false,
+      );
+      renderer.domElement.addEventListener(
+        "webglcontextrestored",
+        onContextRestored,
+        false,
+      );
 
       return () => {
         resizeRendererRef.current = null;
@@ -1478,7 +1614,11 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           directionalLightHelper = null;
         }
         disposeAllStudioDirectionals();
-        disposePreviewCompositorRuntime(scene, contactShadowRuntime, bloomRuntime);
+        disposePreviewCompositorRuntime(
+          scene,
+          contactShadowRuntime,
+          bloomRuntime,
+        );
         disposePreviewParticleRuntime(particleRuntime, scene);
         scene.remove(ambient);
         ambient.dispose();
@@ -1486,8 +1626,14 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           cubeTexture.dispose();
           cubeTexture = null;
         }
-        renderer?.domElement.removeEventListener("webglcontextlost", onContextLost);
-        renderer?.domElement.removeEventListener("webglcontextrestored", onContextRestored);
+        renderer?.domElement.removeEventListener(
+          "webglcontextlost",
+          onContextLost,
+        );
+        renderer?.domElement.removeEventListener(
+          "webglcontextrestored",
+          onContextRestored,
+        );
         renderer?.dispose();
         // In Vite dev / Fast Refresh the same <canvas> DOM node is reused. forceContextLoss()
         // intentionally destroys the GL context; many browsers then refuse a new context on that
@@ -1573,7 +1719,8 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
           {initError != null ? (
             <div
               className={`absolute inset-0 flex items-center justify-center p-3 text-center text-[11px] leading-snug ${
-                emptyHintRef.current != null && initError === emptyHintRef.current
+                emptyHintRef.current != null &&
+                initError === emptyHintRef.current
                   ? "text-zinc-400"
                   : "text-rose-200/90"
               }`}
@@ -1604,4 +1751,3 @@ export function RotationPreviewPanelV4(props: RotationPreviewPanelV4Props) {
     </ReadingPanel>
   );
 }
-

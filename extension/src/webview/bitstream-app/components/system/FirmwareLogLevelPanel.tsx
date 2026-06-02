@@ -295,7 +295,7 @@ export function FirmwareLogLevelPanel() {
             <Activity className="h-3.5 w-3.5" aria-hidden />
             <span className="text-[10px] uppercase tracking-wide">Updated</span>
           </div>
-          <p className="text-sm font-semibold tabular-nums text-zinc-100">{topUpdated}</p>
+          <p className="text-sm font-semibold text-zinc-100">{topUpdated}</p>
         </div>
       </div>
 

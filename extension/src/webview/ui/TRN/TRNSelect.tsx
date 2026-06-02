@@ -5,7 +5,10 @@ import { createPortal } from "react-dom";
 import { twMerge } from "tailwind-merge";
 import { TRNIconButton } from "./TRNIconButton.js";
 import {
-  TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+  TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
+  TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS,
+} from "../components/toolbar-header-dropdown-menu-ui.js";
+import {
   TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME,
   TRNMenuItemButton,
   TRNMenuPanel,
@@ -35,11 +38,29 @@ export type TRNSelectProps = {
   iconButtonClassName?: string;
   /** Shown before the selected label on the trigger (e.g. environment / scene icon). */
   leadingIcon?: ReactNode;
+  /** Trigger chrome preset. */
+  variant?: "field" | "glass";
+  /** If true, uses the selected option's `icon` as the trigger leading icon (unless `leadingIcon` is set). */
+  showSelectedIconInTrigger?: boolean;
   size?: "sm" | "md" | "lg";
   disabled?: boolean;
   className?: string;
   buttonClassName?: string;
+  /** Alias for `buttonClassName` (used across Sensor Studio / inspector). */
+  triggerClassName?: string;
   panelClassName?: string;
+};
+
+const TRN_SELECT_TRIGGER_BASE_CLASS =
+  "inline-flex w-full items-center gap-2 rounded-md px-2.5 font-sans text-[13px] font-normal leading-tight text-zinc-100 " +
+  "shadow-[0_16px_48px_-16px_rgba(0,0,0,0.35)] backdrop-blur-2xl " +
+  "transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 " +
+  "disabled:cursor-not-allowed disabled:opacity-50";
+
+const TRN_SELECT_TRIGGER_VARIANT_CLASS: Record<NonNullable<TRNSelectProps["variant"]>, string> = {
+  field: "border border-zinc-700/80 bg-zinc-950/45 hover:bg-zinc-950/55",
+  glass:
+    "border border-white/15 bg-black/70 ring-1 ring-white/10 hover:bg-black/80",
 };
 
 type MenuBox = {
@@ -101,12 +122,16 @@ export function TRNSelect(props: TRNSelectProps) {
     iconTrigger,
     iconButtonClassName,
     leadingIcon,
+    variant = "field",
+    showSelectedIconInTrigger = true,
     size = "md",
     disabled = false,
     className,
     buttonClassName,
+    triggerClassName,
     panelClassName,
   } = props;
+  const mergedTriggerClassName = twMerge(buttonClassName, triggerClassName);
   const sectionHeadingId = useId();
   const [open, setOpen] = useState(false);
   const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
@@ -222,10 +247,11 @@ export function TRNSelect(props: TRNSelectProps) {
           >
             <TRNMenuPanel
               tone="glass-dropdown"
-              className={twMerge("overflow-y-auto scrollbar-hide", panelClassName)}
+              edgeAutoScroll
+              className={twMerge(TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS, panelClassName)}
               style={{ maxHeight: menuBox.maxHeight }}
             >
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-0.5">
                 {sectionTitle != null ? (
                   <TRNMenuSectionTitle id={sectionHeadingId} spacing="menuFirst">
                     {sectionTitle}
@@ -235,7 +261,7 @@ export function TRNSelect(props: TRNSelectProps) {
                   role="listbox"
                   aria-label={sectionTitle != null ? undefined : ariaLabel}
                   aria-labelledby={sectionTitle != null ? sectionHeadingId : undefined}
-                  className="flex flex-col gap-1"
+                  className="flex flex-col gap-0.5"
                 >
                   {options.map((opt) => {
                     const optDisabled = disabled || opt.disabled === true;
@@ -251,13 +277,8 @@ export function TRNSelect(props: TRNSelectProps) {
                         label={opt.label}
                         icon={opt.icon}
                         className={twMerge(
-                          TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                          "font-sans font-medium tracking-wide",
-                          size === "sm"
-                            ? "text-xs"
-                            : size === "lg"
-                              ? "text-sm"
-                              : "text-sm",
+                          TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
+                          size === "sm" ? "text-xs" : size === "lg" ? "text-sm" : null,
                           isSelected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
                         )}
                         rightSlot={
@@ -324,22 +345,19 @@ export function TRNSelect(props: TRNSelectProps) {
           }
         }}
         className={twMerge(
-          "inline-flex w-full items-center gap-2 rounded-md border border-white/15 " +
-            "bg-black/55 px-2.5 font-sans text-xs font-semibold tracking-wide text-zinc-100 " +
-            "shadow-[0_8px_24px_rgba(0,0,0,0.28)] backdrop-blur-xl " +
-            "transition-colors hover:bg-black/65 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 " +
-            "disabled:cursor-not-allowed disabled:opacity-50",
+          TRN_SELECT_TRIGGER_BASE_CLASS,
+          TRN_SELECT_TRIGGER_VARIANT_CLASS[variant],
           size === "sm"
-            ? "py-1"
+            ? "py-1 text-xs"
             : size === "lg"
               ? "py-2 text-sm"
               : "py-1.5",
-          buttonClassName,
+          mergedTriggerClassName,
         )}
       >
-        {leadingIcon ? (
+        {leadingIcon ?? (showSelectedIconInTrigger ? selected?.icon : null) ? (
           <span className="inline-flex shrink-0 items-center text-zinc-400 [&_svg]:shrink-0" aria-hidden>
-            {leadingIcon}
+            {leadingIcon ?? (showSelectedIconInTrigger ? selected?.icon : null)}
           </span>
         ) : null}
         <span className="min-w-0 flex-1 truncate text-left">{selected?.label ?? value}</span>

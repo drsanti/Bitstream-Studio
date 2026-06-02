@@ -174,7 +174,7 @@ function StatPill({
   return (
     <span className="inline-flex items-baseline gap-1" title={title}>
       <span className="text-zinc-500">{label}</span>
-      <span className="font-medium tabular-nums text-zinc-200">{value}</span>
+      <span className="font-medium text-zinc-200">{value}</span>
     </span>
   );
 }

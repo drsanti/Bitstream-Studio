@@ -28,6 +28,7 @@ export const SOCKET_PREVIEW_STRUCTURED_PORT_TYPES = new Set<StudioPortType>([
   "postProcessing",
   "contactShadows",
   "particleEmitter",
+  "audioBus",
   "event",
 ]);
 

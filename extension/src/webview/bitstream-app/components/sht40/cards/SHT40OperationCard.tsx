@@ -49,7 +49,8 @@ export function SHT40OperationCard(props: {
         />
       }
       headerTitleClassName="normal-case tracking-normal text-zinc-100"
-      className="h-auto rounded-md border-zinc-700/80 bg-black/40 p-2"
+      shell="solid"
+      className="h-auto"
       collapsible
       collapsed={collapsed}
       onCollapsedChange={(next) => {

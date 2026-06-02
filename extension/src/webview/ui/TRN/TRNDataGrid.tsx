@@ -267,7 +267,7 @@ export function TRNDataGrid<TRow>(props: TRNDataGridProps<TRow>) {
                     <td
                       key={col.id}
                       className={twMerge(
-                        "px-2 py-1.5 text-[11px] text-zinc-100 tabular-nums",
+                        "px-2 py-1.5 text-[11px] text-zinc-100",
                         alignTd,
                         col.cellClassName,
                       )}

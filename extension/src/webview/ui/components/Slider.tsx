@@ -30,7 +30,7 @@ export const Slider: React.FC<SliderProps> = ({
             </label>
           )}
           {valueLabel != null && (
-            <span className="text-xs tabular-nums text-gray-400 shrink-0">
+            <span className="text-xs text-gray-400 shrink-0">
               {valueLabel}
             </span>
           )}

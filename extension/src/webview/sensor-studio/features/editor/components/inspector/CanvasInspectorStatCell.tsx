@@ -19,8 +19,8 @@ export function CanvasInspectorStatCell(props: CanvasInspectorStatCellProps) {
       <div
         className={
           emphasis
-            ? "font-mono text-[12px] tabular-nums text-sky-100/95"
-            : "font-mono text-[12px] tabular-nums text-zinc-100/95"
+            ? "text-[12px] text-sky-100/95"
+            : "text-[12px] text-zinc-100/95"
         }
       >
         {value}

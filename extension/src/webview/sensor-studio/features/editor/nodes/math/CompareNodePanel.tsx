@@ -19,7 +19,7 @@ export function CompareOperationHeaderChip(props: { operation: CompareOperation 
   const { operation } = props;
   return (
     <span
-      className="rounded border border-amber-500/55 bg-amber-950/45 px-1.5 py-px font-mono text-[11px] font-semibold tabular-nums text-amber-200/95"
+      className="rounded border border-amber-500/55 bg-amber-950/45 px-1.5 py-px font-mono text-[11px] font-semibold text-amber-200/95"
       title={compareOperationLabel(operation)}
     >
       {compareOperationGlyph(operation)}
@@ -49,7 +49,7 @@ export function CompareNodePanel(props: CompareNodePanelProps) {
               key={op}
               type="button"
               className={twMerge(
-                "nodrag nopan flex h-5 w-5 items-center justify-center rounded-[3px] border p-0 font-mono text-[9px] font-semibold leading-none tabular-nums transition-colors",
+                "nodrag nopan flex h-5 w-5 items-center justify-center rounded-[3px] border p-0 font-mono text-[9px] font-semibold leading-none transition-colors",
                 selected
                   ? "border-amber-500/70 bg-amber-950/55 text-amber-100"
                   : "border-zinc-700/80 bg-zinc-900/70 text-zinc-400 hover:border-zinc-600 hover:bg-zinc-800/80 hover:text-zinc-200",

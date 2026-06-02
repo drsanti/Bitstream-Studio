@@ -98,7 +98,7 @@ export const Splitter = memo(({ direction, onResize, containerRef }: SplitterPro
       {label ? (
         <span
           className={cn(
-            'pointer-events-none absolute z-[200] rounded bg-black/75 px-1.5 py-0.5 font-mono text-[9px] tabular-nums text-blue-200',
+            'pointer-events-none absolute z-[200] rounded bg-black/75 px-1.5 py-0.5 text-[9px] text-blue-200',
             isHorizontal ? '-top-5 left-1/2 -translate-x-1/2' : '-left-10 top-1/2 -translate-y-1/2',
           )}
         >

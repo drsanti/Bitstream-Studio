@@ -26,6 +26,8 @@ export function studioPortAccent(portType: StudioPortType): string {
       return DT.glbAnimation;
     case "transform":
       return DT.transform;
+    case "audioBus":
+      return DT.audioBus;
     default:
       return "#a1a1aa";
   }

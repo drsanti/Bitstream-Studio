@@ -901,7 +901,7 @@ export function TRNSidePanel(props: TRNSidePanelProps) {
   const dimensionsFooter =
     showDimensionsFooter ? (
       <div
-        className="tabular-nums font-mono text-[10px] leading-tight text-zinc-500"
+        className="text-[10px] leading-tight text-zinc-500"
         aria-live="polite"
       >
         <span className="text-zinc-400">Panel</span>{" "}

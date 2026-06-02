@@ -97,7 +97,7 @@ type TRNParameterProps = {
    */
   unitColumnClassName?: string;
   /**
-   * When set with `valueColumnLayout="auto"`, the numeric value uses this width (`ch` works well with `tabular-nums`)
+   * When set with `valueColumnLayout="auto"`, the numeric value uses this width (`ch` works well for aligned digits)
    * and the value+unit block becomes `shrink-0` so the gauge is the only `flex-1` — stable bar width and aligned numbers.
    */
   valueTextColumnClassName?: string;
@@ -264,7 +264,7 @@ export const TRNParameter = ({
     (valueTruncate
       ? "min-w-0 truncate "
       : "shrink-0 ") +
-    `whitespace-nowrap text-right font-semibold tabular-nums ${valueToneClass} ` +
+    `whitespace-nowrap text-right font-semibold ${valueToneClass} ` +
     (valueSlotTight
       ? `${(valueTextColumnClassName ?? "").trim()} shrink-0`
       : unit != null

@@ -5,7 +5,7 @@
 
 /** Same typography as socket port labels — Inter via Tailwind `font-sans`. */
 export const SOCKET_LIVE_VALUE_TYPOGRAPHY =
-  "font-sans text-[11px] leading-tight tabular-nums";
+  "font-sans text-[11px] leading-tight";
 
 /** Signed 3 dp in ±1 (quaternion / euler): `+1.000`, `-0.999`. */
 export const SOCKET_LIVE_CELL_SIGNED3_UNIT =

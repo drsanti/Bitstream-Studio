@@ -480,7 +480,7 @@ export const SensorTestWorkbench = forwardRef<SensorTestWorkbenchHandle, SensorT
                     <div key={id} className="rounded border border-zinc-800 bg-zinc-950/40 px-3 py-2">
                       <div className="flex items-center justify-between">
                         <div className="text-sm font-medium text-zinc-200">{SENSOR_TEST_LABEL[id]}</div>
-                        <div className="text-sm tabular-nums text-zinc-100">
+                        <div className="text-sm text-zinc-100">
                           {(measuredHzBySensorId[id] ?? 0).toFixed(2)} Hz
                         </div>
                       </div>

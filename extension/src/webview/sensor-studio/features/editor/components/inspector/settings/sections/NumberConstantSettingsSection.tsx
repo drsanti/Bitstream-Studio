@@ -1,14 +1,13 @@
-import { X } from "lucide-react";
-import { TRNHintText, TRNScrubNumberInput, TRNSegmentedControl } from "../../../../../../../ui/TRN";
+import { useState } from "react";
+import {
+  TRNButton,
+  TRNHintText,
+  TRNSegmentedControl,
+} from "../../../../../../../ui/TRN";
 import { InspectorPropertyRow } from "../../InspectorPropertyRow";
+import { InspectorOptionalScrubNumberField } from "../../../inspector/InspectorOptionalScrubNumberField";
 import { InspectorSettingsSectionFrame } from "../../InspectorSettingsSectionFrame";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
-import {
-  coerceNumberConstantValue,
-  readNumberConstantCardValueControl,
-  readNumberConstantMode,
-  readOptionalFiniteNumber,
-} from "../../../../nodes/constants/number-constant-helpers";
 import { readGlbExtractTag } from "../../../../model/model-generated-bindings";
 import {
   readGlbPartDriveMode,
@@ -23,10 +22,37 @@ import {
   type StudioGlbMaterialParamV1,
 } from "../../../../gltf/studio-glb-material-param";
 import { TRNSelect } from "../../../../../../../ui/TRN";
+import {
+  loadTrnScrubNumberFieldSettings,
+  saveTrnScrubNumberFieldSettings,
+  type TrnScrubNumberFieldStoredSettingsV1,
+} from "../../../../../../../ui/TRN/trnScrubNumberFieldStorage";
 
-/** Same chrome as each axis cell in {@link TRNVector3Field} (`TRNVector3Field.tsx`). */
-const TRN_DENSE_NUMERIC_FIELD_SHELL =
-  "flex min-w-0 items-center gap-1 rounded border border-zinc-700/80 bg-zinc-950/45 px-1 py-1";
+const SCRUB_FIELD_SETTINGS_KEY = "number-constant";
+
+function readScrubFieldSettings(): TrnScrubNumberFieldStoredSettingsV1 {
+  return (
+    loadTrnScrubNumberFieldSettings(SCRUB_FIELD_SETTINGS_KEY) ?? {
+      version: 1,
+      valueRules: { stepAuto: true },
+      appearance: {
+        variant: "full",
+        stepButtonsVisibility: "hover",
+        lockIconVisibility: "hover",
+      },
+      interaction: {
+        pointerScrubEnabled: true,
+        dragSensitivityPreset: "normal",
+        wheelEnabled: true,
+        wheelBoundedMode: "span-percent",
+      },
+    }
+  );
+}
+
+function persistScrubFieldSettings(next: TrnScrubNumberFieldStoredSettingsV1): void {
+  saveTrnScrubNumberFieldSettings(SCRUB_FIELD_SETTINGS_KEY, next);
+}
 
 /**
  * Optional finite bound — same shell + {@link TRNScrubNumberInput} as {@link TRNVector3Field} axis cells.
@@ -42,71 +68,232 @@ function OptionalDecimalInspectorControl(props: {
 
   return (
     <InspectorPropertyRow label={label} description={description}>
-      <div className={"nodrag w-full " + TRN_DENSE_NUMERIC_FIELD_SHELL}>
-        {value == null ? (
-          <div className="flex min-w-0 flex-1 items-center gap-0.5">
-            <button
-              type="button"
-              className="nodrag min-w-0 flex-1 rounded bg-transparent px-0.5 py-0.5 text-right font-mono text-[11px] tabular-nums text-zinc-500 outline-none transition-colors hover:text-zinc-300 focus-visible:ring-1 focus-visible:ring-cyan-400/45"
-              aria-label={`${label}: not set. Activate to enter a value.`}
-              title="Sets bound starting at 0 — edit the value, or use ✕ after setting to remove the bound."
-              onClick={() => {
-                onCommit(0);
-              }}
-            >
-              (none)
-            </button>
-          </div>
-        ) : (
-          <div className="flex min-w-0 flex-1 items-center gap-0.5">
-            <div className="flex min-w-0 flex-1 items-center gap-0.5">
-              <TRNScrubNumberInput
-                aria-label={label}
-                className="w-full min-w-0"
-                inputClassName="text-xs"
-                value={value}
-                step={0.01}
-                pointerScrubEnabled={false}
-                onChange={(n) => {
-                  onCommit(n);
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              aria-label={`Clear ${label}`}
-              title="Remove bound"
-              className={
-                "nodrag inline-flex h-5 w-5 shrink-0 items-center justify-center rounded border-0 bg-transparent p-0 " +
-                "text-zinc-500 outline-none transition-colors hover:bg-zinc-800/60 hover:text-zinc-200 " +
-                "focus-visible:ring-2 focus-visible:ring-cyan-400/45"
-              }
-              onClick={(e) => {
-                e.preventDefault();
-                onCommit(null);
-              }}
-            >
-              <X className="h-3 w-3" aria-hidden strokeWidth={2.25} />
-            </button>
-          </div>
-        )}
-      </div>
+      <InspectorOptionalScrubNumberField
+        ariaLabel={label}
+        value={value}
+        step={0.01}
+        onCommit={onCommit}
+      />
     </InspectorPropertyRow>
+  );
+}
+
+function ScrubFieldInspectorPreferences(props: { showValueRules?: boolean; showHint?: boolean }) {
+  const { showValueRules = true, showHint = true } = props;
+  const [settings, setSettings] = useState<TrnScrubNumberFieldStoredSettingsV1>(readScrubFieldSettings);
+
+  const appearance = settings.appearance ?? {};
+  const interaction = settings.interaction ?? {};
+  const valueRules = settings.valueRules ?? {};
+
+  const setNext = (next: TrnScrubNumberFieldStoredSettingsV1) => {
+    setSettings(next);
+    persistScrubFieldSettings(next);
+  };
+
+  const visibilityButtons = (
+    kind: "stepButtonsVisibility" | "lockIconVisibility",
+    value: "hidden" | "always" | "hover",
+    onPick: (v: "hidden" | "always" | "hover") => void,
+  ) => (
+    <div className="flex w-full gap-1.5">
+      {([
+        { id: "hidden", label: "Hidden" },
+        { id: "always", label: "Always" },
+        { id: "hover", label: "On hover" },
+      ] as const).map((o) => (
+        <TRNButton
+          key={`${kind}-${o.id}`}
+          size="compact"
+          selected={value === o.id}
+          className="h-6 min-w-0 flex-1 px-2 text-xs font-medium"
+          onClick={() => onPick(o.id)}
+        >
+          {o.label}
+        </TRNButton>
+      ))}
+    </div>
+  );
+
+  return (
+    <div className="space-y-2">
+      {showHint ? (
+        <TRNHintText tone="muted" className="text-[10px] leading-snug">
+          These control the scrub field UI/interaction (used across nodes).
+        </TRNHintText>
+      ) : null}
+
+      <InspectorPropertyRow label="Variant" description="Minimal hides the step/lock affordances.">
+        <div className="flex w-full gap-1.5">
+          {(["minimal", "full"] as const).map((v) => (
+            <TRNButton
+              key={v}
+              size="compact"
+              selected={(appearance.variant ?? "full") === v}
+              className="h-6 min-w-0 flex-1 px-2 text-xs font-medium"
+              onClick={() =>
+                setNext({
+                  ...settings,
+                  appearance: { ...appearance, variant: v },
+                })
+              }
+            >
+              {v === "minimal" ? "Minimal" : "Full"}
+            </TRNButton>
+          ))}
+        </div>
+      </InspectorPropertyRow>
+
+      <InspectorPropertyRow label="Step buttons" description="Visibility of [‹][›] controls.">
+        {visibilityButtons(
+          "stepButtonsVisibility",
+          (appearance.stepButtonsVisibility ?? "hover") as any,
+          (v) =>
+            setNext({
+              ...settings,
+              appearance: { ...appearance, stepButtonsVisibility: v },
+            }),
+        )}
+      </InspectorPropertyRow>
+
+      <InspectorPropertyRow label="Lock icon" description="Visibility of the 🔓/🔒 toggle.">
+        {visibilityButtons(
+          "lockIconVisibility",
+          (appearance.lockIconVisibility ?? "hover") as any,
+          (v) =>
+            setNext({
+              ...settings,
+              appearance: { ...appearance, lockIconVisibility: v },
+            }),
+        )}
+      </InspectorPropertyRow>
+
+      {showValueRules ? (
+        <>
+          <OptionalDecimalInspectorControl
+            label="Default min (UI)"
+            description="Default min bound used when a scrub field is rendered without an explicit min."
+            value={typeof valueRules.min === "number" ? valueRules.min : undefined}
+            onCommit={(next) =>
+              setNext({
+                ...settings,
+                valueRules: { ...valueRules, min: next ?? undefined },
+              })
+            }
+          />
+          <OptionalDecimalInspectorControl
+            label="Default max (UI)"
+            description="Default max bound used when a scrub field is rendered without an explicit max."
+            value={typeof valueRules.max === "number" ? valueRules.max : undefined}
+            onCommit={(next) =>
+              setNext({
+                ...settings,
+                valueRules: { ...valueRules, max: next ?? undefined },
+              })
+            }
+          />
+        </>
+      ) : null}
+
+      <InspectorPropertyRow label="Pointer drag scrub" description="Enables click-drag scrubbing.">
+        <div className="flex w-full gap-1.5">
+          {([
+            { id: "on", label: "On" },
+            { id: "off", label: "Off" },
+          ] as const).map((o) => (
+            <TRNButton
+              key={`pointer-scrub-${o.id}`}
+              size="compact"
+              selected={(interaction.pointerScrubEnabled === false ? "off" : "on") === o.id}
+              className="h-6 min-w-0 flex-1 px-2 text-xs font-medium"
+              onClick={() =>
+                setNext({
+                  ...settings,
+                  interaction: { ...interaction, pointerScrubEnabled: o.id === "on" },
+                })
+              }
+            >
+              {o.label}
+            </TRNButton>
+          ))}
+        </div>
+      </InspectorPropertyRow>
+
+      <InspectorPropertyRow label="Drag sensitivity" description="How fast value changes while scrubbing.">
+        <div className="flex w-full gap-1.5">
+          {(["slow", "normal", "fast", "custom"] as const).map((p) => (
+            <TRNButton
+              key={p}
+              size="compact"
+              selected={(interaction.dragSensitivityPreset ?? "normal") === p}
+              className="h-6 min-w-0 flex-1 px-2 text-xs font-medium"
+              onClick={() =>
+                setNext({
+                  ...settings,
+                  interaction: { ...interaction, dragSensitivityPreset: p },
+                })
+              }
+            >
+              {p === "normal" ? "Normal" : p[0].toUpperCase() + p.slice(1)}
+            </TRNButton>
+          ))}
+        </div>
+      </InspectorPropertyRow>
+
+      <InspectorPropertyRow label="Mouse wheel" description="Enable wheel changes over the field.">
+        <div className="flex w-full gap-1.5">
+          {([
+            { id: "on", label: "On" },
+            { id: "off", label: "Off" },
+          ] as const).map((o) => (
+            <TRNButton
+              key={`wheel-${o.id}`}
+              size="compact"
+              selected={(interaction.wheelEnabled === false ? "off" : "on") === o.id}
+              className="h-6 min-w-0 flex-1 px-2 text-xs font-medium"
+              onClick={() =>
+                setNext({
+                  ...settings,
+                  interaction: { ...interaction, wheelEnabled: o.id === "on" },
+                })
+              }
+            >
+              {o.label}
+            </TRNButton>
+          ))}
+        </div>
+      </InspectorPropertyRow>
+
+      <InspectorPropertyRow label="Bounded wheel" description="When min/max exist, choose wheel step mode.">
+        <div className="flex w-full gap-1.5">
+          {([
+            { id: "span-percent", label: "1% span" },
+            { id: "step", label: "Step" },
+          ] as const).map((o) => (
+            <TRNButton
+              key={o.id}
+              size="compact"
+              selected={(interaction.wheelBoundedMode ?? "span-percent") === o.id}
+              className="h-6 min-w-0 flex-1 px-2 text-xs font-medium"
+              onClick={() =>
+                setNext({
+                  ...settings,
+                  interaction: { ...interaction, wheelBoundedMode: o.id },
+                })
+              }
+            >
+              {o.label}
+            </TRNButton>
+          ))}
+        </div>
+      </InspectorPropertyRow>
+    </div>
   );
 }
 
 export function NumberConstantSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
   const dc = selectedNode.data.defaultConfig as Record<string, unknown>;
-  const mode = readNumberConstantMode(dc);
-  const cardUi = readNumberConstantCardValueControl(dc);
-  const min = readOptionalFiniteNumber(dc, "min");
-  const max = readOptionalFiniteNumber(dc, "max");
-  const step = readOptionalFiniteNumber(dc, "step");
-  const rawValue = typeof dc.value === "number" && Number.isFinite(dc.value) ? dc.value : 0;
-  const coercedValue = coerceNumberConstantValue(dc, rawValue);
-  const valueStep =
-    mode === "integer" ? Math.max(1, step ?? 1) : step != null && step > 0 ? step : 0.01;
   const glbTag = readGlbExtractTag(dc);
   const partDriveMode = readGlbPartDriveMode(dc);
   const materialParam = readGlbMaterialParam(dc);
@@ -114,6 +301,10 @@ export function NumberConstantSettingsSection(props: NodeInspectorSettingsSectio
   return (
     <InspectorSettingsSectionFrame title="Number">
       <div className="space-y-2">
+        {selectedNode.data.nodeId === "float-constant" ? (
+          <ScrubFieldInspectorPreferences showValueRules={false} />
+        ) : null}
+
         {glbTag != null ? (
           <div className="nodrag rounded border border-cyan-900/45 bg-cyan-950/20 px-2 py-1.5">
             <div className="text-[11px] font-medium text-cyan-100/95">GLB extraction placeholder</div>
@@ -231,107 +422,6 @@ export function NumberConstantSettingsSection(props: NodeInspectorSettingsSectio
             </TRNHintText>
           </div>
         ) : null}
-        <InspectorPropertyRow
-          label="Number format"
-          description="Integer rounds the output to a whole number after clamp and step. Float keeps fractional values."
-        >
-          <TRNSegmentedControl
-            ariaLabel="Number format"
-            className="nodrag w-full"
-            fullWidth
-            size="sm"
-            stopPointerDownPropagation
-            tone="neutral"
-            variant="surface"
-            value={mode}
-            options={[
-              { value: "float", label: "Float" },
-              { value: "integer", label: "Integer" },
-            ]}
-            onValueChange={(next) => {
-              if (next === "integer") {
-                onUpdateConfigField("numberMode", "integer");
-              } else if (next === "float") {
-                onUpdateConfigField("numberMode", "float");
-              }
-            }}
-          />
-        </InspectorPropertyRow>
-
-        <InspectorPropertyRow
-          label="Value control"
-          description="Typed number field vs slider on the node card and in the Value row below."
-        >
-          <TRNSegmentedControl
-            ariaLabel="On-card number editor"
-            className="nodrag w-full"
-            fullWidth
-            size="sm"
-            stopPointerDownPropagation
-            tone="neutral"
-            variant="surface"
-            value={cardUi}
-            options={[
-              { value: "input", label: "Input" },
-              { value: "slider", label: "Slider" },
-            ]}
-            onValueChange={(next) => {
-              if (next === "input" || next === "slider") {
-                onUpdateConfigField("cardValueControl", next);
-              }
-            }}
-          />
-        </InspectorPropertyRow>
-
-        <OptionalDecimalInspectorControl
-          label="Min (optional)"
-          description="Lower clamp for value and for the out wire. Leave empty for no lower bound."
-          value={min}
-          onCommit={(next) => {
-            onUpdateConfigField("min", next);
-          }}
-        />
-        <OptionalDecimalInspectorControl
-          label="Max (optional)"
-          description="Upper clamp. Leave empty for no upper bound."
-          value={max}
-          onCommit={(next) => {
-            onUpdateConfigField("max", next);
-          }}
-        />
-        <OptionalDecimalInspectorControl
-          label="Step (optional)"
-          description="Snap output to multiples of step after clamp (for example 0.1 or 5). Leave empty to disable snapping."
-          value={step}
-          onCommit={(next) => {
-            onUpdateConfigField("step", next);
-          }}
-        />
-
-        <InspectorPropertyRow
-          label="Value"
-          description="Main constant; clamp and step rules apply before the value reaches out."
-        >
-          <div className={"nodrag w-full " + TRN_DENSE_NUMERIC_FIELD_SHELL}>
-            <div className="flex min-w-0 flex-1 items-center gap-0.5">
-              <TRNScrubNumberInput
-                aria-label="Number constant value"
-                className="w-full"
-                inputClassName="text-xs"
-                value={coercedValue}
-                step={valueStep}
-                min={min}
-                max={max}
-                pointerScrubEnabled={false}
-                onChange={(next) => {
-                  const merged = { ...dc, value: next };
-                  const out = coerceNumberConstantValue(merged, next);
-                  onUpdateConfigField("value", out);
-                }}
-              />
-            </div>
-          </div>
-        </InspectorPropertyRow>
       </div>
     </InspectorSettingsSectionFrame>
   );

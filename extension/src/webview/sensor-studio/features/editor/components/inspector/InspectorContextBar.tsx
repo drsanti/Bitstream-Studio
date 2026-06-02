@@ -202,7 +202,7 @@ export function InspectorContextBar(props: InspectorContextBarProps) {
     );
 
   return (
-    <header className="sticky top-0 z-[2] shrink-0 border-b border-zinc-800/60 bg-zinc-950/80 px-3 py-2 backdrop-blur-sm supports-backdrop-filter:bg-zinc-950/70">
+    <header className="sticky top-0 z-2 shrink-0 border-b border-zinc-800/60 bg-zinc-950/80 px-3 py-2 backdrop-blur-sm supports-backdrop-filter:bg-zinc-950/70">
       <div className="grid grid-cols-[auto_1fr_auto] grid-rows-[auto_auto] items-start gap-x-2 gap-y-1">
         <InspectorCategoryIcon
           className="row-span-2 mt-0.5"
@@ -214,7 +214,7 @@ export function InspectorContextBar(props: InspectorContextBarProps) {
         />
         <div className="min-w-0">{titleNode}</div>
         <time
-          className="shrink-0 self-start font-mono text-[10px] tabular-nums leading-none text-zinc-500"
+          className="shrink-0 self-start text-[10px] leading-none text-zinc-500"
           dateTime={lastUpdatedAt}
           title={lastUpdatedAt ?? "Last update"}
         >
@@ -225,7 +225,7 @@ export function InspectorContextBar(props: InspectorContextBarProps) {
           <span className="shrink-0 text-zinc-500">{categoryLabel}</span>
           <MetaSeparator />
           <NodeInstanceHint nodeId={nodeId}>
-            <span className="min-w-0 truncate font-mono text-zinc-600 hover:text-zinc-400">
+            <span className="min-w-0 truncate text-zinc-600 hover:text-zinc-400">
               {nodeId}
             </span>
           </NodeInstanceHint>

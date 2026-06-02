@@ -31,7 +31,7 @@ function HealthPill(props: { label: string; count: number; toneClass: string }) 
   return (
     <span
       className={twMerge(
-        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 font-mono text-[10px] tabular-nums leading-none",
+        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] leading-none",
         toneClass,
       )}
     >
@@ -74,7 +74,7 @@ function buildViewContext(args: {
     iconShellClass: "border-sky-500/25 bg-sky-950/25 text-sky-300/95",
     trailing:
       selectionCount > 0 ? (
-        <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-950/30 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-sky-200/90">
+        <span className="shrink-0 rounded-full border border-sky-500/30 bg-sky-950/30 px-1.5 py-0.5 text-[10px] text-sky-200/90">
           {selectionCount} sel
         </span>
       ) : null,
@@ -105,7 +105,7 @@ function buildFlowContext(args: {
     iconShellClass: "border-zinc-600/45 bg-zinc-900/55 text-zinc-300/95",
     trailing:
       selectionCount > 0 ? (
-        <span className="shrink-0 rounded-full border border-zinc-600/45 bg-zinc-900/60 px-1.5 py-0.5 font-mono text-[10px] tabular-nums text-zinc-300/90">
+        <span className="shrink-0 rounded-full border border-zinc-600/45 bg-zinc-900/60 px-1.5 py-0.5 text-[10px] text-zinc-300/90">
           {selectionCount} sel
         </span>
       ) : null,

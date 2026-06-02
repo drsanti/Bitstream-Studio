@@ -1,8 +1,12 @@
 import type { FlowGraphNode } from "../../store/flow-editor.store";
 import { isStudioFlowNode } from "../../layout/layout-port-resolution";
 import { LAYOUT_MENU_ENTRIES } from "../../layout/layout-flow-menu-entries";
-import type { FrameLayoutNodeData } from "../../layout/layout-flow-nodes.types";
+import type {
+  FrameLayoutNodeData,
+  NoteLayoutNodeData,
+} from "../../layout/layout-flow-nodes.types";
 import { FrameLayoutInspectorSection } from "./FrameLayoutInspectorSection";
+import { NoteLayoutInspectorSection } from "./NoteLayoutInspectorSection";
 import {
   nodeGroupInspectorTitle,
   NodeGroupInspectorSection,
@@ -67,6 +71,11 @@ export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
         <FrameLayoutInspectorSection
           frameNodeId={selectedNode.id}
           data={selectedNode.data as FrameLayoutNodeData}
+        />
+      ) : selectedNode.type === "studio-note" ? (
+        <NoteLayoutInspectorSection
+          noteNodeId={selectedNode.id}
+          data={selectedNode.data as NoteLayoutNodeData}
         />
       ) : (
         <>

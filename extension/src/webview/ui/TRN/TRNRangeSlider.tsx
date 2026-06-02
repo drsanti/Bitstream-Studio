@@ -26,7 +26,7 @@ export const TRNRangeSlider: React.FC<TRNRangeSliderProps> = ({
             </label>
           )}
           {valueLabel != null && (
-            <span className="shrink-0 tabular-nums text-xs text-gray-400">{valueLabel}</span>
+            <span className="shrink-0 text-xs text-gray-400">{valueLabel}</span>
           )}
         </div>
       )}

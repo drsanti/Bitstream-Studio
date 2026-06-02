@@ -239,7 +239,7 @@ function TwinMappingComponentCardContent(props: {
                 {isPrimary ? "● " : ""}
                 {signalLabel}
               </button>
-              <div className="flex items-center gap-1 truncate tabular-nums text-[9px] text-zinc-500">
+              <div className="flex items-center gap-1 truncate text-[9px] text-zinc-500">
                 <MappingStatusBadge status={status} />
                 <span className="truncate">{previewText}</span>
               </div>

@@ -7,7 +7,10 @@ import { PSOC_E84_GLB_RELATIVE_PATH } from "../../bitstream-app/components/3d-ro
 import { defaultFlowWireCameraV1 } from "../features/editor/nodes/camera-view/flow-wire-camera";
 import { defaultFlowWireTransformV1 } from "../features/editor/nodes/transform/flow-wire-transform";
 import { defaultFlowWireEnvironmentV1 } from "../features/editor/nodes/environment/flow-wire-environment";
-import { defaultScene3DConfig, type Scene3DConfigV1 } from "../features/editor/nodes/rotation/scene3d-config";
+import {
+  defaultScene3DConfig,
+  type Scene3DConfigV1,
+} from "../features/editor/nodes/rotation/scene3d-config";
 
 /**
  * Catalog defaults must persist a **logical** GLB path (`resolveWebviewModelAssetUrl`), not
@@ -49,25 +52,32 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             portType: "quaternion",
             label: "Quaternion",
           },
-          { id: "temp", portType: "number", label: PALETTE_TEMPERATURE_ROW_LABEL },
+          {
+            id: "temp",
+            portType: "number",
+            label: PALETTE_TEMPERATURE_ROW_LABEL,
+          },
+          { id: "samples", portType: "number", label: "Samples" },
         ],
       },
       {
         id: "bmi270-tap-quaternion",
         category: "sensor",
         title: "Quaternion",
-        description:
-          "Fusion quaternion only — same stream as the BMI270 node.",
+        description: "Fusion quaternion only — same stream as the BMI270 node.",
         icon: "orbit",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "quaternion", label: "Quaternion" }],
+        outputPorts: [
+          { id: "out", portType: "quaternion", label: "Quaternion" },
+        ],
       },
       {
         id: "bmi270-tap-euler",
         category: "sensor",
         title: "Euler",
-        description: "Fusion Euler vector only (rad) from the live BMI270 stream.",
+        description:
+          "Fusion Euler vector only (rad) from the live BMI270 stream.",
         icon: "compass",
         defaultVisible: true,
         defaultConfig: {},
@@ -81,7 +91,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "arrow-down",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "vector3", label: "Acceleration" }],
+        outputPorts: [
+          { id: "out", portType: "vector3", label: "Acceleration" },
+        ],
       },
       {
         id: "bmi270-tap-gyro",
@@ -101,7 +113,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
+        outputPorts: [
+          {
+            id: "out",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+        ],
+      },
+      {
+        id: "bmi270-tap-samples",
+        category: "sensor",
+        title: "Samples",
+        description: "BMI270 sample counter — same stream as the BMI270 node.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {},
+        outputPorts: [{ id: "out", portType: "number", label: "Samples" }],
       },
       {
         id: "dps368-input",
@@ -114,7 +142,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "pressure", portType: "number", label: "Pressure (hPa)" },
-          { id: "temp", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL },
+          {
+            id: "temp",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+          { id: "samples", portType: "number", label: "Samples" },
         ],
       },
       {
@@ -128,7 +161,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "humidity", portType: "number", label: "Humidity (%RH)" },
-          { id: "temp", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL },
+          {
+            id: "temp",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+          { id: "samples", portType: "number", label: "Samples" },
         ],
       },
       {
@@ -142,7 +180,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {},
         outputPorts: [
           { id: "magnetic", portType: "vector3", label: "Magnetic (µT)" },
-          { id: "temp", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL },
+          {
+            id: "temp",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+          { id: "samples", portType: "number", label: "Samples" },
         ],
       },
       {
@@ -154,7 +197,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "gauge",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: "Pressure (hPa)" }],
+        outputPorts: [
+          { id: "out", portType: "number", label: "Pressure (hPa)" },
+        ],
       },
       {
         id: "dps368-tap-temp",
@@ -165,7 +210,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
+        outputPorts: [
+          {
+            id: "out",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+        ],
+      },
+      {
+        id: "dps368-tap-samples",
+        category: "sensor",
+        title: "Samples",
+        description: "DPS368 sample counter — same stream as the DPS368 node.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {},
+        outputPorts: [{ id: "out", portType: "number", label: "Samples" }],
       },
       {
         id: "sht40-tap-humidity",
@@ -176,7 +237,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "droplets",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: "Humidity (%RH)" }],
+        outputPorts: [
+          { id: "out", portType: "number", label: "Humidity (%RH)" },
+        ],
       },
       {
         id: "sht40-tap-temp",
@@ -187,7 +250,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
+        outputPorts: [
+          {
+            id: "out",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+        ],
+      },
+      {
+        id: "sht40-tap-samples",
+        category: "sensor",
+        title: "Samples",
+        description: "SHT40 sample counter — same stream as the SHT40 node.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {},
+        outputPorts: [{ id: "out", portType: "number", label: "Samples" }],
       },
       {
         id: "bmm350-tap-magnetic",
@@ -198,7 +277,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "magnet",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "vector3", label: "Magnetic (µT)" }],
+        outputPorts: [
+          { id: "out", portType: "vector3", label: "Magnetic (µT)" },
+        ],
       },
       {
         id: "bmm350-tap-temp",
@@ -209,7 +290,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "thermometer",
         defaultVisible: true,
         defaultConfig: {},
-        outputPorts: [{ id: "out", portType: "number", label: SENSOR_TEMPERATURE_PORT_LABEL }],
+        outputPorts: [
+          {
+            id: "out",
+            portType: "number",
+            label: SENSOR_TEMPERATURE_PORT_LABEL,
+          },
+        ],
+      },
+      {
+        id: "bmm350-tap-samples",
+        category: "sensor",
+        title: "Samples",
+        description: "BMM350 sample counter — same stream as the BMM350 node.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {},
+        outputPorts: [{ id: "out", portType: "number", label: "Samples" }],
       },
       {
         // NOTE: disabled for Bitstream workflows (not needed).
@@ -224,15 +321,146 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           sourceKey: "bmi270.accel.x",
         },
+        outputPorts: [{ id: "out", portType: "number", label: "Value" }],
+      },
+      {
+        id: "mic-input",
+        category: "audio",
+        title: "Microphone",
+        description:
+          "Microphone input (permission-gated). Emits scalar audio features (RMS, peak, ZCR, centroid) as number wires for downstream logic and plotting.",
+        icon: "mic",
+        defaultVisible: true,
+        defaultConfig: {
+          enabled: false,
+          deviceId: "default",
+          fftSize: 2048,
+          smoothing: 0.8,
+          gateEnabled: false,
+          gateThreshold: 0.02,
+          peakHoldMs: 150,
+        },
+        outputPorts: [
+          { id: "rms", portType: "number", label: "RMS" },
+          { id: "peak", portType: "number", label: "Peak" },
+          { id: "zcr", portType: "number", label: "ZCR" },
+          { id: "centroidHz", portType: "number", label: "Centroid (Hz)" },
+          { id: "active", portType: "boolean", label: "Active" },
+          { id: "audio", portType: "audioBus", label: "Audio" },
+        ],
+      },
+      {
+        id: "audio-oscillator",
+        category: "audio",
+        title: "Oscillator",
+        description:
+          "Basic Web Audio oscillator for test signals. Drive Frequency/Gain with wires and gate playback with a boolean.",
+        icon: "activity",
+        defaultVisible: true,
+        defaultConfig: {
+          waveform: "sine",
+          detuneCents: 0,
+          freqHz: 440,
+          sweepEnabled: false,
+          sweepStartHz: 220,
+          sweepEndHz: 880,
+          sweepPeriodS: 4,
+          gain: 0,
+          gate: false,
+        },
+        inputPorts: [
+          { id: "freqHz", portType: "number", label: "Freq (Hz)" },
+          { id: "gain", portType: "number", label: "Gain" },
+          { id: "gate", portType: "boolean", label: "Gate" },
+        ],
+        outputPorts: [
+          { id: "level", portType: "number", label: "Level" },
+          { id: "audio", portType: "audioBus", label: "Audio" },
+        ],
+      },
+      {
+        id: "audio-output",
+        category: "audio",
+        title: "Audio Output",
+        description:
+          "Route audio to the device output with a safe gain cap and optional limiter. Requires a user gesture to start audio on most platforms.",
+        icon: "plug",
+        defaultVisible: true,
+        defaultConfig: {
+          enabled: false,
+          sourceMode: "auto",
+          sourceNodeId: "",
+          limiterEnabled: true,
+          maxGain: 0.25,
+          requiresUserGesture: true,
+          gain: 0,
+          gate: false,
+        },
+        inputPorts: [
+          { id: "audio", portType: "audioBus", label: "Audio" },
+          { id: "gain", portType: "number", label: "Gain" },
+          { id: "gate", portType: "boolean", label: "Gate" },
+        ],
+      },
+      {
+        id: "audio-scope",
+        category: "audio",
+        title: "Audio Scope",
+        description:
+          "Waveform + spectrum visualization in a node card panel. Uses a canvas draw loop; avoids pushing audio buffers through flow pins.",
+        icon: "waves",
+        defaultVisible: true,
+        defaultConfig: {
+          sourceMode: "auto",
+          sourceNodeId: "",
+          mode: "waveform",
+          fps: 30,
+          fftSize: 2048,
+          smoothing: 0.8,
+          enabled: true,
+        },
+        inputPorts: [
+          { id: "audio", portType: "audioBus", label: "Audio" },
+          { id: "enabled", portType: "boolean", label: "Enabled" },
+        ],
+      },
+      {
+        id: "audio-file-player",
+        category: "audio",
+        title: "Audio File Player",
+        description:
+          "Play an audio file from a URL via Web Audio decode. Outputs transport state (playing/time/duration) and routes audio through Audio Output when enabled.",
+        icon: "activity",
+        defaultVisible: true,
+        defaultConfig: {
+          enabled: false,
+          url: "",
+          loop: false,
+          gain: 0.5,
+          gate: false,
+        },
+        inputPorts: [
+          { id: "gain", portType: "number", label: "Gain" },
+          { id: "gate", portType: "boolean", label: "Gate" },
+        ],
+        outputPorts: [
+          { id: "playing", portType: "boolean", label: "Playing" },
+          { id: "time", portType: "number", label: "Time (s)" },
+          { id: "duration", portType: "number", label: "Duration (s)" },
+          { id: "audio", portType: "audioBus", label: "Audio" },
+        ],
       },
       {
         id: "number-average",
         category: "utility",
         title: "Average",
-        description: "Average all incoming number wires (multi-connect to the input pin).",
+        description:
+          "Average all incoming number wires (multi-connect to the input pin).",
         icon: "sigma",
         defaultVisible: true,
         defaultConfig: {},
+        inputPorts: [{ id: "in", portType: "number", label: "Values" }],
+        outputPorts: [{ id: "out", portType: "number", label: "Average" }],
       },
       {
         id: "math",
@@ -304,7 +532,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "combine-xyz",
         category: "utility",
         title: "Combine XYZ",
-        description: "Build a vector3 from wired X, Y, and Z numbers. Unwired inputs count as 0.",
+        description:
+          "Build a vector3 from wired X, Y, and Z numbers. Unwired inputs count as 0.",
         icon: "git-branch",
         defaultVisible: false,
         defaultConfig: {},
@@ -426,10 +655,15 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "globe",
         defaultVisible: true,
         defaultConfig: {
-          ...(defaultFlowWireEnvironmentV1() as unknown as Record<string, unknown>),
+          ...(defaultFlowWireEnvironmentV1() as unknown as Record<
+            string,
+            unknown
+          >),
           inputSocketVisibility: {},
         },
-        outputPorts: [{ id: "out", portType: "environment", label: "Environment" }],
+        outputPorts: [
+          { id: "out", portType: "environment", label: "Environment" },
+        ],
       },
       {
         id: "camera-view",
@@ -453,7 +687,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "box",
         defaultVisible: true,
         defaultConfig: {
-          ...(defaultFlowWireTransformV1() as unknown as Record<string, unknown>),
+          ...(defaultFlowWireTransformV1() as unknown as Record<
+            string,
+            unknown
+          >),
         },
         outputPorts: [{ id: "out", portType: "transform", label: "Transform" }],
       },
@@ -485,7 +722,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           animationBlendCompactView: true,
           animationCrossfadeS: 0.3,
         },
-        outputPorts: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+        outputPorts: [
+          { id: "out", portType: "glbAnimation", label: "Animation" },
+        ],
       },
       {
         id: "map-range",
@@ -676,7 +915,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "threshold",
         category: "transform",
         title: "Threshold",
-        description: "Compare Value against a configured threshold (boolean output).",
+        description:
+          "Compare Value against a configured threshold (boolean output).",
         icon: "gauge",
         defaultVisible: true,
         defaultConfig: {
@@ -696,6 +936,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           label: "Indicator",
         },
+        inputPorts: [{ id: "in", portType: "boolean", label: "On" }],
       },
       {
         id: "gauge",
@@ -709,6 +950,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           unit: "",
           decimals: 3,
         },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
       },
       {
         id: "sparkline",
@@ -722,6 +964,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           strokeColor: "#22d3ee",
           strokeWidth: 3,
         },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
       },
       {
         id: "plotter",
@@ -810,7 +1053,11 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "fog", portType: "fog", label: "Fog" },
           { id: "lite", portType: "studioLight", label: "Studio Light" },
           { id: "post", portType: "postProcessing", label: "Post-FX" },
-          { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
+          {
+            id: "cshadow",
+            portType: "contactShadows",
+            label: "Contact Shadows",
+          },
           { id: "emitter", portType: "particleEmitter", label: "Particles" },
         ],
       },
@@ -836,7 +1083,11 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "fog", portType: "fog", label: "Fog" },
           { id: "lite", portType: "studioLight", label: "Studio Light" },
           { id: "post", portType: "postProcessing", label: "Post-FX" },
-          { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
+          {
+            id: "cshadow",
+            portType: "contactShadows",
+            label: "Contact Shadows",
+          },
           { id: "emitter", portType: "particleEmitter", label: "Particles" },
         ],
       },
@@ -863,7 +1114,11 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "fog", portType: "fog", label: "Fog" },
           { id: "lite", portType: "studioLight", label: "Studio Light" },
           { id: "post", portType: "postProcessing", label: "Post-FX" },
-          { id: "cshadow", portType: "contactShadows", label: "Contact Shadows" },
+          {
+            id: "cshadow",
+            portType: "contactShadows",
+            label: "Contact Shadows",
+          },
           { id: "emitter", portType: "particleEmitter", label: "Particles" },
         ],
       },
@@ -882,8 +1137,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           unit: "",
           decimals: 1,
           zones: [
-            { from: 0,  to: 60,  color: "#22d3ee" },
-            { from: 60, to: 80,  color: "#fbbf24" },
+            { from: 0, to: 60, color: "#22d3ee" },
+            { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
         },
@@ -904,8 +1159,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           orientation: "vertical",
           showPeakHold: true,
           zones: [
-            { from: 0,  to: 60,  color: "#22d3ee" },
-            { from: 60, to: 80,  color: "#fbbf24" },
+            { from: 0, to: 60, color: "#22d3ee" },
+            { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
         },
@@ -942,8 +1197,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           unit: "",
           decimals: 1,
           zones: [
-            { from: 0,  to: 60,  color: "#22d3ee" },
-            { from: 60, to: 80,  color: "#fbbf24" },
+            { from: 0, to: 60, color: "#22d3ee" },
+            { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
         },
@@ -963,8 +1218,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           decimals: 2,
           showStatusBar: true,
           zones: [
-            { from: 0,  to: 60,  color: "rgba(228,228,231,0.95)" },
-            { from: 60, to: 80,  color: "#fbbf24" },
+            { from: 0, to: 60, color: "rgba(228,228,231,0.95)" },
+            { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
         },
@@ -974,14 +1229,14 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "scene-time",
         category: "generator",
         title: "Scene Time",
-        description: "Elapsed scene time in seconds and frames (30 fps frame counter).",
+        description:
+          "Elapsed scene time in seconds and frames (30 fps frame counter).",
         icon: "clock",
         defaultVisible: true,
         defaultConfig: {},
         outputPorts: [
           { id: "seconds", portType: "number", label: "Seconds" },
           { id: "frames", portType: "number", label: "Frames" },
-          { id: "out", portType: "number", label: "Out" },
         ],
       },
       {
@@ -1027,7 +1282,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "rotation",
         category: "utility",
         title: "Rotation",
-        description: "Build a rotation vector3 (degrees) from wired or default X, Y, Z.",
+        description:
+          "Build a rotation vector3 (degrees) from wired or default X, Y, Z.",
         icon: "rotate-cw",
         defaultVisible: false,
         defaultConfig: { rx: 0, ry: 0, rz: 0 },
@@ -1068,10 +1324,17 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "fog",
         category: "utility",
         title: "Fog",
-        description: "Fog near, far, and density scalars (node-animator parity outputs).",
+        description:
+          "Fog near, far, and density scalars (node-animator parity outputs).",
         icon: "waves",
         defaultVisible: false,
-        defaultConfig: { near: 1, far: 50, density: 0.05, mode: "linear", colorHex: "#1a1a2e" },
+        defaultConfig: {
+          near: 1,
+          far: 50,
+          density: 0.05,
+          mode: "linear",
+          colorHex: "#1a1a2e",
+        },
         inputPorts: [
           { id: "near", portType: "number", label: "Near" },
           { id: "far", portType: "number", label: "Far" },
@@ -1100,7 +1363,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "scene-light",
         category: "utility",
         title: "Light",
-        description: "Point or directional light scalars (intensity, RGB, position).",
+        description:
+          "Point or directional light scalars (intensity, RGB, position).",
         icon: "zap",
         defaultVisible: false,
         defaultConfig: {
@@ -1137,7 +1401,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "camera-switch",
         category: "utility",
         title: "Camera Switch",
-        description: "Active camera slot index 0–7; scoped to Model selects embedded GLB camera by sorted name.",
+        description:
+          "Active camera slot index 0–7; scoped to Model selects embedded GLB camera by sorted name.",
         icon: "clapperboard",
         defaultVisible: false,
         defaultConfig: { index: 0, cameraRig: [] as string[] },
@@ -1148,28 +1413,56 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "post-processing",
         category: "utility",
         title: "Post-Processing",
-        description: "Bloom intensity and threshold scalars (compositor parity outputs).",
+        description:
+          "Bloom intensity and threshold scalars (compositor parity outputs).",
         icon: "sparkles",
         defaultVisible: false,
-        defaultConfig: { enableBloom: true, bloomIntensity: 1.5, bloomThreshold: 1.0 },
+        defaultConfig: {
+          enableBloom: true,
+          bloomIntensity: 1.5,
+          bloomThreshold: 1.0,
+        },
         inputPorts: [
-          { id: "bloomIntensity", portType: "number", label: "Bloom Intensity" },
-          { id: "bloomThreshold", portType: "number", label: "Bloom Threshold" },
+          {
+            id: "bloomIntensity",
+            portType: "number",
+            label: "Bloom Intensity",
+          },
+          {
+            id: "bloomThreshold",
+            portType: "number",
+            label: "Bloom Threshold",
+          },
         ],
         outputPorts: [
           { id: "out", portType: "postProcessing", label: "Post-FX" },
-          { id: "bloomIntensity", portType: "number", label: "Bloom Intensity" },
-          { id: "bloomThreshold", portType: "number", label: "Bloom Threshold" },
+          {
+            id: "bloomIntensity",
+            portType: "number",
+            label: "Bloom Intensity",
+          },
+          {
+            id: "bloomThreshold",
+            portType: "number",
+            label: "Bloom Threshold",
+          },
         ],
       },
       {
         id: "contact-shadows",
         category: "utility",
         title: "Contact Shadows",
-        description: "Contact shadow disc for Model Viewer ground (opacity, blur, scale).",
+        description:
+          "Contact shadow disc for Model Viewer ground (opacity, blur, scale).",
         icon: "layers",
         defaultVisible: false,
-        defaultConfig: { opacity: 0.5, blur: 2, far: 10, scale: 10, color: "#000000" },
+        defaultConfig: {
+          opacity: 0.5,
+          blur: 2,
+          far: 10,
+          scale: 10,
+          color: "#000000",
+        },
         outputPorts: [
           { id: "out", portType: "contactShadows", label: "Contact Shadows" },
           { id: "opacity", portType: "number", label: "Opacity" },
@@ -1182,10 +1475,17 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "particle-emitter",
         category: "utility",
         title: "Particle Emitter",
-        description: "Emitter trigger and rate scalars (preset/life on node card).",
+        description:
+          "Emitter trigger and rate scalars (preset/life on node card).",
         icon: "wind",
         defaultVisible: false,
-        defaultConfig: { preset: "sparks", rate: 0, life: 1, color: "#ffaa00", trigger: 0 },
+        defaultConfig: {
+          preset: "sparks",
+          rate: 0,
+          life: 1,
+          color: "#ffaa00",
+          trigger: 0,
+        },
         inputPorts: [
           { id: "trigger", portType: "number", label: "Trigger" },
           { id: "rate", portType: "number", label: "Rate" },
@@ -1200,7 +1500,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "uv-transform",
         category: "utility",
         title: "UV Transform",
-        description: "UV scale, offset, and rotation scalars (material parity).",
+        description:
+          "UV scale, offset, and rotation scalars (material parity).",
         icon: "move",
         defaultVisible: false,
         defaultConfig: {
@@ -1229,7 +1530,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "material-variant",
         category: "utility",
         title: "Material Variant",
-        description: "GLB material variant name string (wired variant overrides card).",
+        description:
+          "GLB material variant name string (wired variant overrides card).",
         icon: "palette",
         defaultVisible: false,
         defaultConfig: { modelSourceId: "", variant: "" },
@@ -1240,7 +1542,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "vector-constant",
         category: "generator",
         title: "Vector",
-        description: "Constant vector3 from X, Y, Z. Wired axes override defaults.",
+        description:
+          "Constant vector3 from X, Y, Z. Wired axes override defaults.",
         icon: "git-branch",
         defaultVisible: true,
         defaultConfig: {
@@ -1360,6 +1663,38 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           value: 1,
           numberMode: "float",
+          cardValueControl: "input",
+        },
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
+        id: "float-constant",
+        category: "generator",
+        title: "Float",
+        description:
+          "Floating-point constant on the **`out`** wire. Uses the scrub field on the node card; min/max/step live in the inspector.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {
+          value: 1,
+          numberMode: "float",
+          step: 0.01,
+          cardValueControl: "input",
+        },
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
+      },
+      {
+        id: "integer-constant",
+        category: "generator",
+        title: "Integer",
+        description:
+          "Integer constant on the **`out`** wire. Always rounds to a whole number after clamp and step.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {
+          value: 1,
+          numberMode: "integer",
+          step: 1,
           cardValueControl: "input",
         },
         outputPorts: [{ id: "out", portType: "number", label: "Out" }],

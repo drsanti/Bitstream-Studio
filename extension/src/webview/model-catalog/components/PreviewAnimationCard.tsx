@@ -323,7 +323,7 @@ function BlendClipControlCard({
       title={`${clipName} (${formatDuration(clipDuration)})`}
       titleTrailingSlot={
         showCompactSummary ? (
-          <span className="text-[11px] tabular-nums text-zinc-400">
+          <span className="text-[11px] text-zinc-400">
             {speed.toFixed(1)}x, {Math.round(weight * 100)}%
           </span>
         ) : null

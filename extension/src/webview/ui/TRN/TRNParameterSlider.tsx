@@ -5,7 +5,7 @@ import { TRNRangeSlider } from "./TRNRangeSlider";
 
 /**
  * Match `TRNParameter` `appearance` tokens. **`divider`** aligns with `TRNParameter` `divider` HUD
- * rows (3D telemetry toolbox): `text-[11px]`, muted label, `tabular-nums` value.
+ * rows (3D telemetry toolbox): `text-[11px]`, muted label.
  */
 export type TRNParameterSliderAppearance = "default" | "divider";
 
@@ -73,9 +73,9 @@ const APPEARANCE_ICON: Record<TRNParameterSliderAppearance, string> = {
 
 const APPEARANCE_VALUE: Record<TRNParameterSliderAppearance, string> = {
   default:
-    "min-w-14 whitespace-nowrap text-right text-xs leading-none font-semibold tabular-nums text-zinc-100",
+    "min-w-14 whitespace-nowrap text-right text-xs leading-none font-semibold text-zinc-100",
   divider:
-    "min-w-14 whitespace-nowrap text-right font-semibold tabular-nums text-zinc-50",
+    "min-w-14 whitespace-nowrap text-right font-semibold text-zinc-50",
 };
 
 const APPEARANCE_UNIT: Record<TRNParameterSliderAppearance, string> = {

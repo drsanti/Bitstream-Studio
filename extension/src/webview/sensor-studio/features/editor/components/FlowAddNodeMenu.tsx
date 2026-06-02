@@ -1,7 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { createPortal } from "react-dom";
 import { useReactFlow } from "@xyflow/react";
-import { ChevronRight, Clock, Plus, Search } from "lucide-react";
+import {
+  Activity,
+  Box,
+  ChevronRight,
+  Clock,
+  Clapperboard,
+  Database,
+  GitCompare,
+  Hand,
+  LayoutGrid,
+  Mic,
+  SlidersHorizontal,
+  Sparkles,
+  Trash2,
+  Wrench,
+  Plus,
+  Search,
+} from "lucide-react";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import { filterPaletteEntries } from "./node-palette/filter-palette-entries";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
@@ -15,6 +39,7 @@ import {
 import { PALETTE_CATEGORY_LABEL } from "./node-palette/palette-category-meta";
 import { PaletteCatalogIcon } from "./node-palette/PaletteCatalogIcon";
 import {
+  clearRecentCatalogNodeIds,
   pushRecentCatalogNodeId,
   readRecentCatalogNodeIds,
   resolveRecentCatalogEntries,
@@ -31,15 +56,25 @@ export type FlowAddNodeMenuProps = {
   clientY: number;
   entries: readonly NodeCatalogEntry[];
   categoryColors: Record<NodeCatalogEntry["category"], string>;
-  onPickEntry: (entry: NodeCatalogEntry, flowPosition: { x: number; y: number }) => void;
-  onPickLayoutEntry?: (kind: LayoutMenuEntryId, flowPosition: { x: number; y: number }) => void;
+  onPickEntry: (
+    entry: NodeCatalogEntry,
+    flowPosition: { x: number; y: number },
+  ) => void;
+  onPickLayoutEntry?: (
+    kind: LayoutMenuEntryId,
+    flowPosition: { x: number; y: number },
+  ) => void;
   onClose: () => void;
 };
 
 type MenuBrowseGroup = PaletteDisplayGroup | typeof FLOW_LAYOUT_MENU_LAYOUT;
 
-const DISPLAY_GROUP_SCHEMA_COLOR: Record<PaletteDisplayGroup, NodeCatalogEntry["category"]> = {
+const DISPLAY_GROUP_SCHEMA_COLOR: Record<
+  PaletteDisplayGroup,
+  NodeCatalogEntry["category"]
+> = {
   input: "input",
+  audio: "audio",
   data: "sensor",
   transform: "transform",
   logic: "logic",
@@ -50,7 +85,41 @@ const DISPLAY_GROUP_SCHEMA_COLOR: Record<PaletteDisplayGroup, NodeCatalogEntry["
   utilities: "utility",
 };
 
-function clampMenuPosition(clientX: number, clientY: number, menuWidth: number, menuHeight: number) {
+const DISPLAY_GROUP_ICON: Record<
+  PaletteDisplayGroup,
+  React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>
+> = {
+  input: Hand,
+  audio: Mic,
+  data: Database,
+  transform: SlidersHorizontal,
+  logic: GitCompare,
+  output: Activity,
+  scene: Box,
+  animation: Clapperboard,
+  events: Sparkles,
+  utilities: Wrench,
+};
+
+function BrowseGroupIcon(props: {
+  group: MenuBrowseGroup;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const { group, className } = props;
+  if (group === FLOW_LAYOUT_MENU_LAYOUT) {
+    return <LayoutGrid className={className} style={props.style} aria-hidden />;
+  }
+  const Icon = DISPLAY_GROUP_ICON[group];
+  return <Icon className={className} style={props.style} aria-hidden />;
+}
+
+function clampMenuPosition(
+  clientX: number,
+  clientY: number,
+  menuWidth: number,
+  menuHeight: number,
+) {
   const pad = 8;
   const maxLeft = Math.max(pad, window.innerWidth - menuWidth - pad);
   const maxTop = Math.max(pad, window.innerHeight - menuHeight - pad);
@@ -61,12 +130,22 @@ function clampMenuPosition(clientX: number, clientY: number, menuWidth: number, 
 }
 
 export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
-  const { clientX, clientY, entries, categoryColors, onPickEntry, onPickLayoutEntry, onClose } = props;
+  const {
+    clientX,
+    clientY,
+    entries,
+    categoryColors,
+    onPickEntry,
+    onPickLayoutEntry,
+    onClose,
+  } = props;
   const { screenToFlowPosition } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const [search, setSearch] = useState("");
-  const [hoveredGroup, setHoveredGroup] = useState<MenuBrowseGroup | null>(null);
+  const [hoveredGroup, setHoveredGroup] = useState<MenuBrowseGroup | null>(
+    null,
+  );
   const [recentIds, setRecentIds] = useState(() => readRecentCatalogNodeIds());
 
   useEffect(() => {
@@ -103,10 +182,16 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
     [addable, recentIds],
   );
 
-  const displayGroupMap = useMemo(() => groupEntriesByDisplayGroup(addable), [addable]);
+  const displayGroupMap = useMemo(
+    () => groupEntriesByDisplayGroup(addable),
+    [addable],
+  );
 
   const orderedDisplayGroups = useMemo(
-    () => PALETTE_DISPLAY_GROUP_ORDER.filter((g) => (displayGroupMap.get(g)?.length ?? 0) > 0),
+    () =>
+      PALETTE_DISPLAY_GROUP_ORDER.filter(
+        (g) => (displayGroupMap.get(g)?.length ?? 0) > 0,
+      ),
     [displayGroupMap],
   );
 
@@ -120,13 +205,17 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
   const isSearching = search.trim().length > 0;
   const searchResults = useMemo(() => {
     if (!isSearching) {
-      return { catalogMatches: [] as NodeCatalogEntry[], layoutMatches: [] as typeof LAYOUT_MENU_ENTRIES };
+      return {
+        catalogMatches: [] as NodeCatalogEntry[],
+        layoutMatches: [] as typeof LAYOUT_MENU_ENTRIES,
+      };
     }
     const catalogMatches = filterPaletteEntries(addable, search);
     const q = search.trim().toLowerCase();
     const layoutMatches = LAYOUT_MENU_ENTRIES.filter(
       (entry) =>
-        entry.title.toLowerCase().includes(q) || entry.description.toLowerCase().includes(q),
+        entry.title.toLowerCase().includes(q) ||
+        entry.description.toLowerCase().includes(q),
     );
     return { catalogMatches, layoutMatches };
   }, [addable, isSearching, search]);
@@ -173,15 +262,23 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
   );
 
   const browseGroupLabel = (group: MenuBrowseGroup) =>
-    group === FLOW_LAYOUT_MENU_LAYOUT ? "Layout" : PALETTE_DISPLAY_GROUP_LABEL[group];
+    group === FLOW_LAYOUT_MENU_LAYOUT
+      ? "Layout"
+      : PALETTE_DISPLAY_GROUP_LABEL[group];
 
-  const { left, top } = clampMenuPosition(clientX, clientY, isSearching ? 280 : 480, 420);
-  const submenuAccent = activeGroup != null ? browseGroupColor(activeGroup) : "#71717a";
+  const { left, top } = clampMenuPosition(
+    clientX,
+    clientY,
+    isSearching ? 280 : 480,
+    420,
+  );
+  const submenuAccent =
+    activeGroup != null ? browseGroupColor(activeGroup) : "#71717a";
 
   const menu = (
     <div
       ref={containerRef}
-      className="fixed z-[2000] flex animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-2000 flex animate-in fade-in zoom-in-95 duration-100"
       style={{ left, top }}
       onClick={(e) => e.stopPropagation()}
       role="dialog"
@@ -191,8 +288,12 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
         <div className="border-b border-zinc-700/80 px-3 pt-3 pb-2.5">
           <div className="mb-2.5 flex items-center gap-1.5">
             <Plus size={12} className="text-zinc-400" aria-hidden />
-            <span className="text-[12px] font-medium text-zinc-100">Add node</span>
-            <span className="ml-auto text-[9px] font-normal text-zinc-500">Shift+A</span>
+            <span className="text-[12px] font-medium text-zinc-100">
+              Add node
+            </span>
+            <span className="ml-auto text-[9px] font-normal text-zinc-500">
+              Shift+A
+            </span>
           </div>
           <div className="flex items-center gap-2 rounded-md border border-zinc-700/70 bg-zinc-900/80 px-2.5 py-1.5">
             <Search size={11} className="shrink-0 text-zinc-500" aria-hidden />
@@ -208,8 +309,11 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
 
         {isSearching ? (
           <div className="scrollbar-hide max-h-[min(60vh,420px)] overflow-y-auto py-1">
-            {searchResults.catalogMatches.length === 0 && searchResults.layoutMatches.length === 0 ? (
-              <div className="px-4 py-6 text-center text-[10px] text-zinc-500">No nodes found</div>
+            {searchResults.catalogMatches.length === 0 &&
+            searchResults.layoutMatches.length === 0 ? (
+              <div className="px-4 py-6 text-center text-[10px] text-zinc-500">
+                No nodes found
+              </div>
             ) : (
               <>
                 {searchResults.layoutMatches.map((entry) => (
@@ -223,7 +327,12 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
                   <AddNodeMenuRow
                     key={entry.id}
                     entry={entry}
-                    groupLabel={PALETTE_DISPLAY_GROUP_LABEL[resolvePaletteDisplayGroup(entry)]}
+                    groupLabel={
+                      PALETTE_DISPLAY_GROUP_LABEL[
+                        resolvePaletteDisplayGroup(entry)
+                      ]
+                    }
+                    categoryColors={categoryColors}
                     onPick={() => spawnEntry(entry)}
                   />
                 ))}
@@ -234,15 +343,31 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
           <div className="scrollbar-hide max-h-[min(60vh,420px)] overflow-y-auto py-1">
             {recentEntries.length > 0 ? (
               <div className="mb-1 border-b border-zinc-800/80 pb-1">
-                <div className="flex items-center gap-1.5 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
-                  <Clock size={10} aria-hidden />
-                  Recent
+                <div className="flex items-center justify-between gap-2 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider text-zinc-500">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <Clock size={10} aria-hidden />
+                    <span className="truncate">Recent</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex size-5 shrink-0 items-center justify-center rounded border border-transparent text-zinc-500 transition-colors hover:border-zinc-700/70 hover:bg-zinc-900/60 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35"
+                    aria-label="Clear recent nodes"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      clearRecentCatalogNodeIds();
+                      setRecentIds([]);
+                    }}
+                  >
+                    <Trash2 className="size-3.5" aria-hidden />
+                  </button>
                 </div>
                 {recentEntries.map((entry) => (
                   <AddNodeMenuRow
                     key={`recent-${entry.id}`}
                     entry={entry}
                     compact
+                    categoryColors={categoryColors}
                     onPick={() => spawnEntry(entry)}
                   />
                 ))}
@@ -263,13 +388,23 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
                       : "flex w-full items-center gap-2.5 px-3 py-[7px] text-[12px] font-medium text-zinc-400 transition-colors hover:text-zinc-100"
                   }
                 >
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: color }}
+                  <BrowseGroupIcon
+                    group={group}
+                    className={
+                      isActive
+                        ? "size-3.5 shrink-0"
+                        : "size-3.5 shrink-0 opacity-80"
+                    }
+                    style={{ color } as any}
+                  />
+                  <span className="flex-1 text-left">
+                    {browseGroupLabel(group)}
+                  </span>
+                  <ChevronRight
+                    size={11}
+                    className={isActive ? "opacity-60" : "opacity-25"}
                     aria-hidden
                   />
-                  <span className="flex-1 text-left">{browseGroupLabel(group)}</span>
-                  <ChevronRight size={11} className={isActive ? "opacity-60" : "opacity-25"} aria-hidden />
                 </button>
               );
             })}
@@ -299,7 +434,13 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
                   />
                 ))
               : (displayGroupMap.get(activeGroup) ?? []).map((entry) => (
-                  <AddNodeMenuRow key={entry.id} entry={entry} compact onPick={() => spawnEntry(entry)} />
+                  <AddNodeMenuRow
+                    key={entry.id}
+                    entry={entry}
+                    compact
+                    categoryColors={categoryColors}
+                    onPick={() => spawnEntry(entry)}
+                  />
                 ))}
           </div>
         </div>
@@ -315,8 +456,10 @@ function AddNodeMenuRow(props: {
   onPick: () => void;
   compact?: boolean;
   groupLabel?: string;
+  categoryColors?: Record<NodeCatalogEntry["category"], string>;
 }) {
-  const { entry, onPick, compact = false, groupLabel } = props;
+  const { entry, onPick, compact = false, groupLabel, categoryColors } = props;
+  const accent = categoryColors?.[entry.category] ?? null;
   return (
     <button
       type="button"
@@ -327,10 +470,16 @@ function AddNodeMenuRow(props: {
           : "flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[11px] font-medium text-zinc-200 transition-colors hover:bg-zinc-800/80"
       }
     >
-      <PaletteCatalogIcon icon={entry.icon} className="size-3.5 shrink-0 text-zinc-400" />
+      <PaletteCatalogIcon
+        icon={entry.icon}
+        className="size-3.5 shrink-0"
+        style={accent != null ? ({ color: accent } as any) : undefined}
+      />
       <span className="min-w-0 flex-1 truncate">{entry.title}</span>
       {!compact && groupLabel != null ? (
-        <span className="shrink-0 text-[9px] font-normal text-zinc-500">{groupLabel}</span>
+        <span className="shrink-0 text-[9px] font-normal text-zinc-500">
+          {groupLabel}
+        </span>
       ) : !compact ? (
         <span className="shrink-0 text-[9px] font-normal text-zinc-500">
           {PALETTE_CATEGORY_LABEL[entry.category]}
@@ -360,7 +509,9 @@ function LayoutMenuRow(props: {
       <Icon className="size-3.5 shrink-0 text-zinc-400" aria-hidden />
       <span className="min-w-0 flex-1 truncate">{entry.title}</span>
       {entry.shortcut != null ? (
-        <span className="shrink-0 text-[9px] font-normal text-zinc-500">{entry.shortcut}</span>
+        <span className="shrink-0 text-[9px] font-normal text-zinc-500">
+          {entry.shortcut}
+        </span>
       ) : null}
     </button>
   );

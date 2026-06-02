@@ -22,7 +22,7 @@ export function AssistantTypingPlaceholder(props: AssistantTypingPlaceholderProp
         <AssistantWorkingGlyph />
         <span className="text-[13px] font-medium text-zinc-200">Working on your reply</span>
       </div>
-      <div className="flex items-baseline gap-2 pl-6 text-[11px] tabular-nums text-zinc-500">
+      <div className="flex items-baseline gap-2 pl-6 text-[11px] text-zinc-500">
         <span className="text-zinc-600">Elapsed</span>
         <span className="font-medium text-zinc-400">{elapsedLabel}</span>
       </div>

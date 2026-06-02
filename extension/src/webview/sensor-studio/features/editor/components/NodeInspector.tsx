@@ -176,7 +176,12 @@ export function NodeInspector(props: NodeInspectorProps) {
     if (deviceSourceId != null) {
       setActiveTabPersisted("live");
     }
-  }, [selectedNodeId, deviceSourceId, selectedNode?.data.nodeId, setActiveTabPersisted]);
+  }, [
+    selectedNodeId,
+    deviceSourceId,
+    selectedNode?.data.nodeId,
+    setActiveTabPersisted,
+  ]);
 
   const persistedSourceKey =
     selectedNode != null && selectedNode.data.nodeId === "sensor-input"
@@ -208,12 +213,13 @@ export function NodeInspector(props: NodeInspectorProps) {
 
   const visibleTabs = useMemo(() => {
     if (isGlbAnimationBundle) {
-      const tabs: { id: InspectorMainTab; label: string; Icon: LucideIcon }[] = [
-        { id: "node", label: "Node", Icon: Box },
-        { id: "animation", label: "Animation", Icon: Clapperboard },
-        { id: "details", label: "Details", Icon: ClipboardList },
-        { id: "live", label: "Live", Icon: Activity },
-      ];
+      const tabs: { id: InspectorMainTab; label: string; Icon: LucideIcon }[] =
+        [
+          { id: "node", label: "Node", Icon: Box },
+          { id: "animation", label: "Animation", Icon: Clapperboard },
+          { id: "details", label: "Details", Icon: ClipboardList },
+          { id: "live", label: "Live", Icon: Activity },
+        ];
       if (deviceSourceId != null) {
         tabs.push(DEVICE_INSPECTOR_TAB);
       }
@@ -226,9 +232,7 @@ export function NodeInspector(props: NodeInspectorProps) {
   }, [deviceSourceId, isGlbAnimationBundle]);
 
   const tabPanelClassName =
-    activeTab === "node" ||
-    activeTab === "device" ||
-    activeTab === "animation"
+    activeTab === "node" || activeTab === "device" || activeTab === "animation"
       ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 pb-3 pt-2"
       : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
 
@@ -311,8 +315,8 @@ export function NodeInspector(props: NodeInspectorProps) {
             <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
               {homogeneousMultiEdit ? (
                 <div className="shrink-0 border-b border-amber-900/30 bg-amber-950/20 px-2.5 py-1.5 text-[10px] leading-snug text-amber-100/90">
-                  Editing {orderedSelectedNodes.length} nodes — typed node settings
-                  apply to all selected (
+                  Editing {orderedSelectedNodes.length} nodes — typed node
+                  settings apply to all selected (
                   <span className="font-mono text-amber-50/95">
                     {selectedNode.data.nodeId}
                   </span>
@@ -334,10 +338,10 @@ export function NodeInspector(props: NodeInspectorProps) {
               />
               <div className={tabPanelClassName}>
                 {activeTab === "details" ? (
-                <NodeInspectorDetailsTab
-                  selectedNode={selectedNode}
-                  catalogEntry={catalogEntry}
-                />
+                  <NodeInspectorDetailsTab
+                    selectedNode={selectedNode}
+                    catalogEntry={catalogEntry}
+                  />
                 ) : null}
 
                 {activeTab === "live" ? (
@@ -371,7 +375,9 @@ export function NodeInspector(props: NodeInspectorProps) {
                     suppressDefaultConfigJson={homogeneousMultiEdit}
                     onUpdateLabel={onUpdateLabel}
                     onUpdateNodeUiResizable={onUpdateNodeUiResizable}
-                    onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
+                    onUpdateNodeUiAllowBodyCollapse={
+                      onUpdateNodeUiAllowBodyCollapse
+                    }
                     onUpdateConfigField={onUpdateConfigField}
                     onUpdateConfigJson={onUpdateConfigJson}
                     jsonDraft={jsonDraft}

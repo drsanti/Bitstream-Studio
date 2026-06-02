@@ -214,7 +214,7 @@ export function EventTriggerGlbAnimNodePanel(props: EventTriggerGlbAnimNodePanel
     <ReadingPanel className="space-y-2">
       <div className="flex items-center justify-between rounded border border-zinc-700/80 bg-transparent px-2 py-1">
         <span className="text-xs font-medium text-zinc-200">Clip</span>
-        <span className="font-mono text-[10px] text-zinc-300 tabular-nums">
+        <span className="font-mono text-[10px] text-zinc-300">
           ×{triggerNonce}
         </span>
       </div>

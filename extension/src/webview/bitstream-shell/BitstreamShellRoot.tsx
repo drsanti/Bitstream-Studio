@@ -36,7 +36,6 @@ import { TRNContainer } from "../ui/TRN/TRNContainer.js";
 import { TRNScrollableEdgeHints } from "../ui/TRN/TRNScrollableEdgeHints.js";
 import { useWorkspaceHeaderMenuSlotStore } from "./state/workspaceHeaderMenuSlot.store";
 import { BitstreamMainToolbar } from "./ui/BitstreamMainToolbar";
-import { ShellLinkStatusFooter } from "./ui/ShellLinkStatusFooter";
 import { AssetManagerMain, openAssetManagerBrowseModels, useAssetManagerAltMShortcut } from "../assets-manager";
 import { SensorStudioAssistantShell } from "./ui/SensorStudioAssistantShell";
 import { BitstreamHeaderMenuPanel } from "./ui/shell/BitstreamHeaderMenuPanel";
@@ -743,12 +742,6 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
         <SensorCfgColdSyncEffect onTruthReady={handleSensorCfgTruthReady} />
         <SensorCfgBrokerSyncMount instanceToken={actorToken} />
       <TRNContainer mode="fill-parent" layout="stack" gap="0" className="relative">
-        <div
-          className="pointer-events-none fixed inset-x-0 bottom-3 z-40 flex justify-center px-3"
-          aria-hidden={false}
-        >
-          <ShellLinkStatusFooter />
-        </div>
         <BitstreamMainToolbar
           menuOpen={headerMenu.open}
           onMenuClick={headerMenu.onMenuClick}

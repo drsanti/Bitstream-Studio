@@ -106,7 +106,7 @@ export function StartupChecklistAssetTypeActivity(props: {
           >
             <meta.icon className="h-4 w-4 shrink-0 text-rose-300/80" strokeWidth={2} aria-hidden />
             <span className="min-w-0 flex-1 text-[11px] font-medium text-zinc-200">{meta.label}</span>
-            <span className="shrink-0 text-[10px] tabular-nums text-zinc-500">
+            <span className="shrink-0 text-[10px] text-zinc-500">
               {count} file{count === 1 ? "" : "s"}
             </span>
           </li>

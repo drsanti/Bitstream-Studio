@@ -166,7 +166,7 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
               >
                 <RefreshCw className="size-3.5" aria-hidden />
               </button>
-              <span className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium tabular-nums text-zinc-400">
+              <span className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
                 {sortedFiltered.length}
               </span>
             </div>
@@ -192,7 +192,7 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
             >
               <RefreshCw className="size-3.5" aria-hidden />
             </button>
-            <span className="text-[10px] tabular-nums text-zinc-500">{sortedFiltered.length}</span>
+            <span className="text-[10px] text-zinc-500">{sortedFiltered.length}</span>
           </div>
         )}
 

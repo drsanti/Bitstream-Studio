@@ -804,7 +804,13 @@ export function TRNWindow(props: TRNWindowProps) {
     if (!open || wasOpen) {
       return;
     }
-    const { w: vw, h: vh } = overlayDimsRef.current;
+    let { w: vw, h: vh } = overlayDimsRef.current;
+    // During the first render tick, `overlayDimsRef` can still be 0×0 even though the overlay is mounted.
+    // Fall back to the real viewport so modal windows never "open into nothing" (backdrop only).
+    if ((vw <= 0 || vh <= 0) && typeof window !== "undefined") {
+      vw = window.innerWidth;
+      vh = window.innerHeight;
+    }
     if (reopenStrategy === "preserve") {
       return;
     }
@@ -1523,8 +1529,12 @@ export function TRNWindow(props: TRNWindowProps) {
     }
     return createPortal(
       <div
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="pointer-events-auto absolute inset-0 overflow-hidden"
         style={{ zIndex: overlayZIndex }}
+        onPointerDownCapture={(e) => {
+          // Prevent underlying canvas/panes from stealing the click.
+          e.stopPropagation();
+        }}
       >
         {overlayInner}
       </div>,
@@ -1533,7 +1543,14 @@ export function TRNWindow(props: TRNWindowProps) {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-0" style={{ zIndex: overlayZIndex }}>
+    <div
+      className="pointer-events-auto fixed inset-0"
+      style={{ zIndex: overlayZIndex }}
+      onPointerDownCapture={(e) => {
+        // Prevent underlying canvas/panes from stealing the click.
+        e.stopPropagation();
+      }}
+    >
       {overlayInner}
     </div>
   );

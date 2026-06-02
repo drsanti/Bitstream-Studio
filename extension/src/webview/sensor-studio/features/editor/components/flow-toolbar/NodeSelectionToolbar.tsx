@@ -329,7 +329,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     >
       {countLabel != null ? (
         <>
-          <span className="px-2 text-[10px] font-semibold tabular-nums text-zinc-400">{countLabel}</span>
+          <span className="px-2 text-[10px] font-semibold text-zinc-400">{countLabel}</span>
           <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}

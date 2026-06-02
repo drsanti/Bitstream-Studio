@@ -15,6 +15,7 @@ export type Bmi270PinBundle = {
   temp: number;
   euler: FlowWireVec3;
   quaternion: FlowWireQuaternion;
+  counter: number;
   /** True when a BMI270 wire sample is present (hardware path); otherwise synthesized zeros. */
   streamLive: boolean;
 };
@@ -35,6 +36,7 @@ export function computeBmi270PinBundle(latestByHint: { bmi270: unknown }): Bmi27
       quaternion: hasFusionQuaternionWireFields(sample)
         ? fusionQuaternionFromBmi270Sample(sample)
         : demoFusionQuat(),
+      counter: sample.counter,
       streamLive: true,
     };
   }
@@ -44,6 +46,7 @@ export function computeBmi270PinBundle(latestByHint: { bmi270: unknown }): Bmi27
     temp: 0,
     euler: demoEuler(),
     quaternion: demoFusionQuat(),
+    counter: 0,
     streamLive: false,
   };
 }

@@ -32,7 +32,7 @@ When this prop is a **non-empty** class string (e.g. `w-[7ch]`):
 - The **gauge** is the only `flex-1` region → **stable bar width** and **right-aligned numbers** that line up across rows in a card.
 - The main row **drops `justify-between`** when this mode is active *and* a gauge exists, so `flex-1` on the gauge lays out predictably.
 
-**`ch` unit:** CSS `ch` = width of the `0` glyph in the current font. With `tabular-nums`, column widths track digit width. Example: `w-[7ch]` ≈ seven “0”-widths for the value cell.
+**`ch` unit:** CSS `ch` = width of the `0` glyph in the current font. Column widths track digit width. Example: `w-[7ch]` ≈ seven “0”-widths for the value cell.
 
 ### 1.4 `unitColumnClassName`
 

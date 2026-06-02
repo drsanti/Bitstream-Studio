@@ -157,7 +157,6 @@ export const Compass: React.FC<CompassProps> = ({
               fill="#9ca3af"
               fontSize={size * 0.04}
               transform={`rotate(${rotate}, ${x}, ${y})`}
-              style={{ fontVariantNumeric: "tabular-nums" }}
             >
               {deg}
             </text>
@@ -229,7 +228,7 @@ export const Compass: React.FC<CompassProps> = ({
         <circle cx={cx} cy={cy} r={pivotR} fill={`url(#${pivotGrad})`} stroke="#6b7280" strokeWidth="0.5" />
       </svg>
       {headingDeg != null && (
-        <span className="text-xs text-gray-400 mt-1 tabular-nums">
+        <span className="mt-1 text-xs text-gray-400">
           {Math.round(headingDeg)}°
         </span>
       )}

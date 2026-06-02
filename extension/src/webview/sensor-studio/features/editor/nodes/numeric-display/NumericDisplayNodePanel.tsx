@@ -36,7 +36,7 @@ export function NumericDisplayNodePanel({ value, defaultConfig, sensorHealth }: 
 
       <div className="flex items-baseline gap-1">
         <span
-          className="font-mono text-xl font-bold tabular-nums leading-tight tracking-tight"
+          className="font-mono text-xl font-bold leading-tight tracking-tight"
           style={{ color }}
         >
           {valStr}

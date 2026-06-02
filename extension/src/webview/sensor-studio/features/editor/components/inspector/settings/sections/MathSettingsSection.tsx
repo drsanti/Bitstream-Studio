@@ -7,6 +7,7 @@ import {
 } from "../../../../../../core/flow/math-operations";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
+import { mathOperationSelectOptions } from "../../../../nodes/math/math-operation-select-ui";
 
 export function MathSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -26,7 +27,7 @@ export function MathSettingsSection(props: NodeInspectorSettingsSectionProps) {
         <TRNSelect
           ariaLabel="Math operation"
           value={operation}
-          options={MATH_OPERATION_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+          options={mathOperationSelectOptions(MATH_OPERATION_OPTIONS)}
           triggerClassName="w-full"
           onValueChange={(next) => {
             onUpdateConfigField("operation", next as MathOperation);

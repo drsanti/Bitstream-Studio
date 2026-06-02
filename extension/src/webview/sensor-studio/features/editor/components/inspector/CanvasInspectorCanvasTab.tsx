@@ -1,5 +1,6 @@
 import type { Viewport } from "@xyflow/react";
 import { Expand, Focus, LayoutGrid, MousePointerClick, RotateCcw } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { TRNButton } from "../../../../../ui/TRN";
 import type { FlowCanvasEdgeRoutingStyle, FlowCanvasGridSize, FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
 import {
@@ -7,10 +8,19 @@ import {
   CANVAS_GRID_SIZE_OPTIONS,
   formatCanvasZoomPercent,
 } from "./canvas-inspector-helpers";
+import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
-import { InspectorSection } from "./InspectorSection";
-import { InspectorSegmentButtonGroup } from "./InspectorSegmentButtonGroup";
+import { InspectorSegmentButtonGroup, type InspectorSegmentOption } from "./InspectorSegmentButtonGroup";
+import {
+  DEFAULT_CANVAS_TAB_CARD_ORDER,
+  mergeCanvasTabCardOrder,
+  readCanvasTabCardCollapsed,
+  readCanvasTabCardOrder,
+  writeCanvasTabCardCollapsed,
+  writeCanvasTabCardOrder,
+  type CanvasInspectorCanvasTabCardId,
+} from "./canvas-inspector-ui-persistence";
 
 export type CanvasInspectorCanvasTabProps = {
   flowViewport?: Viewport | null;
@@ -43,11 +53,74 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
     flowCanvasPreferences.backgroundHex ?? themeCanvasBackgroundColor;
   const usingThemeBackground = flowCanvasPreferences.backgroundHex == null;
 
-  return (
-    <div className="space-y-2">
-      <InspectorSection title="Viewport" hint="Pan and zoom for the flow canvas.">
+  const visibleCardIds = useMemo((): CanvasInspectorCanvasTabCardId[] => {
+    const base = DEFAULT_CANVAS_TAB_CARD_ORDER.filter((id) => id !== "workbench");
+    return onResetWorkspaceLayout != null ? [...base, "workbench"] : base;
+  }, [onResetWorkspaceLayout]);
+
+  const [cardOrder, setCardOrder] = useState<CanvasInspectorCanvasTabCardId[]>(() =>
+    mergeCanvasTabCardOrder(readCanvasTabCardOrder(), visibleCardIds),
+  );
+  const [collapsedById, setCollapsedById] = useState<Record<CanvasInspectorCanvasTabCardId, boolean>>(
+    () => readCanvasTabCardCollapsed(),
+  );
+  const [dragId, setDragId] = useState<CanvasInspectorCanvasTabCardId | null>(null);
+
+  useEffect(() => {
+    setCardOrder((prev) => mergeCanvasTabCardOrder(prev, visibleCardIds));
+  }, [visibleCardIds]);
+
+  const onDropCard = (targetId: CanvasInspectorCanvasTabCardId) => {
+    if (dragId == null || dragId === targetId) {
+      return;
+    }
+    setCardOrder((prev) => {
+      const next = prev.filter((id) => id !== dragId);
+      const targetIdx = next.indexOf(targetId);
+      if (targetIdx < 0) {
+        return prev;
+      }
+      next.splice(targetIdx, 0, dragId);
+      writeCanvasTabCardOrder(next);
+      return next;
+    });
+  };
+
+  const setCardCollapsed = (id: CanvasInspectorCanvasTabCardId, collapsed: boolean) => {
+    setCollapsedById((prev) => {
+      const next = { ...prev, [id]: collapsed };
+      writeCanvasTabCardCollapsed(next);
+      return next;
+    });
+  };
+
+  const edgeRoutingOptions = useMemo(
+    () =>
+      CANVAS_EDGE_ROUTING_OPTIONS.map(
+        (o): InspectorSegmentOption<FlowCanvasEdgeRoutingStyle> => ({
+          value: o.value,
+          label: o.label,
+          hint: o.hint,
+          icon: o.Icon ? (
+            <o.Icon className="h-3.5 w-3.5 text-zinc-400" aria-hidden />
+          ) : undefined,
+        }),
+      ),
+    [],
+  );
+
+  const cardsById: Partial<Record<CanvasInspectorCanvasTabCardId, JSX.Element>> = {
+    viewport: (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-viewport"
+        title="Viewport"
+        hint="Pan and zoom for the flow canvas."
+        collapsible
+        collapsed={collapsedById.viewport}
+        onCollapsedChange={(next) => setCardCollapsed("viewport", next)}
+      >
         <InspectorPropertyRow label="Zoom level">
-          <span className="font-mono text-[12px] tabular-nums text-zinc-200/95">
+          <span className="text-[12px] text-zinc-200/95">
             {formatCanvasZoomPercent(flowViewport?.zoom)}
           </span>
         </InspectorPropertyRow>
@@ -83,9 +156,17 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             }
           />
         </div>
-      </InspectorSection>
-
-      <InspectorSection title="Wires & grid" hint="Edge paths and alignment aids.">
+      </CanvasInspectorCard>
+    ),
+    "wires-grid": (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-wires-grid"
+        title="Wires & grid"
+        hint="Edge paths and alignment aids."
+        collapsible
+        collapsed={collapsedById["wires-grid"]}
+        onCollapsedChange={(next) => setCardCollapsed("wires-grid", next)}
+      >
         <InspectorPropertyRow
           label="Edge routing"
           description="Applies to all wires and new connections."
@@ -94,7 +175,7 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             ariaLabel="Flow edge routing style"
             layout="grid-2"
             value={flowCanvasPreferences.edgeRoutingStyle}
-            options={CANVAS_EDGE_ROUTING_OPTIONS}
+            options={edgeRoutingOptions}
             onChange={(next) =>
               onFlowCanvasPreferencesChange({
                 edgeRoutingStyle: next as FlowCanvasEdgeRoutingStyle,
@@ -129,9 +210,17 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             />
           </InspectorPropertyRow>
         </div>
-      </InspectorSection>
-
-      <InspectorSection title="Canvas chrome" hint="Minimap and background fill.">
+      </CanvasInspectorCard>
+    ),
+    "canvas-chrome": (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-canvas-chrome"
+        title="Canvas chrome"
+        hint="Minimap and background fill."
+        collapsible
+        collapsed={collapsedById["canvas-chrome"]}
+        onCollapsedChange={(next) => setCardCollapsed("canvas-chrome", next)}
+      >
         <InspectorCompactToggleRow
           label="Minimap"
           hint="Overview map in the bottom-right of the flow canvas."
@@ -173,9 +262,17 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             </div>
           </InspectorPropertyRow>
         </div>
-      </InspectorSection>
-
-      <InspectorSection title="Selection" hint="Multi-select helpers on the canvas.">
+      </CanvasInspectorCard>
+    ),
+    selection: (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-selection"
+        title="Selection"
+        hint="Multi-select helpers on the canvas."
+        collapsible
+        collapsed={collapsedById.selection}
+        onCollapsedChange={(next) => setCardCollapsed("selection", next)}
+      >
         <div className="flex flex-wrap gap-1.5">
           <TRNButton
             size="compact"
@@ -197,14 +294,17 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             Clear sel.
           </TRNButton>
         </div>
-      </InspectorSection>
-
-      {onResetWorkspaceLayout != null ? (
-        <InspectorSection
+      </CanvasInspectorCard>
+    ),
+    workbench:
+      onResetWorkspaceLayout != null ? (
+        <CanvasInspectorCard
+          id="canvas-inspector-card-workbench"
           title="Workbench"
           hint="Reset library / flow / inspector pane sizes."
           collapsible
-          defaultExpanded={false}
+          collapsed={collapsedById.workbench}
+          onCollapsedChange={(next) => setCardCollapsed("workbench", next)}
         >
           <TRNButton
             size="compact"
@@ -215,8 +315,49 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
           >
             Reset workspace layout
           </TRNButton>
-        </InspectorSection>
-      ) : null}
+        </CanvasInspectorCard>
+      ) : null,
+  };
+
+  return (
+    <div className="space-y-2">
+      {cardOrder.map((id) => {
+        const card = cardsById[id];
+        if (card == null) {
+          return null;
+        }
+        return (
+          <div
+            key={id}
+            className="min-w-0"
+            draggable
+            onDragStart={(e) => {
+              const header = (e.target as HTMLElement | null)?.closest?.("[data-trn-card-header]");
+              if (header == null) {
+                e.preventDefault();
+                return;
+              }
+              setDragId(id);
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", id);
+            }}
+            onDragEnd={() => setDragId(null)}
+            onDragOver={(e) => {
+              if (dragId == null || dragId === id) {
+                return;
+              }
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              onDropCard(id);
+            }}
+          >
+            {card}
+          </div>
+        );
+      })}
     </div>
   );
 }

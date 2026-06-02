@@ -1,5 +1,5 @@
 import { Cpu, Radio } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { twMerge } from "tailwind-merge";
 import { TRNButton } from "../../../../../ui/TRN";
 import type { StudioNode } from "../../store/flow-editor.store";
@@ -8,7 +8,16 @@ import {
   healthStatusToneClass,
   listHardwareLinkedFlowNodes,
 } from "./canvas-inspector-helpers";
-import { InspectorSection } from "./InspectorSection";
+import { CanvasInspectorCard } from "./CanvasInspectorCard";
+import {
+  DEFAULT_TELEMETRY_TAB_CARD_ORDER,
+  mergeTelemetryTabCardOrder,
+  readTelemetryTabCardCollapsed,
+  readTelemetryTabCardOrder,
+  writeTelemetryTabCardCollapsed,
+  writeTelemetryTabCardOrder,
+  type CanvasInspectorTelemetryTabCardId,
+} from "./canvas-inspector-ui-persistence";
 
 export type CanvasInspectorTelemetryTabProps = {
   nodes: StudioNode[];
@@ -27,11 +36,56 @@ export function CanvasInspectorTelemetryTab(props: CanvasInspectorTelemetryTabPr
     [linkedNodes],
   );
 
-  return (
-    <div className="space-y-2">
-      <InspectorSection
+  const visibleCardIds = useMemo((): CanvasInspectorTelemetryTabCardId[] => {
+    const base = DEFAULT_TELEMETRY_TAB_CARD_ORDER.filter((id) => id !== "device-configuration");
+    return onOpenDeviceSensorSettings != null ? [...base, "device-configuration"] : base;
+  }, [onOpenDeviceSensorSettings]);
+
+  const [cardOrder, setCardOrder] = useState<CanvasInspectorTelemetryTabCardId[]>(() =>
+    mergeTelemetryTabCardOrder(readTelemetryTabCardOrder(), visibleCardIds),
+  );
+  const [collapsedById, setCollapsedById] = useState<Record<CanvasInspectorTelemetryTabCardId, boolean>>(
+    () => readTelemetryTabCardCollapsed(),
+  );
+  const [dragId, setDragId] = useState<CanvasInspectorTelemetryTabCardId | null>(null);
+
+  useEffect(() => {
+    setCardOrder((prev) => mergeTelemetryTabCardOrder(prev, visibleCardIds));
+  }, [visibleCardIds]);
+
+  const onDropCard = (targetId: CanvasInspectorTelemetryTabCardId) => {
+    if (dragId == null || dragId === targetId) {
+      return;
+    }
+    setCardOrder((prev) => {
+      const next = prev.filter((id) => id !== dragId);
+      const targetIdx = next.indexOf(targetId);
+      if (targetIdx < 0) {
+        return prev;
+      }
+      next.splice(targetIdx, 0, dragId);
+      writeTelemetryTabCardOrder(next);
+      return next;
+    });
+  };
+
+  const setCardCollapsed = (id: CanvasInspectorTelemetryTabCardId, collapsed: boolean) => {
+    setCollapsedById((prev) => {
+      const next = { ...prev, [id]: collapsed };
+      writeTelemetryTabCardCollapsed(next);
+      return next;
+    });
+  };
+
+  const cardsById: Partial<Record<CanvasInspectorTelemetryTabCardId, JSX.Element>> = {
+    "graph-sensors": (
+      <CanvasInspectorCard
+        id="canvas-inspector-telemetry-graph-sensors"
         title="Graph sensors"
         hint="Hardware-linked nodes on this canvas and their stream health."
+        collapsible
+        collapsed={collapsedById["graph-sensors"]}
+        onCollapsedChange={(next) => setCardCollapsed("graph-sensors", next)}
       >
         {sortedLinkedNodes.length === 0 ? (
           <div className="rounded-md border border-dashed border-zinc-800/80 bg-zinc-950/25 px-2.5 py-4 text-center">
@@ -84,12 +138,17 @@ export function CanvasInspectorTelemetryTab(props: CanvasInspectorTelemetryTabPr
             ))}
           </ul>
         )}
-      </InspectorSection>
-
-      {onOpenDeviceSensorSettings != null ? (
-        <InspectorSection
+      </CanvasInspectorCard>
+    ),
+    "device-configuration":
+      onOpenDeviceSensorSettings != null ? (
+        <CanvasInspectorCard
+          id="canvas-inspector-telemetry-device-configuration"
           title="Device configuration"
           hint="Shared firmware scope — affects all clients on this hardware."
+          collapsible
+          collapsed={collapsedById["device-configuration"]}
+          onCollapsedChange={(next) => setCardCollapsed("device-configuration", next)}
         >
           <TRNButton
             size="compact"
@@ -100,8 +159,49 @@ export function CanvasInspectorTelemetryTab(props: CanvasInspectorTelemetryTabPr
           >
             Device sensors…
           </TRNButton>
-        </InspectorSection>
-      ) : null}
+        </CanvasInspectorCard>
+      ) : null,
+  };
+
+  return (
+    <div className="space-y-2">
+      {cardOrder.map((id) => {
+        const card = cardsById[id];
+        if (card == null) {
+          return null;
+        }
+        return (
+          <div
+            key={id}
+            className="min-w-0"
+            draggable
+            onDragStart={(e) => {
+              const header = (e.target as HTMLElement | null)?.closest?.("[data-trn-card-header]");
+              if (header == null) {
+                e.preventDefault();
+                return;
+              }
+              setDragId(id);
+              e.dataTransfer.effectAllowed = "move";
+              e.dataTransfer.setData("text/plain", id);
+            }}
+            onDragEnd={() => setDragId(null)}
+            onDragOver={(e) => {
+              if (dragId == null || dragId === id) {
+                return;
+              }
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "move";
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              onDropCard(id);
+            }}
+          >
+            {card}
+          </div>
+        );
+      })}
     </div>
   );
 }

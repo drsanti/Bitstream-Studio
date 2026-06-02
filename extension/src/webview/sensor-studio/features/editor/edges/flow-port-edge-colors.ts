@@ -19,6 +19,7 @@ export type FlowPortThemeColors = {
   postProcessingColor: string;
   contactShadowsColor: string;
   particleEmitterColor: string;
+  audioBusColor: string;
 };
 
 export const FLOW_EDGE_FALLBACK_STROKE = "rgb(113 113 122)";
@@ -40,6 +41,7 @@ export function buildFlowPortColorMap(colors: FlowPortThemeColors): Record<Studi
     postProcessing: colors.postProcessingColor,
     contactShadows: colors.contactShadowsColor,
     particleEmitter: colors.particleEmitterColor,
+    audioBus: colors.audioBusColor,
   };
 }
 

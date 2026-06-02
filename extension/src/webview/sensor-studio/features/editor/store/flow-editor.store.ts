@@ -89,6 +89,7 @@ import {
   evaluateFrameDelta,
   evaluateSceneTime,
 } from "../../../core/flow/scene-time-operations";
+import { studioAudioRuntime } from "../../../core/audio/studio-audio-runtime";
 import type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
 import {
   coerceFlowWireFogV1,
@@ -336,7 +337,8 @@ export type StudioPortType =
   | "studioLight"
   | "postProcessing"
   | "contactShadows"
-  | "particleEmitter";
+  | "particleEmitter"
+  | "audioBus";
 
 /** Present only while Bitstream provides a matching hardware sample for this node. */
 export type SensorHardwareStreamLive = "live";
@@ -379,6 +381,7 @@ export const BMI270_TAP_NODE_IDS = [
   "bmi270-tap-accel",
   "bmi270-tap-gyro",
   "bmi270-tap-temp",
+  "bmi270-tap-samples",
 ] as const;
 
 export const BMI270_TAP_NODE_ID_SET = new Set<string>(BMI270_TAP_NODE_IDS);
@@ -387,10 +390,13 @@ export const BMI270_TAP_NODE_ID_SET = new Set<string>(BMI270_TAP_NODE_IDS);
 export const ENVIRONMENT_SENSOR_TAP_NODE_IDS = [
   "dps368-tap-pressure",
   "dps368-tap-temp",
+  "dps368-tap-samples",
   "sht40-tap-humidity",
   "sht40-tap-temp",
+  "sht40-tap-samples",
   "bmm350-tap-magnetic",
   "bmm350-tap-temp",
+  "bmm350-tap-samples",
 ] as const;
 
 export const ENVIRONMENT_SENSOR_TAP_NODE_ID_SET = new Set<string>(ENVIRONMENT_SENSOR_TAP_NODE_IDS);
@@ -456,15 +462,19 @@ export const STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID: Record<string, string> = 
   "bmi270-tap-accel": "BMI270",
   "bmi270-tap-gyro": "BMI270",
   "bmi270-tap-temp": "BMI270",
+  "bmi270-tap-samples": "BMI270",
   "dps368-input": "DPS368",
   "dps368-tap-pressure": "DPS368",
   "dps368-tap-temp": "DPS368",
+  "dps368-tap-samples": "DPS368",
   "sht40-input": "SHT40",
   "sht40-tap-humidity": "SHT40",
   "sht40-tap-temp": "SHT40",
+  "sht40-tap-samples": "SHT40",
   "bmm350-input": "BMM350",
   "bmm350-tap-magnetic": "BMM350",
   "bmm350-tap-temp": "BMM350",
+  "bmm350-tap-samples": "BMM350",
 };
 
 /** Stable key for multi-pin flow values: `nodeId::handleId`. */
@@ -579,7 +589,10 @@ export type StudioDemoTemplateId =
   | "signal-chain"
   | "bmi270-gauge-z"
   | "rotation-glb-anim"
-  | "material-glb-drives";
+  | "material-glb-drives"
+  | "audio-lab"
+  | "audio-file-playback"
+  | "audio-oscillator-tone";
 
 export type FlowSnapshot = {
   nodes: FlowGraphNode[];
@@ -870,6 +883,11 @@ type FlowEditorState = {
   toggleBodyControlsVisibleForNodes: (nodeIds: string[]) => void;
   applyFlowAutoLayout: (direction: "LR" | "TB") => void;
   updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
+  /** Update layout-node top-level props (style/zIndex/draggable/...). Undo is NOT pushed. */
+  updateLayoutFlowNode: (flowNodeId: string, patch: Partial<FlowGraphNode>) => void;
+  /** Raise/lower a layout node within the canvas stacking order. */
+  raiseLayoutNode: (flowNodeId: string) => void;
+  lowerLayoutNode: (flowNodeId: string) => void;
   /**
    * Create a node from the catalog and bind it to a **Model** (`model-select`) parent via
    * `sourceModelNodeId`. The store reconciles `generatedChildNodeIds` on the parent.
@@ -893,6 +911,8 @@ type FlowEditorState = {
     expanded: boolean,
   ) => void;
   resetCanvas: () => void;
+  /** Turn off all audio gates and silence monitor paths (undoable). */
+  muteAllAudio: () => void;
   runDemoTemplate: (templateId: StudioDemoTemplateId, catalog: NodeCatalogEntry[]) => void;
   updateSelectedNodeLabel: (nextLabel: string) => void;
   updateSelectedNodeConfigField: (key: string, value: unknown) => boolean;
@@ -2051,18 +2071,22 @@ function inferSensorHintFromNode(node: StudioNode): BitstreamSensorSourceHint | 
     case "bmi270-tap-accel":
     case "bmi270-tap-gyro":
     case "bmi270-tap-temp":
+    case "bmi270-tap-samples":
       return "bmi270";
     case "dps368-input":
     case "dps368-tap-pressure":
     case "dps368-tap-temp":
+    case "dps368-tap-samples":
       return "dps368";
     case "sht40-input":
     case "sht40-tap-humidity":
     case "sht40-tap-temp":
+    case "sht40-tap-samples":
       return "sht40";
     case "bmm350-input":
     case "bmm350-tap-magnetic":
     case "bmm350-tap-temp":
+    case "bmm350-tap-samples":
       return "bmm350";
     case "sensor-input": {
       const sk = node.data.defaultConfig.sourceKey;
@@ -3846,6 +3870,29 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ),
     }));
   },
+  updateLayoutFlowNode: (flowNodeId, patch) => {
+    set((state) => ({
+      nodes: state.nodes.map((node) => {
+        if (node.id !== flowNodeId || !isLayoutFlowNode(node)) {
+          return node;
+        }
+        const next = { ...node, ...patch } as typeof node;
+        if (patch.style != null) {
+          next.style = { ...(node.style ?? {}), ...(patch.style as any) } as any;
+        }
+        return next;
+      }),
+    }));
+  },
+  raiseLayoutNode: (flowNodeId) => {
+    const st = get();
+    const maxZ = Math.max(0, ...st.nodes.map((n) => n.zIndex ?? 0));
+    get().updateLayoutFlowNode(flowNodeId, { zIndex: maxZ + 1 });
+  },
+  lowerLayoutNode: (flowNodeId) => {
+    // Frames use zIndex = -1; keep layout nodes above frames by default.
+    get().updateLayoutFlowNode(flowNodeId, { zIndex: 0 });
+  },
   addNodeFromCatalogLinkedToModel: (entry, position, options) => {
     const parentId = options.parentModelNodeId.trim();
     if (parentId.length === 0) {
@@ -3923,6 +3970,43 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       selectedNodeId: null,
       selectedNodeIds: [],
     });
+  },
+  muteAllAudio: () => {
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) => {
+          if (node.type !== "studio") {
+            return node;
+          }
+          const catalogId = node.data.nodeId;
+          if (
+            catalogId !== "audio-output" &&
+            catalogId !== "audio-oscillator" &&
+            catalogId !== "audio-file-player"
+          ) {
+            return node;
+          }
+          const patch: Record<string, unknown> = { gate: false };
+          if (catalogId === "audio-output") {
+            patch.gain = 0;
+          }
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              defaultConfig: {
+                ...node.data.defaultConfig,
+                ...patch,
+              },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+    studioAudioRuntime.panicMuteAll();
+    flushFlowSimulationPins(get);
   },
   runDemoTemplate: (templateId, catalog) => {
     const makeNode = (
@@ -4027,6 +4111,255 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ),
         edges: demoEdges,
         ...selectionFromIds([viewerNode.id]),
+      });
+      return;
+    }
+
+    if (templateId === "audio-lab") {
+      const micEntry = catalog.find((entry) => entry.id === "mic-input");
+      const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
+      const outEntry = catalog.find((entry) => entry.id === "audio-output");
+      const plotterEntry = catalog.find((entry) => entry.id === "plotter");
+      const fileEntry = catalog.find((entry) => entry.id === "audio-file-player");
+      if (micEntry == null || scopeEntry == null || outEntry == null || plotterEntry == null) {
+        return;
+      }
+
+      const micNode = makeNode(micEntry, "demo-audio-mic", 72, 160);
+      micNode.data.label = "Microphone";
+      micNode.data.defaultConfig = {
+        ...micNode.data.defaultConfig,
+        enabled: false,
+        fftSize: 2048,
+        smoothing: 0.8,
+        gateEnabled: true,
+        gateThreshold: 0.02,
+        peakHoldMs: 150,
+      };
+
+      const scopeNode = makeNode(scopeEntry, "demo-audio-scope", 420, 80);
+      scopeNode.data.label = "Audio Scope";
+      scopeNode.data.defaultConfig = {
+        ...scopeNode.data.defaultConfig,
+        enabled: true,
+        mode: "waveform",
+        sourceMode: "auto",
+        sourceNodeId: "",
+      };
+
+      const outNode = makeNode(outEntry, "demo-audio-out", 420, 250);
+      outNode.data.label = "Audio Output";
+      outNode.data.defaultConfig = {
+        ...outNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        gain: 0.15,
+        maxGain: 0.25,
+        limiterEnabled: true,
+        sourceMode: "auto",
+        sourceNodeId: "",
+      };
+
+      const plotterNode = makeNode(plotterEntry, "demo-audio-plotter", 420, 420);
+      plotterNode.data.label = "Audio Features (Plotter)";
+      plotterNode.data.ui = { resizable: true };
+
+      const fileNode =
+        fileEntry != null ? makeNode(fileEntry, "demo-audio-file", 72, 360) : null;
+      if (fileNode != null) {
+        fileNode.data.label = "Audio File Player";
+        fileNode.data.defaultConfig = {
+          ...fileNode.data.defaultConfig,
+          enabled: false,
+          gate: false,
+          loop: false,
+          gain: 0.5,
+          url: "",
+        };
+      }
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-audio-e1",
+          source: micNode.id,
+          target: plotterNode.id,
+          sourceHandle: "rms",
+          targetHandle: "ch1",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-audio-e2",
+          source: micNode.id,
+          target: plotterNode.id,
+          sourceHandle: "peak",
+          targetHandle: "ch2",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-audio-e3",
+          source: micNode.id,
+          target: plotterNode.id,
+          sourceHandle: "centroidHz",
+          targetHandle: "ch3",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      const allNodes = fileNode != null ? [micNode, fileNode, scopeNode, outNode, plotterNode] : [micNode, scopeNode, outNode, plotterNode];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(allNodes, [outNode.id]),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([outNode.id]),
+      });
+      return;
+    }
+
+    if (templateId === "audio-file-playback") {
+      const fileEntry = catalog.find((entry) => entry.id === "audio-file-player");
+      const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
+      const outEntry = catalog.find((entry) => entry.id === "audio-output");
+      const plotterEntry = catalog.find((entry) => entry.id === "plotter");
+      if (fileEntry == null || scopeEntry == null || outEntry == null || plotterEntry == null) {
+        return;
+      }
+
+      const fileNode = makeNode(fileEntry, "demo-file-player", 72, 200);
+      fileNode.data.label = "Audio File Player";
+      fileNode.data.defaultConfig = {
+        ...fileNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        loop: false,
+        gain: 0.5,
+        url: "",
+      };
+
+      const scopeNode = makeNode(scopeEntry, "demo-file-scope", 420, 80);
+      scopeNode.data.label = "Audio Scope";
+      scopeNode.data.defaultConfig = {
+        ...scopeNode.data.defaultConfig,
+        enabled: true,
+        mode: "waveform",
+        sourceMode: "node",
+        sourceNodeId: fileNode.id,
+      };
+
+      const outNode = makeNode(outEntry, "demo-file-out", 420, 250);
+      outNode.data.label = "Audio Output";
+      outNode.data.defaultConfig = {
+        ...outNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        gain: 0.15,
+        maxGain: 0.25,
+        limiterEnabled: true,
+        sourceMode: "node",
+        sourceNodeId: fileNode.id,
+      };
+
+      const plotterNode = makeNode(plotterEntry, "demo-file-plotter", 420, 420);
+      plotterNode.data.label = "File Transport (Plotter)";
+      plotterNode.data.ui = { resizable: true };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-file-e1",
+          source: fileNode.id,
+          target: plotterNode.id,
+          sourceHandle: "time",
+          targetHandle: "ch1",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-file-e2",
+          source: fileNode.id,
+          target: plotterNode.id,
+          sourceHandle: "duration",
+          targetHandle: "ch2",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection([fileNode, scopeNode, outNode, plotterNode], [fileNode.id]),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([fileNode.id]),
+      });
+      return;
+    }
+
+    if (templateId === "audio-oscillator-tone") {
+      const oscEntry = catalog.find((entry) => entry.id === "audio-oscillator");
+      const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
+      const outEntry = catalog.find((entry) => entry.id === "audio-output");
+      if (oscEntry == null || scopeEntry == null || outEntry == null) {
+        return;
+      }
+
+      const oscNode = makeNode(oscEntry, "demo-osc", 72, 200);
+      oscNode.data.label = "Oscillator (sweep)";
+      oscNode.data.defaultConfig = {
+        ...oscNode.data.defaultConfig,
+        waveform: "sine",
+        freqHz: 440,
+        detuneCents: 0,
+        sweepEnabled: true,
+        sweepStartHz: 220,
+        sweepEndHz: 880,
+        sweepPeriodS: 4,
+        gain: 0.05,
+        gate: false,
+      };
+
+      const scopeNode = makeNode(scopeEntry, "demo-osc-scope", 420, 80);
+      scopeNode.data.label = "Audio Scope";
+      scopeNode.data.defaultConfig = {
+        ...scopeNode.data.defaultConfig,
+        enabled: true,
+        mode: "waveform",
+        sourceMode: "node",
+        sourceNodeId: oscNode.id,
+      };
+
+      const outNode = makeNode(outEntry, "demo-osc-out", 420, 250);
+      outNode.data.label = "Audio Output";
+      outNode.data.defaultConfig = {
+        ...outNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        gain: 0.15,
+        maxGain: 0.25,
+        limiterEnabled: true,
+        sourceMode: "node",
+        sourceNodeId: oscNode.id,
+      };
+
+      get().pushUndoSnapshot();
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection([oscNode, scopeNode, outNode], [oscNode.id]),
+          [],
+        ),
+        edges: [],
+        ...selectionFromIds([oscNode.id]),
       });
       return;
     }
@@ -4887,6 +5220,71 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const narrowNumber = (v: FlowValue | null): number =>
       typeof v === "number" && Number.isFinite(v) ? v : 0;
 
+    // Audio routing + scalar feature extraction
+    // - Routing is handled by Web Audio graph (not pins).
+    // - Pins carry only scalar features and control values.
+    const nowMs = Date.now();
+    const resolveAudioSourceNodeId = (
+      forNodeId: string,
+      mode: unknown,
+      explicit: unknown,
+    ): string | null => {
+      const m = typeof mode === "string" ? mode : "auto";
+      if (m === "none") {
+        return null;
+      }
+      const e = typeof explicit === "string" ? explicit.trim() : "";
+      if (m === "node" && e.length > 0) {
+        return e;
+      }
+
+      // Auto: prefer selected mic/osc, then nearest by canvas distance.
+      const selectedId = get().selectedNodeId;
+      const selected =
+        typeof selectedId === "string" ? nodes.find((n) => n.id === selectedId) : undefined;
+      if (isStudioFlowNode(selected)) {
+        if (
+          selected.data.nodeId === "mic-input" ||
+          selected.data.nodeId === "audio-oscillator" ||
+          selected.data.nodeId === "audio-file-player"
+        ) {
+          return selected.id;
+        }
+      }
+
+      const anchor = nodes.find((n) => n.id === forNodeId);
+      const ax = anchor?.position?.x ?? 0;
+      const ay = anchor?.position?.y ?? 0;
+      const candidates = nodes.filter(
+        (n) =>
+          isStudioFlowNode(n) &&
+          (n.data.nodeId === "mic-input" ||
+            n.data.nodeId === "audio-oscillator" ||
+            n.data.nodeId === "audio-file-player"),
+      );
+      if (candidates.length === 0) {
+        return null;
+      }
+      let best: { id: string; d: number } | null = null;
+      for (const c of candidates) {
+        const dx = (c.position?.x ?? 0) - ax;
+        const dy = (c.position?.y ?? 0) - ay;
+        const d = dx * dx + dy * dy;
+        if (best == null || d < best.d) {
+          best = { id: c.id, d };
+        }
+      }
+      return best?.id ?? candidates[0]!.id;
+    };
+
+    const anyEnabledAudioOutput = nodes.some((n) => {
+      if (!isStudioFlowNode(n)) return false;
+      if (n.data.nodeId !== "audio-output") return false;
+      const cfg = n.data.defaultConfig as Record<string, unknown>;
+      return cfg.enabled === true;
+    });
+    studioAudioRuntime.enableMaster(anyEnabledAudioOutput);
+
     for (let pass = 0; pass < 3; pass += 1) {
       for (const node of nodes) {
         if (node.type === "studio-reroute") {
@@ -4906,6 +5304,220 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
         if (!isStudioFlowNode(node)) {
+          continue;
+        }
+
+        if (node.data.nodeId === "mic-input") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const enabled = cfg.enabled === true;
+          const deviceId = typeof cfg.deviceId === "string" ? cfg.deviceId : "default";
+          const fftSizeRaw = typeof cfg.fftSize === "number" ? cfg.fftSize : 2048;
+          const fftSize = Number.isFinite(fftSizeRaw) ? Math.max(32, Math.min(32768, Math.round(fftSizeRaw))) : 2048;
+          const smoothingRaw = typeof cfg.smoothing === "number" ? cfg.smoothing : 0.8;
+          const smoothing = Number.isFinite(smoothingRaw) ? smoothingRaw : 0.8;
+          const gateEnabled = cfg.gateEnabled === true;
+          const gateThresholdRaw = typeof cfg.gateThreshold === "number" ? cfg.gateThreshold : 0.02;
+          const gateThreshold = Number.isFinite(gateThresholdRaw) ? Math.max(0, gateThresholdRaw) : 0.02;
+          const peakHoldMsRaw = typeof cfg.peakHoldMs === "number" ? cfg.peakHoldMs : 150;
+          const peakHoldMs = Number.isFinite(peakHoldMsRaw) ? Math.max(0, peakHoldMsRaw) : 150;
+
+          studioAudioRuntime.enableMic(node.id, enabled);
+          if (enabled) {
+            void studioAudioRuntime.ensureMicActive(node.id, { deviceId, fftSize, smoothing });
+          }
+
+          const buffers = studioAudioRuntime.readMicBuffers(node.id);
+          if (buffers == null) {
+            pinValues.set(studioFlowPinKey(node.id, "active"), false);
+            pinValues.set(studioFlowPinKey(node.id, "rms"), 0);
+            pinValues.set(studioFlowPinKey(node.id, "peak"), 0);
+            pinValues.set(studioFlowPinKey(node.id, "zcr"), 0);
+            pinValues.set(studioFlowPinKey(node.id, "centroidHz"), 0);
+            continue;
+          }
+
+          // Time domain: 0..255 centered at 128.
+          const time = buffers.time;
+          let sumSq = 0;
+          let peak = 0;
+          let prevSign = 0;
+          let zc = 0;
+          for (let i = 0; i < time.length; i += 1) {
+            const v = (time[i] - 128) / 128;
+            sumSq += v * v;
+            const a = Math.abs(v);
+            if (a > peak) peak = a;
+            const sign = v > 0.0001 ? 1 : v < -0.0001 ? -1 : 0;
+            if (i > 0 && sign !== 0 && prevSign !== 0 && sign !== prevSign) {
+              zc += 1;
+            }
+            if (sign !== 0) prevSign = sign;
+          }
+          const rms = Math.sqrt(sumSq / Math.max(1, time.length));
+          const zcr = Math.min(1, zc / Math.max(1, time.length - 1));
+
+          // Frequency domain centroid.
+          const freq = buffers.freq;
+          let weighted = 0;
+          let total = 0;
+          for (let i = 0; i < freq.length; i += 1) {
+            const mag = freq[i];
+            total += mag;
+            weighted += mag * i;
+          }
+          const nyquist = (buffers.analyser.context.sampleRate ?? 48000) / 2;
+          const centroidHz =
+            total > 0 ? (weighted / total) * (nyquist / Math.max(1, freq.length - 1)) : 0;
+
+          const gatedRms = gateEnabled && rms < gateThreshold ? 0 : rms;
+          const gatedPeak = gateEnabled && peak < gateThreshold ? 0 : peak;
+          const peakHold = studioAudioRuntime.updateMicPeakHold(node.id, {
+            peak: gatedPeak,
+            peakHoldMs,
+            nowMs,
+          });
+
+          pinValues.set(studioFlowPinKey(node.id, "active"), true);
+          pinValues.set(studioFlowPinKey(node.id, "rms"), gatedRms);
+          pinValues.set(studioFlowPinKey(node.id, "peak"), peakHold);
+          pinValues.set(studioFlowPinKey(node.id, "zcr"), zcr);
+          pinValues.set(studioFlowPinKey(node.id, "centroidHz"), centroidHz);
+          continue;
+        }
+
+        if (node.data.nodeId === "audio-oscillator") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const waveform = typeof cfg.waveform === "string" ? cfg.waveform : "sine";
+          const detune = typeof cfg.detuneCents === "number" ? cfg.detuneCents : 0;
+          const freqIncoming = readIncoming(node.id, "freqHz");
+          const sweepEnabled = cfg.sweepEnabled === true;
+          const baseFreqHz = readSimInput(null, cfg.freqHz, 440);
+          const sweepStartHzRaw = typeof cfg.sweepStartHz === "number" ? cfg.sweepStartHz : 220;
+          const sweepEndHzRaw = typeof cfg.sweepEndHz === "number" ? cfg.sweepEndHz : 880;
+          const sweepPeriodSRaw = typeof cfg.sweepPeriodS === "number" ? cfg.sweepPeriodS : 4;
+          const sweepStartHz = Number.isFinite(sweepStartHzRaw) ? Math.max(0, sweepStartHzRaw) : 220;
+          const sweepEndHz = Number.isFinite(sweepEndHzRaw) ? Math.max(0, sweepEndHzRaw) : 880;
+          const sweepPeriodS = Number.isFinite(sweepPeriodSRaw) ? Math.max(0.25, sweepPeriodSRaw) : 4;
+
+          const freqHz =
+            typeof freqIncoming === "number" && Number.isFinite(freqIncoming)
+              ? Math.max(0, freqIncoming)
+              : sweepEnabled
+                ? (() => {
+                    const t = (nowMs / 1000) % sweepPeriodS;
+                    const phase = t / sweepPeriodS; // 0..1
+                    const tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2; // 0..1..0
+                    const lo = Math.min(sweepStartHz, sweepEndHz);
+                    const hi = Math.max(sweepStartHz, sweepEndHz);
+                    return lo + (hi - lo) * tri;
+                  })()
+                : baseFreqHz;
+          const gain = readSimInput(readIncoming(node.id, "gain"), cfg.gain, 0);
+          const gateIncoming = readIncoming(node.id, "gate");
+          const gate = typeof gateIncoming === "boolean" ? gateIncoming : cfg.gate === true;
+
+          studioAudioRuntime.setOscillator(node.id, {
+            waveform,
+            detuneCents: detune,
+            freqHz,
+            gain,
+            gate,
+          });
+          pinValues.set(studioFlowPinKey(node.id, "level"), gate ? gain : 0);
+          continue;
+        }
+
+        if (node.data.nodeId === "audio-output") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const enabled = cfg.enabled === true;
+          if (!enabled) {
+            // Ensure microphone monitor paths are always muted when output is disabled.
+            for (const n of nodes) {
+              if (isStudioFlowNode(n) && n.data.nodeId === "mic-input") {
+                studioAudioRuntime.setMicMonitorGain(n.id, 0);
+              }
+              if (isStudioFlowNode(n) && n.data.nodeId === "audio-oscillator") {
+                studioAudioRuntime.setOscillatorMonitorGain(n.id, 0);
+              }
+              if (isStudioFlowNode(n) && n.data.nodeId === "audio-file-player") {
+                studioAudioRuntime.setFilePlayerMonitorGain(n.id, 0);
+              }
+            }
+            studioAudioRuntime.setMasterControls({
+              gate: false,
+              gain: 0,
+              maxGain: typeof cfg.maxGain === "number" ? cfg.maxGain : 0.25,
+              limiterEnabled: cfg.limiterEnabled !== false,
+            });
+            continue;
+          }
+          const gain = readSimInput(readIncoming(node.id, "gain"), cfg.gain, 0);
+          const gateIncoming = readIncoming(node.id, "gate");
+          const gate = typeof gateIncoming === "boolean" ? gateIncoming : cfg.gate === true;
+          studioAudioRuntime.setMasterControls({
+            gate,
+            gain,
+            maxGain: typeof cfg.maxGain === "number" ? cfg.maxGain : 0.25,
+            limiterEnabled: cfg.limiterEnabled !== false,
+          });
+
+          // v0.1 routing: pick exactly one source node to pass into master output.
+          // Always reset all monitor gains first to prevent "stuck on" audio when switching sources.
+          for (const n of nodes) {
+            if (isStudioFlowNode(n) && n.data.nodeId === "mic-input") {
+              studioAudioRuntime.setMicMonitorGain(n.id, 0);
+            }
+            if (isStudioFlowNode(n) && n.data.nodeId === "audio-oscillator") {
+              studioAudioRuntime.setOscillatorMonitorGain(n.id, 0);
+            }
+            if (isStudioFlowNode(n) && n.data.nodeId === "audio-file-player") {
+              studioAudioRuntime.setFilePlayerMonitorGain(n.id, 0);
+            }
+          }
+
+          const srcId = resolveAudioSourceNodeId(node.id, cfg.sourceMode, cfg.sourceNodeId);
+          if (srcId != null) {
+            const srcNode = nodes.find((n) => n.id === srcId);
+            if (isStudioFlowNode(srcNode) && srcNode.data.nodeId === "mic-input") {
+              // When gate is on, pass selected source into master (master gain handles volume).
+              studioAudioRuntime.setMicMonitorGain(srcId, gate ? 1 : 0);
+            }
+            if (isStudioFlowNode(srcNode) && srcNode.data.nodeId === "audio-oscillator") {
+              studioAudioRuntime.setOscillatorMonitorGain(srcId, gate ? 1 : 0);
+            }
+            if (isStudioFlowNode(srcNode) && srcNode.data.nodeId === "audio-file-player") {
+              studioAudioRuntime.setFilePlayerMonitorGain(srcId, gate ? 1 : 0);
+            }
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "audio-scope") {
+          // No pin evaluation needed here (canvas reads analyser via runtime).
+          continue;
+        }
+
+        if (node.data.nodeId === "audio-file-player") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const enabled = cfg.enabled === true;
+          const url = typeof cfg.url === "string" ? cfg.url : "";
+          const loop = cfg.loop === true;
+          const gain = readSimInput(readIncoming(node.id, "gain"), cfg.gain, 0.5);
+          const gateIncoming = readIncoming(node.id, "gate");
+          const gate = typeof gateIncoming === "boolean" ? gateIncoming : cfg.gate === true;
+
+          studioAudioRuntime.setFilePlayer(node.id, {
+            enabled,
+            url,
+            loop,
+            gain,
+            gate,
+          });
+
+          const t = studioAudioRuntime.getFilePlayerTransport(node.id);
+          pinValues.set(studioFlowPinKey(node.id, "playing"), t.playing);
+          pinValues.set(studioFlowPinKey(node.id, "time"), t.timeS);
+          pinValues.set(studioFlowPinKey(node.id, "duration"), t.durationS);
           continue;
         }
         if (node.data.nodeId === "sine-wave") {
@@ -4991,7 +5603,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const t = evaluateSceneTime();
           pinValues.set(studioFlowPinKey(node.id, "seconds"), t.seconds);
           pinValues.set(studioFlowPinKey(node.id, "frames"), t.frames);
-          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), t.seconds);
           continue;
         }
 
@@ -5226,7 +5837,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId === "number-constant") {
+        if (
+          node.data.nodeId === "number-constant" ||
+          node.data.nodeId === "float-constant" ||
+          node.data.nodeId === "integer-constant"
+        ) {
           const dc = node.data.defaultConfig as Record<string, unknown>;
           const v = coerceNumberConstantValue(dc, dc.value);
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
@@ -5417,6 +6032,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const bundle = computeDps368PinBundle(latestByHint);
           pinValues.set(studioFlowPinKey(node.id, "pressure"), bundle.pressureHpa);
           pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
+          pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
             sensorHardwareLiveNodeIds.add(node.id);
           }
@@ -5427,6 +6043,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const bundle = computeSht40PinBundle(latestByHint);
           pinValues.set(studioFlowPinKey(node.id, "humidity"), bundle.humidityPct);
           pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
+          pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
             sensorHardwareLiveNodeIds.add(node.id);
           }
@@ -5437,6 +6054,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const bundle = computeBmm350PinBundle(latestByHint);
           pinValues.set(studioFlowPinKey(node.id, "magnetic"), bundle.magneticUt);
           pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
+          pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
             sensorHardwareLiveNodeIds.add(node.id);
           }
@@ -5475,6 +6093,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                 ? bundle.quaternion
                 : prevQuat,
           );
+          pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
             sensorHardwareLiveNodeIds.add(node.id);
           }
@@ -5501,6 +6120,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                   ? node.data.liveValue
                   : 0;
               out = hasLiveBmi270TempFields(bmiSample) ? bundle.temp : prevScalar;
+              break;
+            }
+            case "bmi270-tap-samples": {
+              const prevScalar =
+                typeof node.data.liveValue === "number" && Number.isFinite(node.data.liveValue)
+                  ? node.data.liveValue
+                  : 0;
+              out = hasLiveBmi270TempFields(bmiSample) ? bundle.counter : prevScalar;
               break;
             }
             case "bmi270-tap-euler":
@@ -5543,6 +6170,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               streamLive = b.streamLive;
               break;
             }
+            case "dps368-tap-samples": {
+              const b = computeDps368PinBundle(latestByHint);
+              out = b.counter;
+              streamLive = b.streamLive;
+              break;
+            }
             case "sht40-tap-humidity": {
               const b = computeSht40PinBundle(latestByHint);
               out = b.humidityPct;
@@ -5555,6 +6188,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               streamLive = b.streamLive;
               break;
             }
+            case "sht40-tap-samples": {
+              const b = computeSht40PinBundle(latestByHint);
+              out = b.counter;
+              streamLive = b.streamLive;
+              break;
+            }
             case "bmm350-tap-magnetic": {
               const b = computeBmm350PinBundle(latestByHint);
               out = b.magneticUt;
@@ -5564,6 +6203,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             case "bmm350-tap-temp": {
               const b = computeBmm350PinBundle(latestByHint);
               out = b.tempC;
+              streamLive = b.streamLive;
+              break;
+            }
+            case "bmm350-tap-samples": {
+              const b = computeBmm350PinBundle(latestByHint);
+              out = b.counter;
               streamLive = b.streamLive;
               break;
             }
@@ -5936,7 +6581,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
         }
 
-        if (node.data.nodeId === "bmi270-tap-temp") {
+        if (node.data.nodeId === "bmi270-tap-temp" || node.data.nodeId === "bmi270-tap-samples") {
           const scalarOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
           const prevLive = typeof node.data.liveValue === "number" ? node.data.liveValue : undefined;
           const reason = computeNodeInvalidReason(node, latestByHint);
@@ -5957,6 +6602,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "dps368-input") {
           const pressure = pinValues.get(studioFlowPinKey(node.id, "pressure"));
           const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const samples = pinValues.get(studioFlowPinKey(node.id, "samples"));
           const prev = node.data.liveNumberByHandle;
           const dpsSample = latestByHint.dps368;
           const pressureValid =
@@ -5966,9 +6612,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             dpsSample == null ||
             (typeof dpsSample.temperatureCx100 === "number" &&
               Number.isFinite(dpsSample.temperatureCx100));
+          const samplesValid =
+            dpsSample != null && typeof dpsSample.counter === "number" && Number.isFinite(dpsSample.counter);
           base.liveNumberByHandle = {
             pressure: keepLastFiniteNumber(pressureValid ? pressure : undefined, prev?.pressure, 0),
             temp: keepLastFiniteNumber(tempValid ? temp : undefined, prev?.temp, 0),
+            samples: keepLastFiniteNumber(samplesValid ? samples : undefined, prev?.samples, 0),
           };
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
             mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "pressure", pressureValid, nowIso),
@@ -5993,6 +6642,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "sht40-input") {
           const humidity = pinValues.get(studioFlowPinKey(node.id, "humidity"));
           const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const samples = pinValues.get(studioFlowPinKey(node.id, "samples"));
           const prev = node.data.liveNumberByHandle;
           const shtSample = latestByHint.sht40;
           const humidityValid =
@@ -6002,9 +6652,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             shtSample == null ||
             (typeof shtSample.temperatureCx100 === "number" &&
               Number.isFinite(shtSample.temperatureCx100));
+          const samplesValid =
+            shtSample != null && typeof shtSample.counter === "number" && Number.isFinite(shtSample.counter);
           base.liveNumberByHandle = {
             humidity: keepLastFiniteNumber(humidityValid ? humidity : undefined, prev?.humidity, 0),
             temp: keepLastFiniteNumber(tempValid ? temp : undefined, prev?.temp, 0),
+            samples: keepLastFiniteNumber(samplesValid ? samples : undefined, prev?.samples, 0),
           };
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
             mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "humidity", humidityValid, nowIso),
@@ -6029,6 +6682,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "bmm350-input") {
           const mag = pinValues.get(studioFlowPinKey(node.id, "magnetic"));
           const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const samples = pinValues.get(studioFlowPinKey(node.id, "samples"));
           const prevVec = node.data.liveVector3ByHandle?.magnetic;
           const bmmSample = latestByHint.bmm350;
           const magValid =
@@ -6040,6 +6694,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             bmmSample == null ||
             (typeof bmmSample.temperatureCx100 === "number" &&
               Number.isFinite(bmmSample.temperatureCx100));
+          const samplesValid =
+            bmmSample != null && typeof bmmSample.counter === "number" && Number.isFinite(bmmSample.counter);
           const nextMag =
             magValid
               ? flowValueAsVec3(mag)
@@ -6049,6 +6705,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           };
           base.liveNumberByHandle = {
             temp: keepLastFiniteNumber(tempValid ? temp : undefined, node.data.liveNumberByHandle?.temp, 0),
+            samples: keepLastFiniteNumber(samplesValid ? samples : undefined, node.data.liveNumberByHandle?.samples, 0),
           };
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
             mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "magnetic", magValid, nowIso),
@@ -6075,6 +6732,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const gyro = pinValues.get(studioFlowPinKey(node.id, "gyro"));
           const euler = pinValues.get(studioFlowPinKey(node.id, "euler"));
           const temp = pinValues.get(studioFlowPinKey(node.id, "temp"));
+          const samples = pinValues.get(studioFlowPinKey(node.id, "samples"));
           base.liveVector3ByHandle = {
             accel:
               accel != null && typeof accel === "object" && accel !== null && "x" in accel
@@ -6091,6 +6749,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           };
           base.liveNumberByHandle = {
             temp: typeof temp === "number" && Number.isFinite(temp) ? temp : 0,
+            samples: typeof samples === "number" && Number.isFinite(samples) ? samples : 0,
           };
           const quatWire = pinValues.get(studioFlowPinKey(node.id, "quaternion"));
           base.liveQuaternionWire = flowValueAsQuaternion(quatWire);

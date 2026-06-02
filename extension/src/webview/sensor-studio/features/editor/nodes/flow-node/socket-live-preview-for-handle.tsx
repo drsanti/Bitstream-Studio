@@ -199,6 +199,8 @@ function genericSocketLivePreview(
     return (
       <SocketLivePreview
         {...scalarSocketPreviewProps(data, handleId, scalar, portLabel, "live")}
+        signedPositive={handleId === "samples" ? false : true}
+        fractionDigitsOverride={handleId === "samples" ? 0 : undefined}
       />
     );
   }
@@ -382,8 +384,18 @@ export function socketLivePreviewForOutputHandle(
     }
 
     if (portType === "number") {
-      const scalar = data.liveNumberByHandle?.[handleId];
-      return <SocketLivePreview {...scalarSocketPreviewProps(data, handleId, scalar, portLabel)} />;
+      const scalar =
+        data.liveNumberByHandle?.[handleId] ??
+        // Sensor sample counters are always present when the stream is live, but keep the UI stable
+        // even if a specific payload variant omitted the row's other fields.
+        (handleId === "samples" ? 0 : undefined);
+      return (
+        <SocketLivePreview
+          {...scalarSocketPreviewProps(data, handleId, scalar, portLabel)}
+          signedPositive={handleId === "samples" ? false : true}
+          fractionDigitsOverride={handleId === "samples" ? 0 : undefined}
+        />
+      );
     }
 
     return null;
@@ -418,7 +430,15 @@ export function socketLivePreviewForOutputHandle(
 
     if (portType === "number") {
       const scalar = typeof data.liveValue === "number" ? data.liveValue : undefined;
-      return <SocketLivePreview {...scalarSocketPreviewProps(data, handleId, scalar, portLabel)} />;
+      const isSamplesCounter =
+        nodeId.endsWith("-tap-samples") || portLabel === "Samples" || String(portLabel ?? "").includes("Samples");
+      return (
+        <SocketLivePreview
+          {...scalarSocketPreviewProps(data, handleId, scalar, portLabel)}
+          signedPositive={isSamplesCounter ? false : true}
+          fractionDigitsOverride={isSamplesCounter ? 0 : undefined}
+        />
+      );
     }
 
     return null;

@@ -1151,14 +1151,14 @@ export function RealtimeUiSettingsForm(props: RealtimeUiSettingsFormProps) {
             </div>
             <div className="mt-1 flex items-center justify-between gap-2">
               <span
-                className={`min-w-0 font-mono text-xs tabular-nums ${
+                className={`min-w-0 font-mono text-xs ${
                   hueSliderEnabled ? "text-zinc-400" : "text-zinc-600"
                 }`}
               >
                 {sensorTelemetryIconPulsePeakColorHex}
               </span>
               <span
-                className={`min-w-[7ch] text-right font-mono text-xs tabular-nums ${
+                className={`min-w-[7ch] text-right font-mono text-xs ${
                   hueSliderEnabled ? "text-zinc-300" : "text-zinc-600"
                 }`}
               >

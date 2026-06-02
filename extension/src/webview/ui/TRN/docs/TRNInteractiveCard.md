@@ -39,7 +39,8 @@ Collapse behavior:
   title="IMU Temperature"
   titleLeadingSlot={<Thermometer className="h-4 w-4 text-zinc-400" />}
   titleTrailingSlot={<span className="text-[10px] font-semibold text-zinc-400">BMI270</span>}
-  className="h-auto rounded-md border-zinc-700/80 bg-black/40 p-2"
+  shell="solid"
+  className="h-auto"
 >
   <div className="text-xs text-zinc-300">Card content</div>
 </TRNInteractiveCard>

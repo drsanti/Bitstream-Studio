@@ -168,7 +168,7 @@ export function GlbAnimationBundleNodePanel(props: GlbAnimationBundleNodePanelPr
           (URL).
         </div>
       )}
-      <div className="text-[10px] tabular-nums text-zinc-500">{clipLine}</div>
+      <div className="text-[10px] text-zinc-500">{clipLine}</div>
     </ReadingPanel>
   );
 }

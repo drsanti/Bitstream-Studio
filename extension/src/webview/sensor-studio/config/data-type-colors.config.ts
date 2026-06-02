@@ -19,5 +19,6 @@ export const DATA_TYPE_COLORS_DEFAULTS: DataTypeColorsConfig = {
     postProcessing: "#E879F9",
     contactShadows: "#C084FC",
     particleEmitter: "#FB923C",
+    audioBus: "#F472B6",
   },
 };

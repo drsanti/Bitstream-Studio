@@ -42,6 +42,7 @@ export type DataTypeColorsPayload = {
   postProcessing: string;
   contactShadows: string;
   particleEmitter: string;
+  audioBus: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -62,13 +63,22 @@ export type NodeCatalogOutputPort = {
     | "studioLight"
     | "postProcessing"
     | "contactShadows"
-    | "particleEmitter";
+    | "particleEmitter"
+    | "audioBus";
   label: string;
 };
 
 export type NodeCatalogEntry = {
   id: string;
-  category: "sensor" | "input" | "transform" | "logic" | "output" | "utility" | "generator";
+  category:
+    | "sensor"
+    | "input"
+    | "audio"
+    | "transform"
+    | "logic"
+    | "output"
+    | "utility"
+    | "generator";
   title: string;
   description: string;
   icon: string;

@@ -230,7 +230,7 @@ export function GlbAnimationLabTwinMachinePanel() {
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-[11px] text-zinc-400">{signal.label}</span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-semibold tabular-nums text-zinc-100">
+                      <span className="text-[11px] font-semibold text-zinc-100">
                         {formatSignalValue(signal.value, signal.unit)}
                       </span>
                       <HealthPill health={signal.health} className="px-1 py-0 text-[9px]" />

@@ -143,7 +143,7 @@ export function SystemSerialportInfo()
             }
             headerTitleClassName="normal-case tracking-normal text-zinc-100"
             titleTrailingSlot={
-              <span className="tabular-nums text-xs font-semibold text-zinc-400">
+              <span className="text-xs font-semibold text-zinc-400">
                 {orderedPorts.length} found
               </span>
             }

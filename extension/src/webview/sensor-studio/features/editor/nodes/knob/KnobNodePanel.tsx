@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import {
   prepareHiDpiCanvas2d,
   resolveStudioCanvasDpr,
@@ -228,9 +228,14 @@ export function KnobNodePanel({
     [applyDelta],
   );
 
-  const onWheel = useCallback(
-    (e: React.WheelEvent) => {
+  const onWheelNative = useCallback(
+    (e: WheelEvent) => {
+      // Knob consumes wheel to change value; ensure the flow canvas does not interpret it as zoom.
       e.preventDefault();
+      e.stopPropagation();
+      // React Flow (and other listeners) may attach wheel handlers high up; this ensures full cancel.
+      (e as any).stopImmediatePropagation?.();
+
       const cfg = coerceConfig(dataRef.current.defaultConfig);
       const step = cfg.step > 0 ? cfg.step : (cfg.max - cfg.min) / 100;
       let next = cfg.value + (e.deltaY < 0 ? step : -step);
@@ -242,6 +247,16 @@ export function KnobNodePanel({
     [nodeId, updateValue],
   );
 
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    // Capture + non-passive so preventDefault works and canvas zoom never runs.
+    wrap.addEventListener("wheel", onWheelNative, { passive: false, capture: true });
+    return () => {
+      wrap.removeEventListener("wheel", onWheelNative as any, { capture: true } as any);
+    };
+  }, [onWheelNative]);
+
   return (
     <div
       ref={wrapRef}
@@ -251,7 +266,6 @@ export function KnobNodePanel({
       }
       style={{ minHeight: 100, cursor: draggingRef.current ? "ns-resize" : "pointer" }}
       onMouseDown={onMouseDown}
-      onWheel={onWheel}
     >
       <canvas
         ref={canvasRef}

@@ -89,7 +89,7 @@ export function SerialDataViewer({
       title={cardTitle}
       icon={CardIcon}
       titleSupplement={
-        <span className="tabular-nums text-gray-400">{lineCountLabel}</span>
+        <span className="text-gray-400">{lineCountLabel}</span>
       }
       headerActions={
         <>

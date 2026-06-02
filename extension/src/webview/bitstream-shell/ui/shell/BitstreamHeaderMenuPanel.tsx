@@ -235,7 +235,7 @@ export function BitstreamHeaderMenuPanel(props: {
             label="Asset Manager"
             title="Open Asset Manager (Alt+M)"
             rightSlot={
-              <span className="font-mono text-[10px] tabular-nums text-zinc-500" aria-hidden>
+              <span className="font-mono text-[10px] text-zinc-500" aria-hidden>
                 Alt+M
               </span>
             }

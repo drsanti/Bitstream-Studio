@@ -772,7 +772,7 @@ export function BitstreamBridgeSerialRxBadge(props: {
           "shrink-0 text-xs text-zinc-100",
           variant === "panel"
             ? "inline-block min-w-30 text-end"
-            : "font-mono tabular-nums",
+            : "",
           toneClass,
         )}
       >
@@ -839,7 +839,7 @@ export function BitstreamBridgeSerialRxBadge(props: {
       content={tooltip}
       trigger={
         <span
-          className={`inline-flex min-w-0 max-w-full select-none items-center justify-end gap-1 truncate rounded-md border px-1.5 py-0.5 font-mono text-[10px] leading-none tabular-nums ${borderClass} text-zinc-200/95`}
+          className={`inline-flex min-w-0 max-w-full select-none items-center justify-end gap-1 truncate rounded-md border px-1.5 py-0.5 text-[10px] leading-none ${borderClass} text-zinc-200/95`}
         >
           <ArrowDownToLine size={12} aria-hidden="true" className={`shrink-0 ${toneClass}`} />
           <span className={`min-w-0 truncate ${toneClass}`}>{rateLabel}</span>
@@ -1254,7 +1254,7 @@ export function BitstreamSensorSampleRxBadge(props: {
           "shrink-0 text-xs text-zinc-100",
           variant === "panel"
             ? "inline-block min-w-30 text-end"
-            : "font-mono tabular-nums",
+            : "",
           toneClass,
         )}
       >
@@ -1328,7 +1328,7 @@ export function BitstreamSensorSampleRxBadge(props: {
               <>
                 <span
                   className={twMerge(
-                    "font-mono text-[10px] tabular-nums leading-none text-zinc-300",
+                    "text-[10px] leading-none text-zinc-300",
                     row.toneClass,
                   )}
                   title="Device tMs gap between last two EVT_SENSOR frames"
