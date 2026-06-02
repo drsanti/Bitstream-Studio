@@ -16,7 +16,8 @@ import { startupStepMetaForView, type StartupChecklistStepView } from "./useStar
 
 export type StartupPresentationMode = "instant" | "sequential";
 
-export type StepPresentationPhase = "hidden" | "current" | "completed";
+/** upcoming = visible but not started; current = focused; completed = done in walkthrough */
+export type StepPresentationPhase = "upcoming" | "current" | "completed";
 
 export type PresentedStartupStep = StartupChecklistStepView & {
   presentation: StepPresentationPhase;
@@ -88,6 +89,8 @@ export function useStartupChecklistPresentation(
   headerStepLabel: string;
   readyCount: number;
   isSequentialActive: boolean;
+  /** True after the sequential walkthrough has visited every step index. */
+  walkthroughComplete: boolean;
 } {
   const [focusIndex, setFocusIndex] = useState(0);
   const [orchestratorPhase, setOrchestratorPhase] = useState<OrchestratorPhase>("enter");
@@ -104,13 +107,21 @@ export function useStartupChecklistPresentation(
   }, [mode]);
 
   useEffect(() => {
-    if (steps.length !== stepsLengthRef.current) {
-      stepsLengthRef.current = steps.length;
-      setFocusIndex(0);
-      setOrchestratorPhase("enter");
-      setForceInstant(false);
-      dwellStartedAtRef.current = Date.now();
+    const prevLen = stepsLengthRef.current;
+    if (steps.length === prevLen) {
+      return;
     }
+    if (steps.length > prevLen && prevLen > 0) {
+      /* VSIX: env-only (3) → full (8) — continue walkthrough, do not restart at assets. */
+      stepsLengthRef.current = steps.length;
+      setFocusIndex((i) => Math.min(i, steps.length - 1));
+      return;
+    }
+    stepsLengthRef.current = steps.length;
+    setFocusIndex(0);
+    setOrchestratorPhase("enter");
+    setForceInstant(false);
+    dwellStartedAtRef.current = Date.now();
   }, [steps.length]);
 
   useEffect(() => {
@@ -201,7 +212,7 @@ export function useStartupChecklistPresentation(
       if (index > focusIndex) {
         return {
           ...step,
-          presentation: "hidden" as const,
+          presentation: "upcoming" as const,
           displayStatus: "locked",
           displayResult: waiting,
           isFocus: false,
@@ -251,6 +262,9 @@ export function useStartupChecklistPresentation(
       ? setupHeaderStepFocus(focusIndex + 1, steps.length, focusMeta.title)
       : setupHeaderStepSummary(truthReadyCount, steps.length);
 
+  const walkthroughComplete =
+    mode !== "sequential" || snapToInstant || focusIndex >= steps.length;
+
   return {
     presentedSteps,
     focusIndex: snapToInstant ? Math.max(0, steps.findIndex((s) => s.status !== "ok")) : focusIndex,
@@ -259,5 +273,6 @@ export function useStartupChecklistPresentation(
     headerStepLabel,
     readyCount: presentationReadyCount,
     isSequentialActive: mode === "sequential" && !snapToInstant,
+    walkthroughComplete,
   };
 }

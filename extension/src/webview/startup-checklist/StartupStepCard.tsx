@@ -15,7 +15,7 @@ export type StartupStepCardProps = {
   expanded: boolean;
   onToggle: () => void;
   accent?: "default" | "active" | "fail" | "ok";
-  presentation?: "hidden" | "current" | "completed";
+  presentation?: "upcoming" | "current" | "completed";
   isFocus?: boolean;
   children?: ReactNode;
 };
@@ -28,8 +28,8 @@ function cardShellClass(
 ): string {
   const base =
     "rounded-lg border bg-zinc-900/60 backdrop-blur-sm transition-all duration-300 border-white/[0.08]";
-  if (presentation === "hidden") {
-    return `${base} opacity-45`;
+  if (presentation === "upcoming") {
+    return `${base} opacity-55`;
   }
   if (presentation === "current" && isFocus) {
     return `${base} ring-1 ring-sky-500/40 border-sky-500/30 shadow-[0_0_24px_-8px_rgba(56,189,248,0.35)]`;
@@ -106,7 +106,7 @@ export function StartupStepCard(props: StartupStepCardProps) {
     children,
   } = props;
 
-  const showResult = presentation !== "hidden";
+  const showResult = true;
   const showProgress = status === "active" && progressPercent != null;
   const showIndeterminate = status === "active" && progressPercent == null && presentation === "current";
 
@@ -126,14 +126,14 @@ export function StartupStepCard(props: StartupStepCardProps) {
     >
       <div
         role="button"
-        tabIndex={presentation === "hidden" ? -1 : 0}
+        tabIndex={presentation === "upcoming" ? 0 : 0}
         className={`flex w-full items-start gap-3 px-3 py-3 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 ${
-          presentation === "hidden"
-            ? "cursor-default"
+          presentation === "upcoming"
+            ? "cursor-pointer hover:bg-white/[0.02]"
             : "cursor-pointer hover:bg-white/[0.02]"
         } ${presentation === "current" ? "animate-in fade-in slide-in-from-bottom-1 duration-300" : ""}`}
-        onClick={presentation === "hidden" ? undefined : onToggle}
-        onKeyDown={presentation === "hidden" ? undefined : onHeaderKeyDown}
+        onClick={onToggle}
+        onKeyDown={onHeaderKeyDown}
         aria-expanded={expanded}
       >
         <StartupStepIcon

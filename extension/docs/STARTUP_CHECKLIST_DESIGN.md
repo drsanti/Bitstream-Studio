@@ -163,7 +163,7 @@ The same checklist and TERNION pack commands run in **both** hosts when the brid
 | Check / Download / Open checklist (Ctrl+/) | Yes | Yes (bridge required) |
 | Link steps (Connection service, …) | `useConnectionSteps(panelActive)` — extension host status + WS probe | Same WS probe to `:9998` when `panelActive` (no extension-only gate) |
 | Manual open (Ctrl+/) | Stays open until **Later** | Same |
-| Auto-close when all steps green | First-run overlay only | Same rule |
+| Auto-close when all steps green | First-run overlay only — **after** sequential walkthrough completes (`walkthroughComplete`), not when truth is 8/8 early | Same rule |
 | **Open in browser** | Command palette + Ctrl+/ | N/A (already in browser) |
 
 **Branding:** User-facing copy uses **TERNION free asset pack** (not GitHub).
@@ -230,11 +230,15 @@ flowchart TB
 
 | Constant | ms | Role |
 | -------- | -- | ---- |
-| `STARTUP_STEP_ENTER_MS` | 280 | Card enter |
-| `STARTUP_STEP_MIN_DWELL_MS` | 450 | Min focus time per step |
-| `STARTUP_STEP_COMPLETE_MS` | 320 | Success beat before next |
-| `STARTUP_STEP_GAP_MS` | 120 | Between steps |
+| `STARTUP_STEP_ENTER_MS` | 220 | Card enter |
+| `STARTUP_STEP_MIN_DWELL_MS` | 400 | Min focus time per step (~250–500 ms pacing band) |
+| `STARTUP_STEP_COMPLETE_MS` | 280 | Success beat before next |
+| `STARTUP_STEP_GAP_MS` | 280 | Between steps (artificial delay when backend is fast) |
 | `STARTUP_MAX_ORCHESTRATION_MS` | 12000 | Snap to truth |
+
+### Auto-close guard
+
+The overlay must **not** call `markComplete()` while `walkthroughComplete === false` in sequential mode, even if truth reports `8/8` and `linkReady`. Otherwise the dialog closes on step 1 while the user never sees steps 2–8.
 
 Constants: `startupChecklistPresentation.constants.ts`.
 

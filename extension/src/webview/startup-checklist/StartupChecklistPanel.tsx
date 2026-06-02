@@ -199,6 +199,8 @@ function timelineDotClass(presentation: PresentedStartupStep["presentation"]): s
       return "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.45)] ring-2 ring-emerald-500/35";
     case "current":
       return "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)] ring-2 ring-sky-400/50 animate-pulse";
+    case "upcoming":
+      return "bg-zinc-600 ring-2 ring-zinc-700/80";
     default:
       return "bg-zinc-600 ring-2 ring-zinc-700/80";
   }
@@ -236,7 +238,7 @@ function StartupChecklistTimelineRow(props: {
 
 function StartupChecklistStepRow(props: {
   step: StartupChecklistStepView & {
-    presentation?: "hidden" | "current" | "completed";
+    presentation?: "upcoming" | "current" | "completed";
     displayStatus?: StartupChecklistStepView["status"];
     displayResult?: string;
     isFocus?: boolean;
@@ -325,7 +327,7 @@ function StartupChecklistStepRow(props: {
       result={displayResult}
       resultTooltip={step.resultTooltip}
       progressPercent={step.progressPercent}
-      expanded={expanded && presentation !== "hidden"}
+      expanded={expanded && presentation !== "upcoming"}
       onToggle={onToggle}
       accent={accent}
       presentation={presentation}

@@ -89,15 +89,28 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
     !showOverlay &&
     !assetsBusy;
 
-  /** Auto-dismiss only for the first-run overlay — not when the user opened via Ctrl+/ or the chip. */
+  /**
+   * Auto-dismiss only after the sequential walkthrough finishes (or instant mode).
+   * Do not close when truth is already 8/8 but the UI is still on step 1.
+   */
   useEffect(() => {
     if (useStartupChecklistStore.getState().panelOpen) {
+      return;
+    }
+    if (!presentation.walkthroughComplete) {
       return;
     }
     if (environmentReady && linkReady && readyCount === totalCount && totalCount > 0) {
       markComplete();
     }
-  }, [environmentReady, linkReady, markComplete, readyCount, totalCount]);
+  }, [
+    environmentReady,
+    linkReady,
+    markComplete,
+    presentation.walkthroughComplete,
+    readyCount,
+    totalCount,
+  ]);
 
   const handleDismiss = () => {
     if (linkReady) {
