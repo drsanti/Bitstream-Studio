@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react";
 import type { StudioNode, StudioPortType } from "../store/flow-editor.store";
-import { STUDIO_HANDLE_OUT } from "../store/flow-editor.store";
+import { STUDIO_HANDLE_IN, STUDIO_HANDLE_OUT } from "../store/flow-editor.store";
 import {
   isLayoutFlowNode,
   isSplitOutputHandle,
@@ -20,6 +20,48 @@ function studioSourcePortType(node: StudioNode, sourceHandle: string): StudioPor
   }
   if (sourceHandle === STUDIO_HANDLE_OUT && node.data.outputType != null) {
     return node.data.outputType;
+  }
+  return null;
+}
+
+function studioTargetPortType(
+  node: StudioNode,
+  targetHandle: string,
+): StudioPortType | null {
+  if (node.data.inputHandles != null && node.data.inputHandles.length > 0) {
+    return (
+      node.data.inputHandles.find((h) => h.id === targetHandle)?.portType ?? null
+    );
+  }
+  if (targetHandle === STUDIO_HANDLE_IN && node.data.inputType != null) {
+    return node.data.inputType;
+  }
+  return null;
+}
+
+export function resolveFlowTargetPortType(
+  node: Node,
+  targetHandle: string,
+): StudioPortType | null {
+  if (isStudioFlowNode(node)) {
+    return studioTargetPortType(node, targetHandle);
+  }
+  if (!isLayoutFlowNode(node)) {
+    return null;
+  }
+  if (node.type === "studio-reroute") {
+    const data = node.data as RerouteLayoutNodeData;
+    if (targetHandle !== "in") {
+      return null;
+    }
+    return data.socketType ?? null;
+  }
+  if (node.type === "studio-split") {
+    if (targetHandle !== "in") {
+      return null;
+    }
+    const data = node.data as SplitLayoutNodeData;
+    return data.socketType ?? null;
   }
   return null;
 }

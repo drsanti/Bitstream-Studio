@@ -341,12 +341,15 @@ export function SensorStudioMain() {
   }, []);
 
   const onDropPaletteCatalogNode = useCallback(
-    (catalogNodeId: string, flowPosition: { x: number; y: number }) => {
+    (
+      catalogNodeId: string,
+      flowPosition: { x: number; y: number },
+    ): string | undefined => {
       pushRecentCatalogNodeId(catalogNodeId);
       const snapped = snapDropPosition(flowPosition);
       const entry = catalog.find((n) => n.id === catalogNodeId);
       if (entry == null) {
-        return;
+        return undefined;
       }
       const st = useFlowEditorStore.getState();
       const parentId = resolveSingleModelSelectParentId(st);
@@ -354,16 +357,19 @@ export function SensorStudioMain() {
         addNodeFromCatalogLinkedToModel(entry, snapped, {
           parentModelNodeId: parentId,
         });
-        return;
+        return undefined;
       }
-      addNodeFromCatalogAt(entry, snapped);
+      return addNodeFromCatalogAt(entry, snapped);
     },
     [addNodeFromCatalogAt, addNodeFromCatalogLinkedToModel, catalog, snapDropPosition],
   );
 
   const onAddCatalogEntryAtFlowPosition = useCallback(
-    (entry: NodeCatalogEntry, flowPosition: { x: number; y: number }) => {
-      onDropPaletteCatalogNode(entry.id, flowPosition);
+    (
+      entry: NodeCatalogEntry,
+      flowPosition: { x: number; y: number },
+    ): string | undefined => {
+      return onDropPaletteCatalogNode(entry.id, flowPosition);
     },
     [onDropPaletteCatalogNode],
   );

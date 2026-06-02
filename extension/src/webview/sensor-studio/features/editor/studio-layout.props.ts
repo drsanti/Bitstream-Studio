@@ -51,7 +51,7 @@ export type StudioLayoutProps = {
   onAddCatalogEntryAtFlowPosition?: (
     entry: NodeCatalogEntry,
     flowPosition: { x: number; y: number },
-  ) => void;
+  ) => string | undefined;
   /** Imperative flow canvas API (Shift+A toggle, menu anchor). */
   flowCanvasGraphRef?: RefObject<FlowCanvasGraphHandle | null>;
   onNodesChange: OnNodesChange<StudioNode>;

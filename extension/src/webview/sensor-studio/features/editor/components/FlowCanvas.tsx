@@ -64,7 +64,17 @@ import { FlowCanvasTopLeftChrome } from "./flow-toolbar/FlowCanvasTopLeftChrome"
 import { NodeSelectionToolbar } from "./flow-toolbar/NodeSelectionToolbar";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
-import { resolveFlowSourcePortType } from "../layout/layout-port-resolution";
+import {
+  resolveFlowSourcePortType,
+  resolveFlowTargetPortType,
+} from "../layout/layout-port-resolution";
+import {
+  buildSmartConnectAutoWire,
+  filterCatalogEntriesForSmartConnect,
+  type SmartConnectDragContext,
+  type SmartConnectPortType,
+} from "../connect/smart-connect-catalog";
+import { FlowConnectDragHint } from "./flow-toolbar/FlowConnectDragHint";
 import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import {
   isStudioNodeGroupNode,
@@ -107,7 +117,7 @@ type FlowCanvasProps = {
   onAddCatalogEntryAtFlowPosition: (
     entry: NodeCatalogEntry,
     flowPosition: { x: number; y: number },
-  ) => void;
+  ) => string | undefined;
   nodes: FlowGraphNode[];
   edges: Edge[];
   onNodesChange: OnNodesChange<FlowGraphNode>;
@@ -208,10 +218,19 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     const [addNodeMenuAnchor, setAddNodeMenuAnchor] = useState<{
       clientX: number;
       clientY: number;
+      smartConnect?: SmartConnectDragContext;
+      smartConnectShowAll?: boolean;
+      smartConnectSkipAutoWire?: boolean;
     } | null>(null);
     const [connectingLineStroke, setConnectingLineStroke] = useState<
       string | null
     >(null);
+    const [connectDragModifiers, setConnectDragModifiers] = useState({
+      shiftKey: false,
+      altKey: false,
+    });
+    const connectDragRef = useRef<SmartConnectDragContext | null>(null);
+    const connectSucceededRef = useRef(false);
 
     const portColorMap = useMemo(
       () =>
@@ -283,6 +302,16 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       () => listAddableCatalogEntries(catalogEntries),
       [catalogEntries],
     );
+
+    const addNodeMenuEntries = useMemo(() => {
+      if (addNodeMenuAnchor?.smartConnect == null || addNodeMenuAnchor.smartConnectShowAll) {
+        return addableEntries;
+      }
+      return filterCatalogEntriesForSmartConnect(
+        addableEntries,
+        addNodeMenuAnchor.smartConnect,
+      );
+    }, [addNodeMenuAnchor, addableEntries]);
 
     useFlowCanvasLayoutShortcuts(lastPointerRef, reactFlowRef);
 
@@ -456,10 +485,36 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       [edges, portColorMap, flowCanvasPreferences.edgeRoutingStyle],
     );
 
+    const resolveConnectPortType = useCallback(
+      (
+        node: FlowGraphNode,
+        handleId: string,
+        handleType: "source" | "target",
+      ): SmartConnectPortType | null => {
+        if (handleType === "source") {
+          return (
+            resolveStudioGroupNodePortType(node, handleId, "output", subgraphs) ??
+            resolveFlowSourcePortType(node, handleId)
+          );
+        }
+        return (
+          resolveStudioGroupNodePortType(node, handleId, "input", subgraphs) ??
+          resolveFlowTargetPortType(node, handleId)
+        );
+      },
+      [subgraphs],
+    );
+
     const handleConnectStart = useCallback(
       (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
         const { nodeId, handleId, handleType } = params;
-        if (nodeId == null || handleId == null || handleType !== "source") {
+        connectSucceededRef.current = false;
+        connectDragRef.current = null;
+        if (
+          nodeId == null ||
+          handleId == null ||
+          (handleType !== "source" && handleType !== "target")
+        ) {
           setConnectingLineStroke(null);
           return;
         }
@@ -468,25 +523,108 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           setConnectingLineStroke(null);
           return;
         }
-        const portType =
-          resolveStudioGroupNodePortType(node, handleId, "output", subgraphs) ??
-          resolveFlowSourcePortType(node, handleId);
+        const portType = resolveConnectPortType(node, handleId, handleType);
+        if (portType == null) {
+          setConnectingLineStroke(null);
+          return;
+        }
+        connectDragRef.current = {
+          nodeId,
+          handleId,
+          handleType,
+          portType,
+        };
         setConnectingLineStroke(strokeForPortType(portColorMap, portType));
+        setConnectDragModifiers({
+          shiftKey: _event.shiftKey,
+          altKey: _event.altKey,
+        });
       },
-      [nodes, portColorMap, subgraphs],
+      [nodes, portColorMap, resolveConnectPortType],
     );
 
-    const handleConnectEnd = useCallback(() => {
-      setConnectingLineStroke(null);
-    }, []);
+    const handleConnectEnd = useCallback(
+      (event: MouseEvent | TouchEvent, connectionState?: { toNode?: unknown }) => {
+        const ctx = connectDragRef.current;
+        connectDragRef.current = null;
+        setConnectingLineStroke(null);
+
+        const clientX =
+          "clientX" in event ? event.clientX : event.changedTouches?.[0]?.clientX;
+        const clientY =
+          "clientY" in event ? event.clientY : event.changedTouches?.[0]?.clientY;
+
+        if (
+          ctx == null ||
+          connectSucceededRef.current ||
+          clientX == null ||
+          clientY == null ||
+          connectionState?.toNode != null
+        ) {
+          return;
+        }
+
+        lastPointerRef.current = { clientX, clientY };
+        setAddNodeMenuAnchor({
+          clientX,
+          clientY,
+          smartConnect: ctx,
+          smartConnectShowAll: event.shiftKey,
+          smartConnectSkipAutoWire: event.altKey,
+        });
+      },
+      [],
+    );
 
     const handleConnect = useCallback(
       (connection: Parameters<OnConnect>[0]) => {
+        connectSucceededRef.current = true;
         setConnectingLineStroke(null);
+        connectDragRef.current = null;
         onConnect(connection);
       },
       [onConnect],
     );
+
+    const handlePickAddNodeEntry = useCallback(
+      (entry: NodeCatalogEntry, flowPosition: { x: number; y: number }) => {
+        const menu = addNodeMenuAnchor;
+        const newNodeId = onAddCatalogEntryAtFlowPosition(entry, flowPosition);
+        setAddNodeMenuAnchor(null);
+
+        if (
+          menu?.smartConnect == null ||
+          menu.smartConnectSkipAutoWire ||
+          newNodeId == null
+        ) {
+          return;
+        }
+        const wire = buildSmartConnectAutoWire(menu.smartConnect, newNodeId, entry);
+        if (wire == null) {
+          return;
+        }
+        onConnect(wire);
+      },
+      [addNodeMenuAnchor, onAddCatalogEntryAtFlowPosition, onConnect],
+    );
+
+    useEffect(() => {
+      if (connectingLineStroke == null) {
+        return;
+      }
+      const onKey = (event: KeyboardEvent) => {
+        setConnectDragModifiers({
+          shiftKey: event.shiftKey,
+          altKey: event.altKey,
+        });
+      };
+      window.addEventListener("keydown", onKey);
+      window.addEventListener("keyup", onKey);
+      return () => {
+        window.removeEventListener("keydown", onKey);
+        window.removeEventListener("keyup", onKey);
+      };
+    }, [connectingLineStroke]);
 
     const handleEdgeClick = useCallback(
       (event: MouseEvent, edge: Edge) => {
@@ -619,6 +757,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             wrapperRef={graphWrapperRef}
             onFitSelection={fitSelectionInView}
           />
+          <FlowConnectDragHint
+            active={connectingLineStroke != null}
+            shiftKey={connectDragModifiers.shiftKey}
+            altKey={connectDragModifiers.altKey}
+          />
           <ReactFlow<FlowGraphNode>
             colorMode="dark"
             proOptions={{ hideAttribution: true }}
@@ -710,9 +853,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               <FlowAddNodeMenu
                 clientX={addNodeMenuAnchor.clientX}
                 clientY={addNodeMenuAnchor.clientY}
-                entries={addableEntries}
+                entries={addNodeMenuEntries}
                 categoryColors={minimapCategoryColors}
-                onPickEntry={onAddCatalogEntryAtFlowPosition}
+                onPickEntry={handlePickAddNodeEntry}
                 onPickLayoutEntry={onPickLayoutEntry}
                 onClose={() => setAddNodeMenuAnchor(null)}
               />

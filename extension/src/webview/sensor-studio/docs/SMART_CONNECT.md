@@ -2,7 +2,7 @@
 
 Design for **contextual node creation** when the user drags a wire from a socket and releases on empty canvas.
 
-**Status:** Spec accepted — **implementation next** (see `extension/docs/DEVELOPMENT_TRACKER.md`).
+**Status:** **v0.1 shipped** — socket drag → filtered Add Node menu, Shift/Alt modifiers, footer hints, auto-connect on pick. See `FlowCanvas.tsx`, `connect/smart-connect-catalog.ts`, `FlowConnectDragHint.tsx`.
 
 **Related UI:** `FlowAddNodeMenu.tsx` (Shift+A), `FlowCanvas.tsx` (`onConnectStart` / `onConnectEnd`), `list-addable-catalog-entries.ts`.
 
