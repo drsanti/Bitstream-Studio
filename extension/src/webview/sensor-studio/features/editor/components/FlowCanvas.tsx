@@ -6,6 +6,7 @@ import {
   type ReactFlowInstance,
   ReactFlow,
   type Edge,
+  type FinalConnectionState,
   type OnConnect,
   type OnEdgesChange,
   type OnNodesChange,
@@ -231,6 +232,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     });
     const connectDragRef = useRef<SmartConnectDragContext | null>(null);
     const connectSucceededRef = useRef(false);
+    /** Prevents the pane click that follows connect-end from instantly closing the add menu. */
+    const suppressPaneDismissRef = useRef(false);
 
     const portColorMap = useMemo(
       () =>
@@ -307,10 +310,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       if (addNodeMenuAnchor?.smartConnect == null || addNodeMenuAnchor.smartConnectShowAll) {
         return addableEntries;
       }
-      return filterCatalogEntriesForSmartConnect(
+      const filtered = filterCatalogEntriesForSmartConnect(
         addableEntries,
         addNodeMenuAnchor.smartConnect,
       );
+      // If the filter is too strict, still show the menu (Shift remains the explicit "show all").
+      return filtered.length > 0 ? filtered : addableEntries;
     }, [addNodeMenuAnchor, addableEntries]);
 
     useFlowCanvasLayoutShortcuts(lastPointerRef, reactFlowRef);
@@ -544,7 +549,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     );
 
     const handleConnectEnd = useCallback(
-      (event: MouseEvent | TouchEvent, connectionState?: { toNode?: unknown }) => {
+      (event: MouseEvent | TouchEvent, connectionState: FinalConnectionState) => {
         const ctx = connectDragRef.current;
         connectDragRef.current = null;
         setConnectingLineStroke(null);
@@ -554,23 +559,35 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         const clientY =
           "clientY" in event ? event.clientY : event.changedTouches?.[0]?.clientY;
 
+        const droppedOnHandle =
+          connectionState.toNode != null || connectionState.toHandle != null;
+        const completedConnection =
+          connectSucceededRef.current || connectionState.isValid === true;
+
         if (
           ctx == null ||
-          connectSucceededRef.current ||
+          completedConnection ||
           clientX == null ||
           clientY == null ||
-          connectionState?.toNode != null
+          droppedOnHandle
         ) {
           return;
         }
 
         lastPointerRef.current = { clientX, clientY };
-        setAddNodeMenuAnchor({
-          clientX,
-          clientY,
-          smartConnect: ctx,
-          smartConnectShowAll: event.shiftKey,
-          smartConnectSkipAutoWire: event.altKey,
+        suppressPaneDismissRef.current = true;
+        // Open after the pane click from the same mouse-up (which would close the menu).
+        requestAnimationFrame(() => {
+          setAddNodeMenuAnchor({
+            clientX,
+            clientY,
+            smartConnect: ctx,
+            smartConnectShowAll: event.shiftKey,
+            smartConnectSkipAutoWire: event.altKey,
+          });
+          requestAnimationFrame(() => {
+            suppressPaneDismissRef.current = false;
+          });
         });
       },
       [],
@@ -578,7 +595,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
 
     const handleConnect = useCallback(
       (connection: Parameters<OnConnect>[0]) => {
-        connectSucceededRef.current = true;
+        if (connection.source != null && connection.target != null) {
+          connectSucceededRef.current = true;
+        }
         setConnectingLineStroke(null);
         connectDragRef.current = null;
         onConnect(connection);
@@ -800,7 +819,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               onSelectionChange(selection.nodes.map((n) => n.id));
             }}
             onPaneClick={(event) => {
-              if (addNodeMenuAnchor != null) {
+              if (!suppressPaneDismissRef.current && addNodeMenuAnchor != null) {
                 setAddNodeMenuAnchor(null);
               }
               onFlowPanePointerEvent?.({ button: event.button });
