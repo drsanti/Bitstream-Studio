@@ -54,7 +54,7 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
       }));
 
   const presentationMode = resolveStartupPresentationMode({
-    enabled: showOverlay,
+    enabled: showOverlay && !panelOpen,
     userOpenedPanel: panelOpen,
   });
   const presentation = useStartupChecklistPresentation(steps, presentationMode);

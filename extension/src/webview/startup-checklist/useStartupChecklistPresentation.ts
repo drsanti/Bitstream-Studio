@@ -124,6 +124,9 @@ export function useStartupChecklistPresentation(
     dwellStartedAtRef.current = Date.now();
   }, [steps.length]);
 
+  const focusStepId = steps[focusIndex]?.id;
+  const focusTruthStatus = steps[focusIndex]?.status ?? "pending";
+
   useEffect(() => {
     if (mode !== "sequential" || steps.length === 0 || forceInstant) {
       return;
@@ -134,7 +137,7 @@ export function useStartupChecklistPresentation(
 
     let cancelled = false;
     let timer = 0;
-    const truth = steps[focusIndex]?.status ?? "pending";
+    const truth = focusTruthStatus;
 
     if (orchestratorPhase === "enter") {
       timer = window.setTimeout(() => {
@@ -179,7 +182,7 @@ export function useStartupChecklistPresentation(
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [focusIndex, forceInstant, mode, orchestratorPhase, steps]);
+  }, [focusIndex, focusStepId, focusTruthStatus, forceInstant, mode, orchestratorPhase, steps.length]);
 
   const snapToInstant =
     mode === "instant" || forceInstant || steps.length === 0 || focusIndex >= steps.length;

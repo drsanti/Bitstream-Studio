@@ -63,6 +63,13 @@ export const useStartupChecklistStore = create<StartupChecklistState>((set, get)
     if (assetsBusy || assetsNeedSetup) {
       return true;
     }
+    /**
+     * First-run overlay: stay visible until the user dismisses or markComplete runs
+     * (after the sequential walkthrough). Do not hide early when linkReady is already true.
+     */
+    if (!isStartupChecklistMarkedComplete() && !readStartupChecklistSessionDismissed()) {
+      return true;
+    }
     if (linkReady && isStartupChecklistMarkedComplete()) {
       return false;
     }

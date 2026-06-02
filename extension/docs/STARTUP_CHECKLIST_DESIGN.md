@@ -238,7 +238,12 @@ flowchart TB
 
 ### Auto-close guard
 
-The overlay must **not** call `markComplete()` while `walkthroughComplete === false` in sequential mode, even if truth reports `8/8` and `linkReady`. Otherwise the dialog closes on step 1 while the user never sees steps 2–8.
+Two guards prevent the overlay disappearing on step 1:
+
+1. **`shouldAutoShowOverlay`** — on first run (`!markedComplete && !sessionDismissed`), keep the overlay **mounted** even when `linkReady` is already true. Previously `linkReady === true` fell through to `return false` and unmounted the dialog before the walkthrough ran.
+2. **`markComplete()`** — only after `walkthroughComplete` in sequential mode, not when truth is 8/8 early.
+
+Orchestrator timers depend on `focusTruthStatus`, not the whole `steps` array reference (avoids cancelling timeouts on every WS probe tick).
 
 Constants: `startupChecklistPresentation.constants.ts`.
 
