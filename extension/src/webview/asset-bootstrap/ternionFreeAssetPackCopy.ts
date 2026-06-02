@@ -86,6 +86,18 @@ export const ternionFreeAssetPackCopy = {
     stepChecking: "Checking…",
   },
 
+  checklist: {
+    serialListHint: "Click a port to select it, then open at 921600 baud.",
+    serialNotOnAllowList: "Not on Allow list",
+    serialOpenSelected: "Open selected",
+    serialNoSelection: "Select a port from the list",
+    handshakeSwitchingSimulator: "Switching to Simulator mode…",
+    handshakeSimulatorReady:
+      "Simulator mode — start the bitstream-simulator extension, then use Link on the toolbar.",
+    setupChipLabel: "Setup incomplete",
+    setupChipHint: "Device link is not ready. Open the checklist to finish connection steps.",
+  },
+
   tooltips: {
     stepAssets:
       "Installs the full TERNION free asset pack locally (extension storage under assets/free). Required for 3D previews in a packaged install.",

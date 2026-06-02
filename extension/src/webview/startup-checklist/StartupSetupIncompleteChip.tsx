@@ -1,6 +1,9 @@
 import { ListChecks } from "lucide-react";
+import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { TRNButton } from "../ui/TRN/TRNButton.js";
 import { useStartupChecklistStore } from "./startupChecklist.store.js";
+
+const C = ternionFreeAssetPackCopy.checklist;
 
 export function StartupSetupIncompleteChip() {
   const openPanel = useStartupChecklistStore((s) => s.openPanel);
@@ -13,8 +16,9 @@ export function StartupSetupIncompleteChip() {
         prefixIcon={<ListChecks className="h-3.5 w-3.5" aria-hidden />}
         onClick={openPanel}
         className="border-amber-500/35 bg-amber-950/80 shadow-lg"
+        hint={C.setupChipHint}
       >
-        Setup incomplete — open checklist
+        {C.setupChipLabel} — open checklist
       </TRNButton>
     </div>
   );

@@ -604,17 +604,17 @@ Document operator paths in **`HOW_TO_RUN.md`** when checklist ships.
 
 ### P1 — Serial ports + handshake branches
 
-- [ ] Enhanced `serial-ports` UI (list / selected / open)
-- [ ] Handshake fail actions: Retry, Choose port, **Simulator only** (lifecycle-safe)
+- [x] Enhanced `serial-ports` UI (click to select, open selected, double-click open, Allow-list hint)
+- [x] Handshake fail actions: Retry, Choose port, **Simulator only** (`setBackend` → lifecycle)
 - [ ] i18n strings module (EN first; TH parity with Animation Lab pattern)
-- [ ] Quick command **`bitstream-open-setup-checklist`** (full panel)
+- [x] Quick command **`bitstream-open-setup-checklist`** (Ctrl+/ → Workspace)
 
 **Exit criteria:** UART fail offers Simulator path; COM row matches open port.
 
 ### P2 — Return visit UX
 
-- [ ] Persist `completedVersion`; hide full wizard when complete
-- [ ] **Setup incomplete** chip when link drops
+- [x] Persist `completedVersion`; hide full wizard when complete (`startupChecklistPersistence`)
+- [x] **Setup incomplete** chip when link drops (`StartupSetupIncompleteChip`)
 - [ ] Workspace-specific strictness (Sensor Studio vs Bitstream)
 
 ### P3 — Polish

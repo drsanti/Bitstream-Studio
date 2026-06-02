@@ -1,14 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
+import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { openUartPortAndHandshake } from "../bitstream-app/bridge/openUartPortAndHandshake.js";
 import { releaseOpenSerialPort } from "../bitstream-app/bridge/releaseOpenSerialPort.js";
+import { ConnectionUartAllowStrip } from "../bitstream-app/connection/ConnectionUartAllowStrip.js";
 import { pickPreferredSerialPortPath } from "../bitstream-app/utils/pickPreferredSerialPortPath.js";
 import { useBitstreamConfigStore } from "../bitstream-app/state/bitstreamConfig.store.js";
 import { useBitstreamConnectionStore } from "../bitstream-app/state/bitstreamConnection.store.js";
 import { useSerialPortStore } from "../serialport/serial-port-store.js";
 import { useWsClientStore } from "../ws-client-store.js";
 import { TRNButton } from "../ui/TRN/TRNButton.js";
-import { ConnectionUartAllowStrip } from "../bitstream-app/connection/ConnectionUartAllowStrip.js";
+import { TRNHintText } from "../ui/TRN/TRNHintText.js";
+
+const C = ternionFreeAssetPackCopy.checklist;
+
+function isPathAllowed(
+  path: string,
+  whitelistedPaths: string[],
+): boolean {
+  return whitelistedPaths.length === 0 || whitelistedPaths.includes(path);
+}
 
 export function StartupChecklistSerialPortsBody() {
   const wsConnected = useWsClientStore((s) => s.isConnected);
@@ -30,15 +41,17 @@ export function StartupChecklistSerialPortsBody() {
   const openComPath = comOpen ? (serialStatus?.path ?? null) : null;
   const baud = serialStatus?.baudRate ?? 921600;
 
+  const activeSelection = selectedPath || serialPath || null;
+
   const nextLinkPick = useMemo(
     () =>
       pickPreferredSerialPortPath({
         availablePaths: portOptions,
-        preferredPath: serialPath || selectedPath,
+        preferredPath: activeSelection,
         whitelistedPaths: whitelistedSerialPaths,
         displayOrder: serialPortDisplayOrder,
       }),
-    [portOptions, selectedPath, serialPath, serialPortDisplayOrder, whitelistedSerialPaths],
+    [activeSelection, portOptions, serialPortDisplayOrder, whitelistedSerialPaths],
   );
 
   const refreshPortList = useCallback(async () => {
@@ -53,7 +66,7 @@ export function StartupChecklistSerialPortsBody() {
       setPortOptions(paths);
       const pick = pickPreferredSerialPortPath({
         availablePaths: paths,
-        preferredPath: serialPath || selectedPath,
+        preferredPath: activeSelection,
         whitelistedPaths: whitelistedSerialPaths,
         displayOrder: serialPortDisplayOrder,
       });
@@ -68,9 +81,8 @@ export function StartupChecklistSerialPortsBody() {
       setPortsLoading(false);
     }
   }, [
+    activeSelection,
     listPorts,
-    selectedPath,
-    serialPath,
     serialPortDisplayOrder,
     setSelectedPath,
     setSerialPath,
@@ -84,8 +96,12 @@ export function StartupChecklistSerialPortsBody() {
     }
   }, [portOptions.length, refreshPortList, wsConnected]);
 
-  const openAllowedPort = useCallback(
+  const openPort = useCallback(
     async (path: string) => {
+      if (!isPathAllowed(path, whitelistedSerialPaths)) {
+        toast.info(C.serialNotOnAllowList);
+        return;
+      }
       try {
         if (!wsConnected) {
           await wsConnect();
@@ -98,7 +114,7 @@ export function StartupChecklistSerialPortsBody() {
         toast.error(message);
       }
     },
-    [setSelectedPath, setSerialPath, wsConnect, wsConnected],
+    [setSelectedPath, setSerialPath, whitelistedSerialPaths, wsConnect, wsConnected],
   );
 
   const handleOpenAllowed = useCallback(async () => {
@@ -106,8 +122,16 @@ export function StartupChecklistSerialPortsBody() {
       toast.error("No allowed port — refresh the list or adjust Port Admin.");
       return;
     }
-    await openAllowedPort(nextLinkPick);
-  }, [nextLinkPick, openAllowedPort]);
+    await openPort(nextLinkPick);
+  }, [nextLinkPick, openPort]);
+
+  const handleOpenSelected = useCallback(async () => {
+    if (activeSelection == null || activeSelection.length === 0) {
+      toast.info(C.serialNoSelection);
+      return;
+    }
+    await openPort(activeSelection);
+  }, [activeSelection, openPort]);
 
   const handleClosePort = useCallback(async () => {
     try {
@@ -118,8 +142,18 @@ export function StartupChecklistSerialPortsBody() {
     }
   }, []);
 
+  const selectPort = useCallback(
+    (path: string) => {
+      setSelectedPath(path);
+      setSerialPath(path);
+    },
+    [setSelectedPath, setSerialPath],
+  );
+
   return (
     <div className="space-y-2">
+      <TRNHintText className="text-[10px] text-zinc-500">{C.serialListHint}</TRNHintText>
+
       <ConnectionUartAllowStrip
         nextLinkPick={nextLinkPick}
         portCount={portOptions.length}
@@ -140,28 +174,43 @@ export function StartupChecklistSerialPortsBody() {
             {portsLoading ? "Listing ports…" : "Refresh to load COM devices."}
           </p>
         ) : (
-          <ul className="max-h-36 space-y-1 overflow-y-auto font-mono text-[10px] scrollbar-hide">
+          <ul className="max-h-40 space-y-0.5 overflow-y-auto scrollbar-hide" role="listbox">
             {portOptions.map((path) => {
               const isOpen = comOpen && openComPath === path;
-              const isSelected =
-                !isOpen &&
-                (path === nextLinkPick || path === selectedPath || path === serialPath);
+              const isSelected = !isOpen && path === activeSelection;
+              const allowed = isPathAllowed(path, whitelistedSerialPaths);
               const marker = isOpen ? "●" : isSelected ? "◉" : "○";
               const tone = isOpen
                 ? "text-emerald-300"
                 : isSelected
                   ? "text-cyan-200/90"
-                  : "text-zinc-400";
+                  : allowed
+                    ? "text-zinc-300"
+                    : "text-zinc-500";
               const suffix = isOpen
                 ? `open @ ${baud}`
                 : isSelected
                   ? "selected"
-                  : "available";
+                  : allowed
+                    ? "available"
+                    : C.serialNotOnAllowList;
+
               return (
-                <li key={path} className={`flex gap-2 ${tone}`}>
-                  <span className="w-3 shrink-0 text-center">{marker}</span>
-                  <span className="min-w-0 flex-1 truncate">{path}</span>
-                  <span className="shrink-0 text-zinc-500">{suffix}</span>
+                <li key={path} role="presentation">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSelected || isOpen}
+                    className={`flex w-full gap-2 rounded px-1.5 py-1 text-left font-mono text-[10px] transition-colors hover:bg-white/[0.04] focus:outline-none focus-visible:ring-1 focus-visible:ring-white/25 ${tone} ${
+                      isSelected ? "bg-sky-500/10" : ""
+                    }`}
+                    onClick={() => selectPort(path)}
+                    onDoubleClick={() => void openPort(path)}
+                  >
+                    <span className="w-3 shrink-0 text-center">{marker}</span>
+                    <span className="min-w-0 flex-1 truncate">{path}</span>
+                    <span className="shrink-0 text-zinc-500">{suffix}</span>
+                  </button>
                 </li>
               );
             })}
@@ -179,10 +228,21 @@ export function StartupChecklistSerialPortsBody() {
         </TRNButton>
         <TRNButton
           size="compact"
+          disabled={connecting || !wsConnected || activeSelection == null}
+          selected
+          onClick={() => void handleOpenSelected()}
+          hint="Opens the highlighted port at 921600 baud and runs the device check."
+        >
+          {C.serialOpenSelected}
+          {activeSelection != null ? ` (${activeSelection})` : ""}
+        </TRNButton>
+        <TRNButton
+          size="compact"
           disabled={connecting || !wsConnected || nextLinkPick == null}
           onClick={() => void handleOpenAllowed()}
+          hint="Opens the suggested Allow-list port (Next Link port)."
         >
-          Open {nextLinkPick ?? "port"}
+          Open {nextLinkPick ?? "suggested"}
         </TRNButton>
         <TRNButton
           size="compact"

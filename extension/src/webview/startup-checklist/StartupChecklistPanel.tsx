@@ -213,7 +213,7 @@ function timelineLineClass(
 function StartupChecklistTimelineRow(props: {
   step: PresentedStartupStep;
   isLast: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const { step, isLast, children } = props;
   return (

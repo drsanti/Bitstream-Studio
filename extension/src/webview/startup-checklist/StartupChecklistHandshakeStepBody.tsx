@@ -1,11 +1,15 @@
+import { useState } from "react";
 import { toast } from "react-toastify";
+import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { openUartPortAndHandshake } from "../bitstream-app/bridge/openUartPortAndHandshake.js";
+import { useConnectionPanelStore } from "../bitstream-app/connection/connectionPanel.store.js";
 import { useBitstreamTelemetrySourceStore } from "../bitstream-app/state/bitstreamTelemetrySource.store.js";
 import { useBitstreamLiveStore } from "../bitstream-app/state/bitstreamLive.store.js";
 import { userFacingHandshakeFailureCopy } from "../bitstream-app/utils/bitstreamHandshakeFailureCopy.js";
-import { useConnectionPanelStore } from "../bitstream-app/connection/connectionPanel.store.js";
 import { useStartupChecklistStore } from "./startupChecklist.store.js";
 import { TRNButton } from "../ui/TRN/TRNButton.js";
+
+const C = ternionFreeAssetPackCopy.checklist;
 
 export function StartupChecklistHandshakeStepBody(props: {
   rawError: string | null | undefined;
@@ -14,6 +18,7 @@ export function StartupChecklistHandshakeStepBody(props: {
   const { rawError, onFocusSerialPorts } = props;
   const setBackend = useBitstreamTelemetrySourceStore((s) => s.setBackend);
   const handshakeState = useBitstreamLiveStore((s) => s.handshakeState);
+  const [switchingSimulator, setSwitchingSimulator] = useState(false);
 
   const copy =
     rawError != null && rawError.trim().length > 0
@@ -33,8 +38,23 @@ export function StartupChecklistHandshakeStepBody(props: {
     }
   };
 
-  const continueSimulatorOnly = () => {
-    setBackend("simulator");
+  const continueSimulatorOnly = async () => {
+    if (useBitstreamTelemetrySourceStore.getState().backend === "simulator") {
+      toast.info(C.handshakeSimulatorReady);
+      return;
+    }
+    setSwitchingSimulator(true);
+    try {
+      setBackend("simulator");
+      toast.success(C.handshakeSimulatorReady);
+      useStartupChecklistStore.getState().openPanel();
+    } finally {
+      setSwitchingSimulator(false);
+    }
+  };
+
+  const handleChoosePort = () => {
+    onFocusSerialPorts();
     useStartupChecklistStore.getState().openPanel();
   };
 
@@ -58,15 +78,20 @@ export function StartupChecklistHandshakeStepBody(props: {
         <TRNButton size="compact" selected onClick={() => void retryHandshake()}>
           Retry handshake
         </TRNButton>
-        <TRNButton size="compact" onClick={onFocusSerialPorts}>
+        <TRNButton
+          size="compact"
+          onClick={handleChoosePort}
+          hint="Expands Board connection to pick or open a COM port."
+        >
           Choose port
         </TRNButton>
         <TRNButton
           size="compact"
-          onClick={continueSimulatorOnly}
-          hint="Switch telemetry to Simulator and close COM. Live UART telemetry will stop until you switch back."
+          disabled={switchingSimulator}
+          onClick={() => void continueSimulatorOnly()}
+          hint="Releases COM, switches telemetry to Simulator, and publishes the simulator route on the broker."
         >
-          Continue in Simulator only
+          {switchingSimulator ? C.handshakeSwitchingSimulator : "Continue in Simulator only"}
         </TRNButton>
         <TRNButton
           size="compact"

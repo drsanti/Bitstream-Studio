@@ -66,6 +66,22 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
     setExpandedId(presentation.focusStepId);
   }, [presentation.focusStepId, presentation.isSequentialActive, setExpandedId]);
 
+  /** Surface actionable steps when link checks fail (instant or after sequential reveal). */
+  useEffect(() => {
+    if (!showOverlay && !panelOpen) {
+      return;
+    }
+    const handshake = steps.find((s) => s.id === "handshake");
+    if (handshake?.status === "fail") {
+      setExpandedId("handshake");
+      return;
+    }
+    const serial = steps.find((s) => s.id === "serial-ports");
+    if (serial?.status === "fail" || serial?.status === "warn") {
+      setExpandedId("serial-ports");
+    }
+  }, [panelOpen, setExpandedId, showOverlay, steps]);
+
   const showIncompleteChip =
     canUseHostedAssetBootstrap() &&
     environmentReady &&
