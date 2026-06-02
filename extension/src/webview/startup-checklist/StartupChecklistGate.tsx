@@ -53,9 +53,15 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
         assetsNeedSetup,
       }));
 
+  const firstRunWalkthrough =
+    !panelOpen &&
+    !useStartupChecklistStore.getState().isMarkedComplete() &&
+    !useStartupChecklistStore.getState().isSessionDismissed();
+
   const presentationMode = resolveStartupPresentationMode({
     enabled: showOverlay && !panelOpen,
     userOpenedPanel: panelOpen,
+    firstRunWalkthrough,
   });
   const presentation = useStartupChecklistPresentation(steps, presentationMode);
 

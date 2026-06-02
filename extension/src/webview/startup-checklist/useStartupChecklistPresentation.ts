@@ -36,21 +36,22 @@ function prefersReducedMotion(): boolean {
 export function resolveStartupPresentationMode(options: {
   enabled: boolean;
   userOpenedPanel: boolean;
+  /** First auto overlay before setup is marked complete — always walk through cards. */
+  firstRunWalkthrough?: boolean;
 }): StartupPresentationMode {
-  if (!options.enabled) {
-    return "instant";
-  }
   if (options.userOpenedPanel) {
     return "instant";
   }
   if (prefersReducedMotion()) {
     return "instant";
   }
+  if (options.firstRunWalkthrough) {
+    return "sequential";
+  }
+  if (!options.enabled) {
+    return "instant";
+  }
   return "sequential";
-}
-
-function isTruthSettled(status: ConnectionStepStatus): boolean {
-  return status === "ok" || status === "fail" || status === "warn";
 }
 
 function blocksAdvance(status: ConnectionStepStatus): boolean {
@@ -150,15 +151,9 @@ export function useStartupChecklistPresentation(
       if (blocksAdvance(truth)) {
         return;
       }
-      if (!isTruthSettled(truth)) {
-        return;
-      }
+      /* Timer-paced tour: advance even while truth is still "active" (e.g. asset check). */
       const dwellMs = Date.now() - dwellStartedAtRef.current;
       const waitMs = Math.max(0, STARTUP_STEP_MIN_DWELL_MS - dwellMs);
-      if (waitMs === 0) {
-        setOrchestratorPhase("complete");
-        return;
-      }
       timer = window.setTimeout(() => {
         if (!cancelled) {
           setOrchestratorPhase("complete");

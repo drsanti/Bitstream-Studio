@@ -245,6 +245,8 @@ Two guards prevent the overlay disappearing on step 1:
 
 Orchestrator timers depend on `focusTruthStatus`, not the whole `steps` array reference (avoids cancelling timeouts on every WS probe tick).
 
+**Timer-paced steps:** the walkthrough advances after `STARTUP_STEP_MIN_DWELL_MS` on each card even when truth is still `active` (e.g. asset pack still checking). Only `fail` blocks advance. Truth still drives the result line on each card.
+
 Constants: `startupChecklistPresentation.constants.ts`.
 
 ### UI behavior
