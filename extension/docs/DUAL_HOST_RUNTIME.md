@@ -1,5 +1,7 @@
 # Dual-host runtime (VS Code webview + browser)
 
+> **How to run dev:** [`DEV_MODE_QUICKSTART.md`](./DEV_MODE_QUICKSTART.md) · [`HOW_TO_RUN.md`](../HOW_TO_RUN.md)
+
 Bitstream Studio ships **one web application** in two hosts:
 
 | Host | How users open it | Asset storage | Setup checklist |

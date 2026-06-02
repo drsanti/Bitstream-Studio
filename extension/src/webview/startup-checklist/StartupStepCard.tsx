@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
+import type { KeyboardEvent, ReactNode } from "react";
 import type { ConnectionStepStatus } from "../bitstream-app/connection/useConnectionSteps.js";
+import { TRNHintTooltip } from "../ui/TRN/TRNHintTooltip.js";
 import type { StartupStepMeta } from "./startup-step-meta.js";
 import { StartupStepIcon } from "./StartupStepIcon.js";
 
@@ -9,16 +10,30 @@ export type StartupStepCardProps = {
   stepTotal: number;
   status: ConnectionStepStatus;
   result: string;
+  resultTooltip?: string;
   progressPercent: number | null;
   expanded: boolean;
   onToggle: () => void;
   accent?: "default" | "active" | "fail" | "ok";
+  presentation?: "hidden" | "current" | "completed";
+  isFocus?: boolean;
   children?: ReactNode;
 };
 
-function cardShellClass(accent: StartupStepCardProps["accent"], status: ConnectionStepStatus): string {
+function cardShellClass(
+  accent: StartupStepCardProps["accent"],
+  status: ConnectionStepStatus,
+  presentation: StartupStepCardProps["presentation"],
+  isFocus: boolean,
+): string {
   const base =
-    "rounded-lg border bg-zinc-900/60 backdrop-blur-sm transition-colors border-white/[0.08]";
+    "rounded-lg border bg-zinc-900/60 backdrop-blur-sm transition-all duration-300 border-white/[0.08]";
+  if (presentation === "hidden") {
+    return `${base} opacity-45`;
+  }
+  if (presentation === "current" && isFocus) {
+    return `${base} ring-1 ring-sky-500/40 border-sky-500/30 shadow-[0_0_24px_-8px_rgba(56,189,248,0.35)]`;
+  }
   if (accent === "active" || status === "active") {
     return `${base} ring-1 ring-sky-500/35 border-sky-500/25`;
   }
@@ -31,6 +46,49 @@ function cardShellClass(accent: StartupStepCardProps["accent"], status: Connecti
   return base;
 }
 
+function stopTogglePropagation(event: { stopPropagation: () => void }) {
+  event.stopPropagation();
+}
+
+function StepTitleWithHint(props: { title: string; hint: string }) {
+  return (
+    <TRNHintTooltip
+      trigger={
+        <span className="text-sm font-medium text-zinc-100">{props.title}</span>
+      }
+      content={props.hint}
+      triggerAriaLabel={`About ${props.title}`}
+      placement="top-start"
+      triggerClassName="inline-block max-w-full text-left"
+      triggerWrapper="span"
+      wide={props.hint.length > 120}
+    />
+  );
+}
+
+function StepResultWithHint(props: { result: string; hint?: string }) {
+  const line = (
+    <>
+      <span className="text-zinc-500">Result: </span>
+      {props.result}
+    </>
+  );
+  if (props.hint == null || props.hint.length === 0) {
+    return line;
+  }
+  return (
+    <TRNHintTooltip
+      trigger={<span className="text-xs text-zinc-300">{line}</span>}
+      content={props.hint}
+      triggerAriaLabel="More about this result"
+      placement="bottom-start"
+      triggerClassName="inline-block max-w-full text-left"
+      triggerWrapper="span"
+      wide
+    />
+  );
+}
+
 export function StartupStepCard(props: StartupStepCardProps) {
   const {
     meta,
@@ -38,22 +96,44 @@ export function StartupStepCard(props: StartupStepCardProps) {
     stepTotal,
     status,
     result,
+    resultTooltip,
     progressPercent,
     expanded,
     onToggle,
     accent = "default",
+    presentation = "completed",
+    isFocus = false,
     children,
   } = props;
 
+  const showResult = presentation !== "hidden";
   const showProgress = status === "active" && progressPercent != null;
-  const showIndeterminate = status === "active" && progressPercent == null;
+  const showIndeterminate = status === "active" && progressPercent == null && presentation === "current";
+
+  const onHeaderKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onToggle();
+    }
+  };
 
   return (
-    <section className={cardShellClass(accent, status)} data-startup-step={meta.id}>
-      <button
-        type="button"
-        className="flex w-full items-start gap-3 px-3 py-3 text-left hover:bg-white/[0.02]"
-        onClick={onToggle}
+    <section
+      className={cardShellClass(accent, status, presentation, isFocus)}
+      data-startup-step={meta.id}
+      data-presentation={presentation}
+      aria-current={isFocus ? "step" : undefined}
+    >
+      <div
+        role="button"
+        tabIndex={presentation === "hidden" ? -1 : 0}
+        className={`flex w-full items-start gap-3 px-3 py-3 text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 ${
+          presentation === "hidden"
+            ? "cursor-default"
+            : "cursor-pointer hover:bg-white/[0.02]"
+        } ${presentation === "current" ? "animate-in fade-in slide-in-from-bottom-1 duration-300" : ""}`}
+        onClick={presentation === "hidden" ? undefined : onToggle}
+        onKeyDown={presentation === "hidden" ? undefined : onHeaderKeyDown}
         aria-expanded={expanded}
       >
         <StartupStepIcon
@@ -63,7 +143,14 @@ export function StartupStepCard(props: StartupStepCardProps) {
         />
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-baseline justify-between gap-2">
-            <span className="text-sm font-medium text-zinc-100">{meta.title}</span>
+            <span
+              className="min-w-0"
+              onClick={stopTogglePropagation}
+              onKeyDown={stopTogglePropagation}
+              onPointerDown={stopTogglePropagation}
+            >
+              <StepTitleWithHint title={meta.title} hint={meta.titleTooltip} />
+            </span>
             <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
               {stepIndex} / {stepTotal}
             </span>
@@ -88,15 +175,13 @@ export function StartupStepCard(props: StartupStepCardProps) {
               <span className="block h-full w-1/3 animate-pulse rounded-full bg-sky-400/60" />
             </span>
           ) : null}
-          <span
-            className="mt-2 block text-xs text-zinc-300"
-            aria-live="polite"
-          >
-            <span className="text-zinc-500">Result: </span>
-            {result}
-          </span>
+          {showResult ? (
+            <span className="mt-2 block" aria-live={isFocus ? "polite" : "off"}>
+              <StepResultWithHint result={result} hint={resultTooltip} />
+            </span>
+          ) : null}
         </span>
-      </button>
+      </div>
       {expanded && children != null ? (
         <div className="border-t border-zinc-800/80 px-3 pb-3 pt-2">{children}</div>
       ) : null}

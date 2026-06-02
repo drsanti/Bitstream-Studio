@@ -43,7 +43,7 @@ export function StartupChecklistAssetsStepBody(props: {
             selected
             disabled={actionsDisabled}
             onClick={onDownload}
-            hint={ternionFreeAssetPackCopy.downloadHint}
+            hint={ternionFreeAssetPackCopy.tooltips.downloadButton}
           >
             {ternionFreeAssetPackCopy.downloadButton}
           </TRNButton>

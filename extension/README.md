@@ -36,6 +36,16 @@ Full checklist: [HOW_TO_RUN.md § VSIX smoke checklist](HOW_TO_RUN.md#vsix-smoke
 
 ## Development
 
+```bash
+cd extension
+npm install
+npm start
+```
+
+Open **[Sensor Studio](http://localhost:5173/?app=bitstream&workspace=sensor-studio)** (or see the landing at `http://localhost:5173/`).
+
+- **Visual quick start:** [docs/DEV_MODE_QUICKSTART.md](docs/DEV_MODE_QUICKSTART.md) — paths, diagrams, pitfalls
+- **Full runbook:** [HOW_TO_RUN.md](HOW_TO_RUN.md)
 - **Command map:** [docs/DEVELOPMENT_COMMANDS.md](docs/DEVELOPMENT_COMMANDS.md)
 - **Build:** `npm run compile`
 - **Dev:** Terminal 1 `npm run start:bridge` · Terminal 2 `npm run dev:webview`

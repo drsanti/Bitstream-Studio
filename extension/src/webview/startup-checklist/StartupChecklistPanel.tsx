@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { UseAssetBootstrapResult } from "../asset-bootstrap/useAssetBootstrap.js";
 import { useConnectionPanelStore } from "../bitstream-app/connection/connectionPanel.store.js";
@@ -19,19 +19,21 @@ import {
   type StartupChecklistStepView,
 } from "./useStartupChecklist.js";
 import type { useStartupChecklist } from "./useStartupChecklist.js";
+import type { useStartupChecklistPresentation } from "./useStartupChecklistPresentation.js";
 
 export function StartupChecklistPanel(props: {
   bootstrap: UseAssetBootstrapResult;
   checklist: ReturnType<typeof useStartupChecklist>;
+  presentation: ReturnType<typeof useStartupChecklistPresentation>;
   onDismiss?: () => void;
   onFocusSerialPorts: () => void;
 }) {
-  const { bootstrap, checklist, onDismiss, onFocusSerialPorts } = props;
+  const { bootstrap, checklist, presentation, onDismiss, onFocusSerialPorts } = props;
   const backend = useBitstreamTelemetrySourceStore((s) => s.backend);
+  const listRef = useRef<HTMLDivElement>(null);
 
   const {
-    steps,
-    readyCount,
+    steps: truthSteps,
     totalCount,
     activeStepId,
     expandedId,
@@ -39,15 +41,28 @@ export function StartupChecklistPanel(props: {
     environmentReady,
   } = checklist;
 
-  const globalPct = totalCount > 0 ? Math.round((readyCount / totalCount) * 100) : 0;
+  const { presentedSteps, headerProgressPercent, headerStepLabel, focusStepId } = presentation;
+
+  useEffect(() => {
+    if (focusStepId == null || listRef.current == null) {
+      return;
+    }
+    const el = listRef.current.querySelector(`[data-startup-step="${focusStepId}"]`);
+    if (el instanceof HTMLElement) {
+      const reduced =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      el.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+    }
+  }, [focusStepId, presentedSteps.length]);
 
   const activeConnectionStep = useMemo(() => {
     if (activeStepId == null) {
       return null;
     }
-    const step = steps.find((s) => s.id === activeStepId);
+    const step = truthSteps.find((s) => s.id === activeStepId);
     return step?.connectionStepId ?? null;
-  }, [activeStepId, steps]);
+  }, [activeStepId, truthSteps]);
 
   const missingPaths =
     bootstrap.readiness?.status === "blocked"
@@ -76,7 +91,7 @@ export function StartupChecklistPanel(props: {
       }
       return null;
     }
-    if (activeStepId === "handshake" && steps.find((s) => s.id === "handshake")?.status === "fail") {
+    if (activeStepId === "handshake" && truthSteps.find((s) => s.id === "handshake")?.status === "fail") {
       return {
         label: "Retry handshake",
         onClick: () => void runConnectionStep("handshake"),
@@ -89,7 +104,7 @@ export function StartupChecklistPanel(props: {
       };
     }
     return null;
-  }, [activeConnectionStep, activeStepId, assetsActionsDisabled, backend, bootstrap, environmentReady, steps]);
+  }, [activeConnectionStep, activeStepId, assetsActionsDisabled, backend, bootstrap, environmentReady, truthSteps]);
 
   return (
     <div
@@ -114,19 +129,22 @@ export function StartupChecklistPanel(props: {
             </TRNButton>
           ) : null}
         </div>
-        <p className="mt-3 text-xs font-medium text-zinc-300">
-          {readyCount} / {totalCount} ready
+        <p className="mt-3 text-xs font-medium text-zinc-300" aria-live="polite">
+          {headerStepLabel}
         </p>
         <div className="mt-2 h-1 overflow-hidden rounded-full bg-zinc-800">
           <div
-            className="h-full rounded-full bg-sky-500/80 transition-[width] duration-500"
-            style={{ width: `${globalPct}%` }}
+            className="h-full rounded-full bg-sky-500/80 transition-[width] duration-500 ease-out"
+            style={{ width: `${headerProgressPercent}%` }}
           />
         </div>
       </header>
 
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-hide">
-        {steps.map((step, index) => (
+      <div
+        ref={listRef}
+        className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-hide"
+      >
+        {presentedSteps.map((step, index) => (
           <StartupChecklistStepRow
             key={step.id}
             step={step}
@@ -166,7 +184,12 @@ export function StartupChecklistPanel(props: {
 }
 
 function StartupChecklistStepRow(props: {
-  step: StartupChecklistStepView;
+  step: StartupChecklistStepView & {
+    presentation?: "hidden" | "current" | "completed";
+    displayStatus?: StartupChecklistStepView["status"];
+    displayResult?: string;
+    isFocus?: boolean;
+  };
   stepIndex: number;
   stepTotal: number;
   expanded: boolean;
@@ -229,20 +252,33 @@ function StartupChecklistStepRow(props: {
     );
   }
 
+  const displayStatus = step.displayStatus ?? step.status;
+  const displayResult = step.displayResult ?? step.result;
+  const presentation = step.presentation ?? "completed";
+
   const accent =
-    step.status === "fail" ? "fail" : step.status === "ok" ? "ok" : step.status === "active" ? "active" : "default";
+    displayStatus === "fail"
+      ? "fail"
+      : displayStatus === "ok"
+        ? "ok"
+        : displayStatus === "active"
+          ? "active"
+          : "default";
 
   return (
     <StartupStepCard
       meta={meta}
       stepIndex={stepIndex}
       stepTotal={stepTotal}
-      status={step.status}
-      result={step.result}
+      status={displayStatus}
+      result={displayResult}
+      resultTooltip={step.resultTooltip}
       progressPercent={step.progressPercent}
-      expanded={expanded}
+      expanded={expanded && presentation !== "hidden"}
       onToggle={onToggle}
       accent={accent}
+      presentation={presentation}
+      isFocus={step.isFocus === true}
     >
       {body}
     </StartupStepCard>

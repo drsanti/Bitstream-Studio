@@ -28,6 +28,8 @@ export type StartupStepMeta = {
   id: StartupStepId;
   title: string;
   subtitle: string;
+  /** Shown on hover over the step title (TRNTooltip). */
+  titleTooltip: string;
   icon: LucideIcon;
 };
 
@@ -36,18 +38,21 @@ export const STARTUP_ENVIRONMENT_STEPS: StartupStepMeta[] = [
     id: "assets",
     title: "Asset library",
     subtitle: ternionFreeAssetPackCopy.librarySubtitle,
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepAssets,
     icon: Box,
   },
   {
     id: "network",
     title: "Network",
     subtitle: ternionFreeAssetPackCopy.networkSubtitle,
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepNetwork,
     icon: Globe,
   },
   {
     id: "mode",
     title: "Data source",
-    subtitle: "Bitstream (UART) or Simulator (virtual MCU)",
+    subtitle: "Simulator or hardware connection",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepMode,
     icon: Radio,
   },
 ];
@@ -58,38 +63,44 @@ const LINK_STEP_META: Record<
 > = {
   bridge: {
     id: "bridge",
-    title: "Bridge (broker)",
-    subtitle: "WebSocket broker and UART bridge",
+    title: "Connection service",
+    subtitle: "Background link for device data",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepBridge,
     icon: Server,
   },
   websocket: {
     id: "websocket",
-    title: "WebSocket client",
-    subtitle: "Connect webview to the broker",
+    title: "App link",
+    subtitle: "Connect this window to the service",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepWebsocket,
     icon: Cable,
   },
   "serial-ports": {
     id: "serial-ports",
-    title: "Serial port",
-    subtitle: "List, select, and open COM @ 921600",
+    title: "Board connection",
+    subtitle: "Choose and open your device port",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepSerialPorts,
     icon: Usb,
   },
   simulator: {
     id: "simulator",
-    title: "External simulator",
-    subtitle: "bitstream-simulator VSIX streaming",
+    title: "Simulator",
+    subtitle: "Virtual device for testing",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepSimulator,
     icon: Cpu,
   },
   handshake: {
     id: "handshake",
-    title: "BS2 handshake",
-    subtitle: "Firmware HELLO and link verification",
+    title: "Device check",
+    subtitle: "Confirm firmware responds",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepHandshake,
     icon: Handshake,
   },
   "link-ready": {
     id: "link-ready",
-    title: "Link ready",
-    subtitle: "Telemetry and sensor settings unlocked",
+    title: "Ready",
+    subtitle: "Live data and settings",
+    titleTooltip: ternionFreeAssetPackCopy.tooltips.stepLinkReady,
     icon: Link2,
   },
 };

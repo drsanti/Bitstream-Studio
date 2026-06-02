@@ -1,6 +1,31 @@
 # Development commands — when to use what
 
-This guide maps **`npm` scripts in `extension/`** (Bitstream Studio) to typical workflows: what runs, when it fits, and when to avoid it. For bridge internals, see [How the Bridge Works](./BRIDGE.md). For **Bitstream Assistant** (AI bridge) details and serial attach options, see [`src/ai/README.md`](../src/ai/README.md).
+This guide maps **`npm` scripts in `extension/`** (Bitstream Studio) to typical workflows: what runs, when it fits, and when to avoid it.
+
+> **New here?** Use the visual cheat sheet first: **[`DEV_MODE_QUICKSTART.md`](./DEV_MODE_QUICKSTART.md)** (`npm start`, F5 panel, split terminals, bookmark URLs).
+
+For bridge internals, see [How the Bridge Works](./BRIDGE.md). For **Bitstream Assistant** (AI bridge) details and serial attach options, see [`src/ai/README.md`](../src/ai/README.md).
+
+## Dev mode at a glance
+
+| You want | Command |
+| -------- | ------- |
+| **Everything for daily UI** | `npm start` → browser `http://localhost:5173/` |
+| **VSIX-like panel** | `npm run watch:all` + F5 (no `npm start`) |
+| **Rebuild only** | `npm run watch:all` (does not launch servers) |
+| **Vite only** | `npm run dev:webview` (needs `start:bridge` separately) |
+| **Free stuck ports** | `npm run dev:clean` |
+
+```mermaid
+flowchart TD
+  Q["What are you doing?"]
+  Q --> DAILY["Daily browser dev"]
+  Q --> PANEL["Match VSIX panel"]
+  Q --> SCRIPTS["Pick a script"]
+  DAILY --> NS["npm start"]
+  PANEL --> W["watch:all + F5"]
+  SCRIPTS --> SEC["Sections below"]
+```
 
 ## Quick port reference
 

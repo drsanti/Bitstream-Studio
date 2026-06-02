@@ -1,10 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
-import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
+import {
+  assetPackMissingResult,
+  assetPackStepResult,
+  ternionFreeAssetPackCopy,
+} from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { UseAssetBootstrapResult } from "../asset-bootstrap/useAssetBootstrap.js";
 import type { ConnectionStepStatus, ConnectionStepView } from "../bitstream-app/connection/useConnectionSteps.js";
 import { useConnectionSteps } from "../bitstream-app/connection/useConnectionSteps.js";
 import { useBitstreamTelemetrySourceStore } from "../bitstream-app/state/bitstreamTelemetrySource.store.js";
-import { isVsCodeExtensionWebview } from "../isVsCodeExtensionWebview.js";
+import { shouldBlockShellUntilAssetsReady } from "../webviewHostCapabilities.js";
 import {
   connectionStepToStartupId,
   getStartupStepMeta,
@@ -12,11 +16,13 @@ import {
   STARTUP_ENVIRONMENT_STEPS,
   type StartupStepId,
 } from "./startup-step-meta.js";
+import { startupLinkStepResult } from "./startup-link-step-copy.js";
 
 export type StartupChecklistStepView = {
   id: StartupStepId;
   status: ConnectionStepStatus;
   result: string;
+  resultTooltip?: string;
   progressPercent: number | null;
   connectionStepId?: ConnectionStepView["id"];
   error?: string;
@@ -69,13 +75,13 @@ export function useStartupChecklist(options: {
   toggleExpanded: (id: StartupStepId) => void;
 } {
   const { bootstrap, panelActive } = options;
-  const isExtension = isVsCodeExtensionWebview();
+  const blockShellUntilAssets = shouldBlockShellUntilAssetsReady();
   const backend = useBitstreamTelemetrySourceStore((s) => s.backend);
-  const { steps: connectionSteps, linkReady } = useConnectionSteps(panelActive && isExtension);
+  const { steps: connectionSteps, linkReady } = useConnectionSteps(panelActive);
 
   const [expandedId, setExpandedId] = useState<StartupStepId | null>("assets");
 
-  const environmentReady = !isExtension || bootstrap.phase === "ready";
+  const environmentReady = !blockShellUntilAssets || bootstrap.phase === "ready";
 
   const connectionByStartupId = useMemo(() => {
     const map = new Map<StartupStepId, ConnectionStepView>();
@@ -89,77 +95,82 @@ export function useStartupChecklist(options: {
   }, [connectionSteps, backend]);
 
   const steps = useMemo((): StartupChecklistStepView[] => {
-    const assetStatus = isExtension ? assetPhaseToStatus(bootstrap.phase) : "ok";
-    const assetResult = (() => {
-      if (!isExtension) {
-        return "Dev browser — asset gate skipped";
-      }
+    const assetStatus = assetPhaseToStatus(bootstrap.phase);
+
+    const assetResultFields = ((): { result: string; resultTooltip?: string } => {
       if (bootstrap.phase === "ready") {
         const local = bootstrap.hostCheck?.freePackLocalFileCount;
         const remote = bootstrap.hostCheck?.freePackRemoteFileCount;
-        if (typeof local === "number" && typeof remote === "number" && remote > 0) {
-          return ternionFreeAssetPackCopy.onDiskProgress(local, remote);
-        }
-        return bootstrap.readiness?.reason === "online-only"
-          ? ternionFreeAssetPackCopy.networkReachable
-          : ternionFreeAssetPackCopy.onDiskReady;
+        const onlineOnly = bootstrap.readiness?.reason === "online-only";
+        return assetPackStepResult({ local, remote, onlineOnly });
       }
       if (bootstrap.phase === "syncing") {
-        return ternionFreeAssetPackCopy.downloading;
+        return { result: ternionFreeAssetPackCopy.results.packDownloading };
       }
       if (bootstrap.phase === "checking") {
-        return ternionFreeAssetPackCopy.verifying;
+        return { result: ternionFreeAssetPackCopy.results.packVerifying };
       }
       if (bootstrap.readiness?.status === "blocked") {
         const local = bootstrap.hostCheck?.freePackLocalFileCount ?? 0;
         const remote = bootstrap.hostCheck?.freePackRemoteFileCount ?? 0;
+        const offline = bootstrap.readiness.reason === "offline";
         if (remote > 0) {
           const missing = Math.max(0, remote - local);
-          return ternionFreeAssetPackCopy.missingCount(
-            missing,
-            bootstrap.readiness.reason === "offline",
-          );
+          return assetPackMissingResult({ missing, offline });
         }
         const n = bootstrap.readiness.missingPaths.length;
-        return ternionFreeAssetPackCopy.missingCount(
-          n,
-          bootstrap.readiness.reason === "offline",
-        );
+        return assetPackMissingResult({ missing: n, offline });
       }
-      return bootstrap.statusLine ?? "Check failed";
+      if (bootstrap.phase === "error") {
+        return {
+          result: ternionFreeAssetPackCopy.results.checkFailed,
+          resultTooltip: bootstrap.statusLine ?? undefined,
+        };
+      }
+      return { result: bootstrap.statusLine ?? ternionFreeAssetPackCopy.results.checkFailed };
     })();
 
-    const netStatus = isExtension
-      ? networkStatusFromHost(bootstrap.hostCheck, bootstrap.phase)
-      : "ok";
-    const netResult = (() => {
-      if (!isExtension) {
-        return "—";
-      }
+    const netStatus = networkStatusFromHost(bootstrap.hostCheck, bootstrap.phase);
+    const netResultFields = ((): { result: string; resultTooltip?: string } => {
       if (bootstrap.hostCheck == null) {
-        return "Waiting for host check";
+        return { result: ternionFreeAssetPackCopy.results.networkWaiting };
       }
-      return bootstrap.hostCheck.internetReachable
-        ? ternionFreeAssetPackCopy.networkReachable
-        : ternionFreeAssetPackCopy.networkOffline;
+      const probe = bootstrap.hostCheck.internetProbeUrl;
+      const probeHint =
+        probe != null && probe.length > 0
+          ? ternionFreeAssetPackCopy.tooltips.networkProbe(probe)
+          : undefined;
+      if (bootstrap.hostCheck.internetReachable) {
+        return {
+          result: ternionFreeAssetPackCopy.results.networkOnline,
+          resultTooltip: probeHint,
+        };
+      }
+      return {
+        result: ternionFreeAssetPackCopy.results.networkOffline,
+        resultTooltip: probeHint,
+      };
     })();
 
     const modeStatus: ConnectionStepStatus = environmentReady ? "ok" : "locked";
     const modeResult =
-      backend === "simulator" ? "Simulator (virtual MCU)" : "Bitstream (UART firmware)";
+      backend === "simulator"
+        ? ternionFreeAssetPackCopy.results.modeSimulator
+        : ternionFreeAssetPackCopy.results.modeHardware;
 
     const envSteps: StartupChecklistStepView[] = [
       {
         id: "assets",
         status: assetStatus,
-        result: assetResult,
-        progressPercent:
-          bootstrap.phase === "syncing" ? bootstrap.syncPercent : null,
+        result: assetResultFields.result,
+        resultTooltip: assetResultFields.resultTooltip,
+        progressPercent: bootstrap.phase === "syncing" ? bootstrap.syncPercent : null,
       },
       {
         id: "network",
         status: netStatus,
-        result: netResult,
+        result: netResultFields.result,
+        resultTooltip: netResultFields.resultTooltip,
         progressPercent: null,
       },
       {
@@ -185,10 +196,12 @@ export function useStartupChecklist(options: {
           progressPercent: null,
         };
       }
+      const { result, resultTooltip } = startupLinkStepResult(id, conn);
       return {
         id,
         status: conn.status,
-        result: conn.summary,
+        result,
+        resultTooltip,
         progressPercent: null,
         connectionStepId: conn.id,
         error: conn.error,
@@ -199,15 +212,12 @@ export function useStartupChecklist(options: {
   }, [
     backend,
     bootstrap.hostCheck,
-    bootstrap.hostCheck?.freePackLocalFileCount,
-    bootstrap.hostCheck?.freePackRemoteFileCount,
     bootstrap.phase,
     bootstrap.readiness,
     bootstrap.statusLine,
     bootstrap.syncPercent,
     connectionByStartupId,
     environmentReady,
-    isExtension,
   ]);
 
   const totalCount = steps.length;

@@ -6,12 +6,48 @@ Reference for **host-only** development (no MCU) and optional real UART. All com
 cd extension
 ```
 
+> **Visual dev quick start:** **[`docs/DEV_MODE_QUICKSTART.md`](docs/DEV_MODE_QUICKSTART.md)** — pick a path, see what `npm start` launches, bookmark URLs.
+
+---
+
+## Dev mode — start here
+
+```mermaid
+flowchart LR
+  START["cd extension\nnpm install"]
+  START --> PICK{"Goal?"}
+  PICK -->|UI + HMR| A["npm start"]
+  PICK -->|VSIX panel| B["watch:all + F5"]
+  PICK -->|Split logs| C["start:bridge +\ndev:webview"]
+  A --> URL["localhost:5173"]
+  C --> URL
+  B --> PANEL["Extension Dev Host"]
+```
+
+| Path | Commands | Open |
+| ---- | -------- | ---- |
+| **Daily (recommended)** | `npm start` | [Sensor Studio](http://localhost:5173/?app=bitstream&workspace=sensor-studio) · [Telemetry](http://localhost:5173/?app=bitstream&workspace=sensor-telemetry) |
+| **VSIX-like** | `npm run watch:all` + **F5** → Open Bitstream Studio | VS Code panel — **no** `npm start` at the same time |
+| **Two terminals** | `npm run start:bridge` · `npm run dev:webview` | Same browser URLs |
+
+`npm start` = **bridge (:9998)** + **Vite (:5173)** + **extension watch** + **AI bridge (:9987)**.  
+`npm run watch:all` **alone** only rebuilds — it does **not** run the app.
+
+Ports stuck? `npm run dev:clean` then `npm start` again.
+
+Full diagrams and pitfalls: **[`docs/DEV_MODE_QUICKSTART.md`](docs/DEV_MODE_QUICKSTART.md)**.
+
+---
+
 Related docs:
 
 | Document | Purpose |
 |----------|---------|
+| **`docs/DEV_MODE_QUICKSTART.md`** | **Visual** dev paths, URLs, what each command runs |
 | **`../AGENT_HANDOFF.md`** | Start here on a new machine (clone, milestone, session log) |
 | **`docs/TELEMETRY_MODE_LIFECYCLE.md`** | Bitstream vs Simulator exclusivity (route topic, bridge gates) |
+| **`docs/DUAL_HOST_RUNTIME.md`** | Browser vs VS Code webview |
+| `docs/DEVELOPMENT_COMMANDS.md` | Every `npm` script |
 | `docs/DEVELOPMENT_TRACKER.md` | Backlog and VSIX readiness checklist |
 | `docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` | Wire format (BS framing, sensors, commands) |
 | `src/bitstream2/README.md` | Module layout and design |
@@ -85,15 +121,11 @@ Full design: **`docs/TELEMETRY_MODE_LIFECYCLE.md`**. After edits to **`SerialPor
 
 As of **2026-05-27**, the main Bitstream shell webview is **simulator-only** for broker transport. See **`src/webview/bitstream-app/docs/BITSTREAM_WEBVIEW_TRANSPORT_SIMULATOR_ONLY.md`**.
 
-**Recommended dev command (one terminal):**
+**Recommended:** one terminal — **`npm start`** (see **[Dev mode — start here](#dev-mode--start-here)** and [`docs/DEV_MODE_QUICKSTART.md`](docs/DEV_MODE_QUICKSTART.md)).
 
-```bash
-npm start
-```
+For **Simulator** telemetry, also run the **Bitstream Simulator** extension from repo **`bitstream-simulator/`** (install VSIX or F5). The bridge **no longer** embeds `BsFirmwareSimulator` — do **not** set `BITSTREAM2_DEV_LOOPBACK=1`.
 
-`npm start` runs the full dev stack. For **Simulator** telemetry, also run the **Bitstream Simulator** extension from repo **`bitstream-simulator/`** (install VSIX or F5). The bridge **no longer** embeds `BsFirmwareSimulator` — do **not** set `BITSTREAM2_DEV_LOOPBACK=1`.
-
-Dev URL: **http://localhost:5173/** — browser dev shows a **landing page** first (2D nebula/flow + optional **3D cube floor**, workspace cards, **Digital Twin simulation** cards). Pick a workspace or simulation to enter. Skip landing: **`?app=bitstream`** or **`?landing=0`**. Force landing: **`?landing=1`**. Sim deep link: **`?sim=e84-rotation`** (etc.). VSIX panel skips landing (opens the app directly).
+**Browser URLs:** landing **`http://localhost:5173/`** (workspace cards, simulations). Direct workspace: **`?app=bitstream&workspace=sensor-studio`** or **`sensor-telemetry`**. Skip landing: **`?landing=0`**. VSIX panel skips landing (opens the app directly).
 
 **Backdrop gestures** (empty area, not on buttons): **double-click** cycles **2D only → 3D only → blend**; **Shift+double-click** cycles overlay (**nebula+flow → nebula → flow → none**). Badge bottom-right shows current mode. See **`src/webview/landing/README.md`**.
 

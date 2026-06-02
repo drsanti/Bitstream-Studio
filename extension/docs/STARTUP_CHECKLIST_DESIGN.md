@@ -154,13 +154,14 @@ Sensor Studio may treat **`handshake`** as advisory (edit flow graph) while Bits
 
 ## Dual-host runtime (VS Code + browser)
 
-The same checklist and TERNION pack commands run in **both** hosts when the bridge is available. See **[`DUAL_HOST_RUNTIME.md`](./DUAL_HOST_RUNTIME.md)**.
+The same checklist and TERNION pack commands run in **both** hosts when the bridge is available. See **[`DUAL_HOST_RUNTIME.md`](./DUAL_HOST_RUNTIME.md)** and **[`DEV_MODE_QUICKSTART.md`](./DEV_MODE_QUICKSTART.md)** (how to run `npm start` / F5).
 
 | Behavior | VS Code webview | Browser (`localhost:5173` or **Open in browser**) |
 | -------- | --------------- | --------------------------------------------------- |
 | Shell blocked until assets | Yes | No — workspace stays visible |
 | Setup overlay when pack incomplete | Yes | Yes (`assetsNeedSetup`) |
 | Check / Download / Open checklist (Ctrl+/) | Yes | Yes (bridge required) |
+| Link steps (Connection service, …) | `useConnectionSteps(panelActive)` — extension host status + WS probe | Same WS probe to `:9998` when `panelActive` (no extension-only gate) |
 | Manual open (Ctrl+/) | Stays open until **Later** | Same |
 | Auto-close when all steps green | First-run overlay only | Same rule |
 | **Open in browser** | Command palette + Ctrl+/ | N/A (already in browser) |
@@ -185,6 +186,76 @@ Three surfaces work together: **full checklist** (blocking setup), **compact str
 | Mono paths | `font-mono text-[10px] text-zinc-400` for missing file list |
 | Progress | Global bar in panel header; **per-card** micro-progress when `running` |
 | Motion | Subtle GSAP enter/exit (see **`TRNTransientStatusBadge`**); respect `prefers-reduced-motion` |
+
+---
+
+## Progressive presentation (sequential reveal)
+
+**Status:** Implemented (2026-06-02)
+
+### Problem
+
+When backend checks finish in under a second, all checklist rows flip to green at once. Operators do not see **which** step ran or in what order.
+
+### Two layers
+
+```mermaid
+flowchart TB
+  subgraph truth["Layer A — Truth"]
+    AB["useAssetBootstrap"]
+    CS["useConnectionSteps"]
+    AB --> STEPS["steps[]"]
+    CS --> STEPS
+  end
+  subgraph present["Layer B — Presentation"]
+    ORCH["useStartupChecklistPresentation"]
+    STEPS --> ORCH
+    ORCH --> UI["StartupChecklistPanel"]
+  end
+```
+
+| Layer | Rule |
+| ----- | ---- |
+| **Truth** | Never delay I/O (download, bridge, WS, COM). Footer **Continue** uses real status. |
+| **Presentation** | Controls reveal order, header label, staged progress bar, card motion. |
+
+### Modes
+
+| Mode | When |
+| ---- | ---- |
+| **sequential** | Auto overlay; not opened via Ctrl+/ chip; motion allowed |
+| **instant** | User opened panel (`panelOpen`); `prefers-reduced-motion: reduce`; orchestration cap (**12 s**) exceeded |
+
+### Timing (defaults)
+
+| Constant | ms | Role |
+| -------- | -- | ---- |
+| `STARTUP_STEP_ENTER_MS` | 280 | Card enter |
+| `STARTUP_STEP_MIN_DWELL_MS` | 450 | Min focus time per step |
+| `STARTUP_STEP_COMPLETE_MS` | 320 | Success beat before next |
+| `STARTUP_STEP_GAP_MS` | 120 | Between steps |
+| `STARTUP_MAX_ORCHESTRATION_MS` | 12000 | Snap to truth |
+
+Constants: `startupChecklistPresentation.constants.ts`.
+
+### UI behavior
+
+| Element | Sequential |
+| ------- | ---------- |
+| Header | `Step 4 of 8 — Connection service` (focus title) |
+| Progress bar | Staged width from revealed index, not instant truth count |
+| Rows | **hidden** (dim, “Waiting…”) → **current** (sky ring, pulse) → **completed** (truth) |
+| Scroll | Active card `scrollIntoView` (smooth unless reduced motion) |
+| Auto-expand | Focus step expands during sequential walk |
+
+### Code map
+
+| File | Role |
+| ---- | ---- |
+| `useStartupChecklistPresentation.ts` | Orchestrator |
+| `StartupChecklistGate.tsx` | `resolveStartupPresentationMode` + auto-expand |
+| `StartupChecklistPanel.tsx` | Header + `presentedSteps` |
+| `StartupStepCard.tsx` | `presentation` / `isFocus` styling |
 
 ---
 

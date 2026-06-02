@@ -8,6 +8,10 @@ import { useStartupChecklistStore } from "./startupChecklist.store.js";
 import { StartupChecklistPanel } from "./StartupChecklistPanel.js";
 import { StartupSetupIncompleteChip } from "./StartupSetupIncompleteChip.js";
 import { useStartupChecklist } from "./useStartupChecklist.js";
+import {
+  resolveStartupPresentationMode,
+  useStartupChecklistPresentation,
+} from "./useStartupChecklistPresentation.js";
 
 type StartupChecklistGateProps = {
   children: ReactNode;
@@ -32,10 +36,6 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
   const assetsBusy =
     bootstrap.phase === "checking" || bootstrap.phase === "syncing";
 
-  const panelActive = canUseHostedAssetBootstrap();
-  const checklist = useStartupChecklist({ bootstrap, panelActive });
-  const { linkReady, readyCount, totalCount, setExpandedId } = checklist;
-
   const assetsNeedSetup =
     bootstrap.phase === "blocked" || bootstrap.phase === "error";
 
@@ -48,6 +48,23 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
         assetsBusy,
         assetsNeedSetup,
       }));
+
+  const panelActive = canUseHostedAssetBootstrap();
+  const checklist = useStartupChecklist({ bootstrap, panelActive });
+  const { linkReady, readyCount, totalCount, setExpandedId, steps } = checklist;
+
+  const presentationMode = resolveStartupPresentationMode({
+    enabled: showOverlay,
+    userOpenedPanel: panelOpen,
+  });
+  const presentation = useStartupChecklistPresentation(steps, presentationMode);
+
+  useEffect(() => {
+    if (!presentation.isSequentialActive || presentation.focusStepId == null) {
+      return;
+    }
+    setExpandedId(presentation.focusStepId);
+  }, [presentation.focusStepId, presentation.isSequentialActive, setExpandedId]);
 
   const showIncompleteChip =
     canUseHostedAssetBootstrap() &&
@@ -87,6 +104,7 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
           <StartupChecklistPanel
             bootstrap={bootstrap}
             checklist={checklist}
+            presentation={presentation}
             onDismiss={environmentReady ? handleDismiss : undefined}
             onFocusSerialPorts={() => setExpandedId("serial-ports")}
           />
