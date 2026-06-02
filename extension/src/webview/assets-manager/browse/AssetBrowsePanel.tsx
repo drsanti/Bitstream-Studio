@@ -12,6 +12,7 @@ import {
   Search,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ternionFreeAssetPackCopy } from "../../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { AssetCategory } from "../registry/asset.types.js";
 import { resolveAsset } from "../registry/resolveAsset.js";
 import { useAssetRegistry } from "../registry/AssetRegistryProvider.js";
@@ -272,15 +273,15 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
                 {query.trim().length > 0
                   ? "No assets match your search."
                   : category === "model"
-                    ? "No models in extension storage yet. Sync the free pack or download models first."
-                    : "No assets in extension storage yet. Sync the free pack from Storage → Actions."}
+                    ? ternionFreeAssetPackCopy.assetBrowseEmptyModels
+                    : ternionFreeAssetPackCopy.assetBrowseEmptyOther}
               </p>
               <button
                 type="button"
                 onClick={() => openAssetManager({ mainTab: "storage", globalDirectoriesTab: "actions" })}
                 className="text-[11px] font-medium text-cyan-300/90 hover:text-cyan-200"
               >
-                Get models & sync free pack →
+                {ternionFreeAssetPackCopy.assetBrowseCta}
               </button>
             </div>
           ) : (

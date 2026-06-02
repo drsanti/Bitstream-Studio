@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { ternionFreeAssetPackCopy } from "../../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { openAssetManagerBrowseModels } from "../../assets-manager/hooks/openAssetManagerBrowseModels.js";
 
 const SESSION_MISSING_DIALOG_PREFIX = "ternion:missing-asset-dialog:";
@@ -62,9 +63,6 @@ export type PreviewMeshMissingUiState = {
 
 const DEFAULT_MISSING_TITLE = "Asset not found";
 
-const PSOC_MISSING_DESCRIPTION =
-  "The PSOC preview mesh could not be loaded. Packaged VSIX builds omit large GLB files.\n\nFree Assets Loader is opening so you can sync the free pack into your extension storage (globalStorage …/assets/free), including models/psoc-e84-ai/.";
-
 export const usePreviewMeshMissingUiStore = create<PreviewMeshMissingUiState>(
   (set, get) => ({
     meshMissingDialogOpen: false,
@@ -120,7 +118,7 @@ export const usePreviewMeshMissingUiStore = create<PreviewMeshMissingUiState>(
       get().notifyMissingAsset({
         dedupeKey: "bitstream:psoc-default-body-glb",
         title: "Preview model not found",
-        description: PSOC_MISSING_DESCRIPTION,
+        description: ternionFreeAssetPackCopy.psocMissingDescription,
         autoOpenFreeAssetsLoader: true,
       });
     },

@@ -2,9 +2,11 @@
  * Online asset roots for T3D `T3DAssetManager`: base URL must be the directory
  * that directly contains `models/`, `textures/`, `sounds/` (see T3D buildModelPath / texture paths).
  *
- * - Free public set: `github.com/drsanti/ternion-3d-assets-free` → `main/assets` (see `extension/docs/ASSETS_ONLINE_REPO.md`)
- * - Full set: `github.com/drsanti/ternion-3d-assets` → `main`
+ * - Free public set: TERNION free asset pack → `main/assets` (see `extension/docs/ASSETS_ONLINE_REPO.md`)
+ * - Full set: ternion-3d-assets → `main`
  */
+
+import { ternionFreeAssetPackCopy } from "../../asset-bootstrap/ternionFreeAssetPackCopy.js";
 
 export const ASSET_SOURCE_FREE =
   "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets";
@@ -27,7 +29,7 @@ export const ASSET_PRESETS: AssetPreset[] = [
     id: "free",
     label: "Free",
     url: ASSET_SOURCE_FREE,
-    description: "ternion-3d-assets-free (textures + models subset on GitHub)",
+    description: ternionFreeAssetPackCopy.assetPresetDescription,
   },
   {
     id: "full",

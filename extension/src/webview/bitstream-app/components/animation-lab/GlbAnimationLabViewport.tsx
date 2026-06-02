@@ -36,6 +36,11 @@ import {
 import { GlbAnimationLabProvider } from "./glb-animation-lab-context.js";
 import { GlbAnimationLabTwinProvider, useGlbAnimationLabTwin } from "./glb-animation-lab-twin-context.js";
 import { ANIMATION_LAB_CAMERA_POSITION, GlbAnimationLabScene } from "./GlbAnimationLabScene.js";
+import { GlbLoadErrorBoundary } from "../3d-rotation/shared/GlbLoadErrorBoundary.js";
+import {
+  notifyMissingGlbPreviewAsset,
+  notifyWebGlContextLost,
+} from "../../utils/notifyMissingFreePackAsset.js";
 import { GlbAnimationLabInspector } from "./GlbAnimationLabInspector.js";
 import { AnimationLabCss3dOverlay } from "./css3d/AnimationLabCss3dOverlay.js";
 import { AnimationLabCss3dTagsRegistrar } from "./css3d/AnimationLabCss3dTagsRegistrar.js";
@@ -228,17 +233,33 @@ function GlbAnimationLabViewportInner(props: {
             gl.toneMapping = THREE.ACESFilmicToneMapping;
             gl.toneMappingExposure = ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE;
             gl.outputColorSpace = THREE.SRGBColorSpace;
+            gl.domElement.addEventListener("webglcontextlost", (event) => {
+              event.preventDefault();
+              notifyWebGlContextLost();
+            });
           }}
         >
-          <Suspense fallback={null}>
-            <GlbAnimationLabScene
-              fetchUrl={props.fetchUrl}
-              showGrid={props.showGrid}
-              showBackgroundTexture={props.showBackgroundTexture}
-              useCubemapIbl={props.useCubemapIbl ?? ROTATION_PREVIEW_DEFAULT_USE_CUBEMAP_IBL}
-              environmentPresetIndex={props.environmentPresetIndex}
-            />
-          </Suspense>
+          <GlbLoadErrorBoundary
+            resetKey={props.fetchUrl}
+            shortLabel="Animation Lab model"
+            onError={() => {
+              notifyMissingGlbPreviewAsset({
+                url: props.fetchUrl,
+                label: "Animation Lab model",
+                dedupeKey: `animation-lab:${props.fetchUrl}`,
+              });
+            }}
+          >
+            <Suspense fallback={null}>
+              <GlbAnimationLabScene
+                fetchUrl={props.fetchUrl}
+                showGrid={props.showGrid}
+                showBackgroundTexture={props.showBackgroundTexture}
+                useCubemapIbl={props.useCubemapIbl ?? ROTATION_PREVIEW_DEFAULT_USE_CUBEMAP_IBL}
+                environmentPresetIndex={props.environmentPresetIndex}
+              />
+            </Suspense>
+          </GlbLoadErrorBoundary>
         </Canvas>
         <AnimationLabCss3dOverlay enabled={tagsActive} />
         <AnimationLabCss3dTagsRegistrar

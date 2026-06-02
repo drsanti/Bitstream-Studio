@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { LucideIcon } from "lucide-react";
 import { Compass, Laptop, Library, Package, Sparkles } from "lucide-react";
 import { TRNHintText, TRNInteractiveCard, TRNMenuSectionTitle } from "../../../ui/TRN";
+import { ternionFreeAssetPackCopy } from "../../../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { LoaderLaunchButtonsProps } from "./LoaderLaunchButtons.js";
 import { LoaderLaunchButtons } from "./LoaderLaunchButtons.js";
 
@@ -94,8 +95,7 @@ export function GlobalDirectoriesOverviewTab(props: GlobalDirectoriesOverviewTab
       ? "Everything you pull in later—catalog models, mirrored free-pack files, and textures—builds your personal library next to this extension."
       : "Catalog models, mirrored free-pack content, and textures you sync become your personal library for this install.";
 
-  const moreBody =
-    "Use the buttons below to browse the catalog, run the Model Loader, or sync the free GitHub pack when a scene needs something you don’t have yet.";
+  const moreBody = ternionFreeAssetPackCopy.globalDirsOverviewHint;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">

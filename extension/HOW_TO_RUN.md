@@ -107,6 +107,8 @@ Implementation: **`src/webview/landing/`**, **`src/webview/simulations/`**, **`s
 
 After entering the app, switch tabs with the toolbar (last tab persisted in `localStorage`). Browser shortcuts: **Ctrl+Shift+1** / **Ctrl+Shift+2**, **Ctrl+/** quick commands.
 
+**Dual host:** The same web app runs in the **VS Code panel** and in a **browser tab**. In browser dev, Ctrl+/ includes **Check/Download TERNION pack** and **Open setup checklist** when `npm run start:bridge` is running. From the extension panel, use **Open in Browser (Dev Server)** or Ctrl+/ → **Open in browser**. Details: **`docs/DUAL_HOST_RUNTIME.md`**.
+
 | VS Code command | Tab |
 |-----------------|-----|
 | `Bitstream Studio: Open Bitstream Studio` | Last tab (status bar default) |

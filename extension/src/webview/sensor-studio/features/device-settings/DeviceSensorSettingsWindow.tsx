@@ -200,7 +200,6 @@ export function DeviceSensorSettingsWindow(props: {
 
   const bmi270 = {
     ...rowFallback,
-    mask: 0x1f,
     samplingIntervalMs: 25,
     minPublishIntervalMs: 0,
     ...rows.bmi270,

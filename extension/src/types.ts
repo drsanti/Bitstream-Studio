@@ -20,11 +20,13 @@ export interface WebviewMessage {
   | 'reload-webview'
   | 'reload-window'
   | 'toggle-dev-tools'
+  | 'execute-extension-command'
   | 'ca-cert-install'
   | 'asset-get-base-url'
   | 'asset-update-base-url'
   | 'asset-reload'
   | 'asset-config'
+  | 'asset-bootstrap-check'
   | 'asset-sync-free-pack-start'
   | 'asset-free-pack-list'
   | 'asset-free-local-list'
@@ -110,6 +112,7 @@ export interface ExtensionMessage {
   | 'asset-base-url-changed'
   | 'asset-base-url-response'
   | 'asset-config-response'
+  | 'asset-bootstrap-check-response'
   | 'serial-bridge-status'
   | 'serial-bridge-status-changed'
   | 'ai-bridge-status'
@@ -217,6 +220,22 @@ export interface ExtensionMessage {
     tesaiotTexturesBaseUrl?: string;
     onlineAssetsBaseUrl: string;
     currentBaseUrl: string;
+  };
+  assetBootstrapCheck?: {
+    freeRootFs: string;
+    localRootFs: string;
+    allPresentOnDisk: boolean;
+    internetReachable: boolean;
+    internetProbeUrl: string;
+    rows: Array<{
+      packRelative: string;
+      existsInFree: boolean;
+      existsInLocal: boolean;
+    }>;
+    freePackRemoteFileCount?: number;
+    freePackLocalFileCount?: number;
+    freePackMissingSample?: string[];
+    freePackIndexUnavailable?: boolean;
   };
   status?: {
     running: boolean;

@@ -1,3 +1,4 @@
+import { ternionFreeAssetPackCopy } from "../../../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { TRNHintText, TRNInteractiveCard } from "../../../ui/TRN";
 import type { LoaderLaunchButtonsProps } from "./LoaderLaunchButtons.js";
 import { LoaderLaunchButtons } from "./LoaderLaunchButtons.js";
@@ -22,10 +23,7 @@ export function GlobalDirectoriesActionsTab(props: GlobalDirectoriesActionsTabPr
         title="Download and sync"
         contentClassName="space-y-3 pt-0 text-[11px] leading-relaxed text-zinc-400"
       >
-        <p className="mb-0">
-          Open the same tools you use from the rest of the app: fetch catalog models, mirror the
-          free GitHub pack, or browse the model catalog.
-        </p>
+        <p className="mb-0">{ternionFreeAssetPackCopy.globalDirsActionsBody}</p>
         <LoaderLaunchButtons
           onOpenModelLoader={props.onOpenModelLoader}
           onOpenFreeAssetsLoader={props.onOpenFreeAssetsLoader}

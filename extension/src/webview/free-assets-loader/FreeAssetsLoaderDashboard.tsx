@@ -30,6 +30,8 @@ import {
 } from "../ui/components/SortableTable";
 import { ModelLoaderGroupCard } from "../model-loader/components/ModelLoaderGroupCard";
 import { useModalFullscreenFill } from "../ui/useModalFullscreenFill";
+import { scheduleWebviewReloadAfterAssetSync } from "../asset-bootstrap/requestWebviewReloadAfterAssetSync";
+import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { useFreeAssetsLoaderRuntime } from "./useFreeAssetsLoaderRuntime";
 import type {
   FreeAssetIndexEntry,
@@ -347,7 +349,7 @@ export function FreeAssetsLoaderDashboard({
         raw.includes("403") ||
         raw.toLowerCase().includes("api rate limit exceeded");
       const friendly = isRate
-        ? "GitHub API rate limit exceeded. Add a token: VS Code Settings → `ternion.githubToken` (read-only classic PAT is enough), or set the `GITHUB_TOKEN` environment variable for the extension host / bridge. Then click Refresh list again."
+        ? ternionFreeAssetPackCopy.rateLimitHelp
         : raw;
       setToast({ message: friendly, tone: "error" });
       scheduleToastClear(16_000);
@@ -432,6 +434,9 @@ export function FreeAssetsLoaderDashboard({
         );
         scheduleToastClear(out ? 15000 : 8000);
         void fetchLocalEntries();
+        if (res.errors.length === 0) {
+          scheduleWebviewReloadAfterAssetSync(1200);
+        }
       } catch (e) {
         console.error(e);
         setToast({
@@ -688,7 +693,7 @@ export function FreeAssetsLoaderDashboard({
                 className="w-full rounded-md border border-white/10 bg-black/30 py-1.5 pl-8 pr-2 text-sm text-white placeholder:text-zinc-600"
                 placeholder={
                   mainTab === "online"
-                    ? "Filter GitHub paths…"
+                    ? ternionFreeAssetPackCopy.filterOnlinePaths
                     : "Filter local paths…"
                 }
                 value={search}
@@ -816,10 +821,7 @@ export function FreeAssetsLoaderDashboard({
                   <div className="max-h-[min(58vh,580px)] min-h-[200px] overflow-auto scrollbar-dark-small">
                     {entries.length === 0 && !rt.listLoading ? (
                       <div className="flex min-h-[min(36vh,280px)] flex-col items-center justify-center gap-3 px-4 py-10 text-center text-zinc-400">
-                        <p>
-                          No index loaded yet. Use Refresh to fetch the GitHub
-                          file tree.
-                        </p>
+                        <p>{ternionFreeAssetPackCopy.fetchIndexEmpty}</p>
                         <button
                           type="button"
                           className="rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-500"
@@ -830,7 +832,7 @@ export function FreeAssetsLoaderDashboard({
                       </div>
                     ) : (
                       <SortableTable<OnlineSortColumn>
-                        caption="Free pack files from GitHub; kinds include 3D models and textures"
+                        caption={ternionFreeAssetPackCopy.onlineTableCaption}
                         columns={ONLINE_ASSET_TABLE_COLUMNS}
                         sort={onlineSort}
                         onSortClick={onOnlineSortClick}

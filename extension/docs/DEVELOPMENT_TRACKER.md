@@ -71,6 +71,8 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-02** — **Dual-host runtime:** `webviewHostCapabilities.ts`, bridge-backed asset bootstrap in browser, Ctrl+/ **Open in browser** (extension), setup commands enabled with bridge; docs **`DUAL_HOST_RUNTIME.md`**.
+- **2026-06-02** — **Startup checklist + TERNION pack:** Full mirror on disk; **`GlbLoadErrorBoundary`**; manual open does not auto-close; TERNION branding (no GitHub in UI).
 - **2026-06-01** — **GLB Animation Lab — live mapping UI:** Inspector **Mapping** tab (all cards, one scroll): card parameter | sensor | sub-parameter; localStorage overrides; primary-on-card; wired to BS2 live merge + 3D tags.
 
 - **2026-06-01** — **GLB Animation Lab — shared 3D tag layout:** Card width, min height, 3D scale, and title/status/signal fonts are **global** (all CSS3D tags); per-subsystem overrides for title, offsets, visibility, and colors; persistence v2 with v1 migration.
@@ -453,6 +455,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
+- **Startup checklist (unified first-run / link setup)** — design: **[`STARTUP_CHECKLIST_DESIGN.md`](./STARTUP_CHECKLIST_DESIGN.md)**. **Shipped (2026-06-02 partial):** `StartupChecklistGate` + `StartupStepCard` / `StartupStepIcon`, environment steps (assets, network, mode) + link steps from `useConnectionSteps`, Ctrl+/ check/download/setup commands. **Remaining:** enhanced serial port list UI, handshake → Simulator branch, persist completed version, replace interim `AssetBootstrapGate.tsx` removal from path (gate superseded).
 - **Sensor Studio — physics domain (Tier D / evaluator E)** — **Future development** (no WASM runtime yet). Canonical plan: **[`src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)**. **Gated** on Digital Twin hub maturity + engine choice (Jolt for vehicle sim hub; Rapier deps retained for possible Sensor Studio preview). Ordered slices:
   - [ ] **D1 — Parity shell** — catalog stubs (`physics-world`, `rigid-body`, collider variants, joints, `object-spawner`, `ik-chain`); NA import normalization; eval no-ops + unit tests; **`physicsScene`** port type (schema/colors only).
   - [ ] **D2 — Static preview** — `FlowWirePhysicsSceneV1`; Model Viewer **`phys`** input; `rotation-preview-physics-runtime.ts` (WASM load only when graph has active world); static box/sphere colliders + debug draw.

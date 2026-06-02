@@ -18,6 +18,7 @@ import {
   TRNIconButton,
   type TRNDataGridColumn,
 } from "../../../ui/TRN";
+import { ternionFreeAssetPackCopy } from "../../../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { writeClipboardText } from "../../../ui/utils/clipboard.js";
 import { useExtensionDefaultDownloadPaths } from "../../hooks/useExtensionDefaultDownloadPaths.js";
 
@@ -76,7 +77,7 @@ function buildPerUserRows(
     },
     {
       id: "free",
-      role: "Free GitHub pack mirror",
+      role: ternionFreeAssetPackCopy.globalDirsDiskRole,
       segment: `${GLOBAL_STORAGE_SEGMENTS.freePack}/`,
       webPrefix: `${FREE_MODELS_WEB_PREFIX} (models)`,
       absoluteFs: paths?.freeGithubRootFs,

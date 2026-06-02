@@ -14,10 +14,13 @@
 import { useLayoutEffect } from "react";
 import {
   Activity,
+  ClipboardCheck,
   CloudDownload,
   Download,
+  ExternalLink,
   Gauge,
   Link2,
+  ListChecks,
   Package,
   PlugZap,
   RefreshCw,
@@ -35,6 +38,12 @@ import { useBitstreamTelemetrySourceStore } from "../../bitstream-app/state/bits
 import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.store.js";
 import { useSerialPortStore } from "../../serialport/serial-port-store.js";
 import type { BitstreamShellWindowsActions } from "../ui/shell/BitstreamShellWindowsHost.js";
+import { getVsCodeApi } from "../../extension-bridge/getVsCodeApi.js";
+import { useAssetBootstrapActionsStore } from "../../asset-bootstrap/assetBootstrapActions.store.js";
+import { ternionFreeAssetPackCopy } from "../../asset-bootstrap/ternionFreeAssetPackCopy.js";
+import { canUseHostedAssetBootstrap, canOpenAppInSystemBrowser } from "../../webviewHostCapabilities.js";
+import { useStartupChecklistStore } from "../../startup-checklist/startupChecklist.store.js";
+import { isVsCodeExtensionWebview } from "../../isVsCodeExtensionWebview.js";
 
 export interface UseBitstreamShellQuickCommandsOptions
 {
@@ -254,9 +263,64 @@ export function useBitstreamShellQuickCommands(
       label: "Open Free Assets Loader",
       category: "Assets",
       icon: CloudDownload,
-      keywords: ["free", "github", "assets", "textures"],
+      keywords: ["free", "ternion", "assets", "textures", "pack"],
       action: () => {
         openFreeAssetsLoader();
+      },
+    });
+
+    registerCommand({
+      id: "bitstream-check-required-assets",
+      label: ternionFreeAssetPackCopy.quickCommandCheckLabel,
+      category: "Assets",
+      icon: ClipboardCheck,
+      keywords: ["setup", "bootstrap", "assets", "glb", "cubemap", "check", "verify"],
+      disabled: !canUseHostedAssetBootstrap(),
+      action: () => {
+        useAssetBootstrapActionsStore.getState().recheck();
+        useStartupChecklistStore.getState().openPanel();
+      },
+    });
+
+    registerCommand({
+      id: "bitstream-download-required-assets",
+      label: ternionFreeAssetPackCopy.quickCommandDownloadLabel,
+      category: "Assets",
+      icon: CloudDownload,
+      keywords: ["setup", "bootstrap", "download", "sync", "free", "pack"],
+      disabled: !canUseHostedAssetBootstrap(),
+      action: () => {
+        const snap = useAssetBootstrapActionsStore.getState().getSnapshot();
+        if (!snap.internetReachable) {
+          useStartupChecklistStore.getState().openPanel();
+          return;
+        }
+        useAssetBootstrapActionsStore.getState().startRequiredSync();
+        useStartupChecklistStore.getState().openPanel();
+      },
+    });
+
+    registerCommand({
+      id: "bitstream-open-setup-checklist",
+      label: "Open setup checklist",
+      category: "Workspace",
+      icon: ListChecks,
+      keywords: ["setup", "checklist", "startup", "link", "connection"],
+      disabled: !canUseHostedAssetBootstrap(),
+      action: () => {
+        useStartupChecklistStore.getState().openPanel();
+      },
+    });
+
+    registerCommand({
+      id: "bitstream-open-in-browser",
+      label: "Open in browser",
+      category: "Workspace",
+      icon: ExternalLink,
+      keywords: ["browser", "chrome", "external", "localhost", "webapp"],
+      disabled: !canOpenAppInSystemBrowser(),
+      action: () => {
+        getVsCodeApi()?.postMessage({ type: "execute-extension-command", commandId: "bitstream-studio.openInBrowser" });
       },
     });
 
@@ -276,6 +340,10 @@ export function useBitstreamShellQuickCommands(
         "bitstream-model-loader",
         "bitstream-model-catalog",
         "bitstream-free-assets-loader",
+        "bitstream-check-required-assets",
+        "bitstream-download-required-assets",
+        "bitstream-open-setup-checklist",
+        "bitstream-open-in-browser",
       ];
       for (const id of ids)
       {

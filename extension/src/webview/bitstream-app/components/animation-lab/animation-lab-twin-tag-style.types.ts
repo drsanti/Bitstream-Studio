@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { TWIN_TAG_DEFAULT_SIZE_SCALE } from "./animation-lab-constants.js";
 import type { AnimationLabTwinCss3dHiresMode } from "./animation-lab-twin-graphics.js";
 import { resolveTwinTagGraphicsFromGlobal } from "./animation-lab-twin-graphics.js";
 import {
@@ -58,12 +59,20 @@ export type AnimationLabTwinTagComponentStyle = {
 export type AnimationLabTwinTagStyle = AnimationLabTwinTagGlobalStyle &
   AnimationLabTwinTagComponentStyle;
 
-export const DEFAULT_TWIN_TAG_WIDTH_PX = 120;
+const S = TWIN_TAG_DEFAULT_SIZE_SCALE;
+
+export const DEFAULT_TWIN_TAG_WIDTH_PX = 120 * S;
 export const DEFAULT_TWIN_TAG_MIN_HEIGHT_PX = 0;
-export const DEFAULT_TWIN_TAG_WORLD_SCALE = 0.0028;
-export const DEFAULT_TWIN_TAG_TITLE_FONT_PX = 11;
-export const DEFAULT_TWIN_TAG_STATUS_FONT_PX = 9;
-export const DEFAULT_TWIN_TAG_SIGNAL_FONT_PX = 10;
+export const DEFAULT_TWIN_TAG_WORLD_SCALE = 0.0028 * S;
+export const DEFAULT_TWIN_TAG_TITLE_FONT_PX = 11 * S;
+export const DEFAULT_TWIN_TAG_STATUS_FONT_PX = 9 * S;
+export const DEFAULT_TWIN_TAG_SIGNAL_FONT_PX = 10 * S;
+
+export const TWIN_TAG_WIDTH_PX_MAX = 280 * S;
+export const TWIN_TAG_TITLE_FONT_PX_MAX = 18 * S;
+export const TWIN_TAG_STATUS_FONT_PX_MAX = 14 * S;
+export const TWIN_TAG_SIGNAL_FONT_PX_MAX = 14 * S;
+export const TWIN_TAG_WORLD_SCALE_MAX = 0.02 * S;
 export const DEFAULT_TWIN_TAG_BORDER_COLOR = "#52525b";
 export const DEFAULT_TWIN_TAG_BACKGROUND_COLOR = "rgba(9, 9, 11, 0.82)";
 export const DEFAULT_TWIN_TAG_TEXT_COLOR = "#f4f4f5";
@@ -108,12 +117,32 @@ export function resolveTwinTagGlobalStyle(
   >
 > {
   return {
-    widthPx: clampPx(override?.widthPx, 72, 280, DEFAULT_TWIN_TAG_WIDTH_PX),
+    widthPx: clampPx(override?.widthPx, 72, TWIN_TAG_WIDTH_PX_MAX, DEFAULT_TWIN_TAG_WIDTH_PX),
     minHeightPx: clampPx(override?.minHeightPx, 0, 200, DEFAULT_TWIN_TAG_MIN_HEIGHT_PX),
-    worldScale: clampNum(override?.worldScale, 0.001, 0.02, DEFAULT_TWIN_TAG_WORLD_SCALE),
-    titleFontPx: clampPx(override?.titleFontPx, 8, 18, DEFAULT_TWIN_TAG_TITLE_FONT_PX),
-    statusFontPx: clampPx(override?.statusFontPx, 7, 14, DEFAULT_TWIN_TAG_STATUS_FONT_PX),
-    signalFontPx: clampPx(override?.signalFontPx, 7, 14, DEFAULT_TWIN_TAG_SIGNAL_FONT_PX),
+    worldScale: clampNum(
+      override?.worldScale,
+      0.001,
+      TWIN_TAG_WORLD_SCALE_MAX,
+      DEFAULT_TWIN_TAG_WORLD_SCALE,
+    ),
+    titleFontPx: clampPx(
+      override?.titleFontPx,
+      8,
+      TWIN_TAG_TITLE_FONT_PX_MAX,
+      DEFAULT_TWIN_TAG_TITLE_FONT_PX,
+    ),
+    statusFontPx: clampPx(
+      override?.statusFontPx,
+      7,
+      TWIN_TAG_STATUS_FONT_PX_MAX,
+      DEFAULT_TWIN_TAG_STATUS_FONT_PX,
+    ),
+    signalFontPx: clampPx(
+      override?.signalFontPx,
+      7,
+      TWIN_TAG_SIGNAL_FONT_PX_MAX,
+      DEFAULT_TWIN_TAG_SIGNAL_FONT_PX,
+    ),
   };
 }
 

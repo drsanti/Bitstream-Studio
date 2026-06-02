@@ -9,5 +9,8 @@ export const ANIMATION_LAB_STORAGE_PREFIX = "bitstream:animation-lab";
  */
 export const TWIN_TAG_CSS3D_HIRES_SCALE = 2;
 
+/** Default 3D tag card / typography sizing multiplier (2026-06 — booth readability). */
+export const TWIN_TAG_DEFAULT_SIZE_SCALE = 3;
+
 /** Fired when catalog / asset browse requests a model switch in the lab viewport. */
 export const ANIMATION_LAB_OPEN_MODEL_EVENT = "bitstream:animation-lab-open-model";

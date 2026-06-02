@@ -4,7 +4,7 @@ This document explains **where the T3D extension stores files** when you use the
 
 **Scope:** **3D models** (e.g. GLB), **textures**, and related **content** downloaded or synced by those features. It does **not** cover **bundled dependencies** under `src/assets` or `out/webview/assets` (physics engines, WASM, etc.)—those ship with the extension and are not user download directories.
 
-For how the **browser + WebSocket bridge** reaches Node for downloads, see [BRIDGE.md](./BRIDGE.md). For how **disk layout, logical web paths, and URLs** fit together, see [ASSETS_LOCATION_SYSTEM.md](./ASSETS_LOCATION_SYSTEM.md). For a **compact directory checklist** (all roots in one place), see [Global asset directories](./GLOBAL_ASSET_DIRECTORIES.md).
+For how the **browser + WebSocket bridge** reaches Node for downloads, see [BRIDGE.md](./BRIDGE.md). For how **disk layout, logical web paths, and URLs** fit together, see [ASSETS_LOCATION_SYSTEM.md](./ASSETS_LOCATION_SYSTEM.md). For a **compact directory checklist** (all roots in one place), see [Global asset directories](./GLOBAL_ASSET_DIRECTORIES.md). For the planned **unified startup sequence** (assets, network, COM, handshake), see [Startup checklist design](./STARTUP_CHECKLIST_DESIGN.md).
 
 ## Table of contents
 
@@ -117,7 +117,7 @@ See [BRIDGE.md](./BRIDGE.md) for broker wiring and security notes.
 
 - **User content** (downloaded models / synced GitHub files): folders start **empty** until you download or sync.
 - **Bundled** engine assets still exist from first launch; they are not the same as these directories.
-- **VS Code (first install):** opening a preview that depends on large GLB files can show a **Preview model not found** prompt. Use **Open Free Loader** and sync the free pack first. By default, files are written under `<globalStorageUri>/assets/free/`.
+- **VS Code (first install):** on startup the shell runs an **asset bootstrap** check (default PSOC GLB + Bridge cubemap under `<globalStorageUri>/assets/free/`). If files are missing, a blocking overlay offers **Download required assets** (subset GitHub sync) when the network probe succeeds; otherwise use **Open Free Assets Loader** or **Asset Manager → Actions**. After sync, use **Retry check**. Large GLBs are not bundled in the VSIX (see `.vscodeignore`).
 - **Browser dev:** start the **bridge** (e.g. `dev:with-model-loader`); the location line fills after the WebSocket connects and **`default-path`** succeeds. If the bridge is down, list/sync will fail and the path may stay empty—fix the connection first.
 - Use **Free GitHub assets** → **Fetch list** / **Refresh list** to load the remote index; then download all or selected rows.
 - After free-pack sync completes, restart / reload the app if needed. The webview should then load `models/psoc-e84-ai/psoc-e84-ai.glb` from the free mirror without requiring `src/assets/models/**` in the VSIX.

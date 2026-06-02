@@ -13,6 +13,7 @@ import {
   ROTATION_PREVIEW_IBL_OFF_ENV_INTENSITY_FRAC,
   SCENE_BACKGROUND_FALLBACK_HEX,
 } from "./rotationPreviewConstants.js";
+import { notifyMissingCubemapPreset } from "../../../utils/notifyMissingFreePackAsset.js";
 
 /**
  * Loads a T3D cubemap for `scene.background` and **always** `scene.environment` when the texture
@@ -107,6 +108,11 @@ export function RotationPreviewSceneEnvironment(props: {
           scene.background = new THREE.Color(SCENE_BACKGROUND_FALLBACK_HEX);
           scene.environment = null;
           scene.environmentIntensity = previousEnvironmentIntensity;
+          notifyMissingCubemapPreset({
+            presetTitle: preset.title,
+            presetPath: preset.path,
+            exampleUrl: urls[0] ?? preset.path,
+          });
         }
       },
     );

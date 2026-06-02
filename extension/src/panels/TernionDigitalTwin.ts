@@ -28,6 +28,7 @@ import { handleAiBridgeWebviewMessage } from "../ai-bridge-handle";
 import { handleCaCertInstall } from "../ca-cert-handle";
 import { handleModelDownloaderWebviewMessage } from "../model-downloader-handle";
 import { resolveGithubTokenForAssetSync } from "../githubTokenForAssetSync";
+import { checkBootstrapAssetsOnDisk } from "../asset-bootstrap/checkBootstrapAssetsOnDisk";
 import { getNonce } from "../webview-util";
 import { getAiBridgePairingToken } from "../ai-bridge-pairing";
 import type { TernionWebviewEntry } from "../webview/ternion-webview-entry";
@@ -213,7 +214,9 @@ export class TernionDigitalTwin {
         break;
 
       case "reload-webview":
-        // Reload the webview by regenerating the HTML content
+        void vscode.window.showInformationMessage(
+          "Reloading Bitstream Studio to apply downloaded assets…",
+        );
         this._panel.webview.html = this._getHtmlForWebview();
         break;
 
@@ -224,6 +227,14 @@ export class TernionDigitalTwin {
       case "toggle-dev-tools":
         vscode.commands.executeCommand("workbench.action.toggleDevTools");
         break;
+
+      case "execute-extension-command": {
+        const commandId = (message as { commandId?: string }).commandId;
+        if (typeof commandId === "string" && commandId.trim()) {
+          void vscode.commands.executeCommand(commandId.trim());
+        }
+        break;
+      }
 
       case "ca-cert-install": {
         handleCaCertInstall(this._panel, message);
@@ -439,6 +450,10 @@ export class TernionDigitalTwin {
               },
             });
             if (result.errors.length === 0) {
+              await this._context.globalState.update(
+                "ternion.freePack.syncedFileCount",
+                result.downloaded,
+              );
               void vscode.window.showInformationMessage(
                 `Free assets synced: ${result.downloaded} file(s) → ${result.outputRootDir}`,
               );
@@ -455,6 +470,59 @@ export class TernionDigitalTwin {
               error: errMsg,
             });
             void vscode.window.showErrorMessage(`Free assets sync failed: ${errMsg}`);
+          }
+        })();
+        break;
+      }
+
+      case "asset-bootstrap-check": {
+        const requestId = message.requestId ?? randomUUID();
+        void (async () => {
+          try {
+            const freeRootFs = getFreeGithubMirrorRootUri(this._context).fsPath;
+            const localRootFs = path.join(
+              this._context.extensionPath,
+              "out",
+              "webview",
+              GlobalConfig.LOCAL_ASSETS_BASE_URI,
+            );
+            const onlineAssetsBaseUrl = this._context.globalState.get(
+              "ternion-base-url",
+              GlobalConfig.ONLINE_ASSETS_BASE_URI,
+            ) as string;
+            const syncedFileCountExpected = this._context.globalState.get<number>(
+              "ternion.freePack.syncedFileCount",
+              0,
+            );
+            const check = await checkBootstrapAssetsOnDisk({
+              freeRootFs,
+              localRootFs,
+              onlineAssetsBaseUrl,
+              syncedFileCountExpected,
+            });
+            this._panel.webview.postMessage({
+              type: "asset-bootstrap-check-response",
+              requestId,
+              assetBootstrapCheck: {
+                freeRootFs: check.freeRootFs,
+                localRootFs: check.localRootFs,
+                allPresentOnDisk: check.allPresentOnDisk,
+                internetReachable: check.internetReachable,
+                internetProbeUrl: check.internetProbeUrl,
+                rows: check.rows,
+                freePackRemoteFileCount: check.freePackRemoteFileCount,
+                freePackLocalFileCount: check.freePackLocalFileCount,
+                freePackMissingSample: check.freePackMissingSample,
+                freePackIndexUnavailable: check.freePackIndexUnavailable,
+              },
+            });
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            this._panel.webview.postMessage({
+              type: "asset-bootstrap-check-response",
+              requestId,
+              error: errMsg,
+            });
           }
         })();
         break;

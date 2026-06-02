@@ -36,8 +36,11 @@ Runbook: **[`../HOW_TO_RUN.md`](../HOW_TO_RUN.md)**. Agent handoff: **[`../../AG
 | [`ASSETS_LOCATION_SYSTEM.md`](./ASSETS_LOCATION_SYSTEM.md) | Path and URL mapping |
 | [`GLOBAL_ASSET_DIRECTORIES.md`](./GLOBAL_ASSET_DIRECTORIES.md) | Directory checklist |
 | [`MANAGING_DOWNLOADED_ASSETS.md`](./MANAGING_DOWNLOADED_ASSETS.md) | Backups and layout |
+| [`DUAL_HOST_RUNTIME.md`](./DUAL_HOST_RUNTIME.md) | VS Code webview vs browser; bridge bootstrap; **Open in browser** |
+| [`STARTUP_CHECKLIST_DESIGN.md`](./STARTUP_CHECKLIST_DESIGN.md) | First-run setup checklist (assets + link) |
 | [`ASSET_STORAGE_DIAGRAM.md`](./ASSET_STORAGE_DIAGRAM.md) | Storage diagrams |
 | [`GLOBAL_DIRECTORIES_PANEL_DESIGN.md`](./GLOBAL_DIRECTORIES_PANEL_DESIGN.md) | Settings UI design |
+| [`STARTUP_CHECKLIST_DESIGN.md`](./STARTUP_CHECKLIST_DESIGN.md) | First-run / link setup checklist (design + phases) |
 
 ## Sensor Studio (MVP1 node editor)
 

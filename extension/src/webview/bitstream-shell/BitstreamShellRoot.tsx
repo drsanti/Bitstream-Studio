@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import { useBitstreamShellQuickCommands } from "./hooks/useBitstreamShellQuickCommands.js";
+import { StartupChecklistGate } from "../startup-checklist/StartupChecklistGate.js";
 import {
   useGlassModalHamburgerMenu,
 } from "../ui/components/common/index.js";
@@ -704,6 +705,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
         }}
       >
         <ConnectionPanelActionsProvider value={connectionPanelActions}>
+        <StartupChecklistGate>
         <BitstreamAppControlContext.Provider
           value={{
             getSensorConfig,
@@ -858,6 +860,7 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
         onReconnectTelemetry={handleReconnectTelemetry}
       />
         </BitstreamAppControlContext.Provider>
+        </StartupChecklistGate>
         </ConnectionPanelActionsProvider>
       </BitstreamTransportActionsProvider>
     </div>

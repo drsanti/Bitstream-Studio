@@ -3,7 +3,10 @@ import {
   type AnimationLabTwinLocale,
 } from "./animation-lab-twin-i18n.js";
 import type { AnimationLabTwinTagIconPlacement } from "./animation-lab-twin-tag-icons.js";
+import { TWIN_TAG_DEFAULT_SIZE_SCALE } from "./animation-lab-constants.js";
 import type { AnimationLabTwinTagGlobalStyle } from "./animation-lab-twin-tag-style.types.js";
+
+const S = TWIN_TAG_DEFAULT_SIZE_SCALE;
 
 export type AnimationLabTwinTagPresetId =
   | "industrial-hud"
@@ -43,11 +46,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-industrial-hud",
     iconPlacement: "leading",
     globalDefaults: {
-      widthPx: 148,
+      widthPx: 148 * S,
       minHeightPx: 0,
-      titleFontPx: 11,
-      statusFontPx: 9,
-      signalFontPx: 10,
+      titleFontPx: 11 * S,
+      statusFontPx: 9 * S,
+      signalFontPx: 10 * S,
     },
   },
   {
@@ -58,11 +61,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-minimal-glass",
     iconPlacement: "leading",
     globalDefaults: {
-      widthPx: 136,
+      widthPx: 136 * S,
       minHeightPx: 0,
-      titleFontPx: 11,
-      statusFontPx: 9,
-      signalFontPx: 10,
+      titleFontPx: 11 * S,
+      statusFontPx: 9 * S,
+      signalFontPx: 10 * S,
     },
   },
   {
@@ -73,11 +76,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-bracket-tactical",
     iconPlacement: "corner",
     globalDefaults: {
-      widthPx: 152,
+      widthPx: 152 * S,
       minHeightPx: 0,
-      titleFontPx: 11,
-      statusFontPx: 8,
-      signalFontPx: 10,
+      titleFontPx: 11 * S,
+      statusFontPx: 8 * S,
+      signalFontPx: 10 * S,
     },
   },
   {
@@ -88,11 +91,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-compact-chip",
     iconPlacement: "leading",
     globalDefaults: {
-      widthPx: 112,
+      widthPx: 112 * S,
       minHeightPx: 0,
-      titleFontPx: 9,
-      statusFontPx: 7,
-      signalFontPx: 9,
+      titleFontPx: 9 * S,
+      statusFontPx: 7 * S,
+      signalFontPx: 9 * S,
     },
   },
   {
@@ -103,11 +106,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-high-contrast",
     iconPlacement: "leading",
     globalDefaults: {
-      widthPx: 156,
+      widthPx: 156 * S,
       minHeightPx: 0,
-      titleFontPx: 12,
-      statusFontPx: 10,
-      signalFontPx: 11,
+      titleFontPx: 12 * S,
+      statusFontPx: 10 * S,
+      signalFontPx: 11 * S,
     },
   },
   {
@@ -118,11 +121,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-amber-phosphor",
     iconPlacement: "leading",
     globalDefaults: {
-      widthPx: 144,
+      widthPx: 144 * S,
       minHeightPx: 0,
-      titleFontPx: 11,
-      statusFontPx: 9,
-      signalFontPx: 10,
+      titleFontPx: 11 * S,
+      statusFontPx: 9 * S,
+      signalFontPx: 10 * S,
     },
   },
   {
@@ -133,11 +136,11 @@ export const ANIMATION_LAB_TWIN_TAG_PRESETS: AnimationLabTwinTagPresetDef[] = [
     presetClass: "animation-lab-twin-css3d-tag--preset-wireframe-outline",
     iconPlacement: "leading",
     globalDefaults: {
-      widthPx: 140,
+      widthPx: 140 * S,
       minHeightPx: 0,
-      titleFontPx: 10,
-      statusFontPx: 8,
-      signalFontPx: 10,
+      titleFontPx: 10 * S,
+      statusFontPx: 8 * S,
+      signalFontPx: 10 * S,
     },
   },
 ];

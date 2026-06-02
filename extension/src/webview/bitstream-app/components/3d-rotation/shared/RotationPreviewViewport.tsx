@@ -39,6 +39,11 @@ import {
   RotationPreviewScene,
   type RotationPreviewSceneProps,
 } from "./RotationPreviewScene.js";
+import { GlbLoadErrorBoundary } from "./GlbLoadErrorBoundary.js";
+import {
+  notifyMissingGlbPreviewAsset,
+  notifyWebGlContextLost,
+} from "../../../utils/notifyMissingFreePackAsset.js";
 import {
   ROTATION_PREVIEW_CAMERA_POSITION,
   ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE,
@@ -467,21 +472,37 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE;
           gl.outputColorSpace = THREE.SRGBColorSpace;
+          gl.domElement.addEventListener("webglcontextlost", (event) => {
+            event.preventDefault();
+            notifyWebGlContextLost();
+          });
         }}
       >
-        <Suspense fallback={null}>
-          <RotationPreviewScene
-            {...scene}
-            previewMeshGlbUrl={previewMeshGlbUrl}
-            showGrid={showGrid}
-            showBackgroundTexture={showBackgroundTexture}
-            useCubemapIbl={useCubemapIbl}
-            environmentPresetIndex={environmentPresetIndex}
-            orientationMappingMode={orientationMappingMode}
-            orientationSlerpEnabled={slerpEnabled}
-          />
-          <RenderFpsReporter onFps={setRenderFps} />
-        </Suspense>
+        <GlbLoadErrorBoundary
+          resetKey={previewMeshGlbUrl}
+          shortLabel={previewMeshGlbMeta.label}
+          onError={() => {
+            notifyMissingGlbPreviewAsset({
+              url: previewMeshGlbUrl,
+              label: previewMeshGlbMeta.label,
+              dedupeKey: previewMeshGlbMeta.dedupeKey || `rotation:${previewMeshGlbUrl}`,
+            });
+          }}
+        >
+          <Suspense fallback={null}>
+            <RotationPreviewScene
+              {...scene}
+              previewMeshGlbUrl={previewMeshGlbUrl}
+              showGrid={showGrid}
+              showBackgroundTexture={showBackgroundTexture}
+              useCubemapIbl={useCubemapIbl}
+              environmentPresetIndex={environmentPresetIndex}
+              orientationMappingMode={orientationMappingMode}
+              orientationSlerpEnabled={slerpEnabled}
+            />
+            <RenderFpsReporter onFps={setRenderFps} />
+          </Suspense>
+        </GlbLoadErrorBoundary>
       </Canvas>
       <div className="pointer-events-auto absolute right-2 top-2 z-10 flex flex-row-reverse items-center gap-1">
         <button

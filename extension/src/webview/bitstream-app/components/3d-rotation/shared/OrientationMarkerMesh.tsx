@@ -1,15 +1,7 @@
 import { useFrame } from "@react-three/fiber";
-import {
-  Component,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  type ReactNode,
-} from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { FusionEulerHundredths } from "./bmi270FusionExtract.js";
-import { GlbMissingTesaiotFallback } from "./GlbMissingTesaiotFallback.js";
 import type { OrientationPreviewMappingMode } from "./orientationPreviewMapping.js";
 import {
   ORIENTATION_PREVIEW_MAPPING_DEFAULT,
@@ -29,32 +21,8 @@ import {
   QUAT_JUMP_SNAP_RAD,
 } from "./rotationPreviewConstants.js";
 import { resolveDefaultPreviewMeshGlbUrl } from "./resolveWebviewModelAssetUrl.js";
-import { usePreviewMeshMissingUiStore } from "../../../state/previewMeshMissingUi.store.js";
-
-class PsocGlbErrorBoundary extends Component<
-  { children: ReactNode; fallback: ReactNode; resetKey: string },
-  { hasError: boolean }
-> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError(): { hasError: boolean } {
-    return { hasError: true };
-  }
-
-  override componentDidUpdate(prevProps: { resetKey: string }): void {
-    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
-      this.setState({ hasError: false });
-    }
-  }
-
-  override componentDidCatch(): void {
-    usePreviewMeshMissingUiStore.getState().notifyGlbLoadFailed();
-  }
-
-  render() {
-    return this.state.hasError ? this.props.fallback : this.props.children;
-  }
-}
+import { notifyMissingGlbPreviewAsset } from "../../../utils/notifyMissingFreePackAsset.js";
+import { GlbLoadErrorBoundary } from "./GlbLoadErrorBoundary.js";
 
 type BodyArrowArgs = [
   THREE.Vector3,
@@ -232,17 +200,18 @@ export function OrientationMarkerMesh(props: {
       <arrowHelper args={bodyAxisArrowArgs.y} />
       <arrowHelper args={bodyAxisArrowArgs.z} />
       <Suspense fallback={null}>
-        <PsocGlbErrorBoundary
-          key={resolvedGlbUrl}
+        <GlbLoadErrorBoundary
           resetKey={resolvedGlbUrl}
-          fallback={
-            <Suspense fallback={null}>
-              <GlbMissingTesaiotFallback />
-            </Suspense>
-          }
+          shortLabel="Preview model"
+          onError={() => {
+            notifyMissingGlbPreviewAsset({
+              url: resolvedGlbUrl,
+              dedupeKey: `rotation-body:${resolvedGlbUrl}`,
+            });
+          }}
         >
           <RotationPreviewBodyGlb url={resolvedGlbUrl} />
-        </PsocGlbErrorBoundary>
+        </GlbLoadErrorBoundary>
       </Suspense>
     </group>
   );

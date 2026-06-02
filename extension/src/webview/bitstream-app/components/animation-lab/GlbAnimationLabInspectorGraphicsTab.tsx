@@ -26,6 +26,11 @@ import {
   DEFAULT_TWIN_TAG_GLOBAL_PATCH,
   resolveTwinTagGlobalStyle,
   resolveTwinTagStyle,
+  TWIN_TAG_SIGNAL_FONT_PX_MAX,
+  TWIN_TAG_STATUS_FONT_PX_MAX,
+  TWIN_TAG_TITLE_FONT_PX_MAX,
+  TWIN_TAG_WIDTH_PX_MAX,
+  TWIN_TAG_WORLD_SCALE_MAX,
 } from "./animation-lab-twin-tag-style.types.js";
 import { GlbAnimationLabInspectorTwinLocaleField } from "./GlbAnimationLabInspectorTwinLocaleField.js";
 import { useGlbAnimationLabTwin } from "./glb-animation-lab-twin-context.js";
@@ -150,7 +155,7 @@ export function GlbAnimationLabInspectorGraphicsTab() {
           name="Card width"
           value={sharedResolved.widthPx}
           min={72}
-          max={280}
+          max={TWIN_TAG_WIDTH_PX_MAX}
           step={4}
           unit="px"
           throttleMs={80}
@@ -174,8 +179,8 @@ export function GlbAnimationLabInspectorGraphicsTab() {
           name="3D world scale"
           value={sharedResolved.worldScale}
           min={0.001}
-          max={0.012}
-          step={0.0002}
+          max={TWIN_TAG_WORLD_SCALE_MAX}
+          step={0.0004}
           throttleMs={80}
           valueFormatter={(v) => v.toFixed(4)}
           className="px-0"
@@ -186,7 +191,7 @@ export function GlbAnimationLabInspectorGraphicsTab() {
           name="Title font"
           value={sharedResolved.titleFontPx}
           min={8}
-          max={18}
+          max={TWIN_TAG_TITLE_FONT_PX_MAX}
           step={1}
           unit="px"
           throttleMs={80}
@@ -198,7 +203,7 @@ export function GlbAnimationLabInspectorGraphicsTab() {
           name="Status font"
           value={sharedResolved.statusFontPx}
           min={7}
-          max={14}
+          max={TWIN_TAG_STATUS_FONT_PX_MAX}
           step={1}
           unit="px"
           throttleMs={80}
@@ -210,7 +215,7 @@ export function GlbAnimationLabInspectorGraphicsTab() {
           name="Signal font"
           value={sharedResolved.signalFontPx}
           min={7}
-          max={14}
+          max={TWIN_TAG_SIGNAL_FONT_PX_MAX}
           step={1}
           unit="px"
           throttleMs={80}

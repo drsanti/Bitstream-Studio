@@ -17,6 +17,7 @@ import type {
 } from "../animation-lab-twin-tag-icons.js";
 import { twinTagHealthIconClass } from "../animation-lab-twin-health.js";
 import type { AnimationLabTwinHealth } from "../digital-twin.types.js";
+import { TWIN_TAG_DEFAULT_SIZE_SCALE } from "../animation-lab-constants.js";
 import type { AnimationLabTwinTagPresetId } from "../animation-lab-twin-tag-presets.js";
 import { AnimationLabTwinTagHudGlyph } from "./animation-lab-twin-tag-glyphs.js";
 
@@ -40,13 +41,14 @@ const ANIMATION_CLASS: Record<AnimationLabTwinTagIconAnimation, string> = {
 };
 
 function iconSizePx(presetId: AnimationLabTwinTagPresetId, compact?: boolean): number {
+  const s = TWIN_TAG_DEFAULT_SIZE_SCALE;
   if (compact || presetId === "compact-chip") {
-    return 12;
+    return 12 * s;
   }
   if (presetId === "minimal-glass") {
-    return 14;
+    return 14 * s;
   }
-  return 16;
+  return 16 * s;
 }
 
 export function AnimationLabTwinTagIcon(props: {
