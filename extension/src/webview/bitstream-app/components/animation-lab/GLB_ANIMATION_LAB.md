@@ -35,7 +35,23 @@ Legacy engine (`mixerEngine: legacy`) keeps Phase A transport without trim/fade.
 
 ## Operational digital twin (Phase A + B)
 
-Sidebar **Machine twin** panel: subsystem health, simulated motor/sensor parameters, clip-linked selection. Viewport **CSS3D tags** on anchors (toolbar **Tags** / **Alerts only**). Catalog **`digitalTwin`** metadata or clip-name heuristics for multi-actuator GLBs. Spec: **`extension/docs/GLB_ANIMATION_LAB_DIGITAL_TWIN.md`**.
+Sidebar **Machine** panel: subsystem health, simulated motor/sensor parameters, clip-linked selection. Viewport **CSS3D tags** on anchors — toolbar **Tags** (quick hide/show) + **Filter** menu (**All subsystems**, **Issues**, **Warnings & errors**, **Errors only**, **Hidden**); selected subsystem stays visible under filtered modes. **Environment map** menu (globe) applies cubemap background + IBL in the lab (not tied to rotation preview “hide background”). Catalog **`digitalTwin`** metadata or clip-name heuristics for multi-actuator GLBs. Spec: **`extension/docs/GLB_ANIMATION_LAB_DIGITAL_TWIN.md`**.
+
+## Inspector tabs (showcase)
+
+| Tab | Role |
+|-----|------|
+| **Playback** | Transport, playback mode, loop, clip list |
+| **Machine** | Digital twin health + subsystem selection |
+| **Live map** | Sensor ↔ signal wiring for 3D tag cards |
+| **Tag style** | Global CSS3D preset, sharpness, fonts, icons |
+| **Components** | Per-subsystem tag title, offsets, visibility, colors |
+
+Tab labels use **`TRN_INSPECTOR_TAB_*`** underline bar (Sensor Studio style); long labels truncate with ellipsis.
+
+## Playback defaults (animated GLBs)
+
+On load when clips bind: **All at once** (`parallel-all`) + **Loop**, auto **Play** (unless catalog `recommendedPlaybackMode` overrides). Persisted in `animation-lab-persistence.ts`.
 
 ## File layout
 
@@ -46,6 +62,7 @@ components/animation-lab/
   glb-animation-lab.types.ts
   animation-lab-constants.ts
   animation-lab-persistence.ts
+  animation-lab-twin-tag-filter.ts
   resolve-animation-lab-mesh-fetch-url.ts
   glb-animation-lab-playback.ts
   build-animation-lab-drives.ts

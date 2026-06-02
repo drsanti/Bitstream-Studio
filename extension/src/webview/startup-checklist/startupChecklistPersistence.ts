@@ -1,5 +1,5 @@
 /** Bump when required setup steps change — invalidates “setup complete” skip. */
-export const STARTUP_CHECKLIST_VERSION = 2;
+export const STARTUP_CHECKLIST_VERSION = 3;
 
 const COMPLETED_VERSION_KEY = "ternion.startupChecklist.completedVersion";
 const SESSION_DISMISS_KEY = "ternion.startupChecklist.sessionDismissed";

@@ -16,6 +16,10 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const extensionPackageVersion = JSON.parse(
+  readFileSync(resolve(__dirname, "package.json"), "utf8"),
+).version as string;
+
 // Bundled extension assets (free pack, tesaiot Model Loader samples)
 const localAssetsPath = resolve(__dirname, "src/assets");
 const freeTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.freeTextures);
@@ -504,6 +508,7 @@ export default defineConfig({
     ],
   },
   define: {
+    "import.meta.env.VITE_BITSTREAM_STUDIO_VERSION": JSON.stringify(extensionPackageVersion),
     "import.meta.env.VITE_MQTT_BROKER_URL": JSON.stringify(
       process.env.VITE_MQTT_BROKER_URL || "ws://localhost:8083",
     ),

@@ -11,6 +11,8 @@ import { TRNButton } from "../ui/TRN/TRNButton.js";
 
 const C = ternionFreeAssetPackCopy.checklist;
 
+const ACTION_BTN_CLASS = "whitespace-nowrap";
+
 export function StartupChecklistHandshakeStepBody(props: {
   rawError: string | null | undefined;
   onFocusSerialPorts: () => void;
@@ -74,30 +76,40 @@ export function StartupChecklistHandshakeStepBody(props: {
         </p>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        <TRNButton size="compact" selected onClick={() => void retryHandshake()}>
-          Retry handshake
+      <div className="grid grid-cols-2 gap-2">
+        <TRNButton
+          size="compact"
+          selected
+          className={ACTION_BTN_CLASS}
+          hint={C.handshakeRetryHint}
+          onClick={() => void retryHandshake()}
+        >
+          {C.handshakeRetry}
         </TRNButton>
         <TRNButton
           size="compact"
+          className={ACTION_BTN_CLASS}
           onClick={handleChoosePort}
           hint="Expands Board connection to pick or open a COM port."
         >
-          Choose port
+          {C.handshakeChoosePort}
         </TRNButton>
         <TRNButton
           size="compact"
+          className={ACTION_BTN_CLASS}
           disabled={switchingSimulator}
+          hint={C.handshakeSimulatorOnlyHint}
           onClick={() => void continueSimulatorOnly()}
-          hint="Releases COM, switches telemetry to Simulator, and publishes the simulator route on the broker."
         >
-          {switchingSimulator ? C.handshakeSwitchingSimulator : "Continue in Simulator only"}
+          {switchingSimulator ? C.handshakeSwitchingSimulator : C.handshakeSimulatorOnly}
         </TRNButton>
         <TRNButton
           size="compact"
+          className={ACTION_BTN_CLASS}
+          hint={C.handshakeConnectionDetailsHint}
           onClick={() => useConnectionPanelStore.getState().openPanel("handshake")}
         >
-          Connection details
+          {C.handshakeConnectionDetails}
         </TRNButton>
       </div>
     </div>

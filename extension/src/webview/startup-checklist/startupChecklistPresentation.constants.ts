@@ -1,14 +1,11 @@
-/** Minimum time each step stays focused (visible “checking” beat) before advancing. */
-export const STARTUP_STEP_MIN_DWELL_MS = 400;
+/** Minimum time each step stays focused (ms) — UI floor even when checks finish instantly. */
+export const STARTUP_STEP_MIN_VISIBLE_MS = 250;
 
-/** Fade/slide-in before dwell. */
-export const STARTUP_STEP_ENTER_MS = 220;
+/** Brief pause after a step’s check settles, before the next card (ms). */
+export const STARTUP_STEP_PADDING_AFTER_MS = 250;
 
-/** Success transition before advancing to the next step. */
-export const STARTUP_STEP_COMPLETE_MS = 280;
+/** Poll interval while waiting for a step’s real check to finish (ms). */
+export const STARTUP_STEP_POLL_MS = 50;
 
-/** Gap between steps (artificial pacing when backend is fast). */
-export const STARTUP_STEP_GAP_MS = 280;
-
-/** Cap sequential walkthrough; then show truth immediately. */
-export const STARTUP_MAX_ORCHESTRATION_MS = 12_000;
+/** Safety cap per step if status stays active/pending (ms). */
+export const STARTUP_STEP_MAX_OPERATION_MS = 30_000;

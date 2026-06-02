@@ -37,8 +37,10 @@ export function BitstreamWebviewRoot()
 
   const landingRequested = landingVisible && activeSimulationId == null;
   const simulationRequested = activeSimulationId != null;
+  const appRequested = !landingRequested && !simulationRequested;
   const landingReady = useWebGLSurfaceReady(landingRequested);
   const simulationReady = useWebGLSurfaceReady(simulationRequested);
+  const appReady = useWebGLSurfaceReady(appRequested);
 
   const handleEnterWorkspace = useCallback(() =>
   {
@@ -76,9 +78,17 @@ export function BitstreamWebviewRoot()
       <WebGLRouteTransitionSplash label="Loading workspace…" />
     );
   }
+  else if (appRequested)
+  {
+    routeBody = appReady ? (
+      <BitstreamApp />
+    ) : (
+      <WebGLRouteTransitionSplash label="Opening workspace…" />
+    );
+  }
   else
   {
-    routeBody = <BitstreamApp />;
+    routeBody = null;
   }
 
   return (

@@ -2,6 +2,10 @@ import {
   ANIMATION_LAB_DEFAULT_MODEL_ID,
   ANIMATION_LAB_STORAGE_PREFIX,
 } from "./animation-lab-constants.js";
+import {
+  isAnimationLabTwinTagFilterMode,
+  type AnimationLabTwinTagFilterMode,
+} from "./animation-lab-twin-tag-filter.js";
 import type {
   GlbAnimationLabMixerEngine,
   GlbAnimationLabPlaybackMode,
@@ -38,6 +42,7 @@ const KEYS = {
   soloCrossFadeS: `${ANIMATION_LAB_STORAGE_PREFIX}:solo-cross-fade-s`,
   showTwinTags: `${ANIMATION_LAB_STORAGE_PREFIX}:twin-tags-visible`,
   twinTagsFaultsOnly: `${ANIMATION_LAB_STORAGE_PREFIX}:twin-tags-alerts-only`,
+  twinTagFilterMode: `${ANIMATION_LAB_STORAGE_PREFIX}:twin-tag-filter-mode`,
   inspectorPanelWidthPx: `${ANIMATION_LAB_STORAGE_PREFIX}:inspector-panel-width-px`,
 } as const;
 
@@ -62,7 +67,7 @@ export function readAnimationLabPlaybackMode(): GlbAnimationLabPlaybackMode {
   if (isStudioGlbAnimationPlaybackModeV1(raw)) {
     return raw;
   }
-  return "per-clip";
+  return "parallel-all";
 }
 
 export function persistAnimationLabPlaybackMode(mode: GlbAnimationLabPlaybackMode): void {
@@ -127,6 +132,45 @@ export function readAnimationLabTwinTagsFaultsOnly(): boolean | null {
 
 export function persistAnimationLabTwinTagsFaultsOnly(faultsOnly: boolean): void {
   writeRaw(KEYS.twinTagsFaultsOnly, faultsOnly ? "1" : "0");
+}
+
+export function readAnimationLabTwinTagFilterMode(): AnimationLabTwinTagFilterMode | null {
+  const raw = readRaw(KEYS.twinTagFilterMode);
+  if (raw != null && isAnimationLabTwinTagFilterMode(raw)) {
+    return raw;
+  }
+  const showTags = readAnimationLabShowTwinTags();
+  if (showTags === false) {
+    return "hidden";
+  }
+  const faultsOnly = readAnimationLabTwinTagsFaultsOnly();
+  if (faultsOnly === true) {
+    return "issues";
+  }
+  if (showTags === true || faultsOnly === false) {
+    return "all";
+  }
+  return null;
+}
+
+export function persistAnimationLabTwinTagFilterMode(
+  mode: AnimationLabTwinTagFilterMode,
+): void {
+  writeRaw(KEYS.twinTagFilterMode, mode);
+}
+
+export function hasAnimationLabTwinTagFilterPreference(): boolean {
+  const raw = readRaw(KEYS.twinTagFilterMode);
+  if (raw != null && isAnimationLabTwinTagFilterMode(raw)) {
+    return true;
+  }
+  if (readRaw(KEYS.showTwinTags) != null) {
+    return true;
+  }
+  if (readRaw(KEYS.twinTagsFaultsOnly) != null) {
+    return true;
+  }
+  return false;
 }
 
 export function readAnimationLabInspectorPanelWidthPx(): number {

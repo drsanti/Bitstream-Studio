@@ -252,7 +252,7 @@ export function GlbAnimationLabTwinMachinePanel() {
           </ul>
           {selected.glbAnchor != null ? (
             <TRNHintText tone="muted" className="mb-0 text-[10px] leading-snug">
-              Linked animation: {selected.glbAnchor}. Play in step 4 to stress this subsystem.
+              Linked animation: {selected.glbAnchor}. Use Play in the Playback tab to stress this subsystem.
             </TRNHintText>
           ) : null}
         </div>

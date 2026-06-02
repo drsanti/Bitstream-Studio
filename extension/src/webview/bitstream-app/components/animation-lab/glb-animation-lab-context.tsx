@@ -149,7 +149,7 @@ export function GlbAnimationLabProvider(props: {
   }, [runtime.clipNames]);
 
   useEffect(() => {
-    if (runtime.clipNames.length === 0 || props.dedupeKey.length === 0) {
+    if (runtime.boundActionCount === 0 || runtime.clipNames.length === 0) {
       return;
     }
     const applyKey = `${props.fetchUrl}::${props.dedupeKey}`;
@@ -158,22 +158,30 @@ export function GlbAnimationLabProvider(props: {
     }
     catalogHintsAppliedKeyRef.current = applyKey;
     const raw = resolveAnimationLabCatalogHints(props.dedupeKey);
-    if (raw == null) {
+    if (raw != null) {
+      const normalized = normalizeAnimationLabCatalogHints(raw, runtime.clipNames);
+      applyAnimationLabCatalogHints({
+        hints: normalized,
+        clipNames: runtime.clipNames,
+        setPlaybackMode,
+        setActiveClipName: setActiveClipNameWithCrossFade,
+        setClipOrder,
+      });
+      if (normalized.recommendedPlaybackMode == null) {
+        setPlaybackMode("parallel-all");
+      }
+      setCatalogHintsApplied(normalized);
+    } else {
       setCatalogHintsApplied(null);
-      return;
+      setPlaybackMode("parallel-all");
     }
-    const normalized = normalizeAnimationLabCatalogHints(raw, runtime.clipNames);
-    applyAnimationLabCatalogHints({
-      hints: normalized,
-      clipNames: runtime.clipNames,
-      setPlaybackMode,
-      setActiveClipName: setActiveClipNameWithCrossFade,
-      setClipOrder,
-    });
-    setCatalogHintsApplied(normalized);
+    setIsScrubbing(false);
+    setScrubTimeS(0);
+    setTransport("playing");
   }, [
     props.dedupeKey,
     props.fetchUrl,
+    runtime.boundActionCount,
     runtime.clipNames,
     setActiveClipNameWithCrossFade,
     setPlaybackMode,

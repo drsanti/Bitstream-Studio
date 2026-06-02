@@ -1,4 +1,5 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
+import { paletteShowsHardwareLivePreview } from "./palette-entry-meta.js";
 import { computeBmi270PinBundle } from "../../../../core/live/bmi270-pin-bundle";
 import {
   computeBmm350PinBundle,
@@ -484,6 +485,10 @@ export function computePalettePreview(
   latestByHint: HintMap,
   nowMs: number,
 ): PalettePreview {
+  if (!paletteShowsHardwareLivePreview(entry)) {
+    return { kind: "unavailable" };
+  }
+
   const ports = entry.outputPorts;
   if (ports != null && ports.length > 1) {
     return primarySensorBundlePreview(entry.id, latestByHint);

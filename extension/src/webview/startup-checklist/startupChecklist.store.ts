@@ -12,15 +12,18 @@ type StartupChecklistState = {
   panelOpen: boolean;
   openPanel: () => void;
   closePanel: () => void;
+  /** User closed the auto overlay (×). Persists setup-complete when requested. */
+  endOverlaySession: (options?: { markSetupComplete?: boolean }) => void;
   dismissForSession: () => void;
   markComplete: (options?: { force?: boolean }) => void;
   isMarkedComplete: () => boolean;
   isSessionDismissed: () => boolean;
   shouldAutoShowOverlay: (args: {
     environmentReady: boolean;
-    linkReady: boolean;
-    assetsBusy: boolean;
-    assetsNeedSetup: boolean;
+    /** Kept for call-site stability; first-run overlay no longer depends on link/assets flags. */
+    linkReady?: boolean;
+    assetsBusy?: boolean;
+    assetsNeedSetup?: boolean;
   }) => boolean;
 };
 
@@ -32,6 +35,16 @@ export const useStartupChecklistStore = create<StartupChecklistState>((set, get)
   },
 
   closePanel: () => {
+    set({ panelOpen: false });
+  },
+
+  endOverlaySession: (options) => {
+    if (options?.markSetupComplete) {
+      markStartupChecklistComplete();
+      clearStartupChecklistSessionDismissed();
+    } else {
+      writeStartupChecklistSessionDismissed();
+    }
     set({ panelOpen: false });
   },
 
@@ -53,29 +66,17 @@ export const useStartupChecklistStore = create<StartupChecklistState>((set, get)
 
   isSessionDismissed: () => readStartupChecklistSessionDismissed(),
 
-  shouldAutoShowOverlay: ({ environmentReady, linkReady, assetsBusy, assetsNeedSetup }) => {
+  shouldAutoShowOverlay: ({ environmentReady }) => {
     if (get().panelOpen) {
       return true;
     }
-    if (!environmentReady) {
-      return true;
-    }
-    if (assetsBusy || assetsNeedSetup) {
-      return true;
-    }
-    /**
-     * First-run overlay: stay visible until the user dismisses or markComplete runs
-     * (after the sequential walkthrough). Do not hide early when linkReady is already true.
-     */
-    if (!isStartupChecklistMarkedComplete() && !readStartupChecklistSessionDismissed()) {
-      return true;
-    }
-    if (linkReady && isStartupChecklistMarkedComplete()) {
+    if (readStartupChecklistSessionDismissed()) {
       return false;
     }
-    if (!linkReady && !readStartupChecklistSessionDismissed()) {
-      return true;
+    if (isStartupChecklistMarkedComplete()) {
+      return !environmentReady;
     }
-    return false;
+    // First run: keep overlay mounted until walkthrough + dismiss, even when all checks are already green.
+    return true;
   },
 }));

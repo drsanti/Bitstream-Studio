@@ -59,7 +59,7 @@ export function GlbAnimationLabInspectorGraphicsTab() {
     <div className="flex flex-col gap-3">
       <TRNHintText tone="muted" className="mb-0 text-[10px] leading-snug">
         Global look and CSS3D rendering for all viewport tags. Per-subsystem title, position,
-        and colors are on the Tags tab.
+        and colors are on the Components tab.
       </TRNHintText>
 
       <GlbAnimationLabInspectorTwinLocaleField />

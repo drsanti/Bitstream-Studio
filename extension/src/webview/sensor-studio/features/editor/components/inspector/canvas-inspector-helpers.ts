@@ -1,23 +1,44 @@
 import { resolveStudioNodeSourceId } from "../../../../core/device/resolve-studio-node-source-id";
 import type { SensorHealthStatus, StudioNode } from "../../store/flow-editor.store";
-import type { FlowCanvasEdgeRoutingStyle } from "../flow-canvas-ui-persistence";
+import type { FlowCanvasEdgeRoutingStyle, FlowCanvasGridSize } from "../flow-canvas-ui-persistence";
 
-export const CANVAS_GRID_SIZE_OPTIONS: { value: string; label: string }[] = [
-  { value: "12", label: "12 px" },
-  { value: "16", label: "16 px" },
-  { value: "20", label: "20 px" },
-  { value: "24", label: "24 px" },
-  { value: "32", label: "32 px" },
+export const CANVAS_GRID_SIZE_OPTIONS: {
+  value: FlowCanvasGridSize;
+  label: string;
+  hint: string;
+}[] = [
+  { value: 12, label: "12", hint: "Fine grid — 12 px snap and dot spacing." },
+  { value: 16, label: "16", hint: "Default grid — 16 px snap and dot spacing." },
+  { value: 20, label: "20", hint: "Medium grid — 20 px snap and dot spacing." },
+  { value: 24, label: "24", hint: "Coarse grid — 24 px snap and dot spacing." },
+  { value: 32, label: "32", hint: "Large grid — 32 px snap and dot spacing." },
 ];
 
 export const CANVAS_EDGE_ROUTING_OPTIONS: {
   value: FlowCanvasEdgeRoutingStyle;
   label: string;
+  hint: string;
 }[] = [
-  { value: "bezier", label: "Bezier (curved)" },
-  { value: "smoothstep", label: "Smooth step" },
-  { value: "step", label: "Step" },
-  { value: "straight", label: "Straight" },
+  {
+    value: "bezier",
+    label: "Bezier",
+    hint: "Curved wires (default React Flow bezier paths).",
+  },
+  {
+    value: "smoothstep",
+    label: "Smooth",
+    hint: "Rounded corners with smooth horizontal/vertical segments.",
+  },
+  {
+    value: "step",
+    label: "Step",
+    hint: "Orthogonal step paths with sharp corners.",
+  },
+  {
+    value: "straight",
+    label: "Straight",
+    hint: "Direct straight lines between ports.",
+  },
 ];
 
 export type CanvasSensorHealthSummary = {

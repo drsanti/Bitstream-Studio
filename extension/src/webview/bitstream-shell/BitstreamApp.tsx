@@ -1,8 +1,3 @@
-import React from "react";
-import {
-  readInitialBitstreamWorkspace,
-  useBitstreamWorkspaceModeStore,
-} from "../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { BitstreamShellMain } from "./BitstreamShellMain";
 
 /**
@@ -11,13 +6,11 @@ import { BitstreamShellMain } from "./BitstreamShellMain";
  * - Sensor Studio
  *
  * Can be mounted directly as `<BitstreamApp />` without the webview launcher/shell.
+ * Workspace is chosen on the dev landing page or via persisted host / URL / localStorage
+ * ({@link readInitialBitstreamWorkspace} at store init) — do not reset here on mount.
  */
 export function BitstreamApp()
 {
-  React.useEffect(() => {
-    useBitstreamWorkspaceModeStore.setState({ workspace: readInitialBitstreamWorkspace() });
-  }, []);
-
   return <BitstreamShellMain />;
 }
 

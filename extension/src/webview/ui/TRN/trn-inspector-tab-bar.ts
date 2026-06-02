@@ -1,13 +1,16 @@
 /** Horizontal tab bar shared by Node Inspector and Telemetry deck pane. */
 
 export const TRN_INSPECTOR_TAB_BAR_WRAP_CLASS =
-  "nodrag nopan nowheel shrink-0 border-b border-zinc-800/70 pt-1.5 pb-0";
+  "nodrag nopan nowheel min-w-0 w-full shrink-0 border-b border-zinc-800/70 pt-1.5 pb-0";
 
 export const TRN_INSPECTOR_TAB_LIST_CLASS =
-  "inline-flex w-full gap-0.5 border-0 bg-transparent p-0";
+  "inline-flex min-w-0 w-full gap-0.5 border-0 bg-transparent p-0";
 
 export const TRN_INSPECTOR_TAB_TRIGGER_CLASS =
-  "inline-flex flex-1 items-center justify-center gap-1.5 rounded-t-md rounded-b-none border-b-0 px-2 py-1.5 text-[11px] font-medium tracking-wide";
+  "inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 overflow-hidden rounded-t-md rounded-b-none border-b-0 px-2 py-1.5 text-[11px] font-medium tracking-wide";
+
+/** Single-line tab label; pair with {@link TRN_INSPECTOR_TAB_TRIGGER_CLASS}. */
+export const TRN_INSPECTOR_TAB_LABEL_CLASS = "min-w-0 truncate";
 
 /** Selected inspector tab — emerald (Node + Canvas inspector). */
 export const TRN_INSPECTOR_TAB_ACTIVE_CLASS =

@@ -16,8 +16,18 @@ import { useEffect, useState } from "react";
 /** Epoch ms when the most recent WebGL surface finished unmount cleanup. */
 let lastWebglTeardownAt = 0;
 
-/** Minimum quiet period before mounting the next Canvas (landing ↔ sim). */
-const WEBGL_MOUNT_QUIET_MS = 80;
+/** Minimum quiet period before mounting the next Canvas (landing ↔ app / sim). */
+const WEBGL_MOUNT_QUIET_MS = 120;
+
+/**
+ * Suppress spurious `webglcontextlost` toasts right after tearing down a prior Canvas
+ * (landing backdrop → workspace 3D preview).
+ */
+export const WEBGL_CONTEXT_LOSS_NOTIFY_SUPPRESS_MS = 450;
+
+export function shouldSuppressWebGlContextLostNotification(): boolean {
+  return msSinceWebglTeardown() < WEBGL_CONTEXT_LOSS_NOTIFY_SUPPRESS_MS;
+}
 
 /**
  * Called from {@link WebGLSurfaceLifecycle} when an R3F Canvas mounts.

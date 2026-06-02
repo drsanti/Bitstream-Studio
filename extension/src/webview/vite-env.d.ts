@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_BITSTREAM_STUDIO_VERSION?: string;
   readonly VITE_MQTT_BROKER_URL?: string;
 }
 

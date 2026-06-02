@@ -11,7 +11,7 @@ export const ternionFreeAssetPackCopy = {
   verifying: "Checking TERNION pack…",
   downloadButton: "Download TERNION pack",
   downloadFooter: "Download TERNION pack",
-  setupHeaderSubtitle: "Get TERNION assets ready, then connect your device",
+  setupHeaderTitle: "Workspace setup",
   incompleteShort: "TERNION pack is incomplete — download to continue",
   filterOnlinePaths: "Filter pack list…",
   fetchIndexEmpty: "No catalog loaded yet. Use Refresh to load the file list.",
@@ -91,11 +91,28 @@ export const ternionFreeAssetPackCopy = {
     serialNotOnAllowList: "Not on Allow list",
     serialOpenSelected: "Open selected",
     serialNoSelection: "Select a port from the list",
-    handshakeSwitchingSimulator: "Switching to Simulator mode…",
+    handshakeSwitchingSimulator: "Switching…",
     handshakeSimulatorReady:
       "Simulator mode — start the bitstream-simulator extension, then use Link on the toolbar.",
+    handshakeRetry: "Retry",
+    handshakeChoosePort: "Choose port",
+    handshakeSimulatorOnly: "Simulator only",
+    handshakeConnectionDetails: "Details",
+    handshakeRetryHint: "Re-runs HELLO / PING on the open serial port.",
+    handshakeSimulatorOnlyHint:
+      "Releases COM, switches telemetry to Simulator, and publishes the simulator route on the broker.",
+    handshakeConnectionDetailsHint: "Opens the full connection panel on the handshake step.",
     setupChipLabel: "Setup incomplete",
     setupChipHint: "Device link is not ready. Open the checklist to finish connection steps.",
+    setupClose: "Close",
+    setupCloseAriaLabel: "Close setup",
+    setupRecheckAriaLabel: "Recheck setup",
+    setupRecheckHint:
+      "Re-runs checks and replays the setup walkthrough from step 1. Use after changing ports, bridge, or network.",
+    setupCloseEarlyHint:
+      "Close now — you can reopen setup from the toolbar or Ctrl+/. The step walkthrough has not finished yet.",
+    setupCloseDisabledHint:
+      "Wait until the walkthrough has stepped through every card (through Step 8 of 8). Connection warnings or errors afterward are OK.",
   },
 
   tooltips: {

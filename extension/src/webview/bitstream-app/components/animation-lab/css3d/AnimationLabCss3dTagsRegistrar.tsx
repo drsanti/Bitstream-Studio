@@ -4,6 +4,10 @@ import {
   resolveTwinTagIconId,
   twinTagIconSpinDurationS,
 } from "../animation-lab-twin-tag-icons.js";
+import {
+  isTwinTagVisibleForFilter,
+  type AnimationLabTwinTagFilterMode,
+} from "../animation-lab-twin-tag-filter.js";
 import { useGlbAnimationLabTwin } from "../glb-animation-lab-twin-context.js";
 import type { AnimationLabTwinComponentLive } from "../digital-twin.types.js";
 import { AnimationLabTwinCss3dTag } from "./AnimationLabTwinCss3dTag.js";
@@ -17,7 +21,7 @@ function formatTopSignal(value: number, unit: string): string {
 function isTagActiveInScene(
   row: AnimationLabTwinComponentLive,
   args: {
-    faultsOnly: boolean;
+    filterMode: AnimationLabTwinTagFilterMode;
     selectedComponentId: string | null;
     visible: boolean;
   },
@@ -25,23 +29,21 @@ function isTagActiveInScene(
   if (!args.visible) {
     return false;
   }
-  if (!args.faultsOnly) {
-    return true;
-  }
-  if (row.id === args.selectedComponentId) {
-    return true;
-  }
-  return row.health === "warning" || row.health === "error" || row.health === "caution";
+  return isTwinTagVisibleForFilter({
+    filterMode: args.filterMode,
+    health: row.health,
+    componentId: row.id,
+    selectedComponentId: args.selectedComponentId,
+  });
 }
 
 export type AnimationLabCss3dTagsRegistrarProps = {
   enabled: boolean;
-  /** When true, only faults, selection, and caution+ rows get tags. */
-  faultsOnly?: boolean;
+  filterMode?: AnimationLabTwinTagFilterMode;
 };
 
 export function AnimationLabCss3dTagsRegistrar(props: AnimationLabCss3dTagsRegistrarProps) {
-  const { enabled, faultsOnly = false } = props;
+  const { enabled, filterMode = "all" } = props;
   const twinCtx = useGlbAnimationLabTwin();
 
   if (!enabled || twinCtx == null || twinCtx.twin == null || twinCtx.components.length === 0) {
@@ -61,7 +63,7 @@ export function AnimationLabCss3dTagsRegistrar(props: AnimationLabCss3dTagsRegis
         });
         const loadPct = readMotorLoadPctFromPrimarySignal(top);
         const active = isTagActiveInScene(row, {
-          faultsOnly,
+          filterMode,
           selectedComponentId: twinCtx.selectedComponentId,
           visible: tagStyle.visible,
         });

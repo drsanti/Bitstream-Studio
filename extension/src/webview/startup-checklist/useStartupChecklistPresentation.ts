@@ -6,12 +6,12 @@ import {
 } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { ConnectionStepStatus } from "../bitstream-app/connection/useConnectionSteps.js";
 import {
-  STARTUP_MAX_ORCHESTRATION_MS,
-  STARTUP_STEP_COMPLETE_MS,
-  STARTUP_STEP_ENTER_MS,
-  STARTUP_STEP_GAP_MS,
-  STARTUP_STEP_MIN_DWELL_MS,
+  STARTUP_STEP_MAX_OPERATION_MS,
+  STARTUP_STEP_MIN_VISIBLE_MS,
+  STARTUP_STEP_PADDING_AFTER_MS,
+  STARTUP_STEP_POLL_MS,
 } from "./startupChecklistPresentation.constants.js";
+import { isStepOperationInProgress } from "./startupChecklistCompletion.js";
 import { startupStepMetaForView, type StartupChecklistStepView } from "./useStartupChecklist.js";
 
 export type StartupPresentationMode = "instant" | "sequential";
@@ -34,10 +34,9 @@ function prefersReducedMotion(): boolean {
 }
 
 export function resolveStartupPresentationMode(options: {
-  enabled: boolean;
   userOpenedPanel: boolean;
-  /** First auto overlay before setup is marked complete — always walk through cards. */
-  firstRunWalkthrough?: boolean;
+  /** Auto overlay (not Ctrl+/ or chip) — walk through cards step by step. */
+  autoOverlay?: boolean;
 }): StartupPresentationMode {
   if (options.userOpenedPanel) {
     return "instant";
@@ -45,17 +44,10 @@ export function resolveStartupPresentationMode(options: {
   if (prefersReducedMotion()) {
     return "instant";
   }
-  if (options.firstRunWalkthrough) {
+  if (options.autoOverlay) {
     return "sequential";
   }
-  if (!options.enabled) {
-    return "instant";
-  }
-  return "sequential";
-}
-
-function blocksAdvance(status: ConnectionStepStatus): boolean {
-  return status === "fail";
+  return "instant";
 }
 
 function displayStatusForCurrent(
@@ -77,11 +69,18 @@ function displayStatusForCurrent(
   return truth;
 }
 
-type OrchestratorPhase = "enter" | "dwell" | "complete";
+/** focus = on a card (min 250 ms + wait for check); between = 250 ms padding before next card */
+type OrchestratorPhase = "focus" | "between";
+
+function stepIdsKey(steps: StartupChecklistStepView[]): string {
+  return steps.map((s) => s.id).join("|");
+}
 
 export function useStartupChecklistPresentation(
   steps: StartupChecklistStepView[],
   mode: StartupPresentationMode,
+  /** Bump from parent (e.g. header Recheck) to restart the tour at step 1. */
+  tourResetGeneration = 0,
 ): {
   presentedSteps: PresentedStartupStep[];
   focusIndex: number;
@@ -90,103 +89,151 @@ export function useStartupChecklistPresentation(
   headerStepLabel: string;
   readyCount: number;
   isSequentialActive: boolean;
-  /** True after the sequential walkthrough has visited every step index. */
   walkthroughComplete: boolean;
 } {
   const [focusIndex, setFocusIndex] = useState(0);
-  const [orchestratorPhase, setOrchestratorPhase] = useState<OrchestratorPhase>("enter");
-  const [forceInstant, setForceInstant] = useState(false);
-  const dwellStartedAtRef = useRef<number>(Date.now());
-  const stepsLengthRef = useRef(steps.length);
+  const [orchestratorPhase, setOrchestratorPhase] = useState<OrchestratorPhase>("focus");
+  const [tourFinished, setTourFinished] = useState(false);
 
+  const stepsRef = useRef(steps);
+  stepsRef.current = steps;
+
+  const dwellStartedAtRef = useRef<number>(Date.now());
+  const stepIdsKeyRef = useRef(stepIdsKey(steps));
+  const timerRef = useRef<number | null>(null);
+
+  const clearTourTimer = () => {
+    if (timerRef.current != null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const resetTourToStart = () => {
+    clearTourTimer();
+    setFocusIndex(0);
+    setOrchestratorPhase("focus");
+    setTourFinished(false);
+    dwellStartedAtRef.current = Date.now();
+  };
+
+  /** Header Recheck — replay cards from 1 / N. */
   useEffect(() => {
-    if (mode !== "sequential") {
+    if (tourResetGeneration === 0) {
       return;
     }
-    const timer = window.setTimeout(() => setForceInstant(true), STARTUP_MAX_ORCHESTRATION_MS);
-    return () => window.clearTimeout(timer);
+    resetTourToStart();
+  }, [tourResetGeneration]);
+
+  /** Reset tour only when the step list identity changes (e.g. UART ↔ Simulator), not on status polls. */
+  useEffect(() => {
+    const nextKey = stepIdsKey(steps);
+    if (nextKey === stepIdsKeyRef.current) {
+      return;
+    }
+    const prevKey = stepIdsKeyRef.current;
+    stepIdsKeyRef.current = nextKey;
+    const prevIds = prevKey.split("|").filter(Boolean);
+    const nextIds = nextKey.split("|").filter(Boolean);
+    setFocusIndex((index) => {
+      const currentId = prevIds[index];
+      if (currentId != null) {
+        const newIndex = nextIds.indexOf(currentId);
+        if (newIndex >= 0) {
+          return newIndex;
+        }
+      }
+      return Math.min(index, Math.max(0, nextIds.length - 1));
+    });
+    setOrchestratorPhase("focus");
+    setTourFinished(false);
+    dwellStartedAtRef.current = Date.now();
+  }, [steps]);
+
+  /** Entering sequential mode (e.g. Recheck from manual panel) — start at card 1. */
+  const prevModeRef = useRef(mode);
+  useEffect(() => {
+    const prev = prevModeRef.current;
+    prevModeRef.current = mode;
+    if (prev === "instant" && mode === "sequential") {
+      resetTourToStart();
+    }
   }, [mode]);
 
-  useEffect(() => {
-    const prevLen = stepsLengthRef.current;
-    if (steps.length === prevLen) {
-      return;
-    }
-    if (steps.length > prevLen && prevLen > 0) {
-      /* VSIX: env-only (3) → full (8) — continue walkthrough, do not restart at assets. */
-      stepsLengthRef.current = steps.length;
-      setFocusIndex((i) => Math.min(i, steps.length - 1));
-      return;
-    }
-    stepsLengthRef.current = steps.length;
-    setFocusIndex(0);
-    setOrchestratorPhase("enter");
-    setForceInstant(false);
-    dwellStartedAtRef.current = Date.now();
-  }, [steps.length]);
-
-  const focusStepId = steps[focusIndex]?.id;
   const focusTruthStatus = steps[focusIndex]?.status ?? "pending";
 
   useEffect(() => {
-    if (mode !== "sequential" || steps.length === 0 || forceInstant) {
+    if (mode !== "sequential") {
+      clearTourTimer();
+      setTourFinished(false);
       return;
     }
-    if (focusIndex >= steps.length) {
+
+    const stepCount = stepsRef.current.length;
+    if (stepCount === 0 || tourFinished || focusIndex >= stepCount) {
+      clearTourTimer();
       return;
+    }
+
+    clearTourTimer();
+
+    const schedule = (ms: number, fn: () => void) => {
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
+        fn();
+      }, ms);
+    };
+
+    if (orchestratorPhase === "between") {
+      schedule(STARTUP_STEP_PADDING_AFTER_MS, () => {
+        const count = stepsRef.current.length;
+        if (focusIndex + 1 >= count) {
+          setFocusIndex(count);
+          setTourFinished(true);
+          return;
+        }
+        setFocusIndex((i) => i + 1);
+        setOrchestratorPhase("focus");
+        dwellStartedAtRef.current = Date.now();
+      });
+      return clearTourTimer;
     }
 
     let cancelled = false;
-    let timer = 0;
-    const truth = focusTruthStatus;
-
-    if (orchestratorPhase === "enter") {
-      timer = window.setTimeout(() => {
-        if (!cancelled) {
-          setOrchestratorPhase("dwell");
-          dwellStartedAtRef.current = Date.now();
-        }
-      }, STARTUP_STEP_ENTER_MS);
-    } else if (orchestratorPhase === "dwell") {
-      if (blocksAdvance(truth)) {
+    const tick = () => {
+      if (cancelled) {
         return;
       }
-      /* Timer-paced tour: advance even while truth is still "active" (e.g. asset check). */
-      const dwellMs = Date.now() - dwellStartedAtRef.current;
-      const waitMs = Math.max(0, STARTUP_STEP_MIN_DWELL_MS - dwellMs);
-      timer = window.setTimeout(() => {
-        if (!cancelled) {
-          setOrchestratorPhase("complete");
-        }
-      }, waitMs);
-    } else if (orchestratorPhase === "complete") {
-      timer = window.setTimeout(() => {
-        if (!cancelled) {
-          if (focusIndex + 1 >= steps.length) {
-            setFocusIndex(steps.length);
-          } else {
-            setFocusIndex((i) => i + 1);
-            setOrchestratorPhase("enter");
-            dwellStartedAtRef.current = Date.now();
-          }
-        }
-      }, STARTUP_STEP_COMPLETE_MS + STARTUP_STEP_GAP_MS);
-    }
+      const status = stepsRef.current[focusIndex]?.status ?? "pending";
+      const elapsed = Date.now() - dwellStartedAtRef.current;
+      const minMet = elapsed >= STARTUP_STEP_MIN_VISIBLE_MS;
+      const operationDone = !isStepOperationInProgress(status);
+      if (minMet && operationDone) {
+        setOrchestratorPhase("between");
+        return;
+      }
+      if (elapsed >= STARTUP_STEP_MAX_OPERATION_MS) {
+        setOrchestratorPhase("between");
+        return;
+      }
+      timerRef.current = window.setTimeout(tick, STARTUP_STEP_POLL_MS);
+    };
+    tick();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(timer);
+      clearTourTimer();
     };
-  }, [focusIndex, focusStepId, focusTruthStatus, forceInstant, mode, orchestratorPhase, steps.length]);
+  }, [focusIndex, focusTruthStatus, mode, orchestratorPhase, tourFinished]);
 
-  const snapToInstant =
-    mode === "instant" || forceInstant || steps.length === 0 || focusIndex >= steps.length;
+  const tourIndexComplete = tourFinished || (steps.length > 0 && focusIndex >= steps.length);
+  const snapToInstant = mode === "instant" || steps.length === 0 || tourIndexComplete;
 
   const presentedSteps = useMemo((): PresentedStartupStep[] => {
     const waiting = ternionFreeAssetPackCopy.results.stepWaiting;
     const checking = ternionFreeAssetPackCopy.results.stepChecking;
 
-    if (snapToInstant) {
+    if (snapToInstant && mode === "instant") {
       const firstOpen = steps.findIndex((s) => s.status !== "ok");
       return steps.map((step, index) => ({
         ...step,
@@ -197,13 +244,31 @@ export function useStartupChecklistPresentation(
       }));
     }
 
-    return steps.map((step, index) => {
-      if (index < focusIndex) {
+    if (snapToInstant && mode === "sequential") {
+      return steps.map((step) => {
+        const touredStatus: ConnectionStepStatus =
+          step.status === "fail" ? "fail" : step.status === "warn" ? "warn" : "ok";
         return {
           ...step,
           presentation: "completed" as const,
-          displayStatus: step.status,
+          displayStatus: touredStatus,
           displayResult: step.result,
+          progressPercent: null,
+          isFocus: false,
+        };
+      });
+    }
+
+    return steps.map((step, index) => {
+      if (index < focusIndex) {
+        const touredStatus: ConnectionStepStatus =
+          step.status === "fail" ? "fail" : step.status === "warn" ? "warn" : "ok";
+        return {
+          ...step,
+          presentation: "completed" as const,
+          displayStatus: touredStatus,
+          displayResult: step.result,
+          progressPercent: null,
           isFocus: false,
         };
       }
@@ -217,7 +282,9 @@ export function useStartupChecklistPresentation(
         };
       }
 
-      const displayStatus = displayStatusForCurrent(step.status, orchestratorPhase);
+      const displayPhase =
+        orchestratorPhase === "between" ? "complete" : "dwell";
+      const displayStatus = displayStatusForCurrent(step.status, displayPhase);
       const displayResult =
         displayStatus === "active"
           ? step.status === "active" && step.result.length > 0
@@ -233,7 +300,7 @@ export function useStartupChecklistPresentation(
         isFocus: true,
       };
     });
-  }, [focusIndex, orchestratorPhase, snapToInstant, steps]);
+  }, [focusIndex, mode, orchestratorPhase, snapToInstant, steps]);
 
   const truthReadyCount = steps.filter((s) => s.status === "ok").length;
 
@@ -241,15 +308,15 @@ export function useStartupChecklistPresentation(
     ? truthReadyCount
     : presentedSteps.filter((s) => s.presentation === "completed" && s.status === "ok").length;
 
-  const focusStep = presentedSteps[Math.min(focusIndex, steps.length - 1)] ?? null;
+  const focusStep = presentedSteps[Math.min(focusIndex, Math.max(0, steps.length - 1))] ?? null;
   const focusMeta = focusStep != null ? startupStepMetaForView(focusStep) : null;
 
   const headerProgressPercent =
     steps.length > 0
       ? Math.round(
-          ((snapToInstant
+          ((snapToInstant && mode === "instant"
             ? truthReadyCount
-            : focusIndex + (orchestratorPhase === "complete" ? 1 : 0)) /
+            : focusIndex + (orchestratorPhase === "between" ? 1 : 0)) /
             steps.length) *
             100,
         )
@@ -260,17 +327,16 @@ export function useStartupChecklistPresentation(
       ? setupHeaderStepFocus(focusIndex + 1, steps.length, focusMeta.title)
       : setupHeaderStepSummary(truthReadyCount, steps.length);
 
-  const walkthroughComplete =
-    mode !== "sequential" || snapToInstant || focusIndex >= steps.length;
+  const walkthroughComplete = mode !== "sequential" || tourIndexComplete;
 
   return {
     presentedSteps,
-    focusIndex: snapToInstant ? Math.max(0, steps.findIndex((s) => s.status !== "ok")) : focusIndex,
+    focusIndex: snapToInstant && mode === "instant" ? Math.max(0, steps.findIndex((s) => s.status !== "ok")) : focusIndex,
     focusStepId: focusStep?.id ?? null,
     headerProgressPercent,
     headerStepLabel,
     readyCount: presentationReadyCount,
-    isSequentialActive: mode === "sequential" && !snapToInstant,
+    isSequentialActive: mode === "sequential" && !tourIndexComplete,
     walkthroughComplete,
   };
 }

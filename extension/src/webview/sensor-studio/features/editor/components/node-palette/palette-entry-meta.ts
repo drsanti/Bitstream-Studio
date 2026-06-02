@@ -127,6 +127,17 @@ export function isPaletteSensorTapEntry(entry: NodeCatalogEntry): boolean {
   return entry.category === "sensor" && entry.id.includes("-tap-");
 }
 
+/**
+ * Node library line-2 previews that mirror UART / simulator telemetry.
+ * Utility, generator, transform, and logic rows stay title + description only.
+ */
+export function paletteShowsHardwareLivePreview(entry: NodeCatalogEntry): boolean {
+  if (isPaletteSensorPrimaryEntry(entry) || isPaletteSensorTapEntry(entry)) {
+    return true;
+  }
+  return entry.id === "sensor-input" || entry.id === "quat-input";
+}
+
 export function resolvePaletteRowVariant(
   entry: NodeCatalogEntry,
   grouped: boolean,

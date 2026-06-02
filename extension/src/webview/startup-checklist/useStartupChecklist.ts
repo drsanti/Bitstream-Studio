@@ -181,12 +181,17 @@ export function useStartupChecklist(options: {
       },
     ];
 
-    if (!environmentReady) {
-      return envSteps;
-    }
-
+    const linkWaiting = ternionFreeAssetPackCopy.results.stepWaiting;
     const linkIds = linkStartupStepOrder(backend);
     const linkSteps: StartupChecklistStepView[] = linkIds.map((id) => {
+      if (!environmentReady) {
+        return {
+          id,
+          status: "locked" as ConnectionStepStatus,
+          result: linkWaiting,
+          progressPercent: null,
+        };
+      }
       const conn = connectionByStartupId.get(id);
       if (conn == null) {
         return {

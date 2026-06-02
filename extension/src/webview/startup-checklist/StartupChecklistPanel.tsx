@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { UseAssetBootstrapResult } from "../asset-bootstrap/useAssetBootstrap.js";
-import { useConnectionPanelStore } from "../bitstream-app/connection/connectionPanel.store.js";
 import {
   getConnectionStepContinueLabel,
   runConnectionStep,
 } from "../bitstream-app/connection/runConnectionStep.js";
 import { useBitstreamTelemetrySourceStore } from "../bitstream-app/state/bitstreamTelemetrySource.store.js";
+import { StartupChecklistDismissButton } from "./StartupChecklistDismissButton.js";
+import { StartupChecklistRecheckButton } from "./StartupChecklistRecheckButton.js";
 import { TRNButton } from "../ui/TRN/TRNButton.js";
 import { StartupChecklistAssetsStepBody } from "./StartupChecklistAssetsStepBody.js";
 import { StartupChecklistHandshakeStepBody } from "./StartupChecklistHandshakeStepBody.js";
@@ -19,6 +20,7 @@ import {
   type StartupChecklistStepView,
 } from "./useStartupChecklist.js";
 import type { useStartupChecklist } from "./useStartupChecklist.js";
+import { shouldShowStartupStepActions, shouldShowStartupRecheckButton } from "./startupChecklistCompletion.js";
 import type {
   PresentedStartupStep,
   useStartupChecklistPresentation,
@@ -28,10 +30,12 @@ export function StartupChecklistPanel(props: {
   bootstrap: UseAssetBootstrapResult;
   checklist: ReturnType<typeof useStartupChecklist>;
   presentation: ReturnType<typeof useStartupChecklistPresentation>;
+  canClose: boolean;
   onDismiss?: () => void;
+  onRecheck: () => void;
   onFocusSerialPorts: () => void;
 }) {
-  const { bootstrap, checklist, presentation, onDismiss, onFocusSerialPorts } = props;
+  const { bootstrap, checklist, presentation, canClose, onDismiss, onRecheck, onFocusSerialPorts } = props;
   const backend = useBitstreamTelemetrySourceStore((s) => s.backend);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -44,20 +48,51 @@ export function StartupChecklistPanel(props: {
     environmentReady,
   } = checklist;
 
-  const { presentedSteps, headerProgressPercent, headerStepLabel, focusStepId } = presentation;
+  const {
+    presentedSteps,
+    headerProgressPercent,
+    headerStepLabel,
+    focusStepId,
+    isSequentialActive,
+    walkthroughComplete,
+  } = presentation;
+
+  const showRecheckButton = shouldShowStartupRecheckButton({
+    isSequentialActive,
+    walkthroughComplete,
+  });
 
   useEffect(() => {
-    if (focusStepId == null || listRef.current == null) {
+    const scrollTargetId = isSequentialActive ? focusStepId : (expandedId ?? focusStepId);
+    if (scrollTargetId == null || listRef.current == null) {
       return;
     }
-    const el = listRef.current.querySelector(`[data-startup-step="${focusStepId}"]`);
-    if (el instanceof HTMLElement) {
-      const reduced =
-        typeof window !== "undefined" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      el.scrollIntoView({ block: "nearest", behavior: reduced ? "auto" : "smooth" });
+    const list = listRef.current;
+    const el = list.querySelector(`[data-startup-step="${scrollTargetId}"]`);
+    if (!(el instanceof HTMLElement)) {
+      return;
     }
-  }, [focusStepId, presentedSteps.length]);
+
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const scrollFocusedStep = () => {
+      const listRect = list.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const elTop = elRect.top - listRect.top + list.scrollTop;
+      const targetTop = isSequentialActive
+        ? elTop - (list.clientHeight - elRect.height) / 2
+        : elTop - 12;
+      list.scrollTo({
+        top: Math.max(0, targetTop),
+        behavior: reduced ? "auto" : "smooth",
+      });
+    };
+
+    const frame = window.requestAnimationFrame(scrollFocusedStep);
+    return () => window.cancelAnimationFrame(frame);
+  }, [expandedId, focusStepId, isSequentialActive, presentedSteps.length]);
 
   const activeConnectionStep = useMemo(() => {
     if (activeStepId == null) {
@@ -90,7 +125,10 @@ export function StartupChecklistPanel(props: {
         return { label: ternionFreeAssetPackCopy.downloadFooter, onClick: bootstrap.startRequiredSync };
       }
       if (bootstrap.phase === "blocked" || bootstrap.phase === "error") {
-        return { label: "Retry check", onClick: bootstrap.recheck };
+        if (!showRecheckButton) {
+          return { label: "Retry check", onClick: onRecheck };
+        }
+        return null;
       }
       return null;
     }
@@ -107,7 +145,7 @@ export function StartupChecklistPanel(props: {
       };
     }
     return null;
-  }, [activeConnectionStep, activeStepId, assetsActionsDisabled, backend, bootstrap, environmentReady, truthSteps]);
+  }, [activeConnectionStep, activeStepId, assetsActionsDisabled, backend, bootstrap, environmentReady, onRecheck, showRecheckButton, truthSteps]);
 
   return (
     <div
@@ -118,19 +156,29 @@ export function StartupChecklistPanel(props: {
     >
       <header className="shrink-0 border-b border-white/10 px-5 py-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0 flex-1">
             <h2 id="startup-checklist-title" className="text-base font-semibold text-zinc-50">
-              Setup
+              {ternionFreeAssetPackCopy.setupHeaderTitle}
             </h2>
-            <p className="mt-0.5 text-xs text-zinc-400">
-              {ternionFreeAssetPackCopy.setupHeaderSubtitle}
-            </p>
           </div>
-          {environmentReady && onDismiss != null ? (
-            <TRNButton size="compact" onClick={onDismiss}>
-              Later
-            </TRNButton>
-          ) : null}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {showRecheckButton ? (
+              <StartupChecklistRecheckButton
+                onClick={onRecheck}
+                busy={assetsActionsDisabled}
+              />
+            ) : null}
+            {onDismiss != null ? (
+              <StartupChecklistDismissButton
+                onClick={onDismiss}
+                hint={
+                  canClose
+                    ? undefined
+                    : ternionFreeAssetPackCopy.checklist.setupCloseEarlyHint
+                }
+              />
+            ) : null}
+          </div>
         </div>
         <p className="mt-3 text-xs font-medium text-zinc-300" aria-live="polite">
           {headerStepLabel}
@@ -174,21 +222,13 @@ export function StartupChecklistPanel(props: {
         ))}
       </div>
 
-      <footer className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t border-white/10 px-4 py-3">
-        {footerPrimary != null ? (
+      {footerPrimary != null ? (
+        <footer className="shrink-0 flex flex-wrap items-center justify-end gap-2 border-t border-white/10 px-4 py-3">
           <TRNButton size="compact" selected onClick={footerPrimary.onClick}>
             {footerPrimary.label}
           </TRNButton>
-        ) : null}
-        {environmentReady ? (
-          <TRNButton
-            size="compact"
-            onClick={() => useConnectionPanelStore.getState().openPanel(activeConnectionStep ?? undefined)}
-          >
-            Connection details
-          </TRNButton>
-        ) : null}
-      </footer>
+        </footer>
+      ) : null}
     </div>
   );
 }
@@ -272,9 +312,14 @@ function StartupChecklistStepRow(props: {
     onFocusSerialPorts,
   } = props;
   const meta = startupStepMetaForView(step);
+  const truthStatus = step.status;
+  const presentation = step.presentation ?? "completed";
+  const showActions = shouldShowStartupStepActions(truthStatus);
+  const isTourFocus = presentation === "current" && step.isFocus === true;
+  const showActionPanel = showActions && (expanded || isTourFocus);
 
   let body = null;
-  if (expanded && step.id === "assets") {
+  if (showActionPanel && step.id === "assets") {
     body = (
       <StartupChecklistAssetsStepBody
         canDownload={canDownload}
@@ -286,20 +331,20 @@ function StartupChecklistStepRow(props: {
         onRecheck={onRecheck}
       />
     );
-  } else if (expanded && step.id === "mode") {
+  } else if (showActionPanel && step.id === "mode") {
     body = <StartupChecklistModeStepBody />;
-  } else if (expanded && step.id === "serial-ports") {
+  } else if (showActionPanel && step.id === "serial-ports") {
     body = <StartupChecklistSerialPortsBody />;
-  } else if (expanded && step.id === "simulator") {
+  } else if (showActionPanel && step.id === "simulator") {
     body = <StartupChecklistSimulatorStepBody />;
-  } else if (expanded && step.id === "handshake") {
+  } else if (showActionPanel && step.id === "handshake") {
     body = (
       <StartupChecklistHandshakeStepBody
         rawError={step.error}
         onFocusSerialPorts={onFocusSerialPorts}
       />
     );
-  } else if (expanded && step.connectionStepId != null && step.error) {
+  } else if (showActionPanel && step.connectionStepId != null && step.error) {
     body = (
       <p className="text-[10px] leading-relaxed text-rose-100/90">{step.error}</p>
     );
@@ -307,16 +352,25 @@ function StartupChecklistStepRow(props: {
 
   const displayStatus = step.displayStatus ?? step.status;
   const displayResult = step.displayResult ?? step.result;
-  const presentation = step.presentation ?? "completed";
 
   const accent =
-    displayStatus === "fail"
-      ? "fail"
-      : displayStatus === "ok"
-        ? "ok"
-        : displayStatus === "active"
-          ? "active"
-          : "default";
+    presentation === "completed"
+      ? truthStatus === "fail"
+        ? "fail"
+        : truthStatus === "warn"
+          ? "warn"
+          : "ok"
+      : presentation === "upcoming"
+        ? "default"
+        : displayStatus === "fail"
+          ? "fail"
+          : displayStatus === "warn" || truthStatus === "warn"
+            ? "warn"
+            : displayStatus === "ok"
+              ? "ok"
+              : displayStatus === "active"
+                ? "active"
+                : "default";
 
   return (
     <StartupStepCard
@@ -327,7 +381,7 @@ function StartupChecklistStepRow(props: {
       result={displayResult}
       resultTooltip={step.resultTooltip}
       progressPercent={step.progressPercent}
-      expanded={expanded && presentation !== "upcoming"}
+      expanded={showActionPanel && body != null}
       onToggle={onToggle}
       accent={accent}
       presentation={presentation}

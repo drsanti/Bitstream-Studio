@@ -65,7 +65,7 @@ export function AnimationLabClipRowHintContent(args: AnimationLabClipRowDetailAr
   } else if (args.selected) {
     status =
       args.playbackMode === "per-clip"
-        ? "Selected — press Play in step 4"
+        ? "Selected — press Play to preview"
         : args.playbackMode === "sequence"
           ? "Selected"
           : "Selected";

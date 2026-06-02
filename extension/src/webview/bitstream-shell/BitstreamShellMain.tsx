@@ -1,7 +1,6 @@
 import { SensorStudioApp } from "../sensor-studio/app/SensorStudioApp.tsx";
 import { FreeAssetsLoaderDashboard } from "../free-assets-loader/FreeAssetsLoaderDashboard";
 import { ModelLoaderDashboard } from "../model-loader/ModelLoaderDashboard";
-import { TRNMessageDialog } from "../ui/TRN";
 import { GlobalShellOverlays } from "../GlobalShellOverlays";
 import { TelemetryRxMetricsProvider } from "../bitstream-app/components/telemetry/TelemetryRxMetricsContext.js";
 import { Bmi270StreamModeSyncEffect } from "../bitstream-app/sync-effects/Bmi270StreamModeSyncEffect";
@@ -9,10 +8,12 @@ import { BitstreamShellRoot } from "./BitstreamShellRoot";
 import { useBitstreamConfigStore } from "../bitstream-app/state/bitstreamConfig.store";
 import { usePreviewMeshMissingUiStore } from "../bitstream-app/state/previewMeshMissingUi.store";
 import { BitstreamSensorWorkspaceView } from "../bitstream-app/workspace/BitstreamSensorWorkspaceView";
+import { PreviewMeshStatusDialog } from "../bitstream-app/components/PreviewMeshStatusDialog.js";
+import { useStartupChecklistStore } from "../startup-checklist/startupChecklist.store.js";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useBitstreamWorkspaceModeStore } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
-import { AssetManagerProvider, AssetRegistryProvider, openAssetManagerBrowseModels, useOpenAssetManager } from "../assets-manager";
+import { AssetManagerProvider, AssetRegistryProvider, openAssetManagerBrowseModels } from "../assets-manager";
 
 export function BitstreamShellMain()
 {
@@ -24,10 +25,11 @@ export function BitstreamShellMain()
   const meshMissingDialogOpen = usePreviewMeshMissingUiStore(
     (s) => s.meshMissingDialogOpen,
   );
+  const missingAssetKind = usePreviewMeshMissingUiStore((s) => s.missingAssetKind);
   const missingAssetTitle = usePreviewMeshMissingUiStore((s) => s.missingAssetTitle);
-  const missingAssetDescription = usePreviewMeshMissingUiStore(
-    (s) => s.missingAssetDescription,
-  );
+  const missingAssetSummary = usePreviewMeshMissingUiStore((s) => s.missingAssetSummary);
+  const missingAssetDetail = usePreviewMeshMissingUiStore((s) => s.missingAssetDetail);
+  const missingAssetBullets = usePreviewMeshMissingUiStore((s) => s.missingAssetBullets);
   const closeMeshMissingDialog = usePreviewMeshMissingUiStore(
     (s) => s.closeMeshMissingDialog,
   );
@@ -43,8 +45,6 @@ export function BitstreamShellMain()
   const setModelLoaderOpen = usePreviewMeshMissingUiStore(
     (s) => s.setModelLoaderOpen,
   );
-
-  const { openAssetManager } = useOpenAssetManager();
 
   return (
     <AssetManagerProvider>
@@ -62,39 +62,22 @@ export function BitstreamShellMain()
             </div>
           </BitstreamShellRoot>
 
-          <TRNMessageDialog
+          <PreviewMeshStatusDialog
             open={meshMissingDialogOpen}
-            onOpenChange={(next) => {
-              if (!next)
-              {
-                closeMeshMissingDialog();
-              }
-            }}
+            kind={missingAssetKind}
             title={missingAssetTitle}
-            variant="warning"
-            primaryAction={{
-              label: "Open Asset Manager",
-              onClick: () => {
-                openAssetManager({ mainTab: "storage", globalDirectoriesTab: "actions" });
-                closeMeshMissingDialog();
-              },
+            summary={missingAssetSummary}
+            detail={missingAssetDetail}
+            bullets={missingAssetBullets}
+            onDismiss={closeMeshMissingDialog}
+            onOpenSetup={() => {
+              useStartupChecklistStore.getState().openPanel();
+              closeMeshMissingDialog();
             }}
-            secondaryAction={{
-              label: "Later",
-              onClick: () => {},
+            onOpenFreeLoader={() => {
+              usePreviewMeshMissingUiStore.getState().openFreeAssetsLoaderFromDialog();
             }}
-            tertiaryAction={{
-              label: "Free Loader",
-              onClick: () => {
-                usePreviewMeshMissingUiStore.getState().openFreeAssetsLoaderFromDialog();
-              },
-            }}
-            zIndex={80}
-          >
-            <p className="mb-0 whitespace-pre-wrap text-sm leading-relaxed">
-              {missingAssetDescription}
-            </p>
-          </TRNMessageDialog>
+          />
 
           <FreeAssetsLoaderDashboard
             open={freeAssetsLoaderOpen}
@@ -134,4 +117,3 @@ export function BitstreamShellMain()
 }
 
 export { BitstreamShellMain as BitstreamAppMain };
-

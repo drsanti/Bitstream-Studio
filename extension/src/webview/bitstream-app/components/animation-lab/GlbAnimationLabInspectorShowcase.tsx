@@ -8,6 +8,11 @@ import {
   TRNTabsContent,
   TRNTabsList,
   TRNTabsTrigger,
+  TRN_INSPECTOR_TAB_ACTIVE_CLASS,
+  TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
+  TRN_INSPECTOR_TAB_LABEL_CLASS,
+  TRN_INSPECTOR_TAB_LIST_CLASS,
+  TRN_INSPECTOR_TAB_TRIGGER_CLASS,
 } from "@/ui/TRN";
 import { ChevronDown, ChevronUp, Pause, Play, RotateCcw } from "lucide-react";
 import { useState, type CSSProperties } from "react";
@@ -16,6 +21,7 @@ import {
   ANIMATION_LAB_INSPECTOR_FONT_CLASS,
   ANIMATION_LAB_SHOWCASE_LOOP_OPTIONS,
   ANIMATION_LAB_SHOWCASE_PLAYBACK_MODES,
+  ANIMATION_LAB_SHOWCASE_SECTION_LABELS,
 } from "./animation-lab-showcase-copy.js";
 import { formatAnimationLabTimelineRangeSeconds } from "./animation-lab-showcase-time.js";
 import { useAnimationLabTimelinePositionS } from "./use-animation-lab-timeline-time-s.js";
@@ -224,25 +230,44 @@ export function GlbAnimationLabInspectorShowcase() {
         value={inspectorTab}
         onValueChange={setInspectorTab}
         lazyMount
-        className="flex min-h-0 flex-1 flex-col gap-2"
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+        activeTriggerClassName={TRN_INSPECTOR_TAB_ACTIVE_CLASS}
       >
-        <TRNTabsList className="grid w-full shrink-0 grid-cols-5 gap-0.5 rounded-md border border-zinc-700/70 bg-zinc-900/60 p-0.5">
-          <TRNTabsTrigger value="playback" className="px-0.5 text-[9px]">
-            Playback
-          </TRNTabsTrigger>
-          <TRNTabsTrigger value="twin" className="px-0.5 text-[9px]" disabled={!hasTwin}>
-            Twin
-          </TRNTabsTrigger>
-          <TRNTabsTrigger value="mapping" className="px-0.5 text-[9px]" disabled={!hasTwin}>
-            Mapping
-          </TRNTabsTrigger>
-          <TRNTabsTrigger value="graphics" className="px-0.5 text-[9px]" disabled={!hasTwin}>
-            Graphics
-          </TRNTabsTrigger>
-          <TRNTabsTrigger value="tags" className="px-0.5 text-[9px]" disabled={!hasTwin}>
-            Tags
-          </TRNTabsTrigger>
-        </TRNTabsList>
+        <div className={TRN_INSPECTOR_TAB_BAR_WRAP_CLASS}>
+          <TRNTabsList className={TRN_INSPECTOR_TAB_LIST_CLASS}>
+            <TRNTabsTrigger value="playback" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Playback</span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger
+              value="twin"
+              className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
+              disabled={!hasTwin}
+            >
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Machine</span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger
+              value="mapping"
+              className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
+              disabled={!hasTwin}
+            >
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Live map</span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger
+              value="graphics"
+              className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
+              disabled={!hasTwin}
+            >
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Tag style</span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger
+              value="tags"
+              className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
+              disabled={!hasTwin}
+            >
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Components</span>
+            </TRNTabsTrigger>
+          </TRNTabsList>
+        </div>
 
         <TRNTabsContent
           value="playback"
@@ -250,8 +275,8 @@ export function GlbAnimationLabInspectorShowcase() {
         >
       <section className="space-y-2">
         <TRNChipButtonGroup
-          label="1. How should it play?"
-          ariaLabel="How should it play?"
+          label={ANIMATION_LAB_SHOWCASE_SECTION_LABELS.playbackMode}
+          ariaLabel={ANIMATION_LAB_SHOWCASE_SECTION_LABELS.playbackMode}
           value={playbackMode}
           columns={1}
           size="md"
@@ -273,8 +298,8 @@ export function GlbAnimationLabInspectorShowcase() {
       {lab.runtime.boundActionCount > 0 && settingsClip != null ? (
         <section className="space-y-2">
           <TRNChipButtonGroup
-            label="2. Loop"
-            ariaLabel="Loop mode"
+            label={ANIMATION_LAB_SHOWCASE_SECTION_LABELS.loop}
+            ariaLabel={ANIMATION_LAB_SHOWCASE_SECTION_LABELS.loop}
             value={settings.loopMode}
             columns={1}
             size="md"
@@ -293,7 +318,9 @@ export function GlbAnimationLabInspectorShowcase() {
       ) : null}
 
       <section className="flex flex-col gap-1.5">
-        <span className="text-xs font-semibold text-zinc-100">3. Choose animation</span>
+        <span className="text-xs font-semibold text-zinc-100">
+          {ANIMATION_LAB_SHOWCASE_SECTION_LABELS.animations}
+        </span>
         {listOrder.length === 0 ? (
           <TRNHintText tone="muted" className="mb-0 text-xs">
             This model has no animations to preview.
@@ -406,27 +433,29 @@ export function GlbAnimationLabInspectorShowcase() {
 
       {lab.runtime.boundActionCount > 0 ? (
         <section className="flex flex-col gap-2">
-          <span className="text-xs font-semibold text-zinc-100">4. Play</span>
-          <TRNButton
-            type="button"
-            size="compact"
-            disabled={playDisabled}
-            selected={transport === "playing"}
-            hint={
-              playDisabled && playbackMode === "per-clip"
-                ? "Choose an animation in step 3 first"
-                : "Start playback with your choices above"
-            }
-            className="min-h-11 w-full gap-2 px-4 text-sm font-semibold"
-            onClick={() => {
-              setIsScrubbing(false);
-              setTransport("playing");
-            }}
-          >
-            <Play className="h-4 w-4 shrink-0" aria-hidden />
-            Play
-          </TRNButton>
+          <span className="text-xs font-semibold text-zinc-100">
+            {ANIMATION_LAB_SHOWCASE_SECTION_LABELS.transport}
+          </span>
           <div className="flex gap-1.5">
+            <TRNButton
+              type="button"
+              size="compact"
+              disabled={playDisabled}
+              selected={transport === "playing"}
+              hint={
+                playDisabled && playbackMode === "per-clip"
+                  ? "Select an animation in the list first"
+                  : "Start playback"
+              }
+              className="min-h-8 flex-1 gap-1.5 text-xs"
+              onClick={() => {
+                setIsScrubbing(false);
+                setTransport("playing");
+              }}
+            >
+              <Play className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              Play
+            </TRNButton>
             <TRNButton
               type="button"
               size="compact"
@@ -445,7 +474,7 @@ export function GlbAnimationLabInspectorShowcase() {
               type="button"
               size="compact"
               className="min-h-8 flex-1 gap-1.5 text-xs"
-              hint="Back to the start of the timeline"
+              hint="Return to the start of the timeline"
               onClick={() => {
                 setIsScrubbing(false);
                 setScrubTimeS(0);

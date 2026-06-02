@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-06-01 (shell control deck + toolbar link metrics)  
+**Last updated:** 2026-06-02 (Animation Lab UX + startup checklist walkthrough)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -185,6 +185,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-02 | **GLB Animation Lab UX:** Inspector tab rename + truncate; tag **Filter** menu; env cubemap background in lab; parallel-all + loop auto-play; **`tests/bitstream-app/animation-lab-twin-tag-filter.test.ts`** |
+| 2026-06-02 | **Startup checklist v3:** First-run sequential tour when all green; recheck + presentation fixes; tests under **`tests/startup-checklist/`** |
 | 2026-06-01 | **Shell toolbar — control deck + metrics:** `ShellControlDeck`; wire RX (BS2 JSON window) + decode FPS chips; header menu slot; Studio canvas menu-only; `formatWallClockAgeAgo`; `RuntimeServicesHealthPanel` `input.ext` fix |
 | 2026-06-01 | **Sensor Studio — Environment/Camera socket badges:** wired **`env`**/**`cam`** inputs + **Environment**/**Camera / View** outputs show compact tinted badges (preset name or FOV) |
 | 2026-06-01 | **Sensor Studio — Studio Model socket labels:** **Studio Model** `out` and wired **Model** inputs show catalog-friendly names via **`modelSelectEmitDisplayName`** (not raw URLs); **`model-select-emit-display-name.test.ts`** |

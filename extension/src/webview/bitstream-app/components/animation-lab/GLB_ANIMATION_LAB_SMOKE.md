@@ -13,7 +13,7 @@ Prerequisite: **Tesa Drone** (or another multi-clip GLB) in the free-pack mirror
 
 - [ ] Inspector lists all GLTF clips (Tesa Drone: 7)
 - [ ] **Per-clip** — select `gimbal1Action` (or one gimbal clip); Play animates only that clip
-- [ ] **Parallel-all** — Play runs all clips; overlap panel shows risk if pairs share bones
+- [ ] **Parallel-all** — default on animated model load; auto **Play** + **Loop**; overlap panel shows risk if pairs share bones
 - [ ] **Sequence** — clips advance one-by-one; reorder (↑↓) changes order
 - [ ] Play / Pause / Stop
 - [ ] Scrub timeline while paused; live readout updates time · frame
@@ -33,21 +33,22 @@ Bundled in dev: `extension/src/webview/assets/free/models/tesa-drone/tesa-drone_
 
 ## Machine twin + 3D tags
 
-- [ ] **Machine twin** sidebar: overall health pill + subsystem rows
-- [ ] Select subsystem → showcase step 3 clip matches `glbAnchor`
-- [ ] Viewport **Tags** on → CSS3D labels on model; **Alerts only** hides OK tags (defaults on for 6+ subsystems)
-- [ ] Tag click selects subsystem (same as sidebar)
-- [ ] Toolbar tag preferences survive reload (localStorage)
-- [ ] Inspector **Graphics** tab: label sharpness (Auto / 1×–3×), opacity, crisp text, scanlines, preset, layout sliders, global icons — survives reload
-- [ ] Inspector **Tags** tab: per-subsystem title, offsets, visibility, colors — survives reload
-- [ ] **Display language** (EN / ไทย) on Graphics tab; mapping column headers follow locale
+- [ ] **Machine** inspector tab: overall health pill + subsystem rows
+- [ ] Select subsystem → clip row matches `glbAnchor`
+- [ ] Viewport **Tags** toggles hide/show; **Filter** menu sets **All** / **Issues** / **Warnings & errors** / **Errors only** / **Hidden** (defaults **Issues** for 6+ subsystems when no saved pref)
+- [ ] Tag click selects subsystem (same as **Machine** tab)
+- [ ] Toolbar tag filter persists (`twin-tag-filter-mode`); legacy `alerts-only` migrates to **Issues**
+- [ ] **Environment map** (globe): pick **Park** (or other preset) → cubemap visible as scene background (not solid black)
+- [ ] Inspector **Tag style** tab: label sharpness (Auto / 1×–3×), opacity, crisp text, scanlines, preset, layout sliders, global icons — survives reload
+- [ ] Inspector **Components** tab: per-subsystem title, offsets, visibility, colors — survives reload
+- [ ] **Display language** (EN / ไทย) on Tag style tab; mapping column headers follow locale
 - [ ] Card icons are **glyph only** (no icon box border or background); motors spin / gimbals sweep when animation is Full
 - [ ] **Bracket tactical** preset → icon in top-right corner; other presets → icon left of title
 - [ ] Inspector sidebar is **resizable** (drag left edge); width persists
 
 ## Live mapping (operator overrides)
 
-- [ ] Inspector **Mapping** tab: Parameter | Sensor | Sub-parameter columns; sortable subsystem cards
+- [ ] Inspector **Live map** tab: Parameter | Sensor | Sub-parameter columns; sortable subsystem cards
 - [ ] Tap parameter name (●) → primary line on 3D tag; mapping persists per asset (`localStorage`)
 - [ ] Sensor dropdowns flip above trigger when near viewport bottom (not clipped)
 - [ ] With Bitstream or Simulator streaming: row preview shows live / stale / sim status

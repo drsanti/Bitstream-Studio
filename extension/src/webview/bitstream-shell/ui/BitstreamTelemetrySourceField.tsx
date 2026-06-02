@@ -74,13 +74,11 @@ export function BitstreamTelemetrySourceField() {
             : simOffline
               ? SHELL_DECK_PILL_HOVER.sourceSimulatorOffline
               : SHELL_DECK_PILL_HOVER.sourceSimulator;
-        const iconClass = simOffline
-          ? active
+        const iconClass = active
+          ? simOffline && segment.id === "simulator"
             ? "text-amber-300"
-            : "text-amber-500/85"
-          : active
-            ? segment.activeIconClass
-            : "text-zinc-500 opacity-85";
+            : segment.activeIconClass
+          : "text-zinc-500 opacity-85";
         const trigger = (
           <button
             type="button"

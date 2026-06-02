@@ -1,6 +1,7 @@
 import { Globe2, Menu } from "lucide-react";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import { useBitstreamTelemetrySourceStore } from "../../bitstream-app/state/bitstreamTelemetrySource.store";
+import { bitstreamProductVersionLabel } from "../bitstreamProductVersion.js";
 import { BitstreamSystemStatusIndicators } from "./BitstreamSystemStatusIndicators";
 import { ShellLinkTelemetryCluster } from "./ShellLinkTelemetryCluster";
 import { ShellControlDeck } from "./ShellControlDeck";
@@ -20,6 +21,22 @@ function clearBrandTitleGradientStyles(el: HTMLHeadingElement) {
   el.style.removeProperty("-webkit-background-clip");
   el.style.removeProperty("color");
   el.style.removeProperty("-webkit-text-fill-color");
+}
+
+function BitstreamToolbarBrandTitle(props: { titleRef?: RefObject<HTMLHeadingElement | null> }) {
+  return (
+    <div className="flex min-w-0 items-baseline gap-1.5">
+      <h1
+        ref={props.titleRef}
+        className="text-sm font-semibold tracking-tight text-zinc-100"
+      >
+        TERNION Bitstream
+      </h1>
+      <span className="shrink-0 text-[10px] font-medium tabular-nums tracking-wide text-zinc-500">
+        {bitstreamProductVersionLabel()}
+      </span>
+    </div>
+  );
 }
 
 /**
@@ -86,9 +103,7 @@ function BitstreamToolbarBrand() {
           <Globe2 {...globeProps} />
         </span>
         <div>
-          <h1 className="text-sm font-semibold tracking-tight text-zinc-100">
-            TERNION Bitstream
-          </h1>
+          <BitstreamToolbarBrandTitle />
         </div>
       </>
     );
@@ -127,12 +142,7 @@ function BitstreamToolbarBrand() {
         <Globe2 {...globeProps} style={{ stroke: strokeUrl }} />
       </span>
       <div>
-        <h1
-          ref={titleRef}
-          className="text-sm font-semibold tracking-tight text-zinc-100"
-        >
-          TERNION Bitstream
-        </h1>
+        <BitstreamToolbarBrandTitle titleRef={titleRef} />
       </div>
     </>
   );

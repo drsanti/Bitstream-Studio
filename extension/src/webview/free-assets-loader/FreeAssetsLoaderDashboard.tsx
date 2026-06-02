@@ -349,7 +349,7 @@ export function FreeAssetsLoaderDashboard({
         raw.includes("403") ||
         raw.toLowerCase().includes("api rate limit exceeded");
       const friendly = isRate
-        ? ternionFreeAssetPackCopy.rateLimitHelp
+        ? ternionFreeAssetPackCopy.tooltips.rateLimit
         : raw;
       setToast({ message: friendly, tone: "error" });
       scheduleToastClear(16_000);

@@ -7,7 +7,7 @@ import {
 } from "../../src/webview/startup-checklist/startupChecklistPersistence.js";
 
 test("startup checklist version gates completion skip", () => {
-  assert.equal(STARTUP_CHECKLIST_VERSION, 2);
+  assert.equal(STARTUP_CHECKLIST_VERSION, 3);
   assert.equal(readStartupChecklistCompletedVersion(), 0);
   assert.equal(isStartupChecklistMarkedComplete(), false);
 });

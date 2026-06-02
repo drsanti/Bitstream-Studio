@@ -1,6 +1,6 @@
 import type { Viewport } from "@xyflow/react";
 import { Expand, Focus, LayoutGrid, MousePointerClick, RotateCcw } from "lucide-react";
-import { TRNButton, TRNSelect } from "../../../../../ui/TRN";
+import { TRNButton } from "../../../../../ui/TRN";
 import type { FlowCanvasEdgeRoutingStyle, FlowCanvasGridSize, FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
 import {
   CANVAS_EDGE_ROUTING_OPTIONS,
@@ -10,6 +10,7 @@ import {
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { InspectorSection } from "./InspectorSection";
+import { InspectorSegmentButtonGroup } from "./InspectorSegmentButtonGroup";
 
 export type CanvasInspectorCanvasTabProps = {
   flowViewport?: Viewport | null;
@@ -89,15 +90,12 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
           label="Edge routing"
           description="Applies to all wires and new connections."
         >
-          <TRNSelect
-            value={flowCanvasPreferences.edgeRoutingStyle}
-            options={CANVAS_EDGE_ROUTING_OPTIONS.map((o) => ({
-              value: o.value,
-              label: o.label,
-            }))}
+          <InspectorSegmentButtonGroup
             ariaLabel="Flow edge routing style"
-            size="sm"
-            onValueChange={(next) =>
+            layout="grid-2"
+            value={flowCanvasPreferences.edgeRoutingStyle}
+            options={CANVAS_EDGE_ROUTING_OPTIONS}
+            onChange={(next) =>
               onFlowCanvasPreferencesChange({
                 edgeRoutingStyle: next as FlowCanvasEdgeRoutingStyle,
               })
@@ -117,15 +115,15 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             checked={flowCanvasPreferences.snapToGrid}
             onCheckedChange={(next) => onFlowCanvasPreferencesChange({ snapToGrid: next })}
           />
-          <InspectorPropertyRow label="Grid size">
-            <TRNSelect
-              value={String(flowCanvasPreferences.gridSize)}
-              options={CANVAS_GRID_SIZE_OPTIONS}
+          <InspectorPropertyRow label="Grid size (px)">
+            <InspectorSegmentButtonGroup
               ariaLabel="Flow canvas grid size"
-              size="sm"
-              onValueChange={(next) =>
+              layout="grid-5"
+              value={flowCanvasPreferences.gridSize}
+              options={CANVAS_GRID_SIZE_OPTIONS}
+              onChange={(next) =>
                 onFlowCanvasPreferencesChange({
-                  gridSize: Number(next) as FlowCanvasGridSize,
+                  gridSize: next as FlowCanvasGridSize,
                 })
               }
             />

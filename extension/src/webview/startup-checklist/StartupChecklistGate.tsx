@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAssetBootstrap } from "../asset-bootstrap/useAssetBootstrap.js";
 import {
   canUseHostedAssetBootstrap,
@@ -9,9 +9,14 @@ import { StartupChecklistPanel } from "./StartupChecklistPanel.js";
 import { StartupSetupIncompleteChip } from "./StartupSetupIncompleteChip.js";
 import { useStartupChecklist } from "./useStartupChecklist.js";
 import {
+  areAllStartupStepsPassed,
+  canCloseSetupOverlay,
+} from "./startupChecklistCompletion.js";
+import {
   resolveStartupPresentationMode,
   useStartupChecklistPresentation,
 } from "./useStartupChecklistPresentation.js";
+import { useWsClientStore } from "../ws-client-store.js";
 
 type StartupChecklistGateProps = {
   children: ReactNode;
@@ -27,9 +32,7 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
 
   const panelOpen = useStartupChecklistStore((s) => s.panelOpen);
   const shouldAutoShowOverlay = useStartupChecklistStore((s) => s.shouldAutoShowOverlay);
-  const markComplete = useStartupChecklistStore((s) => s.markComplete);
-  const dismissForSession = useStartupChecklistStore((s) => s.dismissForSession);
-  const closePanel = useStartupChecklistStore((s) => s.closePanel);
+  const endOverlaySession = useStartupChecklistStore((s) => s.endOverlaySession);
 
   const environmentReady =
     !shouldBlockShellUntilAssetsReady() || bootstrap.phase === "ready";
@@ -41,29 +44,53 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
 
   const panelActive = canUseHostedAssetBootstrap();
   const checklist = useStartupChecklist({ bootstrap, panelActive });
-  const { linkReady, readyCount, totalCount, setExpandedId, steps } = checklist;
+  const { linkReady, setExpandedId, steps } = checklist;
 
-  const showOverlay =
+  const wantsAutoOverlay =
     canUseHostedAssetBootstrap() &&
-    (panelOpen ||
-      shouldAutoShowOverlay({
-        environmentReady,
-        linkReady,
-        assetsBusy,
-        assetsNeedSetup,
-      }));
+    shouldAutoShowOverlay({
+      environmentReady,
+      linkReady,
+      assetsBusy,
+      assetsNeedSetup,
+    });
 
-  const firstRunWalkthrough =
-    !panelOpen &&
-    !useStartupChecklistStore.getState().isMarkedComplete() &&
-    !useStartupChecklistStore.getState().isSessionDismissed();
+  const showOverlay = panelOpen || wantsAutoOverlay;
+
+  const [tourResetGeneration, setTourResetGeneration] = useState(0);
+  /** Manual open (Ctrl+/) uses instant mode until Recheck replays the guided tour. */
+  const [recheckTourActive, setRecheckTourActive] = useState(false);
+
+  const autoOverlayWalkthrough = showOverlay && !panelOpen;
+  const sequentialFromRecheck = recheckTourActive && panelOpen;
 
   const presentationMode = resolveStartupPresentationMode({
-    enabled: showOverlay && !panelOpen,
-    userOpenedPanel: panelOpen,
-    firstRunWalkthrough,
+    userOpenedPanel: panelOpen && !recheckTourActive,
+    autoOverlay: autoOverlayWalkthrough || sequentialFromRecheck,
   });
-  const presentation = useStartupChecklistPresentation(steps, presentationMode);
+  const presentation = useStartupChecklistPresentation(steps, presentationMode, tourResetGeneration);
+  const canClose = canCloseSetupOverlay(steps, presentation);
+
+  const [pointerInsideOverlay, setPointerInsideOverlay] = useState(false);
+  const autoCloseScheduledRef = useRef(false);
+
+  const handleRecheck = useCallback(() => {
+    autoCloseScheduledRef.current = false;
+    bootstrap.recheck();
+    void useWsClientStore.getState().connect();
+    setTourResetGeneration((g) => g + 1);
+    if (panelOpen) {
+      setRecheckTourActive(true);
+    }
+    setExpandedId("assets");
+  }, [bootstrap, panelOpen, setExpandedId]);
+
+  useEffect(() => {
+    if (!recheckTourActive || !presentation.walkthroughComplete) {
+      return;
+    }
+    setRecheckTourActive(false);
+  }, [presentation.walkthroughComplete, recheckTourActive]);
 
   useEffect(() => {
     if (!presentation.isSequentialActive || presentation.focusStepId == null) {
@@ -72,9 +99,11 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
     setExpandedId(presentation.focusStepId);
   }, [presentation.focusStepId, presentation.isSequentialActive, setExpandedId]);
 
-  /** Surface actionable steps when link checks fail (instant or after sequential reveal). */
   useEffect(() => {
     if (!showOverlay && !panelOpen) {
+      return;
+    }
+    if (presentation.isSequentialActive) {
       return;
     }
     const handshake = steps.find((s) => s.id === "handshake");
@@ -86,7 +115,44 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
     if (serial?.status === "fail" || serial?.status === "warn") {
       setExpandedId("serial-ports");
     }
-  }, [panelOpen, setExpandedId, showOverlay, steps]);
+  }, [panelOpen, presentation.isSequentialActive, setExpandedId, showOverlay, steps]);
+
+  const handleDismiss = () => {
+    autoCloseScheduledRef.current = false;
+    endOverlaySession({
+      markSetupComplete: presentation.walkthroughComplete,
+    });
+  };
+
+  /** Auto-close when every step is green, walkthrough done, and the pointer left the overlay. */
+  useEffect(() => {
+    if (!showOverlay || panelOpen || pointerInsideOverlay) {
+      autoCloseScheduledRef.current = false;
+      return;
+    }
+    if (!presentation.walkthroughComplete || !areAllStartupStepsPassed(steps)) {
+      autoCloseScheduledRef.current = false;
+      return;
+    }
+    if (autoCloseScheduledRef.current) {
+      return;
+    }
+    autoCloseScheduledRef.current = true;
+    const timer = window.setTimeout(() => {
+      endOverlaySession({ markSetupComplete: true });
+    }, 350);
+    return () => {
+      window.clearTimeout(timer);
+      autoCloseScheduledRef.current = false;
+    };
+  }, [
+    endOverlaySession,
+    panelOpen,
+    pointerInsideOverlay,
+    presentation.walkthroughComplete,
+    showOverlay,
+    steps,
+  ]);
 
   const showIncompleteChip =
     canUseHostedAssetBootstrap() &&
@@ -94,38 +160,6 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
     !linkReady &&
     !showOverlay &&
     !assetsBusy;
-
-  /**
-   * Auto-dismiss only after the sequential walkthrough finishes (or instant mode).
-   * Do not close when truth is already 8/8 but the UI is still on step 1.
-   */
-  useEffect(() => {
-    if (useStartupChecklistStore.getState().panelOpen) {
-      return;
-    }
-    if (!presentation.walkthroughComplete) {
-      return;
-    }
-    if (environmentReady && linkReady && readyCount === totalCount && totalCount > 0) {
-      markComplete();
-    }
-  }, [
-    environmentReady,
-    linkReady,
-    markComplete,
-    presentation.walkthroughComplete,
-    readyCount,
-    totalCount,
-  ]);
-
-  const handleDismiss = () => {
-    if (linkReady) {
-      markComplete({ force: true });
-    } else {
-      dismissForSession();
-    }
-    closePanel();
-  };
 
   return (
     <>
@@ -135,12 +169,16 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4 backdrop-blur-md"
           role="presentation"
+          onPointerEnter={() => setPointerInsideOverlay(true)}
+          onPointerLeave={() => setPointerInsideOverlay(false)}
         >
           <StartupChecklistPanel
             bootstrap={bootstrap}
             checklist={checklist}
             presentation={presentation}
-            onDismiss={environmentReady ? handleDismiss : undefined}
+            canClose={canClose}
+            onDismiss={handleDismiss}
+            onRecheck={handleRecheck}
             onFocusSerialPorts={() => setExpandedId("serial-ports")}
           />
         </div>

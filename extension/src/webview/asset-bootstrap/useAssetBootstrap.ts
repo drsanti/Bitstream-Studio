@@ -82,10 +82,10 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
       setPhase("blocked");
       setStatusLine(
         result.reason === "offline"
-          ? ternionFreeAssetPackCopy.offlineBlocked
+          ? ternionFreeAssetPackCopy.results.packMissingOffline
           : result.reason === "missing-disk"
-            ? ternionFreeAssetPackCopy.missingDisk
-            : ternionFreeAssetPackCopy.verifyFailed,
+            ? ternionFreeAssetPackCopy.results.packMissing
+            : ternionFreeAssetPackCopy.results.verifyFailed,
       );
     } catch (e) {
       if (!ac.signal.aborted) {
@@ -170,7 +170,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
           const errs = res.errors?.length ?? 0;
           if (res.error || errs > 0) {
             setPhase("blocked");
-            setStatusLine(res.error ?? ternionFreeAssetPackCopy.syncErrors);
+            setStatusLine(res.error ?? ternionFreeAssetPackCopy.results.syncFailed);
             setSyncPercent(null);
             setSyncProgress(null);
             return;
@@ -183,7 +183,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
             fileIndex: prev?.fileIndex ?? null,
             totalFiles: prev?.totalFiles ?? null,
           }));
-          setStatusLine(ternionFreeAssetPackCopy.reloadAfterSync);
+          setStatusLine(ternionFreeAssetPackCopy.results.reloadAfterSync);
           scheduleWebviewReloadAfterAssetSync();
           void runBrowserBootstrapCheck();
         } catch (e) {
@@ -317,7 +317,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
         if (d.error || errs > 0) {
           setPhase("blocked");
           setStatusLine(
-            d.error ?? ternionFreeAssetPackCopy.syncErrors,
+            d.error ?? ternionFreeAssetPackCopy.results.syncFailed,
           );
           setSyncPercent(null);
           setSyncProgress(null);
@@ -331,7 +331,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
           fileIndex: prev?.fileIndex ?? null,
           totalFiles: prev?.totalFiles ?? null,
         }));
-        setStatusLine(ternionFreeAssetPackCopy.reloadAfterSync);
+        setStatusLine(ternionFreeAssetPackCopy.results.reloadAfterSync);
         scheduleWebviewReloadAfterAssetSync();
       }
     };

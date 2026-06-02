@@ -14,7 +14,7 @@ export type StartupStepCardProps = {
   progressPercent: number | null;
   expanded: boolean;
   onToggle: () => void;
-  accent?: "default" | "active" | "fail" | "ok";
+  accent?: "default" | "active" | "fail" | "ok" | "warn";
   presentation?: "upcoming" | "current" | "completed";
   isFocus?: boolean;
   children?: ReactNode;
@@ -31,10 +31,19 @@ function cardShellClass(
   if (presentation === "upcoming") {
     return `${base} opacity-55`;
   }
+  if (presentation === "completed") {
+    if (status === "fail" || accent === "fail") {
+      return `${base} border-l-2 border-l-rose-500/70 border-rose-500/20 opacity-90`;
+    }
+    if (status === "warn" || accent === "warn") {
+      return `${base} border-l-2 border-l-amber-500/60 opacity-90`;
+    }
+    return `${base} border-l-2 border-l-emerald-500/70 opacity-90`;
+  }
   if (presentation === "current" && isFocus) {
     return `${base} ring-1 ring-sky-500/40 border-sky-500/30 shadow-[0_0_24px_-8px_rgba(56,189,248,0.35)]`;
   }
-  if (accent === "active" || status === "active") {
+  if (presentation === "current" && (accent === "active" || status === "active")) {
     return `${base} ring-1 ring-sky-500/35 border-sky-500/25`;
   }
   if (accent === "fail" || status === "fail") {
@@ -107,8 +116,9 @@ export function StartupStepCard(props: StartupStepCardProps) {
   } = props;
 
   const showResult = true;
-  const showProgress = status === "active" && progressPercent != null;
-  const showIndeterminate = status === "active" && progressPercent == null && presentation === "current";
+  const isCurrentFocus = presentation === "current" && isFocus;
+  const showProgress = isCurrentFocus && status === "active" && progressPercent != null;
+  const showIndeterminate = isCurrentFocus && status === "active" && progressPercent == null;
 
   const onHeaderKeyDown = (event: KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " ") {

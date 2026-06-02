@@ -45,3 +45,10 @@ export const ANIMATION_LAB_SHOWCASE_LOOP_OPTIONS: AnimationLabShowcaseLoopOption
     hint: "Play forward, then reverse, and repeat",
   },
 ];
+
+export const ANIMATION_LAB_SHOWCASE_SECTION_LABELS = {
+  playbackMode: "Playback mode",
+  loop: "Loop",
+  animations: "Animations",
+  transport: "Playback",
+} as const;

@@ -88,7 +88,7 @@ export function GlbAnimationLabInspectorTagSettingsTab() {
     <div className="flex flex-col gap-3">
       <TRNHintText tone="muted" className="mb-0 text-[10px] leading-snug">
         Per-subsystem overrides for title, anchor offset, visibility, and colors. Shared preset,
-        fonts, sharpness, and icons are on the Graphics tab.
+        fonts, sharpness, and icons are on the Tag style tab.
       </TRNHintText>
 
       <TRNSelect

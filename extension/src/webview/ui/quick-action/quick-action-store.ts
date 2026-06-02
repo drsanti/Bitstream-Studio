@@ -22,9 +22,12 @@ export interface QuickActionState
 /* Fuzzy match query against command label / keywords / category. */
 function fuzzyMatch(
   query: string,
-  text: string,
+  text: string | undefined,
 ): { score: number; matched: boolean }
 {
+  if (!text) {
+    return { score: 0, matched: false };
+  }
   if (!query)
   {
     return { score: 0, matched: true };
@@ -83,7 +86,7 @@ function filterCommands(commands: Command[], query: string): FilteredCommand[]
     let bestScore = 0;
     let matchedText = "";
 
-    const labelMatch = fuzzyMatch(query, command.label);
+    const labelMatch = fuzzyMatch(query, command.label ?? "");
     if (labelMatch.matched && labelMatch.score > bestScore)
     {
       bestScore = labelMatch.score;
@@ -94,6 +97,9 @@ function filterCommands(commands: Command[], query: string): FilteredCommand[]
     {
       for (const keyword of command.keywords)
       {
+        if (!keyword) {
+          continue;
+        }
         const keywordMatch = fuzzyMatch(query, keyword);
         if (keywordMatch.matched && keywordMatch.score > bestScore)
         {

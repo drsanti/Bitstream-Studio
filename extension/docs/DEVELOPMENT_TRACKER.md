@@ -71,7 +71,8 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
-- **2026-06-02** — **Startup checklist P1:** Board connection row (select/open COM, Allow hints); handshake fail actions + lifecycle-safe Simulator switch; auto-expand fail steps; setup chip copy.
+- **2026-06-02** — **GLB Animation Lab — operator UX:** Inspector tabs **Playback · Machine · Live map · Tag style · Components**; viewport **Tag visibility** filter menu (replaces **Alerts only**); **Environment map** always shows cubemap background in lab; animated models default **All at once** + **Loop** + auto-play; **`animation-lab-twin-tag-filter.ts`** + unit test.
+- **2026-06-02** — **Startup checklist v3:** Sequential walkthrough on first open even when checks green; recheck restarts tour; hidden scrollbar + auto-scroll; **`STARTUP_CHECKLIST_DESIGN.md`** updated.
 - **2026-06-02** — **Startup checklist — progressive reveal:** `useStartupChecklistPresentation` (sequential auto overlay, instant on manual open / reduced motion); browser link steps probe `:9998`; docs **`DEV_MODE_QUICKSTART.md`**, **`STARTUP_CHECKLIST_DESIGN.md`** § Progressive presentation.
 - **2026-06-02** — **Dual-host runtime:** `webviewHostCapabilities.ts`, bridge-backed asset bootstrap in browser, Ctrl+/ **Open in browser** (extension), setup commands enabled with bridge; docs **`DUAL_HOST_RUNTIME.md`**.
 - **2026-06-02** — **Startup checklist + TERNION pack:** Full mirror on disk; **`GlbLoadErrorBoundary`**; manual open does not auto-close; TERNION branding (no GitHub in UI).

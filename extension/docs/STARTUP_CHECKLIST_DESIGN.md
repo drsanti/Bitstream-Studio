@@ -230,11 +230,12 @@ flowchart TB
 
 | Constant | ms | Role |
 | -------- | -- | ---- |
-| `STARTUP_STEP_ENTER_MS` | 220 | Card enter |
-| `STARTUP_STEP_MIN_DWELL_MS` | 400 | Min focus time per step (~250–500 ms pacing band) |
-| `STARTUP_STEP_COMPLETE_MS` | 280 | Success beat before next |
-| `STARTUP_STEP_GAP_MS` | 280 | Between steps (artificial delay when backend is fast) |
-| `STARTUP_MAX_ORCHESTRATION_MS` | 12000 | Snap to truth |
+| `STARTUP_STEP_MIN_VISIBLE_MS` | 250 | Minimum focus time per card (UI floor) |
+| `STARTUP_STEP_PADDING_AFTER_MS` | 250 | Pause after check settles, before next card |
+| `STARTUP_STEP_POLL_MS` | 50 | Poll while waiting for real check status |
+| `STARTUP_STEP_MAX_OPERATION_MS` | 30000 | Safety cap if step stays `active`/`pending` |
+
+Per-step duration is **`max(250 ms, actual check time) + 250 ms`** padding. The tour waits while status is `active` or `pending`; `ok` / `warn` / `fail` / `locked` count as done waiting.
 
 ### Auto-close guard
 
@@ -245,7 +246,7 @@ Two guards prevent the overlay disappearing on step 1:
 
 Orchestrator timers depend on `focusTruthStatus`, not the whole `steps` array reference (avoids cancelling timeouts on every WS probe tick).
 
-**Timer-paced steps:** the walkthrough advances after `STARTUP_STEP_MIN_DWELL_MS` on each card even when truth is still `active` (e.g. asset pack still checking). Only `fail` blocks advance. Truth still drives the result line on each card.
+**Operation-paced steps:** the walkthrough stays on a card until the real check leaves `active`/`pending` (or the safety cap), and never less than `STARTUP_STEP_MIN_VISIBLE_MS`. Truth drives the result line on each card.
 
 Constants: `startupChecklistPresentation.constants.ts`.
 

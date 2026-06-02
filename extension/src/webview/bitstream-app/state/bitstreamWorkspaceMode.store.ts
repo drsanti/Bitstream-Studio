@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { BitstreamWorkspaceHostId } from "../../../ternion-shell-host-message.js";
+import { isViteDevMode } from "../../utils/isViteDevMode.js";
 
 /**
  * Bitstream shell workspaces under {@link BitstreamAppMain}:
@@ -59,6 +60,24 @@ function readPersistedBitstreamWorkspace(): BitstreamWorkspaceId | null
   }
 }
 
+/** Dev landing sets `?workspace=` via {@link commitBitstreamLandingChoice}. */
+function readBitstreamWorkspaceFromDevUrlParam(): BitstreamWorkspaceId | null
+{
+  if (typeof window === "undefined" || !isViteDevMode())
+  {
+    return null;
+  }
+  try
+  {
+    const params = new URLSearchParams(window.location.search);
+    return normalizeBitstreamWorkspaceId(params.get("workspace"));
+  }
+  catch
+  {
+    return null;
+  }
+}
+
 function persistBitstreamWorkspace(workspace: BitstreamWorkspaceId): void
 {
   if (typeof window === "undefined")
@@ -75,13 +94,18 @@ function persistBitstreamWorkspace(workspace: BitstreamWorkspaceId): void
   }
 }
 
-/** Host inject (first paint) → localStorage → default telemetry tab. */
+/** Host inject → dev URL `workspace` → localStorage → default telemetry tab. */
 export function readInitialBitstreamWorkspace(): BitstreamWorkspaceId
 {
   const fromHost = readBitstreamWorkspaceFromHost();
   if (fromHost != null)
   {
     return fromHost;
+  }
+  const fromUrl = readBitstreamWorkspaceFromDevUrlParam();
+  if (fromUrl != null)
+  {
+    return fromUrl;
   }
   const persisted = readPersistedBitstreamWorkspace();
   if (persisted != null)

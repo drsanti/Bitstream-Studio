@@ -63,7 +63,7 @@ Registry: **`isStudioAlignedOutputSocketColumnsNodeId`** (subgrid), **`isStudioS
 
 ### Node Palette live row format
 
-Library **line-2** previews for sensor catalog entries use **`PrimaryBundleRow`** via **`kind: "primaryBundle"`** in **`palette-live-preview.ts`**. Labels and units are centralized in **`core/sensor-port-labels.ts`**.
+Library **line-2** previews are **hardware sensor rows only** (`paletteShowsHardwareLivePreview` in **`palette-entry-meta.ts`**): primary streams, taps, and legacy **`sensor-input`** / **`quat-input`**. Utility / generator / transform / logic entries show **no live reading row** in the palette (canvas socket previews still follow evaluated pins). Sensor bundles use **`PrimaryBundleRow`** via **`kind: "primaryBundle"`** in **`palette-live-preview.ts`**. Labels and units are centralized in **`core/sensor-port-labels.ts`**.
 
 | Pattern | Rule |
 | ------- | ---- |
