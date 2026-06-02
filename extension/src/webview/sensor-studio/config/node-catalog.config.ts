@@ -11,6 +11,7 @@ import {
   defaultScene3DConfig,
   type Scene3DConfigV1,
 } from "../features/editor/nodes/rotation/scene3d-config";
+import { VECTOR_QUATERNION_MATH_CATALOG_ENTRIES } from "./vector-quaternion-math-catalog.entries";
 
 /**
  * Catalog defaults must persist a **logical** GLB path (`resolveWebviewModelAssetUrl`), not
@@ -499,9 +500,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "lerp",
         category: "utility",
-        title: "Lerp",
+        title: "Scalar Lerp",
         description:
-          "Linear interpolation: A + (B − A) × Factor. Factor clamps to 0–1. Unwired defaults: A = 0, B = 1, Factor = 0.",
+          "Scalar linear interpolation: A + (B − A) × Factor. Factor clamps to 0–1. Unwired defaults: A = 0, B = 1, Factor = 0. For vector3 or quaternion blending use Vector Lerp or Quaternion Slerp.",
         icon: "blend",
         defaultVisible: true,
         defaultConfig: {},
@@ -531,11 +532,11 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "combine-xyz",
         category: "utility",
-        title: "Combine XYZ",
+        title: "Combine Vector",
         description:
           "Build a vector3 from wired X, Y, and Z numbers. Unwired inputs count as 0.",
-        icon: "git-branch",
-        defaultVisible: false,
+        icon: "merge",
+        defaultVisible: true,
         defaultConfig: {},
         inputPorts: [
           { id: "x", portType: "number", label: "X" },
@@ -543,6 +544,23 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "z", portType: "number", label: "Z" },
         ],
         outputPorts: [{ id: "out", portType: "vector3", label: "Vector" }],
+      },
+      {
+        id: "combine-quaternion",
+        category: "utility",
+        title: "Combine Quaternion",
+        description:
+          "Build a quaternion from wired W, X, Y, and Z numbers. Unwired inputs count as 0.",
+        icon: "merge",
+        defaultVisible: true,
+        defaultConfig: {},
+        inputPorts: [
+          { id: "w", portType: "number", label: "W" },
+          { id: "x", portType: "number", label: "X" },
+          { id: "y", portType: "number", label: "Y" },
+          { id: "z", portType: "number", label: "Z" },
+        ],
+        outputPorts: [{ id: "out", portType: "quaternion", label: "Quaternion" }],
       },
       {
         id: "logic-gate",
@@ -605,11 +623,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "vector-splitter",
         category: "utility",
-        title: "Vector Splitter",
-        description: "Split a vector3 into X, Y, and Z scalar outputs.",
-        icon: "git-branch",
-        defaultVisible: false,
+        title: "Split Vector",
+        description: "Break a vector3 wire into X, Y, and Z number outputs.",
+        icon: "split",
+        defaultVisible: true,
         defaultConfig: {},
+        inputPorts: [{ id: "in", portType: "vector3", label: "Vector" }],
         outputPorts: [
           { id: "x", portType: "number", label: "X" },
           { id: "y", portType: "number", label: "Y" },
@@ -619,18 +638,20 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "quaternion-splitter",
         category: "utility",
-        title: "Quaternion Splitter",
-        description: "Split a quaternion into X, Y, Z, and W scalar outputs.",
-        icon: "git-branch",
-        defaultVisible: false,
+        title: "Split Quaternion",
+        description: "Break a quaternion wire into W, X, Y, and Z number outputs.",
+        icon: "split",
+        defaultVisible: true,
         defaultConfig: {},
+        inputPorts: [{ id: "in", portType: "quaternion", label: "Quaternion" }],
         outputPorts: [
+          { id: "w", portType: "number", label: "W" },
           { id: "x", portType: "number", label: "X" },
           { id: "y", portType: "number", label: "Y" },
           { id: "z", portType: "number", label: "Z" },
-          { id: "w", portType: "number", label: "W" },
         ],
       },
+      ...VECTOR_QUATERNION_MATH_CATALOG_ENTRIES,
       {
         id: "model-select",
         category: "utility",
@@ -1557,6 +1578,28 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "z", portType: "number", label: "Z" },
         ],
         outputPorts: [{ id: "out", portType: "vector3", label: "Vector" }],
+      },
+      {
+        id: "quaternion-constant",
+        category: "generator",
+        title: "Quaternion",
+        description:
+          "Constant quaternion from W, X, Y, Z. Wired axes override defaults (default W = 1).",
+        icon: "orbit",
+        defaultVisible: true,
+        defaultConfig: {
+          w: 1,
+          x: 0,
+          y: 0,
+          z: 0,
+        },
+        inputPorts: [
+          { id: "w", portType: "number", label: "W" },
+          { id: "x", portType: "number", label: "X" },
+          { id: "y", portType: "number", label: "Y" },
+          { id: "z", portType: "number", label: "Z" },
+        ],
+        outputPorts: [{ id: "out", portType: "quaternion", label: "Quaternion" }],
       },
       {
         id: "sine-wave",

@@ -1040,6 +1040,11 @@ export function StudioNodeCard(props: NodeProps) {
     if (!shellFitsContent) {
       return;
     }
+    // Socket-only nodes (Lerp, split/combine, math toolkit, …) fit content by default.
+    // Auto-sync would snap RF dimensions back to intrinsic shell size and undo edge resize.
+    if (nodeResizable) {
+      return;
+    }
     let frame = 0;
     frame = requestAnimationFrame(() => {
       const shellEl = shellRef.current;
@@ -1060,6 +1065,7 @@ export function StudioNodeCard(props: NodeProps) {
       cancelAnimationFrame(frame);
     };
   }, [
+    nodeResizable,
     showNodeBody,
     shellFitsContent,
     socketValuesVisible,

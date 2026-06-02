@@ -240,6 +240,11 @@ export function syncSocketLivePreviewInputHandlesFromIncoming(args: {
       if (v != null) {
         vector3[h.id] = v;
       }
+    } else if (h.portType === "quaternion") {
+      const q = narrowQuat(incoming);
+      if (q != null && h.id === STUDIO_HANDLE_IN) {
+        base.liveQuaternionWire = q;
+      }
     }
   }
 

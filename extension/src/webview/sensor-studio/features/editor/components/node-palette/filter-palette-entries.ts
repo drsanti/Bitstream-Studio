@@ -1,5 +1,21 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
+import { VECTOR_QUATERNION_MATH_SEARCH_ALIASES } from "../../../../config/vector-quaternion-math-search-aliases";
 import { getPaletteEntryMeta } from "./palette-entry-meta";
+
+function entryMatchesSearchQuery(entry: NodeCatalogEntry, q: string): boolean {
+  if (
+    entry.title.toLowerCase().includes(q) ||
+    entry.id.toLowerCase().includes(q) ||
+    entry.description.toLowerCase().includes(q)
+  ) {
+    return true;
+  }
+  const aliases = VECTOR_QUATERNION_MATH_SEARCH_ALIASES[entry.id];
+  if (aliases != null && aliases.some((term) => term.includes(q) || q.includes(term))) {
+    return true;
+  }
+  return false;
+}
 
 export function filterPaletteEntries(entries: NodeCatalogEntry[], query: string): NodeCatalogEntry[] {
   const q = query.trim().toLowerCase();
@@ -7,11 +23,7 @@ export function filterPaletteEntries(entries: NodeCatalogEntry[], query: string)
     return entries;
   }
   return entries.filter((e) => {
-    if (
-      e.title.toLowerCase().includes(q) ||
-      e.id.toLowerCase().includes(q) ||
-      e.description.toLowerCase().includes(q)
-    ) {
+    if (entryMatchesSearchQuery(e, q)) {
       return true;
     }
     const meta = getPaletteEntryMeta(e);

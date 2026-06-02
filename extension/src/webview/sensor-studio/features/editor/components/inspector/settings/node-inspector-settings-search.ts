@@ -80,6 +80,19 @@ const TYPED_SECTION_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
     "card",
     "input",
   ],
+  lerp: ["scalar", "linear", "number", "blend", "interpolate"],
+  "vector-constant": ["vector", "constant", "xyz", "vec3"],
+  "quaternion-constant": ["quaternion", "constant", "quat", "wxyz"],
+  "combine-xyz": ["combine", "vector", "xyz", "merge", "build"],
+  "combine-quaternion": ["combine", "quaternion", "quat", "merge", "w", "x", "y", "z"],
+  "vector-splitter": ["split", "separate", "vector", "xyz", "decompose"],
+  "quaternion-splitter": ["split", "separate", "quaternion", "quat", "decompose"],
+  "vector-length": ["length", "magnitude", "vector", "norm"],
+  "vector-normalize": ["normalize", "unit", "vector"],
+  "vector-lerp": ["lerp", "slerp", "linear", "blend", "vector", "interpolate"],
+  "quaternion-slerp": ["slerp", "quaternion", "blend", "rotation", "lerp"],
+  "euler-to-quaternion": ["euler", "quaternion", "convert"],
+  "tilt-from-accel": ["tilt", "accel", "gravity", "imu"],
 };
 
 const ROTATION_SEARCH = [

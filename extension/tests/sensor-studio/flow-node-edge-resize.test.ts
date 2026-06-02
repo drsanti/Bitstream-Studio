@@ -21,17 +21,28 @@ function studioNode(partial: Partial<StudioNode>): StudioNode {
   };
 }
 
-test("readNodeLayoutRect prefers live shell size over stale measured width", () => {
+test("readNodeLayoutRect prefers explicit node width over intrinsic shell size", () => {
   const node = studioNode({
-    width: 140,
+    width: 220,
+    height: 180,
+    measured: { width: 140, height: 160 },
+  });
+  const shell = { offsetWidth: 94, offsetHeight: 202 } as HTMLElement;
+  const rect = readNodeLayoutRect(node, shell);
+  assert.equal(rect.width, 220);
+  assert.equal(rect.height, 180);
+  assert.equal(rect.x, 120);
+  assert.equal(rect.y, 80);
+});
+
+test("readNodeLayoutRect falls back to shell when node has no explicit size", () => {
+  const node = studioNode({
     measured: { width: 140, height: 160 },
   });
   const shell = { offsetWidth: 196, offsetHeight: 210 } as HTMLElement;
   const rect = readNodeLayoutRect(node, shell);
   assert.equal(rect.width, 196);
   assert.equal(rect.height, 210);
-  assert.equal(rect.x, 120);
-  assert.equal(rect.y, 80);
 });
 
 test("computeResizedFlowNodeRect — southeast keeps position", () => {

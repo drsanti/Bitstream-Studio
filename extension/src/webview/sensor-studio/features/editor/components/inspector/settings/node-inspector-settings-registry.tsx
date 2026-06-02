@@ -34,9 +34,16 @@ import { OnKeySettingsSection } from "./sections/OnKeySettingsSection";
 import { PlotterSettingsSection } from "./sections/PlotterSettingsSection";
 import { SensorInputSettingsSection } from "./sections/SensorInputSettingsSection";
 import {
+  CombineQuaternionSettingsSection,
   CombineXyzSettingsSection,
+  QuaternionConstantSettingsSection,
+  SplitQuaternionSettingsSection,
+  SplitVectorSettingsSection,
   SwitchSettingsSection,
+  VectorConstantSettingsSection,
 } from "./sections/SwitchCombineSettingsSections";
+import { VectorQuaternionMathSettingsSection } from "./sections/VectorQuaternionMathSettingsSection";
+import { VECTOR_QUATERNION_MATH_NODE_IDS } from "../../../../../core/flow/flow-vector-quaternion-math-eval";
 import { SparklineSettingsSection } from "./sections/SparklineSettingsSection";
 import { ThresholdSettingsSection } from "./sections/ThresholdSettingsSection";
 import { TransformFromEulerSettingsSection } from "./sections/TransformFromEulerSettingsSection";
@@ -47,6 +54,10 @@ import {
   AudioScopeSettingsSection,
   MicInputSettingsSection,
 } from "./sections/AudioSettingsSections";
+
+const VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS = Object.fromEntries(
+  VECTOR_QUATERNION_MATH_NODE_IDS.map((id) => [id, VectorQuaternionMathSettingsSection]),
+) as Record<string, typeof VectorQuaternionMathSettingsSection>;
 
 /**
  * Catalog `nodeId` → settings UI for the Node Inspector **Node** tab (above JSON / rotation blocks).
@@ -86,6 +97,11 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   lerp: LerpSettingsSection,
   switch: SwitchSettingsSection,
   "combine-xyz": CombineXyzSettingsSection,
+  "combine-quaternion": CombineQuaternionSettingsSection,
+  "vector-splitter": SplitVectorSettingsSection,
+  "quaternion-splitter": SplitQuaternionSettingsSection,
+  "vector-constant": VectorConstantSettingsSection,
+  "quaternion-constant": QuaternionConstantSettingsSection,
   "logic-gate": LogicGateSettingsSection,
   multiplexer: MultiplexerSettingsSection,
   "value-normalizer": ValueNormalizerSettingsSection,
@@ -101,4 +117,5 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "audio-scope": AudioScopeSettingsSection,
   "audio-file-player": AudioFilePlayerSettingsSection,
   "audio-oscillator": AudioOscillatorSettingsSection,
+  ...VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS,
 };

@@ -175,7 +175,7 @@ function normalizeInnerNode(node: Node): Node {
       ...node,
       type: "studio",
       data: {
-        label: typeof data.graphTitle === "string" ? data.graphTitle : "Combine XYZ",
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Combine Vector",
         category: "utility",
         nodeId: "combine-xyz",
         defaultConfig: {},
@@ -293,6 +293,24 @@ function normalizeInnerNode(node: Node): Node {
         category: "generator",
         nodeId: "vector-constant",
         defaultConfig: {
+          x: typeof data.x === "number" ? data.x : 0,
+          y: typeof data.y === "number" ? data.y : 0,
+          z: typeof data.z === "number" ? data.z : 0,
+        },
+      },
+    };
+  }
+  if (node.type === "quaternion") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Quaternion",
+        category: "generator",
+        nodeId: "quaternion-constant",
+        defaultConfig: {
+          w: typeof data.w === "number" ? data.w : 1,
           x: typeof data.x === "number" ? data.x : 0,
           y: typeof data.y === "number" ? data.y : 0,
           z: typeof data.z === "number" ? data.z : 0,
@@ -816,9 +834,35 @@ function normalizeInnerNode(node: Node): Node {
       ...node,
       type: "studio",
       data: {
-        label: typeof data.graphTitle === "string" ? data.graphTitle : "Vector Splitter",
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Split Vector",
         category: "utility",
         nodeId: "vector-splitter",
+        defaultConfig: {},
+      },
+    };
+  }
+  if (node.type === "combineQuaternion") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Combine Quaternion",
+        category: "utility",
+        nodeId: "combine-quaternion",
+        defaultConfig: {},
+      },
+    };
+  }
+  if (node.type === "separateQuaternion") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Split Quaternion",
+        category: "utility",
+        nodeId: "quaternion-splitter",
         defaultConfig: {},
       },
     };

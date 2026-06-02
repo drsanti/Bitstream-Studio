@@ -382,6 +382,12 @@ function multiOutputPulsePreview(nodeId: string, latestByHint: HintMap): Palette
   switch (nodeId) {
     case "vector-splitter":
     case "quaternion-splitter":
+    case "combine-xyz":
+    case "combine-quaternion":
+    case "vector-length":
+    case "vector-normalize":
+    case "euler-to-quaternion":
+    case "quaternion-multiply":
       return { kind: "pulse", streamMode: "idle", label: "multi" };
     default:
       return { kind: "pulse", streamMode: "idle" };

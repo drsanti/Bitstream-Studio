@@ -258,6 +258,21 @@ function genericInputSocketLivePreview(
     );
   }
 
+  if (portType === "quaternion") {
+    const quaternion = data.liveQuaternionWire;
+    if (quaternion == null) {
+      return null;
+    }
+    return (
+      <SocketLivePreview
+        portType="quaternion"
+        handleId={handleId}
+        quaternion={quaternion}
+        streamMode="live"
+      />
+    );
+  }
+
   if (portType === "number") {
     const scalar =
       data.liveInputNumberByHandle?.[handleId] ??

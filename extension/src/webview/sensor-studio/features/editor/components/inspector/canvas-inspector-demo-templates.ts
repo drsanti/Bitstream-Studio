@@ -50,6 +50,11 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
       hint: "Gauge + numeric display for a single sensor channel.",
     },
     {
+      value: "vector-magnitude",
+      label: "Vector magnitude",
+      hint: "Vector (3, 4, 0) → Vector Length → bar meter (expects 5). No hardware required.",
+    },
+    {
       value: "bmi270-gauge-z",
       label: "BMI270 gauge (Z)",
       hint: "Accelerometer Z axis into a gauge node.",

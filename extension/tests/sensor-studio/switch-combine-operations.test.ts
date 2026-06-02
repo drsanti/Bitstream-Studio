@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  evaluateCombineQuaternion,
   evaluateCombineXyz,
   evaluateSwitchNumber,
   readSwitchCondition,
@@ -25,6 +26,21 @@ test("evaluateSwitchNumber picks branch values", () => {
 test("evaluateCombineXyz builds vector3", () => {
   assert.deepEqual(evaluateCombineXyz(1, 2, 3), { x: 1, y: 2, z: 3 });
   assert.deepEqual(evaluateCombineXyz(Number.NaN, 0, 0), { x: 0, y: 0, z: 0 });
+});
+
+test("evaluateCombineQuaternion builds quaternion", () => {
+  assert.deepEqual(evaluateCombineQuaternion(1, 0.1, 0.2, 0.3), {
+    w: 1,
+    x: 0.1,
+    y: 0.2,
+    z: 0.3,
+  });
+  assert.deepEqual(evaluateCombineQuaternion(Number.NaN, 0, 0, 0), {
+    w: 0,
+    x: 0,
+    y: 0,
+    z: 0,
+  });
 });
 
 test("normalizeNodeAssetForStudio maps switch, ifElse, and combineXYZ", () => {

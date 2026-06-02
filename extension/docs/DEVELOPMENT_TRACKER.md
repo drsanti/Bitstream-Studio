@@ -71,6 +71,10 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-02** — **Sensor Studio — socket-only node canvas resize:** resizable utilities (Lerp, split/combine, math toolkit) no longer auto-sync RF size to intrinsic shell; edge hit 8px; `readNodeLayoutRect` prefers stored width/height.
+- **2026-06-02** — **Sensor Studio — vector/quaternion polish:** catalog **Scalar Lerp** (id `lerp`); **Vector magnitude** demo template; inspector hints for **Vector** / **Quaternion** constants; palette search aliases for scalar lerp.
+- **2026-06-02** — **Sensor Studio — vector/quaternion math toolkit (27 nodes):** length, normalize, scale, add/sub, distance, dot, cross, lerp, project/reject, angle, compare length, tilt/heading/1g, deg↔rad, quat normalize/multiply/conjugate/inverse/slerp, axis-angle, euler↔quat, rotate vector; **`VECTOR_QUATERNION_MATH_NODES.md`**.
+- **2026-06-02** — **Sensor Studio — vector/quaternion split & combine:** catalog **Split Vector**, **Combine Vector**, **Split Quaternion**, **Combine Quaternion** (`combine-quaternion`); socket-only cards with bundled input previews (vec3/quat) and Policy A scalar rows; NA import `combineQuaternion` / `separateQuaternion`; `merge`/`split` palette icons.
 - **2026-06-02** — **Sensor Studio — flow editor UX (nodes + inspector):** stable selection ring (`flow-node-selection.css`, `inset: -1px`); **Note** layout nodes use same ring; **TRNScrubNumberField** + Integer/Float constants; socket-row live values + label width equalization; **TRNSelect** field/glass variants; canvas inspector collapsible/draggable cards; Math node dark-clay operation menu; knob wheel no canvas zoom; catalog explicit port labels; layout **Frame/Note** `rounded-md`.
 - **2026-06-02** — **Sensor Studio — Smart connect UX:** cyan **Compatible nodes for this wire** banner on filtered opens; browse groups put **Output** before **Layout** for number-output drags.
 - **2026-06-02** — **Sensor Studio — Smart connect:** reroute/split **input** (and out) drags when `socketType` unlocked — infer type from graph edges or show unfiltered menu; **`inferLayoutNodeSmartConnectPortType`**.
@@ -472,6 +476,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
   - [ ] **D3 — Dynamics** — rigid bodies, spawner, fixed/hinge joints; fixed-step physics tick coalesced with scene rAF; mesh transform sync to Three.js.
   - [ ] **D4 — Integration** — IK + animation blend; share collider/material truth with **Hardware setup** (see inbox **2026-05-11** physics-ready planning); E84 / vehicle sim hub reuse where applicable.
   - **Dependencies:** [`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md) Phase 3 (Jolt vehicle); [`FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md) Domain E section; node-animator reference evaluators under `D:/CODE/2026/node-animator`.
+- [x] **Sensor Studio — vector/quaternion math toolkit** — **Shipped 2026-06-02** (see **Recently completed** + [`VECTOR_QUATERNION_MATH_NODES.md`](../src/webview/sensor-studio/docs/VECTOR_QUATERNION_MATH_NODES.md)).
 - **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31**. Utility parity slices ongoing.
 - **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators today** (A–D); **physics (E) planned** — see _Planned / next → physics domain_:
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)

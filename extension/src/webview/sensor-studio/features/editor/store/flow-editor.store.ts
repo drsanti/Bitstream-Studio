@@ -37,6 +37,7 @@ import {
 import { evaluateMathOperation } from "../../../core/flow/math-operations";
 import { evaluateCompareOperation } from "../../../core/flow/compare-operations";
 import {
+  evaluateCombineQuaternion,
   evaluateCombineXyz,
   evaluateSwitchNumber,
 } from "../../../core/flow/switch-combine-operations";
@@ -71,6 +72,15 @@ import {
   VECTOR_CONSTANT_DEFAULTS,
   readVectorAxisInput,
 } from "../../../core/flow/vector-constant-operations";
+import {
+  evaluateQuaternionConstant,
+  QUATERNION_CONSTANT_DEFAULTS,
+  readQuaternionAxisInput,
+} from "../../../core/flow/quaternion-constant-operations";
+import {
+  evaluateVectorQuaternionMathNode,
+  isVectorQuaternionMathNodeId,
+} from "../../../core/flow/flow-vector-quaternion-math-eval";
 import { advanceFlowClock } from "../../../core/flow/flow-clock";
 import { evaluateDebugValue } from "../../../core/flow/debug-node-operations";
 import { evaluateFogOutputs } from "../../../core/flow/fog-operations";
@@ -587,6 +597,7 @@ export type StudioDemoTemplateId =
   | "basic-indicator"
   | "gauge-monitor"
   | "signal-chain"
+  | "vector-magnitude"
   | "bmi270-gauge-z"
   | "rotation-glb-anim"
   | "material-glb-drives"
@@ -990,34 +1001,6 @@ function inferPortTypes(entry: NodeCatalogEntry): {
     return {
       inputHandles,
       ...(outputHandles != null ? { outputHandles } : {}),
-    };
-  }
-  if (
-    entry.id === "vector-splitter" &&
-    entry.outputPorts != null &&
-    entry.outputPorts.length > 0
-  ) {
-    return {
-      inputType: "vector3",
-      outputHandles: entry.outputPorts.map((p) => ({
-        id: p.id,
-        portType: p.portType as StudioPortType,
-        label: p.label,
-      })),
-    };
-  }
-  if (
-    entry.id === "quaternion-splitter" &&
-    entry.outputPorts != null &&
-    entry.outputPorts.length > 0
-  ) {
-    return {
-      inputType: "quaternion",
-      outputHandles: entry.outputPorts.map((p) => ({
-        id: p.id,
-        portType: p.portType as StudioPortType,
-        label: p.label,
-      })),
     };
   }
   if (entry.outputPorts != null && entry.outputPorts.length > 0) {
@@ -4483,6 +4466,66 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
 
+    if (templateId === "vector-magnitude") {
+      const vectorEntry = catalog.find((entry) => entry.id === "vector-constant");
+      const lengthEntry = catalog.find((entry) => entry.id === "vector-length");
+      const barMeterEntry = catalog.find((entry) => entry.id === "bar-meter");
+      if (vectorEntry == null || lengthEntry == null || barMeterEntry == null) {
+        return;
+      }
+      const vecNode = makeNode(vectorEntry, "demo-vector-const", 72, 156);
+      vecNode.data.label = "Vector (3, 4, 0)";
+      vecNode.data.defaultConfig = {
+        ...vecNode.data.defaultConfig,
+        x: 3,
+        y: 4,
+        z: 0,
+      };
+      const lenNode = makeNode(lengthEntry, "demo-vector-length", 360, 156);
+      const gaugeNode = makeNode(barMeterEntry, "demo-vector-length-gauge", 660, 156);
+      gaugeNode.data.label = "Bar meter (|v|)";
+      gaugeNode.data.defaultConfig = {
+        ...gaugeNode.data.defaultConfig,
+        min: 0,
+        max: 10,
+        decimals: 2,
+        unit: "",
+        orientation: "horizontal",
+      };
+      get().pushUndoSnapshot();
+      const vecDemoEdges: Edge[] = [
+        {
+          id: "demo-vec-len-e1",
+          source: vecNode.id,
+          target: lenNode.id,
+          sourceHandle: "out",
+          targetHandle: "in",
+          animated: true,
+          label: getSourcePortType(vecNode, "out") ?? "vector3",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-vec-len-e2",
+          source: lenNode.id,
+          target: gaugeNode.id,
+          sourceHandle: "out",
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(lenNode, "out") ?? "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection([vecNode, lenNode, gaugeNode], [gaugeNode.id]),
+          vecDemoEdges,
+        ),
+        edges: vecDemoEdges,
+        ...selectionFromIds([gaugeNode.id]),
+      });
+      return;
+    }
+
     if (templateId === "bmi270-gauge-z") {
       const bmi270Entry = catalog.find((entry) => entry.id === "bmi270-input");
       const vectorSplitterEntry = catalog.find((entry) => entry.id === "vector-splitter");
@@ -5599,6 +5642,39 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (
+          node.data.nodeId === "quaternion-constant" ||
+          node.data.nodeId === "quat-input"
+        ) {
+          const cfg = node.data.defaultConfig;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateQuaternionConstant(
+              readQuaternionAxisInput(
+                readIncoming(node.id, "w"),
+                cfg.w,
+                QUATERNION_CONSTANT_DEFAULTS.w,
+              ),
+              readQuaternionAxisInput(
+                readIncoming(node.id, "x"),
+                cfg.x,
+                QUATERNION_CONSTANT_DEFAULTS.x,
+              ),
+              readQuaternionAxisInput(
+                readIncoming(node.id, "y"),
+                cfg.y,
+                QUATERNION_CONSTANT_DEFAULTS.y,
+              ),
+              readQuaternionAxisInput(
+                readIncoming(node.id, "z"),
+                cfg.z,
+                QUATERNION_CONSTANT_DEFAULTS.z,
+              ),
+            ),
+          );
+          continue;
+        }
+
         if (node.data.nodeId === "scene-time") {
           const t = evaluateSceneTime();
           pinValues.set(studioFlowPinKey(node.id, "seconds"), t.seconds);
@@ -5933,6 +6009,31 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (node.data.nodeId === "combine-quaternion") {
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            evaluateCombineQuaternion(
+              narrowNumber(readIncoming(node.id, "w")),
+              narrowNumber(readIncoming(node.id, "x")),
+              narrowNumber(readIncoming(node.id, "y")),
+              narrowNumber(readIncoming(node.id, "z")),
+            ),
+          );
+          continue;
+        }
+
+        if (isVectorQuaternionMathNodeId(node.data.nodeId)) {
+          const result = evaluateVectorQuaternionMathNode(
+            node.data.nodeId,
+            (handleId) => readIncoming(node.id, handleId),
+            node.data.defaultConfig,
+          );
+          if (result != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), result);
+          }
+          continue;
+        }
+
         if (node.data.nodeId === "logic-gate") {
           const operation =
             typeof node.data.defaultConfig.operation === "string"
@@ -6222,11 +6323,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId === "quat-input") {
-          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), { x: 0, y: 0, z: 0, w: 1 });
-          continue;
-        }
-
         if (node.data.nodeId === "vector-splitter") {
           const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
           const vec = flowValueAsVec3(incomingValue);
@@ -6453,8 +6549,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "sht40-input" ||
           node.data.nodeId === "bmm350-input" ||
           node.data.nodeId === "quat-input" ||
+          node.data.nodeId === "quaternion-constant" ||
           node.data.nodeId === "vector-splitter" ||
           node.data.nodeId === "quaternion-splitter" ||
+          node.data.nodeId === "combine-quaternion" ||
+          node.data.nodeId === "combine-xyz" ||
+          node.data.nodeId === "vector-constant" ||
+          isVectorQuaternionMathNodeId(node.data.nodeId) ||
           node.data.nodeId === "rotation-3d-euler" ||
           node.data.nodeId === "rotation-3d-quaternion" ||
           node.data.nodeId === "model-viewer" ||
@@ -6771,9 +6872,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
         }
 
-        if (node.data.nodeId === "quat-input") {
+        if (node.data.nodeId === "quat-input" || node.data.nodeId === "quaternion-constant") {
           const qOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
           base.liveQuaternionWire = flowValueAsQuaternion(qOut);
+        }
+
+        if (node.data.nodeId === "vector-splitter") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          base.liveInputVector3ByHandle = {
+            [STUDIO_HANDLE_IN]: flowValueAsVec3(incomingValue),
+          };
+        }
+
+        if (node.data.nodeId === "quaternion-splitter") {
+          const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
+          base.liveQuaternionWire = flowValueAsQuaternion(incomingValue);
         }
 
         if (

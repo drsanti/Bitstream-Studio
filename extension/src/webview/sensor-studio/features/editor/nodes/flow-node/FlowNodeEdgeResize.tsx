@@ -13,7 +13,7 @@ import { useFlowEditorStore } from "../../store/flow-editor.store";
 import type { StudioNode } from "../../store/flow-editor.store";
 
 /** Invisible edge strips for resize (no corner grip elements — operators resize from edges). */
-const EDGE_HIT_PX = 5;
+const EDGE_HIT_PX = 8;
 
 function resizeEdgeUsesEast(edge: TRNWindowResizeEdge): boolean {
   return edge === "e" || edge === "ne" || edge === "se";
@@ -40,21 +40,25 @@ export type FlowNodeEdgeResizeProps = {
   shellRef: RefObject<HTMLElement | null>;
 };
 
-/** Prefer live shell size so west/north resize anchors match what the operator sees. */
+/** Prefer explicit RF dimensions so edge resize is not reset by intrinsic shell measurement. */
 export function readNodeLayoutRect(node: StudioNode, shellEl: HTMLElement | null): TRNWindowRect {
+  const nodeWidth =
+    typeof node.width === "number" && node.width > 0 ? node.width : undefined;
+  const nodeHeight =
+    typeof node.height === "number" && node.height > 0 ? node.height : undefined;
   const shellWidth =
     shellEl != null && shellEl.offsetWidth > 0 ? shellEl.offsetWidth : undefined;
   const shellHeight =
     shellEl != null && shellEl.offsetHeight > 0 ? shellEl.offsetHeight : undefined;
   const widthRaw =
+    nodeWidth ??
     shellWidth ??
-    (typeof node.width === "number" && node.width > 0 ? node.width : undefined) ??
     (typeof node.measured?.width === "number" && node.measured.width > 0
       ? node.measured.width
       : 170);
   const heightRaw =
+    nodeHeight ??
     shellHeight ??
-    (typeof node.height === "number" && node.height > 0 ? node.height : undefined) ??
     (typeof node.measured?.height === "number" && node.measured.height > 0
       ? node.measured.height
       : 64);
@@ -130,8 +134,16 @@ export function syncFlowNodeShellDimensions(
   currentHeight: number | undefined,
   onNodesChange: (changes: NodeChange[]) => void,
 ): void {
-  const width = Math.max(minWidth, Math.round(shellEl.offsetWidth));
-  const height = Math.max(minHeight, Math.round(shellEl.offsetHeight));
+  const measuredWidth = Math.max(minWidth, Math.round(shellEl.offsetWidth));
+  const measuredHeight = Math.max(minHeight, Math.round(shellEl.offsetHeight));
+  const width =
+    currentWidth != null && Number.isFinite(currentWidth)
+      ? Math.max(measuredWidth, Math.round(currentWidth))
+      : measuredWidth;
+  const height =
+    currentHeight != null && Number.isFinite(currentHeight)
+      ? Math.max(measuredHeight, Math.round(currentHeight))
+      : measuredHeight;
   if (currentWidth === width && currentHeight === height) {
     return;
   }

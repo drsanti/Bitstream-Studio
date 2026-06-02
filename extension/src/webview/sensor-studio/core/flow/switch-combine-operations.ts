@@ -12,7 +12,7 @@ function finiteOrZero(n: number): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function finiteNumberOrZero(value: unknown): number {
+export function finiteNumberOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
@@ -29,8 +29,24 @@ export function evaluateSwitchNumber(
 
 export type FlowWireVec3 = { x: number; y: number; z: number };
 
+export type FlowWireQuaternion = { x: number; y: number; z: number; w: number };
+
 export function evaluateCombineXyz(x: number, y: number, z: number): FlowWireVec3 {
   return {
+    x: finiteOrZero(x),
+    y: finiteOrZero(y),
+    z: finiteOrZero(z),
+  };
+}
+
+export function evaluateCombineQuaternion(
+  w: number,
+  x: number,
+  y: number,
+  z: number,
+): FlowWireQuaternion {
+  return {
+    w: finiteOrZero(w),
     x: finiteOrZero(x),
     y: finiteOrZero(y),
     z: finiteOrZero(z),

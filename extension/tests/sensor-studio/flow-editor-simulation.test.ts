@@ -179,15 +179,84 @@ test("vector splitter feeds BMI270 accel Z into low-pass", () => {
   useFlowEditorStore.getState().resetCanvas();
 });
 
-test("quaternion splitter feeds W into low-pass", () => {
-  const quat = node("q1", "quat-input", "input", { outputType: "quaternion" });
-  const splitter = node("sp", "quaternion-splitter", "utility", {
-    inputType: "quaternion",
-    outputHandles: [
+test("combine quaternion builds wire from scalars", () => {
+  const combine = node("cq", "combine-quaternion", "utility", {
+    inputHandles: [
+      { id: "w", portType: "number", label: "W" },
       { id: "x", portType: "number", label: "X" },
       { id: "y", portType: "number", label: "Y" },
       { id: "z", portType: "number", label: "Z" },
+    ],
+    outputHandles: [{ id: "out", portType: "quaternion", label: "Quaternion" }],
+  });
+  const n1 = node("a", "number-constant", "input", {
+    outputType: "number",
+    defaultConfig: { value: 0.9 },
+  });
+  const n2 = node("b", "number-constant", "input", {
+    outputType: "number",
+    defaultConfig: { value: 0.1 },
+  });
+  const edges: Edge[] = [
+    { id: "e1", source: "a", target: "cq", sourceHandle: "out", targetHandle: "w" },
+    { id: "e2", source: "b", target: "cq", sourceHandle: "out", targetHandle: "x" },
+  ];
+  useFlowEditorStore.setState({ nodes: [combine, n1, n2], edges, selectedNodeId: null });
+  for (let i = 0; i < 4; i += 1) {
+    useFlowEditorStore.getState().tickSimulation();
+  }
+  const pin = useFlowEditorStore
+    .getState()
+    .nodes.find((n) => n.id === "cq")
+    ?.data.liveQuaternionWire;
+  assert.ok(pin != null);
+  assert.equal(pin.w, 0.9);
+  assert.equal(pin.x, 0.1);
+  useFlowEditorStore.getState().resetCanvas();
+});
+
+test("vector length from vector constant", () => {
+  const vec = node("vc", "vector-constant", "generator", {
+    inputHandles: [
+      { id: "x", portType: "number", label: "X" },
+      { id: "y", portType: "number", label: "Y" },
+      { id: "z", portType: "number", label: "Z" },
+    ],
+    outputHandles: [{ id: "out", portType: "vector3", label: "Vector" }],
+    defaultConfig: { x: 3, y: 4, z: 0 },
+  });
+  const len = node("vl", "vector-length", "utility", {
+    inputHandles: [{ id: "in", portType: "vector3", label: "Vector" }],
+    outputHandles: [{ id: "out", portType: "number", label: "Length" }],
+  });
+  const edges: Edge[] = [
+    {
+      id: "e1",
+      source: "vc",
+      target: "vl",
+      sourceHandle: "out",
+      targetHandle: "in",
+    },
+  ];
+  useFlowEditorStore.setState({ nodes: [vec, len], edges, selectedNodeId: null });
+  for (let i = 0; i < 4; i += 1) {
+    useFlowEditorStore.getState().tickSimulation();
+  }
+  const lenNode = useFlowEditorStore.getState().nodes.find((n) => n.id === "vl");
+  assert.ok(lenNode != null);
+  assert.equal(lenNode?.data.liveNumberByHandle?.out, 5);
+  useFlowEditorStore.getState().resetCanvas();
+});
+
+test("quaternion splitter feeds W into low-pass", () => {
+  const quat = node("q1", "quat-input", "input", { outputType: "quaternion" });
+  const splitter = node("sp", "quaternion-splitter", "utility", {
+    inputHandles: [{ id: "in", portType: "quaternion", label: "Quaternion" }],
+    outputHandles: [
       { id: "w", portType: "number", label: "W" },
+      { id: "x", portType: "number", label: "X" },
+      { id: "y", portType: "number", label: "Y" },
+      { id: "z", portType: "number", label: "Z" },
     ],
   });
   const lp = node("lp", "low-pass", "transform", {
@@ -268,6 +337,22 @@ test("runDemoTemplate rotation-glb-anim wires euler, bundle anim, and click trig
   resetCanvas();
 });
 
+test("runDemoTemplate vector-magnitude wires vector → length → gauge", () => {
+  const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
+
+  runDemoTemplate("vector-magnitude", NODE_CATALOG_DEFAULTS.payload.nodes);
+  const built = useFlowEditorStore.getState();
+  assert.equal(built.nodes.length, 3);
+  assert.equal(built.edges.length, 2);
+  assert.equal(built.edges[0]?.sourceHandle, "out");
+  assert.equal(built.edges[0]?.targetHandle, "in");
+  assert.equal(built.edges[1]?.sourceHandle, "out");
+  assert.equal(built.edges[1]?.targetHandle, STUDIO_HANDLE_IN);
+  assert.equal(built.selectedNodeId, "demo-vector-length-gauge");
+
+  resetCanvas();
+});
+
 test("runDemoTemplate bmi270-gauge-z wires accel → splitter → gauge Z", () => {
   const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
 
@@ -281,7 +366,7 @@ test("runDemoTemplate bmi270-gauge-z wires accel → splitter → gauge Z", () =
   assert.equal(built.edges[1]?.targetHandle, STUDIO_HANDLE_IN);
   assert.equal(built.edges[0]?.label, "vector3");
   assert.equal(built.edges[1]?.label, "number");
-  assert.equal(built.selectedNodeId, "demo-gauge-bmi");
+  assert.equal(built.selectedNodeId, "demo-bar-meter-bmi");
 
   resetCanvas();
 });

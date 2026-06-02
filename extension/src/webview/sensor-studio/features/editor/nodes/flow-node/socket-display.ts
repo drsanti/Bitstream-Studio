@@ -1,4 +1,5 @@
 import type { Edge } from "@xyflow/react";
+import { VECTOR_QUATERNION_MATH_NODE_IDS } from "../../../../core/flow/flow-vector-quaternion-math-eval";
 import type { StudioNodeData, StudioOutputHandleDef } from "../../store/flow-editor.store";
 import type { FlowGraphNode } from "../../store/flow-editor.store";
 import { isStudioSensorSocketPreviewNodeId } from "../../store/flow-editor.store";
@@ -29,6 +30,7 @@ const STUDIO_NODES_WITHOUT_BODY_PANEL = new Set([
   "lerp",
   "switch",
   "combine-xyz",
+  "combine-quaternion",
   "value-normalizer",
   "vector-splitter",
   "quaternion-splitter",
@@ -44,6 +46,7 @@ const STUDIO_NODES_WITHOUT_BODY_PANEL = new Set([
   "event-toggle-glb-part",
   "event-set-glb-part",
   "event-trigger-glb-anim",
+  ...VECTOR_QUATERNION_MATH_NODE_IDS,
 ]);
 
 /** `true` when the node renders a `FlowNodeBody` region that can be hidden via `bodyControlsVisible`. */
