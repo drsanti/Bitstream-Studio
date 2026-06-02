@@ -2,7 +2,7 @@
 
 Design for **contextual node creation** when the user drags a wire from a socket and releases on empty canvas.
 
-**Status:** **v0.1 shipped** — socket drag → filtered Add Node menu, Shift/Alt modifiers, footer hints, auto-connect on pick. See `FlowCanvas.tsx`, `connect/smart-connect-catalog.ts`, `FlowConnectDragHint.tsx`.
+**Status:** **v0.1 shipped** — socket drag → filtered Add Node menu, Shift/Alt modifiers, footer hints, auto-connect on pick, recent/sink ranking, empty-filter banner. Tests: `tests/sensor-studio/smart-connect-catalog.test.ts`. See `FlowCanvas.tsx`, `connect/smart-connect-catalog.ts`, `FlowConnectDragHint.tsx`.
 
 **Related UI:** `FlowAddNodeMenu.tsx` (Shift+A), `FlowCanvas.tsx` (`onConnectStart` / `onConnectEnd`), `list-addable-catalog-entries.ts`.
 
@@ -13,7 +13,7 @@ Design for **contextual node creation** when the user drags a wire from a socket
 | Action | Result |
 | ------ | ------ |
 | Drag from socket → drop on compatible socket | Edge created (`onConnect` → store) |
-| Drag from socket → drop on empty pane | Connection preview cancelled; **nothing else** |
+| Drag from socket → drop on empty pane | **Smart connect** — filtered Add Node menu, ranked (recent + sinks), auto-wire on pick |
 | Shift+A or pane context menu | `FlowAddNodeMenu` at pointer; **no port-type filter** |
 
 Connection line color already follows source port type (`handleConnectStart` in `FlowCanvas.tsx`).
@@ -41,9 +41,10 @@ Show hints in the **canvas footer** only during an active connection drag (after
 
 **Footer copy (draft):**
 
-- Default: `Release on empty canvas to add a compatible node`
+- Default: `Release on empty canvas to add a compatible node` (secondary: Shift / Alt / Shift+Alt)
 - Shift: `Shift — full Add menu`
 - Alt: `Alt — place without auto-connect`
+- Shift + Alt: `Shift + Alt — full menu, no auto-connect`
 
 Use inline footer text (not native `title` tooltips).
 
@@ -112,7 +113,7 @@ Given `connectContext` (source node, handle, direction, port type) and chosen `N
 | **S3** | `FlowCanvas`: track `connectDragRef` in `onConnectStart`; in `onConnectEnd`, detect pane drop + call `openAddNodeMenuAt` with filter context. |
 | **S4** | Wire `onPickEntry` to spawn + auto-connect unless Alt held at drop. |
 | **S5** | Footer hint component on canvas chrome; subscribe to `connectingLineStroke != null` + `shiftKey` / `altKey` on `window` during drag. |
-| **S6** | Tests: filter/rank pure functions; one integration test for handle resolution. |
+| **S6** | **Done** — `tests/sensor-studio/smart-connect-catalog.test.ts` (filter, rank, auto-wire). Integration test for handle resolution: backlog. |
 
 ### Files (expected touch)
 
@@ -126,6 +127,7 @@ Given `connectContext` (source node, handle, direction, port type) and chosen `N
 
 ## Edge cases
 
+- **Reroute / split (unlocked `socketType`):** `inferLayoutNodeSmartConnectPortType` reads upstream/downstream edges (and edge labels); if still unknown, menu is unfiltered and wire type is taken from the picked catalog entry.
 - **Group / subgraph nodes:** use existing `resolveStudioGroupNodePortType` / `layout-port-resolution` for port types on grouped IO.
 - **Layout nodes** (Frame, Note): not in smart-connect catalog unless they gain typed ports.
 - **Zoom / pan:** menu anchor uses `screenToFlowPosition` for spawn; menu uses screen `clientX/Y` like today.

@@ -55,6 +55,8 @@ export type FlowAddNodeMenuProps = {
   clientX: number;
   clientY: number;
   entries: readonly NodeCatalogEntry[];
+  /** Shown under search when smart connect falls back to the full catalog. */
+  bannerHint?: string;
   categoryColors: Record<NodeCatalogEntry["category"], string>;
   onPickEntry: (
     entry: NodeCatalogEntry,
@@ -134,6 +136,7 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
     clientX,
     clientY,
     entries,
+    bannerHint,
     categoryColors,
     onPickEntry,
     onPickLayoutEntry,
@@ -305,6 +308,11 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
               className="min-w-0 flex-1 bg-transparent text-[11px] text-zinc-100 outline-none placeholder:text-zinc-500"
             />
           </div>
+          {bannerHint != null && bannerHint.length > 0 ? (
+            <p className="mt-2 text-[10px] leading-snug text-amber-200/90">
+              {bannerHint}
+            </p>
+          ) : null}
         </div>
 
         {isSearching ? (

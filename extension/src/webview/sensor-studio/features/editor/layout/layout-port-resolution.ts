@@ -1,4 +1,4 @@
-import type { Node } from "@xyflow/react";
+import type { Edge, Node } from "@xyflow/react";
 import type { StudioNode, StudioPortType } from "../store/flow-editor.store";
 import { STUDIO_HANDLE_IN, STUDIO_HANDLE_OUT } from "../store/flow-editor.store";
 import {
@@ -12,6 +12,126 @@ import {
 
 export function isStudioFlowNode(node: Node): node is StudioNode {
   return node.type === "studio" || node.type == null;
+}
+
+const STUDIO_PORT_TYPES: readonly StudioPortType[] = [
+  "number",
+  "boolean",
+  "string",
+  "event",
+  "vector3",
+  "quaternion",
+  "environment",
+  "camera",
+  "glbAnimation",
+  "transform",
+  "fog",
+  "studioLight",
+  "postProcessing",
+  "contactShadows",
+  "particleEmitter",
+  "audioBus",
+];
+
+function portTypeFromEdgeLabel(label: unknown): StudioPortType | null {
+  if (typeof label !== "string" || label.length === 0) {
+    return null;
+  }
+  return STUDIO_PORT_TYPES.includes(label as StudioPortType)
+    ? (label as StudioPortType)
+    : null;
+}
+
+type FlowWireRef = Pick<
+  Edge,
+  "source" | "target" | "sourceHandle" | "targetHandle" | "label"
+>;
+
+/**
+ * When a reroute/split has no locked `socketType`, infer the wire type from
+ * upstream/downstream edges so smart connect can filter and auto-wire.
+ */
+export function inferLayoutNodeSmartConnectPortType(
+  node: Node,
+  handleId: string,
+  handleType: "source" | "target",
+  edges: readonly FlowWireRef[],
+  nodes: readonly Node[],
+): StudioPortType | null {
+  if (!isLayoutFlowNode(node)) {
+    return null;
+  }
+  if (node.type !== "studio-reroute" && node.type !== "studio-split") {
+    return null;
+  }
+  const data = node.data as RerouteLayoutNodeData | SplitLayoutNodeData;
+  if (data.socketType != null) {
+    return data.socketType;
+  }
+
+  const findNode = (id: string) => nodes.find((n) => n.id === id);
+
+  const typeFromUpstreamIn = (): StudioPortType | null => {
+    const inEdge = edges.find(
+      (e) => e.target === node.id && (e.targetHandle ?? "in") === "in",
+    );
+    if (inEdge == null) {
+      return null;
+    }
+    const up = findNode(inEdge.source);
+    if (up != null) {
+      const t = resolveFlowSourcePortType(
+        up,
+        inEdge.sourceHandle ?? STUDIO_HANDLE_OUT,
+      );
+      if (t != null) {
+        return t;
+      }
+    }
+    return portTypeFromEdgeLabel(inEdge.label);
+  };
+
+  const typeFromDownstreamOut = (): StudioPortType | null => {
+    const outEdge = edges.find((e) => {
+      if (e.source !== node.id) {
+        return false;
+      }
+      if (node.type === "studio-reroute") {
+        return (e.sourceHandle ?? "out") === "out";
+      }
+      return isSplitOutputHandle(e.sourceHandle ?? "");
+    });
+    if (outEdge == null) {
+      return null;
+    }
+    const down = findNode(outEdge.target);
+    if (down != null) {
+      const t = resolveFlowTargetPortType(
+        down,
+        outEdge.targetHandle ?? STUDIO_HANDLE_IN,
+      );
+      if (t != null) {
+        return t;
+      }
+    }
+    return portTypeFromEdgeLabel(outEdge.label);
+  };
+
+  if (handleType === "target" && handleId === "in") {
+    return typeFromUpstreamIn() ?? typeFromDownstreamOut();
+  }
+
+  if (handleType === "source") {
+    if (node.type === "studio-reroute" && handleId !== "out") {
+      return null;
+    }
+    if (node.type === "studio-split" && !isSplitOutputHandle(handleId)) {
+      return null;
+    }
+    return typeFromUpstreamIn() ?? typeFromDownstreamOut();
+  }
+
+  return null;
 }
 
 function studioSourcePortType(node: StudioNode, sourceHandle: string): StudioPortType | null {

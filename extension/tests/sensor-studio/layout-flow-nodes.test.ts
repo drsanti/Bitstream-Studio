@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { buildLayoutFlowNode, buildRerouteFlowNode } from "../../src/webview/sensor-studio/features/editor/layout/layout-flow-node-builders";
-import { layoutNodeAcceptsInput } from "../../src/webview/sensor-studio/features/editor/layout/layout-port-resolution";
+import {
+  inferLayoutNodeSmartConnectPortType,
+  layoutNodeAcceptsInput,
+} from "../../src/webview/sensor-studio/features/editor/layout/layout-port-resolution";
 import { splitOutputHandleIds } from "../../src/webview/sensor-studio/features/editor/layout/layout-flow-nodes.types";
 
 describe("layout-flow-node-builders", () => {
@@ -31,5 +34,74 @@ describe("layout-port-resolution", () => {
     const locked = buildRerouteFlowNode({ x: 0, y: 0 }, "event");
     assert.equal(layoutNodeAcceptsInput(locked, "in", "event"), true);
     assert.equal(layoutNodeAcceptsInput(locked, "in", "number"), false);
+  });
+
+  it("infers smart-connect port type on unlocked reroute from upstream wire", () => {
+    const reroute = buildRerouteFlowNode({ x: 50, y: 0 });
+    const src = {
+      id: "src",
+      type: "studio" as const,
+      position: { x: 0, y: 0 },
+      data: { outputType: "number" },
+    };
+    const edges = [
+      {
+        id: "e1",
+        source: "src",
+        target: reroute.id,
+        targetHandle: "in",
+        label: "number",
+      },
+    ];
+    assert.equal(
+      inferLayoutNodeSmartConnectPortType(
+        reroute,
+        "in",
+        "target",
+        edges,
+        [src, reroute],
+      ),
+      "number",
+    );
+    assert.equal(
+      inferLayoutNodeSmartConnectPortType(
+        reroute,
+        "out",
+        "source",
+        edges,
+        [src, reroute],
+      ),
+      "number",
+    );
+  });
+
+  it("infers smart-connect port type on unlocked reroute from downstream wire", () => {
+    const reroute = buildRerouteFlowNode({ x: 50, y: 0 });
+    const dst = {
+      id: "dst",
+      type: "studio" as const,
+      position: { x: 100, y: 0 },
+      data: { inputType: "boolean" },
+    };
+    const edges = [
+      {
+        id: "e1",
+        source: reroute.id,
+        sourceHandle: "out",
+        target: "dst",
+        targetHandle: "in",
+        label: "boolean",
+      },
+    ];
+    assert.equal(
+      inferLayoutNodeSmartConnectPortType(
+        reroute,
+        "in",
+        "target",
+        edges,
+        [reroute, dst],
+      ),
+      "boolean",
+    );
   });
 });

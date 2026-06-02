@@ -64,14 +64,17 @@ import { FlowCanvasToolbar } from "./flow-toolbar/FlowCanvasToolbar";
 import { FlowCanvasTopLeftChrome } from "./flow-toolbar/FlowCanvasTopLeftChrome";
 import { NodeSelectionToolbar } from "./flow-toolbar/NodeSelectionToolbar";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
+import { readRecentCatalogNodeIds } from "../keyboard/recent-catalog-nodes";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
 import {
+  inferLayoutNodeSmartConnectPortType,
   resolveFlowSourcePortType,
   resolveFlowTargetPortType,
 } from "../layout/layout-port-resolution";
 import {
   buildSmartConnectAutoWire,
   filterCatalogEntriesForSmartConnect,
+  rankCatalogEntriesForSmartConnect,
   type SmartConnectDragContext,
   type SmartConnectPortType,
 } from "../connect/smart-connect-catalog";
@@ -307,15 +310,36 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     );
 
     const addNodeMenuEntries = useMemo(() => {
-      if (addNodeMenuAnchor?.smartConnect == null || addNodeMenuAnchor.smartConnectShowAll) {
+      const ctx = addNodeMenuAnchor?.smartConnect;
+      if (ctx == null) {
         return addableEntries;
       }
-      const filtered = filterCatalogEntriesForSmartConnect(
-        addableEntries,
-        addNodeMenuAnchor.smartConnect,
-      );
-      // If the filter is too strict, still show the menu (Shift remains the explicit "show all").
-      return filtered.length > 0 ? filtered : addableEntries;
+      let list = addableEntries;
+      if (!addNodeMenuAnchor.smartConnectShowAll) {
+        const filtered = filterCatalogEntriesForSmartConnect(addableEntries, ctx);
+        // If the filter is too strict, still show the menu (Shift remains the explicit "show all").
+        list = filtered.length > 0 ? filtered : addableEntries;
+      }
+      return rankCatalogEntriesForSmartConnect(list, ctx, {
+        recentCatalogIds: readRecentCatalogNodeIds(),
+        preferCompatible: true,
+      });
+    }, [addNodeMenuAnchor, addableEntries]);
+
+    const smartConnectMenuHint = useMemo(() => {
+      const anchor = addNodeMenuAnchor;
+      const ctx = anchor?.smartConnect;
+      if (ctx == null || anchor.smartConnectShowAll) {
+        return undefined;
+      }
+      if (ctx.portType == null) {
+        return undefined;
+      }
+      const filtered = filterCatalogEntriesForSmartConnect(addableEntries, ctx);
+      if (filtered.length === 0) {
+        return "No exact type matches — showing all nodes";
+      }
+      return undefined;
     }, [addNodeMenuAnchor, addableEntries]);
 
     useFlowCanvasLayoutShortcuts(lastPointerRef, reactFlowRef);
@@ -528,8 +552,19 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           setConnectingLineStroke(null);
           return;
         }
-        const portType = resolveConnectPortType(node, handleId, handleType);
-        if (portType == null) {
+        const isLayoutJunction =
+          node.type === "studio-reroute" || node.type === "studio-split";
+        let portType = resolveConnectPortType(node, handleId, handleType);
+        if (portType == null && isLayoutJunction) {
+          portType = inferLayoutNodeSmartConnectPortType(
+            node,
+            handleId,
+            handleType,
+            edges,
+            nodes,
+          );
+        }
+        if (portType == null && !isLayoutJunction) {
           setConnectingLineStroke(null);
           return;
         }
@@ -539,13 +574,17 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           handleType,
           portType,
         };
-        setConnectingLineStroke(strokeForPortType(portColorMap, portType));
+        setConnectingLineStroke(
+          portType != null
+            ? strokeForPortType(portColorMap, portType)
+            : FLOW_EDGE_FALLBACK_STROKE,
+        );
         setConnectDragModifiers({
           shiftKey: _event.shiftKey,
           altKey: _event.altKey,
         });
       },
-      [nodes, portColorMap, resolveConnectPortType],
+      [edges, nodes, portColorMap, resolveConnectPortType],
     );
 
     const handleConnectEnd = useCallback(
@@ -873,6 +912,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
                 clientX={addNodeMenuAnchor.clientX}
                 clientY={addNodeMenuAnchor.clientY}
                 entries={addNodeMenuEntries}
+                bannerHint={smartConnectMenuHint}
                 categoryColors={minimapCategoryColors}
                 onPickEntry={handlePickAddNodeEntry}
                 onPickLayoutEntry={onPickLayoutEntry}

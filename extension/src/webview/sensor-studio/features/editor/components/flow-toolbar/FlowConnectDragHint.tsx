@@ -25,16 +25,19 @@ export function FlowConnectDragHint(props: FlowConnectDragHintProps) {
     return null;
   }
 
-  const primary = shiftKey
-    ? "Shift — full Add menu"
-    : altKey
-      ? "Alt — place without auto-connect"
-      : "Release on empty canvas to add a compatible node";
+  const primary =
+    shiftKey && altKey
+      ? "Shift + Alt — full menu, no auto-connect"
+      : shiftKey
+        ? "Shift — full Add menu"
+        : altKey
+          ? "Alt — place without auto-connect"
+          : "Release on empty canvas to add a compatible node";
 
   const secondary =
     shiftKey || altKey
       ? null
-      : "Hold Shift for full menu · Alt to skip auto-connect";
+      : "Hold Shift for full menu · Alt to skip auto-connect · Shift+Alt for both";
 
   return (
     <div
