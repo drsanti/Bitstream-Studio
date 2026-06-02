@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
+import {
+  setupHeaderStepFocus,
+  setupHeaderStepSummary,
+  ternionFreeAssetPackCopy,
+} from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { ConnectionStepStatus } from "../bitstream-app/connection/useConnectionSteps.js";
 import {
   STARTUP_MAX_ORCHESTRATION_MS,
@@ -244,8 +248,8 @@ export function useStartupChecklistPresentation(
 
   const headerStepLabel =
     focusMeta != null && !snapToInstant
-      ? ternionFreeAssetPackCopy.setupHeaderStepFocus(focusIndex + 1, steps.length, focusMeta.title)
-      : ternionFreeAssetPackCopy.setupHeaderStepSummary(truthReadyCount, steps.length);
+      ? setupHeaderStepFocus(focusIndex + 1, steps.length, focusMeta.title)
+      : setupHeaderStepSummary(truthReadyCount, steps.length);
 
   return {
     presentedSteps,

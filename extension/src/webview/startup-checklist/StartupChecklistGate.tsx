@@ -39,6 +39,10 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
   const assetsNeedSetup =
     bootstrap.phase === "blocked" || bootstrap.phase === "error";
 
+  const panelActive = canUseHostedAssetBootstrap();
+  const checklist = useStartupChecklist({ bootstrap, panelActive });
+  const { linkReady, readyCount, totalCount, setExpandedId, steps } = checklist;
+
   const showOverlay =
     canUseHostedAssetBootstrap() &&
     (panelOpen ||
@@ -48,10 +52,6 @@ export function StartupChecklistGate(props: StartupChecklistGateProps) {
         assetsBusy,
         assetsNeedSetup,
       }));
-
-  const panelActive = canUseHostedAssetBootstrap();
-  const checklist = useStartupChecklist({ bootstrap, panelActive });
-  const { linkReady, readyCount, totalCount, setExpandedId, steps } = checklist;
 
   const presentationMode = resolveStartupPresentationMode({
     enabled: showOverlay,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import type { UseAssetBootstrapResult } from "../asset-bootstrap/useAssetBootstrap.js";
 import { useConnectionPanelStore } from "../bitstream-app/connection/connectionPanel.store.js";
@@ -19,7 +19,10 @@ import {
   type StartupChecklistStepView,
 } from "./useStartupChecklist.js";
 import type { useStartupChecklist } from "./useStartupChecklist.js";
-import type { useStartupChecklistPresentation } from "./useStartupChecklistPresentation.js";
+import type {
+  PresentedStartupStep,
+  useStartupChecklistPresentation,
+} from "./useStartupChecklistPresentation.js";
 
 export function StartupChecklistPanel(props: {
   bootstrap: UseAssetBootstrapResult;
@@ -142,25 +145,32 @@ export function StartupChecklistPanel(props: {
 
       <div
         ref={listRef}
-        className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3 scrollbar-hide"
+        className="min-h-0 flex-1 overflow-y-auto px-4 py-3 scrollbar-hide"
+        role="list"
+        aria-label="Setup steps"
       >
         {presentedSteps.map((step, index) => (
-          <StartupChecklistStepRow
+          <StartupChecklistTimelineRow
             key={step.id}
             step={step}
-            stepIndex={index + 1}
-            stepTotal={totalCount}
-            expanded={expandedId === step.id}
-            onToggle={() => toggleExpanded(step.id)}
-            canDownload={canDownload}
-            assetsActionsDisabled={assetsActionsDisabled}
-            isAssetsSyncing={isAssetsSyncing}
-            syncProgress={bootstrap.syncProgress}
-            missingPaths={step.id === "assets" ? missingPaths : []}
-            onDownload={bootstrap.startRequiredSync}
-            onRecheck={bootstrap.recheck}
-            onFocusSerialPorts={onFocusSerialPorts}
-          />
+            isLast={index === presentedSteps.length - 1}
+          >
+            <StartupChecklistStepRow
+              step={step}
+              stepIndex={index + 1}
+              stepTotal={totalCount}
+              expanded={expandedId === step.id}
+              onToggle={() => toggleExpanded(step.id)}
+              canDownload={canDownload}
+              assetsActionsDisabled={assetsActionsDisabled}
+              isAssetsSyncing={isAssetsSyncing}
+              syncProgress={bootstrap.syncProgress}
+              missingPaths={step.id === "assets" ? missingPaths : []}
+              onDownload={bootstrap.startRequiredSync}
+              onRecheck={bootstrap.recheck}
+              onFocusSerialPorts={onFocusSerialPorts}
+            />
+          </StartupChecklistTimelineRow>
         ))}
       </div>
 
@@ -179,6 +189,47 @@ export function StartupChecklistPanel(props: {
           </TRNButton>
         ) : null}
       </footer>
+    </div>
+  );
+}
+
+function timelineDotClass(presentation: PresentedStartupStep["presentation"]): string {
+  switch (presentation) {
+    case "completed":
+      return "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.45)] ring-2 ring-emerald-500/35";
+    case "current":
+      return "bg-sky-400 shadow-[0_0_10px_rgba(56,189,248,0.5)] ring-2 ring-sky-400/50 animate-pulse";
+    default:
+      return "bg-zinc-600 ring-2 ring-zinc-700/80";
+  }
+}
+
+function timelineLineClass(
+  presentation: PresentedStartupStep["presentation"],
+): string {
+  return presentation === "completed" ? "bg-emerald-500/45" : "bg-zinc-700/80";
+}
+
+function StartupChecklistTimelineRow(props: {
+  step: PresentedStartupStep;
+  isLast: boolean;
+  children: React.ReactNode;
+}) {
+  const { step, isLast, children } = props;
+  return (
+    <div className="flex gap-2 pb-2 last:pb-0" role="listitem">
+      <div
+        className="flex w-4 shrink-0 flex-col items-center pt-6"
+        aria-hidden
+      >
+        <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${timelineDotClass(step.presentation)}`} />
+        {!isLast ? (
+          <span
+            className={`mt-1 w-px flex-1 min-h-4 ${timelineLineClass(step.presentation)}`}
+          />
+        ) : null}
+      </div>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
