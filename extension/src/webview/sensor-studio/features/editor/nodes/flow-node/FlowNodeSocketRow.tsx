@@ -17,6 +17,8 @@ export type FlowNodeSocketRowProps = HTMLAttributes<HTMLDivElement> & {
   trailingPreview?: ReactNode;
   /** Share label column width across rows via parent subgrid ({@link FlowNodeSocketRegion}). */
   alignedOutputColumns?: boolean;
+  /** Share label+preview column width across *input* rows via parent grid/subgrid. */
+  alignedInputColumns?: boolean;
 };
 
 /**
@@ -32,9 +34,36 @@ export function FlowNodeSocketRow(props: FlowNodeSocketRowProps) {
     leadingPreview,
     trailingPreview,
     alignedOutputColumns = false,
+    alignedInputColumns = false,
     className,
     ...rest
   } = props;
+
+  if (variant === "input" && alignedInputColumns) {
+    return (
+      <div
+        className={twMerge(
+          "relative col-span-full grid w-full min-h-[24px] grid-cols-subgrid items-center overflow-visible",
+          className,
+        )}
+        {...rest}
+      >
+        <div className="relative flex h-6 w-0 shrink-0 items-center justify-center">{socket}</div>
+        <div
+          data-flow-socket-label
+          className="whitespace-nowrap pl-2 text-[11px] leading-tight text-zinc-300"
+          style={{
+            width: "var(--flow-socket-label-w, auto)",
+          }}
+        >
+          {label}
+        </div>
+        <div className="nodrag flex min-w-0 items-center pl-1">
+          {trailingPreview ?? null}
+        </div>
+      </div>
+    );
+  }
 
   if (variant === "output" && alignedOutputColumns) {
     return (

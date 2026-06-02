@@ -8,6 +8,7 @@ import {
 } from "@xyflow/react";
 import { ChevronDown } from "lucide-react";
 import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { twMerge } from "tailwind-merge";
 import type { StudioNodeData } from "../store/flow-editor.store";
 import {
   isStudioSensorTapNodeId,
@@ -54,7 +55,6 @@ import {
 } from "../../../core/flow/compare-operations";
 import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
 import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
-import { MapRangeNodePanel } from "./transform/MapRangeNodePanel";
 import { ClampNodePanel } from "./transform/ClampNodePanel";
 import { GlbAnimationBundleNodePanel } from "./animation/glb-animation-bundle-node-panel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
@@ -449,6 +449,7 @@ export function StudioNodeCard(props: NodeProps) {
           <FlowNodeSocketRow
             key={h.id}
             variant="input"
+            alignedInputColumns
             label={h.label}
             trailingPreview={preview ?? undefined}
             socket={
@@ -490,6 +491,7 @@ export function StudioNodeCard(props: NodeProps) {
             <FlowNodeSocketRow
               key="in"
               variant="input"
+              alignedInputColumns
               label={`In · ${data.inputType}`}
               trailingPreview={preview ?? undefined}
               socket={
@@ -605,6 +607,7 @@ export function StudioNodeCard(props: NodeProps) {
         <FlowNodeSocketRow
           key={h.id}
           variant="input"
+          alignedInputColumns
           label={h.label}
           trailingPreview={preview ?? undefined}
           socket={
@@ -632,6 +635,7 @@ export function StudioNodeCard(props: NodeProps) {
         <FlowNodeSocketRow
           key="in"
           variant="input"
+          alignedInputColumns
           label={`In · ${data.inputType}`}
           trailingPreview={preview ?? undefined}
           socket={
@@ -935,19 +939,29 @@ export function StudioNodeCard(props: NodeProps) {
         />
 
         {hasSocketRegion ? (
-          <FlowNodeSocketRegion
-            alignedOutputColumns={alignedOutputSocketColumns}
-            className={
-              isPlotterNodeId(data.nodeId)
-                ? "pb-0 pt-1.5"
-                : alignedOutputSocketColumns
-                  ? "w-full max-w-full"
-                  : undefined
-            }
+          <div
+            className={twMerge(
+              "nodrag min-w-0 w-full max-w-full overflow-visible border-b border-zinc-700/60 py-1.5 pl-0 pr-0",
+              isPlotterNodeId(data.nodeId) ? "pb-0 pt-1.5" : null,
+            )}
           >
-            {inputSockets}
-            {outputSockets}
-          </FlowNodeSocketRegion>
+            {inputSockets.length > 0 ? (
+              <FlowNodeSocketRegion
+                equalizeLabelWidth
+                className="grid grid-cols-[0_max-content_max-content] gap-x-1 gap-y-0.5"
+              >
+                {inputSockets}
+              </FlowNodeSocketRegion>
+            ) : null}
+            {outputSockets.length > 0 ? (
+              <FlowNodeSocketRegion
+                alignedOutputColumns={alignedOutputSocketColumns}
+                className={alignedOutputSocketColumns ? "w-full max-w-full" : undefined}
+              >
+                {outputSockets}
+              </FlowNodeSocketRegion>
+            ) : null}
+          </div>
         ) : null}
 
         {typeof data.sensorInvalidReason === "string" &&
@@ -1076,12 +1090,8 @@ export function StudioNodeCard(props: NodeProps) {
           {data.nodeId === "multiplexer" ? (
             <MultiplexerNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}
-          {data.nodeId === "map-range" ? (
-            <MapRangeNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
-          {data.nodeId === "clamp" ? (
-            <ClampNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
-          ) : null}
+          {/* Map Range has no body panel — values and defaults are displayed on socket rows. */}
+          {/* Clamp has no body panel — Min/Max are displayed on socket rows. */}
           {data.nodeId === "glb-animation-bundle" ? (
             <GlbAnimationBundleNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
           ) : null}

@@ -257,7 +257,17 @@ function genericInputSocketLivePreview(
   }
 
   if (portType === "number") {
-    const scalar = data.liveInputNumberByHandle?.[handleId];
+    const scalar =
+      data.liveInputNumberByHandle?.[handleId] ??
+      // Transform nodes: show defaults on socket rows when pins are unwired.
+      (data.nodeId === "clamp" ||
+      data.nodeId === "map-range"
+        ? (() => {
+            const raw = (data.defaultConfig as Record<string, unknown> | undefined)?.[handleId];
+            const n = typeof raw === "number" ? raw : Number(raw);
+            return Number.isFinite(n) ? n : undefined;
+          })()
+        : undefined);
     const upstreamHint = data.liveInputScalarHintsByHandle?.[handleId];
     return (
       <SocketLivePreview
@@ -266,9 +276,10 @@ function genericInputSocketLivePreview(
           handleId,
           scalar,
           portLabel,
-          upstreamHint?.streamMode,
+          upstreamHint?.streamMode ?? (data.liveInputNumberByHandle?.[handleId] == null ? "local" : undefined),
           upstreamHint,
         )}
+        textAlign="left"
       />
     );
   }
@@ -289,7 +300,7 @@ function genericInputSocketLivePreview(
       return null;
     }
     return (
-      <SocketLivePreview portType="string" handleId={handleId} stringValue={value} />
+      <SocketLivePreview portType="string" handleId={handleId} stringValue={value} textAlign="left" />
     );
   }
 

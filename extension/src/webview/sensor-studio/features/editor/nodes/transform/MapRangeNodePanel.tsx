@@ -44,27 +44,23 @@ export function MapRangeNodePanel(props: MapRangeNodePanelProps) {
           updateField(nodeId, "clamp", next);
         }}
       />
-      {RANGE_FIELDS.map(({ key, label, fallback }) => {
-        const wired = isHandleWired(key);
-        return (
-          <label
-            key={key}
-            className={`flex items-center gap-2 text-[10px] ${wired ? "text-zinc-500" : "text-zinc-400"}`}
-          >
-            <span className="w-14 shrink-0 text-zinc-300">{label}</span>
-            <TRNScrubNumberInput
-              className="min-w-0 flex-1"
-              value={readFiniteConfigNumber(defaultConfig[key], fallback)}
-              step={0.01}
-              disabled={wired}
-              aria-label={`Map range ${label}`}
-              onChange={(next) => {
-                updateField(nodeId, key, next);
-              }}
-            />
-          </label>
-        );
-      })}
+      {RANGE_FIELDS.filter(({ key }) => !isHandleWired(key)).map(({ key, label, fallback }) => (
+        <label
+          key={key}
+          className="flex items-center gap-2 text-[10px] text-zinc-400"
+        >
+          <span className="w-14 shrink-0 text-zinc-300">{label}</span>
+          <TRNScrubNumberInput
+            className="min-w-0 flex-1"
+            value={readFiniteConfigNumber(defaultConfig[key], fallback)}
+            step={0.01}
+            aria-label={`Map range ${label}`}
+            onChange={(next) => {
+              updateField(nodeId, key, next);
+            }}
+          />
+        </label>
+      ))}
     </ReadingPanel>
   );
 }

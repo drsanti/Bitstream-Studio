@@ -306,7 +306,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         title: "Combine XYZ",
         description: "Build a vector3 from wired X, Y, and Z numbers. Unwired inputs count as 0.",
         icon: "git-branch",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {},
         inputPorts: [
           { id: "x", portType: "number", label: "X" },
@@ -339,7 +339,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         description:
           "Extract numeric fields from a JSON payload using dot paths on outputs A, B, and C. Missing paths output 0.",
         icon: "split",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {
           paths: { a: "a", b: "b", c: "c" },
         },
@@ -357,7 +357,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         description:
           "Map Value from input domain [In min, In max] to output domain [Out min, Out max] with clamp. Wired pins override defaults.",
         icon: "arrow-left-right",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {
           inMin: 0,
           inMax: 1,
@@ -379,7 +379,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         title: "Vector Splitter",
         description: "Split a vector3 into X, Y, and Z scalar outputs.",
         icon: "git-branch",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {},
         outputPorts: [
           { id: "x", portType: "number", label: "X" },
@@ -393,7 +393,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         title: "Quaternion Splitter",
         description: "Split a quaternion into X, Y, Z, and W scalar outputs.",
         icon: "git-branch",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {},
         outputPorts: [
           { id: "x", portType: "number", label: "X" },
@@ -464,7 +464,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         description:
           "Convert a **vector3** Euler wire (radians: roll, pitch, heading) into a **Transform** wire for Model Viewer / 3D Rotation **Transform** inputs. Choose **IMU / fusion** or **literal scene XYZ** mapping on the Node tab. Position and scale stay at defaults unless you chain through **Object Transform**.",
         icon: "rotate-cw",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {
           eulerMapping: "fusion",
         },
@@ -478,7 +478,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         description:
           "Drive GLB animation clips with a structured wire. When the node is linked to the same Model as your viewer (add from palette with Model selected), the inspector lists clip names from the GLB — toggle each clip and set time (s) and speed without JSON. Wire out into **Model Viewer** or **3D Rotation** **Animation**. Optional Advanced section edits raw clips JSON.",
         icon: "clapperboard",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {
           clips: {},
           animationPlaybackMode: "per-clip",
@@ -519,7 +519,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         description:
           "Blend two numeric inputs with a factor (shader-graph primitive). Wire **Out** into **GLB Material Param** **Value** to drive animated PBR channels.",
         icon: "between-horizontal-start",
-        defaultVisible: true,
+        defaultVisible: false,
         defaultConfig: {
           factor: 0.5,
         },
@@ -559,6 +559,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           alpha: 0.2,
         },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
+        outputPorts: [{ id: "out", portType: "number", label: "Out" }],
       },
       {
         id: "on-click",
@@ -674,13 +676,15 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "threshold",
         category: "transform",
         title: "Threshold",
-        description: "Compare input value against configured threshold.",
+        description: "Compare Value against a configured threshold (boolean output).",
         icon: "gauge",
         defaultVisible: true,
         defaultConfig: {
           operator: ">",
           value: 0.5,
         },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
+        outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
       },
       {
         id: "indicator",

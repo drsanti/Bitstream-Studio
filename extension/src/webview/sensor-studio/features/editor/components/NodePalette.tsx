@@ -49,6 +49,8 @@ type CategoryFilter = "all" | NodeCatalogEntry["category"];
 
 type SensorFamilyFilter = "all" | PaletteSensorFamilySubgroup;
 
+type NodePaletteTierFilter = "core" | "all";
+
 const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
   "sensor",
   "input",
@@ -222,6 +224,8 @@ export function NodePalette(props: NodePaletteProps) {
 
   const entryAccent = (entry: NodeCatalogEntry) => categoryColors?.[entry.category];
 
+  const [nodeTierFilter, setNodeTierFilter] = useState<NodePaletteTierFilter>("core");
+
   const paletteFilterActive =
     query.trim().length > 0 ||
     (tab === "nodes" && (categoryFilter !== "all" || sensorFamilyFilter !== "all"));
@@ -258,12 +262,15 @@ export function NodePalette(props: NodePaletteProps) {
         return false;
       }
       if (q.length === 0) {
+        if (nodeTierFilter === "all") {
+          return true;
+        }
         return entry.defaultVisible === true;
       }
       return true;
     });
     return filterPaletteEntries(pruned, q);
-  }, [entries, query]);
+  }, [entries, nodeTierFilter, query]);
 
   const simulationNodes = useMemo(() => {
     const q = query.trim();
@@ -797,6 +804,46 @@ export function NodePalette(props: NodePaletteProps) {
             Groups
           </button>
         </div>
+
+        {tab === "nodes" ? (
+          <div className={`${dense ? "mb-2" : "mb-3"} flex items-center justify-between gap-2`}>
+            <div className="text-[10px] font-medium text-zinc-500">Palette</div>
+            <div
+              role="radiogroup"
+              aria-label="Palette tier filter"
+              className="flex rounded-md bg-zinc-950/40 p-0.5 ring-1 ring-zinc-800/70"
+            >
+              <button
+                type="button"
+                role="radio"
+                aria-checked={nodeTierFilter === "core"}
+                onClick={() => setNodeTierFilter("core")}
+                className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${
+                  nodeTierFilter === "core"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+                title="Show the core node set by default. Advanced nodes appear when you search."
+              >
+                Core
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={nodeTierFilter === "all"}
+                onClick={() => setNodeTierFilter("all")}
+                className={`rounded px-2 py-1 text-[10px] font-medium transition-colors ${
+                  nodeTierFilter === "all"
+                    ? "bg-zinc-800 text-zinc-100 shadow-sm"
+                    : "text-zinc-500 hover:text-zinc-300"
+                }`}
+                title="Show the full node catalog."
+              >
+                All
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="relative">
           <Search

@@ -31,29 +31,33 @@ export function ClampNodePanel(props: ClampNodePanelProps) {
         (e.targetHandle ?? STUDIO_HANDLE_IN) === handleId,
     );
 
+  const visibleFields = FIELDS.filter(({ key }) => !isHandleWired(key));
+
+  // If both `Min` and `Max` handles are wired, socket rows already show the live values.
+  // Avoid rendering disabled config controls (which create empty padding).
+  if (visibleFields.length === 0) {
+    return null;
+  }
+
   return (
     <ReadingPanel className="nodrag nopan space-y-2">
-      {FIELDS.map(({ key, label, fallback }) => {
-        const wired = isHandleWired(key);
-        return (
-          <label
-            key={key}
-            className={`flex items-center gap-2 text-[10px] ${wired ? "text-zinc-500" : "text-zinc-400"}`}
-          >
-            <span className="w-8 shrink-0 text-zinc-300">{label}</span>
-            <TRNScrubNumberInput
-              className="min-w-0 flex-1"
-              value={readFiniteConfigNumber(defaultConfig[key], fallback)}
-              step={0.01}
-              disabled={wired}
-              aria-label={`Clamp ${label}`}
-              onChange={(next) => {
-                updateField(nodeId, key, next);
-              }}
-            />
-          </label>
-        );
-      })}
+      {visibleFields.map(({ key, label, fallback }) => (
+        <label
+          key={key}
+          className="flex items-center gap-2 text-[10px] text-zinc-400"
+        >
+          <span className="w-8 shrink-0 text-zinc-300">{label}</span>
+          <TRNScrubNumberInput
+            className="min-w-0 flex-1"
+            value={readFiniteConfigNumber(defaultConfig[key], fallback)}
+            step={0.01}
+            aria-label={`Clamp ${label}`}
+            onChange={(next) => {
+              updateField(nodeId, key, next);
+            }}
+          />
+        </label>
+      ))}
     </ReadingPanel>
   );
 }

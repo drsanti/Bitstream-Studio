@@ -106,6 +106,22 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 
 Mirror **output** handle rules on the **left** border; label and live value form a **left cluster** (do not stretch live data to the node’s right edge).
 
+### Label width equalization (required)
+
+All **input socket rows** must align their **label** and **value** columns by applying a single
+label width to every row:
+
+- **Measure** the rendered width of each input socket **label** in the node
+- **Take the maximum**
+- **Apply** that width to all input labels in the same node
+
+This makes every row’s value start at the same x-position (perfect vertical alignment).
+
+**Shared implementation (do not re-invent per node):**
+
+- `nodes/flow-node/FlowNodeSocketRegion.tsx` — `equalizeLabelWidth` (uses `ResizeObserver`, sets `--flow-socket-label-w`)
+- `nodes/flow-node/FlowNodeSocketRow.tsx` — input label cell uses `width: var(--flow-socket-label-w)`
+
 ### Column layout (flex)
 
 ```text

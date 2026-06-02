@@ -29,6 +29,8 @@ export type SocketLivePreviewProps = {
   scalar?: number | null | undefined;
   booleanValue?: boolean;
   stringValue?: string;
+  /** Text alignment for scalar/string previews. Defaults to `right` (classic socket row look). */
+  textAlign?: "left" | "right";
 };
 
 /**
@@ -46,6 +48,7 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
     scalar,
     booleanValue,
     stringValue,
+    textAlign = "right",
   } = props;
 
   if (portType === "vector3" && vector3 != null) {
@@ -101,7 +104,12 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
       <ReadingNumber
         value={scalar}
         fractionDigits={fractionDigits}
-        className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "block text-right", scalarTone)}
+        className={twMerge(
+          SOCKET_LIVE_VALUE_TYPOGRAPHY,
+          "block",
+          textAlign === "left" ? "text-left" : "text-right",
+          scalarTone,
+        )}
       />
     );
   }
@@ -125,7 +133,8 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
       <span
         className={twMerge(
           SOCKET_LIVE_VALUE_TYPOGRAPHY,
-          "block max-w-[9rem] truncate text-right text-zinc-200",
+          "block max-w-36 truncate text-zinc-200",
+          textAlign === "left" ? "text-left" : "text-right",
         )}
         title={stringValue}
       >
