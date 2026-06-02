@@ -55,8 +55,14 @@ export type FlowAddNodeMenuProps = {
   clientX: number;
   clientY: number;
   entries: readonly NodeCatalogEntry[];
-  /** Shown under search when smart connect falls back to the full catalog. */
+  /** Shown under search during smart connect (compatible / fallback / full catalog). */
   bannerHint?: string;
+  bannerHintTone?: "info" | "warn";
+  /** Smart connect: reorder browse groups (e.g. Output before Layout). */
+  browseGroupPrefs?: {
+    catalogGroupOrder: readonly PaletteDisplayGroup[];
+    layoutGroupLast: boolean;
+  };
   categoryColors: Record<NodeCatalogEntry["category"], string>;
   onPickEntry: (
     entry: NodeCatalogEntry,
@@ -137,6 +143,8 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
     clientY,
     entries,
     bannerHint,
+    bannerHintTone = "warn",
+    browseGroupPrefs,
     categoryColors,
     onPickEntry,
     onPickLayoutEntry,
@@ -190,18 +198,19 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
     [addable],
   );
 
-  const orderedDisplayGroups = useMemo(
-    () =>
-      PALETTE_DISPLAY_GROUP_ORDER.filter(
-        (g) => (displayGroupMap.get(g)?.length ?? 0) > 0,
-      ),
-    [displayGroupMap],
-  );
+  const orderedDisplayGroups = useMemo(() => {
+    const order = browseGroupPrefs?.catalogGroupOrder ?? PALETTE_DISPLAY_GROUP_ORDER;
+    return order.filter((g) => (displayGroupMap.get(g)?.length ?? 0) > 0);
+  }, [browseGroupPrefs?.catalogGroupOrder, displayGroupMap]);
 
   const orderedBrowseGroups = useMemo((): MenuBrowseGroup[] => {
-    const groups: MenuBrowseGroup[] = [FLOW_LAYOUT_MENU_LAYOUT];
-    return groups.concat(orderedDisplayGroups);
-  }, [orderedDisplayGroups]);
+    const layoutLast = browseGroupPrefs?.layoutGroupLast === true;
+    const catalogGroups = orderedDisplayGroups;
+    if (layoutLast) {
+      return [...catalogGroups, FLOW_LAYOUT_MENU_LAYOUT];
+    }
+    return [FLOW_LAYOUT_MENU_LAYOUT, ...catalogGroups];
+  }, [browseGroupPrefs?.layoutGroupLast, orderedDisplayGroups]);
 
   const activeGroup = hoveredGroup ?? orderedBrowseGroups[0] ?? null;
 
@@ -309,7 +318,13 @@ export function FlowAddNodeMenu(props: FlowAddNodeMenuProps) {
             />
           </div>
           {bannerHint != null && bannerHint.length > 0 ? (
-            <p className="mt-2 text-[10px] leading-snug text-amber-200/90">
+            <p
+              className={
+                bannerHintTone === "info"
+                  ? "mt-2 text-[10px] leading-snug text-cyan-200/90"
+                  : "mt-2 text-[10px] leading-snug text-amber-200/90"
+              }
+            >
               {bannerHint}
             </p>
           ) : null}

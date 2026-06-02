@@ -3,6 +3,10 @@ import type {
   NodeCatalogOutputPort,
 } from "../../../core/config/config-types";
 import {
+  PALETTE_DISPLAY_GROUP_ORDER,
+  type PaletteDisplayGroup,
+} from "../components/node-palette/palette-display-meta";
+import {
   STUDIO_HANDLE_IN,
   STUDIO_HANDLE_OUT,
 } from "../store/flow-editor.store";
@@ -105,6 +109,98 @@ function scoreSmartConnectEntry(
     }
   }
   return score;
+}
+
+export type SmartConnectBrowseGroupPrefs = {
+  catalogGroupOrder: readonly PaletteDisplayGroup[];
+  /** When true, Layout (reroute/split/…) is listed after catalog groups. */
+  layoutGroupLast: boolean;
+};
+
+function prioritizeDisplayGroups(
+  front: readonly PaletteDisplayGroup[],
+): PaletteDisplayGroup[] {
+  const rest = PALETTE_DISPLAY_GROUP_ORDER.filter((g) => !front.includes(g));
+  return [...front, ...rest];
+}
+
+/** Browse-column order while smart connect menu is open (filtered path boosts sinks / sources). */
+export function preferredSmartConnectBrowseGroups(
+  ctx: SmartConnectDragContext,
+  options?: { showFullCatalog?: boolean },
+): SmartConnectBrowseGroupPrefs | null {
+  if (options?.showFullCatalog) {
+    return null;
+  }
+  if (ctx.portType == null) {
+    return {
+      catalogGroupOrder: PALETTE_DISPLAY_GROUP_ORDER,
+      layoutGroupLast: true,
+    };
+  }
+  if (ctx.handleType === "source") {
+    switch (ctx.portType) {
+      case "number":
+        return {
+          catalogGroupOrder: prioritizeDisplayGroups([
+            "output",
+            "logic",
+            "data",
+            "transform",
+            "utilities",
+          ]),
+          layoutGroupLast: true,
+        };
+      case "boolean":
+        return {
+          catalogGroupOrder: prioritizeDisplayGroups([
+            "logic",
+            "output",
+            "utilities",
+          ]),
+          layoutGroupLast: true,
+        };
+      case "vector3":
+      case "quaternion":
+        return {
+          catalogGroupOrder: prioritizeDisplayGroups([
+            "transform",
+            "logic",
+            "output",
+            "data",
+          ]),
+          layoutGroupLast: true,
+        };
+      default:
+        return {
+          catalogGroupOrder: prioritizeDisplayGroups(["output", "logic", "data"]),
+          layoutGroupLast: true,
+        };
+    }
+  }
+  switch (ctx.portType) {
+    case "number":
+      return {
+        catalogGroupOrder: prioritizeDisplayGroups([
+          "input",
+          "data",
+          "logic",
+          "transform",
+          "utilities",
+        ]),
+        layoutGroupLast: true,
+      };
+    case "boolean":
+      return {
+        catalogGroupOrder: prioritizeDisplayGroups(["input", "logic", "utilities"]),
+        layoutGroupLast: true,
+      };
+    default:
+      return {
+        catalogGroupOrder: prioritizeDisplayGroups(["input", "data", "logic"]),
+        layoutGroupLast: true,
+      };
+  }
 }
 
 /** Stable sort: recent + compatible-first + obvious sinks at the top. */

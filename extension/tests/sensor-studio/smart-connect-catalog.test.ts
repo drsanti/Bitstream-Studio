@@ -5,6 +5,7 @@ import {
   buildSmartConnectAutoWire,
   entryMatchesSmartConnect,
   filterCatalogEntriesForSmartConnect,
+  preferredSmartConnectBrowseGroups,
   rankCatalogEntriesForSmartConnect,
   type SmartConnectDragContext,
 } from "../../src/webview/sensor-studio/features/editor/connect/smart-connect-catalog";
@@ -133,6 +134,13 @@ describe("smart-connect-catalog", () => {
       target: "new-1",
       targetHandle: "ch1",
     });
+  });
+
+  it("prefers Output browse group for number output drags", () => {
+    const prefs = preferredSmartConnectBrowseGroups(numberOutCtx);
+    assert.ok(prefs != null);
+    assert.equal(prefs.layoutGroupLast, true);
+    assert.equal(prefs.catalogGroupOrder[0], "output");
   });
 
   it("shows all visible entries when port type is unknown", () => {

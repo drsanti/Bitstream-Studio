@@ -74,6 +74,7 @@ import {
 import {
   buildSmartConnectAutoWire,
   filterCatalogEntriesForSmartConnect,
+  preferredSmartConnectBrowseGroups,
   rankCatalogEntriesForSmartConnect,
   type SmartConnectDragContext,
   type SmartConnectPortType,
@@ -326,21 +327,50 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       });
     }, [addNodeMenuAnchor, addableEntries]);
 
-    const smartConnectMenuHint = useMemo(() => {
+    const smartConnectMenuBanner = useMemo((): {
+      hint?: string;
+      tone: "info" | "warn";
+    } | undefined => {
       const anchor = addNodeMenuAnchor;
       const ctx = anchor?.smartConnect;
-      if (ctx == null || anchor.smartConnectShowAll) {
+      if (ctx == null) {
         return undefined;
       }
+      if (anchor.smartConnectShowAll) {
+        return {
+          hint: "Full catalog — compatible nodes ranked first",
+          tone: "info",
+        };
+      }
       if (ctx.portType == null) {
-        return undefined;
+        return {
+          hint: "Pick a node — type follows your selection",
+          tone: "info",
+        };
       }
       const filtered = filterCatalogEntriesForSmartConnect(addableEntries, ctx);
       if (filtered.length === 0) {
-        return "No exact type matches — showing all nodes";
+        return {
+          hint: "No exact type matches — showing all nodes",
+          tone: "warn",
+        };
       }
-      return undefined;
+      return {
+        hint: "Compatible nodes for this wire",
+        tone: "info",
+      };
     }, [addNodeMenuAnchor, addableEntries]);
+
+    const smartConnectBrowsePrefs = useMemo(() => {
+      const anchor = addNodeMenuAnchor;
+      const ctx = anchor?.smartConnect;
+      if (ctx == null) {
+        return undefined;
+      }
+      return preferredSmartConnectBrowseGroups(ctx, {
+        showFullCatalog: anchor.smartConnectShowAll,
+      });
+    }, [addNodeMenuAnchor]);
 
     useFlowCanvasLayoutShortcuts(lastPointerRef, reactFlowRef);
 
@@ -912,7 +942,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
                 clientX={addNodeMenuAnchor.clientX}
                 clientY={addNodeMenuAnchor.clientY}
                 entries={addNodeMenuEntries}
-                bannerHint={smartConnectMenuHint}
+                bannerHint={smartConnectMenuBanner?.hint}
+                bannerHintTone={smartConnectMenuBanner?.tone}
+                browseGroupPrefs={smartConnectBrowsePrefs ?? undefined}
                 categoryColors={minimapCategoryColors}
                 onPickEntry={handlePickAddNodeEntry}
                 onPickLayoutEntry={onPickLayoutEntry}

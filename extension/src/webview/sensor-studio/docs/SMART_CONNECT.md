@@ -85,7 +85,7 @@ Within the filtered set, boost (non-exhaustive):
 - Single obvious sink/source (e.g. `plotter`, `gauge`, `sparkline` for `number` outputs).
 - Nodes already used in the same **display group** as the source node.
 
-**Shift** bypasses the filter but keeps ranking.
+**Shift** bypasses the filter but keeps ranking. Filtered opens show a cyan **“Compatible nodes for this wire”** banner; browse groups put **Output** (or matching sources) before **Layout**.
 
 ---
 
