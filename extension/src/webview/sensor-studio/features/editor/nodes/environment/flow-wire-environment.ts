@@ -3,7 +3,7 @@ import {
   defaultScene3DConfig,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 
 /** Serialized environment bundle carried on **`environment`** flow wires (subset of `Scene3DConfigV1.environment`). */
 export type FlowWireEnvironmentV1 = {

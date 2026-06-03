@@ -18,7 +18,7 @@ import { flowWireStudioLightFromEval } from "../../src/webview/sensor-studio/fea
 import { flowWirePostProcessingFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-post-processing";
 import { flowWireContactShadowsFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-contact-shadows";
 import { flowWireParticleEmitterFromEval } from "../../src/webview/sensor-studio/features/editor/nodes/scene-fx/flow-wire-particle-emitter";
-import { defaultScene3DConfig } from "../../src/webview/sensor-studio/features/editor/nodes/rotation/scene3d-config";
+import { defaultScene3DConfig } from "../../src/webview/sensor-studio/core/scene3d/scene3d-config";
 
 test("mergeFlowSceneWiresIntoScene3d applies exposure fog and studio light", () => {
   const base = defaultScene3DConfig();

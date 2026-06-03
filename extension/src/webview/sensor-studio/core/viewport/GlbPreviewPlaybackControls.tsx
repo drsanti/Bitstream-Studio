@@ -1,7 +1,7 @@
 import { Pause, Play, Square } from "lucide-react";
 import { twMerge } from "tailwind-merge";
-import { TRNButton } from "../../../../../ui/TRN";
-import type { GlbPreviewUserTransport } from "../../gltf/glb-preview-user-transport";
+import { TRNButton } from "../../../ui/TRN";
+import type { GlbPreviewUserTransport } from "../../features/editor/gltf/glb-preview-user-transport";
 
 const CONTROL_PILL_CLASS =
   "nodrag nowheel pointer-events-auto flex items-center gap-0.5 rounded-full border border-zinc-700/70 bg-zinc-950/80 p-0.5 shadow-md shadow-black/40 ring-1 ring-white/5 backdrop-blur-sm";

@@ -5,6 +5,10 @@ import {
 import { resolveWebviewModelAssetUrl } from "../../../bitstream-app/components/3d-rotation/shared/resolveWebviewModelAssetUrl";
 import { PSOC_E84_GLB_RELATIVE_PATH } from "../../../bitstream-app/components/3d-rotation/shared/rotationPreviewConstants";
 import {
+  migrateLegacyPackModelAssetId,
+  migrateLegacyPackModelUrl,
+} from "../../persistence/migrate-legacy-pack-model";
+import {
   devViteModelUrlFromCanonicalDedupeKey,
   resolveCatalogModelUrlInExtensionWebview,
 } from "../../../model-catalog/modelCatalogMerge";
@@ -142,7 +146,9 @@ export function resolveStudioModelPackRelativePath(
   if (inferred?.relativePath != null && inferred.relativePath.trim().length > 0) {
     return inferred.relativePath.trim();
   }
-  const trimmed = normalizeStaleLocalhostDefaultPsocUrl(model.url).trim();
+  const trimmed = migrateLegacyPackModelUrl(
+    normalizeStaleLocalhostDefaultPsocUrl(model.url),
+  ).trim();
   if (trimmed.length > 0 && !ABSOLUTE_FETCH_URL_RE.test(trimmed)) {
     return trimmed;
   }
@@ -189,10 +195,16 @@ export function resolveStudioModelGltfFetchUrl(
   catalog: readonly StudioAssetDescriptor[],
   fallbackUrl: string,
 ): string {
-  const modelUrl = normalizeStaleLocalhostDefaultPsocUrl(model.url);
+  const modelUrl = migrateLegacyPackModelUrl(
+    normalizeStaleLocalhostDefaultPsocUrl(model.url),
+  );
   const fallbackResolved = normalizeStaleLocalhostDefaultPsocUrl(fallbackUrl);
-  if (model.studioAssetId != null && model.studioAssetId.length > 0) {
-    const byId = getStudioModelDescriptorById(model.studioAssetId, catalog);
+  const studioAssetId =
+    model.studioAssetId != null && model.studioAssetId.length > 0
+      ? migrateLegacyPackModelAssetId(model.studioAssetId)
+      : model.studioAssetId;
+  if (studioAssetId != null && studioAssetId.length > 0) {
+    const byId = getStudioModelDescriptorById(studioAssetId, catalog);
     if (byId != null) {
       const primary = primaryFetchUrlForStudioModelDescriptor(byId);
       if (primary.length > 0) {
@@ -203,7 +215,7 @@ export function resolveStudioModelGltfFetchUrl(
 
   const inferred = resolveStudioModelDescriptorForPersistedModel(
     modelUrl,
-    undefined,
+    studioAssetId,
     catalog,
   );
   if (inferred != null) {
@@ -220,7 +232,7 @@ export function resolveStudioModelGltfFetchUrl(
       return "";
     }
     return resolveStudioModelGltfFetchUrl(
-      { url: fb, studioAssetId: model.studioAssetId },
+      { url: fb, studioAssetId },
       catalog,
       "",
     );

@@ -1,6 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { StudioNode, StudioPortType } from "../store/flow-editor.store";
-import { STUDIO_HANDLE_IN, STUDIO_HANDLE_OUT } from "../store/flow-editor.store";
+import type { StudioPortType } from "../flow-graph-types";
+import { STUDIO_HANDLE_IN, STUDIO_HANDLE_OUT } from "../studio-handle-ids";
 import {
   isLayoutFlowNode,
   isSplitOutputHandle,
@@ -10,7 +10,7 @@ import {
   type SplitLayoutNodeData,
 } from "./layout-flow-nodes.types";
 
-export function isStudioFlowNode(node: Node): node is StudioNode {
+export function isStudioFlowNode(node: Node): boolean {
   return node.type === "studio" || node.type == null;
 }
 
@@ -31,6 +31,9 @@ const STUDIO_PORT_TYPES: readonly StudioPortType[] = [
   "contactShadows",
   "particleEmitter",
   "audioBus",
+  "physicsScene",
+  "physicsCollider",
+  "physicsBody",
 ];
 
 function portTypeFromEdgeLabel(label: unknown): StudioPortType | null {
@@ -134,7 +137,7 @@ export function inferLayoutNodeSmartConnectPortType(
   return null;
 }
 
-function studioSourcePortType(node: StudioNode, sourceHandle: string): StudioPortType | null {
+function studioSourcePortType(node: Node, sourceHandle: string): StudioPortType | null {
   if (node.data.outputHandles != null && node.data.outputHandles.length > 0) {
     return node.data.outputHandles.find((h) => h.id === sourceHandle)?.portType ?? null;
   }
@@ -144,10 +147,7 @@ function studioSourcePortType(node: StudioNode, sourceHandle: string): StudioPor
   return null;
 }
 
-function studioTargetPortType(
-  node: StudioNode,
-  targetHandle: string,
-): StudioPortType | null {
+function studioTargetPortType(node: Node, targetHandle: string): StudioPortType | null {
   if (node.data.inputHandles != null && node.data.inputHandles.length > 0) {
     return (
       node.data.inputHandles.find((h) => h.id === targetHandle)?.portType ?? null

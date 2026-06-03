@@ -10,7 +10,7 @@ export function ReadingPanel(props: ReadingPanelProps) {
   return (
     <div
       className={twMerge(
-        "mt-2 min-w-0 w-full max-w-full rounded border border-zinc-700/80 bg-black/40 px-2 py-1.5 text-[10px] leading-snug text-zinc-300",
+        "mt-2 min-w-0 w-full max-w-full overflow-hidden rounded border border-zinc-700/80 bg-black/40 px-2 py-1.5 text-[10px] leading-snug text-zinc-300",
         className,
       )}
       {...rest}

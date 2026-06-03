@@ -1,19 +1,42 @@
 import { useCallback, useEffect, useState } from "react";
 import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 import { Check, Pencil, X } from "lucide-react";
+import { TRNHintTooltip } from "./TRNHintTooltip.js";
 
 type TRNFormSectionProps = {
   title: string;
+  /** Hover tooltip on the section title — not inline helper copy. */
   description?: string;
+  /** When false, omit the heading row (e.g. nested inside an inspector card). */
+  showHeading?: boolean;
   className?: string;
   children: ReactNode;
 };
+
+function TRNFormSectionHeading(props: { title: string; description?: string }) {
+  const { title, description } = props;
+  const heading = <h3 className="text-xs font-semibold text-zinc-100">{title}</h3>;
+  if (description == null || description.length === 0) {
+    return heading;
+  }
+  return (
+    <TRNHintTooltip
+      trigger={<span className="inline-flex w-fit">{heading}</span>}
+      content={description}
+      triggerAriaLabel={`About ${title}`}
+      placement="top-start"
+      triggerWrapper="span"
+      triggerClassName="w-fit"
+      wide={description.length > 120}
+    />
+  );
+}
 
 /**
  * Group related form fields with a heading and optional hint text.
  */
 export function TRNFormSection(props: TRNFormSectionProps) {
-  const { title, description, className = "", children } = props;
+  const { title, description, showHeading = true, className = "", children } = props;
   return (
     <section
       className={
@@ -21,12 +44,11 @@ export function TRNFormSection(props: TRNFormSectionProps) {
         className
       }
     >
-      <div>
-        <h3 className="text-xs font-semibold text-zinc-100">{title}</h3>
-        {description ? (
-          <p className="mt-0.5 text-[11px] text-zinc-400">{description}</p>
-        ) : null}
-      </div>
+      {showHeading ? (
+        <div>
+          <TRNFormSectionHeading title={title} description={description} />
+        </div>
+      ) : null}
       <div className="space-y-2">{children}</div>
     </section>
   );
@@ -37,11 +59,52 @@ type TRNFormFieldProps = {
   id?: string;
   htmlFor?: string;
   error?: string;
+  /** Hover tooltip on the label — not inline helper copy. */
   hint?: string;
   required?: boolean;
   className?: string;
   children: ReactNode;
 };
+
+function TRNFormFieldLabel(props: {
+  label: string;
+  hint?: string;
+  htmlFor?: string;
+  required?: boolean;
+}) {
+  const { label, hint, htmlFor, required = false } = props;
+  const labelBody = (
+    <>
+      {label}
+      {required ? <span className="text-rose-400"> *</span> : null}
+    </>
+  );
+  const labelClassName = "block w-fit text-[11px] font-medium text-zinc-100";
+
+  if (hint != null && hint.length > 0) {
+    return (
+      <TRNHintTooltip
+        trigger={
+          <label htmlFor={htmlFor} className={labelClassName}>
+            {labelBody}
+          </label>
+        }
+        content={hint}
+        triggerAriaLabel={`About ${label}`}
+        placement="top-start"
+        triggerWrapper="span"
+        triggerClassName="w-fit"
+        wide={hint.length > 120}
+      />
+    );
+  }
+
+  return (
+    <label htmlFor={htmlFor} className={labelClassName}>
+      {labelBody}
+    </label>
+  );
+}
 
 /**
  * Standard label + control + error row for TRN forms.
@@ -60,17 +123,13 @@ export function TRNFormField(props: TRNFormFieldProps) {
   const fieldId = id ?? htmlFor;
   return (
     <div className={"space-y-1 " + className}>
-      <label
+      <TRNFormFieldLabel
+        label={label}
+        hint={error ? undefined : hint}
         htmlFor={fieldId}
-        className="block text-[11px] font-medium text-zinc-100"
-      >
-        {label}
-        {required ? <span className="text-rose-400"> *</span> : null}
-      </label>
+        required={required}
+      />
       {children}
-      {hint && !error ? (
-        <p className="text-[10px] text-zinc-400">{hint}</p>
-      ) : null}
       {error ? <p className="text-[10px] text-rose-400">{error}</p> : null}
     </div>
   );

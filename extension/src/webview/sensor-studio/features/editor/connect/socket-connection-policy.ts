@@ -1,10 +1,16 @@
-import { addEdge, type Connection, type Edge } from "@xyflow/react";
-import type { StudioSubgraphDocument } from "../subgraphs/studio-subgraph.types";
-import type { FlowGraphNode, StudioPortType } from "../store/flow-editor.store";
+import {
+  addEdge,
+  reconnectEdge,
+  type Connection,
+  type Edge,
+  type Node,
+} from "@xyflow/react";
+import type { StudioPortType } from "../flow-graph-types";
 import {
   STUDIO_HANDLE_IN,
   STUDIO_HANDLE_OUT,
-} from "../store/flow-editor.store";
+} from "../studio-handle-ids";
+import type { StudioSubgraphDocument } from "../subgraphs/studio-subgraph.types";
 import {
   isStudioFlowNode,
   layoutNodeAcceptsInput,
@@ -15,7 +21,7 @@ import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-grou
 import { isStudioNodeGroupNode } from "../subgraphs/studio-subgraph.types";
 
 export type StudioConnectionGraph = {
-  nodes: FlowGraphNode[];
+  nodes: Node[];
   edges: Edge[];
   subgraphs: Record<string, StudioSubgraphDocument>;
 };
@@ -26,14 +32,35 @@ export type ConnectionRejectReason =
   | "duplicate_edge"
   | "type_mismatch";
 
+export function connectionRejectMessage(reason: ConnectionRejectReason): string {
+  switch (reason) {
+    case "missing_endpoints":
+      return "Connection needs both sockets.";
+    case "self_loop":
+      return "Cannot connect a node to itself.";
+    case "duplicate_edge":
+      return "This connection already exists.";
+    case "type_mismatch":
+      return "Socket types are not compatible.";
+    default:
+      return "Connection not allowed.";
+  }
+}
+
 /** Inputs that accept multiple incoming wires (no replace on connect; no pop on drag-start). */
 export const MULTI_INPUT_SOCKETS: Record<string, ReadonlySet<string>> = {
   "number-average": new Set([STUDIO_HANDLE_IN]),
 };
 
+/**
+ * Outputs that allow only one outgoing wire (pop on drag-start; replace on reconnect).
+ * Empty in v0.1 — all catalog outputs fan out unless listed here.
+ */
+export const SINGLE_OUTPUT_SOCKETS: Record<string, ReadonlySet<string>> = {};
+
 export type SocketRole = "source" | "target";
 
-function studioCatalogNodeId(node: FlowGraphNode): string | null {
+function studioCatalogNodeId(node: Node): string | null {
   if (node.type === "studio" || node.type == null) {
     return node.data.nodeId ?? null;
   }
@@ -43,13 +70,31 @@ function studioCatalogNodeId(node: FlowGraphNode): string | null {
   return null;
 }
 
+function groupOutputSocketPortType(node: Node, handleId: string): StudioPortType | null {
+  if (node.type !== "studio-group-output") {
+    return null;
+  }
+  const iface = (node.data as { interface?: { outputs: { id: string; portType: StudioPortType }[] } })
+    .interface;
+  return iface?.outputs.find((s) => s.id === handleId)?.portType ?? null;
+}
+
 export function getSocketCardinality(
-  node: FlowGraphNode | undefined,
+  node: Node | undefined,
   handleId: string,
   role: SocketRole,
 ): "single" | "multi" {
   if (role === "source") {
+    const catalogId = node != null ? studioCatalogNodeId(node) : null;
+    if (catalogId != null && SINGLE_OUTPUT_SOCKETS[catalogId]?.has(handleId)) {
+      return "single";
+    }
     return "multi";
+  }
+  if (node != null) {
+    if (groupOutputSocketPortType(node, handleId) === "glbAnimation") {
+      return "multi";
+    }
   }
   const catalogId = node != null ? studioCatalogNodeId(node) : null;
   if (catalogId != null && MULTI_INPUT_SOCKETS[catalogId]?.has(handleId)) {
@@ -59,7 +104,7 @@ export function getSocketCardinality(
 }
 
 function getSourcePortType(
-  node: FlowGraphNode,
+  node: Node,
   sourceHandle: string,
   subgraphs: Record<string, StudioSubgraphDocument>,
 ): StudioPortType | null {
@@ -71,7 +116,7 @@ function getSourcePortType(
 }
 
 function getTargetPortType(
-  node: FlowGraphNode,
+  node: Node,
   targetHandle: string,
   subgraphs: Record<string, StudioSubgraphDocument>,
 ): StudioPortType | null {
@@ -114,7 +159,7 @@ function isDuplicateEdge(
 /** Incoming wires removed when connecting to a single-input socket (replace policy). */
 export function incomingEdgesToReplace(
   connection: Connection,
-  nodes: FlowGraphNode[],
+  nodes: Node[],
   edges: Edge[],
   excludeEdgeId?: string,
 ): string[] {
@@ -141,7 +186,7 @@ export function edgesToPopOnConnectStart(
   nodeId: string,
   handleId: string,
   handleType: SocketRole,
-  nodes: FlowGraphNode[],
+  nodes: Node[],
   edges: Edge[],
 ): string[] {
   const node = nodes.find((n) => n.id === nodeId);
@@ -156,7 +201,15 @@ export function edgesToPopOnConnectStart(
       )
       .map((e) => e.id);
   }
-  return [];
+  if (getSocketCardinality(node, handleId, "source") !== "single") {
+    return [];
+  }
+  return edges
+    .filter(
+      (e) =>
+        e.source === nodeId && (e.sourceHandle ?? STUDIO_HANDLE_OUT) === handleId,
+    )
+    .map((e) => e.id);
 }
 
 export type ValidateConnectionOptions = {
@@ -258,6 +311,51 @@ export function connectWithPolicy(
     },
     nextBase,
   );
+
+  return { ok: true, edges: nextEdges, removedEdgeIds };
+}
+
+/** Merge partial reconnect `Connection` with the edge being updated. */
+export function mergeReconnectConnection(
+  oldEdge: Edge,
+  newConnection: Connection,
+): Connection {
+  return {
+    source: newConnection.source ?? oldEdge.source,
+    target: newConnection.target ?? oldEdge.target,
+    sourceHandle:
+      newConnection.sourceHandle ?? oldEdge.sourceHandle ?? STUDIO_HANDLE_OUT,
+    targetHandle:
+      newConnection.targetHandle ?? oldEdge.targetHandle ?? STUDIO_HANDLE_IN,
+  };
+}
+
+/** Validate, apply single-input replace, and update an existing edge in place (keeps edge id). */
+export function reconnectWithPolicy(
+  oldEdge: Edge,
+  newConnection: Connection,
+  graph: StudioConnectionGraph,
+): { ok: true; edges: Edge[]; removedEdgeIds: string[] } | { ok: false; reason: ConnectionRejectReason } {
+  const connection = mergeReconnectConnection(oldEdge, newConnection);
+  const validation = validateStudioConnection(connection, graph, {
+    allowIncomplete: false,
+    excludeEdgeId: oldEdge.id,
+  });
+  if (!validation.ok) {
+    return validation;
+  }
+
+  const removedEdgeIds = incomingEdgesToReplace(
+    connection,
+    graph.nodes,
+    graph.edges,
+    oldEdge.id,
+  );
+  const replaceIds = new Set(removedEdgeIds);
+  const baseEdges = graph.edges.filter((e) => !replaceIds.has(e.id));
+  const nextEdges = reconnectEdge(oldEdge, connection, baseEdges, {
+    shouldReplaceId: false,
+  });
 
   return { ok: true, edges: nextEdges, removedEdgeIds };
 }

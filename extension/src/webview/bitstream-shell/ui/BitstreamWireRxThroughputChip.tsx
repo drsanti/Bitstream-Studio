@@ -9,16 +9,21 @@ import {
   type TelemetryRxBadgeVariant,
 } from "./BitstreamTelemetryRxBadges";
 import {
-  BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS,
   BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS,
   BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS,
+  BITSTREAM_SHELL_TOOLBAR_TELEMETRY_CHIP_TEXT_CLASS,
+  BITSTREAM_SHELL_TOOLBAR_WIRE_RX_CHIP_CLASS,
+  BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS,
 } from "./workspace-chrome-chip";
 
 /** Wire RX throughput chip (broker main + priority lanes, ~1 s window). */
 export function BitstreamWireRxThroughputChip(props: {
   variant?: TelemetryRxBadgeVariant;
+  /** Fixed-width shell toolbar slot — always visible (placeholder when pipeline idle). */
+  toolbarSlot?: boolean;
 }) {
   const variant = props.variant ?? "chip";
+  const toolbarSlot = props.toolbarSlot ?? false;
   const wire = useBitstreamConnectionStore((s) => s.serialRxWireStats);
   const connected = useBitstreamConnectionStore((s) => s.connected);
   const transportState = useBitstreamConnectionStore((s) => s.transportState);
@@ -115,11 +120,17 @@ export function BitstreamWireRxThroughputChip(props: {
     return null;
   }
 
-  if (!visible) {
+  if (!visible && !toolbarSlot) {
     return null;
   }
 
-  const chipSurfaceClass = `${BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS} ${BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS} ${borderClass} text-zinc-200/95 select-none`;
+  const chipFrameClass = toolbarSlot
+    ? BITSTREAM_SHELL_TOOLBAR_WIRE_RX_CHIP_CLASS
+    : BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS;
+  const chipTextClass = toolbarSlot
+    ? BITSTREAM_SHELL_TOOLBAR_TELEMETRY_CHIP_TEXT_CLASS
+    : "min-w-0 truncate";
+  const chipSurfaceClass = `${chipFrameClass} ${BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS} ${borderClass} text-zinc-200/95 select-none`;
 
   return (
     <TRNTooltip
@@ -127,7 +138,7 @@ export function BitstreamWireRxThroughputChip(props: {
       openDelayMs={650}
       disableHoverFx
       triggerWrapper="span"
-      triggerClassName="!p-0 max-w-full"
+      triggerClassName={toolbarSlot ? "!p-0 shrink-0" : "!p-0 max-w-full"}
       triggerAriaLabel={triggerAriaLabel}
       content={tooltip}
       trigger={
@@ -137,7 +148,7 @@ export function BitstreamWireRxThroughputChip(props: {
             aria-hidden
             className={`${BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS} ${toneClass}`}
           />
-          <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
+          <span className={`${chipTextClass} ${toneClass}`}>{label}</span>
         </span>
       }
     />

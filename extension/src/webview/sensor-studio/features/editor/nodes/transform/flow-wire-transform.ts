@@ -3,7 +3,7 @@ import {
   defaultScene3DConfig,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 import type { FlowWireVec3 } from "../../../../core/live/flow-wire-types";
 import type { FusionEulerHundredths } from "../../../../../bitstream-app/components/3d-rotation/shared/bmi270FusionExtract";
 import { fusionWireEulerHundredthsToThreeEulerRadComponents } from "../../../../../bitstream-app/components/3d-rotation/shared/fusionEulerWireToThreeEulerRad";

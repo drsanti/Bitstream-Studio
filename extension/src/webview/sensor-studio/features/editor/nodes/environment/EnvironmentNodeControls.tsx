@@ -9,13 +9,13 @@ import {
 } from "../../../../../ui/TRN";
 import { useStudioAssetDescriptors } from "../../../asset-browser/useStudioAssetDescriptors";
 import {
-  findT3DCubemapPresetIndexForStudioEnvironment,
-  getStudioEnvironmentDescriptorById,
-  listStudioEnvironmentDescriptors,
-  parseT3dPresetEnvironmentSelectValue,
   rotationInspectorEnvironmentCatalogSelectValue,
   STUDIO_ENVIRONMENT_T3D_PRESET_VALUE_PREFIX,
 } from "../../../asset-browser/studio-environment-scene-bindings";
+import {
+  applyEnvironmentCubemapSelectToNodeConfig,
+  buildEnvironmentCubemapSelectOptions,
+} from "./environment-cubemap-select";
 import {
   environmentModulationHandleIsWired,
   readEnvironmentInputSocketVisibility,
@@ -24,6 +24,12 @@ import {
   flowWireEnvironmentFromNodeDefaultConfig,
   type FlowWireEnvironmentV1,
 } from "./flow-wire-environment";
+import { FlowNodeIntrinsicWidthMarker } from "../flow-node/FlowNodeIntrinsicWidthMarker";
+import {
+  FLOW_NODE_BODY_PANEL_CLASS,
+  widestTrnSelectOptionLabel,
+} from "../flow-node/flow-node-intrinsic-width-utils";
+import { FLOW_NODE_TRN_SELECT_CLASS } from "../flow-node/flow-node-trn-select-layout";
 
 export type EnvironmentNodeControlsProps = {
   defaultConfig: Record<string, unknown>;
@@ -87,25 +93,10 @@ export function EnvironmentNodeControls(props: EnvironmentNodeControlsProps) {
     nodeId != null &&
     environmentModulationHandleIsWired(edges, nodeId, "yawDeg", vis);
 
-  const environmentSelectOptions = useMemo<TRNSelectOption[]>(() => {
-    const maps = getEngineEnvironmentCubeMaps();
-    const t3dRows = maps.map((preset, index) => ({
-      value: `${STUDIO_ENVIRONMENT_T3D_PRESET_VALUE_PREFIX}${index}`,
-      label: preset.title,
-    }));
-    const catalogCandidates = listStudioEnvironmentDescriptors(descriptors);
-    const catalogOnly = catalogCandidates.filter(
-      (d) => findT3DCubemapPresetIndexForStudioEnvironment(maps, d) == null,
-    );
-    const sid = wire.studioAssetId?.trim() ?? "";
-    const bound = sid.length > 0 ? getStudioEnvironmentDescriptorById(sid, descriptors) : null;
-    const boundMapsToT3d =
-      bound != null && findT3DCubemapPresetIndexForStudioEnvironment(maps, bound) != null;
-    const appendBound =
-      bound != null && boundMapsToT3d && !catalogOnly.some((d) => d.id === bound.id);
-    const catalogRows = appendBound ? [...catalogOnly, bound] : catalogOnly;
-    return [...t3dRows, ...catalogRows.map((d) => ({ value: d.id, label: d.label }))];
-  }, [descriptors, wire.studioAssetId]);
+  const environmentSelectOptions = useMemo<TRNSelectOption[]>(
+    () => buildEnvironmentCubemapSelectOptions(descriptors, wire),
+    [descriptors, wire.presetIndex, wire.studioAssetId],
+  );
 
   const selectValue = useMemo(
     () =>
@@ -119,24 +110,7 @@ export function EnvironmentNodeControls(props: EnvironmentNodeControlsProps) {
 
   const applyCubemapSelect = useCallback(
     (value: string) => {
-      const presetIdx = parseT3dPresetEnvironmentSelectValue(value);
-      if (presetIdx != null) {
-        const maps = getEngineEnvironmentCubeMaps();
-        const max = Math.max(0, maps.length - 1);
-        const next = Math.min(Math.max(0, presetIdx), max);
-        onUpdateField("studioAssetId", "");
-        onUpdateField("presetIndex", next);
-        return;
-      }
-      const picked = getStudioEnvironmentDescriptorById(value, descriptors);
-      if (picked == null) {
-        return;
-      }
-      const maps = getEngineEnvironmentCubeMaps();
-      const idx = findT3DCubemapPresetIndexForStudioEnvironment(maps, picked);
-      const cur = flowWireEnvironmentFromNodeDefaultConfig(defaultConfig);
-      onUpdateField("studioAssetId", picked.id);
-      onUpdateField("presetIndex", idx ?? cur.presetIndex);
+      applyEnvironmentCubemapSelectToNodeConfig(value, descriptors, defaultConfig, onUpdateField);
     },
     [defaultConfig, descriptors, onUpdateField],
   );
@@ -150,8 +124,29 @@ export function EnvironmentNodeControls(props: EnvironmentNodeControlsProps) {
     [onUpdateField],
   );
 
+  const cubemapIntrinsicLabels = useMemo(() => {
+    const opts =
+      environmentSelectOptions.length > 0
+        ? environmentSelectOptions
+        : [{ value: `${STUDIO_ENVIRONMENT_T3D_PRESET_VALUE_PREFIX}0`, label: "(no presets)" }];
+    const selected =
+      opts.find((o) => o.value === selectValue)?.label?.trim() ?? "";
+    const widest = widestTrnSelectOptionLabel(opts);
+    return selected.length > 0 ? [selected, widest, "Cubemap / HDRI"] : [widest, "Cubemap / HDRI"];
+  }, [environmentSelectOptions, selectValue]);
+
   return (
-    <div className="space-y-2">
+    <div
+      className={
+        compactForFlowNodeBody
+          ? `${FLOW_NODE_BODY_PANEL_CLASS} space-y-2`
+          : "min-w-0 space-y-2"
+      }
+      data-flow-node-body-panel={compactForFlowNodeBody ? true : undefined}
+    >
+      {compactForFlowNodeBody ? (
+        <FlowNodeIntrinsicWidthMarker labels={cubemapIntrinsicLabels} />
+      ) : null}
       <div className="min-w-0">
         <div className="mb-0.5 block text-[11px] font-medium text-zinc-400">Cubemap / HDRI</div>
         <TRNSelect
@@ -159,6 +154,8 @@ export function EnvironmentNodeControls(props: EnvironmentNodeControlsProps) {
           sectionTitle="Cubemap preset"
           size="sm"
           value={selectValue}
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full text-[12px]"
           options={
             environmentSelectOptions.length > 0
               ? environmentSelectOptions

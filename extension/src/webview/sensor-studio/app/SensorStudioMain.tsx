@@ -8,6 +8,7 @@ import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickSched
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
+import { runStageSceneOutputDemoTemplate } from "../features/stage/stage-viewport-helpers";
 import type { StandaloneWorkbenchHandle } from "../../ui/workbench";
 import { createWorkbenchFlowAttachment } from "../../ui/workbench/workbench-flow-attachment";
 import type { FlowCanvasGraphHandle } from "../features/editor/components/flow-canvas-graph-handle";
@@ -16,6 +17,7 @@ import { pushRecentCatalogNodeId } from "../features/editor/keyboard/recent-cata
 import { snapFlowPoint } from "../features/editor/components/snap-flow-position";
 import { readStoredFlowCanvasPreferences } from "../features/editor/components/flow-canvas-ui-persistence";
 import { useFlowCanvasPreferences } from "../features/editor/components/use-flow-canvas-preferences";
+import { useStagePresentationPreferences } from "../features/stage/stage-presentation-preferences";
 import { coerceFlowCanvasPreferences } from "../persistence/flow-canvas-preferences";
 import {
   type FlowGraphNode,
@@ -161,6 +163,9 @@ export function SensorStudioMain() {
   const onUpdateNodeUiAllowBodyCollapse = useFlowEditorStore(
     (s) => s.updateSelectedNodeUiAllowBodyCollapse,
   );
+  const onUpdateStudioNodeLayoutDimensions = useFlowEditorStore(
+    (s) => s.updateSelectedStudioNodeLayoutDimensions,
+  );
   const onUpdateConfigField = useFlowEditorStore((s) => s.updateSelectedNodeConfigField);
   const onUpdateConfigJson = useFlowEditorStore((s) => s.updateSelectedNodeConfigFromJson);
   const tickSimulation = useFlowEditorStore((s) => s.tickSimulation);
@@ -237,7 +242,7 @@ export function SensorStudioMain() {
   }, [nodes, selectedNodeIds, selectedNodeId]);
 
   const selectedNode = orderedSelectedNodes[0] ?? null;
-  const [templateId, setTemplateId] = useState<StudioDemoTemplateId>("signal-chain");
+  const [templateId, setTemplateId] = useState<StudioDemoTemplateId>("stage-scene-output");
   const [bootCanvasPreferences] = useState(() => {
     const doc = persistedBootstrapRef.current;
     if (doc?.canvasPreferences != null) {
@@ -247,6 +252,10 @@ export function SensorStudioMain() {
   });
   const { preferences: flowCanvasPreferences, patchPreferences: patchFlowCanvasPreferences } =
     useFlowCanvasPreferences(bootCanvasPreferences);
+  const {
+    preferences: stagePresentationPreferences,
+    patchPreferences: patchStagePresentationPreferences,
+  } = useStagePresentationPreferences();
   const flowCanvasPrefsRef = useRef(flowCanvasPreferences);
   flowCanvasPrefsRef.current = flowCanvasPreferences;
   const flowCanvasGraphRef = useRef<FlowCanvasGraphHandle | null>(null);
@@ -890,6 +899,10 @@ export function SensorStudioMain() {
       }
     } else {
       persistFingerprintRef.current = flowStructureFingerprint([], [], null, []);
+      runStageSceneOutputDemoTemplate();
+      if (bootCanvasPreferences.autoFitViewOnReplace) {
+        setFitViewVersion((v) => v + 1);
+      }
     }
 
     const unsub = useFlowEditorStore.subscribe((state) => {
@@ -943,6 +956,9 @@ export function SensorStudioMain() {
         contactShadowsColor={dataTypeColors.contactShadows}
         particleEmitterColor={dataTypeColors.particleEmitter}
         audioBusColor={dataTypeColors.audioBus}
+        physicsSceneColor={dataTypeColors.physicsScene}
+        physicsColliderColor={dataTypeColors.physicsCollider}
+        physicsBodyColor={dataTypeColors.physicsBody}
         minimapCategoryColors={minimapCategoryColors}
         entries={catalog}
         nodes={nodes}
@@ -957,6 +973,7 @@ export function SensorStudioMain() {
         onUpdateLabel={onUpdateLabel}
         onUpdateNodeUiResizable={onUpdateNodeUiResizable}
         onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
+        onUpdateStudioNodeLayoutDimensions={onUpdateStudioNodeLayoutDimensions}
         onUpdateConfigField={onUpdateConfigField}
         onUpdateConfigJson={onUpdateConfigJson}
         templateId={templateId}
@@ -983,6 +1000,8 @@ export function SensorStudioMain() {
         onRestoreFlowViewport={onRestoreFlowViewport}
         flowCanvasPreferences={flowCanvasPreferences}
         onFlowCanvasPreferencesChange={patchFlowCanvasPreferences}
+        stagePresentationPreferences={stagePresentationPreferences}
+        onStagePresentationPreferencesChange={patchStagePresentationPreferences}
         onFlowPanePointerEvent={onFlowPanePointerEvent}
         onDropPaletteCatalogNode={onDropPaletteCatalogNode}
         onSpawnGlbExtract={onSpawnGlbExtract}

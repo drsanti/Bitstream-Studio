@@ -20,5 +20,8 @@ export const DATA_TYPE_COLORS_DEFAULTS: DataTypeColorsConfig = {
     contactShadows: "#C084FC",
     particleEmitter: "#FB923C",
     audioBus: "#F472B6",
+    physicsScene: "#4ADE80",
+    physicsCollider: "#2DD4BF",
+    physicsBody: "#38BDF8",
   },
 };

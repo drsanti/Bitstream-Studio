@@ -4,9 +4,10 @@ This module provides small, theme-aware building blocks: section chrome, a label
 
 ## Components
 
-- `TRNFormSection` — title, optional description, child fields
-- `TRNFormField` — label, optional `required`, `error`, `hint`, wraps any control
+- `TRNFormSection` — title, optional `description` (hover tooltip on title), `showHeading`, child fields
+- `TRNFormField` — label, optional `required`, `error`, `hint` (hover tooltip on label), wraps any control
 - `TRNInlineEdit` — read view with pencil; commit/cancel; optional `validate` and `multiline`
+- `TRNInput` / `TRNInputGroup` — prefix-icon text rows (see `TRNInput.md`)
 
 ## Quick start
 

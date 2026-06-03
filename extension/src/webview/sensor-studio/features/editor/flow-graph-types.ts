@@ -1,0 +1,21 @@
+/** Wire / socket types for the flow graph (shared; no zustand store import). */
+export type StudioPortType =
+  | "number"
+  | "boolean"
+  | "string"
+  | "event"
+  | "vector3"
+  | "quaternion"
+  | "environment"
+  | "camera"
+  | "glbAnimation"
+  | "transform"
+  | "fog"
+  | "studioLight"
+  | "postProcessing"
+  | "contactShadows"
+  | "particleEmitter"
+  | "audioBus"
+  | "physicsScene"
+  | "physicsCollider"
+  | "physicsBody";

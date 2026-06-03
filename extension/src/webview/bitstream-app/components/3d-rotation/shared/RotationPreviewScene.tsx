@@ -41,10 +41,26 @@ export type RotationPreviewSceneProps = {
   useCubemapIbl?: boolean;
   /** Index into built-in engine cubemap presets (see `getEngineEnvironmentCubeMaps`) for background / IBL texture. */
   environmentPresetIndex?: number;
-  /** Sensor Studio: full **`Scene3DConfigV1`** payload for {@link RotationPreviewPanelV4} (vanilla Three path). */
+  /** Sensor Studio: full **`Scene3DConfigV1`** payload for {@link StudioSceneViewport} (vanilla Three path). */
   scene3d?: unknown;
   /** Resolved fetch URL for the orientation body GLB (defaults to PSoC E84 when omitted). */
   previewMeshGlbUrl?: string;
+  /**
+   * Stage workbench: all models wired to Scene Output. When length > 1, the viewport
+   * loads each GLB side-by-side; use {@link stagePrimaryModelIndex} for frame/animation focus.
+   */
+  stageModelInstances?: Array<{
+    modelUrl: string;
+    studioAssetId?: string;
+    sourceNodeId?: string;
+    transformWire?: unknown;
+  }>;
+  /** Stage workbench: focus index into {@link stageModelInstances} (frame camera, GLB drives). */
+  stagePrimaryModelIndex?: number;
+  /** Wired **physics-world** snapshot (`FlowWirePhysicsSceneV1`) for Stage Rapier preview. */
+  stagePhysicsWire?: unknown;
+  /** Graph **box-collider** / **sphere-collider** nodes when physics is enabled. */
+  stagePhysicsColliders?: unknown;
   /** Optional morph weights keyed like GLB extraction (`meshKey:morphName`). */
   glbMorphWeights?: Record<string, number>;
   /** Optional light intensity overrides by embedded GLB light object name. */

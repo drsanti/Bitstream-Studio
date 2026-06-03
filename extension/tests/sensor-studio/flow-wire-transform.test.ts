@@ -7,7 +7,7 @@ import {
   mergeFlowWireTransformIntoScene3d,
   readFlowWireTransformEulerMapping,
 } from "../../src/webview/sensor-studio/features/editor/nodes/transform/flow-wire-transform";
-import { defaultScene3DConfig } from "../../src/webview/sensor-studio/features/editor/nodes/rotation/scene3d-config";
+import { defaultScene3DConfig } from "../../src/webview/sensor-studio/core/scene3d/scene3d-config";
 
 test("mergeFlowWireTransformIntoScene3d overrides model transform", () => {
   const base = defaultScene3DConfig();

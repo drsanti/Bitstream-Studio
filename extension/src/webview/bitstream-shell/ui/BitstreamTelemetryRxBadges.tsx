@@ -39,6 +39,8 @@ import {
   BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS,
   BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS,
   BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS,
+  BITSTREAM_SHELL_TOOLBAR_DECODE_FPS_CHIP_CLASS,
+  BITSTREAM_SHELL_TOOLBAR_TELEMETRY_CHIP_TEXT_CLASS,
 } from "./workspace-chrome-chip.js";
 
 export type SensorRxChipMetric = "freshness" | "aggregateFps";
@@ -862,12 +864,16 @@ export function BitstreamSensorSampleRxBadge(props: {
   chipMetric?: SensorRxChipMetric;
   /** When decode Δ is stale (≥3s), click triggers reconnect (Sensor Studio toolbar). */
   onReconnectTelemetry?: () => void;
+  /** Fixed-width shell toolbar slot for aggregate FPS chip (always visible). */
+  toolbarSlot?: boolean;
 }) {
   const variant = props.variant ?? "chip";
   const panelEmbed = props.panelEmbed ?? false;
   const panelSensorRows = props.panelSensorRows ?? "aggregate";
   const chipMetric = props.chipMetric ?? "freshness";
+  const toolbarSlot = props.toolbarSlot ?? false;
   const isAggregateFpsChip = variant === "chip" && chipMetric === "aggregateFps";
+  const isToolbarFpsSlot = toolbarSlot && isAggregateFpsChip;
   const onReconnectTelemetry = props.onReconnectTelemetry;
   const handshakeState = useBitstreamLiveStore((s) => s.handshakeState);
   const lastAtByHint = useBitstreamLiveStore((s) => s.lastAtByHint);
@@ -1015,6 +1021,14 @@ export function BitstreamSensorSampleRxBadge(props: {
     ],
   );
 
+  const aggregateFpsSlowButLive =
+    isAggregateFpsChip &&
+    visible &&
+    sampleCount > 0 &&
+    (pipelineAgeMs == null || pipelineAgeMs < 3000) &&
+    displayFps != null &&
+    displayFps < 1;
+
   const toneClass = isAggregateFpsChip
     ? !visible || sampleCount <= 0
       ? "text-zinc-500"
@@ -1022,11 +1036,13 @@ export function BitstreamSensorSampleRxBadge(props: {
         ? "text-rose-400"
         : displayFps != null && displayFps >= 4
           ? "text-emerald-400"
-          : displayFps != null && displayFps > 0
+          : displayFps != null && displayFps >= 1
             ? "text-emerald-300/90"
-            : fpsIdleMs != null && fpsIdleMs > 5000
-              ? "text-rose-400"
-              : "text-zinc-500"
+            : aggregateFpsSlowButLive
+              ? "text-emerald-300/90"
+              : fpsIdleMs != null && fpsIdleMs > 5000
+                ? "text-rose-400"
+                : "text-zinc-500"
     : !visible
       ? "text-zinc-500"
       : !hasEnabledFreshnessSignal
@@ -1043,7 +1059,7 @@ export function BitstreamSensorSampleRxBadge(props: {
         ? "border-rose-500/40 bg-rose-500/10"
         : displayFps != null && displayFps >= 4
           ? "border-emerald-500/35 bg-emerald-500/10"
-          : displayFps != null && displayFps > 0
+          : displayFps != null && (displayFps >= 1 || aggregateFpsSlowButLive)
             ? "border-emerald-500/35 bg-emerald-500/10"
             : fpsIdleMs != null && fpsIdleMs > 5000
               ? "border-rose-500/40 bg-rose-500/10"
@@ -1219,7 +1235,7 @@ export function BitstreamSensorSampleRxBadge(props: {
       ? pipelineAgeMs != null && pipelineAgeMs >= 3000
       : worstSampleAgeMs != null && worstSampleAgeMs >= 3000);
 
-  if (variant === "chip" && !visible) {
+  if (variant === "chip" && !visible && !isToolbarFpsSlot) {
     return null;
   }
 
@@ -1389,7 +1405,13 @@ export function BitstreamSensorSampleRxBadge(props: {
     );
   }
 
-  const chipSurfaceClass = `${BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS} ${BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS} ${borderClass} text-zinc-200/95`;
+  const chipFrameClass = isToolbarFpsSlot
+    ? BITSTREAM_SHELL_TOOLBAR_DECODE_FPS_CHIP_CLASS
+    : BITSTREAM_SHELL_STATUS_CHIP_FRAME_CLASS;
+  const chipTextClass = isToolbarFpsSlot
+    ? BITSTREAM_SHELL_TOOLBAR_TELEMETRY_CHIP_TEXT_CLASS
+    : "min-w-0 truncate";
+  const chipSurfaceClass = `${chipFrameClass} ${BITSTREAM_SHELL_STATUS_CHIP_TEXT_CLASS} ${borderClass} text-zinc-200/95`;
 
   const chipTrigger = staleReconnectEnabled ? (
     <button
@@ -1402,12 +1424,12 @@ export function BitstreamSensorSampleRxBadge(props: {
       }}
     >
       <Radio size={12} aria-hidden="true" className={`${BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS} ${toneClass}`} />
-      <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
+      <span className={`${chipTextClass} ${toneClass}`}>{label}</span>
     </button>
   ) : (
     <span className={`${chipSurfaceClass} select-none`}>
       <Radio size={12} aria-hidden="true" className={`${BITSTREAM_SHELL_STATUS_CHIP_ICON_CLASS} ${toneClass}`} />
-      <span className={`min-w-0 truncate ${toneClass}`}>{label}</span>
+      <span className={`${chipTextClass} ${toneClass}`}>{label}</span>
     </span>
   );
 
@@ -1417,7 +1439,7 @@ export function BitstreamSensorSampleRxBadge(props: {
       openDelayMs={650}
       disableHoverFx
       triggerWrapper="span"
-      triggerClassName="!p-0 max-w-full"
+      triggerClassName={isToolbarFpsSlot ? "!p-0 shrink-0" : "!p-0 max-w-full"}
       triggerAriaLabel={staleReconnectEnabled ? undefined : triggerAriaLabel}
       content={tooltip}
       trigger={chipTrigger}

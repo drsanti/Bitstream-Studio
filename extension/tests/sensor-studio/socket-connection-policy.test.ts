@@ -5,7 +5,9 @@ import type { FlowGraphNode } from "../../src/webview/sensor-studio/features/edi
 import {
   connectWithPolicy,
   edgesToPopOnConnectStart,
+  getSocketCardinality,
   incomingEdgesToReplace,
+  SINGLE_OUTPUT_SOCKETS,
   validateStudioConnection,
 } from "../../src/webview/sensor-studio/features/editor/connect/socket-connection-policy";
 
@@ -163,6 +165,115 @@ describe("socket-connection-policy", () => {
     ];
     const pop = edgesToPopOnConnectStart("math", "a", "target", nodes, edges);
     assert.deepEqual(pop, ["e1"]);
+  });
+
+  it("treats group output glbAnimation socket as multi-input", () => {
+    const animId = "playback";
+    const animPlayer = (id: string): FlowGraphNode => ({
+      id,
+      type: "studio",
+      position: { x: 0, y: 0 },
+      data: {
+        nodeId: "glb-animation-bundle",
+        label: "Player",
+        category: "output",
+        defaultConfig: {},
+        outputType: "glbAnimation",
+      },
+    });
+    const nodes: FlowGraphNode[] = [
+      animPlayer("p1"),
+      animPlayer("p2"),
+      animPlayer("p3"),
+      {
+        id: "go",
+        type: "studio-group-output",
+        position: { x: 0, y: 0 },
+        data: {
+          role: "output",
+          interface: {
+            inputs: [],
+            outputs: [
+              {
+                id: animId,
+                label: "Playback",
+                portType: "glbAnimation",
+                direction: "output",
+                boundaryKey: "k",
+              },
+            ],
+          },
+        },
+      },
+    ];
+    const groupOut = nodes.find((n) => n.id === "go");
+    assert.equal(getSocketCardinality(groupOut, animId, "target"), "multi");
+    const edges: Edge[] = [
+      {
+        id: "e1",
+        source: "p1",
+        target: "go",
+        sourceHandle: "out",
+        targetHandle: animId,
+      },
+      {
+        id: "e2",
+        source: "p2",
+        target: "go",
+        sourceHandle: "out",
+        targetHandle: animId,
+      },
+    ];
+    const result = connectWithPolicy(
+      {
+        source: "p3",
+        target: "go",
+        sourceHandle: "out",
+        targetHandle: animId,
+      },
+      { nodes, edges, subgraphs: {} },
+    );
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.deepEqual(result.removedEdgeIds, []);
+    assert.equal(result.edges.length, 3);
+  });
+
+  it("pops outgoing wires when dragging from a single-output socket", () => {
+    const fixtureId = "__fixture-single-output";
+    SINGLE_OUTPUT_SOCKETS[fixtureId] = new Set(["out"]);
+    try {
+      const nodes: FlowGraphNode[] = [
+        {
+          id: "src",
+          type: "studio",
+          position: { x: 0, y: 0 },
+          data: {
+            nodeId: fixtureId,
+            label: "Fixture",
+            category: "output",
+            defaultConfig: {},
+            outputType: "number",
+          },
+        },
+      ];
+      const edges: Edge[] = [
+        {
+          id: "e1",
+          source: "src",
+          target: "t1",
+          sourceHandle: "out",
+          targetHandle: "in",
+        },
+      ];
+      assert.equal(getSocketCardinality(nodes[0], "out", "source"), "single");
+      const pop = edgesToPopOnConnectStart("src", "out", "source", nodes, edges);
+      assert.deepEqual(pop, ["e1"]);
+    } finally {
+      delete SINGLE_OUTPUT_SOCKETS[fixtureId];
+    }
   });
 
   it("does not pop multi-input number-average on connect start", () => {

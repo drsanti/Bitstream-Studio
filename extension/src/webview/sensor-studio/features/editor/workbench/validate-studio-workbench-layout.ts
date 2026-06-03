@@ -9,7 +9,7 @@ import {
 import { createWorkbenchLayoutValidator } from "../../../../ui/workbench/create-workbench-layout-validator";
 import { DEFAULT_STUDIO_WORKBENCH_LAYOUT } from "./default-studio-workbench-layout";
 
-const STUDIO_KNOWN_EDITOR_TYPES = ["library", "assets", "flow", "inspector"] as const;
+const STUDIO_KNOWN_EDITOR_TYPES = ["library", "assets", "stage", "flow", "inspector"] as const;
 
 export type StudioWorkbenchEditorType = (typeof STUDIO_KNOWN_EDITOR_TYPES)[number];
 

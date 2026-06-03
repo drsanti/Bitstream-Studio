@@ -16,7 +16,7 @@ Current focus is configuration-first architecture and Node Editor groundwork.
 5. Device sensor settings vs Node Inspector (implementation plan):
    - [`docs/DEVICE_SENSOR_SETTINGS_IMPLEMENTATION_PLAN.md`](./docs/DEVICE_SENSOR_SETTINGS_IMPLEMENTATION_PLAN.md)
 6. Rotation preview scene JSON (`Scene3DConfigV1`) — authoring, coercion, shadows:
-   - [`docs/ROTATION_SCENE3D_CONFIG.md`](./docs/ROTATION_SCENE3D_CONFIG.md)
+   - [`docs/STUDIO_SCENE3D_CONFIG.md`](./docs/STUDIO_SCENE3D_CONFIG.md)
 7. Flow domains (telemetry vs scene tick):
    - [`docs/FLOW_DOMAINS.md`](./docs/FLOW_DOMAINS.md)
 8. node-animator editor parity (Shift+A, layout nodes, shortcuts):
@@ -29,7 +29,7 @@ sensor-studio/
 ├─ README.md
 ├─ docs/
 │  ├─ DEVICE_SENSOR_SETTINGS_IMPLEMENTATION_PLAN.md
-│  └─ ROTATION_SCENE3D_CONFIG.md
+│  └─ STUDIO_SCENE3D_CONFIG.md
 ├─ index.ts
 ├─ app/
 ├─ config/
@@ -39,10 +39,13 @@ sensor-studio/
 ├─ features/
 │  └─ editor/
 │     ├─ components/rotation/Rotation3DInspectorCards.tsx
-│     └─ nodes/rotation/
-│        ├─ scene3d-config.ts
-│        ├─ RotationPreviewPanelV4.tsx
-│        └─ rotation-preview-shadow-runtime.ts
+├─ core/
+│  ├─ scene3d/scene3d-config.ts
+│  └─ viewport/
+│     ├─ StudioSceneViewport.tsx
+│     └─ studio-viewport-shadow-runtime.ts
+│  └─ editor/nodes/rotation/
+│     └─ rotation-3d-node-ids.ts
 └─ persistence/
 ```
 
@@ -82,14 +85,14 @@ sensor-studio/
 - [`persistence/config.repository.ts`](./persistence/config.repository.ts)
 - [`persistence/config.migrations.ts`](./persistence/config.migrations.ts)
 
-### Rotation 3D preview (scene rig)
+### Studio 3D viewport (scene rig)
 
-- Default PCB GLB URLs use **`resolveDefaultPreviewMeshGlbUrl()`** (shared with Bitstream) so packaged VSIX installs resolve assets from the free mirror / online roots — not `import.meta.url` under omitted `out/webview/assets/models`. See [`docs/ROTATION_SCENE3D_CONFIG.md`](./docs/ROTATION_SCENE3D_CONFIG.md) and [`docs/ASSETS_LOCATION_SYSTEM.md`](../../../docs/ASSETS_LOCATION_SYSTEM.md).
-- [`features/editor/nodes/rotation/scene3d-config.ts`](./features/editor/nodes/rotation/scene3d-config.ts) — `Scene3DConfigV1`, defaults, `coerceScene3DConfigV1`, `persistScene3DConfig`
-- [`features/editor/nodes/rotation/RotationPreviewPanelV4.tsx`](./features/editor/nodes/rotation/RotationPreviewPanelV4.tsx) — Three.js preview runtime
-- [`features/editor/nodes/rotation/rotation-preview-shadow-runtime.ts`](./features/editor/nodes/rotation/rotation-preview-shadow-runtime.ts) — shadow helpers shared with the panel
-- [`features/editor/components/rotation/Rotation3DInspectorCards.tsx`](./features/editor/components/rotation/Rotation3DInspectorCards.tsx) — inspector UI
-- Design note: [`docs/ROTATION_SCENE3D_CONFIG.md`](./docs/ROTATION_SCENE3D_CONFIG.md)
+- Default PCB GLB URLs use **`resolveDefaultPreviewMeshGlbUrl()`** (shared with Bitstream) so packaged VSIX installs resolve assets from the free mirror / online roots — not `import.meta.url` under omitted `out/webview/assets/models`. See [`docs/STUDIO_SCENE3D_CONFIG.md`](./docs/STUDIO_SCENE3D_CONFIG.md) and [`docs/ASSETS_LOCATION_SYSTEM.md`](../../../docs/ASSETS_LOCATION_SYSTEM.md).
+- [`core/scene3d/scene3d-config.ts`](./core/scene3d/scene3d-config.ts) — `Scene3DConfigV1`, defaults, `coerceScene3DConfigV1`, `persistScene3DConfig`
+- [`core/viewport/StudioSceneViewport.tsx`](./core/viewport/StudioSceneViewport.tsx) — shared Three.js viewport (Stage, Model Viewer, 3D Rotation)
+- [`core/viewport/studio-viewport-shadow-runtime.ts`](./core/viewport/studio-viewport-shadow-runtime.ts) — shadow helpers
+- [`features/editor/components/rotation/Rotation3DInspectorCards.tsx`](./features/editor/components/rotation/Rotation3DInspectorCards.tsx) — rotation inspector UI
+- Design note: [`docs/STUDIO_SCENE3D_CONFIG.md`](./docs/STUDIO_SCENE3D_CONFIG.md)
 
 ## Development Rules (Applied in This Folder)
 

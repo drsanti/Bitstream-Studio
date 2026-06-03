@@ -34,6 +34,8 @@ import {
   CanvasInspectorPanel,
   type CanvasInspectorPanelProps,
 } from "./inspector/CanvasInspectorPanel";
+import { StageInspectorPanel } from "./inspector/StageInspectorPanel";
+import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
 import {
   readStoredInspectorActiveTab,
   writeStoredInspectorActiveTab,
@@ -69,6 +71,10 @@ export type NodeInspectorProps = {
   onUpdateLabel: (nextLabel: string) => void;
   onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateNodeUiAllowBodyCollapse: (allow: boolean) => void;
+  onUpdateStudioNodeLayoutDimensions: (patch: {
+    width?: number;
+    height?: number;
+  }) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (
     nextJson: string,
@@ -94,6 +100,7 @@ export function NodeInspector(props: NodeInspectorProps) {
     onUpdateLabel,
     onUpdateNodeUiResizable,
     onUpdateNodeUiAllowBodyCollapse,
+    onUpdateStudioNodeLayoutDimensions,
     onUpdateConfigField,
     onUpdateConfigJson,
     canvasInspector,
@@ -236,6 +243,13 @@ export function NodeInspector(props: NodeInspectorProps) {
       ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 pb-3 pt-2"
       : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
 
+  const activeEditorType = useStudioWorkbenchFocusStore((s) => s.activeEditorType);
+  const showStageInspector =
+    activeEditorType === "stage" &&
+    selectedNode == null &&
+    canvasInspector?.stagePresentationPreferences != null &&
+    canvasInspector?.onStagePresentationPreferencesChange != null;
+
   return (
     <section
       className="flex min-h-0 w-full min-w-0 flex-1 flex-col rounded border p-2"
@@ -254,10 +268,17 @@ export function NodeInspector(props: NodeInspectorProps) {
         </div>
       </div>
       {selectedNode == null ? (
-        canvasInspector != null &&
-        canvasNodes != null &&
-        canvasEdges != null &&
-        orderedSelectedNodesForCanvas != null ? (
+        showStageInspector ? (
+          <StageInspectorPanel
+            stagePresentationPreferences={canvasInspector!.stagePresentationPreferences}
+            onStagePresentationPreferencesChange={
+              canvasInspector!.onStagePresentationPreferencesChange
+            }
+          />
+        ) : canvasInspector != null &&
+          canvasNodes != null &&
+          canvasEdges != null &&
+          orderedSelectedNodesForCanvas != null ? (
           <CanvasInspectorPanel
             nodes={canvasNodes}
             edges={canvasEdges}
@@ -377,6 +398,9 @@ export function NodeInspector(props: NodeInspectorProps) {
                     onUpdateNodeUiResizable={onUpdateNodeUiResizable}
                     onUpdateNodeUiAllowBodyCollapse={
                       onUpdateNodeUiAllowBodyCollapse
+                    }
+                    onUpdateStudioNodeLayoutDimensions={
+                      onUpdateStudioNodeLayoutDimensions
                     }
                     onUpdateConfigField={onUpdateConfigField}
                     onUpdateConfigJson={onUpdateConfigJson}

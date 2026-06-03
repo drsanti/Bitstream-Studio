@@ -9,6 +9,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -30,6 +31,7 @@ import {
   FlowNodeBody,
   FlowNodeEdgeResize,
   FlowNodeHeader,
+  FlowNodeHeaderIcon,
   FlowNodeShell,
   FlowNodeSocketDot,
   FlowNodeSocketRegion,
@@ -41,10 +43,23 @@ import {
   syncFlowNodeShellDimensions,
 } from "./flow-node/FlowNodeEdgeResize";
 import {
+  measureFlowNodeBodyIntrinsicWidth,
+  measureFlowNodeHeaderLeadingIconWidth,
+  measureFlowNodeHeaderTitleIntrinsicWidth,
+  measureFlowNodeSocketRegionIntrinsicWidth,
+  resolveMaxAutoWidthPx,
+} from "./flow-node/flow-node-intrinsic-size";
+import {
   socketLivePreviewForInputHandle,
   socketLivePreviewForOutputHandle,
 } from "./flow-node/socket-live-preview-for-handle";
+import { useFlowCanvasPreferences } from "../context/flow-canvas-preferences-context";
 import { flowNodeHandleStyle } from "./flow-node/flow-node-handle-style";
+import {
+  isFlowHandleWired,
+  studioHandleBaseClass,
+  studioHandleDimStyle,
+} from "./flow-node/flow-node-handle-chrome";
 import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
 import {
   isBodyControlsVisible,
@@ -54,6 +69,7 @@ import {
   studioNodeHasHideableBody,
 } from "./flow-node/socket-display";
 import { studioNodeAllowsBodyCollapse } from "./flow-node/studio-body-collapse";
+import { resolveStudioNodeMinDimensionFloor } from "./flow-node/studio-node-resize-defaults";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
@@ -74,7 +90,7 @@ import {
 } from "./constants/ConstantGeneratorPanels";
 import { EnvironmentNodePanel } from "./environment/EnvironmentNodePanel";
 import { CameraViewNodePanel } from "./camera-view/CameraViewNodePanel";
-import { RotationPreviewPanelV4 } from "./rotation/RotationPreviewPanelV4";
+import { StudioSceneViewport } from "../../../core/viewport/StudioSceneViewport";
 import { PlotterCanvas } from "./plotter/PlotterCanvas";
 import { SparklineNodePanel } from "./sparkline/SparklineNodePanel";
 import { RadialGaugeNodePanel } from "./radial-gauge/RadialGaugeNodePanel";
@@ -98,7 +114,7 @@ import { isRotation3DCatalogNodeId } from "./rotation/rotation-3d-node-ids";
 import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
-} from "./rotation/scene3d-config";
+} from "../../../core/scene3d/scene3d-config";
 import { mergeFlowWireEnvironmentIntoScene3d } from "./environment/flow-wire-environment";
 import { mergeFlowWireCameraIntoScene3d } from "./camera-view/flow-wire-camera";
 import { mergeFlowWireTransformIntoScene3d } from "./transform/flow-wire-transform";
@@ -116,9 +132,6 @@ import {
 } from "./events/EventFlowNodePanels";
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 
-const handleBaseClass =
-  "!z-20 !h-3 !w-3 !border-2 !bg-zinc-900 [&.react-flow__handle]:pointer-events-auto";
-
 const handleDotClass =
   "relative flex h-6 w-0 items-center justify-center overflow-visible";
 
@@ -134,6 +147,9 @@ export function StudioNodeCard(props: NodeProps) {
     (s) => s.updateNodeConfigFieldByNodeId,
   );
   const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
+  const syncStudioNodeContentMinDimensions = useFlowEditorStore(
+    (s) => s.syncStudioNodeContentMinDimensions,
+  );
   const flowNodeWidth = useFlowEditorStore(
     (s) => s.nodes.find((n) => n.id === id)?.width,
   );
@@ -151,6 +167,11 @@ export function StudioNodeCard(props: NodeProps) {
   const { descriptors } = useStudioAssetDescriptors();
   const flowNodes = useFlowEditorStore((s) => s.nodes);
   const flowEdges = useFlowEditorStore((s) => s.edges);
+  const canvasPrefs = useFlowCanvasPreferences();
+  const handleBaseClass = studioHandleBaseClass(
+    canvasPrefs.handleSizePx,
+    canvasPrefs.handleBorderWidthPx,
+  );
 
   // Some editor graphs contain layout/reroute nodes that do not have `data.nodeId/defaultConfig`.
   // Downstream preview helpers expect only "catalog-backed" studio nodes.
@@ -183,6 +204,29 @@ export function StudioNodeCard(props: NodeProps) {
   const socketValuesVisible = isSocketValuesVisible(data.ui);
   const bodyControlsVisible = isBodyControlsVisible(data.ui);
   const edges = flowEdges as unknown as readonly Edge[];
+
+  const mergeHandleStyle = useCallback(
+    (
+      side: "left" | "right",
+      accent: string,
+      handleId: string,
+      handleType: "source" | "target",
+    ) => {
+      const dimmed =
+        canvasPrefs.handleDimWhenUnwired &&
+        !isFlowHandleWired({
+          nodeId: id,
+          handleId,
+          handleType,
+          edges,
+        });
+      return {
+        ...flowNodeHandleStyle(side, accent),
+        ...studioHandleDimStyle(dimmed),
+      };
+    },
+    [canvasPrefs.handleDimWhenUnwired, edges, id],
+  );
   const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
   const flowBodyFlexCol =
     isRotationNode ||
@@ -241,14 +285,6 @@ export function StudioNodeCard(props: NodeProps) {
     </span>
   ) : null;
 
-  const envDc = data.defaultConfig as Record<string, unknown>;
-  const environmentControlsExpanded =
-    data.nodeId === "environment"
-      ? typeof envDc.environmentControlsExpanded === "boolean"
-        ? envDc.environmentControlsExpanded
-        : true
-      : true;
-
   const cameraDc = data.defaultConfig as Record<string, unknown>;
   const cameraViewControlsExpanded =
     data.nodeId === "camera-view"
@@ -258,7 +294,6 @@ export function StudioNodeCard(props: NodeProps) {
       : true;
 
   const utilityBodyFitsContent =
-    (data.nodeId === "environment" && !environmentControlsExpanded) ||
     (data.nodeId === "camera-view" && !cameraViewControlsExpanded) ||
     data.nodeId === "object-transform" ||
     data.nodeId === "transform-from-euler" ||
@@ -288,18 +323,20 @@ export function StudioNodeCard(props: NodeProps) {
     (showNodeBody && compactConfigBodyNode);
 
   const nodeResizable = data.ui?.resizable === true;
+  const minDimensionFloor = resolveStudioNodeMinDimensionFloor(data.nodeId);
   const minNodeWidth =
     typeof data.ui?.minWidth === "number" && Number.isFinite(data.ui.minWidth)
       ? Math.round(data.ui.minWidth)
-      : 170;
+      : minDimensionFloor.minWidth;
   const minNodeHeight =
     typeof data.ui?.minHeight === "number" && Number.isFinite(data.ui.minHeight)
       ? Math.round(data.ui.minHeight)
-      : 64;
+      : minDimensionFloor.minHeight;
 
   const headerMeasureRef = useRef<HTMLDivElement | null>(null);
   const socketsMeasureRef = useRef<HTMLDivElement | null>(null);
-  const headerTitleMeasureRef = useRef<HTMLDivElement | null>(null);
+  const bodyMeasureRef = useRef<HTMLDivElement | null>(null);
+  const headerTitleMeasureRef = useRef<HTMLSpanElement | null>(null);
   const headerTrailingMeasureRef = useRef<HTMLDivElement | null>(null);
   const [measuredHeaderSocketsMinHeight, setMeasuredHeaderSocketsMinHeight] =
     useState<number | null>(null);
@@ -314,58 +351,66 @@ export function StudioNodeCard(props: NodeProps) {
     }
     const headerEl = headerMeasureRef.current;
     const socketsEl = socketsMeasureRef.current;
-    if (headerEl == null || socketsEl == null) {
+    if (headerEl == null) {
       return;
     }
+    const maxAutoWidthPx = resolveMaxAutoWidthPx(data.nodeId, minNodeWidth);
     const measure = () => {
       const headerH = headerEl.offsetHeight;
-      const socketsH = socketsEl.offsetHeight;
-      const next = Math.max(0, Math.ceil(headerH + socketsH));
+      const socketsH = socketsEl?.offsetHeight ?? 0;
+      const bodyEl = bodyMeasureRef.current;
+      const bodyH = bodyEl?.offsetHeight ?? 0;
+      const next = Math.max(0, Math.ceil(headerH + socketsH + bodyH));
       setMeasuredHeaderSocketsMinHeight((prev) =>
         prev === next ? prev : next,
       );
 
-      // Preserve spare space so longer live values don't hug the left edge.
-      // IMPORTANT: avoid using `socketsEl.scrollWidth` because the socket region is `w-full`,
-      // which creates a feedback loop (node grows => scrollWidth grows => node grows).
       const SPARE_PX = 14;
-      const labels = socketsEl.querySelectorAll<HTMLElement>(
-        "[data-flow-socket-label]",
-      );
-      const previews = socketsEl.querySelectorAll<HTMLElement>(
-        "[data-flow-socket-live-preview]",
-      );
-      let maxLabelW = 0;
-      let maxPreviewW = 0;
-      labels.forEach((el) => {
-        maxLabelW = Math.max(maxLabelW, el.scrollWidth);
-      });
-      previews.forEach((el) => {
-        maxPreviewW = Math.max(maxPreviewW, el.scrollWidth);
-      });
-      // Rough fixed budget: socket dot + paddings + inter-column gaps.
+      const socketWidths =
+        socketsEl != null
+          ? measureFlowNodeSocketRegionIntrinsicWidth(socketsEl)
+          : { labels: 0, previews: 0 };
       const FIXED_PX = 46;
-      const socketsIntrinsicW = Math.ceil(maxLabelW + maxPreviewW + FIXED_PX);
-      const headerTitleW = headerTitleMeasureRef.current?.scrollWidth ?? 0;
+      const socketsIntrinsicW = Math.ceil(
+        socketWidths.labels + socketWidths.previews + FIXED_PX,
+      );
+      const headerTitleW = measureFlowNodeHeaderTitleIntrinsicWidth(
+        headerTitleMeasureRef.current,
+      );
+      const headerLeadingIconW = measureFlowNodeHeaderLeadingIconWidth(
+        headerTitleMeasureRef.current,
+      );
       const headerTrailingW =
         headerTrailingMeasureRef.current?.scrollWidth ?? 0;
-      // Rough fixed budget: header padding + gap between title & trailing + optional leading.
       const HEADER_FIXED_PX = 36;
       const headerIntrinsicW = Math.ceil(
-        headerTitleW + headerTrailingW + HEADER_FIXED_PX,
+        headerTitleW + headerLeadingIconW + headerTrailingW + HEADER_FIXED_PX,
       );
-      const nextW = Math.max(
+      const bodyIntrinsicW =
+        bodyEl != null ? measureFlowNodeBodyIntrinsicWidth(bodyEl) : 0;
+      let nextW = Math.max(
         0,
-        Math.ceil(Math.max(headerIntrinsicW, socketsIntrinsicW) + SPARE_PX),
+        Math.ceil(
+          Math.max(headerIntrinsicW, socketsIntrinsicW, bodyIntrinsicW) + SPARE_PX,
+        ),
       );
+      if (maxAutoWidthPx != null) {
+        nextW = Math.min(nextW, maxAutoWidthPx);
+      }
       setMeasuredHeaderSocketsMinWidth((prev) =>
         prev === nextW ? prev : nextW,
       );
     };
+    const bodyEl = bodyMeasureRef.current;
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(headerEl);
-    ro.observe(socketsEl);
+    if (socketsEl != null) {
+      ro.observe(socketsEl);
+    }
+    if (bodyEl != null) {
+      ro.observe(bodyEl);
+    }
     return () => ro.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -375,10 +420,14 @@ export function StudioNodeCard(props: NodeProps) {
     socketValuesVisible,
     showNodeBody,
     bodyControlsVisible,
+    cameraViewControlsExpanded,
+    data.nodeId,
+    data.label,
     data.inputHandles?.length,
     data.outputHandles?.length,
     data.inputType,
     data.outputType,
+    data.defaultConfig,
   ]);
 
   const mathOperation =
@@ -407,7 +456,6 @@ export function StudioNodeCard(props: NodeProps) {
     logicGateOperation,
     data.inputHandles?.length,
     cameraViewControlsExpanded,
-    environmentControlsExpanded,
     bodyControlsVisible,
     showNodeBody,
     updateNodeInternals,
@@ -416,32 +464,6 @@ export function StudioNodeCard(props: NodeProps) {
   useLayoutEffect(() => {
     updateNodeInternals(id);
   }, [id, socketValuesVisible, socketsExpanded, updateNodeInternals]);
-
-  const environmentBodyToggle =
-    data.nodeId === "environment" ? (
-      <button
-        type="button"
-        className="nodrag inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/80 bg-zinc-900/70 text-zinc-300 hover:bg-zinc-800/80"
-        title={
-          environmentControlsExpanded
-            ? "Hide environment controls"
-            : "Show environment controls"
-        }
-        aria-expanded={environmentControlsExpanded}
-        onClick={() => {
-          setStudioUtilityNodeBodyExpanded(
-            id,
-            "environmentControlsExpanded",
-            !environmentControlsExpanded,
-          );
-        }}
-      >
-        <ChevronDown
-          className={`h-3.5 w-3.5 transition-transform ${environmentControlsExpanded ? "" : "-rotate-90"}`}
-          aria-hidden
-        />
-      </button>
-    ) : null;
 
   const cameraViewBodyToggle =
     data.nodeId === "camera-view" ? (
@@ -480,15 +502,17 @@ export function StudioNodeCard(props: NodeProps) {
       <CompareOperationHeaderChip operation={compareOperation} />
     ) : null;
 
+  const headerLeading = (
+    <FlowNodeHeaderIcon nodeId={data.nodeId} category={data.category} />
+  );
+
   const headerTrailing =
-    data.nodeId === "environment" ||
     data.nodeId === "camera-view" ||
     compareOperationChip != null ||
     sensorHealthBadge != null ||
     invalidBadge != null ||
     sensorFamilyTag != null ? (
       <div className="inline-flex items-center gap-1.5">
-        {environmentBodyToggle}
         {cameraViewBodyToggle}
         {compareOperationChip}
         {sensorHealthBadge != null ||
@@ -517,6 +541,23 @@ export function StudioNodeCard(props: NodeProps) {
     minNodeHeight,
     measuredHeaderSocketsMinHeight ?? 0,
   );
+
+  useEffect(() => {
+    if (!nodeResizable) {
+      return;
+    }
+    syncStudioNodeContentMinDimensions(
+      id,
+      effectiveMinNodeWidth,
+      effectiveMinNodeHeight,
+    );
+  }, [
+    id,
+    nodeResizable,
+    effectiveMinNodeWidth,
+    effectiveMinNodeHeight,
+    syncStudioNodeContentMinDimensions,
+  ]);
 
   const visibleInputHandles = (() => {
     if (data.inputHandles != null && data.inputHandles.length > 0) {
@@ -567,9 +608,11 @@ export function StudioNodeCard(props: NodeProps) {
                     type="target"
                     position={Position.Left}
                     className={handleBaseClass}
-                    style={flowNodeHandleStyle(
+                    style={mergeHandleStyle(
                       "left",
                       studioPortAccent(h.portType),
+                      h.id,
+                      "target",
                     )}
                   />
                 </FlowNodeSocketDot>
@@ -607,9 +650,11 @@ export function StudioNodeCard(props: NodeProps) {
                       type="target"
                       position={Position.Left}
                       className={handleBaseClass}
-                      style={flowNodeHandleStyle(
+                      style={mergeHandleStyle(
                         "left",
                         studioPortAccent(data.inputType),
+                        "in",
+                        "target",
                       )}
                     />
                   </FlowNodeSocketDot>
@@ -665,9 +710,11 @@ export function StudioNodeCard(props: NodeProps) {
                     type="source"
                     position={Position.Right}
                     className={handleBaseClass}
-                    style={flowNodeHandleStyle(
+                    style={mergeHandleStyle(
                       "right",
                       studioPortAccent(h.portType),
+                      h.id,
+                      "source",
                     )}
                   />
                 </FlowNodeSocketDot>
@@ -702,9 +749,11 @@ export function StudioNodeCard(props: NodeProps) {
                       type="source"
                       position={Position.Right}
                       className={handleBaseClass}
-                      style={flowNodeHandleStyle(
+                      style={mergeHandleStyle(
                         "right",
                         studioPortAccent(data.outputType),
+                        "out",
+                        "source",
                       )}
                     />
                   </FlowNodeSocketDot>
@@ -743,9 +792,11 @@ export function StudioNodeCard(props: NodeProps) {
                 type="target"
                 position={Position.Left}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle(
+                style={mergeHandleStyle(
                   "left",
                   studioPortAccent(h.portType),
+                  h.id,
+                  "target",
                 )}
               />
             </FlowNodeSocketDot>
@@ -774,9 +825,11 @@ export function StudioNodeCard(props: NodeProps) {
                 type="target"
                 position={Position.Left}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle(
+                style={mergeHandleStyle(
                   "left",
                   studioPortAccent(data.inputType),
+                  "in",
+                  "target",
                 )}
               />
             </FlowNodeSocketDot>
@@ -806,9 +859,11 @@ export function StudioNodeCard(props: NodeProps) {
                 type="source"
                 position={Position.Right}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle(
+                style={mergeHandleStyle(
                   "right",
                   studioPortAccent(h.portType),
+                  h.id,
+                  "source",
                 )}
               />
             </FlowNodeSocketDot>
@@ -836,9 +891,11 @@ export function StudioNodeCard(props: NodeProps) {
                 type="source"
                 position={Position.Right}
                 className={handleBaseClass}
-                style={flowNodeHandleStyle(
+                style={mergeHandleStyle(
                   "right",
                   studioPortAccent(data.outputType),
+                  "out",
+                  "source",
                 )}
               />
             </FlowNodeSocketDot>
@@ -993,37 +1050,41 @@ export function StudioNodeCard(props: NodeProps) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const flowNodeShellRef = useRef<HTMLDivElement | null>(null);
   const resizeActive = isSelected && nodeResizable;
+  const prevEffectiveMinRef = useRef({ width: 0, height: 0 });
 
   useLayoutEffect(() => {
     if (!nodeResizable) {
       return;
     }
-    if (
-      flowNodeWidth != null &&
-      Number.isFinite(flowNodeWidth) &&
-      flowNodeWidth < effectiveMinNodeWidth
-    ) {
-      onNodesChangeAny(
-        flowNodeDimensionChanges(
-          id,
-          effectiveMinNodeWidth,
-          flowNodeHeight ?? effectiveMinNodeHeight,
-        ),
-      );
+    const prev = prevEffectiveMinRef.current;
+    const currentW =
+      flowNodeWidth != null && Number.isFinite(flowNodeWidth)
+        ? Math.round(flowNodeWidth)
+        : 0;
+    const currentH =
+      flowNodeHeight != null && Number.isFinite(flowNodeHeight)
+        ? Math.round(flowNodeHeight)
+        : 0;
+    const contentMinGrewW = effectiveMinNodeWidth > prev.width;
+    const contentMinGrewH = effectiveMinNodeHeight > prev.height;
+    const bumpWidth =
+      contentMinGrewW &&
+      (currentW === 0 || (currentW >= prev.width && currentW < effectiveMinNodeWidth));
+    const bumpHeight =
+      contentMinGrewH &&
+      (currentH === 0 || (currentH >= prev.height && currentH < effectiveMinNodeHeight));
+    prevEffectiveMinRef.current = {
+      width: effectiveMinNodeWidth,
+      height: effectiveMinNodeHeight,
+    };
+    if (!bumpWidth && !bumpHeight) {
       return;
     }
-    if (flowNodeHeight == null || !Number.isFinite(flowNodeHeight)) {
-      return;
-    }
-    if (flowNodeHeight >= effectiveMinNodeHeight) {
-      return;
-    }
-    // Ensure socket rows can never overflow outside the node shell after pins change.
     onNodesChangeAny(
       flowNodeDimensionChanges(
         id,
-        flowNodeWidth ?? effectiveMinNodeWidth,
-        effectiveMinNodeHeight,
+        bumpWidth ? effectiveMinNodeWidth : currentW || effectiveMinNodeWidth,
+        bumpHeight ? effectiveMinNodeHeight : currentH || effectiveMinNodeHeight,
       ),
     );
   }, [
@@ -1107,6 +1168,7 @@ export function StudioNodeCard(props: NodeProps) {
             "relative transition-shadow duration-150",
             isSelected ? "studio-flow-node--selected" : null,
             isPlotterNodeId(data.nodeId) ||
+            data.nodeId === "model-select" ||
             data.nodeId === "model-viewer" ||
             data.nodeId === "radial-gauge" ||
             data.nodeId === "bar-meter" ||
@@ -1122,13 +1184,14 @@ export function StudioNodeCard(props: NodeProps) {
               glass
               glassPreset="medium"
               className="studio-node-drag-handle cursor-move"
+              leading={headerLeading}
               primary={
-                <div
+                <span
                   ref={headerTitleMeasureRef}
-                  className="inline-block text-[12px] font-semibold leading-[14px] text-zinc-100"
+                  className="inline-block min-w-0 w-max max-w-full truncate text-[13px] font-semibold leading-none text-zinc-100"
                 >
                   {data.label}
-                </div>
+                </span>
               }
               trailing={
                 headerTrailing != null ? (
@@ -1188,6 +1251,10 @@ export function StudioNodeCard(props: NodeProps) {
           ) : null}
 
           {showNodeBody ? (
+            <div
+              ref={nodeResizable ? bodyMeasureRef : undefined}
+              className="min-w-0 w-full max-w-full overflow-hidden"
+            >
             <FlowNodeBody
               className={
                 compactConfigBodyNode
@@ -1200,8 +1267,9 @@ export function StudioNodeCard(props: NodeProps) {
               }
             >
               {data.nodeId === "rotation-3d-euler" ? (
-                <RotationPreviewPanelV4
+                <StudioSceneViewport
                   title="3D Scene (Euler)"
+                  previewScopeId={`flow-node:${id}`}
                   sceneProps={
                     eulerScene ?? {
                       qw: 1,
@@ -1223,8 +1291,9 @@ export function StudioNodeCard(props: NodeProps) {
                 />
               ) : null}
               {data.nodeId === "rotation-3d-quaternion" ? (
-                <RotationPreviewPanelV4
+                <StudioSceneViewport
                   title="3D Scene (Quaternion)"
+                  previewScopeId={`flow-node:${id}`}
                   sceneProps={
                     quaternionScene ?? {
                       qw: 1,
@@ -1387,10 +1456,11 @@ export function StudioNodeCard(props: NodeProps) {
                   livePostProcessingWire={data.livePostProcessingWire}
                   liveContactShadowsWire={data.liveContactShadowsWire}
                   liveParticleEmitterWire={data.liveParticleEmitterWire}
+                  livePhysicsWire={data.livePhysicsWire}
                   defaultConfig={data.defaultConfig}
                 />
               ) : null}
-              {data.nodeId === "environment" && environmentControlsExpanded ? (
+              {data.nodeId === "environment" ? (
                 <EnvironmentNodePanel
                   nodeId={id}
                   defaultConfig={data.defaultConfig}
@@ -1489,6 +1559,7 @@ export function StudioNodeCard(props: NodeProps) {
                 </ReadingPanel>
               ) : null}
             </FlowNodeBody>
+            </div>
           ) : null}
         </FlowNodeShell>
       </div>

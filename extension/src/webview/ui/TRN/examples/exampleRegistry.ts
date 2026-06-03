@@ -126,6 +126,7 @@ export const TRN_FORM_EXAMPLE_TABS = [
   { id: "section", label: "Section + field" },
   { id: "inline", label: "Inline edit" },
   { id: "validation", label: "Validation" },
+  { id: "prefix-input", label: "Prefix input" },
 ] as const satisfies ReadonlyArray<ExampleRegistryItem>;
 
 export const TRN_APP_LAYOUT_EXAMPLE_TABS = [

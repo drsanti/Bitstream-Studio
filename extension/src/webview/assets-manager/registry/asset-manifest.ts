@@ -9,6 +9,8 @@
  *
  * Publish the canonical JSON to **`ternion-3d-assets-free`** with **`npm run publish:studio-asset-manifest`**
  * (requires `GITHUB_TOKEN` with `repo` scope).
+ *
+ * **Next-phase redesign:** `docs/STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md` (schema v2, defaults, generated index).
  */
 import type { AssetCategory, AssetDescriptor, AssetSource } from "./asset.types.js";
 import bundledAssetManifestJson from "./studio-asset-manifest.v1.json";

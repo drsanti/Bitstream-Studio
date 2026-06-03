@@ -768,6 +768,110 @@ function normalizeInnerNode(node: Node): Node {
       },
     };
   }
+  if (node.type === "physics") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Physics World",
+        category: "utility",
+        nodeId: "physics-world",
+        defaultConfig: {
+          enabled: data.enabled !== false,
+          gravityY: typeof data.gravityY === "number" ? data.gravityY : -9.81,
+        },
+        outputType: "physicsScene",
+      },
+    };
+  }
+  if (node.type === "rigidBody") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Rigid Body",
+        category: "utility",
+        nodeId: "rigid-body",
+        defaultConfig: {
+          mass: typeof data.mass === "number" ? data.mass : 1,
+          friction: typeof data.friction === "number" ? data.friction : 0.5,
+          restitution: typeof data.restitution === "number" ? data.restitution : 0,
+        },
+      },
+    };
+  }
+  if (node.type === "colliderShape") {
+    const data = node.data as Record<string, unknown>;
+    const shape = typeof data.shape === "string" ? data.shape.toLowerCase() : "box";
+    const isSphere = shape === "sphere" || shape === "ball";
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : isSphere ? "Sphere Collider" : "Box Collider",
+        category: "utility",
+        nodeId: isSphere ? "sphere-collider" : "box-collider",
+        defaultConfig: isSphere
+          ? { radius: typeof data.radius === "number" ? data.radius : 0.5 }
+          : {
+              halfExtentsX: typeof data.halfExtentsX === "number" ? data.halfExtentsX : 0.5,
+              halfExtentsY: typeof data.halfExtentsY === "number" ? data.halfExtentsY : 0.5,
+              halfExtentsZ: typeof data.halfExtentsZ === "number" ? data.halfExtentsZ : 0.5,
+            },
+      },
+    };
+  }
+  if (node.type === "objectSpawner") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Object Spawner",
+        category: "utility",
+        nodeId: "object-spawner",
+        defaultConfig: {
+          rate: typeof data.rate === "number" ? data.rate : 0,
+          maxCount: typeof data.maxCount === "number" ? data.maxCount : 8,
+        },
+      },
+    };
+  }
+  if (node.type === "joint" || node.type === "springJoint" || node.type === "ropeJoint") {
+    const data = node.data as Record<string, unknown>;
+    const hinge = node.type === "joint" && data.kind === "hinge";
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : hinge ? "Hinge Joint" : "Fixed Joint",
+        category: "utility",
+        nodeId: hinge ? "hinge-joint" : "fixed-joint",
+        defaultConfig: hinge
+          ? { axis: typeof data.axis === "string" ? data.axis : "y" }
+          : {},
+      },
+    };
+  }
+  if (node.type === "ik") {
+    const data = node.data as Record<string, unknown>;
+    return {
+      ...node,
+      type: "studio",
+      data: {
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "IK Chain",
+        category: "utility",
+        nodeId: "ik-chain",
+        defaultConfig: {
+          x: typeof data.x === "number" ? data.x : 0,
+          y: typeof data.y === "number" ? data.y : 0,
+          z: typeof data.z === "number" ? data.z : 0,
+        },
+      },
+    };
+  }
   if (node.type === "material") {
     const data = node.data as Record<string, unknown>;
     return {

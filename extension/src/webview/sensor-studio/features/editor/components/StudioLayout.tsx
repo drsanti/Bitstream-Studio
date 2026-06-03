@@ -10,6 +10,7 @@ import { DeviceSensorSettingsWindow } from "../../device-settings/DeviceSensorSe
 import type { StudioLayoutProps } from "../studio-layout.props";
 import { DEFAULT_STUDIO_WORKBENCH_LAYOUT } from "../workbench/default-studio-workbench-layout";
 import { StudioWorkbenchShellProvider } from "../workbench/studio-workbench-context";
+import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
 import { SENSOR_STUDIO_WORKBENCH_REGISTRY } from "../workbench/studio-workbench-registry";
 import {
   STUDIO_WORKBENCH_PRESETS,
@@ -25,6 +26,7 @@ export type { StudioLayoutProps } from "../studio-layout.props";
 const STUDIO_PANE_COMMANDS = [
   { editorType: "library", label: "Open Library", keywords: "library palette nodes" },
   { editorType: "assets", label: "Open Asset Browser", keywords: "assets models browser" },
+  { editorType: "stage", label: "Open Stage", keywords: "stage 3d viewport scene output" },
   { editorType: "flow", label: "Open Flow Canvas", keywords: "flow graph brain canvas" },
   { editorType: "inspector", label: "Open Inspector", keywords: "inspector properties" },
 ] as const;
@@ -53,6 +55,7 @@ export function StudioLayout(props: StudioLayoutProps) {
 
   const internalWorkbenchRef = useRef<StandaloneWorkbenchHandle>(null);
   const workbenchRef = workbenchRefProp ?? internalWorkbenchRef;
+  const setActiveEditorType = useStudioWorkbenchFocusStore((s) => s.setActiveEditorType);
   const [layoutMenuProps, setLayoutMenuProps] = useState<WorkbenchLayoutMenuProps | null>(null);
 
   const flowCanvasChrome = useMemo((): StudioOverflowMenuProps => {
@@ -102,7 +105,7 @@ export function StudioLayout(props: StudioLayoutProps) {
         color: primaryTextColor,
       }}
     >
-      <main className="relative flex min-h-0 flex-1 flex-col px-2 pb-2 pt-0">
+      <main className="relative flex min-h-0 flex-1 flex-col">
         <StudioWorkbenchShellProvider
           value={{ ...props, onResetWorkspaceLayout: resetWorkspaceLayout }}
         >
@@ -117,6 +120,7 @@ export function StudioLayout(props: StudioLayoutProps) {
             paneCommands={STUDIO_PANE_COMMANDS}
             layoutPresets={STUDIO_WORKBENCH_PRESETS}
             togglePaneByEditorType={toggleStudioPane}
+            onActiveEditorTypeChange={setActiveEditorType}
             onLayoutMenuPropsChange={setLayoutMenuProps}
             onDetachRejected={() => {
               // Last pane cannot float — ignore silently.

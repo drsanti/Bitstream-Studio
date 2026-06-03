@@ -47,3 +47,22 @@ test("coerceFlowCanvasPreferences defaults autoFitViewOnReplace to true", () => 
 test("FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW maps bezier to default", () => {
   assert.equal(FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW.bezier, "default");
 });
+
+test("coerceFlowCanvasPreferences applies wire UX defaults for legacy payloads", () => {
+  const next = coerceFlowCanvasPreferences({ edgeRoutingStyle: "step" });
+  assert.equal(next.edgeStrokeWidth, 2);
+  assert.equal(next.edgeAnimated, true);
+  assert.equal(next.elevateEdgesOnSelect, true);
+  assert.equal(next.connectionRadius, 28);
+});
+
+test("mergeFlowCanvasPreferences clamps wire numeric fields", () => {
+  const next = mergeFlowCanvasPreferences(DEFAULT_FLOW_CANVAS_PREFERENCES, {
+    edgeIdleOpacity: 2,
+    connectionRadius: 4,
+    smoothStepBorderRadius: 99,
+  });
+  assert.equal(next.edgeIdleOpacity, 1);
+  assert.equal(next.connectionRadius, 8);
+  assert.equal(next.smoothStepBorderRadius, 24);
+});

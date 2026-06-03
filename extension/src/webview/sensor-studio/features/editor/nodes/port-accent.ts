@@ -28,6 +28,12 @@ export function studioPortAccent(portType: StudioPortType): string {
       return DT.transform;
     case "audioBus":
       return DT.audioBus;
+    case "physicsScene":
+      return DT.physicsScene;
+    case "physicsCollider":
+      return DT.physicsCollider;
+    case "physicsBody":
+      return DT.physicsBody;
     default:
       return "#a1a1aa";
   }

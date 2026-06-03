@@ -269,14 +269,14 @@ export function DeviceSensorSettingsWindow(props: {
             <TRNTabsTrigger value="bmi270" className="flex-1">
               BMI270
             </TRNTabsTrigger>
-            <TRNTabsTrigger value="dps368" className="flex-1">
-              DPS368
+            <TRNTabsTrigger value="bmm350" className="flex-1">
+              BMM350
             </TRNTabsTrigger>
             <TRNTabsTrigger value="sht40" className="flex-1">
               SHT40
             </TRNTabsTrigger>
-            <TRNTabsTrigger value="bmm350" className="flex-1">
-              BMM350
+            <TRNTabsTrigger value="dps368" className="flex-1">
+              DPS368
             </TRNTabsTrigger>
           </TRNTabsList>
 
@@ -313,29 +313,29 @@ export function DeviceSensorSettingsWindow(props: {
           </TRNTabsContent>
 
           <TRNTabsContent
-            value="dps368"
+            value="bmm350"
             keepMounted={false}
             className="mt-0 min-h-0 flex-1 overflow-y-auto"
           >
-            <DPS368ControlPanel
-              enabled={dps368.enabled}
-              onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_DPS368, { enabled: v })}
-              dataRateMs={dps368.samplingIntervalMs}
+            <BMM350ControlPanel
+              enabled={bmm350.enabled}
+              onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMM350, { enabled: v })}
+              dataRateMs={bmm350.samplingIntervalMs}
               onSamplingFrequencyChange={(v) =>
-                setSensorConfig(SENSOR_SOURCE_ID_DPS368, { samplingIntervalMs: v })
+                setSensorConfig(SENSOR_SOURCE_ID_BMM350, { samplingIntervalMs: v })
               }
-              publishMode={coercePublishMode(dps368.publishMode)}
+              publishMode={coercePublishMode(bmm350.publishMode)}
               onPublishModeChange={(v) =>
-                setSensorConfig(SENSOR_SOURCE_ID_DPS368, { publishMode: v as number })
+                setSensorConfig(SENSOR_SOURCE_ID_BMM350, { publishMode: v as number })
               }
-              deltaX100={dps368.deltaX100}
-              onDeltaX100Change={(v) => setSensorConfig(SENSOR_SOURCE_ID_DPS368, { deltaX100: v })}
-              minPublishIntervalMs={dps368.minPublishIntervalMs}
+              deltaX100={bmm350.deltaX100}
+              onDeltaX100Change={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMM350, { deltaX100: v })}
+              minPublishIntervalMs={bmm350.minPublishIntervalMs}
               onMinPublishIntervalMsChange={(v) =>
-                setSensorConfig(SENSOR_SOURCE_ID_DPS368, { minPublishIntervalMs: v })
+                setSensorConfig(SENSOR_SOURCE_ID_BMM350, { minPublishIntervalMs: v })
               }
               ack={sensorConfigAck}
-              ackSensorSourceId={SENSOR_SOURCE_ID_DPS368}
+              ackSensorSourceId={SENSOR_SOURCE_ID_BMM350}
             />
           </TRNTabsContent>
 
@@ -367,29 +367,29 @@ export function DeviceSensorSettingsWindow(props: {
           </TRNTabsContent>
 
           <TRNTabsContent
-            value="bmm350"
+            value="dps368"
             keepMounted={false}
             className="mt-0 min-h-0 flex-1 overflow-y-auto"
           >
-            <BMM350ControlPanel
-              enabled={bmm350.enabled}
-              onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMM350, { enabled: v })}
-              dataRateMs={bmm350.samplingIntervalMs}
+            <DPS368ControlPanel
+              enabled={dps368.enabled}
+              onEnabledChange={(v) => setSensorConfig(SENSOR_SOURCE_ID_DPS368, { enabled: v })}
+              dataRateMs={dps368.samplingIntervalMs}
               onSamplingFrequencyChange={(v) =>
-                setSensorConfig(SENSOR_SOURCE_ID_BMM350, { samplingIntervalMs: v })
+                setSensorConfig(SENSOR_SOURCE_ID_DPS368, { samplingIntervalMs: v })
               }
-              publishMode={coercePublishMode(bmm350.publishMode)}
+              publishMode={coercePublishMode(dps368.publishMode)}
               onPublishModeChange={(v) =>
-                setSensorConfig(SENSOR_SOURCE_ID_BMM350, { publishMode: v as number })
+                setSensorConfig(SENSOR_SOURCE_ID_DPS368, { publishMode: v as number })
               }
-              deltaX100={bmm350.deltaX100}
-              onDeltaX100Change={(v) => setSensorConfig(SENSOR_SOURCE_ID_BMM350, { deltaX100: v })}
-              minPublishIntervalMs={bmm350.minPublishIntervalMs}
+              deltaX100={dps368.deltaX100}
+              onDeltaX100Change={(v) => setSensorConfig(SENSOR_SOURCE_ID_DPS368, { deltaX100: v })}
+              minPublishIntervalMs={dps368.minPublishIntervalMs}
               onMinPublishIntervalMsChange={(v) =>
-                setSensorConfig(SENSOR_SOURCE_ID_BMM350, { minPublishIntervalMs: v })
+                setSensorConfig(SENSOR_SOURCE_ID_DPS368, { minPublishIntervalMs: v })
               }
               ack={sensorConfigAck}
-              ackSensorSourceId={SENSOR_SOURCE_ID_BMM350}
+              ackSensorSourceId={SENSOR_SOURCE_ID_DPS368}
             />
           </TRNTabsContent>
           </TRNTabs>

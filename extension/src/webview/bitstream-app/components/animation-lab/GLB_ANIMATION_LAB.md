@@ -8,7 +8,7 @@ Investigation surface for **multi-clip glTF/GLB** playback in Bitstream Studio. 
 |-----------|------|------|
 | **Quaternion · 3D Orientation** | `components/3d-rotation/QuaternionRotation3DPreviewCard.tsx` | Live IMU → mesh; **parallel-all** transport only; bugfix-only |
 | **GLB Animation Lab** | `components/animation-lab/` | Full clip control, solo/parallel modes, timeline scrub, **machine twin** (Phase A) |
-| **Model Viewer** | `sensor-studio/.../RotationPreviewPanelV4.tsx` | Vanilla Three reference |
+| **Model Viewer** | `sensor-studio/core/viewport/StudioSceneViewport.tsx` | Vanilla Three reference |
 | **Studio mixer** | `sensor-studio/.../studio-glb-animation-preview-mixer.ts` | Trim, weight, fade, sequence (Phase B) |
 
 ## Model transform (viewport)

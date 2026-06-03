@@ -14,7 +14,22 @@ export const ternionFreeAssetPackCopy = {
   setupHeaderTitle: "Workspace setup",
   incompleteShort: "TERNION pack is incomplete — download to continue",
   filterOnlinePaths: "Filter pack list…",
-  fetchIndexEmpty: "No catalog loaded yet. Use Refresh to load the file list.",
+  fetchIndexEmpty: "No catalog loaded yet. Use Refresh catalog to load the file list.",
+  catalogRateLimit: {
+    title: "Online catalog temporarily unavailable",
+    summary:
+      "The internet file list for the TERNION pack could not be loaded because the download service is busy (too many requests from your network).",
+    waitHint: "Wait about 5–15 minutes, then try again. If it still fails, wait up to an hour before retrying.",
+    stillWorks: (localCount: number) =>
+      localCount > 0
+        ? `You can still open On this device — ${localCount} file(s) are already saved on your computer and work without the online list.`
+        : "You can still open On this device to browse files after you sync the pack once.",
+    advancedExtension:
+      "Optional (power users): VS Code Settings → ternion.githubToken with a read-only GitHub personal access token raises listing limits. End users do not need to own the TERNION pack repository.",
+    advancedBrowser:
+      "Optional (browser dev): set GITHUB_TOKEN on the bridge process before npm run start:bridge.",
+  },
+  catalogListErrorTitle: "Could not load online catalog",
   onlineTableCaption: "TERNION pack — models, skies, textures, and related files",
   globalDirsOverviewHint:
     "Browse the catalog, use Model Loader, or sync the TERNION pack when a scene needs something you do not have yet.",
@@ -141,7 +156,7 @@ export const ternionFreeAssetPackCopy = {
     bridgeDev:
       "Browser dev: run npm run start:bridge in the extension folder so the WebSocket broker is up.",
     rateLimit:
-      "Catalog rate limit. Add a token in VS Code Settings → ternion.githubToken, or set GITHUB_TOKEN for the extension host, then Refresh.",
+      "Online catalog rate limit (GitHub API 429). Shown in the Online catalog tab with retry guidance.",
     verifyFailed: "Use Setup, Free Assets Loader, or Asset Manager → Actions to sync again.",
     offlineBlocked: "Pack incomplete and network unreachable.",
     missingDisk: "Download the TERNION pack before continuing.",

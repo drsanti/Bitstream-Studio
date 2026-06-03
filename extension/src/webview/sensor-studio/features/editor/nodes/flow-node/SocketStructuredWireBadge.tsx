@@ -4,13 +4,16 @@ import { studioPortAccent } from "../port-accent";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./readings/socket-live-value-cell";
 
 export type SocketStructuredWireBadgeProps = {
+  /** Visible text (often pre-truncated). */
   label: string;
   portType: StudioPortType;
+  /** Native tooltip; defaults to `label`. Pass the full preset name when `label` is truncated. */
+  title?: string;
 };
 
 /** Compact wired badge for bundled flow wires (environment, camera, …). */
 export function SocketStructuredWireBadge(props: SocketStructuredWireBadgeProps) {
-  const { label, portType } = props;
+  const { label, portType, title } = props;
   const accent = studioPortAccent(portType);
   return (
     <span
@@ -23,7 +26,7 @@ export function SocketStructuredWireBadge(props: SocketStructuredWireBadgeProps)
         color: accent,
         backgroundColor: `${accent}14`,
       }}
-      title={label}
+      title={title ?? label}
     >
       {label}
     </span>

@@ -1,6 +1,6 @@
 import { Activity, LoaderCircle, Lock, Radio, SlidersHorizontal, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BITSTREAM_CAPS_FLAG_LOG_LEVEL_CONTROL } from "../../../../bitstream/wifi/bitstream-wifi-channel";
+import { BITSTREAM_CAPS_FLAG_LOG_LEVEL_CONTROL } from "../../../../bitstream2/protocol/caps-flags";
 import { useBitstreamAppControl } from "../../BitstreamAppWrapper";
 import { useBitstreamLiveStore } from "../../state/bitstreamLive.store";
 import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store";

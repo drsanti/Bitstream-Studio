@@ -4,6 +4,69 @@ import {
   coerceFlowCanvasPreferences,
   type FlowCanvasPreferences,
 } from "./flow-canvas-preferences";
+import { migrateStageSceneFlowNode } from "../core/stage/stage-scene-defaults";
+import { migrateLegacyPackModelInDefaultConfig } from "./migrate-legacy-pack-model";
+
+function migratePersistedFlowNode(raw: unknown): unknown {
+  if (raw == null || typeof raw !== "object") {
+    return raw;
+  }
+  const n = raw as {
+    data?: { nodeId?: string; defaultConfig?: Record<string, unknown> };
+  };
+  const nodeId = n.data?.nodeId;
+  const dc = n.data?.defaultConfig;
+  if (nodeId == null || dc == null) {
+    return raw;
+  }
+  let nextDc = migrateLegacyPackModelInDefaultConfig(dc, nodeId);
+  const stageMigrated = migrateStageSceneFlowNode({
+    data: { nodeId, defaultConfig: nextDc },
+  });
+  if (stageMigrated != null) {
+    nextDc = stageMigrated.data.defaultConfig;
+  }
+  if (nextDc === dc) {
+    return raw;
+  }
+  return {
+    ...n,
+    data: { ...n.data, defaultConfig: nextDc },
+  };
+}
+
+function migratePersistedFlowNodes(nodes: unknown[]): unknown[] {
+  return nodes.map((n) => migratePersistedFlowNode(n));
+}
+
+function migratePersistedSubgraphs(
+  subgraphs: Record<string, unknown> | undefined,
+): Record<string, unknown> | undefined {
+  if (subgraphs == null) {
+    return undefined;
+  }
+  let changed = false;
+  const out: Record<string, unknown> = {};
+  for (const [id, doc] of Object.entries(subgraphs)) {
+    if (doc == null || typeof doc !== "object") {
+      out[id] = doc;
+      continue;
+    }
+    const d = doc as { nodes?: unknown[] };
+    if (!Array.isArray(d.nodes)) {
+      out[id] = doc;
+      continue;
+    }
+    const nodes = migratePersistedFlowNodes(d.nodes);
+    if (nodes !== d.nodes) {
+      changed = true;
+      out[id] = { ...d, nodes };
+    } else {
+      out[id] = doc;
+    }
+  }
+  return changed ? out : subgraphs;
+}
 
 function getWebLocalStorage(): Storage | null {
   if (typeof globalThis === "undefined") {
@@ -83,7 +146,20 @@ export function readPersistedFlowDocument(): PersistedFlowDocumentV1 | null {
       parsed.canvasPreferences != null
         ? coerceFlowCanvasPreferences(parsed.canvasPreferences)
         : undefined;
-    return { ...parsed, viewport, canvasPreferences };
+    const nodes = migratePersistedFlowNodes(parsed.nodes);
+    const rootNodes =
+      parsed.rootNodes != null ? migratePersistedFlowNodes(parsed.rootNodes) : undefined;
+    const subgraphs = migratePersistedSubgraphs(
+      parsed.subgraphs as Record<string, unknown> | undefined,
+    );
+    return {
+      ...parsed,
+      nodes,
+      ...(rootNodes != null ? { rootNodes } : {}),
+      ...(subgraphs != null ? { subgraphs } : {}),
+      viewport,
+      canvasPreferences,
+    };
   } catch {
     return null;
   }

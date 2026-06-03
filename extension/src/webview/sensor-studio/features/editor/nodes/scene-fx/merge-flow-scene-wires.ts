@@ -1,4 +1,4 @@
-import type { Scene3DConfigV1 } from "../rotation/scene3d-config";
+import type { Scene3DConfigV1 } from "../../../../core/scene3d/scene3d-config";
 import {
   mergeFlowWireContactShadowsIntoScene3d,
   type FlowWireContactShadowsV1,

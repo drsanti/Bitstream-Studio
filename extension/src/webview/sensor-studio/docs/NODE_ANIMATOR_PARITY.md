@@ -14,6 +14,17 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 
 **Target:** keep 53+ telemetry/scene nodes; add **layout** nodes (reroute, frame, note) and scene parity incrementally — not full simulation/physics catalog unless Digital Twin phases require it.
 
+## Stage + Scene Output (shipped 2026-06-02)
+
+| Feature | node-animator | Sensor Studio |
+|---------|---------------|---------------|
+| **Stage** viewport pane | `viewport` / `StageViewport` | Workbench **`stage`** / `StageViewport.tsx` |
+| **Brain** flow pane | `nodes` / `FlowEditor` | Workbench **`flow`** / `FlowCanvas` |
+| **Scene Output** commit node | `sceneOutput` | Catalog **`scene-output`** |
+| Default center layout | Stage over Brain | Stage over Flow |
+
+Details: [`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`](./STAGE_VIEWPORT_AND_SCENE_OUTPUT.md).
+
 ## Phase 1 — Editor UX (shipped)
 
 | Feature | Reference | Sensor Studio |
@@ -78,6 +89,7 @@ This document tracks editor UX and catalog parity — **not** a 1:1 port of all 
 ### Key files
 
 - `features/editor/edges/flow-port-edge-colors.ts` — shared edge + connection-line colors
+- **Edge UX backlog (inspector Wires tab, markers, selection chrome):** **`FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md`**
 - `features/editor/clipboard/flow-clipboard.ts` — JSON clipboard marker + remap on paste
 - `features/editor/store/flow-editor.store.ts` — `copyFlowSelectionToClipboard`, `pasteFlowFromClipboard`
 - `extension/tests/sensor-studio/flow-clipboard.test.ts`

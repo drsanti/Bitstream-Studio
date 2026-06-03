@@ -19,7 +19,7 @@ When the task changes **UART wire format**, **message types**, **SENSOR_CFG** la
 | Host COM lifecycle | `extension/src/bitstream2/docs/HOST_UART_LINK.md` |
 | Broker route / `origin` (not UART bytes) | `extension/docs/TELEMETRY_MODE_LIFECYCLE.md` |
 
-Do **not** edit `ternion-t3d/t3d-extension/docs/` as canonical — migration source only.
+Do **not** edit **`ternion-t3d`** / **`t3d-extension/`** as canonical — archived; active host is **`Bitstream-Studio/extension/`** only.
 
 ## 2. Host implementation (`extension/`)
 

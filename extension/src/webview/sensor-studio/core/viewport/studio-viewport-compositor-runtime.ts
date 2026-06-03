@@ -3,8 +3,8 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
-import type { Scene3DConfigV1 } from "./scene3d-config";
-import { parseHexToThreeColor } from "./scene3d-config";
+import type { Scene3DConfigV1 } from "../scene3d/scene3d-config";
+import { parseHexToThreeColor } from "../scene3d/scene3d-config";
 
 export type PreviewContactShadowRuntimeState = {
   mesh: THREE.Mesh | null;

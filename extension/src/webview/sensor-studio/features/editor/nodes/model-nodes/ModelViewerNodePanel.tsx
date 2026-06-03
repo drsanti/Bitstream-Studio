@@ -1,10 +1,10 @@
 import { useMemo } from "react";
-import { RotationPreviewPanelV4 } from "../rotation/RotationPreviewPanelV4";
+import { StudioSceneViewport } from "../../../../core/viewport/StudioSceneViewport";
 import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 import type { RotationPreviewSceneProps } from "../../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 import type { FlowWireEnvironmentV1 } from "../environment/flow-wire-environment";
 import { mergeFlowWireEnvironmentIntoScene3d } from "../environment/flow-wire-environment";
@@ -16,6 +16,15 @@ import { buildGlbScalarPreviewSceneProps } from "../../gltf/build-glb-scalar-pre
 import type { FlowWireTransformV1 } from "../transform/flow-wire-transform";
 import { mergeFlowWireTransformIntoScene3d } from "../transform/flow-wire-transform";
 import { mergeFlowSceneWiresIntoScene3d } from "../scene-fx/merge-flow-scene-wires";
+import {
+  coerceFlowWirePhysicsSceneV1,
+  type FlowWirePhysicsSceneV1,
+} from "../physics/flow-wire-physics-scene";
+import {
+  mergeFlowWirePhysicsIntoScene3d,
+  physicsCollidersFromWire,
+} from "../physics/merge-flow-physics-into-scene3d";
+import type { StagePhysicsColliderV1 } from "../../../../core/stage/stage-physics-colliders";
 import type { FlowWireFogV1 } from "../scene-fx/flow-wire-fog";
 import type { FlowWireStudioLightV1 } from "../scene-fx/flow-wire-studio-light";
 import type { FlowWirePostProcessingV1 } from "../scene-fx/flow-wire-post-processing";
@@ -38,6 +47,7 @@ export type ModelViewerNodePanelProps = {
   livePostProcessingWire?: FlowWirePostProcessingV1 | null;
   liveContactShadowsWire?: FlowWireContactShadowsV1 | null;
   liveParticleEmitterWire?: FlowWireParticleEmitterV1 | null;
+  livePhysicsWire?: FlowWirePhysicsSceneV1 | null;
   defaultConfig: Record<string, unknown>;
 };
 
@@ -54,7 +64,22 @@ const MODEL_VIEWER_EMPTY_HINT =
  * No silent default mesh — stays empty until wired or linked to a configured Studio Model.
  */
 export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
-  const { nodeId, liveValue, liveEnvironmentWire, liveCameraWire, liveAnimationWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, livePostProcessingWire, liveContactShadowsWire, liveParticleEmitterWire, defaultConfig } = props;
+  const {
+    nodeId,
+    liveValue,
+    liveEnvironmentWire,
+    liveCameraWire,
+    liveAnimationWire,
+    liveTransformWire,
+    liveFogWire,
+    liveSettingsExposure,
+    liveStudioLightWire,
+    livePostProcessingWire,
+    liveContactShadowsWire,
+    liveParticleEmitterWire,
+    livePhysicsWire,
+    defaultConfig,
+  } = props;
 
   const nodes = useFlowEditorStore((s) => s.nodes);
   const edges = useFlowEditorStore((s) => s.edges);
@@ -79,7 +104,7 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
   const fallback =
     typeof fallbackRaw === "string" && fallbackRaw.trim().length > 0 ? fallbackRaw.trim() : "";
 
-  /** Persisted / wired key only — {@link RotationPreviewPanelV4} resolves fetch URL internally. */
+  /** Persisted / wired key only — {@link StudioSceneViewport} resolves fetch URL internally. */
   const logicalModelUrl = useMemo(() => {
     if (wiredUrl.length > 0) {
       return wiredUrl;
@@ -108,7 +133,7 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
     const withEnv = mergeFlowWireEnvironmentIntoScene3d(withModel, liveEnvironmentWire ?? null);
     const withCam = mergeFlowWireCameraIntoScene3d(withEnv, liveCameraWire ?? null);
     const withXf = mergeFlowWireTransformIntoScene3d(withCam, liveTransformWire ?? null);
-    return mergeFlowSceneWiresIntoScene3d(withXf, {
+    const withFx = mergeFlowSceneWiresIntoScene3d(withXf, {
       fog: liveFogWire ?? null,
       exposure: liveSettingsExposure ?? null,
       studioLight: liveStudioLightWire ?? null,
@@ -116,7 +141,34 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       contactShadows: liveContactShadowsWire ?? null,
       particleEmitter: liveParticleEmitterWire ?? null,
     });
-  }, [defaultConfig.scene3d, logicalModelUrl, liveEnvironmentWire, liveCameraWire, liveTransformWire, liveFogWire, liveSettingsExposure, liveStudioLightWire, livePostProcessingWire, liveContactShadowsWire, liveParticleEmitterWire]);
+    const phys = coerceFlowWirePhysicsSceneV1(livePhysicsWire);
+    return mergeFlowWirePhysicsIntoScene3d(withFx, phys.enabled ? phys : null);
+  }, [
+    defaultConfig.scene3d,
+    logicalModelUrl,
+    liveEnvironmentWire,
+    liveCameraWire,
+    liveTransformWire,
+    liveFogWire,
+    liveSettingsExposure,
+    liveStudioLightWire,
+    livePostProcessingWire,
+    liveContactShadowsWire,
+    liveParticleEmitterWire,
+    livePhysicsWire,
+  ]);
+
+  const stagePhysicsWire = useMemo(
+    () => {
+      const phys = coerceFlowWirePhysicsSceneV1(livePhysicsWire);
+      return phys.enabled ? phys : null;
+    },
+    [livePhysicsWire],
+  );
+
+  const stagePhysicsColliders = useMemo((): StagePhysicsColliderV1[] => {
+    return physicsCollidersFromWire(stagePhysicsWire);
+  }, [stagePhysicsWire]);
 
   const showGrid = readBoolean(defaultConfig, "showGrid", true);
 
@@ -155,13 +207,24 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       meshOrientationFromEulerFallback: false,
       showGrid,
       scene3d,
+      stagePhysicsWire,
+      stagePhysicsColliders,
     };
-  }, [showGrid, scene3d, glbScalarSceneProps, glbAnimationSceneProps, liveTransformWire]);
+  }, [
+    showGrid,
+    scene3d,
+    glbScalarSceneProps,
+    glbAnimationSceneProps,
+    liveTransformWire,
+    stagePhysicsWire,
+    stagePhysicsColliders,
+  ]);
 
   return (
-    <RotationPreviewPanelV4
+    <StudioSceneViewport
       title="3D Model"
       sceneProps={sceneProps}
+      previewScopeId={`flow-node:${nodeId}`}
       emptyHint={logicalModelUrl.length === 0 ? MODEL_VIEWER_EMPTY_HINT : undefined}
     />
   );

@@ -8,7 +8,7 @@ It describes the theory, frame conventions, and **exact calculations** used by t
 
 **Scope:** Preview display and optional smoothing. `extractNormalizedQuatFromBmi270Sample` decodes the wire format (§4). Mesh orientation applies a **selectable mapping** (§2); default **`pcb-glb`** aligns the PSoC GLB axes to BSX body axes on the rig.
 
-**Sensor Studio scene JSON:** The Rotation node in Sensor Studio persists a separate **`Scene3DConfigV1`** blob (model URL, lights, camera, environment, shadows, helpers). That contract is documented in **[`ROTATION_SCENE3D_CONFIG.md`](../../sensor-studio/docs/ROTATION_SCENE3D_CONFIG.md)**; keep quaternion/frame math here and scene authoring details there.
+**Sensor Studio scene JSON:** Sensor Studio persists **`Scene3DConfigV1`** (model URL, lights, camera, environment, shadows, helpers) for **`StudioSceneViewport`** (Stage, Model Viewer, 3D Rotation). That contract is documented in **[`STUDIO_SCENE3D_CONFIG.md`](../../sensor-studio/docs/STUDIO_SCENE3D_CONFIG.md)**; keep quaternion/frame math here and scene authoring details there.
 
 ---
 

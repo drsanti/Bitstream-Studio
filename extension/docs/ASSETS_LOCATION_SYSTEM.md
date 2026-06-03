@@ -133,7 +133,7 @@ Large preview GLBs (for example **`models/psoc-e84-ai/psoc-e84-ai.glb`**) are of
 
 That function respects **`window.FREE_ASSETS_BASE_URI`**, **`LOCAL_ASSETS_BASE_URI`**, **`TESAIOT_TEXTURES_BASE_URI`** (logical keys under `tesaiot/textures/…`, shared with **`resolveTesaiotTexturesToFetchableUrl`** in `src/webview/logical-asset-url.ts` and the Model Catalog), **`USER_MODELS_BASE_URI`**, **`ONLINE_ASSETS_BASE_URI`**, and **`getAssetSourceStrategy()`** (`src/webview/asset-source-strategy.ts`), matching how the webview host injects globals at load time and `asset-config-response` refresh.
 
-**Sensor Studio** defaults and fallbacks in **`scene3d-config.ts`** and **`RotationPreviewPanelV4.tsx`** follow this resolver so Behavior matches Bitstream and packaged installs after a **free-pack sync** (or online assets when configured). See also [Managing downloaded assets](./MANAGING_DOWNLOADED_ASSETS.md) — first-run empty state.
+**Sensor Studio** defaults and fallbacks in **`core/scene3d/scene3d-config.ts`** and **`core/viewport/StudioSceneViewport.tsx`** follow this resolver so Behavior matches Bitstream and packaged installs after a **free-pack sync** (or online assets when configured). See also [Managing downloaded assets](./MANAGING_DOWNLOADED_ASSETS.md) — first-run empty state.
 
 ## Quick reference: main source files
 

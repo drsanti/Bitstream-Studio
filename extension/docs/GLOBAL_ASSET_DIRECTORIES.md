@@ -56,7 +56,7 @@ Helper: **`getUserAssetsRootUri(context)`** in `src/extensionAssetPaths.ts`.
 | ---- | --------------------------- | --------- | ----- |
 | **Free pack** | `free/models/`, `free/textures/`, … | `DEV_SRC_ASSET_DIRS.freeModels`, `freeTextures` | Mirrors public repo layout. |
 | **Tesaiot pack** | `tesaiot/models/`, `tesaiot/textures/`, … | `DEV_SRC_ASSET_DIRS.tesaiotModels`, `tesaiotTextures` | Same segment names as **`globalStorage`** / monorepo. |
-| **Bundled / mirrored models** | `models/**` | `MODEL_CATALOG_BUILD_GLOBS.mirroredModelsGlb` | e.g. `models/robot-4th-project/`; packaging may omit large GLBs (`.vscodeignore`). |
+| **Bundled / mirrored models** | `models/**` | `MODEL_CATALOG_BUILD_GLOBS.mirroredModelsGlb` | e.g. `models/psoc-e84-ai/`; packaging may omit large GLBs (`.vscodeignore`). |
 | **Cubemaps & textures (default tree)** | `textures/cubemap/<set>/` | — | JPEG faces; sync via `npm run sync:studio-cubemap-assets`. |
 
 ---

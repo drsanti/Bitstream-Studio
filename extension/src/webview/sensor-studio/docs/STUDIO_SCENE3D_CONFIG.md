@@ -1,14 +1,14 @@
-# Rotation preview scene configuration (`Scene3DConfigV1`)
+# Studio scene configuration (`Scene3DConfigV1`)
 
-This note describes the **JSON-shaped scene rig** used by the Sensor Studio **Rotation** node preview (Three.js runtime). It complements the Bitstream workspace math doc [`ROTATION_3D_PREVIEW.md`](../../bitstream-app/docs/ROTATION_3D_PREVIEW.md), which covers fusion frames and quaternion mapping; **this file** is the contract for **saved scene settings** (model URL, lights, camera, environment, shadows, helpers).
+This note describes the **JSON-shaped scene rig** used by Sensor Studio **3D viewports** (`StudioSceneViewport` — Stage, Model Viewer, 3D Rotation nodes). It complements the Bitstream workspace math doc [`ROTATION_3D_PREVIEW.md`](../../bitstream-app/docs/ROTATION_3D_PREVIEW.md), which covers fusion frames and quaternion mapping; **this file** is the contract for **saved scene settings** (model URL, lights, camera, environment, shadows, helpers).
 
 ## Where it lives in code
 
 | Artifact | Role |
 |----------|------|
-| [`scene3d-config.ts`](../features/editor/nodes/rotation/scene3d-config.ts) | Type definition, defaults (`DEFAULT_SCENE3D_CONFIG_V1`), coercion (`coerceScene3DConfigV1`), presets (`studioLightsFromPreset`), persistence helper (`persistScene3DConfig`). |
-| [`RotationPreviewPanelV4.tsx`](../features/editor/nodes/rotation/RotationPreviewPanelV4.tsx) | Applies coerced config to renderer, orbit controls, lights, GLB root, environment, and framing. |
-| [`rotation-preview-shadow-runtime.ts`](../features/editor/nodes/rotation/rotation-preview-shadow-runtime.ts) | Shadow pipeline helpers: resolved params, cache key, directional shadow camera, mesh cast/receive, subtree exclusion for helpers. |
+| [`scene3d-config.ts`](../core/scene3d/scene3d-config.ts) | Type definition, defaults (`DEFAULT_SCENE3D_CONFIG_V1`), coercion (`coerceScene3DConfigV1`), presets (`studioLightsFromPreset`), persistence helper (`persistScene3DConfig`). |
+| [`StudioSceneViewport.tsx`](../core/viewport/StudioSceneViewport.tsx) | Applies coerced config to renderer, orbit controls, lights, GLB root, environment, and framing. |
+| [`studio-viewport-shadow-runtime.ts`](../core/viewport/studio-viewport-shadow-runtime.ts) | Shadow pipeline helpers: resolved params, cache key, directional shadow camera, mesh cast/receive, subtree exclusion for helpers. |
 | [`Rotation3DInspectorCards.tsx`](../features/editor/components/rotation/Rotation3DInspectorCards.tsx) | Inspector UI: Basic vs Advanced blocks, presets, JSON accordion, shadow and light tuning. |
 
 ## Default model URL (VS Code webview and VSIX)
@@ -51,6 +51,7 @@ Transforms under **`model.transform`** (position, rotation in degrees, scale) ap
 ## Environment
 
 - **`presetIndex`**, **`showBackgroundTexture`**, **`useCubemapIbl`**, **`iblStrength`**, **`iblOffStrengthFrac`**, **`yawDeg`** (environment rotation around world Y), **`backgroundColorHex`**.
+- Optional **`studioAssetId`** for manifest cubemap / HDRI (see asset browser bindings).
 - Runtime ties IBL strength to `scene.environmentIntensity` when cubemap IBL is enabled.
 
 ## Renderer and shadows
@@ -89,10 +90,10 @@ flowchart LR
   Raw["Raw scene JSON"]
   Coerce["coerceScene3DConfigV1"]
   Persist["persistScene3DConfig"]
-  Panel["RotationPreviewPanelV4"]
+  Viewport["StudioSceneViewport"]
   Raw --> Coerce
   Coerce --> Persist
-  Coerce --> Panel
+  Coerce --> Viewport
 ```
 
 Raw input from the node merges through coercion before the preview applies Three.js objects; persistence re-coerces so the on-disk shape stays stable.

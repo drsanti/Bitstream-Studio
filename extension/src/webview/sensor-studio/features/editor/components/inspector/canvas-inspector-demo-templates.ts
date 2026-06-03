@@ -25,14 +25,19 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
       hint: "Audio File Player → Audio Output + Audio Scope + Plotter (time/duration). Paste a URL, enable output engine, then Play.",
     },
     {
+      value: "stage-scene-output",
+      label: "Stage + Scene Output",
+      hint: "Studio Model (PSoC E84 pack GLB) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",
+    },
+    {
       value: "material-glb-drives",
       label: "Material GLB drives",
-      hint: "Studio Model (robot) → **Model Viewer** + linked **GLB Material Param** (roughness slider) and **GLB Material Texture** (sample bridge face on **map**). Re-bind material names via Library **GLB → Materials** if your GLB uses different refs.",
+      hint: "Studio Model (PSoC E84 pack GLB) → **Model Viewer** + linked **GLB Material Param** (roughness slider) and **GLB Material Texture** (sample bridge face on **map**). Re-bind material names via Library **GLB → Materials** if your GLB uses different refs.",
     },
     {
       value: "rotation-glb-anim",
       label: "Rotation + GLB anim",
-      hint: "BMI270 Euler → 3D Rotation with **Animation** bundle + **On Click → Trigger GLB Anim** (robot GLB). Bind a clip on the trigger/bundle, then click empty canvas to fire.",
+      hint: "BMI270 Euler → 3D Rotation with **Animation** bundle + **On Click → Trigger GLB Anim** (pack default GLB). Bind a clip on the trigger/bundle, then click empty canvas to fire.",
     },
     {
       value: "signal-chain",

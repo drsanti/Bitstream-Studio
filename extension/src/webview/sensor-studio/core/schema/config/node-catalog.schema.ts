@@ -19,6 +19,9 @@ const studioPortTypeEnum = z.enum([
   "contactShadows",
   "particleEmitter",
   "audioBus",
+  "physicsScene",
+  "physicsCollider",
+  "physicsBody",
 ]);
 
 const catalogNodeBaseSchema = z.object({

@@ -2,12 +2,8 @@ import type { Viewport } from "@xyflow/react";
 import { Expand, Focus, LayoutGrid, MousePointerClick, RotateCcw } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { TRNButton } from "../../../../../ui/TRN";
-import type { FlowCanvasEdgeRoutingStyle, FlowCanvasGridSize, FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
-import {
-  CANVAS_EDGE_ROUTING_OPTIONS,
-  CANVAS_GRID_SIZE_OPTIONS,
-  formatCanvasZoomPercent,
-} from "./canvas-inspector-helpers";
+import type { FlowCanvasGridSize, FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
+import { CANVAS_GRID_SIZE_OPTIONS, formatCanvasZoomPercent } from "./canvas-inspector-helpers";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
@@ -94,21 +90,6 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
     });
   };
 
-  const edgeRoutingOptions = useMemo(
-    () =>
-      CANVAS_EDGE_ROUTING_OPTIONS.map(
-        (o): InspectorSegmentOption<FlowCanvasEdgeRoutingStyle> => ({
-          value: o.value,
-          label: o.label,
-          hint: o.hint,
-          icon: o.Icon ? (
-            <o.Icon className="h-3.5 w-3.5 text-zinc-400" aria-hidden />
-          ) : undefined,
-        }),
-      ),
-    [],
-  );
-
   const cardsById: Partial<Record<CanvasInspectorCanvasTabCardId, JSX.Element>> = {
     viewport: (
       <CanvasInspectorCard
@@ -158,38 +139,22 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
         </div>
       </CanvasInspectorCard>
     ),
-    "wires-grid": (
+    grid: (
       <CanvasInspectorCard
-        id="canvas-inspector-card-wires-grid"
-        title="Wires & grid"
-        hint="Edge paths and alignment aids."
+        id="canvas-inspector-card-grid"
+        title="Grid & snap"
+        hint="Alignment aids on the flow canvas."
         collapsible
-        collapsed={collapsedById["wires-grid"]}
-        onCollapsedChange={(next) => setCardCollapsed("wires-grid", next)}
+        collapsed={collapsedById.grid}
+        onCollapsedChange={(next) => setCardCollapsed("grid", next)}
       >
-        <InspectorPropertyRow
-          label="Edge routing"
-          description="Applies to all wires and new connections."
-        >
-          <InspectorSegmentButtonGroup
-            ariaLabel="Flow edge routing style"
-            layout="grid-2"
-            value={flowCanvasPreferences.edgeRoutingStyle}
-            options={edgeRoutingOptions}
-            onChange={(next) =>
-              onFlowCanvasPreferencesChange({
-                edgeRoutingStyle: next as FlowCanvasEdgeRoutingStyle,
-              })
-            }
-          />
-        </InspectorPropertyRow>
+        <InspectorCompactToggleRow
+          label="Show grid"
+          hint="Dot grid aligned to the snap size."
+          checked={flowCanvasPreferences.showGrid}
+          onCheckedChange={(next) => onFlowCanvasPreferencesChange({ showGrid: next })}
+        />
         <div className="mt-2.5 space-y-2.5 border-t border-zinc-800/60 pt-2.5">
-          <InspectorCompactToggleRow
-            label="Show grid"
-            hint="Dot grid aligned to the snap size."
-            checked={flowCanvasPreferences.showGrid}
-            onCheckedChange={(next) => onFlowCanvasPreferencesChange({ showGrid: next })}
-          />
           <InspectorCompactToggleRow
             label="Snap to grid"
             hint="Snap node drag and palette drops."

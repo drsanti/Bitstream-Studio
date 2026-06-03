@@ -3,7 +3,7 @@ import {
   parseHexToThreeColor,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 
 /** Serialized contact-shadow bundle on **`contactShadows`** flow wires. */
 export type FlowWireContactShadowsV1 = {

@@ -20,7 +20,7 @@ export function FlowNodeBody(props: FlowNodeBodyProps) {
   return (
     <div
       className={twMerge(
-        "nodrag min-w-0 w-full max-w-full",
+        "nodrag min-w-0 w-full max-w-full overflow-hidden",
         hasContent ? "px-2 pb-2 pt-1" : "px-0 pb-0 pt-0",
         className,
       )}

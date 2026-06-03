@@ -3,12 +3,19 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { GitMerge } from "lucide-react";
 import type { RerouteLayoutNodeData } from "../layout/layout-flow-nodes.types";
 import { studioPortAccent } from "../nodes/port-accent";
+import { useFlowCanvasPreferences } from "../context/flow-canvas-preferences-context";
 import { flowNodeHandleStyle } from "../nodes/flow-node/flow-node-handle-style";
+import { studioHandleBaseClass } from "../nodes/flow-node/flow-node-handle-chrome";
 
 export const RerouteLayoutNode = memo(function RerouteLayoutNode(props: NodeProps) {
   const { id, selected } = props;
   const data = props.data as RerouteLayoutNodeData;
   const accent = studioPortAccent(data.socketType ?? "number");
+  const canvasPrefs = useFlowCanvasPreferences();
+  const handleClass = studioHandleBaseClass(
+    canvasPrefs.handleSizePx,
+    canvasPrefs.handleBorderWidthPx,
+  );
 
   return (
     <div
@@ -23,14 +30,14 @@ export const RerouteLayoutNode = memo(function RerouteLayoutNode(props: NodeProp
         id="in"
         type="target"
         position={Position.Left}
-        className="!h-2 !w-2 !border-2 !bg-zinc-900"
+        className={handleClass}
         style={flowNodeHandleStyle("left", accent)}
       />
       <Handle
         id="out"
         type="source"
         position={Position.Right}
-        className="!h-2 !w-2 !border-2 !bg-zinc-900"
+        className={handleClass}
         style={flowNodeHandleStyle("right", accent)}
       />
       <span className="sr-only">{id}</span>

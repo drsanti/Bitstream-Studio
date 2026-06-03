@@ -1,5 +1,5 @@
 import { TRNHintText } from "@/ui/TRN";
-import { GlbPreviewPlaybackControls } from "../../../../sensor-studio/features/editor/nodes/rotation/GlbPreviewPlaybackControls";
+import { GlbPreviewPlaybackControls } from "../../../../sensor-studio/core/viewport/GlbPreviewPlaybackControls";
 import { rotationPreviewGlbDisplayPath } from "./rotation-preview-glb-display-path";
 import { useRotationPreviewGlbAnimation } from "./rotation-preview-glb-animation-context";
 

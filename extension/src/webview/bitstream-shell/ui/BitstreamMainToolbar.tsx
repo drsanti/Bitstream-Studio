@@ -25,14 +25,14 @@ function clearBrandTitleGradientStyles(el: HTMLHeadingElement) {
 
 function BitstreamToolbarBrandTitle(props: { titleRef?: RefObject<HTMLHeadingElement | null> }) {
   return (
-    <div className="flex min-w-0 items-baseline gap-1.5">
+    <div className="flex min-w-0 flex-nowrap items-baseline gap-1.5">
       <h1
         ref={props.titleRef}
-        className="text-sm font-semibold tracking-tight text-zinc-100"
+        className="shrink-0 whitespace-nowrap text-sm font-semibold leading-none tracking-tight text-zinc-100"
       >
         TERNION Bitstream
       </h1>
-      <span className="shrink-0 text-[10px] font-medium tracking-wide text-zinc-500">
+      <span className="shrink-0 whitespace-nowrap text-[10px] font-medium tracking-wide text-zinc-500">
         {bitstreamProductVersionLabel()}
       </span>
     </div>
@@ -102,7 +102,7 @@ function BitstreamToolbarBrand() {
         <span className="inline-flex text-zinc-400">
           <Globe2 {...globeProps} />
         </span>
-        <div>
+        <div className="shrink-0">
           <BitstreamToolbarBrandTitle />
         </div>
       </>
@@ -141,7 +141,7 @@ function BitstreamToolbarBrand() {
         </svg>
         <Globe2 {...globeProps} style={{ stroke: strokeUrl }} />
       </span>
-      <div>
+      <div className="shrink-0">
         <BitstreamToolbarBrandTitle titleRef={titleRef} />
       </div>
     </>
@@ -190,22 +190,22 @@ export function BitstreamMainToolbar(props: {
       : "Not connected";
 
   return (
-    <header className="m-0 w-full shrink-0 border-b border-zinc-700/80 bg-zinc-950/95 p-0">
+    <header className="@container/bitstream-toolbar m-0 w-full shrink-0 border-b border-zinc-700/80 bg-zinc-950/95 p-0">
       <TRNToolbar
         density="sm"
         tone="default"
         wrap={false}
-        className="!grid w-full !min-h-7 !py-0.5 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 border-0 bg-transparent shadow-none"
+        className="!grid w-full !min-h-7 !py-0.5 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-1.5 border-0 bg-transparent shadow-none sm:gap-x-2"
       >
         <TRNToolbarGroup
           gap="sm"
           align="start"
-          className="min-w-0 self-center justify-self-start overflow-x-auto scrollbar-hide"
+          className="shrink-0 flex-nowrap self-center justify-self-start"
         >
           <BitstreamToolbarBrand />
         </TRNToolbarGroup>
 
-        <div className="flex min-w-0 justify-center justify-self-center px-1">
+        <div className="flex min-w-0 max-w-full justify-center justify-self-stretch overflow-hidden px-0.5 sm:px-1">
           <ShellControlDeck
             linkConnected={linkConnected}
             linkConnecting={linkConnecting}
@@ -219,7 +219,7 @@ export function BitstreamMainToolbar(props: {
         <TRNToolbarGroup
           gap="xs"
           align="end"
-          className="min-w-0 self-center justify-self-end overflow-x-auto scrollbar-hide"
+          className="relative z-10 min-w-0 shrink-0 self-center justify-self-end bg-zinc-950/95 pl-1"
         >
           <ShellLinkTelemetryCluster />
           <BitstreamSystemStatusIndicators

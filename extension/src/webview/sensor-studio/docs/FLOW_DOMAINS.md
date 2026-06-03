@@ -4,7 +4,7 @@
 
 **Goal:** One React Flow canvas can host **sensor dataflow**, **3D scene control**, **input/event logic**, **material authoring**, and (future) **physics** — but each domain needs its **own evaluation model and tick source**, not a single global loop.
 
-**Related:** [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md) (current dataflow), [`ROTATION_SCENE3D_CONFIG.md`](./ROTATION_SCENE3D_CONFIG.md), [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md), [`../../../../docs/DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md) (*Planned / next → physics domain*).
+**Related:** [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md) (current dataflow), [`STUDIO_SCENE3D_CONFIG.md`](./STUDIO_SCENE3D_CONFIG.md), [`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](./GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md) (Phase 4+ backlog), [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md), [`../../../../docs/DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md) (*Planned / next → physics domain*).
 
 ---
 
@@ -80,7 +80,7 @@ Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PL
 | **GLB interchange** | Keep GLB as export path; extend animation wire + drive nodes for clips, weight, trim, solo |
 | **Gaps vs “all Blender animation”** | NLA strips, action layers, physics, drivers — backlog after clip bundle parity |
 
-**Touches:** `Model Viewer composable wires` plan (**P2 Transform wire** in tracker), `RotationPreviewPanelV4`, `collectGlbScalarDrivesForModel`.
+**Touches:** `Model Viewer composable wires` plan (**P2 Transform wire** in tracker), `StudioSceneViewport`, `collectGlbScalarDrivesForModel`.
 
 ---
 
@@ -146,6 +146,13 @@ Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PL
 - [x] **`model-viewer`** + 3D rotation nodes merge transform over `scene3d` (**2026-05-31**)
 - [ ] Deprecation path for fusion-only rotation nodes in **new** templates (keep legacy graphs)
 
+### Phase 2b — Stage viewport + Scene Output (Domain B runtime)
+
+- [x] Workbench **`stage`** pane + default layout (Stage over Flow) — **2026-06-02**
+- [x] Catalog **`scene-output`** node + `evaluateStageSceneSnapshot` → `useStageSceneStore` — **2026-06-02**
+- [x] **`StageViewport`** (`StudioSceneViewport`) — **2026-06-02**
+- [x] Multi-model Stage instances, toolbar, physics wire, stage pick (B2–B4 in **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**) — **2026-06-02**
+
 ### Phase 3 — Event layer (Domain C)
 
 - [x] Event runner + catalog stubs — **`on-key`**, **`event-toggle-boolean`** (**2026-05-31** slice 1)
@@ -160,6 +167,15 @@ Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PL
 - [x] Optional `anim` on rotation nodes — **3D Rotation (Euler / Quaternion)** **`anim`** input + shared merge path (**2026-05-31** slice 2)
 - [x] Expand GLB drive kinds — part **opacity** (0–1), multi-camera **blend**, scalar drives on **3D Rotation** previews (**2026-05-31** slice 3)
 - [x] Multi-clip playback modes — **`parallel-all`** + **`sequence`** on **GLB Animation Bundle**; inspector **Playback mode**; mixer filter/advance in preview (**2026-05-31** slice 4)
+
+### Phase 4+ — GLB animation flow nodes (backlog)
+
+**Status:** Not started — canonical plan **[`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](./GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md)** (logged **2026-06-02**).
+
+- [ ] **Animation Clip** node — per-clip `glbAnimation` wire (time, speed, loop, weight, enabled, trim); spawn from Library **Animations**
+- [ ] **Animation Merge** / **Animation Blend** — combine partial wires; mixer crossfade from wire fades
+- [ ] **Model catalog → Animations** guided workflow (optional wizard + demo templates)
+- [ ] Blender / glTF use-case matrix + export operator doc
 
 ### Phase 5 — Material parameters (Domain D v1)
 
@@ -180,12 +196,12 @@ Practical **Domain D v2** slice before a full BSDF DAG: separate material evalua
 - [ ] Geometry-style mesh ops (backlog)
 - [ ] Full shader DAG compile (backlog)
 
-### Phase 7 — Physics domain (Domain E) — **planned / future**
+### Phase 7 — Physics domain (Domain E) — **deferred (complete later)**
 
-**Canonical plan:** [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md). **Not in progress** until D1 slice is scheduled.
+**Canonical plan:** [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md). **D1 shipped 2026-06-02**; **Rapier** locked for Sensor Studio D2+; **Jolt** for vehicle hub. **D2–D4 not scheduled** — resume per tracker **Deferred** section.
 
-- [ ] **D1** — Catalog stubs + NA import + eval no-ops + `physicsScene` port type
-- [ ] **D2** — `FlowWirePhysicsSceneV1`, Model Viewer **`phys`**, static colliders + WASM lazy load
+- [x] **D1** — Catalog stubs + NA import + eval no-ops + `physicsScene` port type (**2026-06-02**)
+- [ ] **D2** — `FlowWirePhysicsSceneV1`, Model Viewer **`phys`**, static colliders + lazy **Rapier** load
 - [ ] **D3** — Rigid bodies, spawner, joints; fixed-step physics tick
 - [ ] **D4** — IK, animation blend, Digital Twin / hardware collider integration
 
@@ -215,7 +231,7 @@ UART vs Simulator telemetry rules (**`bitstream-dual-runtime.mdc`**) apply to Do
 | **Scene frame (B)** | `requestAnimationFrame` while `graphNeedsSceneFrameTick()` | `model-viewer`, `rotation-3d-*`, `environment`, `camera-view`, `glb-animation-bundle`, `object-transform`, `transform-from-euler`, `sine-wave` |
 | **Material (D partial)** | Same rAF coalesced loop when `graphNeedsMaterialDomainEvalInGraph()` | `glb-material-param`, `glb-material-texture`, `glb-material-color`, `material-mix` |
 
-Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-frame-subscribers.ts`** (catalog). Both triggers coalesce into one rAF **`tickSimulation()`** per display frame. Three.js preview rendering remains in **`RotationPreviewPanelV4`** (separate inner rAF).
+Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-frame-subscribers.ts`** (catalog). Both triggers coalesce into one rAF **`tickSimulation()`** per display frame. Three.js preview rendering remains in **`StudioSceneViewport`** (separate inner rAF).
 
 ---
 

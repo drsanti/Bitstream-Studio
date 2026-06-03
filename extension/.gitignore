@@ -11,5 +11,3 @@ src/media-full
 nul
 
 # Large Project 4 model mirrors (GitHub limit); canonical copy under src/assets (see PROJECT_INFO.md).
-src/webview/project4/data/models/robot-4th-project.glb
-src/webview/project4/data/models/robot-4th-project/robot-4th-project.blend

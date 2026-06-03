@@ -178,8 +178,8 @@ export function formatAggregateDecodeFps(fps: number | null | undefined): string
   if (fps == null || !Number.isFinite(fps)) {
     return "— fps";
   }
-  if (fps <= 0) {
-    return "0 fps";
+  if (fps < 1) {
+    return "<1 fps";
   }
   if (fps >= 100) {
     return `${Math.round(fps)} fps`;

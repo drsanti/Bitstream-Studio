@@ -594,6 +594,10 @@ export class SerialPortWebSocketBridge {
         void this.client.publish(BITSTREAM2_TOPICS.EVT_SENSOR, sample, 0);
         continue;
       }
+      if (ev.type === "wifi_evt") {
+        void this.client.publish(BITSTREAM2_TOPICS.EVT_STATUS, ev.payload, 0);
+        continue;
+      }
       if (ev.type === "res_frame") {
         this.bsSession.handleFrame(ev.frame);
       }

@@ -3,7 +3,7 @@ import {
   defaultScene3DConfig,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 
 /** Serialized camera + orbit framing carried on **`camera`** flow wires (subset of `scene3d.camera` + key `controls`). */
 export type FlowWireCameraV1 = {

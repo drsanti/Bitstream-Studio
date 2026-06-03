@@ -2,7 +2,7 @@ import {
   coerceScene3DConfigV1,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 
 /** Serialized particle bundle on **`particleEmitter`** flow wires. */
 export type FlowWireParticleEmitterV1 = {

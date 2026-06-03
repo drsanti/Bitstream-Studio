@@ -14,6 +14,7 @@ import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/gl
 import type { FlowCanvasGraphHandle } from "./components/flow-canvas-graph-handle";
 import type { StudioDemoTemplateId, FlowGraphNode, StudioNode } from "./store/flow-editor.store";
 import type { FlowCanvasPreferences } from "./components/flow-canvas-ui-persistence";
+import type { StagePresentationPreferences } from "../stage/stage-presentation-preferences";
 import type { StandaloneWorkbenchHandle } from "../../../ui/workbench";
 
 /** Props for `StudioLayout` and the Sensor Studio workbench panel context. */
@@ -39,6 +40,9 @@ export type StudioLayoutProps = {
   contactShadowsColor: string;
   particleEmitterColor: string;
   audioBusColor: string;
+  physicsSceneColor: string;
+  physicsColliderColor: string;
+  physicsBodyColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   entries: NodeCatalogEntry[];
   nodes: FlowGraphNode[];
@@ -61,6 +65,10 @@ export type StudioLayoutProps = {
   onUpdateLabel: (nextLabel: string) => void;
   onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateNodeUiAllowBodyCollapse: (allow: boolean) => void;
+  onUpdateStudioNodeLayoutDimensions: (patch: {
+    width?: number;
+    height?: number;
+  }) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (nextJson: string) => { ok: true } | { ok: false; message: string };
   templateId: StudioDemoTemplateId;
@@ -83,6 +91,10 @@ export type StudioLayoutProps = {
   workbenchRef?: RefObject<StandaloneWorkbenchHandle | null>;
   flowCanvasPreferences: FlowCanvasPreferences;
   onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
+  stagePresentationPreferences: StagePresentationPreferences;
+  onStagePresentationPreferencesChange: (
+    patch: Partial<StagePresentationPreferences>,
+  ) => void;
   /** Empty flow canvas clicks — **On Click** event sources. */
   onFlowPanePointerEvent?: (event: { button: number }) => void;
   deviceSensorSettingsOpen?: boolean;

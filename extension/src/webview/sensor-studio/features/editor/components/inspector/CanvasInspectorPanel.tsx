@@ -1,5 +1,5 @@
 import type { Edge, Viewport } from "@xyflow/react";
-import { Activity, FileStack, LayoutGrid, type LucideIcon } from "lucide-react";
+import { Activity, Cable, FileStack, LayoutGrid, type LucideIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import {
   TRNTabs,
@@ -15,7 +15,9 @@ import type {
   StudioNode,
 } from "../../store/flow-editor.store";
 import type { FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
+import type { StagePresentationPreferences } from "../../../stage/stage-presentation-preferences";
 import { CanvasInspectorCanvasTab } from "./CanvasInspectorCanvasTab";
+import { CanvasInspectorWiresTab } from "./CanvasInspectorWiresTab";
 import { CanvasInspectorContextBar } from "./CanvasInspectorContextBar";
 import { CanvasInspectorDocumentTab } from "./CanvasInspectorDocumentTab";
 import { CanvasInspectorTelemetryTab } from "./CanvasInspectorTelemetryTab";
@@ -48,6 +50,10 @@ export type CanvasInspectorPanelProps = {
   onFlowCanvasPreferencesChange: (
     patch: Partial<FlowCanvasPreferences>,
   ) => void;
+  stagePresentationPreferences: StagePresentationPreferences;
+  onStagePresentationPreferencesChange: (
+    patch: Partial<StagePresentationPreferences>,
+  ) => void;
 };
 
 const CANVAS_INSPECTOR_TABS: readonly {
@@ -56,6 +62,7 @@ const CANVAS_INSPECTOR_TABS: readonly {
   Icon: LucideIcon;
 }[] = [
   { id: "canvas", label: "View", Icon: LayoutGrid },
+  { id: "wires", label: "Wires", Icon: Cable },
   { id: "document", label: "Flow", Icon: FileStack },
   { id: "telemetry", label: "Sensors", Icon: Activity },
 ];
@@ -81,6 +88,8 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
     flowCanvasPreferences,
     themeCanvasBackgroundColor,
     onFlowCanvasPreferencesChange,
+    stagePresentationPreferences,
+    onStagePresentationPreferencesChange,
   } = props;
 
   const [activeTab, setActiveTab] = useState<CanvasInspectorTab>(() =>
@@ -144,6 +153,13 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
               onResetWorkspaceLayout={onResetWorkspaceLayout}
               flowCanvasPreferences={flowCanvasPreferences}
               themeCanvasBackgroundColor={themeCanvasBackgroundColor}
+              onFlowCanvasPreferencesChange={onFlowCanvasPreferencesChange}
+            />
+          ) : null}
+
+          {activeTab === "wires" ? (
+            <CanvasInspectorWiresTab
+              flowCanvasPreferences={flowCanvasPreferences}
               onFlowCanvasPreferencesChange={onFlowCanvasPreferencesChange}
             />
           ) : null}

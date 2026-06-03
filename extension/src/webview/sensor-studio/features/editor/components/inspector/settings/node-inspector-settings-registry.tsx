@@ -30,6 +30,7 @@ import {
   EventToggleGlbPartSettingsSection,
 } from "./sections/EventGlbPartSettingsSections";
 import { OnClickSettingsSection } from "./sections/OnClickSettingsSection";
+import { OnStagePickSettingsSection } from "./sections/OnStagePickSettingsSection";
 import { OnKeySettingsSection } from "./sections/OnKeySettingsSection";
 import { PlotterSettingsSection } from "./sections/PlotterSettingsSection";
 import { SensorInputSettingsSection } from "./sections/SensorInputSettingsSection";
@@ -54,6 +55,7 @@ import {
   AudioScopeSettingsSection,
   MicInputSettingsSection,
 } from "./sections/AudioSettingsSections";
+import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
 
 const VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS = Object.fromEntries(
   VECTOR_QUATERNION_MATH_NODE_IDS.map((id) => [id, VectorQuaternionMathSettingsSection]),
@@ -83,6 +85,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   oscilloscope: PlotterSettingsSection,
   "sensor-input": SensorInputSettingsSection,
   environment: EnvironmentSettingsSection,
+  "scene-output": SceneOutputSettingsSection,
   "glb-animation-bundle": GlbAnimationBundleConnectionSection,
   "boolean-constant": BooleanConstantSettingsSection,
   "number-constant": NumberConstantSettingsSection,
@@ -108,6 +111,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "transform-from-euler": TransformFromEulerSettingsSection,
   "on-key": OnKeySettingsSection,
   "on-click": OnClickSettingsSection,
+  "on-stage-pick": OnStagePickSettingsSection,
   "event-set-boolean": EventSetBooleanSettingsSection,
   "event-toggle-glb-part": EventToggleGlbPartSettingsSection,
   "event-set-glb-part": EventSetGlbPartSettingsSection,

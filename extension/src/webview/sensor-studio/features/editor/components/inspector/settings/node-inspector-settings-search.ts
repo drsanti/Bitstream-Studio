@@ -48,6 +48,7 @@ const TYPED_SECTION_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   "glb-animation-bundle": ["animation", "bundle", "model", "viewer", "clip"],
   "boolean-constant": ["boolean", "constant", "true", "false", "logic"],
   "on-click": ["click", "mouse", "pointer", "event", "canvas", "pane"],
+  "on-stage-pick": ["stage", "pick", "viewport", "3d", "click", "event", "model"],
   "event-set-boolean": ["set", "boolean", "event", "on", "off", "latch"],
   "on-key": ["key", "keyboard", "event", "trigger", "hotkey", "binding"],
   "event-toggle-boolean": ["toggle", "boolean", "event", "flip", "trigger"],

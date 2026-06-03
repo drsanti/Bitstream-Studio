@@ -73,7 +73,7 @@ function sensorPanelsLive(enabled: boolean | undefined): boolean
 }
 
 /**
- * Sortable telemetry deck (BMI270, DPS368, SHT40, BMM350) with settings tab.
+ * Sortable telemetry deck (BMI270, BMM350, SHT40, DPS368) with settings tab.
  */
 export function TelemetryLivePanel()
 {

@@ -4,7 +4,9 @@ import {
   TRN_FORM_EXAMPLE_TABS,
   type TRNFormExampleTab,
 } from "./exampleRegistry.js";
+import { KeyRound, Wifi } from "lucide-react";
 import { TRNFormField, TRNFormSection, TRNInlineEdit } from "../TRNForm.js";
+import { TRNInput, TRNInputGroup } from "../TRNInput.js";
 import { TRNTabs, TRNTabsList, TRNTabsTrigger } from "../TRNTabs.js";
 
 type TRNFormExampleProps = {
@@ -16,6 +18,8 @@ export function TRNFormExample(props: TRNFormExampleProps) {
   const [localActiveTab, setLocalActiveTab] = useState<TRNFormExampleTab>("section");
   const [name, setName] = useState("firmware-01");
   const [validated, setValidated] = useState("42");
+  const [demoSsid, setDemoSsid] = useState("TERNION");
+  const [demoPassword, setDemoPassword] = useState("");
   const activeTab = props.activeTab ?? localActiveTab;
   const setActiveTab = (tab: TRNFormExampleTab) => {
     props.onActiveTabChange?.(tab);
@@ -120,6 +124,40 @@ export function TRNFormExample(props: TRNFormExampleProps) {
                     return true;
                   }}
                   className="w-full"
+                />
+              </TRNFormField>
+            </TRNFormSection>
+          ) : null}
+
+          {activeTab === "prefix-input" ? (
+            <TRNFormSection
+              title="Prefix input"
+              description="Ghost group + outlined single field."
+            >
+              <TRNInputGroup>
+                <TRNInput
+                  prefixIcon={Wifi}
+                  value={demoSsid}
+                  onChange={(e) => setDemoSsid(e.target.value)}
+                  placeholder="Network name"
+                  aria-label="Network name"
+                />
+                <TRNInput
+                  prefixIcon={KeyRound}
+                  type="password"
+                  value={demoPassword}
+                  onChange={(e) => setDemoPassword(e.target.value)}
+                  placeholder="Password"
+                  aria-label="Password"
+                />
+              </TRNInputGroup>
+              <TRNFormField label="Filter" htmlFor="f-filter" className="mt-3">
+                <TRNInput
+                  id="f-filter"
+                  prefixIcon={Wifi}
+                  variant="outlined"
+                  placeholder="Outlined variant"
+                  aria-label="Filter"
                 />
               </TRNFormField>
             </TRNFormSection>

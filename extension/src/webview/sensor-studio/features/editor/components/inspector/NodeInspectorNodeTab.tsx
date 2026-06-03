@@ -16,7 +16,7 @@ import {
   defaultScene3DConfig,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../../nodes/rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 import type { StudioNode } from "../../store/flow-editor.store";
 import { NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID } from "./settings/node-inspector-settings-registry";
 import type { NodeInspectorSettingsSectionProps } from "./settings/node-inspector-settings-types";
@@ -45,6 +45,10 @@ export type NodeInspectorNodeTabProps = {
   onUpdateLabel: (nextLabel: string) => void;
   onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateNodeUiAllowBodyCollapse: (allow: boolean) => void;
+  onUpdateStudioNodeLayoutDimensions: (patch: {
+    width?: number;
+    height?: number;
+  }) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (
     nextJson: string,
@@ -68,6 +72,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
     onUpdateLabel,
     onUpdateNodeUiResizable,
     onUpdateNodeUiAllowBodyCollapse,
+    onUpdateStudioNodeLayoutDimensions,
     onUpdateConfigField,
     onUpdateConfigJson,
     jsonDraft,
@@ -221,6 +226,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
                 selectedNode={selectedNode}
                 onResizableChange={onUpdateNodeUiResizable}
                 onAllowBodyCollapseChange={onUpdateNodeUiAllowBodyCollapse}
+                onLayoutDimensionsChange={onUpdateStudioNodeLayoutDimensions}
               />
             ) : id === "typed" ? (
               showTypedSection && CatalogSection != null ? (

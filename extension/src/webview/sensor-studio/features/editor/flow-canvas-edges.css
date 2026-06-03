@@ -1,0 +1,26 @@
+/** Flow wire selection / hover — toggled via wrapper classes on the graph host. */
+
+.studio-flow-canvas--edge-hover .react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 2.5px;
+  filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.22));
+}
+
+/* Base selected wire — port glow applied inline in decorateFlowEdges */
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge.studio-flow-edge--selected .react-flow__edge-path {
+  opacity: 1;
+}
+
+.react-flow__edge.studio-flow-edge--selected .react-flow__edge-text {
+  font-weight: 700;
+}
+
+.react-flow__edge.studio-flow-edge--live .react-flow__edge-path {
+  filter: drop-shadow(0 0 5px rgba(52, 211, 153, 0.5));
+}
+
+.react-flow__edge.studio-flow-edge--path-highlight .react-flow__edge-path {
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 6px rgba(56, 189, 248, 0.55));
+  opacity: 1;
+}

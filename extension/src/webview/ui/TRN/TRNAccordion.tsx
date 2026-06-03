@@ -277,13 +277,21 @@ export function TRNAccordionContent(props: TRNAccordionContentProps) {
 
   return (
     <div
-      className={"overflow-hidden " + (className ?? "")}
+      className={twMerge(
+        "min-h-0 overflow-hidden",
+        !item.isOpen && "border-0 p-0",
+      )}
       style={style}
       aria-hidden={!item.isOpen}
     >
       <div
         ref={contentRef}
-        className={twMerge("px-3 pb-2 text-xs text-zinc-400", innerClassName)}
+        className={twMerge(
+          "px-3 pb-2 text-xs text-zinc-400",
+          className,
+          innerClassName,
+          !item.isOpen && "pointer-events-none",
+        )}
       >
         {children}
       </div>

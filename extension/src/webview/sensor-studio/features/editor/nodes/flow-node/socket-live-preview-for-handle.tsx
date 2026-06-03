@@ -29,6 +29,7 @@ import {
   resolveCameraWireSocketLabel,
   resolveEnvironmentWireSocketLabel,
 } from "./structured-socket-preview-label";
+import { truncateSocketStringPreview } from "./truncate-socket-string";
 
 export type SocketPreviewContext = {
   flowNodeId?: string;
@@ -46,15 +47,20 @@ function isModelStringSocketPort(catalogNodeId: string, handleId: string): boole
 }
 
 function modelStringSocketLivePreview(
-  handleId: string,
   defaultConfig: Record<string, unknown>,
   descriptors: readonly StudioAssetDescriptor[] | undefined,
 ) {
-  const label = modelSelectEmitDisplayName(defaultConfig, descriptors ?? []);
-  if (label.length === 0) {
+  const fullLabel = modelSelectEmitDisplayName(defaultConfig, descriptors ?? []);
+  if (fullLabel.length === 0) {
     return null;
   }
-  return <SocketLivePreview portType="string" handleId={handleId} stringValue={label} />;
+  return (
+    <SocketStructuredWireBadge
+      label={truncateSocketStringPreview(fullLabel)}
+      title={fullLabel}
+      portType="string"
+    />
+  );
 }
 
 function modelStringInputSocketLivePreview(
@@ -82,7 +88,7 @@ function modelStringInputSocketLivePreview(
     }
     config = { selectedModelUrl: url };
   }
-  return modelStringSocketLivePreview(handleId, config, ctx.descriptors);
+  return modelStringSocketLivePreview(config, ctx.descriptors);
 }
 
 function structuredEnvironmentCameraSocketPreview(
@@ -365,7 +371,7 @@ export function socketLivePreviewForOutputHandle(
     portType === "string" &&
     isModelStringSocketPort(nodeId, handleId)
   ) {
-    return modelStringSocketLivePreview(handleId, data.defaultConfig, ctx?.descriptors);
+    return modelStringSocketLivePreview(data.defaultConfig, ctx?.descriptors);
   }
 
   if (isStructuredSocketPreviewPortType(portType)) {

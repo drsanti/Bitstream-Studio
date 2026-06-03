@@ -102,6 +102,7 @@ Implementation: `resolveWebviewPackAssetOnlineUrl` in `global-directory-online-f
 | Default remote manifest | `{ONLINE_ASSETS_BASE_URI}/studio-asset-manifest.v1.json` |
 | Override | `window.STUDIO_ASSET_MANIFEST_URL` (full URL) |
 | Bundled fallback | `src/webview/assets-manager/registry/studio-asset-manifest.v1.json` |
+| Manifest redesign (next phase) | [`STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md`](../src/webview/assets-manager/docs/STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md) |
 | Publish target (GitHub) | `assets/studio-asset-manifest.v1.json` on `main` |
 
 ```bash
@@ -180,7 +181,9 @@ Use **`assets/`** only:
 | ---- | ------ |
 | 1 | Add or update files under **`assets/models/`**, **`assets/textures/`**, etc. |
 | 2 | Update the relevant **`manifest.json`** or **`libraries/.../index.json`** |
-| 3 | For Sensor Studio catalog rows: update bundled manifest in Bitstream, then **`npm run publish:studio-asset-manifest`** |
+| 3 | When **models** change: **`npm run sync:studio-manifest-models`** ([`assets/models/manifest.json`](https://github.com/drsanti/ternion-3d-assets-free/blob/main/assets/models/manifest.json)) |
+| 3b | When **textures** change: **`npm run sync:studio-manifest-textures`** ([`assets/textures`](https://github.com/drsanti/ternion-3d-assets-free/tree/main/assets/textures) — `cubemap/`, `hdri/`, `images/` manifests), then **`npm run sync:studio-cubemap-assets`** for local JPEG mirrors |
+| 4 | Publish bundled catalog: **`npm run publish:studio-asset-manifest`** |
 | 4 | For Node Animator: bump **`revision`** in **`assets/feed.json`** (ISO-8601 timestamp) |
 | 5 | Commit and push to **`main`** |
 | 6 | Verify: Free Loader sync, Asset Manager connection test, Sensor Studio Asset Browser refresh |

@@ -9,6 +9,7 @@ import {
   SHELL_CONTROL_DECK_ZONE_CLASS,
   SHELL_DECK_PILL_ACTIVE_BASE_CLASS,
   SHELL_DECK_PILL_INACTIVE_CLASS,
+  SHELL_DECK_PILL_LABEL_CLASS,
 } from "./shell-control-deck-ui";
 import {
   SHELL_DECK_PILL_HOVER,
@@ -95,7 +96,7 @@ export function BitstreamTelemetrySourceField() {
             }}
           >
             <Icon className={`size-3.5 shrink-0 ${iconClass}`} strokeWidth={2.25} aria-hidden />
-            {segment.label}
+            <span className={SHELL_DECK_PILL_LABEL_CLASS}>{segment.label}</span>
           </button>
         );
 

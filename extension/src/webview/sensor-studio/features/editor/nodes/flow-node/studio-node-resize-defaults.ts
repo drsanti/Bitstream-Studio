@@ -1,0 +1,76 @@
+import { isPlotterNodeId } from "../plotter/plotter-config";
+import { isRotation3DCatalogNodeId } from "../rotation/rotation-3d-node-ids";
+import type { StudioNodeData } from "../../store/flow-editor.store";
+
+export type StudioNodeMinDimensions = {
+  minWidth: number;
+  minHeight: number;
+};
+
+/** Fallback when a node id has no catalog-specific floor. */
+export const STUDIO_NODE_DEFAULT_MIN_DIMENSIONS: StudioNodeMinDimensions = {
+  minWidth: 170,
+  minHeight: 64,
+};
+
+/**
+ * Minimum React Flow node size floors (before header/socket/body measurement).
+ * Applied in `pipeStudioNodeData` for resizable studio nodes.
+ */
+const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
+  "scene-output": { minWidth: 185, minHeight: 72 },
+  "model-select": { minWidth: 208, minHeight: 132 },
+  environment: { minWidth: 240, minHeight: 220 },
+  "camera-view": { minWidth: 240, minHeight: 220 },
+  "model-viewer": { minWidth: 280, minHeight: 200 },
+  "rotation-3d-euler": { minWidth: 280, minHeight: 200 },
+  "rotation-3d-quaternion": { minWidth: 280, minHeight: 200 },
+  plotter: { minWidth: 280, minHeight: 168 },
+  "radial-gauge": { minWidth: 170, minHeight: 180 },
+  "bar-meter": { minWidth: 170, minHeight: 180 },
+  knob: { minWidth: 170, minHeight: 180 },
+  "glb-animation-bundle": { minWidth: 220, minHeight: 160 },
+  "mic-input": { minWidth: 200, minHeight: 110 },
+  "audio-output": { minWidth: 200, minHeight: 110 },
+  "audio-scope": { minWidth: 200, minHeight: 110 },
+  "audio-file-player": { minWidth: 200, minHeight: 110 },
+  "audio-oscillator": { minWidth: 200, minHeight: 110 },
+  "glb-material-texture": { minWidth: 200, minHeight: 120 },
+  "glb-material-color": { minWidth: 200, minHeight: 100 },
+  "glb-material-param": { minWidth: 200, minHeight: 100 },
+  math: { minWidth: 180, minHeight: 96 },
+  compare: { minWidth: 180, minHeight: 96 },
+  "logic-gate": { minWidth: 180, minHeight: 96 },
+  multiplexer: { minWidth: 180, minHeight: 96 },
+};
+
+export function resolveStudioNodeMinDimensionFloor(nodeId: string): StudioNodeMinDimensions {
+  if (isPlotterNodeId(nodeId)) {
+    return MIN_BY_NODE_ID.plotter ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS;
+  }
+  if (isRotation3DCatalogNodeId(nodeId)) {
+    return (
+      MIN_BY_NODE_ID["rotation-3d-euler"] ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS
+    );
+  }
+  return MIN_BY_NODE_ID[nodeId] ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS;
+}
+
+/** Merge catalog floors into `ui` when `minWidth` / `minHeight` are unset. */
+export function applyStudioNodeMinDimensionsToUi(
+  nodeId: string,
+  ui: StudioNodeData["ui"] | undefined,
+): StudioNodeData["ui"] {
+  const floor = resolveStudioNodeMinDimensionFloor(nodeId);
+  return {
+    ...ui,
+    minWidth:
+      typeof ui?.minWidth === "number" && Number.isFinite(ui.minWidth)
+        ? Math.round(ui.minWidth)
+        : floor.minWidth,
+    minHeight:
+      typeof ui?.minHeight === "number" && Number.isFinite(ui.minHeight)
+        ? Math.round(ui.minHeight)
+        : floor.minHeight,
+  };
+}

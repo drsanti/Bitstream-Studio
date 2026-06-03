@@ -122,11 +122,11 @@ export function TelemetryConfigPanel() {
                 className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
               />
               <SensorCfgTabTrigger
-                value="dps368"
-                label="DPS368"
+                value="bmm350"
+                label="BMM350"
                 dirty={isConfigPaneSensorTabDirty(
-                  SENSOR_SOURCE_ID_DPS368,
-                  isSensorCfgDirty(SENSOR_SOURCE_ID_DPS368),
+                  SENSOR_SOURCE_ID_BMM350,
+                  isSensorCfgDirty(SENSOR_SOURCE_ID_BMM350),
                 )}
                 className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
               />
@@ -140,11 +140,11 @@ export function TelemetryConfigPanel() {
                 className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
               />
               <SensorCfgTabTrigger
-                value="bmm350"
-                label="BMM350"
+                value="dps368"
+                label="DPS368"
                 dirty={isConfigPaneSensorTabDirty(
-                  SENSOR_SOURCE_ID_BMM350,
-                  isSensorCfgDirty(SENSOR_SOURCE_ID_BMM350),
+                  SENSOR_SOURCE_ID_DPS368,
+                  isSensorCfgDirty(SENSOR_SOURCE_ID_DPS368),
                 )}
                 className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
               />
@@ -159,9 +159,9 @@ export function TelemetryConfigPanel() {
             />
           </TRNTabsContent>
 
-          <TRNTabsContent value="dps368" keepMounted={false} className={tabContentClass}>
+          <TRNTabsContent value="bmm350" keepMounted={false} className={tabContentClass}>
             <SensorCfgDeck
-              sourceId={SENSOR_SOURCE_ID_DPS368}
+              sourceId={SENSOR_SOURCE_ID_BMM350}
               host={host}
               draftUntilApply
             />
@@ -175,9 +175,9 @@ export function TelemetryConfigPanel() {
             />
           </TRNTabsContent>
 
-          <TRNTabsContent value="bmm350" keepMounted={false} className={tabContentClass}>
+          <TRNTabsContent value="dps368" keepMounted={false} className={tabContentClass}>
             <SensorCfgDeck
-              sourceId={SENSOR_SOURCE_ID_BMM350}
+              sourceId={SENSOR_SOURCE_ID_DPS368}
               host={host}
               draftUntilApply
             />

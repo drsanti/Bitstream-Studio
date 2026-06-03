@@ -9,6 +9,8 @@ export type { FlowNodeShellProps } from "./FlowNodeShell";
 export { FlowNodeShell } from "./FlowNodeShell";
 export type { FlowNodeHeaderProps } from "./FlowNodeHeader";
 export { FlowNodeHeader } from "./FlowNodeHeader";
+export type { FlowNodeHeaderIconProps } from "./FlowNodeHeaderIcon";
+export { FlowNodeHeaderIcon } from "./FlowNodeHeaderIcon";
 export type { FlowNodeBodyProps } from "./FlowNodeBody";
 export { FlowNodeBody } from "./FlowNodeBody";
 export type { FlowNodeEdgeResizeProps } from "./FlowNodeEdgeResize";

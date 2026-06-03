@@ -26,7 +26,7 @@ Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMa
 
 **Socket wiring:** single inputs **replace** the previous wire; drag from a wired single input **pops** the wire first (reconnect). Multi-input: **`number-average`** only. Spec: **`SOCKET_CONNECTION_POLICY.md`**.
 
-**3D GLB preview transport** (`RotationPreviewPanelV4` — Model Viewer, 3D Rotation): when the loaded GLB has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
+**3D GLB preview transport** (`StudioSceneViewport` — Model Viewer, 3D Rotation): when the loaded GLB has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
 
 Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on toolbar controls.
 
@@ -96,11 +96,11 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | ---- | ------ |
 | **Every scalar output pin** | Live preview on the socket row — **`syncSocketLivePreviewHandlesFromPinValues`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, **`liveStringByHandle`**, **`liveVector3ByHandle`** from evaluated pins |
 | **Bundled wire types** | No scalar preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
-| **Environment / Camera badges** | Wired **`env`** / **`cam`** inputs and **Environment** / **Camera / View** outputs show a compact tinted badge (preset name or **`45° FOV`**) via **`SocketStructuredWireBadge`** — empty when unwired |
+| **Catalog / wire badges** | **`SocketStructuredWireBadge`** — port-type accent border, **`text-[10px]`**, **`max-w-[9rem]`** truncate; visible text via **`truncateSocketStringPreview`** (~14 chars); full text in **`title`** when truncated |
+| **Environment / Camera** | Preset / FOV labels from **`resolveEnvironmentWireSocketLabel`** / **`resolveCameraWireSocketLabel`** |
+| **Studio Model (string `model` pins)** | **`modelSelectEmitDisplayName`** (catalog label, not URL) on **`model-select` `out`**, **`model-viewer` `in`**, GLB event **`model`** — same badge as Environment |
 | **Boolean** | Display **`true`** / **`false`** (lowercase); **`true`** → emerald (`text-emerald-300`), **`false`** → muted zinc (`text-zinc-400`) |
-| **String** | Truncated preview (~14 chars); full value in **`title`** tooltip |
-| **Studio Model (`model-select` `out`)** | Friendly catalog label via **`modelSelectEmitDisplayName`** (same as card dropdown) — wire eval still emits the URL |
-| **Model string inputs** | **`model-viewer` `in`** and GLB event **`model`** show the wired **Studio Model** label, not the raw URL |
+| **Generic string** | Plain **`SocketLivePreview`** (zinc text, no badge) — raw pin strings only; prefer a resolver + badge when the value is a catalog pick or bundled wire |
 | **Card body** | No fallback **`ReadingPanel`** for scalar-only utility nodes — socket row only |
 | **Input pins** | Wired scalar inputs use **`liveInput*ByHandle`** maps + **`socketLivePreviewForInputHandle`** (`trailingPreview` on input rows) |
 
@@ -161,7 +161,7 @@ Structured / unwired inputs show the label only (no spacer column).
 | **Tab bar**           | `TRNTabs` + **`trn-inspector-tab-bar`** (shared with Telemetry deck) | Live / Telemetry Data active: emerald; others: zinc                              |
 | **Context**           | **`InspectorContextBar`**                               | Category dot, title, mono `nodeId`, clock, single stream status (no duplicate chips) |
 | **Details sections**  | **`TRNInteractiveCard`** + **`TRNSortableContainer`** (telemetry deck parity) | **Specifications** · **Ports** — drag reorder + collapse; **Specifications** uses **`sensor-inspector-about-content`** (datasheet ranges/accuracy) for hardware nodes |
-| **Settings — node (flow-local)** | **`NodeInspectorNodeTab`** — Identity, Canvas, typed registry, rotation 3D, Advanced JSON | Stacked **`InspectorFieldStack`** fields (~340px rail); **`InspectorSection`** for Identity / Canvas / Advanced; filter via search |
+| **Settings — node (flow-local)** | **`NodeInspectorNodeTab`** — Identity, Canvas (size + resize toggles), typed registry, rotation 3D, Advanced JSON | Stacked **`InspectorFieldStack`** fields (~340px rail); **`InspectorSection`** for Identity / Canvas / Advanced; filter via search |
 | **Settings — device (shared)** | **`NodeInspectorDeviceTab`** + **`InspectorSensorCfgSection`** | Conditional **Device** tab only when `resolveStudioNodeSourceId` returns a id; same editable deck as Telemetry **Sensor Config**; amber shared-scope banner |
 | **Live sections**     | **`InspectorSensorDeckReadings`**                       | Deck `TRNInteractiveCard` viewers; **`useInspectorLiveDeckSamples`**                 |
 | **Settings sections** | **`InspectorSettingsSectionFrame`** / registry under **`NodeInspectorNodeTab`** | **`InspectorPropertyRow`** → **`InspectorFieldStack`** (label above control); glass `TRNCard` for collapsible typed forms |
@@ -265,9 +265,9 @@ Default UI font is **Inter** (bundled via **`@fontsource-variable/inter`**, Tail
 
 | Element | Classes / token | Size |
 | ------- | ----------------- | ---- |
-| **Node card title** (`FlowNodeHeader` primary) | **`text-[13px] font-semibold leading-tight text-zinc-100`** | 13px |
+| **Node card title** (`FlowNodeHeader` primary) | **`text-[13px] font-semibold leading-none text-zinc-100`** (`inline-block w-max max-w-full truncate`) | 13px |
+| **Node header prefix icon** (`FlowNodeHeaderIcon`) | Catalog slug via **`resolveNodeCatalogIconSlug`**; category tint (`text-emerald-400/90` sensor, …); **`size-3.5`** | 14px |
 | **Node header badges** (LIVE, family tag, Invalid) | **`FLOW_NODE_HEADER_BADGE_CLASS`** — `text-[8px] font-semibold uppercase tracking-wide leading-none` | 8px |
-| **Node header subtitle** (linked model, etc.) | **`text-[11px] uppercase tracking-wide text-zinc-400`** | 11px |
 | **Socket port label** | **`text-[11px] leading-tight text-zinc-300`** (+ muted span **`text-zinc-400`**) | 11px |
 | **Socket live preview** | **`SOCKET_LIVE_VALUE_TYPOGRAPHY`** — `font-sans text-[11px] leading-tight` | 11px |
 | **Socket live preview tint** | Semantic scalar colors via **`getLiveScalarReadingColorClass`** — see **Live reading semantic colors** | — |
@@ -330,9 +330,39 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 ## Flow node cards
 
 - Shared chrome: **`FlowNodeShell`**, **`FlowNodeHeader`**, **`FlowNodeBody`**, socket rows under `nodes/flow-node/`.
+- **`FlowNodeHeader`** is one flex row: **left cluster** (`data-flow-node-header-leading`) = prefix icon + title (`w-max` title, no `flex-1` on title — avoids resizable width feedback loops); **right cluster** (`data-flow-node-header-trailing`) = badges/toggles. Drag handle class **`studio-node-drag-handle`** on the header root.
+- **Prefix icon:** **`FlowNodeHeaderIcon`** for every catalog node (same Lucide slug as palette). Do not add per-node icon switches in **`StudioNodeCard`**.
 - **Category accent** tints the **header** only — port/wire colors come from **`portType`**, not category.
 - Avoid growing **`StudioNodeCard.tsx`** with one-off shells; extract panels under `nodes/<kind>/`.
 - **Output sockets:** use **Output socket row layout** (above) — especially **`w-0`** handle column, **`overflow-visible`** shell, label **`pl-2 pr-3`**.
+
+### Flow node resize (min width / min height)
+
+All studio nodes default to **`ui.resizable: true`**. Edge resize clamps to **`effectiveMinNodeWidth`** / **`effectiveMinNodeHeight`** computed in **`StudioNodeCard`** (header + sockets + body measurement, floored by **`studio-node-resize-defaults.ts`**).
+
+| Rule | Detail |
+| ---- | ------ |
+| **Catalog floor** | Set per-`nodeId` in **`resolveStudioNodeMinDimensionFloor`** — baseline before live measure |
+| **Live measure** | **`ResizeObserver`** on header, sockets, body wrapper — updates effective min when content changes |
+| **Body overflow** | **`FlowNodeBody`**, body measure wrapper, and card panels use **`min-w-0 max-w-full overflow-hidden`** — content must not paint outside the shell when narrowed |
+| **TRNSelect on cards** | **`FLOW_NODE_TRN_SELECT_CLASS`** (`w-full min-w-0 max-w-full`) — **never** `min-w-40` / `min-w-48` on flow node selects |
+| **Intrinsic width marker** | **`FlowNodeIntrinsicWidthMarker`** + widest option/selected labels — off-DOM probe via **`data-flow-node-intrinsic-width`** (avoids `w-full` scrollWidth feedback loops) |
+| **Panel padding flag** | Root panel with **`data-flow-node-body-panel`** (e.g. `px-2.5`) — measurement adds **`FLOW_NODE_BODY_PANEL_PADDING_PX`** |
+| **2-column grids** | Optional **`data-flow-node-intrinsic-extra-px`** on the panel root when two selects sit side-by-side (e.g. Audio Scope) |
+| **Height** | Body **`offsetHeight`** drives min height (viewport nodes: plotter, gauges, sparkline canvas) — do not rely on inline **`min-w-*`** on chart SVGs |
+
+**New node with dropdown / long labels:** add **`FlowNodeIntrinsicWidthMarker`**, **`FLOW_NODE_TRN_SELECT_CLASS`**, and a catalog row in **`studio-node-resize-defaults.ts`**.
+
+### Inspector → Canvas → Node size
+
+| Field | Editable | Source |
+| ----- | -------- | ------ |
+| **Width / Height** | Yes when **Allow resize** is on | RF `node.width` / `node.height`; inspector commits may go **below** content min (may clip); only hard floor **1 px** |
+| **Min width / Min height** | Read-only | **Edge resize** clamp — **`resolveStudioNodeEffectiveMinDimensions`** (catalog + live **`ui.contentMin*`** from **`StudioNodeCard`**) |
+
+**Width / height control chrome:** **`InspectorNodeLayoutSizeFields`** — two **`TRNVector3Field`**-style cells in a `grid-cols-2` row: **`[W]`** violet badge + **`TRNScrubNumberInput`** + per-axis lock; **`[H]`** amber badge + scrub + lock. Locks are inspector-session only (reset on node change). Do not use labeled **`InspectorNumericScrubRow`** for canvas box size.
+
+Homogeneous multi-select applies width/height commits to every selected node of the same catalog type.
 
 ---
 
@@ -352,11 +382,25 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 
 1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temperature (°C)`** last on BMI270).
 2. **Typography** — follow **Typography** (Inter; node title **`text-[13px]`**, socket labels/previews **`11px`**).
-3. **Live reading colors** — follow **Live reading semantic colors**; socket previews must use **`socketLivePreviewForOutputHandle`** (or **`getLiveScalarReadingColorClass`** / **`ReadingAxisNumber`** for custom readouts).
-4. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
-5. Optional **Settings** section + registry entry.
-6. Optional on-card panel — only if operators need at-a-glance control.
-7. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
+3. **Socket preview kind** — pick one (see **Socket preview taxonomy** below); wire through **`socketLivePreviewForOutputHandle`** / **`socketLivePreviewForInputHandle`** — do not render ad-hoc preview spans on the card.
+4. **Live reading colors** — follow **Live reading semantic colors**; socket previews must use **`socketLivePreviewForOutputHandle`** (or **`getLiveScalarReadingColorClass`** / **`ReadingAxisNumber`** for custom readouts).
+5. Simulation — **`flow-editor.store.ts`** tick / pin evaluation.
+6. Optional **Settings** section + registry entry.
+7. Optional on-card panel — only if operators need at-a-glance control; **never** duplicate socket state in the header (title stays the catalog node name).
+8. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
+
+### Socket preview taxonomy (canvas)
+
+| Kind | When | Component | Label source |
+| ---- | ---- | ----------- | -------------- |
+| **Live scalar** | `number` / `boolean` evaluated pins | **`SocketLivePreview`** | Pin value; semantic tint for numbers |
+| **Live vector / quat** | `vector3` / `quaternion` | **`SocketLivePreview`** | Pin value; axis colors |
+| **Catalog / wire badge** | Asset or bundled-wire picks (environment, camera, studio model, future catalog refs) | **`SocketStructuredWireBadge`** | `resolve*WireSocketLabel` or `*EmitDisplayName` helper — **not** raw URLs on the row |
+| **Generic string** | Opaque string payloads (URLs, ids) with no friendly resolver | **`SocketLivePreview`** `string` | Truncated pin value; full value in **`title`** |
+
+**Row layout (unchanged):** port label (**`Model`**, **`Environment`**) stays on the label column; the badge/preview sits in the preview column (output: before label; input: after label). Example output row: `[badge: Cubemap — park] Environment` — same structure as `[badge: PSoC E84…] Model`.
+
+**New catalog-backed ports:** add a small `resolve*SocketLabel` (or reuse an existing emit helper) and route in **`socket-live-preview-for-handle.tsx`**; register bundled types in **`SOCKET_PREVIEW_STRUCTURED_PORT_TYPES`** when the wire is not a scalar string.
 
 ### Live multi-pin input node (BMI270 / BMM350 / DPS368 / SHT40)
 

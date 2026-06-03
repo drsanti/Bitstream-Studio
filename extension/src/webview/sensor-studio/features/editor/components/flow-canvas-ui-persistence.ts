@@ -8,8 +8,16 @@ import {
 } from "../../../persistence/flow-canvas-preferences";
 
 export type {
+  FlowCanvasEdgeBundleMode,
+  FlowCanvasEdgeBusLaneSort,
+  FlowCanvasEdgeSelectionHighlight,
+  FlowCanvasEdgeMarkerSize,
   FlowCanvasEdgeRoutingStyle,
+  FlowCanvasEdgeStrokeWidth,
+  FlowCanvasEdgeTypeLabelMode,
   FlowCanvasGridSize,
+  FlowCanvasHandleBorderWidthPx,
+  FlowCanvasHandleSizePx,
   FlowCanvasPreferences,
 } from "../../../persistence/flow-canvas-preferences";
 

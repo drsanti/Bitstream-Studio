@@ -339,7 +339,7 @@ export function GlbAnimationLabInspectorLiveMappingTab() {
           id: component.id,
           title: resolveTwinComponentDisplayLabel(component, locale),
           defaultExpanded,
-          titleTrailing:
+          titleTrailingSlot:
             component.group != null ? (
               <span className="shrink-0 text-[9px] font-normal uppercase tracking-wide text-zinc-500">
                 {component.group}
@@ -383,41 +383,29 @@ export function GlbAnimationLabInspectorLiveMappingTab() {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2">
-      <TRNHintText tone="muted" className="mb-0 shrink-0 text-[10px] leading-snug">
+    <div className="flex flex-col gap-2">
+      <TRNHintText tone="muted" className="mb-0 text-[11px] leading-snug">
         Map each 3D tag card to sensor sub-parameters. Drag cards to reorder. Data source:{" "}
         <span className="font-medium text-zinc-300">{twinCtx.dataSourceCaption}</span>
         {!connected ? " · connect Bitstream or Simulator for live preview" : null}
       </TRNHintText>
 
-      <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
-        <TRNSortableSettingsCardList
-          panelId={buildMappingSortablePanelId(twin)}
-          className="flex flex-col gap-2 pb-2"
-          items={sortableItems}
-        />
-      </div>
+      <TRNSortableSettingsCardList
+        panelId={buildMappingSortablePanelId(twin)}
+        className="space-y-2"
+        items={sortableItems}
+      />
 
-      <TRNHintText tone="muted" className="mb-0 shrink-0 text-[9px] leading-snug">
+      <TRNHintText tone="muted" className="mb-0 text-[10px] leading-snug">
         Drag the grip to reorder cards. Tap a parameter name to show it on the 3D tag (● cyan
         accent + 3D column). Other rows map live data for the twin panel only.
       </TRNHintText>
 
-      <div className="flex shrink-0 flex-wrap gap-1.5">
-        <TRNButton
-          size="compact"
-          tone="neutral"
-          className="border-zinc-600/80 bg-zinc-900/60 text-[11px]"
-          onClick={() => void copyMappingJson()}
-        >
+      <div className="flex flex-wrap gap-1.5">
+        <TRNButton size="compact" className="px-2 text-[11px]" onClick={() => void copyMappingJson()}>
           Copy mapping JSON
         </TRNButton>
-        <TRNButton
-          size="compact"
-          tone="neutral"
-          className="border-zinc-600/80 bg-zinc-900/60 text-[11px]"
-          onClick={() => resetAllMappings()}
-        >
+        <TRNButton size="compact" className="px-2 text-[11px]" onClick={() => resetAllMappings()}>
           Reset all mappings
         </TRNButton>
       </div>

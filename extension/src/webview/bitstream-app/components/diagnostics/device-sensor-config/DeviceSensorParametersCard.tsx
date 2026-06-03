@@ -92,28 +92,28 @@ export function DeviceSensorParametersCard(props: {
             <TRNTabsTrigger value="bmi270" className="flex-1">
               BMI270
             </TRNTabsTrigger>
-            <TRNTabsTrigger value="dps368" className="flex-1">
-              DPS368
+            <TRNTabsTrigger value="bmm350" className="flex-1">
+              BMM350
             </TRNTabsTrigger>
             <TRNTabsTrigger value="sht40" className="flex-1">
               SHT40
             </TRNTabsTrigger>
-            <TRNTabsTrigger value="bmm350" className="flex-1">
-              BMM350
+            <TRNTabsTrigger value="dps368" className="flex-1">
+              DPS368
             </TRNTabsTrigger>
           </TRNTabsList>
 
           <TRNTabsContent value="bmi270" className="min-h-0 flex-1 overflow-y-auto">
             <DeviceSensorConfigSummaryPanel sensorTitle="BMI270" row={bmi270Row} />
           </TRNTabsContent>
-          <TRNTabsContent value="dps368" className="min-h-0 flex-1 overflow-y-auto">
-            <DeviceSensorConfigSummaryPanel sensorTitle="DPS368" row={dps368Row} />
+          <TRNTabsContent value="bmm350" className="min-h-0 flex-1 overflow-y-auto">
+            <DeviceSensorConfigSummaryPanel sensorTitle="BMM350" row={bmm350Row} />
           </TRNTabsContent>
           <TRNTabsContent value="sht40" className="min-h-0 flex-1 overflow-y-auto">
             <DeviceSensorConfigSummaryPanel sensorTitle="SHT40" row={sht40Row} />
           </TRNTabsContent>
-          <TRNTabsContent value="bmm350" className="min-h-0 flex-1 overflow-y-auto">
-            <DeviceSensorConfigSummaryPanel sensorTitle="BMM350" row={bmm350Row} />
+          <TRNTabsContent value="dps368" className="min-h-0 flex-1 overflow-y-auto">
+            <DeviceSensorConfigSummaryPanel sensorTitle="DPS368" row={dps368Row} />
           </TRNTabsContent>
         </TRNTabs>
 

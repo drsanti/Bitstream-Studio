@@ -12,6 +12,9 @@ import {
   STUDIO_TEXTURE_URL_KEY,
 } from "../../gltf/studio-glb-material-texture";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
+import { FlowNodeIntrinsicWidthMarker } from "../flow-node/FlowNodeIntrinsicWidthMarker";
+import { widestTrnSelectOptionLabel } from "../flow-node/flow-node-intrinsic-width-utils";
+import { FLOW_NODE_TRN_SELECT_CLASS } from "../flow-node/flow-node-trn-select-layout";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
 
 export type GlbMaterialTextureNodePanelProps = {
@@ -95,16 +98,21 @@ export function GlbMaterialTextureNodePanel(props: GlbMaterialTextureNodePanelPr
     }
   }, [assetId, descriptors, nodeId, storedFetchUrl, updateField]);
 
+  const selectedLabel = options.find((o) => o.value === selectValue)?.label ?? "";
+
   return (
-    <ReadingPanel className="py-0.5">
+    <ReadingPanel className="relative overflow-hidden py-0.5">
+      <FlowNodeIntrinsicWidthMarker
+        labels={[selectedLabel, widestTrnSelectOptionLabel(options)]}
+      />
       <TRNSelect
         value={selectValue}
         options={options}
         onValueChange={applySelection}
         ariaLabel="Select texture for GLB material map"
         size="sm"
-        className="w-full"
-        buttonClassName="h-7 w-full text-[11px]"
+        className={FLOW_NODE_TRN_SELECT_CLASS}
+        buttonClassName="h-7 w-full min-w-0 max-w-full text-[11px]"
         panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
       />
     </ReadingPanel>

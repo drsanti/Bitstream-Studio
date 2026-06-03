@@ -43,6 +43,9 @@ export type DataTypeColorsPayload = {
   contactShadows: string;
   particleEmitter: string;
   audioBus: string;
+  physicsScene: string;
+  physicsCollider: string;
+  physicsBody: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -64,7 +67,10 @@ export type NodeCatalogOutputPort = {
     | "postProcessing"
     | "contactShadows"
     | "particleEmitter"
-    | "audioBus";
+    | "audioBus"
+    | "physicsScene"
+    | "physicsCollider"
+    | "physicsBody";
   label: string;
 };
 

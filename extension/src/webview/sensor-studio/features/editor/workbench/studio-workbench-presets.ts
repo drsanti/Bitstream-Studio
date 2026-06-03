@@ -45,6 +45,33 @@ const STUDIO_INSPECTOR_WIDE_LAYOUT: LayoutNode = createSplit(
   "preset-inspector-wide-root",
 );
 
+/** Large Stage over a thin Flow strip (runtime preview focus). */
+const STUDIO_STAGE_FOCUS_LAYOUT: LayoutNode = createSplit(
+  createSplit(
+    createEditorPane("library", { id: "preset-library-stg" }),
+    createEditorPane("assets", { id: "preset-assets-stg" }),
+    "vertical",
+    0.5,
+    "preset-left-stg",
+  ),
+  createSplit(
+    createSplit(
+      createEditorPane("stage", { id: "preset-stage-focus" }),
+      createEditorPane("flow", { id: "preset-flow-stg" }),
+      "vertical",
+      0.78,
+      "preset-center-stg",
+    ),
+    createEditorPane("inspector", { id: "preset-inspector-stg" }),
+    "horizontal",
+    0.8,
+    "preset-main-stg",
+  ),
+  "horizontal",
+  0.16,
+  "preset-stage-focus-root",
+);
+
 /** Flow + inspector only — side catalog panes omitted from tree. */
 const STUDIO_MINIMAL_LAYOUT: LayoutNode = createSplit(
   createEditorPane("flow", { id: "preset-flow-min" }),
@@ -66,6 +93,12 @@ export const STUDIO_WORKBENCH_PRESETS: readonly WorkbenchLayoutPreset[] = [
     label: "Graph focus",
     description: "Wide flow canvas, thin library column",
     layout: STUDIO_GRAPH_FOCUS_LAYOUT,
+  },
+  {
+    id: "stage-focus",
+    label: "Stage focus",
+    description: "Large Stage viewport over Flow (Scene Output preview)",
+    layout: STUDIO_STAGE_FOCUS_LAYOUT,
   },
   {
     id: "inspector-wide",

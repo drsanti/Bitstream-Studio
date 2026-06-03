@@ -30,6 +30,7 @@ import "../nodes/flow-node/flow-node-handles.css";
 import "../nodes/flow-node/flow-node-selection.css";
 import "../flow-canvas-minimap.css";
 import "../flow-canvas-interaction.css";
+import "../flow-canvas-edges.css";
 import "../layout-nodes/layout-flow-nodes.css";
 import "../layout-nodes/subgraph-flow-nodes.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
@@ -44,6 +45,7 @@ import { FlowGraphBreadcrumbChrome } from "./FlowGraphBreadcrumb";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
 import type { FlowGraphNode } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
+import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
 import { useFlowCanvasLayoutShortcuts } from "../keyboard/use-flow-canvas-layout-shortcuts";
 import type { LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isStudioFlowNode } from "../layout/layout-port-resolution";
@@ -63,15 +65,13 @@ import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
 import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { FlowCanvasToolbar } from "./flow-toolbar/FlowCanvasToolbar";
 import { FlowCanvasTopLeftChrome } from "./flow-toolbar/FlowCanvasTopLeftChrome";
+import { EdgeSelectionToolbar } from "./flow-toolbar/EdgeSelectionToolbar";
 import { NodeSelectionToolbar } from "./flow-toolbar/NodeSelectionToolbar";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { readRecentCatalogNodeIds } from "../keyboard/recent-catalog-nodes";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
-import {
-  inferLayoutNodeSmartConnectPortType,
-  resolveFlowSourcePortType,
-  resolveFlowTargetPortType,
-} from "../layout/layout-port-resolution";
+import { inferLayoutNodeSmartConnectPortType } from "../layout/layout-port-resolution";
+import { resolveConnectPortType } from "../connect/resolve-connect-port-type";
 import {
   buildSmartConnectAutoWire,
   filterCatalogEntriesForSmartConnect,
@@ -81,11 +81,18 @@ import {
   type SmartConnectPortType,
 } from "../connect/smart-connect-catalog";
 import {
+  isPointerOverFlowHandle,
+  resolveConnectionAtPointer,
+  toastConnectionRejected,
+} from "../connect/connection-feedback";
+import {
   edgesToPopOnConnectStart,
+  mergeReconnectConnection,
   validateStudioConnection,
 } from "../connect/socket-connection-policy";
 import { FlowConnectDragHint } from "./flow-toolbar/FlowConnectDragHint";
-import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
+import { FlowEdgeContextMenu } from "./FlowEdgeContextMenu";
+import { collectDownstreamEdgeIds } from "../edges/flow-edge-downstream-path";
 import {
   isStudioNodeGroupNode,
   type StudioNodeGroupData,
@@ -94,12 +101,17 @@ import {
   sortFlowNodesParentFirst,
   isStudioFrameNode,
 } from "../layout/frame-flow-nodes";
+import { buildFlowNodeIdMap } from "../edges/flow-edge-source-health";
 import {
   buildFlowPortColorMap,
   decorateFlowEdges,
   FLOW_EDGE_FALLBACK_STROKE,
   strokeForPortType,
 } from "../edges/flow-port-edge-colors";
+import { FlowCanvasPreferencesProvider } from "../context/flow-canvas-preferences-context";
+
+/** Stable empty selection for Zustand-derived lists (never allocate in selectors). */
+const EMPTY_SELECTED_NODE_IDS: string[] = [];
 
 type FlowCanvasProps = {
   borderColor: string;
@@ -122,6 +134,9 @@ type FlowCanvasProps = {
   contactShadowsColor: string;
   particleEmitterColor: string;
   audioBusColor: string;
+  physicsSceneColor: string;
+  physicsColliderColor: string;
+  physicsBodyColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   catalogEntries: readonly NodeCatalogEntry[];
   onAddCatalogEntryAtFlowPosition: (
@@ -132,7 +147,10 @@ type FlowCanvasProps = {
   edges: Edge[];
   onNodesChange: OnNodesChange<FlowGraphNode>;
   onEdgesChange: OnEdgesChange<Edge>;
-  onConnect: OnConnect;
+  onConnect: (
+    connection: Parameters<OnConnect>[0],
+    options?: { skipUndoSnapshot?: boolean },
+  ) => void;
   onSelectionChange: (selectedNodeIds: string[]) => void;
   fitViewVersion: number;
   initialViewport?: Viewport | null;
@@ -184,6 +202,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       contactShadowsColor,
       particleEmitterColor,
       audioBusColor,
+      physicsSceneColor,
+      physicsColliderColor,
+      physicsBodyColor,
       minimapCategoryColors,
       catalogEntries,
       onAddCatalogEntryAtFlowPosition,
@@ -217,6 +238,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       null,
     );
     const addLayoutNodeAt = useFlowEditorStore((s) => s.addLayoutNodeAt);
+    const setActiveEditorType = useStudioWorkbenchFocusStore((s) => s.setActiveEditorType);
     const insertRerouteOnEdge = useFlowEditorStore(
       (s) => s.insertRerouteOnEdge,
     );
@@ -241,6 +263,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     });
     const connectDragRef = useRef<SmartConnectDragContext | null>(null);
     const connectSucceededRef = useRef(false);
+    const reconnectBatchedUndoRef = useRef(false);
     /** Prevents the pane click that follows connect-end from instantly closing the add menu. */
     const suppressPaneDismissRef = useRef(false);
 
@@ -261,9 +284,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           studioLightColor,
           postProcessingColor,
           contactShadowsColor,
-          particleEmitterColor,
-          audioBusColor,
-        }),
+      particleEmitterColor,
+      audioBusColor,
+      physicsSceneColor,
+      physicsColliderColor,
+      physicsBodyColor,
+    }),
       [
         numberColor,
         booleanColor,
@@ -281,15 +307,44 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         contactShadowsColor,
         particleEmitterColor,
         audioBusColor,
+        physicsSceneColor,
+        physicsColliderColor,
+        physicsBodyColor,
       ],
     );
+
+    const storedSelectedNodeIds = useFlowEditorStore((s) => s.selectedNodeIds);
+    const storedSelectedNodeId = useFlowEditorStore((s) => s.selectedNodeId);
+    const selectedNodeIdList = useMemo((): string[] => {
+      if (storedSelectedNodeIds.length > 0) {
+        return storedSelectedNodeIds;
+      }
+      if (storedSelectedNodeId != null) {
+        return [storedSelectedNodeId];
+      }
+      return EMPTY_SELECTED_NODE_IDS;
+    }, [storedSelectedNodeIds, storedSelectedNodeId]);
+
+    const [viewportZoom, setViewportZoom] = useState(
+      () => initialViewport?.zoom ?? 1,
+    );
+    const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+    const [edgeMenuAnchor, setEdgeMenuAnchor] = useState<{
+      clientX: number;
+      clientY: number;
+      edgeId: string;
+    } | null>(null);
+    const [highlightedPathEdgeIds, setHighlightedPathEdgeIds] =
+      useState<ReadonlySet<string> | null>(null);
+
+    const nodeById = useMemo(() => buildFlowNodeIdMap(nodes), [nodes]);
 
     const connectionLineStyle = useMemo(
       () => ({
         stroke: connectingLineStroke ?? FLOW_EDGE_FALLBACK_STROKE,
-        strokeWidth: 2,
+        strokeWidth: flowCanvasPreferences.connectionLineStrokeWidth,
       }),
-      [connectingLineStroke],
+      [connectingLineStroke, flowCanvasPreferences.connectionLineStrokeWidth],
     );
 
     const fitAllInView = useCallback(() => {
@@ -539,39 +594,42 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       [addLayoutNodeAt],
     );
 
-    const coloredEdges = useMemo(
-      () =>
-        decorateFlowEdges(
-          edges,
-          portColorMap,
-          flowCanvasPreferences.edgeRoutingStyle,
-        ),
-      [edges, portColorMap, flowCanvasPreferences.edgeRoutingStyle],
-    );
+    useEffect(() => {
+      if (highlightedPathEdgeIds == null || highlightedPathEdgeIds.size === 0) {
+        return;
+      }
+      const stale = [...highlightedPathEdgeIds].some(
+        (id) => !edges.some((e) => e.id === id),
+      );
+      if (stale) {
+        setHighlightedPathEdgeIds(null);
+      }
+    }, [edges, highlightedPathEdgeIds]);
 
-    const resolveConnectPortType = useCallback(
-      (
-        node: FlowGraphNode,
-        handleId: string,
-        handleType: "source" | "target",
-      ): SmartConnectPortType | null => {
-        if (handleType === "source") {
-          return (
-            resolveStudioGroupNodePortType(node, handleId, "output", subgraphs) ??
-            resolveFlowSourcePortType(node, handleId)
-          );
-        }
-        return (
-          resolveStudioGroupNodePortType(node, handleId, "input", subgraphs) ??
-          resolveFlowTargetPortType(node, handleId)
-        );
-      },
-      [subgraphs],
-    );
+    const coloredEdges = useMemo(() => {
+      const selectedNodeIds = new Set(selectedNodeIdList);
+      return decorateFlowEdges(edges, portColorMap, flowCanvasPreferences, {
+        selectedNodeIds,
+        viewportZoom,
+        hoveredEdgeId,
+        nodeById,
+        highlightedPathEdgeIds: highlightedPathEdgeIds ?? undefined,
+      });
+    }, [
+      edges,
+      portColorMap,
+      flowCanvasPreferences,
+      selectedNodeIdList,
+      viewportZoom,
+      hoveredEdgeId,
+      nodeById,
+      highlightedPathEdgeIds,
+    ]);
 
     const popEdgesForSocketReconnect = useFlowEditorStore(
       (s) => s.popEdgesForSocketReconnect,
     );
+    const onReconnectEdge = useFlowEditorStore((s) => s.onReconnect);
 
     const isValidConnection = useCallback(
       (connection: Connection | Edge) => {
@@ -606,7 +664,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           edges,
         );
         if (popIds.length > 0) {
-          popEdgesForSocketReconnect(popIds);
+          useFlowEditorStore.getState().pushUndoSnapshot();
+          popEdgesForSocketReconnect(popIds, { recordUndo: false });
+          reconnectBatchedUndoRef.current = true;
         }
         const node = nodes.find((n) => n.id === nodeId);
         if (node == null) {
@@ -615,7 +675,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         }
         const isLayoutJunction =
           node.type === "studio-reroute" || node.type === "studio-split";
-        let portType = resolveConnectPortType(node, handleId, handleType);
+        let portType = resolveConnectPortType(node, handleId, handleType, subgraphs);
         if (portType == null && isLayoutJunction) {
           portType = inferLayoutNodeSmartConnectPortType(
             node,
@@ -645,7 +705,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           altKey: _event.altKey,
         });
       },
-      [edges, nodes, popEdgesForSocketReconnect, portColorMap, resolveConnectPortType],
+      [edges, nodes, popEdgesForSocketReconnect, portColorMap, subgraphs],
     );
 
     const handleConnectEnd = useCallback(
@@ -663,6 +723,28 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           connectionState.toNode != null || connectionState.toHandle != null;
         const completedConnection =
           connectSucceededRef.current || connectionState.isValid === true;
+
+        if (
+          ctx != null &&
+          !completedConnection &&
+          clientX != null &&
+          clientY != null &&
+          droppedOnHandle &&
+          isPointerOverFlowHandle(clientX, clientY)
+        ) {
+          const attempted = resolveConnectionAtPointer(ctx, clientX, clientY);
+          if (attempted != null) {
+            const check = validateStudioConnection(
+              attempted,
+              { nodes, edges, subgraphs },
+              { allowIncomplete: false },
+            );
+            if (!check.ok) {
+              toastConnectionRejected(check.reason);
+            }
+          }
+          return;
+        }
 
         if (
           ctx == null ||
@@ -690,7 +772,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           });
         });
       },
-      [],
+      [edges, nodes, subgraphs],
     );
 
     const handleConnect = useCallback(
@@ -700,9 +782,59 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         }
         setConnectingLineStroke(null);
         connectDragRef.current = null;
-        onConnect(connection);
+        const skipUndo = reconnectBatchedUndoRef.current;
+        reconnectBatchedUndoRef.current = false;
+        onConnect(connection, { skipUndoSnapshot: skipUndo });
       },
       [onConnect],
+    );
+
+    const handleReconnect = useCallback(
+      (oldEdge: Edge, newConnection: Connection) => {
+        const storeEdge = edges.find((e) => e.id === oldEdge.id);
+        if (storeEdge == null) {
+          return;
+        }
+        onReconnectEdge(storeEdge, newConnection);
+      },
+      [edges, onReconnectEdge],
+    );
+
+    const handleReconnectEnd = useCallback(
+      (
+        _event: MouseEvent | TouchEvent,
+        edge: Edge,
+        _stableHandleType: "source" | "target",
+        connectionState: FinalConnectionState,
+      ) => {
+        if (connectionState.isValid === true) {
+          return;
+        }
+        if (connectionState.toNode == null && connectionState.toHandle == null) {
+          return;
+        }
+        const storeEdge = edges.find((e) => e.id === edge.id);
+        if (storeEdge == null) {
+          return;
+        }
+        const attempted = mergeReconnectConnection(storeEdge, {
+          source: connectionState.fromNode?.id ?? storeEdge.source,
+          target: connectionState.toNode?.id ?? storeEdge.target,
+          sourceHandle:
+            connectionState.fromHandle?.id ?? storeEdge.sourceHandle ?? null,
+          targetHandle:
+            connectionState.toHandle?.id ?? storeEdge.targetHandle ?? null,
+        });
+        const check = validateStudioConnection(
+          attempted,
+          { nodes, edges, subgraphs },
+          { allowIncomplete: false, excludeEdgeId: storeEdge.id },
+        );
+        if (!check.ok) {
+          toastConnectionRejected(check.reason);
+        }
+      },
+      [edges, nodes, subgraphs],
     );
 
     const handlePickAddNodeEntry = useCallback(
@@ -744,6 +876,24 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         window.removeEventListener("keyup", onKey);
       };
     }, [connectingLineStroke]);
+
+    const handleEdgeContextMenu = useCallback(
+      (event: MouseEvent, edge: Edge) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!edges.some((e) => e.id === edge.id)) {
+          return;
+        }
+        setAddNodeMenuAnchor(null);
+        setEdgeMenuAnchor({
+          clientX: event.clientX,
+          clientY: event.clientY,
+          edgeId: edge.id,
+        });
+        setActiveEditorType("flow");
+      },
+      [edges, setActiveEditorType],
+    );
 
     const handleEdgeClick = useCallback(
       (event: MouseEvent, edge: Edge) => {
@@ -847,9 +997,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         <div
           ref={graphWrapperRef}
           className={
-            isPanMode
+            (isPanMode
               ? "studio-flow-canvas--pan relative min-h-0 flex-1"
-              : "studio-flow-canvas--select relative min-h-0 flex-1"
+              : "studio-flow-canvas--select relative min-h-0 flex-1") +
+            (flowCanvasPreferences.edgeHoverHighlight
+              ? " studio-flow-canvas--edge-hover"
+              : "")
           }
           style={{ borderColor }}
           onDragOver={handleCanvasDragOver}
@@ -876,11 +1029,56 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             wrapperRef={graphWrapperRef}
             onFitSelection={fitSelectionInView}
           />
+          <EdgeSelectionToolbar
+            wrapperRef={graphWrapperRef}
+            highlightedPathEdgeIds={highlightedPathEdgeIds}
+            onHighlightDownstream={setHighlightedPathEdgeIds}
+            onClearPathHighlight={() => setHighlightedPathEdgeIds(null)}
+          />
           <FlowConnectDragHint
             active={connectingLineStroke != null}
             shiftKey={connectDragModifiers.shiftKey}
             altKey={connectDragModifiers.altKey}
           />
+          {edgeMenuAnchor != null ? (
+            <FlowEdgeContextMenu
+              clientX={edgeMenuAnchor.clientX}
+              clientY={edgeMenuAnchor.clientY}
+              edgeId={edgeMenuAnchor.edgeId}
+              portTypeLabel={
+                (() => {
+                  const storeEdge = edges.find((e) => e.id === edgeMenuAnchor.edgeId);
+                  return typeof storeEdge?.label === "string" ? storeEdge.label : "";
+                })()
+              }
+              pathHighlightActive={
+                highlightedPathEdgeIds != null && highlightedPathEdgeIds.size > 0
+              }
+              onInsertReroute={() => {
+                const instance = reactFlowRef.current;
+                if (instance == null) {
+                  return;
+                }
+                const flowPos = instance.screenToFlowPosition({
+                  x: edgeMenuAnchor.clientX,
+                  y: edgeMenuAnchor.clientY,
+                });
+                insertRerouteOnEdge(edgeMenuAnchor.edgeId, flowPos);
+              }}
+              onDeleteWire={() => {
+                onEdgesChange([{ type: "remove", id: edgeMenuAnchor.edgeId }]);
+                setHighlightedPathEdgeIds(null);
+              }}
+              onHighlightDownstream={() => {
+                setHighlightedPathEdgeIds(
+                  collectDownstreamEdgeIds(edgeMenuAnchor.edgeId, edges),
+                );
+              }}
+              onClearPathHighlight={() => setHighlightedPathEdgeIds(null)}
+              onClose={() => setEdgeMenuAnchor(null)}
+            />
+          ) : null}
+          <FlowCanvasPreferencesProvider value={flowCanvasPreferences}>
           <ReactFlow<FlowGraphNode>
             colorMode="dark"
             proOptions={{ hideAttribution: true }}
@@ -893,12 +1091,14 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             selectionOnDrag={!isPanMode}
             snapToGrid={flowCanvasPreferences.snapToGrid}
             snapGrid={snapGrid}
+            elevateEdgesOnSelect={flowCanvasPreferences.elevateEdgesOnSelect}
+            connectionRadius={flowCanvasPreferences.connectionRadius}
             defaultEdgeOptions={{
               type: FLOW_CANVAS_EDGE_ROUTING_TO_REACT_FLOW[
                 flowCanvasPreferences.edgeRoutingStyle
               ],
-              animated: true,
-              style: { strokeWidth: 2 },
+              animated: flowCanvasPreferences.edgeAnimated,
+              style: { strokeWidth: flowCanvasPreferences.edgeStrokeWidth },
             }}
             deleteKeyCode={["Backspace", "Delete"]}
             onNodesChange={onNodesChange}
@@ -913,31 +1113,70 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             onConnect={handleConnect}
             onConnectStart={handleConnectStart}
             onConnectEnd={handleConnectEnd}
+            edgesReconnectable
+            reconnectRadius={flowCanvasPreferences.connectionRadius}
+            onReconnect={handleReconnect}
+            onReconnectEnd={handleReconnectEnd}
             isValidConnection={isValidConnection}
             onEdgeClick={handleEdgeClick}
+            onEdgeContextMenu={handleEdgeContextMenu}
+            onEdgeMouseEnter={(_, edge) => {
+              if (flowCanvasPreferences.edgeShowTypeLabel === "hover") {
+                setHoveredEdgeId(edge.id);
+              }
+            }}
+            onEdgeMouseLeave={() => {
+              if (flowCanvasPreferences.edgeShowTypeLabel === "hover") {
+                setHoveredEdgeId(null);
+              }
+            }}
             connectionLineStyle={connectionLineStyle}
             onSelectionChange={(selection) => {
               onSelectionChange(selection.nodes.map((n) => n.id));
+              if (selection.nodes.length > 0 || selection.edges.length > 0) {
+                setActiveEditorType("flow");
+              }
             }}
             onPaneClick={(event) => {
+              if (event.button === 0) {
+                setActiveEditorType("flow");
+              }
               if (!suppressPaneDismissRef.current && addNodeMenuAnchor != null) {
                 setAddNodeMenuAnchor(null);
               }
+              setEdgeMenuAnchor(null);
               onFlowPanePointerEvent?.({ button: event.button });
             }}
             onPaneContextMenu={(event) => {
               event.preventDefault();
+              setEdgeMenuAnchor(null);
               openAddNodeMenuAtPointer(event.clientX, event.clientY);
+            }}
+            onMove={(_event, viewport) => {
+              if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
+                setViewportZoom(viewport.zoom);
+              }
             }}
             onMoveEnd={
               onViewportMoveEnd != null
                 ? (_event, viewport) => {
+                    if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
+                      setViewportZoom(viewport.zoom);
+                    }
                     onViewportMoveEnd(viewport);
                   }
-                : undefined
+                : (_event, viewport) => {
+                    if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
+                      setViewportZoom(viewport.zoom);
+                    }
+                  }
             }
             onInit={(instance) => {
               reactFlowRef.current = instance;
+              const vp = instance.getViewport();
+              if (Number.isFinite(vp.zoom) && vp.zoom > 0) {
+                setViewportZoom(vp.zoom);
+              }
               if (
                 !bootViewportAppliedRef.current &&
                 initialViewport != null &&
@@ -947,6 +1186,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
                 initialViewport.zoom > 0
               ) {
                 instance.setViewport(initialViewport);
+                setViewportZoom(initialViewport.zoom);
                 bootViewportAppliedRef.current = true;
               }
             }}
@@ -984,6 +1224,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               />
             ) : null}
           </ReactFlow>
+          </FlowCanvasPreferencesProvider>
         </div>
       </section>
     );

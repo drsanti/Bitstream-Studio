@@ -5,14 +5,38 @@ alwaysApply: true
 
 # Bitstream Simulator (standalone app)
 
-See repo root **`.cursor/rules/bitstream-simulator-app-path.mdc`** for full policy.
+When the user, docs, or UI say **simulator**, **bitstream-simulator**, **external simulator**, or **virtual MCU**, they mean the **separate VS Code extension** — not in-bridge mock and not MCU firmware.
 
-**Path:** `D:\CODE\2026\ternion-t3d\bitstream-simulator` (separate VSIX; not in Bitstream-Studio tree)
+## Path (this machine)
 
-**Bridge:** `src/serialport-bridge/SerialPortWebSocketBridge.ts` — no in-bridge loopback.
+**`D:\CODE\2026\ternion-t3d\bitstream-simulator`** (separate repo; not in Bitstream-Studio tree)
+
+| Item | Detail |
+|------|--------|
+| **Kind** | Standalone VS Code extension (+ CLI) |
+| **Broker** | Connects to Bitstream Studio bridge (default `ws://127.0.0.1:9998`) |
+| **Topics** | Publishes `bitstream2/sim/status`; subscribes `bitstream2/sim/host-tx`, `bitstream2/dev/sim/control`; injects `bitstream2/dev/inject-rx` |
+
+## Not the same as
+
+- **In-bridge mock** — removed; do **not** use `BITSTREAM2_DEV_LOOPBACK=1` or `BsFirmwareSimulator` in `SerialPortWebSocketBridge.ts`
+- **Legacy webview panel** — `extension/src/webview/bitstream2-simulator/` (dev dashboard only)
+- **MCU firmware** — real UART on PSoC Edge
+
+## Dev workflow (Bitstream Studio)
+
+```bash
+# Terminal 1 — from extension/
+npm run start:bridge
+
+# Terminal 2
+npm run dev:webview
+```
+
+Install/run **Bitstream Simulator** extension → **Streaming**. Toolbar **Simulator** + **Link**.
+
+Repo root rule: **`Bitstream-Studio/.cursor/rules/bitstream-simulator-app-path.mdc`** — keep in sync.
 
 **Skill:** `.cursor/skills/bitstream-simulator-app/SKILL.md`
 
-## Communication
-
-**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.
+**Always DO NOT respond in Chinese.** Chat: **English** and/or **Thai** only — **`communication-language.mdc`**.

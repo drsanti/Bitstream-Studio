@@ -9,7 +9,7 @@ type TransformWireOrientationProps = Pick<
 /**
  * Model Viewer orientation from a transform wire.
  * Fusion wires use the same `eulerOnly` + hundredths path as **3D Rotation · Euler (rad)** —
- * do not pre-apply firmware GLB mapping here (RotationPreviewPanelV4 applies it once).
+ * do not pre-apply firmware GLB mapping here (StudioSceneViewport applies it once).
  */
 export function rotationPreviewOrientationFromTransformWire(
   wire: FlowWireTransformV1 | null | undefined,

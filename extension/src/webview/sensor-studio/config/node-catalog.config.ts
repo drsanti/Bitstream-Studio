@@ -3,14 +3,22 @@ import {
   PALETTE_TEMPERATURE_ROW_LABEL,
   SENSOR_TEMPERATURE_PORT_LABEL,
 } from "../core/sensor-port-labels";
+import {
+  DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
+  DEFAULT_STUDIO_PACK_MODEL_RELATIVE_PATH,
+} from "../../assets-manager/registry/default-studio-pack-model";
 import { PSOC_E84_GLB_RELATIVE_PATH } from "../../bitstream-app/components/3d-rotation/shared/rotationPreviewConstants";
 import { defaultFlowWireCameraV1 } from "../features/editor/nodes/camera-view/flow-wire-camera";
 import { defaultFlowWireTransformV1 } from "../features/editor/nodes/transform/flow-wire-transform";
+import {
+  STAGE_DEFAULT_SHOW_GRID,
+  stageSceneOutputDefaultScene3d,
+} from "../core/stage/stage-scene-defaults";
 import { defaultFlowWireEnvironmentV1 } from "../features/editor/nodes/environment/flow-wire-environment";
 import {
   defaultScene3DConfig,
   type Scene3DConfigV1,
-} from "../features/editor/nodes/rotation/scene3d-config";
+} from "../core/scene3d/scene3d-config";
 import { VECTOR_QUATERNION_MATH_CATALOG_ENTRIES } from "./vector-quaternion-math-catalog.entries";
 
 /**
@@ -661,8 +669,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         icon: "package",
         defaultVisible: true,
         defaultConfig: {
-          selectedStudioAssetId: "",
-          selectedModelUrl: "",
+          selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
+          selectedModelUrl: DEFAULT_STUDIO_PACK_MODEL_RELATIVE_PATH,
           generatedChildNodeIds: [],
         },
         outputPorts: [{ id: "out", portType: "string", label: "Model" }],
@@ -834,6 +842,19 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           button: "left",
         },
         outputPorts: [{ id: "out", portType: "event", label: "Click" }],
+      },
+      {
+        id: "on-stage-pick",
+        category: "logic",
+        title: "On Stage Pick",
+        description:
+          "Emit an **event** pulse when you pick a model in the **Stage** workbench viewport (Domain C). Updates Stage focus to the picked instance. Wire into **Set Boolean**, **Toggle Boolean**, or GLB actions.",
+        icon: "scan-line",
+        defaultVisible: true,
+        defaultConfig: {
+          button: "left",
+        },
+        outputPorts: [{ id: "out", portType: "event", label: "Pick" }],
       },
       {
         id: "event-set-boolean",
@@ -1113,6 +1134,37 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         ],
       },
       {
+        id: "scene-output",
+        category: "output",
+        title: "Scene Output",
+        description:
+          "Commits wired **Models** and optional **Environment**, **Camera**, **Transform**, **Animation**, scene FX, and **Physics** to the **Stage** workbench (full Three.js + Rapier). Use **Model Viewer** on the canvas for authoring previews.",
+        icon: "monitor-play",
+        defaultVisible: true,
+        defaultConfig: {
+          showGrid: STAGE_DEFAULT_SHOW_GRID,
+          scene3d: stageSceneOutputDefaultScene3d(),
+        },
+        inputPorts: [
+          { id: "models", portType: "string", label: "Models" },
+          { id: "env", portType: "environment", label: "Environment" },
+          { id: "cam", portType: "camera", label: "Camera" },
+          { id: "anim", portType: "glbAnimation", label: "Animation" },
+          { id: "xf", portType: "transform", label: "Transform" },
+          { id: "settings", portType: "number", label: "Exposure" },
+          { id: "fog", portType: "fog", label: "Fog" },
+          { id: "lite", portType: "studioLight", label: "Studio Light" },
+          { id: "post", portType: "postProcessing", label: "Post-FX" },
+          {
+            id: "cshadow",
+            portType: "contactShadows",
+            label: "Contact Shadows",
+          },
+          { id: "emitter", portType: "particleEmitter", label: "Particles" },
+          { id: "phys", portType: "physicsScene", label: "Physics" },
+        ],
+      },
+      {
         id: "model-viewer",
         category: "output",
         title: "Model Viewer",
@@ -1141,6 +1193,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             label: "Contact Shadows",
           },
           { id: "emitter", portType: "particleEmitter", label: "Particles" },
+          { id: "phys", portType: "physicsScene", label: "Physics" },
         ],
       },
       // ── Display / Control nodes ──────────────────────────────────────────
@@ -1558,6 +1611,131 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: { modelSourceId: "", variant: "" },
         inputPorts: [{ id: "variant", portType: "string", label: "Variant" }],
         outputPorts: [{ id: "out", portType: "string", label: "Variant" }],
+      },
+      {
+        id: "physics-world",
+        category: "utility",
+        title: "Physics World",
+        description:
+          "Rapier world settings. Wire **Shapes** / **Bodies** from colliders and rigid bodies; wire **Scene** into Scene Output or Model Viewer **Physics**.",
+        icon: "globe",
+        defaultVisible: false,
+        defaultConfig: { enabled: true, gravityY: -9.81 },
+        inputPorts: [
+          { id: "shapes", portType: "physicsCollider", label: "Shapes" },
+          { id: "bodies", portType: "physicsBody", label: "Bodies" },
+        ],
+        outputPorts: [{ id: "out", portType: "physicsScene", label: "Scene" }],
+      },
+      {
+        id: "rigid-body",
+        category: "utility",
+        title: "Rigid Body",
+        description: "Dynamic rigid body — wire **Body** into Physics World **Bodies** for Rapier preview.",
+        icon: "box",
+        defaultVisible: false,
+        defaultConfig: {
+          mass: 1,
+          friction: 0.5,
+          restitution: 0.3,
+          positionX: 0,
+          positionY: 3,
+          positionZ: 0,
+          halfExtents: 0.25,
+        },
+        outputPorts: [{ id: "out", portType: "physicsBody", label: "Body" }],
+      },
+      {
+        id: "box-collider",
+        category: "utility",
+        title: "Box Collider",
+        description: "Static box shape — wire **Shape** into Physics World **Shapes**.",
+        icon: "square",
+        defaultVisible: false,
+        defaultConfig: {
+          positionX: 0,
+          positionY: 1,
+          positionZ: 0,
+          rotationDegX: 0,
+          rotationDegY: 0,
+          rotationDegZ: 0,
+          halfExtentsX: 0.5,
+          halfExtentsY: 0.5,
+          halfExtentsZ: 0.5,
+        },
+        outputPorts: [{ id: "out", portType: "physicsCollider", label: "Shape" }],
+      },
+      {
+        id: "sphere-collider",
+        category: "utility",
+        title: "Sphere Collider",
+        description: "Static sphere shape — wire **Shape** into Physics World **Shapes**.",
+        icon: "circle",
+        defaultVisible: false,
+        defaultConfig: {
+          positionX: 0,
+          positionY: 1.2,
+          positionZ: 0,
+          rotationDegX: 0,
+          rotationDegY: 0,
+          rotationDegZ: 0,
+          radius: 0.5,
+        },
+        outputPorts: [{ id: "out", portType: "physicsCollider", label: "Shape" }],
+      },
+      {
+        id: "object-spawner",
+        category: "utility",
+        title: "Object Spawner",
+        description: "Spawn mesh instances into the physics scene (Tier D1 stub).",
+        icon: "sparkles",
+        defaultVisible: false,
+        defaultConfig: { rate: 0, maxCount: 8 },
+        inputPorts: [
+          { id: "trigger", portType: "number", label: "Trigger" },
+          { id: "rate", portType: "number", label: "Rate" },
+        ],
+        outputPorts: [{ id: "spawn", portType: "event", label: "Spawn" }],
+      },
+      {
+        id: "fixed-joint",
+        category: "utility",
+        title: "Fixed Joint",
+        description: "Lock two rigid bodies together (Tier D1 stub).",
+        icon: "link",
+        defaultVisible: false,
+        defaultConfig: {},
+        inputPorts: [
+          { id: "bodyA", portType: "transform", label: "Body A" },
+          { id: "bodyB", portType: "transform", label: "Body B" },
+        ],
+      },
+      {
+        id: "hinge-joint",
+        category: "utility",
+        title: "Hinge Joint",
+        description: "Hinge constraint between two bodies (Tier D1 stub).",
+        icon: "rotate-cw",
+        defaultVisible: false,
+        defaultConfig: { axis: "y" },
+        inputPorts: [
+          { id: "bodyA", portType: "transform", label: "Body A" },
+          { id: "bodyB", portType: "transform", label: "Body B" },
+        ],
+      },
+      {
+        id: "ik-chain",
+        category: "utility",
+        title: "IK Chain",
+        description: "Inverse kinematics target stub (Tier D1).",
+        icon: "move",
+        defaultVisible: false,
+        defaultConfig: { x: 0, y: 0, z: 0 },
+        inputPorts: [
+          { id: "x", portType: "number", label: "X" },
+          { id: "y", portType: "number", label: "Y" },
+          { id: "z", portType: "number", label: "Z" },
+        ],
       },
       {
         id: "vector-constant",

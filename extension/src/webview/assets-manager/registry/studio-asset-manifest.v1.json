@@ -1,46 +1,314 @@
 {
   "version": 1,
+  "defaults": {
+    "packModelId": "model.psoc-e84.default",
+    "packEnvironmentId": "env.cubemap.park"
+  },
   "assets": [
     {
       "id": "model.psoc-e84.default",
       "category": "model",
       "source": "pack",
       "label": "PSoC E84 (AI board)",
-      "summary": "Default rotation / Bitstream preview GLB (free pack / globalStorage).",
+      "summary": "Default rotation / Bitstream / Sensor Studio pack GLB.",
       "relativePath": "models/psoc-e84-ai/psoc-e84-ai.glb",
       "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/psoc-e84-ai/psoc-e84-ai.glb"
     },
     {
-      "id": "model.robot-4th-project",
+      "id": "model.abb-robot-arm",
       "category": "model",
       "source": "pack",
-      "label": "Robot — 4th project",
-      "summary": "Example robot GLB (free pack / mirrored models).",
-      "relativePath": "models/robot-4th-project/robot-4th-project.glb"
+      "label": "ABB robot arm",
+      "summary": "Free pack GLB (abb-robot-arm) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/abb-robot-arm/abb-robot-arm.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/abb-robot-arm/abb-robot-arm.glb"
+    },
+    {
+      "id": "model.car-cam-physics",
+      "category": "model",
+      "source": "pack",
+      "label": "Car + camera (physics)",
+      "summary": "Free pack GLB (car-cam-physics) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/car-cam-physics/car-cam-physics.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/car-cam-physics/car-cam-physics.glb"
+    },
+    {
+      "id": "model.healtcare-gateway",
+      "category": "model",
+      "source": "pack",
+      "label": "Healthcare gateway",
+      "summary": "Free pack GLB (healtcare-gateway) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/healtcare-gateway/healtcare-gateway.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/healtcare-gateway/healtcare-gateway.glb"
+    },
+    {
+      "id": "model.plc-traninig-kit",
+      "category": "model",
+      "source": "pack",
+      "label": "PLC training kit",
+      "summary": "Free pack GLB (plc-traninig-kit) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/plc-traninig-kit/plc-traninig-kit.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/plc-traninig-kit/plc-traninig-kit.glb"
+    },
+    {
+      "id": "model.psoc-e84-ai-board",
+      "category": "model",
+      "source": "pack",
+      "label": "PSoC E84 AI board (variant)",
+      "summary": "Free pack GLB (psoc-e84-ai-board) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/psoc-e84-ai-board/psoc-e84-ai-board.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/psoc-e84-ai-board/psoc-e84-ai-board.glb"
+    },
+    {
+      "id": "model.robot-4w",
+      "category": "model",
+      "source": "pack",
+      "label": "Robot 4-wheel",
+      "summary": "Free pack GLB (robot-4w) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/robot-4w/robot-4w.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/robot-4w/robot-4w.glb"
+    },
+    {
+      "id": "model.robot-arm",
+      "category": "model",
+      "source": "pack",
+      "label": "Robot arm",
+      "summary": "Free pack GLB (robot-arm) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/robot-arm/robot-arm.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/robot-arm/robot-arm.glb"
+    },
+    {
+      "id": "model.tesa-drone",
+      "category": "model",
+      "source": "pack",
+      "label": "TESA drone",
+      "summary": "Free pack GLB (tesa-drone) — mirror via Asset Manager or online fallback.",
+      "relativePath": "models/tesa-drone/tesa-drone.glb",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/tesa-drone/tesa-drone.glb"
+    },
+    {
+      "id": "env.cubemap.bridge",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — bridge",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/bridge/",
+      "cubemapSetId": "bridge"
+    },
+    {
+      "id": "env.cubemap.lycksele3",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — Lycksele3",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Lycksele3/",
+      "cubemapSetId": "Lycksele3"
+    },
+    {
+      "id": "env.cubemap.park",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — park",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/park/",
+      "cubemapSetId": "park"
+    },
+    {
+      "id": "env.cubemap.snow",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — snow",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/snow/",
+      "cubemapSetId": "snow"
+    },
+    {
+      "id": "env.cubemap.storforsen",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — Storforsen",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Storforsen/",
+      "cubemapSetId": "Storforsen"
+    },
+    {
+      "id": "env.cubemap.storforsen3",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — Storforsen3",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Storforsen3/",
+      "cubemapSetId": "Storforsen3"
+    },
+    {
+      "id": "env.cubemap.storforsen4",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — Storforsen4",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Storforsen4/",
+      "cubemapSetId": "Storforsen4"
     },
     {
       "id": "env.cubemap.yokohama",
       "category": "environment",
       "source": "pack",
       "label": "Cubemap — Yokohama",
-      "summary": "HDR-style JPEG cubemap (six faces) for IBL / reflections.",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Yokohama/",
       "cubemapSetId": "Yokohama"
     },
     {
-      "id": "env.cubemap.storforsen3",
+      "id": "env.cubemap.yokohama2",
       "category": "environment",
       "source": "pack",
-      "label": "Cubemap — Storforsen 3",
-      "summary": "Outdoor cubemap set (free pack layout).",
-      "cubemapSetId": "Storforsen3"
+      "label": "Cubemap — Yokohama2",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Yokohama2/",
+      "cubemapSetId": "Yokohama2"
     },
     {
-      "id": "texture.cubemap.bridge.posx",
+      "id": "env.cubemap.yokohama3",
+      "category": "environment",
+      "source": "pack",
+      "label": "Cubemap — Yokohama3",
+      "summary": "JPEG cubemap (six faces) · textures/cubemap/Yokohama3/",
+      "cubemapSetId": "Yokohama3"
+    },
+    {
+      "id": "texture.hdri.apartment",
       "category": "texture",
       "source": "pack",
-      "label": "Sample face — bridge / +X",
-      "summary": "Single cubemap face as 2D texture URL (same resolver as models).",
-      "relativePath": "textures/cubemap/bridge/posx.jpg"
+      "label": "HDRI — Apartment (Lebombo)",
+      "summary": "HDR environment map · textures/hdri/apartment.hdr",
+      "relativePath": "textures/hdri/apartment.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/apartment.hdr"
+    },
+    {
+      "id": "texture.hdri.city",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — City (Potsdamer Platz)",
+      "summary": "HDR environment map · textures/hdri/city.hdr",
+      "relativePath": "textures/hdri/city.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/city.hdr"
+    },
+    {
+      "id": "texture.hdri.dawn",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Dawn (Kiara)",
+      "summary": "HDR environment map · textures/hdri/dawn.hdr",
+      "relativePath": "textures/hdri/dawn.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/dawn.hdr"
+    },
+    {
+      "id": "texture.hdri.forest",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Forest Slope",
+      "summary": "HDR environment map · textures/hdri/forest.hdr",
+      "relativePath": "textures/hdri/forest.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/forest.hdr"
+    },
+    {
+      "id": "texture.hdri.lobby",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Lobby (St. Fagans)",
+      "summary": "HDR environment map · textures/hdri/lobby.hdr",
+      "relativePath": "textures/hdri/lobby.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/lobby.hdr"
+    },
+    {
+      "id": "texture.hdri.night",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Night (Dikhololo)",
+      "summary": "HDR environment map · textures/hdri/night.hdr",
+      "relativePath": "textures/hdri/night.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/night.hdr"
+    },
+    {
+      "id": "texture.hdri.park",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Park (Rooitou)",
+      "summary": "HDR environment map · textures/hdri/park.hdr",
+      "relativePath": "textures/hdri/park.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/park.hdr"
+    },
+    {
+      "id": "texture.hdri.studio",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Studio",
+      "summary": "HDR environment map · textures/hdri/studio.hdr",
+      "relativePath": "textures/hdri/studio.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/studio.hdr"
+    },
+    {
+      "id": "texture.hdri.sunset",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Sunset (Venice)",
+      "summary": "HDR environment map · textures/hdri/sunset.hdr",
+      "relativePath": "textures/hdri/sunset.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/sunset.hdr"
+    },
+    {
+      "id": "texture.hdri.warehouse",
+      "category": "texture",
+      "source": "pack",
+      "label": "HDRI — Warehouse",
+      "summary": "HDR environment map · textures/hdri/warehouse.hdr",
+      "relativePath": "textures/hdri/warehouse.hdr",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/hdri/warehouse.hdr"
+    },
+    {
+      "id": "texture.image.metal-metal-122m",
+      "category": "texture",
+      "source": "pack",
+      "label": "Image — Metal 122M",
+      "summary": "2D texture (metal) · textures/images/metal/Texturelabs_Metal_122M.jpg",
+      "relativePath": "textures/images/metal/Texturelabs_Metal_122M.jpg",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/metal/Texturelabs_Metal_122M.jpg"
+    },
+    {
+      "id": "texture.image.metal-metal-126m",
+      "category": "texture",
+      "source": "pack",
+      "label": "Image — Metal 126M",
+      "summary": "2D texture (metal) · textures/images/metal/Texturelabs_Metal_126M.jpg",
+      "relativePath": "textures/images/metal/Texturelabs_Metal_126M.jpg",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/metal/Texturelabs_Metal_126M.jpg"
+    },
+    {
+      "id": "texture.image.soil-soil-124m",
+      "category": "texture",
+      "source": "pack",
+      "label": "Image — Soil 124M",
+      "summary": "2D texture (soil) · textures/images/soil/Texturelabs_Soil_124M.jpg",
+      "relativePath": "textures/images/soil/Texturelabs_Soil_124M.jpg",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/soil/Texturelabs_Soil_124M.jpg"
+    },
+    {
+      "id": "texture.image.soil-soil-140m",
+      "category": "texture",
+      "source": "pack",
+      "label": "Image — Soil 140M",
+      "summary": "2D texture (soil) · textures/images/soil/Texturelabs_Soil_140M.jpg",
+      "relativePath": "textures/images/soil/Texturelabs_Soil_140M.jpg",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/soil/Texturelabs_Soil_140M.jpg"
+    },
+    {
+      "id": "texture.image.stone-stone-138m",
+      "category": "texture",
+      "source": "pack",
+      "label": "Image — Stone 138M",
+      "summary": "2D texture (stone) · textures/images/stone/Texturelabs_Stone_138M.jpg",
+      "relativePath": "textures/images/stone/Texturelabs_Stone_138M.jpg",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/stone/Texturelabs_Stone_138M.jpg"
+    },
+    {
+      "id": "texture.image.wood-wood-169m",
+      "category": "texture",
+      "source": "pack",
+      "label": "Image — Wood 169M",
+      "summary": "2D texture (wood) · textures/images/wood/Texturelabs_Wood_169M.jpg",
+      "relativePath": "textures/images/wood/Texturelabs_Wood_169M.jpg",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/wood/Texturelabs_Wood_169M.jpg"
     }
   ]
 }

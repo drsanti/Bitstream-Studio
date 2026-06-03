@@ -2,7 +2,18 @@ import { resolveStudioNodeSourceId } from "../../../../core/device/resolve-studi
 import type { LucideIcon } from "lucide-react";
 import { ChartSpline, CornerDownRight, Minus, Route } from "lucide-react";
 import type { SensorHealthStatus, StudioNode } from "../../store/flow-editor.store";
-import type { FlowCanvasEdgeRoutingStyle, FlowCanvasGridSize } from "../flow-canvas-ui-persistence";
+import type {
+  FlowCanvasEdgeBundleMode,
+  FlowCanvasEdgeBusLaneSort,
+  FlowCanvasEdgeSelectionHighlight,
+  FlowCanvasEdgeMarkerSize,
+  FlowCanvasEdgeRoutingStyle,
+  FlowCanvasEdgeStrokeWidth,
+  FlowCanvasEdgeTypeLabelMode,
+  FlowCanvasGridSize,
+  FlowCanvasHandleBorderWidthPx,
+  FlowCanvasHandleSizePx,
+} from "../flow-canvas-ui-persistence";
 
 export const CANVAS_GRID_SIZE_OPTIONS: {
   value: FlowCanvasGridSize;
@@ -45,6 +56,105 @@ export const CANVAS_EDGE_ROUTING_OPTIONS: {
     label: "Straight",
     Icon: Minus,
     hint: "Direct straight lines between ports.",
+  },
+];
+
+export const CANVAS_EDGE_TYPE_LABEL_OPTIONS: {
+  value: FlowCanvasEdgeTypeLabelMode;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "never", label: "Off", hint: "Hide port type badges on wires." },
+  { value: "hover", label: "Hover", hint: "Badge while the pointer is over a wire." },
+  { value: "selected", label: "Selected", hint: "Badge only on the selected wire." },
+  { value: "always", label: "Always", hint: "Badge on every wire." },
+];
+
+export const CANVAS_EDGE_SELECTION_HIGHLIGHT_OPTIONS: {
+  value: FlowCanvasEdgeSelectionHighlight;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "subtle", label: "Subtle", hint: "Light port-colored glow on selected wires." },
+  { value: "normal", label: "Normal", hint: "Clear port-colored glow (default)." },
+  { value: "strong", label: "Strong", hint: "Thickest stroke and brightest glow." },
+];
+
+export const CANVAS_EDGE_MARKER_SIZE_OPTIONS: {
+  value: FlowCanvasEdgeMarkerSize;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "small", label: "Small", hint: "Compact direction arrow at wire end." },
+  { value: "medium", label: "Med", hint: "Larger arrow for dense graphs." },
+];
+
+export const CANVAS_HANDLE_SIZE_OPTIONS: {
+  value: FlowCanvasHandleSizePx;
+  label: string;
+  hint: string;
+}[] = [
+  { value: 10, label: "10", hint: "Compact socket hit target." },
+  { value: 12, label: "12", hint: "Default socket size." },
+  { value: 14, label: "14", hint: "Larger sockets for touch / precision." },
+];
+
+export const CANVAS_HANDLE_BORDER_OPTIONS: {
+  value: FlowCanvasHandleBorderWidthPx;
+  label: string;
+  hint: string;
+}[] = [
+  { value: 1, label: "1 px", hint: "Thin socket ring." },
+  { value: 2, label: "2 px", hint: "Default socket ring." },
+];
+
+export const CANVAS_EDGE_STROKE_WIDTH_OPTIONS: {
+  value: FlowCanvasEdgeStrokeWidth;
+  label: string;
+  hint: string;
+}[] = [
+  { value: 1.5, label: "Thin", hint: "1.5 px stroke — lighter graph." },
+  { value: 2, label: "Normal", hint: "2 px stroke (default)." },
+  { value: 2.5, label: "Bold", hint: "2.5 px stroke — easier to see." },
+];
+
+export const CANVAS_EDGE_BUS_LANE_SORT_OPTIONS: {
+  value: FlowCanvasEdgeBusLaneSort;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "vertical",
+    label: "Vertical",
+    hint: "Sort fan-out by target Y — best after left-to-right auto-layout.",
+  },
+  {
+    value: "horizontal",
+    label: "Horizontal",
+    hint: "Sort fan-out by target X — best after top-to-bottom auto-layout.",
+  },
+];
+
+export const CANVAS_EDGE_BUNDLE_MODE_OPTIONS: {
+  value: FlowCanvasEdgeBundleMode;
+  label: string;
+  hint: string;
+}[] = [
+  { value: "off", label: "Off", hint: "No trunk fan — wires share the same path." },
+  {
+    value: "fanOut",
+    label: "Fan out",
+    hint: "Separate wires that leave the same output socket.",
+  },
+  {
+    value: "fanIn",
+    label: "Fan in",
+    hint: "Separate wires that land on the same input socket.",
+  },
+  {
+    value: "both",
+    label: "Both",
+    hint: "Fan out from shared outputs and fan in to shared inputs.",
   },
 ];
 

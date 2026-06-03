@@ -18,6 +18,7 @@ export type TRNTransformSectionProps = {
   onChange: (next: TRNTransformSectionValue) => void;
   showRotation?: boolean;
   showScale?: boolean;
+  /** Per-axis suffix on rotation rows (default none — use label `Rotation (deg)`). */
   rotationUnitLabel?: string;
   disabled?: boolean;
   className?: string;
@@ -32,7 +33,7 @@ export function TRNTransformSection(props: TRNTransformSectionProps) {
     onChange,
     showRotation = true,
     showScale = true,
-    rotationUnitLabel = "deg",
+    rotationUnitLabel = "",
     disabled = false,
     className = "",
     scrubInteraction,
@@ -56,11 +57,11 @@ export function TRNTransformSection(props: TRNTransformSectionProps) {
 
       {showRotation ? (
         <TRNVector3Field
-          label="Rotation"
+          label="Rotation (deg)"
           value={rotationDeg}
           onChange={(next) => onChange({ ...value, rotationDeg: next })}
           step={0.5}
-          unit={rotationUnitLabel}
+          unit={rotationUnitLabel.length > 0 ? rotationUnitLabel : undefined}
           disabled={disabled}
           {...scrubInteraction}
         />

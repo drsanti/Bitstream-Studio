@@ -15,9 +15,7 @@ export type ShellServiceLinkChipProps = {
   onDisconnect?: () => void;
 };
 
-/**
- * Broker/session control for the shell deck — labeled chip (not icon-only).
- */
+/** Broker/session control for the shell deck — icon-only when toolbar container is narrow. */
 export function ShellServiceLinkChip(props: ShellServiceLinkChipProps) {
   const {
     linkConnected,
@@ -72,7 +70,9 @@ export function ShellServiceLinkChip(props: ShellServiceLinkChipProps) {
         strokeWidth={2.25}
         aria-hidden
       />
-      <span className="truncate">{actionLabel}</span>
+      <span className="hidden truncate @[1101px]/bitstream-toolbar:inline">
+        {actionLabel}
+      </span>
     </button>
   );
 

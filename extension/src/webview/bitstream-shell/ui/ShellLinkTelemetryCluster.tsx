@@ -18,14 +18,15 @@ export function ShellLinkTelemetryCluster() {
 
   return (
     <div
-      className="inline-flex max-w-full shrink-0 items-center gap-1.5"
+      className="mr-2.5 inline-flex shrink-0 items-center gap-1.5"
       role="group"
       aria-label="Telemetry stream rate"
     >
-      <BitstreamWireRxThroughputChip />
+      <BitstreamWireRxThroughputChip toolbarSlot />
       <BitstreamSensorSampleRxBadge
         variant="chip"
         chipMetric="aggregateFps"
+        toolbarSlot
         onReconnectTelemetry={reconnectTelemetry}
       />
     </div>

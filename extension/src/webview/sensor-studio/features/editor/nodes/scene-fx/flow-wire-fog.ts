@@ -3,7 +3,7 @@ import {
   parseHexToThreeColor,
   persistScene3DConfig,
   type Scene3DConfigV1,
-} from "../rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 
 export type FlowWireFogMode = "linear" | "exp2";
 

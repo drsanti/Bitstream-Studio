@@ -186,6 +186,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | Date | Summary |
 |------|---------|
 | 2026-06-03 | **Wi-Fi BS2 UART:** `domains/wifi/*`, `useBitstreamWifiController` / `useBitstreamWifiEvtBridge`, Device Wi-Fi TRN window; removed legacy `src/bitstream/wifi/*`; spec `WIFI_BS2.md` + `BITSTREAM_BS_FRAMED_PROTOCOL_SPEC` §10; MCU soak OK |
+| 2026-06-02 | **Flow edge UX + node chrome:** Phases A–D prefs/inspector/parallel/bundle/bus/reconnect; header icons + layout; Environment chevron removed; toolbar **`<1 fps`** + fresh-pipeline tint |
 | 2026-06-02 | **Workbench layout modals + Stage catalog:** Save/Manage layouts centered TRN modals (`WORKBENCH_LAYOUT_DIALOGS.md`); model picker badges/icons; snapshot **`studioAssetId`** sync; viewport keep-until-loaded + rig-policy template swap; **`TRNSelect`** `rightSlot` / no row checkmark |
 | 2026-06-02 | **GLB Animation Lab UX:** Inspector tab rename + truncate; tag **Filter** menu; env cubemap background in lab; parallel-all + loop auto-play; **`tests/bitstream-app/animation-lab-twin-tag-filter.test.ts`** |
 | 2026-06-02 | **Startup checklist v3:** First-run sequential tour when all green; recheck + presentation fixes; tests under **`tests/startup-checklist/`** |

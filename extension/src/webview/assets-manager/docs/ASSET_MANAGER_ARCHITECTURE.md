@@ -150,6 +150,8 @@ Do **not** fork URL or path logic in either mode — resolution stays **`resolve
 | **P2** | Sensor Studio + `App.tsx` use same provider; optional workbench pane |
 | **P3** | “Browse” tab embeds shared catalog subset or deep-links to Model Catalog |
 
+**Pack resource catalog (parallel track):** [`STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md`](./STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md) — redesign interim registry trio (`studio-asset-manifest.v1.json`, `free-pack-model-ids.v1.json`, `free-pack-cubemap-ids.v1.json`) into **one sync/build pipeline** + overrides file + schema v2. Phases **M0–M5**; v1 bundled catalog until **M3** runtime migration.
+
 ## Risks and mitigations
 
 | Risk | Mitigation |

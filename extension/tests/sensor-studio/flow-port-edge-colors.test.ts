@@ -37,12 +37,142 @@ describe("flow-port-edge-colors", () => {
 
   it("decorates edges using label port type", () => {
     const map = buildFlowPortColorMap(theme);
+    const prefs = {
+      edgeRoutingStyle: "smoothstep" as const,
+      edgeStrokeWidth: 2 as const,
+      edgeAnimated: false,
+      edgeIdleOpacity: 1,
+      dimUnrelatedEdgesOnSelection: false,
+      smoothStepBorderRadius: 12,
+      edgeShowMarkers: true,
+      edgeMarkerSize: "small" as const,
+      edgeMarkerHideBelowZoom: 0.5,
+      edgeShowTypeLabel: "never" as const,
+      edgeSelectionHighlight: "normal" as const,
+      liveEdgeHighlight: false,
+      staleEdgeDash: false,
+      edgeParallelSpacing: 0,
+      edgeBundleMode: "off",
+      edgeBundleSpacing: 12,
+      edgeBusLaneSpacing: 0,
+      edgeBusLaneSort: "vertical",
+      edgeInteractionWidth: 20,
+      edgeStepLaneHop: false,
+    };
     const edges = decorateFlowEdges(
       [{ id: "e1", source: "a", target: "b", label: "number" }],
       map,
-      "smoothstep",
+      prefs,
     );
     assert.equal(edges[0]?.style?.stroke, "#ff0000");
     assert.equal(edges[0]?.type, "smoothstep");
+    assert.equal(edges[0]?.animated, false);
+    assert.equal(edges[0]?.pathOptions?.borderRadius, 12);
+    assert.ok(edges[0]?.markerEnd != null);
+    assert.equal(edges[0]?.label, undefined);
+    assert.equal(edges[0]?.labelShowBg, false);
+  });
+
+  it("shows label when mode is selected and edge is selected", () => {
+    const map = buildFlowPortColorMap(theme);
+    const prefs = {
+      edgeRoutingStyle: "bezier" as const,
+      edgeStrokeWidth: 2 as const,
+      edgeAnimated: false,
+      edgeIdleOpacity: 1,
+      dimUnrelatedEdgesOnSelection: false,
+      smoothStepBorderRadius: 8,
+      edgeShowMarkers: false,
+      edgeMarkerSize: "small" as const,
+      edgeMarkerHideBelowZoom: 0.55,
+      edgeShowTypeLabel: "selected" as const,
+      edgeSelectionHighlight: "normal" as const,
+      liveEdgeHighlight: false,
+      staleEdgeDash: false,
+      edgeParallelSpacing: 0,
+      edgeBundleMode: "off" as const,
+      edgeBundleSpacing: 12,
+      edgeBusLaneSpacing: 0,
+      edgeBusLaneSort: "vertical" as const,
+      edgeInteractionWidth: 20,
+      edgeStepLaneHop: false,
+    };
+    const edges = decorateFlowEdges(
+      [{ id: "e1", source: "a", target: "b", label: "number", selected: true }],
+      map,
+      prefs,
+    );
+    assert.equal(edges[0]?.label, "Number");
+  });
+
+  it("applies port-colored glow when edge is selected", () => {
+    const map = buildFlowPortColorMap(theme);
+    const prefs = {
+      edgeRoutingStyle: "bezier" as const,
+      edgeStrokeWidth: 2 as const,
+      edgeAnimated: false,
+      edgeIdleOpacity: 1,
+      dimUnrelatedEdgesOnSelection: false,
+      smoothStepBorderRadius: 8,
+      edgeShowMarkers: false,
+      edgeMarkerSize: "small" as const,
+      edgeMarkerHideBelowZoom: 0.55,
+      edgeShowTypeLabel: "never" as const,
+      edgeSelectionHighlight: "strong" as const,
+      liveEdgeHighlight: false,
+      staleEdgeDash: false,
+      edgeParallelSpacing: 0,
+      edgeBundleMode: "off" as const,
+      edgeBundleSpacing: 12,
+      edgeBusLaneSpacing: 0,
+      edgeBusLaneSort: "vertical" as const,
+      edgeInteractionWidth: 20,
+      edgeStepLaneHop: false,
+    };
+    const edges = decorateFlowEdges(
+      [{ id: "e1", source: "a", target: "b", label: "number", selected: true }],
+      map,
+      prefs,
+    );
+    assert.ok(edges[0]?.className?.includes("studio-flow-edge--selected"));
+    assert.ok(edges[0]?.style?.filter?.includes("#ff0000"));
+    assert.equal(edges[0]?.style?.strokeWidth, 3.75);
+  });
+
+  it("dims unrelated edges when selection context is set", () => {
+    const map = buildFlowPortColorMap(theme);
+    const prefs = {
+      edgeRoutingStyle: "bezier" as const,
+      edgeStrokeWidth: 2 as const,
+      edgeAnimated: true,
+      edgeIdleOpacity: 0.8,
+      dimUnrelatedEdgesOnSelection: true,
+      smoothStepBorderRadius: 8,
+      edgeShowMarkers: false,
+      edgeMarkerSize: "small" as const,
+      edgeMarkerHideBelowZoom: 0.55,
+      edgeShowTypeLabel: "never" as const,
+      edgeSelectionHighlight: "normal" as const,
+      liveEdgeHighlight: false,
+      staleEdgeDash: false,
+      edgeParallelSpacing: 0,
+      edgeBundleMode: "off",
+      edgeBundleSpacing: 12,
+      edgeBusLaneSpacing: 0,
+      edgeBusLaneSort: "vertical",
+      edgeInteractionWidth: 20,
+      edgeStepLaneHop: false,
+    };
+    const edges = decorateFlowEdges(
+      [
+        { id: "e1", source: "a", target: "b", label: "number" },
+        { id: "e2", source: "c", target: "d", label: "boolean" },
+      ],
+      map,
+      prefs,
+      { selectedNodeIds: new Set(["a"]) },
+    );
+    assert.equal(edges[0]?.style?.opacity, 1);
+    assert.ok((edges[1]?.style?.opacity as number) <= 0.42);
   });
 });

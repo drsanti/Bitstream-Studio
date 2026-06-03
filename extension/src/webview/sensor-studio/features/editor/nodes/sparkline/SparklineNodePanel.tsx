@@ -33,7 +33,7 @@ export function SparklineNodePanel({
       <svg
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
-        className="block h-10 w-full min-h-10 min-w-40 shrink-0"
+        className="block h-10 w-full min-h-10 min-w-0 max-w-full shrink-0"
         aria-hidden
       >
         {points.length > 0 ? (

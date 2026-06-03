@@ -2,36 +2,40 @@ import {
   useCallback,
   useDeferredValue,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  type PointerEvent as ReactPointerEvent,
 } from "react";
 import {
-  Box,
   Clipboard,
   Download,
-  File,
-  FileJson,
   FolderOpen,
-  Image as ImageIcon,
   Loader2,
-  Maximize2,
-  Menu,
   RefreshCw,
   Search,
-  X,
-  type LucideIcon,
 } from "lucide-react";
-import { IconMenu, type IconMenuItem } from "../ui/components/IconMenu";
 import {
   SortableTable,
   type SortableTableColumn,
 } from "../ui/components/SortableTable";
-import { ModelLoaderGroupCard } from "../model-loader/components/ModelLoaderGroupCard";
-import { useModalFullscreenFill } from "../ui/useModalFullscreenFill";
+import { TRNButton } from "../ui/TRN/TRNButton.js";
+import { TRNHintText } from "../ui/TRN/TRNHintText.js";
+import { TRNWindow, type TRNWindowRect } from "../ui/TRN/TRNWindow.js";
+import { FreeAssetKindBadge } from "./FreeAssetKindBadge.js";
+import { FreeAssetsLoaderHeaderActions } from "./FreeAssetsLoaderHeader.js";
+import { FreeAssetsLoaderSaveFolderFooter } from "./FreeAssetsLoaderSaveFolderFooter.js";
+import {
+  computeInitialFreeAssetsLoaderRect,
+  FREE_ASSETS_LOADER_WINDOW_STORAGE_KEY,
+  LOADER_MODAL_SEARCH_INPUT_CLASS,
+  LOADER_MODAL_TABLE_FRAME_CLASS,
+} from "./loader-modal-chrome.js";
 import { scheduleWebviewReloadAfterAssetSync } from "../asset-bootstrap/requestWebviewReloadAfterAssetSync";
-import { ternionFreeAssetPackCopy } from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
+import {
+  ternionFreeAssetPackCopy,
+  TERNION_FREE_ASSET_PACK_NAME,
+} from "../asset-bootstrap/ternionFreeAssetPackCopy.js";
 import { useFreeAssetsLoaderRuntime } from "./useFreeAssetsLoaderRuntime";
 import type {
   FreeAssetIndexEntry,
@@ -39,7 +43,12 @@ import type {
 } from "../../model-downloader/protocol";
 import { MODEL_CATALOG_REFRESH_DOWNLOADED_EVENT } from "../model-catalog/modelCatalogEvents";
 import { getModelLoaderWsClientUrl } from "../runtimeWsUrls";
-import { BridgeRequiredEmptyState } from "../ui/components/BridgeRequiredEmptyState";
+import { FreeAssetsLoaderBridgeDevFooter } from "./FreeAssetsLoaderBridgeDevFooter.js";
+import {
+  classifyFreeAssetsCatalogFetchError,
+  FreeAssetsLoaderCatalogIssuePanel,
+  type FreeAssetsLoaderCatalogIssue,
+} from "./FreeAssetsLoaderCatalogIssuePanel.js";
 import {
   type FreeAssetKind,
   classifyFreeAssetKind,
@@ -55,69 +64,12 @@ import {
   toggleColumnSort,
 } from "./sortFreeAssetTable";
 
-const MODAL_SIZE_KEY = "t3d.freeAssetsLoader.modalSize";
-const MODAL_VIEWPORT_MARGIN = 32;
-const MODAL_MIN_WIDTH = 480;
-const MODAL_MIN_HEIGHT = 320;
-
-type ModalSize = { width: number; height: number };
-
 /** After download: show path + open/reveal; errors use tone `error`. */
 type FreeAssetsToast = {
   message: string;
   savedTo?: string;
   tone?: "default" | "error";
 };
-
-function clampModalSize(width: number, height: number): ModalSize {
-  if (typeof window === "undefined") {
-    return {
-      width: Math.max(MODAL_MIN_WIDTH, Math.round(width)),
-      height: Math.max(MODAL_MIN_HEIGHT, Math.round(height)),
-    };
-  }
-  const maxW = Math.max(
-    MODAL_MIN_WIDTH,
-    window.innerWidth - MODAL_VIEWPORT_MARGIN,
-  );
-  const maxH = Math.max(
-    MODAL_MIN_HEIGHT,
-    window.innerHeight - MODAL_VIEWPORT_MARGIN,
-  );
-  return {
-    width: Math.min(maxW, Math.max(MODAL_MIN_WIDTH, Math.round(width))),
-    height: Math.min(maxH, Math.max(MODAL_MIN_HEIGHT, Math.round(height))),
-  };
-}
-
-function loadInitialModalSize(): ModalSize {
-  if (typeof window === "undefined") {
-    return { width: 1200, height: 800 };
-  }
-  try {
-    const raw = localStorage.getItem(MODAL_SIZE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as { width?: unknown; height?: unknown };
-      if (
-        typeof parsed.width === "number" &&
-        typeof parsed.height === "number"
-      ) {
-        return clampModalSize(parsed.width, parsed.height);
-      }
-    }
-  } catch {
-    /* ignore */
-  }
-  return clampModalSize(window.innerWidth * 0.88, window.innerHeight * 0.88);
-}
-
-function persistModalSize(size: ModalSize): void {
-  try {
-    localStorage.setItem(MODAL_SIZE_KEY, JSON.stringify(size));
-  } catch {
-    /* ignore */
-  }
-}
 
 function formatBytes(n: number | null): string {
   if (n === null || !Number.isFinite(n)) return "—";
@@ -137,36 +89,6 @@ function formatModified(ms: number): string {
     return "—";
   }
 }
-
-const KIND_BADGE: Record<
-  FreeAssetKind,
-  { label: string; Icon: LucideIcon; className: string }
-> = {
-  model: {
-    label: "Model",
-    Icon: Box,
-    className:
-      "border border-emerald-400/35 bg-emerald-500/12 text-emerald-100/95 shadow-sm shadow-emerald-950/40",
-  },
-  texture: {
-    label: "Texture",
-    Icon: ImageIcon,
-    className:
-      "border border-violet-400/35 bg-violet-500/12 text-violet-100/95 shadow-sm shadow-violet-950/40",
-  },
-  data: {
-    label: "Data",
-    Icon: FileJson,
-    className:
-      "border border-sky-400/30 bg-sky-500/10 text-sky-100/90 shadow-sm shadow-sky-950/35",
-  },
-  other: {
-    label: "File",
-    Icon: File,
-    className:
-      "border border-zinc-500/35 bg-zinc-600/15 text-zinc-200/90 shadow-sm shadow-black/30",
-  },
-};
 
 const ONLINE_ASSET_TABLE_COLUMNS: SortableTableColumn<OnlineSortColumn>[] = [
   {
@@ -254,21 +176,21 @@ export function FreeAssetsLoaderDashboard({
   const [localSort, setLocalSort] = useState(() => DEFAULT_LOCAL_SORT);
   const [lastOutputRoot, setLastOutputRoot] = useState("");
   const [toast, setToast] = useState<FreeAssetsToast | null>(null);
+  const [catalogIssue, setCatalogIssue] = useState<FreeAssetsLoaderCatalogIssue | null>(
+    null,
+  );
   const toastClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const modalRef = useRef<HTMLDivElement | null>(null);
-  const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
-  const { fillViewport, toggleFillParent, exitFillParent } =
-    useModalFullscreenFill(open);
-  const [modalSize, setModalSize] = useState<ModalSize>(() =>
-    loadInitialModalSize(),
+  const [initialRect, setInitialRect] = useState<Partial<TRNWindowRect>>(() =>
+    computeInitialFreeAssetsLoaderRect(),
   );
-  const resizeRef = useRef<{
-    startX: number;
-    startY: number;
-    startW: number;
-    startH: number;
-  } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open) {
+      return;
+    }
+    setInitialRect(computeInitialFreeAssetsLoaderRect());
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -338,23 +260,18 @@ export function FreeAssetsLoaderDashboard({
   }, []);
 
   const fetchIndex = useCallback(async () => {
+    setCatalogIssue(null);
     try {
       const rows = await rt.listIndex();
       setEntries(rows);
       setSelected(new Set());
+      setCatalogIssue(null);
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
-      const isRate =
-        raw.includes("rate limit") ||
-        raw.includes("403") ||
-        raw.toLowerCase().includes("api rate limit exceeded");
-      const friendly = isRate
-        ? ternionFreeAssetPackCopy.tooltips.rateLimit
-        : raw;
-      setToast({ message: friendly, tone: "error" });
-      scheduleToastClear(16_000);
+      setCatalogIssue(classifyFreeAssetsCatalogFetchError(raw));
+      setMainTab("online");
     }
-  }, [rt, scheduleToastClear]);
+  }, [rt]);
 
   const fetchLocalEntries = useCallback(async () => {
     try {
@@ -367,6 +284,17 @@ export function FreeAssetsLoaderDashboard({
       /* rt.error / optional toast */
     }
   }, [rt]);
+
+  const bridgeReady =
+    rt.isExtension || rt.bridge.connectionState === "connected";
+
+  useEffect(() => {
+    if (!open || !bridgeReady) {
+      return;
+    }
+    void fetchIndex();
+    void fetchLocalEntries();
+  }, [open, bridgeReady, fetchIndex, fetchLocalEntries]);
 
   const toggleRow = useCallback((repoPath: string) => {
     setSelected((prev) => {
@@ -492,84 +420,6 @@ export function FreeAssetsLoaderDashboard({
     scheduleToastClear,
   ]);
 
-  const freeLoaderMenuItems: IconMenuItem[] = useMemo(
-    () => [
-      {
-        id: "full-screen",
-        label: fillViewport ? "Exit full screen" : "Full screen",
-        icon: <Maximize2 className="h-3.5 w-3.5 shrink-0" />,
-        onSelect: () => {
-          toggleFillParent();
-        },
-        title: fillViewport
-          ? "Restore Free Loader to its default size"
-          : "Expand Free Loader to fill the webview",
-      },
-      {
-        id: "close",
-        label: "Close",
-        icon: <X className="h-3.5 w-3.5 shrink-0" />,
-        onSelect: onClose,
-        title: "Close Free Loader",
-      },
-    ],
-    [fillViewport, onClose, toggleFillParent],
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (headerMenuOpen) {
-        setHeaderMenuOpen(false);
-        return;
-      }
-      if (fillViewport) {
-        exitFillParent();
-        return;
-      }
-      onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, headerMenuOpen, fillViewport, exitFillParent, onClose]);
-
-  const onPointerDownResize = useCallback(
-    (e: ReactPointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const el = modalRef.current;
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      resizeRef.current = {
-        startX: e.clientX,
-        startY: e.clientY,
-        startW: r.width,
-        startH: r.height,
-      };
-      const onMove = (ev: PointerEvent) => {
-        const s = resizeRef.current;
-        if (!s) return;
-        const dw = ev.clientX - s.startX;
-        const dh = ev.clientY - s.startY;
-        setModalSize(clampModalSize(s.startW + dw, s.startH + dh));
-      };
-      const onUp = () => {
-        resizeRef.current = null;
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-        setModalSize((sz) => {
-          persistModalSize(sz);
-          return sz;
-        });
-      };
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-    },
-    [],
-  );
-
-  if (!open) return null;
-
   const pathToShow =
     rt.downloadFolderOverrideFs?.trim() ||
     lastOutputRoot ||
@@ -582,115 +432,97 @@ export function FreeAssetsLoaderDashboard({
       rt.bridge.connectionState === "error");
 
   return (
-    <div
-      className={
-        fillViewport
-          ? "t3d-shell-overlay fixed inset-0 z-200 flex min-h-0 w-full flex-col bg-black/50 p-0 backdrop-blur-sm"
-          : "t3d-shell-overlay fixed inset-0 z-200 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm"
+    <TRNWindow
+      open={open}
+      onClose={onClose}
+      title={TERNION_FREE_ASSET_PACK_NAME}
+      prefixIcon={<Download className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+      headerActions={
+        <FreeAssetsLoaderHeaderActions
+          isExtension={rt.isExtension}
+          connectionState={rt.bridge.connectionState}
+          onlineCount={entries.length}
+          localCount={localEntries.length}
+          selectedCount={selected.size}
+          listLoading={rt.listLoading}
+        />
       }
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="free-assets-loader-title"
+      initialRect={initialRect}
+      minWidth={480}
+      minHeight={320}
+      modal
+      modalBackdropCloses
+      zIndex={220}
+      heightMode="fixed"
+      reopenStrategy="normalize"
+      resizable
+      resizeEdges="all"
+      showFooter={false}
+      showMaximize
+      glass
+      glassPreset="medium"
+      persistRectStorageKey={FREE_ASSETS_LOADER_WINDOW_STORAGE_KEY}
+      headerClassName="!h-9 min-h-9 py-1"
+      contentClassName="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-0"
+      contentStyle={{ flex: "1 1 0%", minHeight: 0 }}
+      shellProps={{ "aria-labelledby": "free-assets-loader-subtitle" }}
     >
-      <div
-        ref={modalRef}
-        className={
-          fillViewport
-            ? "relative flex h-full min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden border-0 bg-[#0f1419] shadow-none"
-            : "relative flex max-h-[min(92vh,920px)] min-h-[320px] flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0f1419] shadow-xl"
-        }
-        style={
-          fillViewport
-            ? { width: "100%", height: "100%", minHeight: 0 }
-            : { width: modalSize.width, height: modalSize.height }
-        }
+      <p
+        id="free-assets-loader-subtitle"
+        className="shrink-0 border-b border-zinc-800/80 px-3 py-1.5 text-[11px] leading-snug text-zinc-400"
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Download className="h-5 w-5 text-sky-400" aria-hidden />
-            <h2
-              id="free-assets-loader-title"
-              className="text-lg font-semibold text-white"
-            >
-              Free Loader
-            </h2>
-            {!rt.isExtension && (
-              <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs text-amber-200">
-                Bridge: {rt.bridge.connectionState}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <IconMenu
-              open={headerMenuOpen}
-              onOpenChange={setHeaderMenuOpen}
-              triggerIcon={<Menu className="h-5 w-5 shrink-0 text-zinc-300" />}
-              triggerTitle="Free Loader menu"
-              containerClassName="relative z-40"
-              items={freeLoaderMenuItems}
-            />
-            <button
-              type="button"
-              className="rounded p-1 text-zinc-400 hover:bg-white/10 hover:text-white"
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
+        Sync models, skies, and textures for local previews
+      </p>
+      <p className="shrink-0 border-b border-zinc-800/80 px-3 py-1 text-[10px] text-zinc-500 lg:hidden">
+        Catalog{" "}
+        <span className="font-medium text-zinc-300">
+          {rt.listLoading ? "…" : String(entries.length)}
+        </span>
+        {" · "}
+        On disk <span className="font-medium text-zinc-300">{localEntries.length}</span>
+        {" · "}
+        Selected{" "}
+        <span
+          className={
+            selected.size > 0 ? "font-medium text-cyan-200/90" : "font-medium text-zinc-300"
+          }
+        >
+          {selected.size}
+        </span>
+      </p>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain">
-          <div className="shrink-0 space-y-2 border-b border-white/10 px-4 py-2">
-            {shouldShowBridgeEmptyState ? (
-              <BridgeRequiredEmptyState
-                title="Free Loader needs the bridge in browser mode"
-                details="Start the bridge to list local assets and sync downloads from a standalone browser."
-                wsUrl={getModelLoaderWsClientUrl()}
-                commands={[
-                  "npm run dev:model-loader-browser",
-                  "npm run dev:with-model-loader",
-                ]}
-                extensionHint={`With the TERNION extension installed and loaded, the model broker on ${getModelLoaderWsClientUrl()} should start automatically. Reload this page after a few seconds, or run the dev commands above if you are not using the packaged extension.`}
-              />
-            ) : null}
-            <div
-              className="flex rounded-lg border border-white/10 bg-black/25 p-1"
-              role="tablist"
-              aria-label="Asset views"
-            >
-              <button
-                type="button"
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          <div className="shrink-0 space-y-2 border-b border-zinc-800/80 px-4 py-2.5">
+            <div className="flex gap-1.5" role="tablist" aria-label="Asset views">
+              <TRNButton
+                size="compact"
+                className="min-w-0 flex-1 font-sans"
+                selected={mainTab === "online"}
                 role="tab"
                 aria-selected={mainTab === "online"}
-                className={`min-h-10 flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  mainTab === "online"
-                    ? "bg-white/15 text-white shadow-sm"
-                    : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                }`}
                 onClick={() => setMainTab("online")}
               >
-                Online Assets
-              </button>
-              <button
-                type="button"
+                Online catalog
+              </TRNButton>
+              <TRNButton
+                size="compact"
+                className="min-w-0 flex-1 font-sans"
+                selected={mainTab === "local"}
                 role="tab"
                 aria-selected={mainTab === "local"}
-                className={`min-h-10 flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  mainTab === "local"
-                    ? "bg-white/15 text-white shadow-sm"
-                    : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-                }`}
                 onClick={() => setMainTab("local")}
               >
-                Local Assets
-              </button>
+                On this device
+              </TRNButton>
             </div>
             <div className="relative w-full min-w-0">
-              <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500"
+                aria-hidden
+              />
               <input
                 type="search"
-                className="w-full rounded-md border border-white/10 bg-black/30 py-1.5 pl-8 pr-2 text-sm text-white placeholder:text-zinc-600"
+                className={LOADER_MODAL_SEARCH_INPUT_CLASS}
                 placeholder={
                   mainTab === "online"
                     ? ternionFreeAssetPackCopy.filterOnlinePaths
@@ -700,7 +532,7 @@ export function FreeAssetsLoaderDashboard({
                 onChange={(e) => setSearch(e.target.value)}
                 aria-label={
                   mainTab === "online"
-                    ? "Filter online paths"
+                    ? "Filter online catalog"
                     : "Filter local paths"
                 }
               />
@@ -708,128 +540,144 @@ export function FreeAssetsLoaderDashboard({
           </div>
 
           {rt.progress && rt.progress.phase !== "done" && (
-            <div className="shrink-0 border-b border-white/10 px-4 py-2 text-sm text-zinc-300">
-              {rt.progress.phase === "listing" && "Listing…"}
-              {rt.progress.phase === "downloading" && (
-                <>
-                  Downloading {rt.progress.fileIndex ?? 0}/
-                  {rt.progress.totalFiles ?? "?"} —{" "}
-                  {rt.progress.currentPath ?? ""}
-                </>
-              )}
-              <span className="ml-2 text-sky-400">
-                {Math.round(rt.progress.percent)}%
-              </span>
+            <div className="shrink-0 border-b border-zinc-800/80 px-4 py-2">
+              <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-zinc-300">
+                <span className="min-w-0 truncate">
+                  {rt.progress.phase === "listing" && "Listing remote catalog…"}
+                  {rt.progress.phase === "downloading" && (
+                    <>
+                      Downloading {rt.progress.fileIndex ?? 0}/
+                      {rt.progress.totalFiles ?? "?"}
+                      {rt.progress.currentPath
+                        ? ` — ${rt.progress.currentPath}`
+                        : ""}
+                    </>
+                  )}
+                </span>
+                <span className="shrink-0 font-medium text-cyan-300/90">
+                  {Math.round(rt.progress.percent)}%
+                </span>
+              </div>
+              <div
+                className="h-1 overflow-hidden rounded-full bg-zinc-800/90"
+                role="progressbar"
+                aria-valuenow={Math.round(rt.progress.percent)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div
+                  className="h-full rounded-full bg-cyan-500/70 transition-[width] duration-150"
+                  style={{ width: `${Math.min(100, Math.max(0, rt.progress.percent))}%` }}
+                />
+              </div>
             </div>
           )}
 
           {toast && (
             <div
-              className={`shrink-0 border-b px-4 py-3 text-sm ${
+              className={`shrink-0 border-b px-4 py-2.5 text-[12px] leading-relaxed ${
                 toast.tone === "error"
-                  ? "border-red-500/35 bg-red-500/10 text-red-100"
-                  : "border-emerald-500/30 bg-emerald-500/10 text-emerald-50"
+                  ? "border-rose-500/35 bg-rose-950/35 text-rose-100"
+                  : "border-emerald-500/30 bg-emerald-950/30 text-emerald-50"
               }`}
               role="status"
             >
               <p>{toast.message}</p>
               {toast.savedTo ? (
                 <div className="mt-2 space-y-2">
-                  <p
-                    className="break-all font-mono text-xs text-zinc-200"
-                    title={toast.savedTo}
-                  >
+                  <p className="break-all text-[11px] text-zinc-200" title={toast.savedTo}>
                     {toast.savedTo}
                   </p>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-sky-600 px-3 py-1.5 text-sm text-white hover:bg-sky-500"
-                    onClick={() =>
-                      void revealOrCopyDirectory(toast.savedTo ?? "")
+                  <TRNButton
+                    size="compact"
+                    selected
+                    prefixIcon={
+                      rt.isExtension ? (
+                        <FolderOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      ) : (
+                        <Clipboard className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      )
                     }
+                    onClick={() => void revealOrCopyDirectory(toast.savedTo ?? "")}
                   >
-                    {rt.isExtension ? (
-                      <FolderOpen className="h-4 w-4" aria-hidden />
-                    ) : (
-                      <Clipboard className="h-4 w-4" aria-hidden />
-                    )}
-                    {rt.isExtension
-                      ? "Open in File Explorer"
-                      : "Copy folder path"}
-                  </button>
+                    {rt.isExtension ? "Open in File Explorer" : "Copy folder path"}
+                  </TRNButton>
                 </div>
               ) : null}
             </div>
           )}
 
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col px-4 pb-2 pt-2">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-4 pb-3 pt-2">
             {mainTab === "online" && (
               <>
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/15"
+                <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                  <TRNButton
+                    size="compact"
+                    prefixIcon={
+                      rt.listLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      )
+                    }
                     onClick={() => void fetchIndex()}
                     disabled={rt.listLoading || rt.busy}
                   >
-                    {rt.listLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
-                    )}
-                    Refresh list
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-500 disabled:opacity-50"
+                    Refresh catalog
+                  </TRNButton>
+                  <TRNButton
+                    size="compact"
+                    selected
+                    prefixIcon={<Download className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                     onClick={() => void runDownload(undefined)}
                     disabled={rt.busy || entries.length === 0}
                   >
-                    <Download className="h-4 w-4" />
                     Download all
-                  </button>
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-emerald-700 px-3 py-1.5 text-sm text-white hover:bg-emerald-600 disabled:opacity-50"
+                  </TRNButton>
+                  <TRNButton
+                    size="compact"
+                    prefixIcon={<Download className="h-3.5 w-3.5 shrink-0" aria-hidden />}
                     onClick={() => void runDownload(Array.from(selected))}
-                    disabled={
-                      rt.busy || entries.length === 0 || selected.size === 0
+                    disabled={rt.busy || entries.length === 0 || selected.size === 0}
+                    hint={
+                      selected.size === 0
+                        ? "Select rows in the table first"
+                        : `Download ${selected.size} selected file(s)`
                     }
                   >
-                    Download selected
-                  </button>
-                  <button
-                    type="button"
-                    className="text-sm text-sky-300 hover:underline"
-                    onClick={selectAllFiltered}
-                  >
-                    Select all (filtered)
-                  </button>
-                  <button
-                    type="button"
-                    className="text-sm text-zinc-400 hover:underline"
-                    onClick={clearSelection}
-                  >
+                    Download selected ({selected.size})
+                  </TRNButton>
+                  <TRNButton size="compact" onClick={selectAllFiltered}>
+                    Select all
+                  </TRNButton>
+                  <TRNButton size="compact" onClick={clearSelection}>
                     Clear
-                  </button>
+                  </TRNButton>
                 </div>
                 <div
-                  className="min-h-0 flex-1 overflow-hidden rounded-xl border border-white/[0.07] bg-linear-to-b from-black/35 to-black/20 shadow-inner shadow-black/40"
+                  className={`${LOADER_MODAL_TABLE_FRAME_CLASS} min-h-[200px] flex-1`}
                   role="tabpanel"
-                  aria-label="Online Assets"
+                  aria-label="Online catalog"
                 >
-                  <div className="max-h-[min(58vh,580px)] min-h-[200px] overflow-auto scrollbar-dark-small">
+                  <div className="h-full min-h-[200px] max-h-full overflow-auto scrollbar-hide">
                     {entries.length === 0 && !rt.listLoading ? (
-                      <div className="flex min-h-[min(36vh,280px)] flex-col items-center justify-center gap-3 px-4 py-10 text-center text-zinc-400">
-                        <p>{ternionFreeAssetPackCopy.fetchIndexEmpty}</p>
-                        <button
-                          type="button"
-                          className="rounded-md bg-sky-600 px-4 py-2 text-white hover:bg-sky-500"
-                          onClick={() => void fetchIndex()}
-                        >
-                          Fetch list
-                        </button>
-                      </div>
+                      catalogIssue ? (
+                        <FreeAssetsLoaderCatalogIssuePanel
+                          issue={catalogIssue}
+                          localCount={localEntries.length}
+                          isExtension={rt.isExtension}
+                          listLoading={rt.listLoading}
+                          onRetry={() => void fetchIndex()}
+                          onOpenLocalTab={() => setMainTab("local")}
+                        />
+                      ) : (
+                        <div className="flex min-h-[min(36vh,280px)] flex-col items-center justify-center gap-3 px-4 py-10 text-center text-zinc-400">
+                          <p>{ternionFreeAssetPackCopy.fetchIndexEmpty}</p>
+                          <TRNButton size="compact" selected onClick={() => void fetchIndex()}>
+                            Load catalog
+                          </TRNButton>
+                        </div>
+                      )
                     ) : (
                       <SortableTable<OnlineSortColumn>
                         caption={ternionFreeAssetPackCopy.onlineTableCaption}
@@ -845,49 +693,36 @@ export function FreeAssetsLoaderDashboard({
                             const { parent, fileName } = splitRelativeAssetPath(
                               row.relativePath,
                             );
-                            const badge = KIND_BADGE[kind];
-                            const KindIcon = badge.Icon;
                             return (
                               <tr
                                 key={row.repoPath}
-                                className={`border-b border-white/4 transition-colors hover:bg-white/4 ${
-                                  idx % 2 === 0
-                                    ? "bg-white/1.5"
-                                    : "bg-transparent"
+                                className={`border-b border-zinc-800/60 transition-colors hover:bg-zinc-900/50 ${
+                                  idx % 2 === 0 ? "bg-zinc-900/25" : "bg-transparent"
                                 }`}
                               >
                                 <td className="align-middle px-2 py-2 pl-3">
                                   <input
                                     type="checkbox"
-                                    className="h-3.5 w-3.5 rounded border-white/25 bg-black/40 text-sky-500 focus:ring-1 focus:ring-sky-500/50"
+                                    className="h-3.5 w-3.5 rounded border-zinc-600 bg-zinc-950 text-cyan-500 focus:ring-1 focus:ring-cyan-500/40"
                                     checked={selected.has(row.repoPath)}
                                     onChange={() => toggleRow(row.repoPath)}
                                     aria-label={`Select ${row.relativePath}`}
                                   />
                                 </td>
                                 <td className="align-middle px-2 py-2">
-                                  <span
-                                    className={`inline-flex max-w-22 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${badge.className}`}
-                                    title={kind}
-                                  >
-                                    <KindIcon
-                                      className="h-3 w-3 shrink-0 opacity-90"
-                                      aria-hidden
-                                    />
-                                    {badge.label}
-                                  </span>
+                                  <FreeAssetKindBadge kind={kind} />
                                 </td>
                                 <td className="min-w-0 max-w-0 align-middle px-2 py-2">
                                   <div className="min-w-0">
                                     <div
-                                      className="truncate font-mono text-[13px] font-medium leading-snug text-zinc-100"
+                                      className="truncate text-[13px] font-medium leading-snug text-zinc-100"
                                       title={row.relativePath}
                                     >
                                       {fileName}
                                     </div>
                                     {parent ? (
                                       <div
-                                        className="truncate font-mono text-[11px] leading-snug text-zinc-500"
+                                        className="truncate text-[11px] leading-snug text-zinc-500"
                                         title={parent}
                                       >
                                         {parent}
@@ -913,57 +748,50 @@ export function FreeAssetsLoaderDashboard({
               <div
                 className="flex min-h-0 flex-1 flex-col gap-2"
                 role="tabpanel"
-                aria-label="Local Assets"
+                aria-label="On this device"
               >
-                <p className="text-[11px] leading-relaxed text-zinc-500">
-                  Files on disk under the Free pack folder (same tree as sync
-                  target). Use the search field above to filter.
-                </p>
+                <TRNHintText>
+                  Files under the TERNION pack save folder. Use the search field above to filter.
+                </TRNHintText>
                 {localRootFs ? (
-                  <p
-                    className="break-all font-mono text-[11px] text-zinc-400"
-                    title={localRootFs}
-                  >
+                  <p className="break-all text-[11px] text-zinc-400" title={localRootFs}>
                     {localRootFs}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/15 disabled:opacity-50"
+                <div className="flex flex-wrap gap-1.5">
+                  <TRNButton
+                    size="compact"
+                    prefixIcon={
+                      rt.localListLoading ? (
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+                      ) : (
+                        <RefreshCw className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      )
+                    }
                     onClick={() => void fetchLocalEntries()}
                     disabled={rt.localListLoading}
                   >
-                    {rt.localListLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" aria-hidden />
-                    )}
-                    Refresh local
-                  </button>
-                  {localRootFs && rt.isExtension ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md bg-sky-600 px-3 py-1.5 text-sm text-white hover:bg-sky-500"
+                    Refresh on disk
+                  </TRNButton>
+                  {localRootFs ? (
+                    <TRNButton
+                      size="compact"
+                      selected
+                      prefixIcon={
+                        rt.isExtension ? (
+                          <FolderOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        ) : (
+                          <Clipboard className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        )
+                      }
                       onClick={() => void revealOrCopyDirectory(localRootFs)}
                     >
-                      <FolderOpen className="h-4 w-4" aria-hidden />
-                      Open folder
-                    </button>
-                  ) : null}
-                  {localRootFs && !rt.isExtension ? (
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md bg-sky-600 px-3 py-1.5 text-sm text-white hover:bg-sky-500"
-                      onClick={() => void revealOrCopyDirectory(localRootFs)}
-                    >
-                      <Clipboard className="h-4 w-4" aria-hidden />
-                      Copy root path
-                    </button>
+                      {rt.isExtension ? "Open pack folder" : "Copy pack root"}
+                    </TRNButton>
                   ) : null}
                 </div>
-                <div className="overflow-hidden rounded-xl border border-white/[0.07] bg-linear-to-b from-black/35 to-black/20 shadow-inner shadow-black/40">
-                  <div className="max-h-[min(42vh,480px)] min-h-[120px] overflow-auto scrollbar-dark-small">
+                <div className={`${LOADER_MODAL_TABLE_FRAME_CLASS} min-h-[160px] flex-1`}>
+                  <div className="h-full min-h-[160px] overflow-auto scrollbar-hide">
                     {rt.localListLoading && localEntries.length === 0 ? (
                       <div className="flex min-h-[120px] items-center justify-center gap-2 text-sm text-zinc-500">
                         <Loader2 className="h-5 w-5 animate-spin" aria-hidden />
@@ -972,8 +800,8 @@ export function FreeAssetsLoaderDashboard({
                     ) : filteredLocal.length === 0 ? (
                       <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 px-4 py-8 text-center text-sm text-zinc-500">
                         <p>
-                          No local files yet, or none match the filter. Open the
-                          Online Assets tab to sync, or use Refresh local.
+                          No files on disk yet, or none match the filter. Use Online
+                          catalog to sync, or refresh on disk.
                         </p>
                       </div>
                     ) : (
@@ -991,39 +819,27 @@ export function FreeAssetsLoaderDashboard({
                             const { parent, fileName } = splitRelativeAssetPath(
                               row.relativePath,
                             );
-                            const badge = KIND_BADGE[kind];
-                            const KindIcon = badge.Icon;
                             return (
                               <tr
                                 key={row.relativePath}
-                                className={`border-b border-white/4 transition-colors hover:bg-white/4 ${
-                                  idx % 2 === 0
-                                    ? "bg-white/1.5"
-                                    : "bg-transparent"
+                                className={`border-b border-zinc-800/60 transition-colors hover:bg-zinc-900/50 ${
+                                  idx % 2 === 0 ? "bg-zinc-900/25" : "bg-transparent"
                                 }`}
                               >
                                 <td className="align-middle px-2 py-2 pl-3">
-                                  <span
-                                    className={`inline-flex max-w-22 items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold leading-none tracking-wide ${badge.className}`}
-                                  >
-                                    <KindIcon
-                                      className="h-3 w-3 shrink-0 opacity-90"
-                                      aria-hidden
-                                    />
-                                    {badge.label}
-                                  </span>
+                                  <FreeAssetKindBadge kind={kind} />
                                 </td>
                                 <td className="min-w-0 max-w-0 align-middle px-2 py-2">
                                   <div className="min-w-0">
                                     <div
-                                      className="truncate font-mono text-[13px] font-medium leading-snug text-zinc-100"
+                                      className="truncate text-[13px] font-medium leading-snug text-zinc-100"
                                       title={row.relativePath}
                                     >
                                       {fileName}
                                     </div>
                                     {parent ? (
                                       <div
-                                        className="truncate font-mono text-[11px] leading-snug text-zinc-500"
+                                        className="truncate text-[11px] leading-snug text-zinc-500"
                                         title={parent}
                                       >
                                         {parent}
@@ -1048,105 +864,30 @@ export function FreeAssetsLoaderDashboard({
               </div>
             )}
           </div>
-
-          <div className="shrink-0 border-t border-white/10 px-4 py-3">
-            <ModelLoaderGroupCard title="Download location" defaultOpen={false}>
-              <div
-                className="break-all font-mono text-xs text-zinc-200"
-                title={pathToShow}
-              >
-                {pathToShow}
-              </div>
-              {rt.isExtension ? (
-                <p className="text-[11px] leading-relaxed text-zinc-500">
-                  This path is your per-user extension storage (global storage).
-                  It is not inside the extension install or your source repo.
-                </p>
-              ) : (
-                <p className="text-[11px] leading-relaxed text-amber-100/85">
-                  <span className="font-medium text-amber-200/95">
-                    Development (browser + bridge).
-                  </span>{" "}
-                  Syncs use the same per-user folder as the VS Code extension
-                  (<code className="rounded bg-black/40 px-1 text-zinc-300">
-                    globalStorage/…/terniondev.bitstream-studio/assets/free
-                  </code>
-                  ), not the monorepo{" "}
-                  <code className="rounded bg-black/40 px-1 text-zinc-300">
-                    ternion-t3d/assets/free
-                  </code>{" "}
-                  tree unless you set{" "}
-                  <code className="rounded bg-black/40 px-1 text-zinc-300">
-                    TERNION_BRIDGE_FREE_ASSETS_OUTPUT_DIR
-                  </code>
-                  .
-                </p>
-              )}
-              <div className="flex flex-wrap items-center gap-2">
-                {rt.supportsFolderPicker ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded border border-white/15 bg-white/5 px-2.5 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
-                    onClick={() => void rt.pickDownloadFolder()}
-                  >
-                    Choose folder…
-                  </button>
-                ) : null}
-                {rt.downloadFolderOverrideFs ? (
-                  <button
-                    type="button"
-                    className="text-sm text-sky-300 hover:underline"
-                    onClick={() => rt.clearDownloadFolderOverride()}
-                  >
-                    Use default folder
-                  </button>
-                ) : null}
-                {rt.isExtension ? (
-                  <>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md bg-sky-600 px-3 py-1.5 text-sm text-white hover:bg-sky-500"
-                      onClick={() => void onOpenFolder()}
-                    >
-                      <FolderOpen className="h-4 w-4" aria-hidden />
-                      Open folder
-                    </button>
-                    <button
-                      type="button"
-                      className="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-3 py-1.5 text-sm text-white hover:bg-white/15"
-                      onClick={() => void onCopyPath()}
-                    >
-                      <Clipboard className="h-4 w-4" aria-hidden />
-                      Copy path
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1.5 rounded-md bg-sky-600 px-3 py-1.5 text-sm text-white hover:bg-sky-500"
-                    onClick={() => void onOpenFolder()}
-                  >
-                    <Clipboard className="h-4 w-4" aria-hidden />
-                    Copy path
-                  </button>
-                )}
-              </div>
-            </ModelLoaderGroupCard>
-          </div>
         </div>
 
-        {!fillViewport && (
-          <div
-            className="absolute bottom-0 right-0 h-12 w-12 cursor-nwse-resize"
-            onPointerDown={onPointerDownResize}
-            style={{
-              background:
-                "linear-gradient(135deg, transparent 50%, rgba(148,163,184,0.25) 50%)",
-            }}
-            aria-hidden
+      <footer className="shrink-0 space-y-2 border-t border-zinc-800/80 px-4 py-2.5">
+        {shouldShowBridgeEmptyState ? (
+          <FreeAssetsLoaderBridgeDevFooter
+            wsUrl={getModelLoaderWsClientUrl()}
+            commands={[
+              "npm run start:bridge",
+              "npm run dev:with-model-loader",
+            ]}
+            extensionHint={`With the Bitstream Studio extension loaded, the broker on ${getModelLoaderWsClientUrl()} should start automatically. Reload after a few seconds, or run the commands above.`}
           />
-        )}
-      </div>
-    </div>
+        ) : null}
+        <FreeAssetsLoaderSaveFolderFooter
+          pathToShow={pathToShow}
+          isExtension={rt.isExtension}
+          supportsFolderPicker={rt.supportsFolderPicker}
+          hasFolderOverride={rt.downloadFolderOverrideFs != null}
+          onPickFolder={() => void rt.pickDownloadFolder()}
+          onClearFolderOverride={() => rt.clearDownloadFolderOverride()}
+          onOpenFolder={() => void onOpenFolder()}
+          onCopyPath={() => void onCopyPath()}
+        />
+      </footer>
+    </TRNWindow>
   );
 }

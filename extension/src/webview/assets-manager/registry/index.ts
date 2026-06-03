@@ -7,6 +7,17 @@ export type {
   StudioAssetSource,
 } from "./asset.types.js";
 export {
+  DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
+  DEFAULT_STUDIO_PACK_MODEL_RELATIVE_PATH,
+} from "./default-studio-pack-model.js";
+export {
+  FREE_PACK_MODEL_FOLDER_IDS,
+  freePackModelLabel,
+  freePackModelOnlineFallbackUrl,
+  freePackModelRelativePath,
+  freePackModelStudioAssetId,
+} from "./free-pack-model-catalog.js";
+export {
   buildAssetDescriptorList,
   buildStudioAssetDescriptorList,
 } from "./buildAssetDescriptorList.js";

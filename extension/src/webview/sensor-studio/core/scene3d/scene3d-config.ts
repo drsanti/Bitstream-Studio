@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { resolveDefaultPreviewMeshGlbUrl } from "../../../../../bitstream-app/components/3d-rotation/shared/resolveWebviewModelAssetUrl.js";
+import { resolveDefaultPreviewMeshGlbUrl } from "../../../bitstream-app/components/3d-rotation/shared/resolveWebviewModelAssetUrl.js";
 
 function isPlausiblePersistedStudioAssetId(id: unknown): id is string {
   if (typeof id !== "string") {
@@ -273,6 +273,11 @@ export type Scene3DConfigV1 = {
     colorHex: string;
     target: string;
   };
+  /** Rapier preview (flow **`physicsScene`** wire from **physics-world**). */
+  physics: {
+    enabled: boolean;
+    gravityY: number;
+  };
 };
 
 export type Scene3DConfig = Scene3DConfigV1;
@@ -422,6 +427,10 @@ export const DEFAULT_SCENE3D_CONFIG_V1: Scene3DConfigV1 = {
     life: 1,
     colorHex: "#ffaa00",
     target: "",
+  },
+  physics: {
+    enabled: false,
+    gravityY: -9.81,
   },
 };
 
@@ -590,6 +599,7 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
   const postRaw = (o.postProcessing ?? {}) as Record<string, unknown>;
   const contactRaw = (o.contactShadows ?? {}) as Record<string, unknown>;
   const particleRaw = (o.particleEmitter ?? {}) as Record<string, unknown>;
+  const physicsRaw = (o.physics ?? {}) as Record<string, unknown>;
 
   const ambientRaw = ((lightsRaw.ambient ?? {}) as Record<string, unknown>) ?? {};
 
@@ -844,6 +854,10 @@ export function coerceScene3DConfigV1(raw: unknown): Scene3DConfigV1 {
       life: clamp(asFiniteNumber(particleRaw.life, d.particleEmitter.life), 0.05, 30),
       colorHex: asHexColor(particleRaw.colorHex ?? particleRaw.color, d.particleEmitter.colorHex),
       target: typeof particleRaw.target === "string" ? particleRaw.target.trim() : d.particleEmitter.target,
+    },
+    physics: {
+      enabled: asBool(physicsRaw.enabled, d.physics.enabled),
+      gravityY: asFiniteNumber(physicsRaw.gravityY, d.physics.gravityY),
     },
   };
 }

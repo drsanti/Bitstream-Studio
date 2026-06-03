@@ -3,8 +3,8 @@
  * Keeps helper objects out of shadow maps and centralizes orthographic shadow tuning.
  */
 import * as THREE from "three";
-import type { Scene3DConfigV1 } from "./scene3d-config";
-import { DEFAULT_SCENE3D_CONFIG_V1 } from "./scene3d-config";
+import type { Scene3DConfigV1 } from "../scene3d/scene3d-config";
+import { DEFAULT_SCENE3D_CONFIG_V1 } from "../scene3d/scene3d-config";
 
 const RD = DEFAULT_SCENE3D_CONFIG_V1.renderer;
 

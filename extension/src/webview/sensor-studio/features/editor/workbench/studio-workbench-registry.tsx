@@ -1,10 +1,11 @@
-import { BookOpen, GitBranch, Layers, SlidersHorizontal } from "lucide-react";
+import { BookOpen, GitBranch, Layers, MonitorPlay, SlidersHorizontal } from "lucide-react";
 import type { WorkbenchRegistry } from "../../../../ui/workbench";
 import { AssetBrowsePanel } from "../../../../assets-manager/browse/AssetBrowsePanel.js";
 import { FlowCanvas } from "../components/FlowCanvas";
 import { NodeInspector } from "../components/NodeInspector";
 import { NodePalette } from "../components/NodePalette";
 import { useStudioWorkbenchShell } from "./studio-workbench-context";
+import { StageViewport } from "../../stage/StageViewport";
 
 export function WorkbenchLibraryPanel() {
   const p = useStudioWorkbenchShell();
@@ -96,6 +97,7 @@ export function WorkbenchInspectorPanel() {
       onUpdateLabel={p.onUpdateLabel}
       onUpdateNodeUiResizable={p.onUpdateNodeUiResizable}
       onUpdateNodeUiAllowBodyCollapse={p.onUpdateNodeUiAllowBodyCollapse}
+      onUpdateStudioNodeLayoutDimensions={p.onUpdateStudioNodeLayoutDimensions}
       onUpdateConfigField={p.onUpdateConfigField}
       onUpdateConfigJson={p.onUpdateConfigJson}
       nodes={p.nodes}
@@ -118,6 +120,8 @@ export function WorkbenchInspectorPanel() {
         flowCanvasPreferences: p.flowCanvasPreferences,
         themeCanvasBackgroundColor: p.canvasBackgroundColor,
         onFlowCanvasPreferencesChange: p.onFlowCanvasPreferencesChange,
+        stagePresentationPreferences: p.stagePresentationPreferences,
+        onStagePresentationPreferencesChange: p.onStagePresentationPreferencesChange,
       }}
     />
   );
@@ -133,6 +137,11 @@ export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
     icon: <Layers className="size-3.5" aria-hidden />,
     label: "Assets",
     component: WorkbenchAssetsPanel,
+  },
+  stage: {
+    icon: <MonitorPlay className="size-3.5" aria-hidden />,
+    label: "Stage",
+    component: StageViewport,
   },
   flow: {
     icon: <GitBranch className="size-3.5" aria-hidden />,

@@ -60,7 +60,7 @@ npm run test:bitstream2
 
 ## Canonical vs legacy
 
-| Use | Do not use for BS2 |
+| Use (Bitstream Studio) | Do not use for active BS2 work |
 |-----|---------------------|
-| `extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` | `ternion-t3d/t3d-extension/docs/…` |
-| `extension/src/bitstream2/` | Legacy `src/bitstream/` v1 (`0xAA55`) except historical reference |
+| `extension/docs/BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` | **`ternion-t3d`** / **`t3d-extension/`** — archived migration source only |
+| `extension/src/bitstream2/` | Legacy `extension/src/bitstream/` v1 (`0xAA55`) except historical reference |

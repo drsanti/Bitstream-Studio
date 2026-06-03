@@ -4,9 +4,7 @@ import type { FlowNodeGlassPreset } from "./theme/flow-node-glass";
 import { flowNodeHeaderGlassClass } from "./theme/flow-node-glass";
 
 export type FlowNodeHeaderProps = HTMLAttributes<HTMLDivElement> & {
-  /** Category / small line above the title (optional). */
-  subtitle?: ReactNode;
-  /** Main title row (e.g. label + emphasis); use `leading` / `trailing` for icons and badges. */
+  /** Title text; pair with `leading` (icon) on the left cluster and `trailing` (badges) on the right. */
   primary: ReactNode;
   leading?: ReactNode;
   trailing?: ReactNode;
@@ -17,7 +15,6 @@ export type FlowNodeHeaderProps = HTMLAttributes<HTMLDivElement> & {
 
 export function FlowNodeHeader(props: FlowNodeHeaderProps) {
   const {
-    subtitle,
     primary,
     leading,
     trailing,
@@ -29,7 +26,7 @@ export function FlowNodeHeader(props: FlowNodeHeaderProps) {
   return (
     <div
       className={twMerge(
-        "min-w-0 w-full overflow-hidden rounded-t-md border-b border-zinc-700/80 px-2 py-1",
+        "flex min-w-0 w-full items-center justify-between gap-2 overflow-hidden rounded-t-md border-b border-zinc-700/80 px-2.5 py-1.5",
         glass
           ? `bg-linear-to-r ${flowNodeHeaderGlassClass(glassPreset)}`
           : "bg-linear-to-r from-zinc-900/95 to-zinc-800/75",
@@ -37,28 +34,22 @@ export function FlowNodeHeader(props: FlowNodeHeaderProps) {
       )}
       {...rest}
     >
-      {subtitle != null ? (
-        <div className="text-[11px] uppercase tracking-wide text-zinc-400">{subtitle}</div>
-      ) : null}
       <div
-        className={twMerge(
-          "flex min-w-0 items-start justify-between gap-2",
-          subtitle != null ? "mt-0.5" : null,
-        )}
+        className="flex min-w-0 flex-1 items-center gap-2"
+        data-flow-node-header-leading
       >
-        <div className="flex min-w-0 flex-1 items-start gap-2">
-          {leading != null ? (
-            <span className="inline-flex shrink-0 items-center">{leading}</span>
-          ) : null}
-          <div className="min-w-0 flex-1" data-flow-node-header-primary>
-            {primary}
-          </div>
-        </div>
-        {trailing != null ? (
-          <div className="inline-flex shrink-0 items-center" data-flow-node-header-trailing>
-            {trailing}
-          </div>
+        {leading != null ? (
+          <span className="inline-flex shrink-0 items-center">{leading}</span>
         ) : null}
+        <div className="min-w-0 w-max max-w-full" data-flow-node-header-primary>
+          {primary}
+        </div>
+      </div>
+      <div
+        className="inline-flex shrink-0 items-center justify-end gap-1.5"
+        data-flow-node-header-trailing
+      >
+        {trailing}
       </div>
     </div>
   );

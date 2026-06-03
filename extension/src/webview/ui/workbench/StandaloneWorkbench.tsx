@@ -26,6 +26,7 @@ import {
 import type { WorkbenchLayoutMenuProps } from "./workbench-layout-menu.types";
 import { WorkbenchLayoutLibraryPanel } from "./WorkbenchLayoutLibraryPanel";
 import { useManagedWorkbench, type WorkbenchPaneCommand } from "./use-managed-workbench";
+import { findEditorNode } from "./utils";
 import { useWorkbenchFloating } from "./useWorkbenchFloating";
 import { WorkbenchCommandOverlay } from "./WorkbenchCommandOverlay";
 import { WorkbenchSaveLayoutDialog } from "./WorkbenchSaveLayoutDialog";
@@ -49,6 +50,8 @@ export interface StandaloneWorkbenchProps {
   togglePaneByEditorType?: (layout: LayoutNode, editorType: string) => LayoutNode;
   /** Fired when layout menu props change (toolbar slot). */
   onLayoutMenuPropsChange?: (props: WorkbenchLayoutMenuProps | null) => void;
+  /** Fired when the user focuses a workbench pane (editor type from layout registry). */
+  onActiveEditorTypeChange?: (editorType: string | null) => void;
 }
 
 export type StandaloneWorkbenchHandle = {
@@ -82,6 +85,7 @@ export const StandaloneWorkbench = memo(
       layoutPresets = [],
       togglePaneByEditorType,
       onLayoutMenuPropsChange,
+      onActiveEditorTypeChange,
     },
     ref,
   ) {
@@ -366,6 +370,21 @@ export const StandaloneWorkbench = memo(
       [managed, persistenceKey],
     );
 
+    const workbenchHostProps = useMemo(() => {
+      const base = managed.workbenchProps;
+      if (onActiveEditorTypeChange == null) {
+        return base;
+      }
+      return {
+        ...base,
+        onPaneActivate: (paneId: string) => {
+          base.onPaneActivate(paneId);
+          const editor = findEditorNode(managed.layout, paneId);
+          onActiveEditorTypeChange(editor?.editorType ?? null);
+        },
+      };
+    }, [managed.layout, managed.workbenchProps, onActiveEditorTypeChange]);
+
     return (
       <>
         <TRNWorkbenchHost
@@ -375,7 +394,7 @@ export const StandaloneWorkbench = memo(
           onDetachRejected={onDetachRejected}
           className={className}
           floatingBindings={floating}
-          {...managed.workbenchProps}
+          {...workbenchHostProps}
         />
         {enableCommandPalette ? (
           <WorkbenchCommandOverlay

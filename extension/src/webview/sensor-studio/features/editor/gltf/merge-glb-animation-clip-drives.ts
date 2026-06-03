@@ -5,7 +5,7 @@ import type {
 import { mergeFlowWireAnimationIntoClipDrives } from "../nodes/animation/flow-wire-animation";
 import type { GlbAnimationClipPreviewDrive } from "./studio-glb-animation-preview-mixer";
 
-/** Merged per-clip animation payload for {@link RotationPreviewPanelV4} / mixer drives. */
+/** Merged per-clip animation payload for {@link StudioSceneViewport} / mixer drives. */
 export type MergedGlbAnimationClipDrives = {
   times: Record<string, number>;
   scales: Record<string, number>;

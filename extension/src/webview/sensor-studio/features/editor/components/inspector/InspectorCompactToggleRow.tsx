@@ -9,16 +9,21 @@ export type InspectorCompactToggleRowProps = {
   ariaLabel?: string;
 };
 
+/** Matches {@link TRNToggleSwitch} `md` track height for vertical alignment with the switch. */
+const TOGGLE_ROW_MIN_H_PX = "min-h-[18px]";
+
+const LABEL_CLASS =
+  `inline-flex ${TOGGLE_ROW_MIN_H_PX} items-center text-[11px] font-medium leading-normal text-zinc-200`;
+
 function InspectorCompactToggleLabel(props: { label: string; hint?: string }) {
   const { label, hint } = props;
-  const labelClass =
-    "inline-flex min-w-0 items-center text-[11px] font-medium leading-none text-zinc-200";
 
   if (hint != null && hint.length > 0) {
     return (
       <TRNHintTooltip
+        className="inline-flex items-center"
         trigger={
-          <span className={labelClass + " cursor-help"}>
+          <span className={`${LABEL_CLASS} cursor-help`}>
             {label}
           </span>
         }
@@ -26,13 +31,13 @@ function InspectorCompactToggleLabel(props: { label: string; hint?: string }) {
         triggerAriaLabel={`About ${label}`}
         placement="top-start"
         triggerWrapper="span"
-        triggerClassName="min-w-0"
+        triggerClassName="!inline-flex !h-auto !min-h-0 !items-center !p-0"
         wide={hint.length > 120}
       />
     );
   }
 
-  return <span className={labelClass}>{label}</span>;
+  return <span className={LABEL_CLASS}>{label}</span>;
 }
 
 /** Slim toggle row for bordered inspector sections (not full TRNInlineToggleRow card). */
@@ -47,14 +52,20 @@ export function InspectorCompactToggleRow(props: InspectorCompactToggleRowProps)
   } = props;
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded border border-zinc-700/80 bg-transparent px-2 py-1">
-      <InspectorCompactToggleLabel label={label} hint={hint} />
-      <TRNToggleSwitch
-        checked={checked}
-        disabled={disabled}
-        ariaLabel={ariaLabel ?? label}
-        onCheckedChange={onCheckedChange}
-      />
+    <div
+      className={`flex ${TOGGLE_ROW_MIN_H_PX} items-center justify-between gap-3 rounded border border-zinc-700/80 bg-transparent px-2 py-1`}
+    >
+      <div className="flex min-w-0 flex-1 items-center">
+        <InspectorCompactToggleLabel label={label} hint={hint} />
+      </div>
+      <div className="flex shrink-0 items-center">
+        <TRNToggleSwitch
+          checked={checked}
+          disabled={disabled}
+          ariaLabel={ariaLabel ?? label}
+          onCheckedChange={onCheckedChange}
+        />
+      </div>
     </div>
   );
 }

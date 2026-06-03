@@ -8,6 +8,7 @@ import {
   SHELL_CONTROL_DECK_ZONE_CLASS,
   SHELL_DECK_PILL_ACTIVE_BASE_CLASS,
   SHELL_DECK_PILL_INACTIVE_CLASS,
+  SHELL_DECK_PILL_LABEL_CLASS,
 } from "./shell-control-deck-ui";
 import {
   SHELL_DECK_PILL_HOVER,
@@ -77,7 +78,7 @@ export function BitstreamWorkspaceSwitcher() {
               strokeWidth={2.25}
               aria-hidden
             />
-            {tab.label}
+            <span className={SHELL_DECK_PILL_LABEL_CLASS}>{tab.label}</span>
           </button>
         );
 

@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-import type { Scene3DConfigV1 } from "./scene3d-config";
-import { parseHexToThreeColor } from "./scene3d-config";
+import type { Scene3DConfigV1 } from "../scene3d/scene3d-config";
+import { parseHexToThreeColor } from "../scene3d/scene3d-config";
 
 const PARTICLE_COUNT = 2000;
 

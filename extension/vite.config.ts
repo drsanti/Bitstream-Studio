@@ -597,6 +597,9 @@ export default defineConfig({
           ) {
             return "vendor-r3f";
           }
+          if (id.includes("node_modules/@dimforge/rapier3d-compat")) {
+            return "vendor-rapier";
+          }
         },
         // Custom asset naming: CSS at root, other assets in subfolder
         // This ensures VS Code webview can load index.css from expected path

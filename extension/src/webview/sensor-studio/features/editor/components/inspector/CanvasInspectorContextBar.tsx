@@ -1,5 +1,5 @@
 import type { Viewport } from "@xyflow/react";
-import { Activity, FileStack, LayoutGrid, type LucideIcon } from "lucide-react";
+import { Activity, Cable, FileStack, LayoutGrid, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import type { StudioDemoTemplateId } from "../../store/flow-editor.store";
@@ -48,6 +48,18 @@ type TabContextModel = {
   iconShellClass: string;
   trailing?: ReactNode;
 };
+
+function buildWiresContext(prefs: FlowCanvasPreferences | undefined): TabContextModel {
+  const routing = prefs?.edgeRoutingStyle ?? "bezier";
+  const motion = prefs?.edgeAnimated ? "flow on" : "flow off";
+  const width = prefs?.edgeStrokeWidth ?? 2;
+  return {
+    title: "Wires",
+    subtitle: `${routing} · ${width}px · ${motion}`,
+    Icon: Cable,
+    iconShellClass: "border-violet-500/30 bg-violet-950/25 text-violet-300/95",
+  };
+}
 
 function buildViewContext(args: {
   selectionCount: number;
@@ -191,6 +203,8 @@ function resolveTabContext(props: CanvasInspectorContextBarProps & { undoDepth: 
       });
     case "telemetry":
       return buildSensorsContext(health);
+    case "wires":
+      return buildWiresContext(flowCanvasPreferences);
     case "canvas":
     default:
       return buildViewContext({

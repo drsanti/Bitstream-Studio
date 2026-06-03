@@ -1,10 +1,10 @@
 # Socket connection policy (Sensor Studio flow editor)
 
-Central rules for wiring nodes on the React Flow canvas. Implemented in `features/editor/connect/socket-connection-policy.ts` and enforced via `FlowCanvas` (`isValidConnection`, `onConnectStart`, `onConnect`) and `flow-editor.store.ts` (`onConnect`, `popEdgesForSocketReconnect`).
+Central rules for wiring nodes on the React Flow canvas. Implemented in `features/editor/connect/socket-connection-policy.ts` and enforced via `FlowCanvas` (`isValidConnection`, `onConnectStart`, `onConnect`, `onReconnect`) and `flow-editor.store.ts` (`onConnect`, `onReconnect`, `popEdgesForSocketReconnect`).
 
 Reference: node-animator `docs/socket-connection-policy.md` and `socketConnectionPolicy.ts`.
 
-**Status:** **MVP shipped** — single-input replace, multi-input whitelist, pop-on-drag from wired inputs, `isValidConnection` during drag.
+**Status:** **MVP + polish** — single-input replace, multi-input whitelist, pop-on-drag from wired inputs, `isValidConnection` during drag, rejection toasts, single undo step for pop+reconnect, **edge-end reconnect** (`reconnectWithPolicy` + React Flow `onReconnect`).
 
 ---
 
@@ -50,6 +50,13 @@ Uses the same checks as legacy `canConnect`: studio pins, layout `layoutNodeAcce
 | Catalog `nodeId` | Handle | Notes |
 | ---------------- | ------ | ----- |
 | `number-average` | `in` | Eval averages all incoming number wires |
+| `studio-group-output` | *(interface socket)* | When socket `portType` is `glbAnimation` — many animation players may fan in |
+
+### Single-output sockets (current)
+
+| Catalog `nodeId` | Handle | Notes |
+| ---------------- | ------ | ----- |
+| *(none in v0.1)* | — | Register in `SINGLE_OUTPUT_SOCKETS` when a node must have one outgoing wire |
 
 ---
 
@@ -59,7 +66,7 @@ Uses the same checks as legacy `canConnect`: studio pins, layout `layoutNodeAcce
 | ------- | -------- |
 | Drag from **wired single input** | Existing incoming edge(s) to that socket are **removed** first (undo step), then the connection drag proceeds. |
 | Drag from **multi input** | Wires are **not** popped on drag-start; new connects **add** another wire (replace list empty). |
-| Drag from **output** | Outgoing wires are **not** popped (outputs are multi). |
+| Drag from **output** | Outgoing wires are **not** popped unless the socket is listed in `SINGLE_OUTPUT_SOCKETS` (none in v0.1). |
 
 Releasing on empty canvas after pop-without-reconnect still triggers **smart connect** when the drag started from a socket.
 
@@ -82,7 +89,7 @@ edgesToPopOnConnectStart(nodeId, handleId, handleType, nodes, edges) → string[
 1. **Single inputs:** replace old wire (do not reject with “socket full”).
 2. **Outputs:** fan-out allowed.
 3. **Cycles:** not blocked at connect time.
-4. **Reconnect:** input-side pop-on-drag in MVP; output-side pop deferred.
+4. **Reconnect:** input-side pop-on-drag; output-side pop when `SINGLE_OUTPUT_SOCKETS` lists the catalog node + handle.
 
 ---
 
@@ -97,8 +104,15 @@ edgesToPopOnConnectStart(nodeId, handleId, handleType, nodes, edges) → string[
 
 ---
 
+## User feedback
+
+Rejected connections show a **react-toastify** toast (`connection-feedback.ts`):
+
+- **Warning** — type mismatch, self-loop, missing endpoints on commit
+- **Info** — duplicate edge (already connected)
+
+Toasts fire when the user releases a wire over a socket but React Flow did not connect (`onConnectEnd` + `validateStudioConnection`).
+
 ## Backlog
 
-- Toast on rejected connect (`onConnectEnd` over invalid socket).
-- Output-side pop-on-drag for exclusive outputs (if any are added).
-- Group Output animation fan-in cardinality (node-animator parity).
+- Register catalog nodes in `SINGLE_OUTPUT_SOCKETS` when product requires exclusive outputs.

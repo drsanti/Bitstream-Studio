@@ -1,10 +1,24 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+} from "react";
+import { createPortal } from "react-dom";
 import { twMerge } from "tailwind-merge";
 import { TRN_HINT_POPOVER_PANEL_CLASS } from "./TRNHintText.js";
 
+/** Above workbench panes / orbit viewports; invalid `z-320` utility is not in Tailwind theme. */
+const TRN_TOOLTIP_PANEL_Z_CLASS = "z-[1100]";
+
 export type TRNTooltipPlacement =
+  | "top"
   | "top-start"
   | "top-end"
+  | "bottom"
   | "bottom-start"
   | "bottom-end"
   | "right"
@@ -47,6 +61,12 @@ function computeCandidatePosition(
   tooltipHeight: number,
   offsetPx: number,
 ): { x: number; y: number } {
+  if (placement === "top") {
+    return {
+      x: triggerRect.left + (triggerRect.width - tooltipWidth) / 2,
+      y: triggerRect.top - tooltipHeight - offsetPx,
+    };
+  }
   if (placement === "top-start") {
     return {
       x: triggerRect.left,
@@ -57,6 +77,12 @@ function computeCandidatePosition(
     return {
       x: triggerRect.right - tooltipWidth,
       y: triggerRect.top - tooltipHeight - offsetPx,
+    };
+  }
+  if (placement === "bottom") {
+    return {
+      x: triggerRect.left + (triggerRect.width - tooltipWidth) / 2,
+      y: triggerRect.bottom + offsetPx,
     };
   }
   if (placement === "bottom-start") {
@@ -109,8 +135,10 @@ function pickBestTooltipPosition(options: {
   } = options;
   const fallbackOrder: TRNTooltipPlacement[] = [
     preferredPlacement,
+    "bottom",
     "bottom-start",
     "bottom-end",
+    "top",
     "top-start",
     "top-end",
     "right",
@@ -262,13 +290,13 @@ export function TRNTooltip({
       return;
     }
     const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
       const root = rootRef.current;
-      if (!root) {
+      const panel = panelRef.current;
+      if (root?.contains(target) || panel?.contains(target)) {
         return;
       }
-      if (!root.contains(event.target as Node)) {
-        setOpen(false);
-      }
+      setOpen(false);
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -309,12 +337,18 @@ export function TRNTooltip({
       setPosition(best);
     };
 
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
+    const schedulePosition = () => {
+      updatePosition();
+      requestAnimationFrame(() => {
+        updatePosition();
+      });
+    };
+    schedulePosition();
+    window.addEventListener("resize", schedulePosition);
+    window.addEventListener("scroll", schedulePosition, true);
     return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", schedulePosition);
+      window.removeEventListener("scroll", schedulePosition, true);
     };
   }, [collisionPadding, content, offsetPx, open, placement]);
 
@@ -327,6 +361,28 @@ export function TRNTooltip({
   const focusRingClassName = disableHoverFx
     ? "focus-visible:ring-1 focus-visible:ring-white/20"
     : "focus-visible:ring-1 focus-visible:ring-amber-300/60";
+
+  const handleTriggerMouseOver = () => {
+    openWithDelay();
+  };
+
+  const handleTriggerMouseOut = (event: ReactMouseEvent) => {
+    const next = event.relatedTarget;
+    const root = rootRef.current;
+    const panel = panelRef.current;
+    if (next instanceof Node && (root?.contains(next) || panel?.contains(next))) {
+      return;
+    }
+    closeImmediately();
+  };
+
+  const handleRootPointerEnter = () => {
+    openWithDelay();
+  };
+
+  const handleRootPointerLeave = (event: ReactMouseEvent) => {
+    handleTriggerMouseOut(event);
+  };
 
   const triggerCommonProps = {
     ref: triggerRef,
@@ -343,14 +399,39 @@ export function TRNTooltip({
     onClick: () => setOpen((previous) => !previous),
     onFocus: openWithDelay,
     onBlur: closeImmediately,
+    onMouseOver: handleTriggerMouseOver,
+    onMouseOut: handleTriggerMouseOut,
+    onPointerEnter: handleTriggerMouseOver,
+    onPointerLeave: handleTriggerMouseOut,
   } as const;
+
+  const tooltipPanel =
+    open && typeof document !== "undefined" ? (
+      <div
+        ref={panelRef}
+        id={tooltipId}
+        role="tooltip"
+        className={twMerge(
+          "pointer-events-none fixed w-max max-w-[min(320px,calc(100vw-32px))] text-left",
+          TRN_TOOLTIP_PANEL_Z_CLASS,
+          TRN_HINT_POPOVER_PANEL_CLASS,
+          panelClassName,
+        )}
+        style={panelStyle}
+      >
+        {content}
+      </div>
+    ) : null;
 
   return (
     <div
       ref={rootRef}
       className={`relative ${className}`}
-      onMouseEnter={openWithDelay}
-      onMouseLeave={closeImmediately}
+      onPointerEnter={handleRootPointerEnter}
+      onPointerLeave={handleRootPointerLeave}
+      {...(showTriggerOnParentHover
+        ? { onMouseEnter: openWithDelay, onMouseLeave: closeImmediately }
+        : {})}
     >
       {triggerWrapper === "button" ? (
         <button {...triggerCommonProps} type="button">
@@ -371,21 +452,7 @@ export function TRNTooltip({
           {trigger}
         </span>
       )}
-      {open ? (
-        <div
-          ref={panelRef}
-          id={tooltipId}
-          role="tooltip"
-          className={twMerge(
-            "pointer-events-none fixed z-320 w-max max-w-[min(320px,calc(100vw-32px))] text-left",
-            TRN_HINT_POPOVER_PANEL_CLASS,
-            panelClassName,
-          )}
-          style={panelStyle}
-        >
-          {content}
-        </div>
-      ) : null}
+      {tooltipPanel != null ? createPortal(tooltipPanel, document.body) : null}
     </div>
   );
 }

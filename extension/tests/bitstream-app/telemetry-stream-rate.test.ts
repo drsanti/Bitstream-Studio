@@ -72,7 +72,10 @@ test("pushHostGapRing trims to max length", () => {
 
 test("formatAggregateDecodeFps formats toolbar labels", () => {
   assert.equal(formatAggregateDecodeFps(null), "— fps");
-  assert.equal(formatAggregateDecodeFps(0), "0 fps");
+  assert.equal(formatAggregateDecodeFps(0), "<1 fps");
+  assert.equal(formatAggregateDecodeFps(0.42), "<1 fps");
+  assert.equal(formatAggregateDecodeFps(0.99), "<1 fps");
+  assert.equal(formatAggregateDecodeFps(1), "1.00 fps");
   assert.equal(formatAggregateDecodeFps(42.37), "42.4 fps");
   assert.equal(formatAggregateDecodeFps(128.4), "128 fps");
 });

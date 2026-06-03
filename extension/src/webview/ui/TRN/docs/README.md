@@ -86,6 +86,7 @@ import { TRNTabs, TRNTabsList, TRNTabsTrigger, TRNTabsContent, TRNSplitPane } fr
 10. Read `TRNDataGrid.md` for sortable/resizable tables.
 11. Read `TRNTree.md` for nested expand/collapse trees.
 12. Read `TRNForm.md` for `TRNFormSection` / `TRNFormField` / `TRNInlineEdit`.
+12b. Read `TRNInput.md` for `TRNInput` / `TRNInputGroup` (prefix icon rows).
 13. Read `TRNSortable.md` for generic drag/reorder primitives.
 14. Read `TRNSortableCard.md` for sortable-card composition and handle positioning.
 

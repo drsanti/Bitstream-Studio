@@ -23,6 +23,7 @@ export function isBodyControlsVisible(ui: StudioNodeUiFlags | undefined): boolea
 }
 
 const STUDIO_NODES_WITHOUT_BODY_PANEL = new Set([
+  "scene-output",
   "object-transform",
   "transform-from-euler",
   // Socket-only transform/utility nodes (controls live in Inspector).
@@ -52,11 +53,6 @@ const STUDIO_NODES_WITHOUT_BODY_PANEL = new Set([
 /** `true` when the node renders a `FlowNodeBody` region that can be hidden via `bodyControlsVisible`. */
 export function studioNodeHasHideableBody(data: StudioNodeData): boolean {
   const dc = data.defaultConfig;
-  if (data.nodeId === "environment") {
-    return typeof dc.environmentControlsExpanded === "boolean"
-      ? dc.environmentControlsExpanded
-      : true;
-  }
   if (data.nodeId === "camera-view") {
     return typeof dc.cameraViewControlsExpanded === "boolean"
       ? dc.cameraViewControlsExpanded

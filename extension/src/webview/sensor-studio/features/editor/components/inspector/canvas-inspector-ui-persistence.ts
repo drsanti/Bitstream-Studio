@@ -10,13 +10,15 @@ const KEYS = {
   telemetryTabCardCollapsed: `${PREFIX}telemetryTab.cardCollapsed.v1`,
   documentTabCardOrder: `${PREFIX}documentTab.cardOrder.v1`,
   documentTabCardCollapsed: `${PREFIX}documentTab.cardCollapsed.v1`,
+  wiresTabCardOrder: `${PREFIX}wiresTab.cardOrder.v1`,
+  wiresTabCardCollapsed: `${PREFIX}wiresTab.cardCollapsed.v1`,
 } as const;
 
-export type CanvasInspectorTab = "canvas" | "telemetry" | "document";
+export type CanvasInspectorTab = "canvas" | "wires" | "telemetry" | "document";
 
 export function readStoredCanvasInspectorTab(): CanvasInspectorTab {
   const raw = safeGet(KEYS.activeTab);
-  if (raw === "canvas" || raw === "telemetry" || raw === "document") {
+  if (raw === "canvas" || raw === "wires" || raw === "telemetry" || raw === "document") {
     return raw;
   }
   return "canvas";
@@ -52,18 +54,25 @@ function safeRemove(key: string): void {
 
 export type CanvasInspectorCanvasTabCardId =
   | "viewport"
-  | "wires-grid"
+  | "grid"
   | "canvas-chrome"
   | "selection"
   | "workbench";
 
 export const DEFAULT_CANVAS_TAB_CARD_ORDER: readonly CanvasInspectorCanvasTabCardId[] = [
   "viewport",
-  "wires-grid",
+  "grid",
   "canvas-chrome",
   "selection",
   "workbench",
 ];
+
+function migrateCanvasTabCardId(value: string): CanvasInspectorCanvasTabCardId | null {
+  if (value === "wires-grid") {
+    return "grid";
+  }
+  return isCanvasTabCardId(value) ? value : null;
+}
 
 const CANVAS_TAB_CARD_IDS = new Set<string>(DEFAULT_CANVAS_TAB_CARD_ORDER);
 
@@ -83,8 +92,12 @@ export function readCanvasTabCardOrder(): CanvasInspectorCanvasTabCardId[] {
     }
     const out: CanvasInspectorCanvasTabCardId[] = [];
     for (const item of parsed) {
-      if (typeof item === "string" && isCanvasTabCardId(item) && !out.includes(item)) {
-        out.push(item);
+      if (typeof item !== "string") {
+        continue;
+      }
+      const id = migrateCanvasTabCardId(item);
+      if (id != null && !out.includes(id)) {
+        out.push(id);
       }
     }
     for (const id of DEFAULT_CANVAS_TAB_CARD_ORDER) {
@@ -107,7 +120,7 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
   if (raw == null || raw.length === 0) {
     return {
       viewport: false,
-      "wires-grid": false,
+      grid: false,
       "canvas-chrome": false,
       selection: false,
       workbench: false,
@@ -118,7 +131,7 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
     if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
       return {
         viewport: false,
-        "wires-grid": false,
+        grid: false,
         "canvas-chrome": false,
         selection: false,
         workbench: false,
@@ -127,7 +140,7 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
     const obj = parsed as Record<string, unknown>;
     return {
       viewport: obj.viewport === true,
-      "wires-grid": obj["wires-grid"] === true,
+      grid: obj.grid === true || obj["wires-grid"] === true,
       "canvas-chrome": obj["canvas-chrome"] === true,
       selection: obj.selection === true,
       workbench: obj.workbench === true,
@@ -135,12 +148,122 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
   } catch {
     return {
       viewport: false,
-      "wires-grid": false,
+      grid: false,
       "canvas-chrome": false,
       selection: false,
       workbench: false,
     };
   }
+}
+
+export type CanvasInspectorWiresTabCardId =
+  | "path-shape"
+  | "stroke-motion"
+  | "selection"
+  | "direction-labels"
+  | "live-semantics"
+  | "connecting"
+  | "handles";
+
+export const DEFAULT_WIRES_TAB_CARD_ORDER: readonly CanvasInspectorWiresTabCardId[] = [
+  "path-shape",
+  "stroke-motion",
+  "selection",
+  "direction-labels",
+  "live-semantics",
+  "connecting",
+  "handles",
+];
+
+const WIRES_TAB_CARD_IDS = new Set<string>(DEFAULT_WIRES_TAB_CARD_ORDER);
+
+function isWiresTabCardId(value: string): value is CanvasInspectorWiresTabCardId {
+  return WIRES_TAB_CARD_IDS.has(value);
+}
+
+export function readWiresTabCardOrder(): CanvasInspectorWiresTabCardId[] {
+  const raw = safeGet(KEYS.wiresTabCardOrder);
+  if (raw == null || raw.length === 0) {
+    return [...DEFAULT_WIRES_TAB_CARD_ORDER];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [...DEFAULT_WIRES_TAB_CARD_ORDER];
+    }
+    const out: CanvasInspectorWiresTabCardId[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string" && isWiresTabCardId(item) && !out.includes(item)) {
+        out.push(item);
+      }
+    }
+    for (const id of DEFAULT_WIRES_TAB_CARD_ORDER) {
+      if (!out.includes(id)) {
+        out.push(id);
+      }
+    }
+    return out;
+  } catch {
+    return [...DEFAULT_WIRES_TAB_CARD_ORDER];
+  }
+}
+
+export function writeWiresTabCardOrder(order: readonly CanvasInspectorWiresTabCardId[]): void {
+  safeSet(KEYS.wiresTabCardOrder, JSON.stringify([...order]));
+}
+
+export function readWiresTabCardCollapsed(): Record<CanvasInspectorWiresTabCardId, boolean> {
+  const raw = safeGet(KEYS.wiresTabCardCollapsed);
+  const defaults: Record<CanvasInspectorWiresTabCardId, boolean> = {
+    "path-shape": false,
+    "stroke-motion": false,
+    selection: false,
+    "direction-labels": false,
+    "live-semantics": false,
+    connecting: false,
+    handles: false,
+  };
+  if (raw == null || raw.length === 0) {
+    return defaults;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return defaults;
+    }
+    const obj = parsed as Record<string, unknown>;
+    return {
+      "path-shape": obj["path-shape"] === true,
+      "stroke-motion": obj["stroke-motion"] === true,
+      selection: obj.selection === true,
+      "direction-labels": obj["direction-labels"] === true,
+      "live-semantics": obj["live-semantics"] === true,
+      connecting: obj.connecting === true,
+      handles: obj.handles === true,
+    };
+  } catch {
+    return defaults;
+  }
+}
+
+export function writeWiresTabCardCollapsed(
+  next: Record<CanvasInspectorWiresTabCardId, boolean>,
+): void {
+  safeSet(KEYS.wiresTabCardCollapsed, JSON.stringify(next));
+}
+
+export function mergeWiresTabCardOrder(
+  stored: readonly CanvasInspectorWiresTabCardId[],
+  visible: readonly CanvasInspectorWiresTabCardId[],
+): CanvasInspectorWiresTabCardId[] {
+  const visibleSet = new Set(visible);
+  const ordered = stored.filter((id) => visibleSet.has(id));
+  for (const id of visible) {
+    if (!ordered.includes(id)) {
+      ordered.push(id);
+    }
+  }
+  return ordered;
 }
 
 export function writeCanvasTabCardCollapsed(next: Record<CanvasInspectorCanvasTabCardId, boolean>): void {

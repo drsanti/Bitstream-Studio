@@ -1,9 +1,10 @@
-import type { FlowGraphNode, StudioPortType } from "../store/flow-editor.store";
+import type { Node } from "@xyflow/react";
+import type { StudioPortType } from "../flow-graph-types";
 import type { StudioSubgraphDocument } from "./studio-subgraph.types";
 import { isStudioNodeGroupNode } from "./studio-subgraph.types";
 
 export function resolveStudioGroupNodePortType(
-  node: FlowGraphNode,
+  node: Node,
   handle: string,
   direction: "input" | "output",
   subgraphs: Record<string, StudioSubgraphDocument>,

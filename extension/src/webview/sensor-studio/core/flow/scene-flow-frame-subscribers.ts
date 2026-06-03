@@ -17,6 +17,9 @@ export const SCENE_FRAME_WIRE_NODE_IDS: ReadonlySet<string> = new Set([
   "transform-from-euler",
 ]);
 
+/** Commits evaluated scene to the Stage pane (node-animator Scene Output parity). */
+export const SCENE_FRAME_STAGE_NODE_IDS: ReadonlySet<string> = new Set(["scene-output"]);
+
 /** Time-based sources — only advance when the graph is ticked (not UART-bound). */
 export const SCENE_FRAME_TIME_SOURCE_NODE_IDS: ReadonlySet<string> = new Set([
   "sine-wave",
@@ -31,7 +34,8 @@ export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
   return (
     SCENE_FRAME_PREVIEW_NODE_IDS.has(nodeId) ||
     SCENE_FRAME_WIRE_NODE_IDS.has(nodeId) ||
-    SCENE_FRAME_TIME_SOURCE_NODE_IDS.has(nodeId)
+    SCENE_FRAME_TIME_SOURCE_NODE_IDS.has(nodeId) ||
+    SCENE_FRAME_STAGE_NODE_IDS.has(nodeId)
   );
 }
 

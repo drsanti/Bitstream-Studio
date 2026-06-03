@@ -6,6 +6,9 @@ import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { TRNSelect, TRNScrubNumberInput, type TRNSelectOption } from "../../../../../ui/TRN";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
 import { InspectorTextField } from "../../components/inspector/InspectorNumericScrubRow";
+import { FlowNodeIntrinsicWidthMarker } from "../flow-node/FlowNodeIntrinsicWidthMarker";
+import { widestTrnSelectOptionLabel } from "../flow-node/flow-node-intrinsic-width-utils";
+import { FLOW_NODE_TRN_SELECT_CLASS } from "../flow-node/flow-node-trn-select-layout";
 
 function readBool(dc: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const v = dc[key];
@@ -370,8 +373,20 @@ export function AudioScopeNodePanel(props: { nodeId: string; defaultConfig: Reco
     { value: "8192", label: "8192" },
   ];
 
+  const scopeIntrinsicLabels = [
+    modeOptions.find((o) => o.value === mode)?.label ?? mode,
+    widestTrnSelectOptionLabel(modeOptions),
+    widestTrnSelectOptionLabel(fftOptions),
+    "Audio Scope",
+    "Smoothing",
+  ];
+
   return (
-    <ReadingPanel className="nodrag nopan space-y-2 px-3 pb-3 pt-2">
+    <ReadingPanel
+      className="nodrag nopan relative space-y-2 overflow-hidden px-3 pb-3 pt-2"
+      data-flow-node-intrinsic-extra-px={96}
+    >
+      <FlowNodeIntrinsicWidthMarker labels={scopeIntrinsicLabels} />
       <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] font-medium text-zinc-300">Audio Scope</div>
         <div className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -386,6 +401,8 @@ export function AudioScopeNodePanel(props: { nodeId: string; defaultConfig: Reco
           onValueChange={(next) => update(nodeId, "mode", next)}
           size="sm"
           sectionTitle="Scope mode"
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full"
         />
       </div>
       <p className="text-[10px] leading-snug text-zinc-500">
@@ -400,6 +417,8 @@ export function AudioScopeNodePanel(props: { nodeId: string; defaultConfig: Reco
           onValueChange={(next) => update(nodeId, "fftSize", Number(next))}
           size="sm"
           sectionTitle="FFT size"
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full"
         />
         <div className="space-y-1">
           <div className="text-[10px] font-medium text-zinc-500">Smoothing</div>
@@ -553,7 +572,15 @@ export function AudioOscillatorNodePanel(props: { nodeId: string; defaultConfig:
   );
 
   return (
-    <ReadingPanel className="nodrag nopan space-y-2 px-3 pb-3 pt-2">
+    <ReadingPanel className="nodrag nopan relative space-y-2 overflow-hidden px-3 pb-3 pt-2">
+      <FlowNodeIntrinsicWidthMarker
+        labels={[
+          waveformOptions.find((o) => o.value === waveform)?.label ?? waveform,
+          widestTrnSelectOptionLabel(waveformOptions),
+          "Oscillator",
+          "Freq (Hz)",
+        ]}
+      />
       <div className="flex items-center justify-between gap-2">
         <div className="text-[11px] font-medium text-zinc-300">Oscillator</div>
         <div className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -567,6 +594,8 @@ export function AudioOscillatorNodePanel(props: { nodeId: string; defaultConfig:
         onValueChange={(next) => update(nodeId, "waveform", next)}
         size="sm"
         sectionTitle="Waveform"
+        className={FLOW_NODE_TRN_SELECT_CLASS}
+        buttonClassName="w-full min-w-0 max-w-full"
       />
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">

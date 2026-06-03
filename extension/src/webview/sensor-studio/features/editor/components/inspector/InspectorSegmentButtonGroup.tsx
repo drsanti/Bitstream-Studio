@@ -13,15 +13,27 @@ export type InspectorSegmentButtonGroupProps<T extends string | number> = {
   value: T;
   options: InspectorSegmentOption<T>[];
   onChange: (value: T) => void;
-  /** `row` = single flex row; `grid-2` = 2 columns; `grid-5` = 5 columns (grid size). */
-  layout?: "row" | "grid-2" | "grid-5";
+  /**
+   * `row` = flex row (equal flex-1 segments; may wrap labels in narrow panels).
+   * `stack` = full-width buttons, single-line labels (inspector sidebars).
+   */
+  layout?: "row" | "stack" | "grid-2" | "grid-5";
 };
 
 const LAYOUT_CLASS: Record<NonNullable<InspectorSegmentButtonGroupProps<string>["layout"]>, string> =
   {
     row: "flex flex-wrap gap-1.5",
+    stack: "flex flex-col gap-1.5",
     "grid-2": "grid grid-cols-2 gap-1.5",
     "grid-5": "grid grid-cols-5 gap-1.5",
+  };
+
+const BUTTON_CLASS: Record<NonNullable<InspectorSegmentButtonGroupProps<string>["layout"]>, string> =
+  {
+    row: "min-w-0 flex-1 font-sans",
+    stack: "w-full shrink-0 whitespace-nowrap font-sans",
+    "grid-2": "min-w-0 font-sans whitespace-nowrap",
+    "grid-5": "min-w-0 font-sans whitespace-nowrap",
   };
 
 export function InspectorSegmentButtonGroup<T extends string | number>(
@@ -35,7 +47,7 @@ export function InspectorSegmentButtonGroup<T extends string | number>(
         <TRNButton
           key={String(option.value)}
           size="compact"
-          className="min-w-0 flex-1 font-sans"
+          className={BUTTON_CLASS[layout]}
           selected={value === option.value}
           prefixIcon={option.icon}
           hint={option.hint}

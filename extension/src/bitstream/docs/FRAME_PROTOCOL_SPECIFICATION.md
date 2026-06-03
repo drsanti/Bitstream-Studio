@@ -14,6 +14,8 @@
   - [5.1 Control Channel (`0x03`) Commands](#51-control-channel-0x03-commands)
   - [5.2 Control Channel ACK IDs](#52-control-channel-ack-ids)
   - [5.3 Wi-Fi Channel (`0x06`)](#53-wi-fi-channel-0x06)
+  - [5.3.1 Wi-Fi async semantics](#531-wi-fi-async-semantics)
+  - [5.3.2 Wi-Fi host timeouts](#532-wi-fi-host-timeouts)
   - [5.4 Diagnostics Channel (`0x05`) Commands](#54-diagnostics-channel-0x05-commands)
   - [5.5 Diagnostics ACK](#55-diagnostics-ack)
 - [6. Payload Definitions](#6-payload-definitions)
@@ -23,6 +25,7 @@
   - [6.17 BMI270_FUSION_FEED_ACK](#617-bmi270_fusion_feed_ack) · [6.17 DIAG_ACK](#617-diag_ack)
   - [6.18 LOG_LEVEL_GET_REQ](#618-log_level_get_req) · [6.19 LOG_LEVEL_SET_REQ](#619-log_level_set_req) · [6.20 LOG_LEVEL_ACK](#620-log_level_ack) · [6.21 LOG_LEVEL Host Retry Policy](#621-log_level-host-retry-policy)
   - [6.22 STREAM_PAUSE_REQ](#622-stream_pause_req) · [6.23 STREAM_PAUSE_ACK](#623-stream_pause_ack) · [6.24 STREAM_RESUME_REQ](#624-stream_resume_req) · [6.25 STREAM_RESUME_ACK](#625-stream_resume_ack)
+  - [6.26 WIFI_SCAN_RESULT_EVT](#626-wifi_scan_result_evt) · [6.27 WIFI_STATUS_EVT](#627-wifi_status_evt--wifi_status_poll_ack) · [6.28 WIFI_SCAN_COMPLETE_EVT](#628-wifi_scan_complete_evt) · [6.29 WIFI_POLICY_EVT](#629-wifi_policy_evt)
 - [6.x Bitstream Isolation Constraint](#6x-bitstream-isolation-constraint)
 - [7. Sensor Source and Mode Enumerations](#7-sensor-source-and-mode-enumerations)
   - [7.1 Sensor Source](#71-sensor-source) · [7.2 Publish Mode](#72-publish-mode)
@@ -72,7 +75,7 @@ Use this document for the **common 8-byte frame header** ([§3](#3-frame-layout)
 | Control channel `0x03` (commands, ACKs, `corrId`) | [§5.0](#50-control-payload-baseline-0x03)–[§5.2](#52-control-channel-ack-ids), [§6](#6-payload-definitions) ([6.1](#61-hello_req)–[6.21](#621-log_level-host-retry-policy)) | First payload byte is command or ACK ID; control requests use `corrId` at bytes 1–2 (u16 LE) after `cmdId`. |
 | Sensor Data channel `0x01` (streaming samples) | [§4 Channels](#4-channels) (ID only) | **Wire layout of sensor payloads** is defined by firmware and mirrored in the host TypeScript decoder: **`src/bitstream/events/sensor-decoder.ts`** (and related event decoder). Authoritative packing for CM55 firmware: TESAIoT **`proj_cm55/src/bitstream`** (see workspace rules). |
 | Diagnostics channel `0x05` | [§5.4](#54-diagnostics-channel-0x05-commands)–[§5.5](#55-diagnostics-ack), [§6.17 DIAG_ACK](#617-diag_ack) | Includes `DIAG_ACK` (`0x80`) layout. |
-| Wi-Fi channel `0x06` | [§5.3 Wi‑Fi](#53-wi-fi-channel-0x06) | Fixed sizes (e.g. connect **105** bytes). |
+| Wi-Fi (BS2 wire) | `BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` §8.3, §10; `WIFI_BS2_ASYNC_PROTOCOL.md`; `bitstream2/docs/WIFI_BS2.md` | `REQ`/`RES`/`EVT_STATUS`; scan = N×`SCAN_ROW` + `SCAN_DONE`. Legacy §5.3 deprecated. |
 
 Duplicating a full “every byte” narrative in **TRANSPORT_AGNOSTIC_PROTOCOL_ARCHITECTURE.md** is unnecessary; that file describes **roles and layering**, not per-field packing.
 
@@ -176,9 +179,16 @@ Notes:
 | STREAM_PAUSE_ACK | `0x8C` | 7 bytes |
 | STREAM_RESUME_ACK | `0x8D` | 6 bytes |
 
-### 5.3 Wi-Fi Channel (`0x06`)
+### 5.3 Wi-Fi Channel (`0x06`) — **DEPRECATED**
 
-Little-endian for multi-byte numeric fields. Correlation ID (`corr_id`) ties host requests to subsequent **`WIFI_STATUS_EVT`** rows when a **connect** is in progress (firmware may send `corr_id = 0` for unsolicited updates).
+> **Superseded (2026-06-03):** New Wi-Fi work uses **BS2 wire** (`"BS "` + CRLF), not this legacy `0xAA55` channel.  
+> **Normative spec:** `BITSTREAM_BS_FRAMED_PROTOCOL_SPEC.md` §8.3, §10 + `WIFI_BS2_ASYNC_PROTOCOL.md` + host `src/bitstream2/docs/WIFI_BS2.md`.  
+> The tables below are kept for archaeology only; do not implement new features against them.
+
+Little-endian for multi-byte numeric fields.
+
+**Obsolete design reference:**  
+`TESAIoT_Library/CM55/modules/bitstream/docs/WIFI_BS2_ASYNC_PROTOCOL.md` (2026-06-03 rewrite documents BS2 wire only).
 
 #### Host → device (requests)
 
@@ -189,24 +199,93 @@ Little-endian for multi-byte numeric fields. Correlation ID (`corr_id`) ties hos
 | WIFI_STATUS_POLL_REQ | `0x03` | **3** | `[cmd][corr_id u16 LE]` |
 | WIFI_SCAN_ALL_REQ | `0x04` | **3** | `[cmd][corr_id u16 LE]` |
 | WIFI_SCAN_SSID_REQ | `0x05` | **4 + N** | `[cmd][corr_id u16 LE][ssidLen u8][ssid bytes…]` — `ssidLen` ≤ 32 |
+| WIFI_POLICY_GET_REQ | `0x06` | **3** | `[cmd][corr_id u16 LE]` |
+| WIFI_POLICY_SET_REQ | `0x07` | **4** | `[cmd][corr_id u16 LE][flags u8]` — bit0 = auto-connect enabled |
 
 #### Device → host (ACKs, same channel `0x06`)
 
 | ACK | ID | Payload |
 | --- | -- | ------- |
-| WIFI_CONNECT_ACK | `0x81` | `[cmd][corr_id u16 LE][status u8]` — `status 0` = queued OK; `1` = invalid length; `2` = CM55->CM33 queue unavailable; `3` = busy |
+| WIFI_CONNECT_ACK | `0x81` | `[cmd][corr_id u16 LE][status u8]` — `status 0` = queued OK; `1` = invalid length; `2` = CM55→CM33 queue unavailable; `3` = busy |
 | WIFI_DISCONNECT_ACK | `0x82` | `[cmd][corr_id u16 LE][status u8]` |
-| WIFI_STATUS_POLL_ACK | `0x83` | Same **41-byte** layout as `WIFI_STATUS_EVT` below |
-| WIFI_SCAN_ACK | `0x84` | `[cmd][corr_id u16 LE][status u8]` — scan **queued**; results follow as events |
+| WIFI_STATUS_POLL_ACK | `0x83` | Same **41-byte** layout as `WIFI_STATUS_EVT` ([§6.27](#627-wifi_status_evt--wifi_status_poll_ack)) |
+| WIFI_SCAN_ACK | `0x84` | `[cmd][corr_id u16 LE][status u8]` — scan **queued only**; AP rows follow as `WIFI_SCAN_RESULT_EVT` |
 | WIFI_POLICY_ACK | `0x85` | `[cmd][corr_id u16 LE][status u8][flags u8]` — bit0 in `flags` = auto-connect enabled |
 
 #### Device → host (async events)
 
-| Event | ID | Payload |
-| ----- | -- | ------- |
-| WIFI_STATUS_EVT | `0xA0` | **41 bytes:** `[cmd][corr_id u16 LE][state u8][rssi i16 LE][reason u16 LE][ssid 33 bytes]` — mirrors CM33→CM55 IPC Wi-Fi status (RSSI for UI when associated) |
-| WIFI_SCAN_COMPLETE_EVT | `0xA1` | **5 bytes:** `[cmd][total_count u16 LE][status u16 LE]` — emitted when CM33 reports scan complete |
-| WIFI_POLICY_EVT | `0xA2` | **5 bytes:** `[cmd][corr_id u16 LE][status u8][flags u8]` — current policy snapshot |
+| Event | ID | Payload | When |
+| ----- | -- | ------- | ---- |
+| WIFI_STATUS_EVT | `0xA0` | **41 bytes** — [§6.27](#627-wifi_status_evt--wifi_status_poll_ack) | Link state / RSSI / reason / SSID change; connect progress |
+| WIFI_SCAN_RESULT_EVT | `0xA3` | **53 bytes** — [§6.26](#626-wifi_scan_result_evt) | **One frame per AP** during scan (`index` / `total`) |
+| WIFI_SCAN_COMPLETE_EVT | `0xA1` | **7 bytes** — [§6.28](#628-wifi_scan_complete_evt) | Scan session finished (same `corr_id` as scan REQ) |
+| WIFI_POLICY_EVT | `0xA2` | **5 bytes** — [§6.29](#629-wifi_policy_evt) | Policy snapshot after get/set |
+
+**Protocol note (2026-06-03):** `WIFI_SCAN_RESULT_EVT` is **new**. `WIFI_SCAN_COMPLETE_EVT` grows from **5** to **7** bytes (`corr_id` added). Hosts must upgrade decoders together with firmware.
+
+### 5.3.1 Wi-Fi async semantics — **DEPRECATED**
+
+> See **`WIFI_BS2_ASYNC_PROTOCOL.md`** for current async rules (`REQ`/`RES`/`EVT_STATUS`, **`reqId`**).
+
+Wi-Fi on CM33 is **inherently async**. On the legacy Wi-Fi channel:
+
+| Class | Meaning for the host |
+| ----- | -------------------- |
+| **REQ** | Ask CM55 to forward work to CM33 (scan, connect, …) |
+| **ACK** | CM55 accepted the REQ (**not** “operation finished”) |
+| **EVT** | CM33 outcome relayed to the host (status, each AP, scan done, policy) |
+
+**Correlation ID (`corr_id`, u16 LE):**
+
+- Host picks a non-zero `corr_id` per transaction (scan session, connect attempt, policy change).
+- Device echoes it in the matching ACK and in EVTs for that transaction.
+- **`corr_id = 0`** = unsolicited / background (e.g. periodic RSSI while connected).
+
+**Scan event order (normative):**
+
+1. `WIFI_SCAN_ACK` (queued)
+2. Zero or more **`WIFI_SCAN_RESULT_EVT`** with the same `corr_id` (`index` 0 .. `total-1`)
+3. Exactly one **`WIFI_SCAN_COMPLETE_EVT`** with the same `corr_id`
+
+**Connect event order (typical):**
+
+1. `WIFI_CONNECT_ACK` (queued)
+2. One or more **`WIFI_STATUS_EVT`** (`CONNECTING` → `CONNECTED` or `ERROR`) — may use connect `corr_id` or `0`
+
+**Do not** treat `WIFI_SCAN_ACK` or `WIFI_CONNECT_ACK` with `status=0` as completion.
+
+```mermaid
+sequenceDiagram
+  participant H as Host
+  participant D as CM55
+  participant N as CM33
+
+  H->>D: SCAN_ALL_REQ corr=K
+  D->>H: SCAN_ACK OK
+  D->>N: IPC scan req
+  loop Per AP
+    N->>D: IPC scan result
+    D->>H: SCAN_RESULT_EVT corr=K
+  end
+  N->>D: IPC scan complete
+  D->>H: SCAN_COMPLETE_EVT corr=K
+```
+
+CM55 caches IPC data in `cm55_ipc_app` (`s_wifi_status`, `s_wifi_list[]`) before encoding BS2 frames in `bitstream_wifi_service.c`.
+
+### 5.3.2 Wi-Fi host timeouts
+
+Suggested host-side timers (see also [§10](#10-retry-and-timeout-policy)):
+
+| Transaction | Start | Stop | Timeout |
+| ----------- | ----- | ---- | ------- |
+| Scan | `SCAN_ACK` OK | `SCAN_COMPLETE_EVT` | 30 s |
+| Connect | `CONNECT_ACK` OK | `STATUS_EVT` terminal state | 60 s |
+| Disconnect | `DISCONNECT_ACK` OK | `STATUS_EVT` DISCONNECTED | 15 s |
+| Policy | `POLICY_ACK` OK | `POLICY_EVT` | 5 s |
+| Status poll | REQ sent | `STATUS_POLL_ACK` | 3 s |
+
+On timeout, use `WIFI_STATUS_POLL_REQ` or abort UI state; use a **new** `corr_id` for a retry (do not overlap transactions).
 
 #### Connect semantics and deterministic reconnect
 
@@ -214,14 +293,14 @@ Little-endian for multi-byte numeric fields. Correlation ID (`corr_id`) ties hos
 - For deterministic behavior when users submit connect repeatedly:
   - Same SSID + same credentials/security while already connected/connecting is treated as duplicate intent.
   - Changed connect intent while connected/connecting is handled as reconnect (disconnect/stop then connect).
-- Host should still treat Wi-Fi connect as asynchronous and use status events/poll to confirm link state transitions.
+- Host must use **`WIFI_STATUS_EVT`** / poll for confirmation, not ACK alone.
 
 **CAPS:** When supported, `CAPS_ACK` includes capability bits, including:
 - bit **5**: Wi-Fi channel (`BITSTREAM_CAPS_FLAG_WIFI_CHANNEL_0X06` / `1<<5`)
 - bit **7**: control-channel log-level GET/SET (`BITSTREAM_CAPS_FLAG_LOG_LEVEL_CONTROL` / `1<<7`)
 - bit **8**: streaming pause/resume control (`BITSTREAM_CAPS_FLAG_STREAMING_PAUSE_CONTROL` / `1<<8`)
 
-**Rate limiting (firmware):** identical status snapshots may be suppressed; while **connected**, RSSI may be pushed on a coarse interval or when delta exceeds a threshold (see `bitstream_wifi_service_process`).
+**Rate limiting (firmware):** identical status snapshots may be suppressed before UART TX; while **connected**, RSSI may be pushed when delta exceeds a threshold or on a coarse heartbeat (`bitstream_wifi_service_process`). IPC may still update CM55 cache more often.
 
 ### 5.4 Diagnostics Channel (`0x05`) Commands
 
@@ -490,6 +569,63 @@ byte2..3: corrId (u16 LE)
 byte4: appliedScopeMask (u8)
 ```
 
+### 6.26 WIFI_SCAN_RESULT_EVT
+
+**ID:** `0xA3` · **Length:** 53 bytes · **Channel:** `0x06`
+
+One access point per frame during an active scan session. Maps from CM33 `IPC_EVT_WIFI_SCAN_RESULT` / `wifi_info_t` (trimmed for wire).
+
+| Offset | Size | Field | Type | Description |
+| ------ | ---- | ----- | ---- | ----------- |
+| 0 | 1 | cmd | u8 | `0xA3` |
+| 1 | 2 | corr_id | u16 LE | Same as `WIFI_SCAN_*_REQ` |
+| 3 | 2 | index | u16 LE | 0-based AP index |
+| 5 | 2 | total | u16 LE | AP count for this scan |
+| 7 | 2 | rssi | i16 LE | dBm |
+| 9 | 1 | channel | u8 | RF channel |
+| 10 | 4 | security | u32 LE | Same encoding as `WIFI_CONNECT_REQ` |
+| 14 | 33 | ssid | char[33] | NUL-padded |
+| 47 | 6 | bssid | u8[6] | BSSID |
+
+Firmware may store at most **10** AP rows in RAM (`CM55_IPC_APP_WIFI_STORE_MAX`); `total` may exceed stored rows — host must tolerate gaps if `index` ≥ stored count.
+
+### 6.27 WIFI_STATUS_EVT / WIFI_STATUS_POLL_ACK
+
+**IDs:** `0xA0` (event), `0x83` (poll ACK) · **Length:** 41 bytes · **Channel:** `0x06`
+
+| Offset | Size | Field | Type | Description |
+| ------ | ---- | ----- | ---- | ----------- |
+| 0 | 1 | cmd | u8 | `0xA0` or `0x83` |
+| 1 | 2 | corr_id | u16 LE | Connect transaction, or `0` if unsolicited |
+| 3 | 1 | state | u8 | `0` DISCONNECTED, `1` CONNECTING, `2` CONNECTED, `3` SCANNING, `4` ERROR |
+| 4 | 2 | rssi | i16 LE | dBm; use `-127` when not associated |
+| 6 | 2 | reason | u16 LE | `IPC_WIFI_REASON_*` |
+| 8 | 33 | ssid | char[33] | Associated SSID when known |
+
+### 6.28 WIFI_SCAN_COMPLETE_EVT
+
+**ID:** `0xA1` · **Length:** 7 bytes (was 5 before 2026-06-03 — **breaking**) · **Channel:** `0x06`
+
+| Offset | Size | Field | Type | Description |
+| ------ | ---- | ----- | ---- | ----------- |
+| 0 | 1 | cmd | u8 | `0xA1` |
+| 1 | 2 | corr_id | u16 LE | Scan session correlation |
+| 3 | 2 | total_count | u16 LE | AP count reported by CM33 |
+| 5 | 2 | status | u16 LE | Mirrors `ipc_wifi_scan_complete_t.status` |
+
+Emitted **after** all `WIFI_SCAN_RESULT_EVT` frames for that `corr_id`.
+
+### 6.29 WIFI_POLICY_EVT
+
+**ID:** `0xA2` · **Length:** 5 bytes · **Channel:** `0x06`
+
+| Offset | Size | Field | Type | Description |
+| ------ | ---- | ----- | ---- | ----------- |
+| 0 | 1 | cmd | u8 | `0xA2` |
+| 1 | 2 | corr_id | u16 LE | Policy REQ correlation |
+| 3 | 1 | status | u8 | `0x00` = OK |
+| 4 | 1 | flags | u8 | bit0 = auto-connect enabled |
+
 ## 6.x Bitstream Isolation Constraint
 
 - Bitstream protocol/service code is library-isolated.
@@ -666,9 +802,12 @@ Only framing of transport envelope changes, not protocol frame bytes.
 Any protocol change must update:
 
 1. This specification document
-2. Protocol core implementation
-3. Firmware implementation
-4. Host and firmware test vectors
+2. `TESAIoT_Library/CM55/modules/bitstream/docs/WIFI_BS2_ASYNC_PROTOCOL.md` (Wi-Fi async design)
+3. `bitstream_protocol.h` constants
+4. Protocol core / `bitstream_wifi_service.c` (firmware)
+5. Host decoders and test vectors
+
+**2026-06-03 Wi-Fi async v2:** Added `WIFI_SCAN_RESULT_EVT` (`0xA3`, 53 bytes). Extended `WIFI_SCAN_COMPLETE_EVT` to 7 bytes (`corr_id`). Documented async REQ/ACK/EVT in §5.3.1.
 
 ## 17. ASCII Folder and File Structure
 
