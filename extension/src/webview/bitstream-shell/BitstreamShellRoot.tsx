@@ -22,7 +22,8 @@ import { useSyncBrokerWsToConnectionStore } from "../bitstream-app/hooks/useSync
 import { useTelemetryActivityMirror } from "../sensor-telemetry/hooks/useTelemetryActivityMirror.js";
 import { appendTelemetryActivity } from "../sensor-telemetry/store/telemetryActivity.store.js";
 import { useWsClientStore } from "../ws-client-store";
-import { BS2_CAPS_WIFI } from "../../bitstream2/protocol/caps-flags.js";
+import { BS2_CAPS_TIME, BS2_CAPS_WIFI } from "../../bitstream2/protocol/caps-flags.js";
+import { useBitstreamRtcController } from "../bitstream-app/control/useBitstreamRtcController.js";
 import { useBitstreamWifiController } from "../bitstream-app/control/useBitstreamWifiController.js";
 import { useBitstreamWifiEvtBridge } from "../bitstream-app/hooks/useBitstreamWifiEvtBridge.js";
 import type { HandshakeLifecycleState } from "../bitstream-app/state/bitstreamLive.store.js";
@@ -518,8 +519,27 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
     wifiSyncNow,
   } = useBitstreamWifiController(pushLog);
 
+  const { rtcGet, rtcSetFromHost, rtcSyncNtp } = useBitstreamRtcController(pushLog);
+
   const capsFlags = useBitstreamLiveStore((s) => s.handshake?.capsFlags ?? 0);
   const wifiCapabilityAdvertised = (capsFlags & BS2_CAPS_WIFI) !== 0;
+  const timeCapabilityAdvertised = (capsFlags & BS2_CAPS_TIME) !== 0;
+  const handshakeStateForRtc = useBitstreamLiveStore((s) => s.handshakeState);
+  const rtcPolledRef = useRef(false);
+
+  useEffect(() => {
+    if (handshakeStateForRtc !== "passed" || !timeCapabilityAdvertised)
+    {
+      rtcPolledRef.current = false;
+      return;
+    }
+    if (rtcPolledRef.current)
+    {
+      return;
+    }
+    rtcPolledRef.current = true;
+    void rtcGet();
+  }, [handshakeStateForRtc, timeCapabilityAdvertised, rtcGet]);
 
   const getFirmwareLogLevel = useCallback(async (): Promise<{
     ok: boolean;
@@ -725,6 +745,9 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
             wifiStatusPoll,
             wifiPolicyGet,
             wifiPolicySet,
+            rtcGet,
+            rtcSetFromHost,
+            rtcSyncNtp,
             getFirmwareLogLevel,
             setFirmwareLogLevel,
           }}

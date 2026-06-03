@@ -157,6 +157,7 @@ Payload layout:
   - bit3: diagnostics (`EVT_DIAG` + diag commands)
   - bit4: extended `SENSOR_CFG` body (10 bytes, v2 — see §8.4)
   - bit5: `SENSOR_CFG` v2.1 body (12 bytes, adds `publishIntervalMs`)
+  - bit7: wall clock (`TIME_SET` / `TIME_GET` / `TIME_SYNC`) — see `src/bitstream2/docs/TIME_BS2.md`
 - `mtuSensor`: maximum `LEN` host should assume for `EVT_SENSOR`
 - `mtuCtrl`: maximum `LEN` host should assume for `REQ/RES`
 - `fwTag`: UTF-8 string, no trailing NUL, length-prefixed (e.g. `1.2.3-psoc`)
@@ -221,6 +222,9 @@ sequenceDiagram
 | `0x24` | `WIFI_STATUS_GET` | link snapshot in `RES` body (38 B) |
 | `0x25` | `WIFI_POLICY_GET` | policy `flags` in `RES` body |
 | `0x26` | `WIFI_POLICY_SET` | `flags u8` in `REQ` body |
+| `0x18` | `TIME_SET` | `unix_sec u32` LE + `tz_offset_min i16` LE |
+| `0x19` | `TIME_GET` | `ipc_rtc_status_t` (16 B) in `RES` body |
+| `0x1A` | `TIME_SYNC` | NTP trigger (Phase 2; may return `NTP_NOT_IMPL`) |
 | `0x30` | `DIAG_TASKS_GET` | one-shot task table |
 | `0x40` | `LOG_LEVEL_SET` | set firmware log level |
 

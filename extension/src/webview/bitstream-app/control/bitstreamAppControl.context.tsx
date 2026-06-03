@@ -88,6 +88,11 @@ export interface BitstreamAppControlApi {
   wifiPolicyGet: () => Promise<boolean>;
   wifiPolicySet: (autoConnectEnabled: boolean) => Promise<boolean>;
 
+  /** BS2 TIME_GET / TIME_SET / TIME_SYNC (CM33 RTC via IPC). */
+  rtcGet: () => Promise<boolean>;
+  rtcSetFromHost: (unixSec?: number, tzOffsetMin?: number) => Promise<boolean>;
+  rtcSyncNtp: () => Promise<boolean>;
+
   getFirmwareLogLevel: () => Promise<{
     ok: boolean;
     unsupported: boolean;
@@ -136,6 +141,9 @@ export const BitstreamAppControlContext = createContext<BitstreamAppControlApi>(
   wifiStatusPoll: async () => false,
   wifiPolicyGet: async () => false,
   wifiPolicySet: async () => false,
+  rtcGet: async () => false,
+  rtcSetFromHost: async () => false,
+  rtcSyncNtp: async () => false,
   getFirmwareLogLevel: async () => ({
     ok: false,
     unsupported: false,

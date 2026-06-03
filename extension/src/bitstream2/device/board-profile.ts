@@ -1,13 +1,14 @@
 import type { BsHello } from "../protocol/hello";
 import type { Bs2SensorConfig } from "../domains/config/sensor-config";
 import { BS_CAPS_SENSOR_CFG_V2, BS_CAPS_SENSOR_CFG_V21 } from "../domains/config/caps";
+import { BS2_CAPS_TIME } from "../protocol/caps-flags";
 import { BS2_SENSOR_ID } from "../domains/sensors/sensor-ids";
 
 /** Default PSoC-edge–style simulator identity (host-only). */
 export const BS2_SIM_BOARD_PROFILE = {
   hello: {
     version: 2,
-    caps: 0x000f | BS_CAPS_SENSOR_CFG_V2 | BS_CAPS_SENSOR_CFG_V21,
+    caps: 0x000f | BS_CAPS_SENSOR_CFG_V2 | BS_CAPS_SENSOR_CFG_V21 | BS2_CAPS_TIME,
     mtuSensor: 256,
     mtuCtrl: 512,
     fwTag: "bs2-sim-psoc",

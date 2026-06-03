@@ -3,6 +3,14 @@ import { BsFramer } from "../framing/bs-framer";
 import { BS2_CMD } from "../domains/config/commands";
 import { BS2_WIFI_CMD, BS2_WIFI_EVT_KIND } from "../domains/wifi/commands";
 import {
+  BS2_RTC_ERR_NTP_NOT_IMPL,
+  BS2_RTC_FLAG_VALID,
+  BS2_RTC_SOURCE_HOST,
+  BS2_TIME_CMD,
+} from "../domains/time/commands";
+import { encodeRtcStatusBody } from "../domains/time/encode-status";
+import type { BitstreamRtcStatusPayload } from "../domains/time/store-types";
+import {
   decodeSensorCfgBody,
   effectivePublishIntervalMs,
   encodeSensorCfgBody,
@@ -68,6 +76,14 @@ export class BsFirmwareSimulator {
   private streamingPaused = false;
   private bmi270StreamMode: Bs2Bmi270StreamMode = 0;
   private bmi270FusionFeedIntervalMs = 10;
+  private simRtcStatus: BitstreamRtcStatusPayload = {
+    unixSec: Math.floor(Date.now() / 1000),
+    flags: BS2_RTC_FLAG_VALID,
+    source: BS2_RTC_SOURCE_HOST,
+    netSyncState: 0,
+    lastNetSyncUnix: 0,
+    lastError: 0,
+  };
   private readonly waveChannels = new Map<
     string,
     { waves: ReadonlyArray<{ freqHz: number; amp: number }> }
@@ -291,6 +307,32 @@ export class BsFirmwareSimulator {
       case BS2_WIFI_CMD.POLICY_GET:
       case BS2_WIFI_CMD.POLICY_SET: {
         this.reply(req, 0, new Uint8Array(0));
+        return;
+      }
+      case BS2_TIME_CMD.GET: {
+        this.simRtcStatus.unixSec = Math.floor(Date.now() / 1000);
+        this.reply(req, 0, encodeRtcStatusBody(this.simRtcStatus));
+        return;
+      }
+      case BS2_TIME_CMD.SET: {
+        if (req.body.byteLength < 6)
+        {
+          this.reply(req, 1, Uint8Array.of(1, 4));
+          return;
+        }
+        const view = new DataView(req.body.buffer, req.body.byteOffset, req.body.byteLength);
+        this.simRtcStatus = {
+          ...this.simRtcStatus,
+          unixSec: view.getUint32(0, true),
+          flags: BS2_RTC_FLAG_VALID,
+          source: BS2_RTC_SOURCE_HOST,
+          lastError: 0,
+        };
+        this.reply(req, 0, Uint8Array.of(0, 0));
+        return;
+      }
+      case BS2_TIME_CMD.SYNC: {
+        this.reply(req, 1, Uint8Array.of(1, BS2_RTC_ERR_NTP_NOT_IMPL));
         return;
       }
       default:

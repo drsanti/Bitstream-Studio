@@ -12,7 +12,8 @@
 
 import { Activity, History, Link2, Wifi } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BS2_CAPS_WIFI } from "../../../../bitstream2/protocol/caps-flags";
+import { BS2_CAPS_TIME, BS2_CAPS_WIFI } from "../../../../bitstream2/protocol/caps-flags";
+import { BitstreamDeviceClockCard } from "../device/BitstreamDeviceClockCard";
 import {
   resolveWcmSecurityUint32,
   WCM_SECURITY_PRESET_DEFAULT_KEY,
@@ -79,6 +80,7 @@ export function BitstreamWifiPanel(props: { className?: string }) {
   const handshakeState = useBitstreamLiveStore((s) => s.handshakeState);
   const capsFlags = useBitstreamLiveStore((s) => s.handshake?.capsFlags ?? 0);
   const wifiAdvertised = (capsFlags & BS2_CAPS_WIFI) !== 0;
+  const timeAdvertised = (capsFlags & BS2_CAPS_TIME) !== 0;
 
   const lastStatus = useBitstreamWifiStore((s) => s.lastStatus);
   const lastScanComplete = useBitstreamWifiStore((s) => s.lastScanComplete);
@@ -329,7 +331,7 @@ export function BitstreamWifiPanel(props: { className?: string }) {
     scanRows.length > 0 ? String(scanRows.length) : undefined;
 
   const statusCards = useMemo((): TRNSortableSettingsCardItem[] => {
-    return [
+    const cards: TRNSortableSettingsCardItem[] = [
       {
         id: "connection",
         title: "Connection",
@@ -349,14 +351,25 @@ export function BitstreamWifiPanel(props: { className?: string }) {
           />
         ),
       },
-      {
-        id: "signal",
-        title: "Signal over time",
+    ];
+    if (timeAdvertised)
+    {
+      cards.push({
+        id: "device-clock",
+        title: "Device clock",
         icon: <Activity className="h-4 w-4 text-zinc-500" aria-hidden />,
         defaultExpanded: true,
-        content: <WifiRssiTrendCard rssiHistory={rssiHistory} />,
-      },
-    ];
+        content: <BitstreamDeviceClockCard disabled={blocked} />,
+      });
+    }
+    cards.push({
+      id: "signal",
+      title: "Signal over time",
+      icon: <Activity className="h-4 w-4 text-zinc-500" aria-hidden />,
+      defaultExpanded: true,
+      content: <WifiRssiTrendCard rssiHistory={rssiHistory} />,
+    });
+    return cards;
   }, [
     autoConnectEnabled,
     blocked,
@@ -368,6 +381,7 @@ export function BitstreamWifiPanel(props: { className?: string }) {
     onPoll,
     onPolicyToggle,
     rssiHistory,
+    timeAdvertised,
   ]);
 
   const connectCards = useMemo((): TRNSortableSettingsCardItem[] => {
