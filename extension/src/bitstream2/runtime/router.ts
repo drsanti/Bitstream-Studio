@@ -9,6 +9,7 @@ export type BsRouterEvent =
   | { type: "req"; req: NonNullable<ReturnType<typeof decodeReq>> }
   | { type: "res"; res: NonNullable<ReturnType<typeof decodeRes>> }
   | { type: "evt_sensor"; evt: NonNullable<ReturnType<typeof decodeEvtSensor>> }
+  | { type: "evt_status"; payload: Uint8Array }
   | { type: "unknown"; frame: BsEnvelopeFrame };
 
 export function routeFrame(frame: BsEnvelopeFrame): BsRouterEvent {
@@ -27,6 +28,9 @@ export function routeFrame(frame: BsEnvelopeFrame): BsRouterEvent {
   if (frame.type === BS_TYPE.EVT_SENSOR) {
     const evt = decodeEvtSensor(frame.payload);
     return evt ? { type: "evt_sensor", evt } : { type: "unknown", frame };
+  }
+  if (frame.type === BS_TYPE.EVT_STATUS) {
+    return { type: "evt_status", payload: frame.payload };
   }
   return { type: "unknown", frame };
 }

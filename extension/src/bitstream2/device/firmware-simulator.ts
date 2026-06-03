@@ -1,6 +1,7 @@
 import { encodeBsEnvelope } from "../framing/bs-envelope";
 import { BsFramer } from "../framing/bs-framer";
 import { BS2_CMD } from "../domains/config/commands";
+import { BS2_WIFI_CMD, BS2_WIFI_EVT_KIND } from "../domains/wifi/commands";
 import {
   decodeSensorCfgBody,
   effectivePublishIntervalMs,
@@ -274,6 +275,24 @@ export class BsFirmwareSimulator {
         this.reply(req, 0, encodeBmi270FusionFeedSetBody(this.bmi270FusionFeedIntervalMs));
         return;
       }
+      case BS2_WIFI_CMD.SCAN_ALL:
+      case BS2_WIFI_CMD.SCAN_SSID: {
+        this.reply(req, 0, new Uint8Array(0));
+        this.simulateWifiScan(req.reqId);
+        return;
+      }
+      case BS2_WIFI_CMD.STATUS_GET: {
+        const snap = this.encodeSimWifiLinkPayload(req.reqId, 2, -42, 0, "TESAIoT-SIM");
+        this.reply(req, 0, snap.subarray(3));
+        return;
+      }
+      case BS2_WIFI_CMD.CONNECT:
+      case BS2_WIFI_CMD.DISCONNECT:
+      case BS2_WIFI_CMD.POLICY_GET:
+      case BS2_WIFI_CMD.POLICY_SET: {
+        this.reply(req, 0, new Uint8Array(0));
+        return;
+      }
       default:
         this.reply(req, 0xff, new Uint8Array(0));
     }
@@ -399,6 +418,73 @@ export class BsFirmwareSimulator {
   private txFrame(type: number, payload: Uint8Array): void {
     const wire = encodeBsEnvelope({ type, payload }).bytes;
     this.onTx(wire);
+  }
+
+  private encodeSimWifiLinkPayload(
+    reqId: number,
+    state: number,
+    rssi: number,
+    reason: number,
+    ssid: string,
+  ): Uint8Array {
+    const pl = new Uint8Array(41);
+    const view = new DataView(pl.buffer);
+    view.setUint16(0, reqId & 0xffff, true);
+    pl[2] = BS2_WIFI_EVT_KIND.LINK;
+    pl[3] = state & 0xff;
+    view.setInt16(4, rssi, true);
+    view.setUint16(6, reason, true);
+    const enc = new TextEncoder();
+    const raw = enc.encode(ssid);
+    pl.set(raw.subarray(0, Math.min(32, raw.length)), 8);
+    return pl;
+  }
+
+  private encodeSimWifiScanRow(
+    reqId: number,
+    index: number,
+    total: number,
+    ssid: string,
+    rssi: number,
+  ): Uint8Array {
+    const pl = new Uint8Array(52);
+    const view = new DataView(pl.buffer);
+    view.setUint16(0, reqId & 0xffff, true);
+    pl[2] = BS2_WIFI_EVT_KIND.SCAN_ROW;
+    view.setUint16(3, index, true);
+    view.setUint16(5, total, true);
+    view.setInt16(7, rssi, true);
+    pl[9] = 6;
+    view.setUint32(10, 0x00200000, true);
+    const enc = new TextEncoder();
+    const raw = enc.encode(ssid);
+    pl.set(raw.subarray(0, Math.min(32, raw.length)), 14);
+    return pl;
+  }
+
+  private encodeSimWifiScanDone(reqId: number, total: number): Uint8Array {
+    const pl = new Uint8Array(7);
+    const view = new DataView(pl.buffer);
+    view.setUint16(0, reqId & 0xffff, true);
+    pl[2] = BS2_WIFI_EVT_KIND.SCAN_DONE;
+    view.setUint16(3, total, true);
+    view.setUint16(5, 0, true);
+    return pl;
+  }
+
+  private simulateWifiScan(reqId: number): void {
+    const aps: Array<{ ssid: string; rssi: number }> = [
+      { ssid: "TESAIoT-SIM-1", rssi: -45 },
+      { ssid: "TESAIoT-SIM-2", rssi: -58 },
+      { ssid: "Office-Guest", rssi: -67 },
+    ];
+    const total = aps.length;
+    for (let i = 0; i < total; i++) {
+      const row = aps[i];
+      if (!row) continue;
+      this.txFrame(BS_TYPE.EVT_STATUS, this.encodeSimWifiScanRow(reqId, i, total, row.ssid, row.rssi));
+    }
+    this.txFrame(BS_TYPE.EVT_STATUS, this.encodeSimWifiScanDone(reqId, total));
   }
 }
 

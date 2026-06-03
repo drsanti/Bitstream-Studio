@@ -2,11 +2,17 @@ import type { BsEnvelopeFrame } from "../protocol/types";
 import { BsFramer, type BsFramerStats } from "../framing/bs-framer";
 import { routeFrame, type BsRouterEvent } from "./router";
 import { decodeSensorSampleValues } from "../domains/sensors/decode-sensor-sample";
-import type { Bitstream2HelloPayload, Bitstream2SensorSamplePayload } from "../bridge/protocol";
+import type {
+  Bitstream2HelloPayload,
+  Bitstream2SensorSamplePayload,
+  Bitstream2WifiEvtPayload,
+} from "../bridge/protocol";
+import { bytesToBase64 } from "../util/base64";
 
 export type BsUartPublishEvent =
   | { type: "hello"; payload: Bitstream2HelloPayload }
   | { type: "sensor"; payload: Bitstream2SensorSamplePayload }
+  | { type: "wifi_evt"; payload: Bitstream2WifiEvtPayload }
   | { type: "res_frame"; frame: BsEnvelopeFrame };
 
 /**
@@ -73,6 +79,15 @@ export class BsUartDecoder {
           counter: evt.counter,
           tMs: evt.tMs,
           values,
+          atMs,
+        },
+      };
+    }
+    if (routed.type === "evt_status") {
+      return {
+        type: "wifi_evt",
+        payload: {
+          innerB64: bytesToBase64(routed.payload),
           atMs,
         },
       };

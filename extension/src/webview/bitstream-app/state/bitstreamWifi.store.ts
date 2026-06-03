@@ -1,27 +1,29 @@
 import { create } from "zustand";
-import type { BitstreamWifiScanCompletePayload, BitstreamWifiStatusPayload } from "../../../bitstream/wifi/bitstream-wifi-payload";
+import type {
+  BitstreamWifiScanCompletePayload,
+  BitstreamWifiScanRow,
+  BitstreamWifiStatusPayload,
+  BitstreamWifiStatusSource,
+  BitstreamWifiTxKind,
+} from "../../../bitstream2/domains/wifi/store-types";
 
-export type BitstreamWifiStatusSource = "async_evt" | "poll_ack";
-
-export type BitstreamWifiTxKind =
-  | "connect"
-  | "disconnect"
-  | "status_poll"
-  | "scan_all"
-  | "scan_ssid"
-  | "policy_get"
-  | "policy_set";
+export type {
+  BitstreamWifiScanCompletePayload,
+  BitstreamWifiScanRow,
+  BitstreamWifiStatusPayload,
+  BitstreamWifiStatusSource,
+  BitstreamWifiTxKind,
+};
 
 export type BitstreamWifiTxMeta = {
   kind: BitstreamWifiTxKind;
-  corrId: number;
+  reqId: number;
   atMs: number;
 };
 
 export type BitstreamWifiRxMeta = {
-  msgId: number;
-  seq: number;
-  len: number;
+  kind: number;
+  reqId: number;
   atMs: number;
 };
 
@@ -37,6 +39,7 @@ export type BitstreamWifiSyncMeta = {
 export interface BitstreamWifiStateSlice {
   lastStatus: BitstreamWifiStatusPayload | null;
   lastStatusSource: BitstreamWifiStatusSource | null;
+  scanRows: BitstreamWifiScanRow[];
   lastScanComplete: BitstreamWifiScanCompletePayload | null;
   autoConnectEnabled: boolean | null;
   lastUpdatedAt: number | null;
@@ -47,6 +50,8 @@ export interface BitstreamWifiStateSlice {
 
 interface BitstreamWifiActions {
   applyStatus: (payload: BitstreamWifiStatusPayload, source: BitstreamWifiStatusSource) => void;
+  appendScanRow: (row: BitstreamWifiScanRow) => void;
+  clearScanRows: () => void;
   applyScanComplete: (payload: BitstreamWifiScanCompletePayload) => void;
   applyPolicy: (autoConnectEnabled: boolean) => void;
   applyTx: (meta: Omit<BitstreamWifiTxMeta, "atMs">) => void;
@@ -60,6 +65,7 @@ export type BitstreamWifiStore = BitstreamWifiStateSlice & BitstreamWifiActions;
 const initial: BitstreamWifiStateSlice = {
   lastStatus: null,
   lastStatusSource: null,
+  scanRows: [],
   lastScanComplete: null,
   autoConnectEnabled: null,
   lastUpdatedAt: null,
@@ -80,6 +86,18 @@ export const useBitstreamWifiStore = create<BitstreamWifiStore>((set) => ({
       lastStatus: payload,
       lastStatusSource: source,
       lastUpdatedAt: Date.now(),
+    }),
+  appendScanRow: (row) =>
+    set((state) => ({
+      scanRows: [...state.scanRows.filter((r) => r.index !== row.index), row].sort(
+        (a, b) => a.index - b.index,
+      ),
+      lastUpdatedAt: Date.now(),
+    })),
+  clearScanRows: () =>
+    set({
+      scanRows: [],
+      lastScanComplete: null,
     }),
   applyScanComplete: (payload) =>
     set({

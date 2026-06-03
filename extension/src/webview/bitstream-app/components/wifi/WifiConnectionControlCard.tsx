@@ -1,8 +1,30 @@
-import { LoaderCircle, Radio, Search, ShieldCheck, Wifi, WifiOff } from "lucide-react";
+/*******************************************************************************
+ * File Name        : WifiConnectionControlCard.tsx
+ *
+ * Description      : Connect / disconnect form for the Wi‑Fi panel (user-facing).
+ *
+ * Author           : Asst.Prof.Santi Nuratch, Ph.D
+ * Thailand Embedded Systems Association (TESA)
+ * Version          : 1.2
+ * Target           : PSoC Edge E84 (shared)
+ *
+ *******************************************************************************/
+
+import { KeyRound, Link2, LoaderCircle, Shield, Unplug, Wifi } from "lucide-react";
 import { formatWcmSecurityHex, WCM_SECURITY_PRESETS } from "../../../../bitstream/wifi/wifi-wcm-security";
-import { TRNCard } from "../../../ui/TRN/TRNCard";
-import { TRNGlassButton } from "../../../ui/TRN/TRNGlassButton";
-import { resolveWifiBusyStage } from "./wifi-panel-utils";
+import { TRNButton, TRNFormField, TRNHintText, TRNInput, TRNInputGroup, TRNSelect } from "@/ui/TRN";
+import {
+  BS2_WIFI_CONNECT_PASSWORD_MAX_LEN,
+  BS2_WIFI_CONNECT_SSID_MAX_LEN,
+  formatWifiUserBusyMessage,
+  resolveWifiUserBusyToken,
+} from "./wifi-panel-utils";
+
+const SECURITY_SELECT_BUTTON =
+  "h-8 w-full border-zinc-700/80 bg-zinc-900/80 px-2 text-xs text-zinc-100 shadow-none backdrop-blur-none";
+
+const SECURITY_CUSTOM_INPUT =
+  "mt-1 w-full rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-1.5 text-xs text-zinc-100 outline-none ring-0 focus-visible:ring-0";
 
 export function WifiConnectionControlCard(props: {
   blocked: boolean;
@@ -12,21 +34,12 @@ export function WifiConnectionControlCard(props: {
   securityPresetKey: string;
   securityCustomText: string;
   resolvedSecurityUint32: number;
-  scanFilter: string;
-  autoConnectEnabled: boolean | null;
-  lastScanTotalCount: number | null;
   onSsidChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onSecurityPresetChange: (value: string) => void;
   onSecurityCustomTextChange: (value: string) => void;
-  onScanFilterChange: (value: string) => void;
   onConnect: () => void;
   onDisconnect: () => void;
-  onPoll: () => void;
-  onPolicyToggle: () => void;
-  onPolicyRefresh: () => void;
-  onScanAll: () => void;
-  onScanFilter: () => void;
 }) {
   const {
     blocked,
@@ -36,173 +49,114 @@ export function WifiConnectionControlCard(props: {
     securityPresetKey,
     securityCustomText,
     resolvedSecurityUint32,
-    scanFilter,
-    autoConnectEnabled,
-    lastScanTotalCount,
     onSsidChange,
     onPasswordChange,
     onSecurityPresetChange,
     onSecurityCustomTextChange,
-    onScanFilterChange,
     onConnect,
     onDisconnect,
-    onPoll,
-    onPolicyToggle,
-    onPolicyRefresh,
-    onScanAll,
-    onScanFilter,
   } = props;
-  const busyStage = resolveWifiBusyStage(busy);
-  const busyLabel =
-    busyStage === "connecting"
-      ? "Processing connect request"
-      : busyStage === "disconnecting"
-        ? "Processing disconnect request"
-        : busyStage === "scanning"
-          ? "Scanning for available APs"
-          : busyStage === "polling"
-            ? "Refreshing status snapshot"
-            : busyStage === "policy"
-              ? "Applying auto-connect policy"
-              : "Idle";
 
-  const busyIcon =
-    busyStage === "connecting" ? (
-      <Wifi className="h-3.5 w-3.5 animate-pulse" />
-    ) : busyStage === "disconnecting" ? (
-      <WifiOff className="h-3.5 w-3.5 animate-pulse" />
-    ) : busyStage === "scanning" ? (
-      <Search className="h-3.5 w-3.5 animate-pulse" />
-    ) : busyStage === "idle" ? (
-      <Radio className="h-3.5 w-3.5 text-zinc-400" />
-    ) : (
-      <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
-    );
+  const busyToken = resolveWifiUserBusyToken(busy);
+  const busyLabel = formatWifiUserBusyMessage(busyToken, ssid.trim());
+  const ssidTrim = ssid.trim();
+
+  const securityOptions = WCM_SECURITY_PRESETS.map((p) => ({
+    value: p.key,
+    label: p.label,
+  }));
 
   return (
-    <TRNCard
-      title="Connection Control"
-      icon={<ShieldCheck className="h-4 w-4" />}
-      mode="simple"
-      collapsible
-      defaultExpanded={false}
-      glass
-      glassPreset="medium"
-      contentClassName="space-y-2 p-2"
-    >
-      <div
-        className={`flex items-center justify-between rounded border px-2 py-1 text-xs ${
-          busy
-            ? "border-sky-500/35 bg-sky-500/12 text-sky-100"
-            : "border-zinc-700/80 bg-zinc-900/55 text-zinc-300"
-        }`}
-      >
-        <span className="inline-flex items-center gap-1.5">
-          {busyIcon}
-          {busy ? busyLabel : "Ready for command"}
-        </span>
-        <span className="text-[10px] uppercase tracking-wide text-zinc-400">{busy ? "Processing" : "Idle"}</span>
-      </div>
+    <div className="space-y-3">
+      {busyToken != null ? (
+        <div className="flex items-center gap-2 px-0.5 py-0.5 text-xs text-sky-100/95">
+          <LoaderCircle className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden />
+          <span>{busyLabel}</span>
+        </div>
+      ) : null}
 
-      <label className="flex flex-col gap-0.5">
-        <span className="text-[10px] uppercase tracking-wide text-zinc-500">SSID</span>
-        <input
+      <TRNInputGroup>
+        <TRNInput
+          prefixIcon={Wifi}
           value={ssid}
-          onChange={(e) => onSsidChange(e.target.value)}
+          onChange={(e) => onSsidChange(e.target.value.slice(0, BS2_WIFI_CONNECT_SSID_MAX_LEN))}
           disabled={blocked}
-          className="rounded border border-zinc-600/80 bg-zinc-950/80 px-1.5 py-1 text-xs text-zinc-100"
           autoComplete="off"
           spellCheck={false}
+          maxLength={BS2_WIFI_CONNECT_SSID_MAX_LEN}
+          placeholder="Your Wi‑Fi name"
+          aria-label="Network name"
         />
-      </label>
-      <label className="flex flex-col gap-0.5">
-        <span className="text-[10px] uppercase tracking-wide text-zinc-500">Password</span>
-        <input
+        <TRNInput
+          prefixIcon={KeyRound}
           type="password"
           value={password}
-          onChange={(e) => onPasswordChange(e.target.value)}
+          onChange={(e) =>
+            onPasswordChange(e.target.value.slice(0, BS2_WIFI_CONNECT_PASSWORD_MAX_LEN))
+          }
           disabled={blocked}
-          className="rounded border border-zinc-600/80 bg-zinc-950/80 px-1.5 py-1 text-xs text-zinc-100"
           autoComplete="off"
+          maxLength={BS2_WIFI_CONNECT_PASSWORD_MAX_LEN}
+          placeholder="Password (optional for open Wi‑Fi)"
+          aria-label="Password"
         />
-      </label>
-      <label className="flex flex-col gap-0.5">
-        <span className="text-[10px] uppercase tracking-wide text-zinc-500">Security type</span>
-        <select
+      </TRNInputGroup>
+
+      <TRNFormField label="Security type" layout="stacked">
+        <TRNSelect
+          ariaLabel="Wi-Fi security"
+          size="sm"
           value={securityPresetKey}
-          onChange={(e) => onSecurityPresetChange(e.target.value)}
+          options={securityOptions}
           disabled={blocked}
-          className="rounded border border-zinc-600/80 bg-zinc-950/80 px-1.5 py-1 text-xs text-zinc-100"
-        >
-          {WCM_SECURITY_PRESETS.map((p) => (
-            <option key={p.key} value={p.key}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+          onValueChange={onSecurityPresetChange}
+          leadingIcon={<Shield className="h-4 w-4 text-zinc-500" aria-hidden />}
+          showSelectedIconInTrigger={false}
+          buttonClassName={SECURITY_SELECT_BUTTON}
+          panelClassName="border border-zinc-700/70"
+        />
         {securityPresetKey === "custom" ? (
           <input
             value={securityCustomText}
             onChange={(e) => onSecurityCustomTextChange(e.target.value)}
             disabled={blocked}
-            placeholder="Decimal or 0x… (WCM cy_wcm_security_t)"
-            className="mt-1 rounded border border-zinc-600/80 bg-zinc-950/80 px-1.5 py-1 text-xs text-zinc-100"
+            placeholder="Advanced: security value"
+            className={SECURITY_CUSTOM_INPUT}
             autoComplete="off"
             spellCheck={false}
           />
         ) : null}
-        <p className="text-[10px] leading-snug text-zinc-500">
-          Sent as <span className="text-zinc-300">{formatWcmSecurityHex(resolvedSecurityUint32)}</span> (
-          <span className="font-mono text-zinc-300">{resolvedSecurityUint32}</span> decimal).
-        </p>
-      </label>
+        {securityPresetKey === "custom" ? (
+          <TRNHintText tone="muted" className="mb-0 mt-1 text-[10px]">
+            {formatWcmSecurityHex(resolvedSecurityUint32)}
+          </TRNHintText>
+        ) : null}
+      </TRNFormField>
 
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-        <TRNGlassButton type="button" size="sm" onClick={onConnect} disabled={blocked} className="text-[11px]">
+      <div className="grid grid-cols-2 gap-2">
+        <TRNButton
+          size="compact"
+          className="gap-1.5 text-[11px]"
+          prefixIcon={<Link2 className="h-3.5 w-3.5 text-emerald-300/90" aria-hidden />}
+          onClick={onConnect}
+          disabled={blocked || ssidTrim.length === 0}
+        >
           Connect
-        </TRNGlassButton>
-        <TRNGlassButton type="button" size="sm" onClick={onDisconnect} disabled={blocked} className="text-[11px]">
+        </TRNButton>
+        <TRNButton
+          size="compact"
+          className="gap-1.5 text-[11px]"
+          prefixIcon={<Unplug className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
+          onClick={onDisconnect}
+          disabled={blocked}
+        >
           Disconnect
-        </TRNGlassButton>
-        <TRNGlassButton type="button" size="sm" onClick={onPoll} disabled={blocked} className="text-[11px]">
-          Poll status
-        </TRNGlassButton>
-        <TRNGlassButton type="button" size="sm" onClick={onPolicyToggle} disabled={blocked} className="text-[11px]">
-          Auto: {autoConnectEnabled == null ? "?" : autoConnectEnabled ? "On" : "Off"}
-        </TRNGlassButton>
-        <TRNGlassButton type="button" size="sm" onClick={onPolicyRefresh} disabled={blocked} className="text-[11px]">
-          Poll policy
-        </TRNGlassButton>
+        </TRNButton>
       </div>
 
-      <div className="flex flex-wrap gap-1.5 border-t border-zinc-800 pt-2">
-        <TRNGlassButton type="button" size="sm" onClick={onScanAll} disabled={blocked} className="text-[11px]">
-          Scan all
-        </TRNGlassButton>
-      </div>
-      <label className="flex flex-col gap-0.5">
-        <span className="text-[10px] uppercase tracking-wide text-zinc-500">Scan filter (substring)</span>
-        <div className="flex gap-1">
-          <input
-            value={scanFilter}
-            onChange={(e) => onScanFilterChange(e.target.value)}
-            disabled={blocked}
-            className="min-w-0 flex-1 rounded border border-zinc-600/80 bg-zinc-950/80 px-1.5 py-1 text-xs text-zinc-100"
-            autoComplete="off"
-          />
-          <TRNGlassButton
-            type="button"
-            size="sm"
-            onClick={onScanFilter}
-            disabled={blocked || scanFilter.trim().length === 0}
-            className="shrink-0 text-[11px]"
-          >
-            Scan
-          </TRNGlassButton>
-        </div>
-      </label>
-      {busy ? <p className="text-[11px] text-sky-300/90">{busy}</p> : null}
-      {lastScanTotalCount != null ? <p className="text-[11px] text-zinc-400">Last scan AP count: {lastScanTotalCount}</p> : null}
-    </TRNCard>
+      <TRNHintText tone="muted" className="mb-0 text-[10px] leading-snug">
+        Open the Networks tab to scan, then tap Use to fill the name here.
+      </TRNHintText>
+    </div>
   );
 }

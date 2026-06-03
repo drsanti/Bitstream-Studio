@@ -22,10 +22,9 @@ import { useSyncBrokerWsToConnectionStore } from "../bitstream-app/hooks/useSync
 import { useTelemetryActivityMirror } from "../sensor-telemetry/hooks/useTelemetryActivityMirror.js";
 import { appendTelemetryActivity } from "../sensor-telemetry/store/telemetryActivity.store.js";
 import { useWsClientStore } from "../ws-client-store";
-import { CY_WCM_SECURITY_WPA2_AES_PSK } from "../../bitstream/wifi/wifi-wcm-security.js";
-import {
-  BITSTREAM_CAPS_FLAG_WIFI_CHANNEL,
-} from "../../bitstream/wifi/bitstream-wifi-channel.js";
+import { BS2_CAPS_WIFI } from "../../bitstream2/protocol/caps-flags.js";
+import { useBitstreamWifiController } from "../bitstream-app/control/useBitstreamWifiController.js";
+import { useBitstreamWifiEvtBridge } from "../bitstream-app/hooks/useBitstreamWifiEvtBridge.js";
 import type { HandshakeLifecycleState } from "../bitstream-app/state/bitstreamLive.store.js";
 import { useBitstreamLiveStore } from "../bitstream-app/state/bitstreamLive.store.js";
 import { usePreviewMeshMissingUiStore } from "../bitstream-app/state/previewMeshMissingUi.store.js";
@@ -506,30 +505,21 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
 
   // (diagnostics controller moved to `control/useDiagnosticsController.ts`)
 
-  const wifiScanAll = useCallback(async (): Promise<boolean> => {
-    pushLog("Wi‑Fi: v1 HostSession channel removed (BS2 Wi‑Fi TBD)");
-    return false;
-  }, [pushLog]);
+  useBitstreamWifiEvtBridge();
 
-  const wifiScanSsid = useCallback(async (_ssidSubstring: string): Promise<boolean> => false, []);
-
-  const wifiConnect = useCallback(
-    async (_ssid: string, _password: string, _security = CY_WCM_SECURITY_WPA2_AES_PSK): Promise<boolean> => false,
-    [],
-  );
-
-  const wifiDisconnect = useCallback(async (): Promise<boolean> => false, []);
-
-  const wifiStatusPoll = useCallback(async (): Promise<boolean> => false, []);
+  const {
+    wifiScanAll,
+    wifiScanSsid,
+    wifiConnect,
+    wifiDisconnect,
+    wifiStatusPoll,
+    wifiPolicyGet,
+    wifiPolicySet,
+    wifiSyncNow,
+  } = useBitstreamWifiController(pushLog);
 
   const capsFlags = useBitstreamLiveStore((s) => s.handshake?.capsFlags ?? 0);
-  const wifiCapabilityAdvertised = (capsFlags & BITSTREAM_CAPS_FLAG_WIFI_CHANNEL) !== 0;
-
-  const wifiPolicyGet = useCallback(async (): Promise<boolean> => false, []);
-
-  const wifiPolicySet = useCallback(async (_autoConnectEnabled: boolean): Promise<boolean> => false, []);
-
-  const wifiSyncNow = useCallback(async (_reason: string): Promise<void> => {}, []);
+  const wifiCapabilityAdvertised = (capsFlags & BS2_CAPS_WIFI) !== 0;
 
   const getFirmwareLogLevel = useCallback(async (): Promise<{
     ok: boolean;

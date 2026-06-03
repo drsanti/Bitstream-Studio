@@ -1,34 +1,90 @@
+/*******************************************************************************
+ * File Name        : BitstreamWifiPanel.tsx
+ *
+ * Description      : Tabbed Wi‑Fi control panel (Status / Connect / Networks / Activity).
+ *
+ * Author           : Asst.Prof.Santi Nuratch, Ph.D
+ * Thailand Embedded Systems Association (TESA)
+ * Version          : 1.0
+ * Target           : PSoC Edge E84 (shared)
+ *
+ *******************************************************************************/
+
+import { Activity, History, Link2, Wifi } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BITSTREAM_CAPS_FLAG_WIFI_CHANNEL } from "../../../../bitstream/wifi/bitstream-wifi-channel";
+import { BS2_CAPS_WIFI } from "../../../../bitstream2/protocol/caps-flags";
 import {
   resolveWcmSecurityUint32,
   WCM_SECURITY_PRESET_DEFAULT_KEY,
 } from "../../../../bitstream/wifi/wifi-wcm-security";
+import {
+  TRN_INSPECTOR_TAB_ACTIVE_CLASS,
+  TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
+  TRN_INSPECTOR_TAB_LABEL_CLASS,
+  TRN_INSPECTOR_TAB_LIST_CLASS,
+  TRN_INSPECTOR_TAB_TRIGGER_CLASS,
+  TRNTabs,
+  TRNTabsContent,
+  TRNTabsList,
+  TRNTabsTrigger,
+  TRNSortableSettingsCardList,
+  type TRNSortableSettingsCardItem,
+} from "@/ui/TRN";
 import { useBitstreamAppControl } from "../../BitstreamAppWrapper";
 import { useBitstreamLiveStore } from "../../state/bitstreamLive.store";
 import { useBitstreamWifiStore } from "../../state/bitstreamWifi.store";
 import { useBitstreamConnectionStore } from "../../state/bitstreamConnection.store";
 import { WifiConnectionControlCard } from "./WifiConnectionControlCard";
 import { WifiDiagnosticsCard } from "./WifiDiagnosticsCard";
-import { WifiDetailsCard } from "./WifiDetailsCard";
+import { useWifiScanSession } from "./useWifiScanSession";
+import { WifiNetworksTab } from "./WifiNetworksTab";
 import { WifiRssiTrendCard } from "./WifiRssiTrendCard";
 import { WifiStatusSummaryCard } from "./WifiStatusSummaryCard";
-import { formatWifiLinkState } from "./wifi-panel-utils";
+import {
+  appendWifiActivityEvent,
+  createWifiActivityEvent,
+  wifiActivityFromLinkStatus,
+  type WifiActivityEvent,
+} from "./wifi-activity-events";
+import {
+  formatCapsWarningForUser,
+  resolveWifiUserBusyToken,
+  type WifiUserBusyToken,
+} from "./wifi-panel-utils";
+import { WIFI_TAB_CONTENT_CLASS } from "./wifi-panel-layout";
+
+const WIFI_PANEL_TAB_KEY = "bitstream-app:wifi-panel-tab";
+const WIFI_STATUS_CARDS_KEY = "bitstream-app:wifi-status-cards";
+const WIFI_CONNECT_CARDS_KEY = "bitstream-app:wifi-connect-cards";
+const WIFI_ACTIVITY_CARDS_KEY = "bitstream-app:wifi-activity-cards";
+type WifiPanelTab = "status" | "connect" | "networks" | "activity";
+
+function loadWifiPanelTab(): WifiPanelTab {
+  if (typeof localStorage === "undefined") {
+    return "status";
+  }
+  try {
+    const raw = localStorage.getItem(WIFI_PANEL_TAB_KEY);
+    if (raw === "connect" || raw === "networks" || raw === "activity" || raw === "status") {
+      return raw;
+    }
+  } catch {
+    // ignore
+  }
+  return "status";
+}
 
 export function BitstreamWifiPanel(props: { className?: string }) {
   const { className } = props;
   const handshakeState = useBitstreamLiveStore((s) => s.handshakeState);
   const capsFlags = useBitstreamLiveStore((s) => s.handshake?.capsFlags ?? 0);
-  const wifiAdvertised = (capsFlags & BITSTREAM_CAPS_FLAG_WIFI_CHANNEL) !== 0;
+  const wifiAdvertised = (capsFlags & BS2_CAPS_WIFI) !== 0;
 
   const lastStatus = useBitstreamWifiStore((s) => s.lastStatus);
   const lastScanComplete = useBitstreamWifiStore((s) => s.lastScanComplete);
-  const lastUpdatedAt = useBitstreamWifiStore((s) => s.lastUpdatedAt);
-  const statusSource = useBitstreamWifiStore((s) => s.lastStatusSource);
+  const scanRows = useBitstreamWifiStore((s) => s.scanRows);
   const autoConnectEnabled = useBitstreamWifiStore((s) => s.autoConnectEnabled);
-  const lastTx = useBitstreamWifiStore((s) => s.lastTx);
   const lastRx = useBitstreamWifiStore((s) => s.lastRx);
-  const wifiSync = useBitstreamWifiStore((s) => s.wifiSync);
   const logs = useBitstreamConnectionStore((s) => s.logs);
 
   const {
@@ -41,92 +97,115 @@ export function BitstreamWifiPanel(props: { className?: string }) {
     wifiPolicySet,
   } = useBitstreamAppControl();
 
+  const [activeTab, setActiveTab] = useState<WifiPanelTab>(() => loadWifiPanelTab());
   const [ssid, setSsid] = useState(() => (import.meta.env.DEV ? "TERNION" : ""));
   const [password, setPassword] = useState(() => (import.meta.env.DEV ? "111122134" : ""));
   const [securityPresetKey, setSecurityPresetKey] = useState(WCM_SECURITY_PRESET_DEFAULT_KEY);
   const [securityCustomText, setSecurityCustomText] = useState("");
   const [scanFilter, setScanFilter] = useState("");
-  const [forceSendWithoutCaps, setForceSendWithoutCaps] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<WifiUserBusyToken | null>(null);
   const [rssiHistory, setRssiHistory] = useState<number[]>([]);
-  const [recentEvents, setRecentEvents] = useState<Array<{ at: number; text: string }>>([]);
+  const [recentEvents, setRecentEvents] = useState<WifiActivityEvent[]>([]);
   const lastUartEventRef = useRef<string | null>(null);
   const lastHostDiagEventRef = useRef<string | null>(null);
+  const policyLoadedRef = useRef(false);
 
   const disabledReason = useMemo(() => {
     if (handshakeState !== "passed") {
-      return "Wait for handshake.";
+      return "Connect to the device first (wait for handshake).";
     }
     return null;
   }, [handshakeState]);
 
-  const capsWarning = useMemo(() => {
-    if (handshakeState !== "passed") {
-      return null;
-    }
-    if (!wifiAdvertised) {
-      if (lastRx != null) {
-        return "CAPS says Wi-Fi is not supported (bit 5 off), but Wi-Fi frames are being received. This usually means the CAPS snapshot is stale (restart the web session to re-handshake). You can still try Connect, but scans/policy may not work on older firmware.";
-      }
-      return "Firmware CAPS did not advertise Wi-Fi channel (bit 5).";
-    }
-    return null;
-  }, [handshakeState, lastRx, wifiAdvertised]);
+  const capsWarning = useMemo(
+    () => formatCapsWarningForUser(wifiAdvertised, lastRx != null),
+    [wifiAdvertised, lastRx],
+  );
 
-  // If Wi‑Fi frames are being received, treat CAPS as effectively supported even if the handshake snapshot is stale.
-  const capsEffectivelySupported =
-    wifiAdvertised || lastRx != null || forceSendWithoutCaps;
+  const capsEffectivelySupported = wifiAdvertised || lastRx != null;
   const capsBlocked = handshakeState === "passed" && !capsEffectivelySupported;
 
   const blocked = disabledReason !== null || busy !== null;
+  const connectInFlight = resolveWifiUserBusyToken(busy) === "connecting";
 
   const resolvedSecurityUint32 = useMemo(
     () => resolveWcmSecurityUint32(securityPresetKey, securityCustomText),
     [securityPresetKey, securityCustomText],
   );
 
-  const wrap = useCallback(async (label: string, fn: () => Promise<boolean>): Promise<boolean> => {
-    setBusy(label);
-    try {
-      return await fn();
-    } finally {
-      setBusy(null);
-    }
+  const wrap = useCallback(
+    async (token: WifiUserBusyToken, fn: () => Promise<boolean>): Promise<boolean> => {
+      setBusy(token);
+      try {
+        return await fn();
+      } finally {
+        setBusy(null);
+      }
+    },
+    [],
+  );
+
+  const pushActivity = useCallback((evt: WifiActivityEvent) => {
+    setRecentEvents((prev) => appendWifiActivityEvent(prev, evt));
   }, []);
 
-  const pushEvent = useCallback((text: string) => {
-    setRecentEvents((prev) => [{ at: Date.now(), text }, ...prev].slice(0, 8));
+  const { isScanActive, scanOutcome, startScanSession } = useWifiScanSession(pushActivity);
+
+  const onTabChange = useCallback((value: string) => {
+    const tab = value as WifiPanelTab;
+    setActiveTab(tab);
+    try {
+      localStorage.setItem(WIFI_PANEL_TAB_KEY, tab);
+    } catch {
+      // ignore
+    }
   }, []);
 
   const onScanAll = useCallback(async () => {
     if (capsBlocked) {
-      pushEvent("Scan all blocked: firmware did not advertise Wi‑Fi CAPS.");
+      pushActivity(
+        createWifiActivityEvent("Unavailable", "error", "Scan is not available on this device."),
+      );
       return;
     }
-    const ok = await wrap("Scanning…", async () => wifiScanAll());
-    if (ok) {
-      pushEvent("Scan all request accepted.");
-    } else {
-      pushEvent("Scan all request failed.");
+    if (isScanActive) {
+      return;
     }
-  }, [capsBlocked, pushEvent, wifiScanAll, wrap]);
+    const ok = await wifiScanAll();
+    if (!ok) {
+      pushActivity(createWifiActivityEvent("Failed", "error", "Could not start scan"));
+      return;
+    }
+    const reqId = useBitstreamWifiStore.getState().lastTx?.reqId ?? 0;
+    startScanSession(reqId);
+    pushActivity(
+      createWifiActivityEvent("Scan", "scan", "Scan started", "List updates as found"),
+    );
+  }, [capsBlocked, isScanActive, pushActivity, startScanSession, wifiScanAll]);
 
   const onScanFilter = useCallback(async () => {
     if (capsBlocked) {
-      pushEvent("Filtered scan blocked: firmware did not advertise Wi‑Fi CAPS.");
+      pushActivity(
+        createWifiActivityEvent("Unavailable", "error", "Scan is not available on this device."),
+      );
       return;
     }
     const f = scanFilter.trim();
     if (!f) {
       return;
     }
-    const ok = await wrap("Filtered scan…", async () => wifiScanSsid(f));
-    if (ok) {
-      pushEvent(`Filtered scan started (${f}).`);
-    } else {
-      pushEvent(`Filtered scan failed (${f}).`);
+    if (isScanActive) {
+      return;
     }
-  }, [capsBlocked, pushEvent, scanFilter, wifiScanSsid, wrap]);
+    const ok = await wifiScanSsid(f);
+    if (!ok) {
+      pushActivity(createWifiActivityEvent("Failed", "error", "Could not start search"));
+      return;
+    }
+    const reqId = useBitstreamWifiStore.getState().lastTx?.reqId ?? 0;
+    startScanSession(reqId);
+    pushActivity(createWifiActivityEvent("Search", "scan", `Matching “${f}”`));
+  }, [capsBlocked, isScanActive, pushActivity, scanFilter, startScanSession, wifiScanSsid]);
 
   const onConnect = useCallback(async () => {
     const s = ssid.trim();
@@ -134,77 +213,88 @@ export function BitstreamWifiPanel(props: { className?: string }) {
       return;
     }
     const security = resolveWcmSecurityUint32(securityPresetKey, securityCustomText);
-    const ok = await wrap("Connecting…", async () => wifiConnect(s, password, security));
+    const ok = await wrap("connecting", async () => wifiConnect(s, password, security));
     if (ok) {
-      pushEvent(`Connect accepted (SSID=${s}).`);
+      pushActivity(createWifiActivityEvent("Connecting", "warn", s));
+      setActiveTab("status");
+      try {
+        localStorage.setItem(WIFI_PANEL_TAB_KEY, "status");
+      } catch {
+        // ignore
+      }
     } else {
-      pushEvent(`Connect failed (SSID=${s}).`);
+      pushActivity(createWifiActivityEvent("Failed", "error", `Could not connect to “${s}”`));
     }
-  }, [ssid, password, securityPresetKey, securityCustomText, pushEvent, wifiConnect, wrap]);
+  }, [ssid, password, securityPresetKey, securityCustomText, pushActivity, wifiConnect, wrap]);
 
   const onDisconnect = useCallback(async () => {
-    const ok = await wrap("Disconnect…", async () => wifiDisconnect());
+    const ok = await wrap("disconnecting", async () => wifiDisconnect());
     if (ok) {
-      pushEvent("Disconnect accepted.");
+      pushActivity(createWifiActivityEvent("Disconnecting", "warn", "In progress"));
     } else {
-      pushEvent("Disconnect failed.");
+      pushActivity(createWifiActivityEvent("Failed", "error", "Could not disconnect"));
     }
-  }, [pushEvent, wifiDisconnect, wrap]);
+  }, [pushActivity, wifiDisconnect, wrap]);
 
   const onPoll = useCallback(async () => {
-    const ok = await wrap("Status poll…", async () => wifiStatusPoll());
+    const ok = await wrap("refreshing", async () => wifiStatusPoll());
     if (ok) {
-      pushEvent("Status poll refreshed.");
+      pushActivity(createWifiActivityEvent("Updated", "info", "Connection status refreshed"));
     } else {
-      pushEvent("Status poll failed.");
+      pushActivity(createWifiActivityEvent("Failed", "error", "Could not refresh status"));
     }
-  }, [pushEvent, wifiStatusPoll, wrap]);
-
-  const onPolicyRefresh = useCallback(async () => {
-    if (capsBlocked) {
-      pushEvent("Policy poll blocked: firmware did not advertise Wi‑Fi CAPS.");
-      return;
-    }
-    const ok = await wrap("Policy poll…", async () => wifiPolicyGet());
-    if (ok) {
-      pushEvent("Policy refreshed.");
-    } else {
-      pushEvent("Policy refresh failed.");
-    }
-  }, [capsBlocked, pushEvent, wifiPolicyGet, wrap]);
+  }, [pushActivity, wifiStatusPoll, wrap]);
 
   const onPolicyToggle = useCallback(async () => {
     if (capsBlocked) {
-      pushEvent("Policy set blocked: firmware did not advertise Wi‑Fi CAPS.");
+      pushActivity(
+        createWifiActivityEvent("Unavailable", "error", "Auto-connect is not available on this device."),
+      );
       return;
     }
     const next = !(autoConnectEnabled ?? true);
-    const ok = await wrap("Applying policy…", async () => wifiPolicySet(next));
+    const ok = await wrap("saving", async () => wifiPolicySet(next));
     if (ok) {
-      pushEvent(`Auto-connect ${next ? "enabled" : "disabled"}.`);
+      pushActivity(
+        createWifiActivityEvent("Setting", "info", `Auto-connect ${next ? "on" : "off"}`),
+      );
     } else {
-      pushEvent("Auto-connect policy change failed.");
+      pushActivity(createWifiActivityEvent("Failed", "error", "Could not change auto-connect"));
     }
-  }, [autoConnectEnabled, capsBlocked, pushEvent, wifiPolicyGet, wifiPolicySet, wrap]);
+  }, [autoConnectEnabled, capsBlocked, pushActivity, wifiPolicySet, wrap]);
+
+  const onPickSsid = useCallback((picked: string) => {
+    setSsid(picked);
+    setActiveTab("connect");
+    try {
+      localStorage.setItem(WIFI_PANEL_TAB_KEY, "connect");
+    } catch {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
-    if (disabledReason != null) {
+    if (handshakeState !== "passed" || capsBlocked || policyLoadedRef.current) {
       return;
     }
-    // no-ACK mode: do not poll policy on mount
-  }, [disabledReason, wifiPolicyGet]);
+    policyLoadedRef.current = true;
+    void wifiPolicyGet();
+  }, [handshakeState, capsBlocked, wifiPolicyGet]);
+
+  useEffect(() => {
+    if (lastStatus?.ssid && ssid.trim().length === 0) {
+      setSsid(lastStatus.ssid);
+    }
+  }, [lastStatus?.ssid, ssid]);
 
   useEffect(() => {
     if (!lastStatus) {
       return;
     }
     setRssiHistory((prev) => [...prev.slice(-23), lastStatus.rssi]);
-    pushEvent(
-      `Status: ${formatWifiLinkState(lastStatus.state)}, RSSI ${lastStatus.rssi} dBm, SSID ${
-        lastStatus.ssid || "(empty)"
-      }.`,
-    );
-  }, [lastStatus?.corrId, lastStatus?.state, lastStatus?.rssi, lastStatus?.ssid, lastStatus, pushEvent]);
+    const evt = wifiActivityFromLinkStatus(lastStatus.state, lastStatus.ssid, lastStatus.rssi);
+    setRecentEvents((prev) => appendWifiActivityEvent(prev, evt));
+  }, [lastStatus?.state, lastStatus?.rssi, lastStatus?.ssid, lastStatus]);
 
   useEffect(() => {
     if (logs.length === 0) {
@@ -216,8 +306,8 @@ export function BitstreamWifiPanel(props: { className?: string }) {
     }
     lastUartEventRef.current = uartLog;
     const normalized = uartLog.replace(/^\[[^\]]+\]\s*/, "");
-    pushEvent(normalized);
-  }, [logs, pushEvent]);
+    pushActivity(createWifiActivityEvent("Log", "info", normalized));
+  }, [logs, pushActivity]);
 
   useEffect(() => {
     if (logs.length === 0) {
@@ -231,68 +321,173 @@ export function BitstreamWifiPanel(props: { className?: string }) {
     }
     lastHostDiagEventRef.current = hostDiag;
     const normalized = hostDiag.replace(/^\[[^\]]+\]\s*/, "");
-    pushEvent(`[HOST] ${normalized}`);
-  }, [logs, pushEvent]);
+    pushActivity(createWifiActivityEvent("Device", "warn", normalized));
+  }, [logs, pushActivity]);
 
   const currentState = lastStatus?.state ?? 0;
+  const networksBadge =
+    scanRows.length > 0 ? String(scanRows.length) : undefined;
+
+  const statusCards = useMemo((): TRNSortableSettingsCardItem[] => {
+    return [
+      {
+        id: "connection",
+        title: "Connection",
+        icon: <Wifi className="h-4 w-4 text-zinc-500" aria-hidden />,
+        defaultExpanded: true,
+        content: (
+          <WifiStatusSummaryCard
+            state={currentState}
+            rssi={lastStatus?.rssi ?? -127}
+            ssid={lastStatus?.ssid ?? ""}
+            reason={lastStatus?.reason ?? 0}
+            autoConnectEnabled={autoConnectEnabled}
+            connectInFlight={connectInFlight}
+            onRefresh={() => void onPoll()}
+            onPolicyToggle={() => void onPolicyToggle()}
+            refreshDisabled={blocked}
+          />
+        ),
+      },
+      {
+        id: "signal",
+        title: "Signal over time",
+        icon: <Activity className="h-4 w-4 text-zinc-500" aria-hidden />,
+        defaultExpanded: true,
+        content: <WifiRssiTrendCard rssiHistory={rssiHistory} />,
+      },
+    ];
+  }, [
+    autoConnectEnabled,
+    blocked,
+    connectInFlight,
+    currentState,
+    lastStatus?.reason,
+    lastStatus?.rssi,
+    lastStatus?.ssid,
+    onPoll,
+    onPolicyToggle,
+    rssiHistory,
+  ]);
+
+  const connectCards = useMemo((): TRNSortableSettingsCardItem[] => {
+    return [
+      {
+        id: "connect",
+        title: "Connect to network",
+        icon: <Link2 className="h-4 w-4 text-zinc-500" aria-hidden />,
+        defaultExpanded: true,
+        content: (
+          <WifiConnectionControlCard
+            blocked={blocked}
+            busy={busy}
+            ssid={ssid}
+            password={password}
+            securityPresetKey={securityPresetKey}
+            securityCustomText={securityCustomText}
+            resolvedSecurityUint32={resolvedSecurityUint32}
+            onSsidChange={setSsid}
+            onPasswordChange={setPassword}
+            onSecurityPresetChange={setSecurityPresetKey}
+            onSecurityCustomTextChange={setSecurityCustomText}
+            onConnect={() => void onConnect()}
+            onDisconnect={() => void onDisconnect()}
+          />
+        ),
+      },
+    ];
+  }, [
+    blocked,
+    busy,
+    onConnect,
+    onDisconnect,
+    password,
+    resolvedSecurityUint32,
+    securityCustomText,
+    securityPresetKey,
+    ssid,
+  ]);
+
+  const activityCards = useMemo((): TRNSortableSettingsCardItem[] => {
+    return [
+      {
+        id: "activity",
+        title: "Recent activity",
+        icon: <History className="h-4 w-4 text-zinc-500" aria-hidden />,
+        defaultExpanded: true,
+        content: (
+          <WifiDiagnosticsCard recentEvents={recentEvents} />
+        ),
+      },
+    ];
+  }, [recentEvents]);
 
   return (
-    <section className={`flex flex-col gap-2 text-xs text-zinc-200 ${className ?? ""}`}>
-      <WifiStatusSummaryCard
-        state={currentState}
-        rssi={lastStatus?.rssi ?? -127}
-        ssid={lastStatus?.ssid ?? ""}
-        reason={lastStatus?.reason ?? 0}
-        statusSource={statusSource}
-        lastUpdatedAt={lastUpdatedAt}
-        autoConnectEnabled={autoConnectEnabled}
-        busy={busy}
-      />
-
+    <section className={`flex shrink-0 flex-col text-xs text-zinc-200 ${className ?? ""}`}>
       {disabledReason ? (
-        <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] leading-snug text-amber-200/90">
+        <p className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] leading-snug text-amber-200/90">
           {disabledReason}
         </p>
       ) : null}
-      <WifiRssiTrendCard rssiHistory={rssiHistory} />
+      {capsWarning ? (
+        <p className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] leading-snug text-amber-200/90">
+          {capsWarning}
+        </p>
+      ) : null}
 
-      <WifiConnectionControlCard
-        blocked={blocked}
-        busy={busy}
-        ssid={ssid}
-        password={password}
-        securityPresetKey={securityPresetKey}
-        securityCustomText={securityCustomText}
-        resolvedSecurityUint32={resolvedSecurityUint32}
-        scanFilter={scanFilter}
-        autoConnectEnabled={autoConnectEnabled}
-        lastScanTotalCount={lastScanComplete?.totalCount ?? null}
-        onSsidChange={setSsid}
-        onPasswordChange={setPassword}
-        onSecurityPresetChange={setSecurityPresetKey}
-        onSecurityCustomTextChange={setSecurityCustomText}
-        onScanFilterChange={setScanFilter}
-        onConnect={() => void onConnect()}
-        onDisconnect={() => void onDisconnect()}
-        onPoll={() => void onPoll()}
-        onPolicyToggle={() => void onPolicyToggle()}
-        onPolicyRefresh={() => void onPolicyRefresh()}
-        onScanAll={() => void onScanAll()}
-        onScanFilter={() => void onScanFilter()}
-      />
+      <TRNTabs
+        value={activeTab}
+        onValueChange={onTabChange}
+        lazyMount
+        className="flex min-w-0 shrink-0 flex-col"
+        activeTriggerClassName={TRN_INSPECTOR_TAB_ACTIVE_CLASS}
+      >
+        <div className={TRN_INSPECTOR_TAB_BAR_WRAP_CLASS}>
+          <TRNTabsList className={TRN_INSPECTOR_TAB_LIST_CLASS}>
+            <TRNTabsTrigger value="status" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Status</span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger value="connect" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Connect</span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger value="networks" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>
+                Networks{networksBadge != null ? ` (${networksBadge})` : ""}
+              </span>
+            </TRNTabsTrigger>
+            <TRNTabsTrigger value="activity" className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}>
+              <span className={TRN_INSPECTOR_TAB_LABEL_CLASS}>Activity</span>
+            </TRNTabsTrigger>
+          </TRNTabsList>
+        </div>
 
-      <WifiDetailsCard
-        capsWarning={capsWarning}
-        statusSource={statusSource}
-        lastUpdatedAt={lastUpdatedAt}
-        wifiSync={wifiSync}
-        lastTx={lastTx}
-        lastRx={lastRx}
-        forceSendWithoutCaps={forceSendWithoutCaps}
-        onForceSendWithoutCapsChange={setForceSendWithoutCaps}
-      />
+        <TRNTabsContent value="status" className={WIFI_TAB_CONTENT_CLASS}>
+          <TRNSortableSettingsCardList items={statusCards} panelId={WIFI_STATUS_CARDS_KEY} />
+        </TRNTabsContent>
 
-      <WifiDiagnosticsCard recentEvents={recentEvents} />
+        <TRNTabsContent value="connect" className={WIFI_TAB_CONTENT_CLASS}>
+          <TRNSortableSettingsCardList items={connectCards} panelId={WIFI_CONNECT_CARDS_KEY} />
+        </TRNTabsContent>
+
+        <TRNTabsContent value="networks" className={WIFI_TAB_CONTENT_CLASS}>
+          <WifiNetworksTab
+            blocked={blocked}
+            isScanActive={isScanActive}
+            scanOutcome={scanOutcome}
+            scanFilter={scanFilter}
+            scanRows={scanRows}
+            lastScanTotalCount={lastScanComplete?.totalCount ?? null}
+            onScanFilterChange={setScanFilter}
+            onScanAll={() => void onScanAll()}
+            onScanFilter={() => void onScanFilter()}
+            onPickSsid={onPickSsid}
+          />
+        </TRNTabsContent>
+
+        <TRNTabsContent value="activity" className={WIFI_TAB_CONTENT_CLASS}>
+          <TRNSortableSettingsCardList items={activityCards} panelId={WIFI_ACTIVITY_CARDS_KEY} />
+        </TRNTabsContent>
+      </TRNTabs>
     </section>
   );
 }

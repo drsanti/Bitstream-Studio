@@ -1,7 +1,7 @@
 # Bitstream (vNext) — `BS` framed UART protocol specification
 
 **Status:** Draft (greenfield)  
-**Scope:** UART wire protocol between Host and Firmware, carried through the Bitstream Studio serial bridge / WS broker. Includes **§13 host UART link lifecycle** (browser refresh, Simulator↔Bitstream routing, USB hotplug).  
+**Scope:** UART wire protocol between Host and Firmware, carried transparently through the T3D Serial bridge / WS broker. Includes **§13 host UART link lifecycle** (browser refresh, Simulator↔UART routing, USB hotplug).  
 **Design goals:** robust resync under mixed UART bytes, high-rate sensor streaming, reliable control/config, low overhead.
 
 ---
@@ -214,8 +214,13 @@ sequenceDiagram
 | `0x11` | `SENSOR_CFG_SET` | write sensor config |
 | `0x12` | `STREAM_MASK_SET` | set sensor stream mask |
 | `0x13` | `STREAM_RATE_SET` | set sensor publish interval |
-| `0x20` | `WIFI_CONNECT` | connect (ssid/pass) |
+| `0x20` | `WIFI_CONNECT` | connect (`security u32` + `ssid[33]` + `password[65]`) |
 | `0x21` | `WIFI_DISCONNECT` | disconnect |
+| `0x22` | `WIFI_SCAN_ALL` | start full scan (async EVTs) |
+| `0x23` | `WIFI_SCAN_SSID` | filtered scan (`ssidLen` + bytes) |
+| `0x24` | `WIFI_STATUS_GET` | link snapshot in `RES` body (38 B) |
+| `0x25` | `WIFI_POLICY_GET` | policy `flags` in `RES` body |
+| `0x26` | `WIFI_POLICY_SET` | `flags u8` in `REQ` body |
 | `0x30` | `DIAG_TASKS_GET` | one-shot task table |
 | `0x40` | `LOG_LEVEL_SET` | set firmware log level |
 
@@ -335,20 +340,78 @@ qw qx qy qz (i16)
 
 Used for:
 
-- Wi‑Fi async status rows
-- bridge/firmware warnings (optional)
+- **Wi‑Fi** async link, scan AP rows, scan complete, policy (normative detail: `TESAIoT_Library/CM55/modules/bitstream/docs/WIFI_BS2_ASYNC_PROTOCOL.md`)
+- bridge/firmware warnings (optional, reserved kinds ≥ `0x80`)
 
-Payload layout (v1 baseline):
+### 10.1 Wi‑Fi `EVT_STATUS` common prefix
+
+Every Wi‑Fi status frame inner payload starts with:
 
 ```text
---------+--------+------+
-| kind   | code   | data |
---------+--------+------+
-| u8     | u8     | ...  |
---------+--------+------+
+--------+------+
+| reqId  | kind |
+--------+------+
+| u16    | u8   |
+--------+------+
 ```
 
-`kind` and `data` are TBD (kept small; consider versioning per kind).
+- **`reqId`:** echoes the host `REQ` that started the transaction. **`0` = unsolicited** (e.g. periodic RSSI while idle).
+- **`kind`:** discriminates layout below.
+
+### 10.2 Wi‑Fi `kind` values
+
+| `kind` | Name | Inner payload size | Purpose |
+|------:|------|-------------------:|---------|
+| `0x01` | `WIFI_LINK` | 41 | Link state, RSSI, reason, SSID |
+| `0x02` | `WIFI_SCAN_ROW` | 53 | **One scanned AP** (`index`, `total`, rssi, channel, security, ssid, bssid) |
+| `0x03` | `WIFI_SCAN_DONE` | 7 | End of scan (`total_count`, `status`) |
+| `0x04` | `WIFI_POLICY` | 4 | Policy flags snapshot |
+
+Firmware constants: `bitstream_bs_wifi.h`.
+
+### 10.3 Scan result delivery (host)
+
+After `REQ` `WIFI_SCAN_*` returns `RES status=0`:
+
+1. Zero or more **`WIFI_SCAN_ROW`** frames (same `reqId`, `index` 0…`total-1`).
+2. Exactly one **`WIFI_SCAN_DONE`** (same `reqId`).
+
+Host accumulates rows into a list; do not treat `RES` alone as scan complete.
+
+### 10.4 `WIFI_LINK` fields (after `reqId` + `kind`)
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `state` | u8 | 0=DISCONNECTED, 1=CONNECTING, 2=CONNECTED, 3=SCANNING, 4=ERROR |
+| `rssi` | i16 | dBm |
+| `reason` | u16 | IPC reason code |
+| `ssid` | char[33] | NUL-padded |
+
+### 10.5 `WIFI_SCAN_ROW` fields (after `reqId` + `kind`)
+
+| Field | Type |
+|-------|------|
+| `index` | u16 |
+| `total` | u16 |
+| `rssi` | i16 |
+| `channel` | u8 |
+| `security` | u32 |
+| `ssid` | char[33] |
+| `bssid` | u8[6] |
+
+### 10.6 `WIFI_SCAN_DONE` fields (after `reqId` + `kind`)
+
+| Field | Type |
+|-------|------|
+| `total_count` | u16 |
+| `status` | u16 | IPC scan complete status |
+
+### 10.7 Synchronous Wi‑Fi reads (`RES` only)
+
+| `cmdId` | `RES` body |
+|--------:|------------|
+| `0x24` `WIFI_STATUS_GET` | 38 B: `state` + `rssi` + `reason` + `ssid[33]` (no `reqId`/`kind`) |
+| `0x25` `WIFI_POLICY_GET` | `flags u8` |
 
 ---
 

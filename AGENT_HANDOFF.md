@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-06-02 (Animation Lab UX + startup checklist walkthrough)  
+**Last updated:** 2026-06-03 (Wi-Fi BS2 UART milestone)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -185,6 +185,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-03 | **Wi-Fi BS2 UART:** `domains/wifi/*`, `useBitstreamWifiController` / `useBitstreamWifiEvtBridge`, Device Wi-Fi TRN window; removed legacy `src/bitstream/wifi/*`; spec `WIFI_BS2.md` + `BITSTREAM_BS_FRAMED_PROTOCOL_SPEC` §10; MCU soak OK |
 | 2026-06-02 | **Workbench layout modals + Stage catalog:** Save/Manage layouts centered TRN modals (`WORKBENCH_LAYOUT_DIALOGS.md`); model picker badges/icons; snapshot **`studioAssetId`** sync; viewport keep-until-loaded + rig-policy template swap; **`TRNSelect`** `rightSlot` / no row checkmark |
 | 2026-06-02 | **GLB Animation Lab UX:** Inspector tab rename + truncate; tag **Filter** menu; env cubemap background in lab; parallel-all + loop auto-play; **`tests/bitstream-app/animation-lab-twin-tag-filter.test.ts`** |
 | 2026-06-02 | **Startup checklist v3:** First-run sequential tour when all green; recheck + presentation fixes; tests under **`tests/startup-checklist/`** |

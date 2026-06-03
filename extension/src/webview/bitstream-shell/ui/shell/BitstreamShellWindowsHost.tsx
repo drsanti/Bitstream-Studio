@@ -3,7 +3,7 @@ import { useCallback, useState } from "react";
 import { TRNWindow } from "../../../ui/TRN/TRNWindow.js";
 import { TRNMarkdownZoomControls } from "../../../ui/TRN/TRNMarkdownRenderer.js";
 import { BitstreamSystemLogsWindow } from "../system-logs/BitstreamSystemLogsWindow";
-import { BitstreamWifiPanel } from "../../../bitstream-app/components/wifi/BitstreamWifiPanel.js";
+import { BitstreamWifiWindow } from "../../../bitstream-app/components/wifi/BitstreamWifiWindow.js";
 import { FirmwareLogLevelPanel } from "../../../bitstream-app/components/system/FirmwareLogLevelPanel.js";
 import { CommandConfirmationModePanel } from "../../../bitstream-app/components/system/CommandConfirmationModePanel.js";
 import { RealtimeUiSettingsForm } from "../../../bitstream-app/components/telemetry/RealtimeUiSettingsForm.js";
@@ -152,22 +152,7 @@ export function BitstreamShellWindowsHost(props: {
     <>
       <BitstreamSystemLogsWindow open={windows.systemLogsOpen} onClose={actions.closeSystemLogs} />
 
-      <TRNWindow
-        open={windows.wifiPanelOpen}
-        onClose={actions.closeWifiPanel}
-        title="Wi‑Fi (Bitstream)"
-        initialRect={{ x: 40, y: 96, width: 360, height: 620 }}
-        minWidth={320}
-        minHeight={280}
-        heightMode="auto"
-        autoHeightMaxViewportFraction={0.92}
-        modal={false}
-        zIndex={334}
-        contentClassName="min-h-0 overflow-y-auto bg-black/30 p-2"
-        persistRectStorageKey="bitstream-app:wifi-control-window"
-      >
-        <BitstreamWifiPanel className="min-h-0" />
-      </TRNWindow>
+      <BitstreamWifiWindow open={windows.wifiPanelOpen} onClose={actions.closeWifiPanel} />
 
       <TRNWindow
         open={windows.firmwareLogLevelOpen}

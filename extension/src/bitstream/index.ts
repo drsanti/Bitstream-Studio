@@ -28,8 +28,4 @@ export * from "./command-api/bitstreamCommandMcpTool";
 export * from "./command-api/bitstreamCommandMcpErrorUtils";
 export * from "./command-api/bitstreamCommandMcpRegistration";
 export * from "./services/serial-port-details-service";
-export * from "./wifi/bitstream-wifi-channel";
-export * from "./wifi/wifi-commands";
-export * from "./wifi/bitstream-wifi-payload";
-export * from "./wifi/wifi-ack-decoders";
 export * from "./wifi/wifi-wcm-security";

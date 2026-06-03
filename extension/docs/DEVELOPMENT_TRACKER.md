@@ -71,6 +71,17 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-03** — **Wi-Fi BS2 on UART:** `bitstream2/domains/wifi/*`, legacy `0xAA55` channel removed; Device Wi-Fi window (Status / Connect / Networks / Activity); hardware soak OK — backlog: golden fixtures, external simulator parity, `uart-wifi-probe`.
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase C):** bus lanes by target sort (`edgeBusLaneSpacing`), step lane hop + wire pick width (`edgeInteractionWidth`); **`flow-edge-bus-lane-offset.ts`**.
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase C):** wire bundling fan-out/fan-in (`edgeBundleMode`, `edgeBundleSpacing`, **`flow-edge-bundle-offset.ts`**).
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase D):** **`EdgeSelectionToolbar`** (junction / highlight / delete on selected wire); stronger handle snap default (28px, max 56).
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase D):** wire right-click menu (reroute, delete, downstream path highlight); **`FlowEdgeContextMenu`**, **`flow-edge-downstream-path.ts`**.
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase D slice):** drag wire ends to re-socket (`onReconnect`, **`reconnectWithPolicy`**, socket policy + undo); rejection toasts on failed reconnect.
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase C slice):** parallel wire spacing (`edgeParallelSpacing`, **`flow-edge-parallel-offset.ts`**); fixed **`buildFlowNodeIdMap`** import in **`FlowCanvas.tsx`**.
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase B):** direction arrows + zoom gate, type labels (hover/always), live/stale wire styling, socket handle size/border/dim; **`flow-edge-source-health.ts`**, **`flow-canvas-preferences-context`**.
+- **2026-06-02** — **Sensor Studio — Flow edge UX (Phase A):** extended **`FlowCanvasPreferences`**; **`decorateFlowEdges`** + **`flow-canvas-edges.css`**; **`CanvasInspectorWiresTab`** (View | **Wires** | Flow | Sensors); tests + **`FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md`**.
+- **2026-06-02** — **Sensor Studio — Canvas node size inspector:** **`InspectorNodeLayoutSizeFields`** — W/H cells match **`TRNVector3Field`** (badge + scrub + lock); replaces width/height **`InspectorNumericScrubRow`** in **`NodeInspectorCanvasLayoutSection`**; doc **`SENSOR_STUDIO_NODE_UI_RULES.md`** § Inspector → Canvas → Node size.
+- **2026-06-02** — **TERNION free pack loader (`TRNWindow`):** resizable glass window + persisted geometry; stats in title bar; save folder in bottom collapsible; auto-refresh on open / bridge connect — **`FREE_ASSETS_LOADER.md`**.
 - **2026-06-02** — **TRN workbench layout dialogs (modal redesign):** **Save layout** / **Manage layouts** centered glass modals (`workbench-layout-dialog-chrome.ts`, `WORKBENCH_LAYOUT_DIALOGS.md`); startup card + saved-count meter; rename sub-modal; `TRNSelect` list rows use optional **`rightSlot`** (no checkmark — selection shown by cyan row highlight only).
 - **2026-06-02** — **Sensor Studio — Stage model catalog:** picker source badges + prefix icons (`studio-model-catalog-select-ui.tsx`); snapshot syncs wired **`studioAssetId`** (`evaluate-stage-scene-snapshot.ts`); inspector/toolbar pick respects **`primaryModelIndex`**; viewport keeps mesh during reload + fast **embedded rig policy** swap (`StudioSceneViewport.tsx`).
 - **2026-06-02** — **Sensor Studio — Stage inspector (Scene3D settings):** `StageInspectorPanel` tabs (Overview / Scene3D / Toolbar); draggable collapsible cards on Scene3D tab (model, environment, renderer, camera, orbit, lights, helpers) via `Rotation3DInspectorCards` `singlePanel` + `patchCommittedScene3d`; `stage-inspector-ui-persistence.ts`.
@@ -489,6 +500,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
+- **Sensor Studio — Flow edge UX** — **Backlog**: true step overlap SVG bridges, minimap edge tint (if RF adds API). Plan: **[`FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md)**.
 - **Sensor Studio — GLB animation flow (Phase 4+)** — **Backlog** (requirements **2026-06-02**). Per-clip **Animation Clip** nodes (speed, direction, loop, weight, trim), **Merge** / **Blend**, model catalog → Animations spawn path, Blender/glTF use-case coverage. Canonical plan: **[`src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md)**; **`FLOW_DOMAINS.md`** Phase 4+ checklist.
 - **Startup checklist** — polish only: expert serial-port UX, doc sync (**`STARTUP_CHECKLIST_DESIGN.md`**); core gate + persistence + Simulator branch **shipped v3 (2026-06-02)**.
 - **Sensor Studio — Socket connection policy** — register exclusive outputs in `SINGLE_OUTPUT_SOCKETS` when catalog adds them (infrastructure shipped).

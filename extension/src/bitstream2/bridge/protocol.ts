@@ -120,6 +120,12 @@ export type Bitstream2StatusEventPayload = {
   atMs: number;
 };
 
+/** Inner EVT_STATUS payload (Wi‑Fi link/scan/policy) as raw bytes. */
+export type Bitstream2WifiEvtPayload = {
+  innerB64: string;
+  atMs: number;
+};
+
 export type Bitstream2DiagEventPayload = {
   diagType: number;
   chunkSeq: number;

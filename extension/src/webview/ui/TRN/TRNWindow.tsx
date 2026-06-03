@@ -352,6 +352,18 @@ function savePersistedWindowGeometry(
 /** Lucide default stroke is 2; slightly thicker for small chrome icons. */
 const TRN_WINDOW_HEADER_ACTION_STROKE = 2.5;
 
+/** Do not start title-bar drag when the pointer hits chrome controls or form fields. */
+const TRN_WINDOW_HEADER_DRAG_IGNORE_SELECTOR =
+  "button, a, input, textarea, select, label, [role='button'], [data-trn-window-header-no-drag]";
+
+function shouldIgnoreHeaderDrag(evt: { target: EventTarget | null }): boolean {
+  const target = evt.target;
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  return target.closest(TRN_WINDOW_HEADER_DRAG_IGNORE_SELECTOR) != null;
+}
+
 function WindowActionButton(props: {
   label: string;
   title: string;
@@ -369,7 +381,12 @@ function WindowActionButton(props: {
           ? "cursor-not-allowed text-zinc-600 opacity-50"
           : "text-zinc-300 hover:bg-zinc-800/85 hover:text-zinc-100")
       }
-      onClick={props.onClick}
+      data-trn-window-header-no-drag
+      onPointerDown={(evt) => evt.stopPropagation()}
+      onClick={(evt) => {
+        evt.stopPropagation();
+        props.onClick();
+      }}
       aria-label={props.label}
       title={props.title}
     >
@@ -1112,7 +1129,7 @@ export function TRNWindow(props: TRNWindowProps) {
   /** Flex column shell + flex-1 body keeps the footer row pinned when shell height is fixed. */
   const contentAreaHeightClass =
     heightMode === "auto" && !autoShellHeightLocked
-      ? "min-h-0 flex-none overflow-auto p-2"
+      ? "flex-none overflow-x-hidden overflow-y-auto p-2"
       : "min-h-0 flex-1 overflow-auto p-2";
 
   const {
@@ -1203,9 +1220,21 @@ export function TRNWindow(props: TRNWindowProps) {
             ...headerStyle,
           }}
           onPointerDown={(evt) => {
-            bringToFront();
             if (!draggable || isMaximized) {
               return;
+            }
+            if (evt.button !== 0) {
+              return;
+            }
+            if (shouldIgnoreHeaderDrag(evt)) {
+              return;
+            }
+            evt.preventDefault();
+            evt.stopPropagation();
+            bringToFront();
+            const header = evt.currentTarget;
+            if (typeof header.setPointerCapture === "function") {
+              header.setPointerCapture(evt.pointerId);
             }
             dragState.current = {
               startX: evt.clientX,
@@ -1214,6 +1243,27 @@ export function TRNWindow(props: TRNWindowProps) {
               baseY: rectRef.current.y,
             };
           }}
+          onPointerUp={(evt) => {
+            if (typeof evt.currentTarget.releasePointerCapture === "function") {
+              try {
+                evt.currentTarget.releasePointerCapture(evt.pointerId);
+              }
+              catch {
+                // Not capturing this pointer.
+              }
+            }
+          }}
+          onPointerCancel={(evt) => {
+            dragState.current = null;
+            if (typeof evt.currentTarget.releasePointerCapture === "function") {
+              try {
+                evt.currentTarget.releasePointerCapture(evt.pointerId);
+              }
+              catch {
+                // Not capturing this pointer.
+              }
+            }
+          }}
         >
           <div className="inline-flex items-center gap-1.5 leading-none text-xs font-semibold text-zinc-100">
             <span className="inline-flex items-center justify-center text-zinc-300">
@@ -1221,7 +1271,10 @@ export function TRNWindow(props: TRNWindowProps) {
             </span>
             <span>{title}</span>
           </div>
-          <div className="flex translate-x-1.5 items-center gap-2">
+          <div
+            className="flex translate-x-1.5 items-center gap-2"
+            data-trn-window-header-no-drag
+          >
             {headerActions}
             {showExpandFullWidth ? (
               <WindowActionButton
@@ -1529,12 +1582,8 @@ export function TRNWindow(props: TRNWindowProps) {
     }
     return createPortal(
       <div
-        className="pointer-events-auto absolute inset-0 overflow-hidden"
+        className="pointer-events-none absolute inset-0 overflow-hidden"
         style={{ zIndex: overlayZIndex }}
-        onPointerDownCapture={(e) => {
-          // Prevent underlying canvas/panes from stealing the click.
-          e.stopPropagation();
-        }}
       >
         {overlayInner}
       </div>,
@@ -1543,14 +1592,7 @@ export function TRNWindow(props: TRNWindowProps) {
   }
 
   return (
-    <div
-      className="pointer-events-auto fixed inset-0"
-      style={{ zIndex: overlayZIndex }}
-      onPointerDownCapture={(e) => {
-        // Prevent underlying canvas/panes from stealing the click.
-        e.stopPropagation();
-      }}
-    >
+    <div className="pointer-events-none fixed inset-0" style={{ zIndex: overlayZIndex }}>
       {overlayInner}
     </div>
   );
