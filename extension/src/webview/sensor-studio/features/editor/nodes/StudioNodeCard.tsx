@@ -6,7 +6,6 @@ import {
   type NodeProps,
   type Edge,
 } from "@xyflow/react";
-import { ChevronDown } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -156,9 +155,6 @@ export function StudioNodeCard(props: NodeProps) {
   const flowNodeHeight = useFlowEditorStore(
     (s) => s.nodes.find((n) => n.id === id)?.height,
   );
-  const setStudioUtilityNodeBodyExpanded = useFlowEditorStore(
-    (s) => s.setStudioUtilityNodeBodyExpanded,
-  );
   const updateNodeInternals = useUpdateNodeInternals();
   const flowZoom = useStore((s) => s.transform[2]);
   const isSelected = Boolean(
@@ -285,16 +281,7 @@ export function StudioNodeCard(props: NodeProps) {
     </span>
   ) : null;
 
-  const cameraDc = data.defaultConfig as Record<string, unknown>;
-  const cameraViewControlsExpanded =
-    data.nodeId === "camera-view"
-      ? typeof cameraDc.cameraViewControlsExpanded === "boolean"
-        ? cameraDc.cameraViewControlsExpanded
-        : true
-      : true;
-
   const utilityBodyFitsContent =
-    (data.nodeId === "camera-view" && !cameraViewControlsExpanded) ||
     data.nodeId === "object-transform" ||
     data.nodeId === "transform-from-euler" ||
     data.nodeId === "on-key" ||
@@ -420,7 +407,6 @@ export function StudioNodeCard(props: NodeProps) {
     socketValuesVisible,
     showNodeBody,
     bodyControlsVisible,
-    cameraViewControlsExpanded,
     data.nodeId,
     data.label,
     data.inputHandles?.length,
@@ -455,7 +441,6 @@ export function StudioNodeCard(props: NodeProps) {
     mathOperation,
     logicGateOperation,
     data.inputHandles?.length,
-    cameraViewControlsExpanded,
     bodyControlsVisible,
     showNodeBody,
     updateNodeInternals,
@@ -464,32 +449,6 @@ export function StudioNodeCard(props: NodeProps) {
   useLayoutEffect(() => {
     updateNodeInternals(id);
   }, [id, socketValuesVisible, socketsExpanded, updateNodeInternals]);
-
-  const cameraViewBodyToggle =
-    data.nodeId === "camera-view" ? (
-      <button
-        type="button"
-        className="nodrag inline-flex h-6 w-6 shrink-0 items-center justify-center rounded border border-zinc-600/80 bg-zinc-900/70 text-zinc-300 hover:bg-zinc-800/80"
-        title={
-          cameraViewControlsExpanded
-            ? "Hide camera controls"
-            : "Show camera controls"
-        }
-        aria-expanded={cameraViewControlsExpanded}
-        onClick={() => {
-          setStudioUtilityNodeBodyExpanded(
-            id,
-            "cameraViewControlsExpanded",
-            !cameraViewControlsExpanded,
-          );
-        }}
-      >
-        <ChevronDown
-          className={`h-3.5 w-3.5 transition-transform ${cameraViewControlsExpanded ? "" : "-rotate-90"}`}
-          aria-hidden
-        />
-      </button>
-    ) : null;
 
   const compareOperation =
     data.nodeId === "compare" &&
@@ -507,13 +466,11 @@ export function StudioNodeCard(props: NodeProps) {
   );
 
   const headerTrailing =
-    data.nodeId === "camera-view" ||
     compareOperationChip != null ||
     sensorHealthBadge != null ||
     invalidBadge != null ||
     sensorFamilyTag != null ? (
       <div className="inline-flex items-center gap-1.5">
-        {cameraViewBodyToggle}
         {compareOperationChip}
         {sensorHealthBadge != null ||
         invalidBadge != null ||
@@ -1466,7 +1423,7 @@ export function StudioNodeCard(props: NodeProps) {
                   defaultConfig={data.defaultConfig}
                 />
               ) : null}
-              {data.nodeId === "camera-view" && cameraViewControlsExpanded ? (
+              {data.nodeId === "camera-view" ? (
                 <CameraViewNodePanel
                   nodeId={id}
                   defaultConfig={data.defaultConfig}

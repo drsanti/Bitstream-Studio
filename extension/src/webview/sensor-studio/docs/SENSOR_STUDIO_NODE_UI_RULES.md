@@ -332,6 +332,7 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 - Shared chrome: **`FlowNodeShell`**, **`FlowNodeHeader`**, **`FlowNodeBody`**, socket rows under `nodes/flow-node/`.
 - **`FlowNodeHeader`** is one flex row: **left cluster** (`data-flow-node-header-leading`) = prefix icon + title (`w-max` title, no `flex-1` on title — avoids resizable width feedback loops); **right cluster** (`data-flow-node-header-trailing`) = badges/toggles. Drag handle class **`studio-node-drag-handle`** on the header root.
 - **Prefix icon:** **`FlowNodeHeaderIcon`** for every catalog node (same Lucide slug as palette). Do not add per-node icon switches in **`StudioNodeCard`**.
+- **No header chevrons** on **Environment** / **Camera View** — card body panels are always shown; use inspector or **Hide body** toolbar when collapsing utility panels.
 - **Category accent** tints the **header** only — port/wire colors come from **`portType`**, not category.
 - Avoid growing **`StudioNodeCard.tsx`** with one-off shells; extract panels under `nodes/<kind>/`.
 - **Output sockets:** use **Output socket row layout** (above) — especially **`w-0`** handle column, **`overflow-visible`** shell, label **`pl-2 pr-3`**.

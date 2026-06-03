@@ -53,11 +53,6 @@ const STUDIO_NODES_WITHOUT_BODY_PANEL = new Set([
 /** `true` when the node renders a `FlowNodeBody` region that can be hidden via `bodyControlsVisible`. */
 export function studioNodeHasHideableBody(data: StudioNodeData): boolean {
   const dc = data.defaultConfig;
-  if (data.nodeId === "camera-view") {
-    return typeof dc.cameraViewControlsExpanded === "boolean"
-      ? dc.cameraViewControlsExpanded
-      : true;
-  }
   if (STUDIO_NODES_WITHOUT_BODY_PANEL.has(data.nodeId)) {
     return false;
   }
