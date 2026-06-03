@@ -51,7 +51,7 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 - [ ] **Extension vs browser** — Features that differ between **VS Code webview** and **Vite + bridge** must use **`window.WEBVIEW_READY === true`** and/or **`window.__VSCODE_API__`** (see **`isVsCodeExtensionWebview()`** in `src/webview/isVsCodeExtensionWebview.ts`). Do **not** rely on **`T3DVSCodeUtils.isVsCodeMode()`** / **`getVsCodeApi()`** alone in packaged builds (second `acquireVsCodeApi()` can fail → null API).
 - [ ] **Large models** — Default rotation / catalog previews use **`resolveWebviewModelAssetUrl`**, **`resolveDefaultPreviewMeshGlbUrl`**, **`bridgeWebPathToCatalogModelUrl`**, etc.; do **not** build URLs with **`import.meta.url`** for paths omitted from the VSIX (see **`.vscodeignore`** `out/webview/assets/models/**`).
-- [x] **Physics engine (Sensor Studio)** — Jolt removed **2026-05-30**; **`@dimforge/rapier3d`** / **`@react-three/rapier`** remain for a future choice (Rapier or other). No COI/Jolt host bootstrap in webview HTML.
+- [x] **Physics engine (Sensor Studio)** — Jolt removed from main webview **2026-05-30**; **Rapier locked 2026-06-02** for Sensor Studio Tier D2+ (`@dimforge/rapier3d`, `@react-three/rapier`). Jolt remains for vehicle hub only.
 - [ ] **Downloads** — Model Loader / Free pack / API downloads land under **`globalStorage/.../assets`** (see **`extensionAssetPaths`**, Asset Manager **Global Directories**). After first run, users sync via **Asset Manager → Actions** if previews are missing.
 
 ### Optional polish before wide distribution
@@ -71,11 +71,27 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-02** — **TRN workbench layout dialogs (modal redesign):** **Save layout** / **Manage layouts** centered glass modals (`workbench-layout-dialog-chrome.ts`, `WORKBENCH_LAYOUT_DIALOGS.md`); startup card + saved-count meter; rename sub-modal; `TRNSelect` list rows use optional **`rightSlot`** (no checkmark — selection shown by cyan row highlight only).
+- **2026-06-02** — **Sensor Studio — Stage model catalog:** picker source badges + prefix icons (`studio-model-catalog-select-ui.tsx`); snapshot syncs wired **`studioAssetId`** (`evaluate-stage-scene-snapshot.ts`); inspector/toolbar pick respects **`primaryModelIndex`**; viewport keeps mesh during reload + fast **embedded rig policy** swap (`StudioSceneViewport.tsx`).
+- **2026-06-02** — **Sensor Studio — Stage inspector (Scene3D settings):** `StageInspectorPanel` tabs (Overview / Scene3D / Toolbar); draggable collapsible cards on Scene3D tab (model, environment, renderer, camera, orbit, lights, helpers) via `Rotation3DInspectorCards` `singlePanel` + `patchCommittedScene3d`; `stage-inspector-ui-persistence.ts`.
+- **2026-06-02** — **Sensor Studio — Stage cubemap picker:** Stage toolbar `TRNSelect` for cubemap/HDRI (shared `environment-cubemap-select.ts` with Environment node); patches Scene Output + wired Environment `presetIndex` / `studioAssetId`.
+- **2026-06-02** — **Sensor Studio — Stage 3D Scene overrides wired Environment:** Stage toolbar backdrop/IBL patch Scene Output + Environment `defaultConfig` when `env` wired; `stage-presentation-override.ts` default mode + doc **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`** §3D Scene presentation override; toolbar **`Env ·`** chip + hints.
+- **2026-06-02** — **Sensor Studio — 3D + physics graph parity:** Scene Output gains full scene FX ports (fog, exposure, post, particles, …) + `mergeFlowSceneWiresIntoScene3d` on Stage eval; **physics-world** `shapes`/`bodies` inputs (`physicsCollider` / `physicsBody` wires); dynamic **rigid-body** Rapier preview; Model Viewer **Physics** port; `scene3d.physics` block; doc **`SENSOR_STUDIO_3D_AND_PHYSICS_GRAPH.md`**.
+- **2026-06-02** — **Sensor Studio — Stage physics/pick hardening:** `@dimforge/rapier3d-compat` + Rapier world step; graph **box/sphere collider** → Stage snapshot + cyan debug meshes; pick payload (`hitPoint`, `objectPath`, `liveStagePickWire` on **on-stage-pick**); `vendor-rapier` chunk.
+- **2026-06-02** — **Sensor Studio — Stage B2–B4 complete:** per-model transform wires; toolbar appearance (grid, backdrop, IBL, fog); Scene Output **Physics** port + Rapier ground stub (`studio-viewport-physics-runtime.ts`); **On Stage Pick** + raycast → Domain C.
+- **2026-06-02** — **Sensor Studio — Stage B2 (multi-model instances):** Stage loads all Scene Output models side-by-side; toolbar focus index drives frame + GLB anim; `studio-viewport-stage-multi-models.ts`.
+- **2026-06-02** — **Sensor Studio — Stage B2 (partial):** `StudioSceneViewportHandle` (frame model, reset camera to scene3d); Stage toolbar camera actions + multi-model `TRNSelect`; `buildStagePreviewSceneProps(snapshot, index)`; `studio-viewport-camera.ts`.
+- **2026-06-03** — **Sensor Studio — Stage polish:** Scene Output inspector section (grid + env summary); Stage toolbar cubemap label; **`migrate-stage-scene-defaults.test.ts`**; **`core/viewport/index.ts`** + **`core/scene3d/index.ts`** barrels.
+- **2026-06-03** — **Sensor Studio — viewport restructure:** shared **`StudioSceneViewport`** + **`core/viewport/`** (fog/shadow/particle/compositor runtimes); **`Scene3DConfigV1`** → **`core/scene3d/`**; Stage / Model Viewer / 3D Rotation import core (no **`RotationPreviewPanelV4`** alias); doc **`STUDIO_SCENE3D_CONFIG.md`**.
 - **2026-06-02** — **Sensor Studio — socket-only node canvas resize:** resizable utilities (Lerp, split/combine, math toolkit) no longer auto-sync RF size to intrinsic shell; edge hit 8px; `readNodeLayoutRect` prefers stored width/height.
 - **2026-06-02** — **Sensor Studio — vector/quaternion polish:** catalog **Scalar Lerp** (id `lerp`); **Vector magnitude** demo template; inspector hints for **Vector** / **Quaternion** constants; palette search aliases for scalar lerp.
 - **2026-06-02** — **Sensor Studio — vector/quaternion math toolkit (27 nodes):** length, normalize, scale, add/sub, distance, dot, cross, lerp, project/reject, angle, compare length, tilt/heading/1g, deg↔rad, quat normalize/multiply/conjugate/inverse/slerp, axis-angle, euler↔quat, rotate vector; **`VECTOR_QUATERNION_MATH_NODES.md`**.
 - **2026-06-02** — **Sensor Studio — vector/quaternion split & combine:** catalog **Split Vector**, **Combine Vector**, **Split Quaternion**, **Combine Quaternion** (`combine-quaternion`); socket-only cards with bundled input previews (vec3/quat) and Policy A scalar rows; NA import `combineQuaternion` / `separateQuaternion`; `merge`/`split` palette icons.
 - **2026-06-02** — **Sensor Studio — flow editor UX (nodes + inspector):** stable selection ring (`flow-node-selection.css`, `inset: -1px`); **Note** layout nodes use same ring; **TRNScrubNumberField** + Integer/Float constants; socket-row live values + label width equalization; **TRNSelect** field/glass variants; canvas inspector collapsible/draggable cards; Math node dark-clay operation menu; knob wheel no canvas zoom; catalog explicit port labels; layout **Frame/Note** `rounded-md`.
+- **2026-06-02** — **Sensor Studio — Physics engine choice:** **Rapier** for flow canvas / Model Viewer (Tier D2+); **Jolt** retained for Digital Twin vehicle hub and future hub cases — documented in **`TIER_D_PHYSICS_FOUNDATION.md`**.
+- **2026-06-02** — **Sensor Studio — Physics Tier D1:** hidden catalog stubs (`physics-world` … `ik-chain`); **`physicsScene`** port type + wire color; NA import mappings; eval no-ops + **`FlowWirePhysicsSceneV1`** stub; **`na-parity-tier-d.test.ts`**.
+- **2026-06-02** — **Sensor Studio — Socket / smart connect tests:** **`resolve-connect-port-type.ts`** + group/subgraph port tests; group output **`glbAnimation`** multi-input; **`SINGLE_OUTPUT_SOCKETS`** + output pop-on-drag hook.
+- **2026-06-02** — **Sensor Studio — Socket connection policy polish:** rejection **toasts** on invalid socket drop; **single undo** for pop+reconnect; **`connection-feedback.ts`**.
 - **2026-06-02** — **Sensor Studio — Socket connection policy (MVP):** single-input **replace** on connect; **pop-on-drag** from wired inputs; `isValidConnection` preview; **`socket-connection-policy.ts`** + **`SOCKET_CONNECTION_POLICY.md`** + tests.
 - **2026-06-02** — **Sensor Studio — Smart connect UX:** cyan **Compatible nodes for this wire** banner on filtered opens; browse groups put **Output** before **Layout** for number-output drags.
 - **2026-06-02** — **Sensor Studio — Smart connect:** reroute/split **input** (and out) drags when `socketType` unlocked — infer type from graph edges or show unfiltered menu; **`inferLayoutNodeSmartConnectPortType`**.
@@ -108,6 +124,9 @@ Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion
 - **2026-06-01** — **GLB Animation Lab (Phase A):** `components/animation-lab/` — solo vs parallel-all playback, clip list, scrub timeline, inspector + R3F viewport; stacked under Quaternion preview in **Telemetry** workbench; spec **`GLB_ANIMATION_LAB.md`**; orientation card unchanged (parallel transport only).
 
 - **2026-06-01** — **Shell toolbar — control deck + link metrics:** `ShellControlDeck` (workspace / Hardware|Simulator / Service); wire RX + decode FPS in `BitstreamMainToolbar` via `ShellLinkTelemetryCluster`; BS2 `evt/sensor` JSON byte window (`bs2WireRxWindowAccumulator`); unified header ☰ via `workspaceHeaderMenuSlot`; Studio canvas top-right is menu-only; freshness tooltips use **just now** / `<1s` (not `0ms ago`).
+- **2026-06-03** — **Studio asset manifest — free pack textures:** Synced [cubemap / HDRI / images](https://github.com/drsanti/ternion-3d-assets-free/tree/main/assets/textures) into **`studio-asset-manifest.v1.json`** (10 env cubemaps, 10 HDRI, 6 image textures); **`npm run sync:studio-manifest-textures`** + **`free-pack-cubemap-ids.v1.json`**.
+- **2026-06-03** — **Studio asset manifest — free pack models:** Synced pack GLBs from [ternion-3d-assets-free `assets/models`](https://github.com/drsanti/ternion-3d-assets-free/tree/main/assets/models) into **`studio-asset-manifest.v1.json`**; **`npm run sync:studio-manifest-models`**; removed retired **`robot-4th-project`** from catalog (legacy saves still migrate to PSoC E84).
+- **2026-06-02** — **Sensor Studio — Stage pane + Scene Output (node-animator B0–B1):** workbench editor **`stage`**, default layout Stage over Flow, catalog **`scene-output`**, `evaluateStageSceneSnapshot` + `useStageSceneStore`, **`StageViewport`**; preset **Stage focus**; demo template **`stage-scene-output`**; doc **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**; test **`evaluate-stage-scene-snapshot.test.ts`**.
 - **2026-06-01** — **Sensor Studio — merged chrome bar:** `SensorStudioChromeBar` combines link lifecycle + studio menus; shell lifecycle hidden in Sensor Studio mode; collapses to **Link ready** when boot complete.
 - **2026-06-01** — **Sensor Studio — `StudioToolbar` cleanup:** three-zone header (title / FPS / grouped actions); **Insert**, **Edit**, **File**, **Layout** menus; **Devices** + **Assets** primaries; canvas actions stay on flow toolbars; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
 - **2026-06-01** — **Sensor Studio — Node Palette live row labels:** `sensor-port-labels.ts` (`name (unit)` in label, values right); primary + tap rows via **`primaryBundle`**; BMI270 canvas temp **`Temp (°C)`**; documented in **`SENSOR_STUDIO_NODE_UI_RULES.md`**.
@@ -463,29 +482,27 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
+- **Sensor Studio — Stage viewport B2+** — multi-model, orbit toolbar, Rapier on Stage; see **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**.
 - **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
 
 ---
 
 ## Planned / next
 
-- **Sensor Studio — Socket connection policy** — connect rejection toasts; batch undo for pop+reconnect; output-side pop-on-drag.
-- **Sensor Studio — Smart connect** — optional integration test for group/subgraph handle resolution.
-- **Startup checklist (unified first-run / link setup)** — design: **[`STARTUP_CHECKLIST_DESIGN.md`](./STARTUP_CHECKLIST_DESIGN.md)**. **Shipped (2026-06-02 partial):** `StartupChecklistGate` + `StartupStepCard` / `StartupStepIcon`, environment steps (assets, network, mode) + link steps from `useConnectionSteps`, Ctrl+/ check/download/setup commands. **Remaining:** enhanced serial port list UI, handshake → Simulator branch, persist completed version, replace interim `AssetBootstrapGate.tsx` removal from path (gate superseded).
-- **Sensor Studio — physics domain (Tier D / evaluator E)** — **Future development** (no WASM runtime yet). Canonical plan: **[`src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)**. **Gated** on Digital Twin hub maturity + engine choice (Jolt for vehicle sim hub; Rapier deps retained for possible Sensor Studio preview). Ordered slices:
-  - [ ] **D1 — Parity shell** — catalog stubs (`physics-world`, `rigid-body`, collider variants, joints, `object-spawner`, `ik-chain`); NA import normalization; eval no-ops + unit tests; **`physicsScene`** port type (schema/colors only).
-  - [ ] **D2 — Static preview** — `FlowWirePhysicsSceneV1`; Model Viewer **`phys`** input; `rotation-preview-physics-runtime.ts` (WASM load only when graph has active world); static box/sphere colliders + debug draw.
-  - [ ] **D3 — Dynamics** — rigid bodies, spawner, fixed/hinge joints; fixed-step physics tick coalesced with scene rAF; mesh transform sync to Three.js.
-  - [ ] **D4 — Integration** — IK + animation blend; share collider/material truth with **Hardware setup** (see inbox **2026-05-11** physics-ready planning); E84 / vehicle sim hub reuse where applicable.
-  - **Dependencies:** [`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md) Phase 3 (Jolt vehicle); [`FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md) Domain E section; node-animator reference evaluators under `D:/CODE/2026/node-animator`.
+- **Sensor Studio — GLB animation flow (Phase 4+)** — **Backlog** (requirements **2026-06-02**). Per-clip **Animation Clip** nodes (speed, direction, loop, weight, trim), **Merge** / **Blend**, model catalog → Animations spawn path, Blender/glTF use-case coverage. Canonical plan: **[`src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md)**; **`FLOW_DOMAINS.md`** Phase 4+ checklist.
+- **Startup checklist** — polish only: expert serial-port UX, doc sync (**`STARTUP_CHECKLIST_DESIGN.md`**); core gate + persistence + Simulator branch **shipped v3 (2026-06-02)**.
+- **Sensor Studio — Socket connection policy** — register exclusive outputs in `SINGLE_OUTPUT_SOCKETS` when catalog adds them (infrastructure shipped).
 - [x] **Sensor Studio — vector/quaternion math toolkit** — **Shipped 2026-06-02** (see **Recently completed** + [`VECTOR_QUATERNION_MATH_NODES.md`](../src/webview/sensor-studio/docs/VECTOR_QUATERNION_MATH_NODES.md)).
 - **Sensor Studio — node-animator editor parity (Phase 9+)** — **Group library complete 2026-05-31**. Utility parity slices ongoing.
-- **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators today** (A–D); **physics (E) planned** — see _Planned / next → physics domain_:
+- **Sensor Studio — flow domains (multi-evaluator epic)** — **In progress.** Canonical design: **[`src/webview/sensor-studio/docs/FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)**. One React Flow canvas; **four evaluators today** (A–D); **physics (E) deferred** — D1 shell only; D2–D4 in tracker **Deferred** section:
   - [x] Phase 0 — design doc + tracker + exec/event decision (**2026-05-31**)
   - [x] Phase 1 — frame loop (**2026-05-31**)
   - [x] Phase 2 — **`FlowWireTransformV1`** + model-viewer / rotation **`xf`** consumer (**2026-05-31**)
+  - [x] Phase 2b — **Stage** workbench pane + **Scene Output** commit node (**2026-06-02**; **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**)
+  - [ ] **Stage 3D Scene override options** — user/project setting for `StagePresentationOverrideMode` (`override-wired-environment` default shipped; `scene-output-only`, `flow-only`); disable toolbar when Environment modulation pins wired
   - [x] Phase 3 — event layer (**slice 1–4 shipped 2026-05-31**: On Key/Click, Toggle/Set Boolean, GLB part visibility, animation trigger)
   - [x] Phase 4 — GLB animation depth (**slices 1–4 2026-05-31**; multi-clip playback modes)
+  - [ ] Phase 4+ — GLB animation flow nodes (**backlog** — [`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md))
   - [x] Phase 5 — material parameter nodes (**slices 1–3 2026-05-31**; full shader graph → Phase 6)
   - [x] Phase 6 — material v2 foundation (**slice 1 2026-05-31**: color drives, material-mix, domain eval module)
   - [ ] Phase 6 — optional geometry / full shader DAG (remaining backlog)
@@ -518,6 +535,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **Bitstream — sensor `cfg` NVM on MCU** (_deferred_): When **TESAIoT** implements **NVM-backed** sensor configuration, revisit host/webview copy about “RAM-only” and extend cold sync / persistence tests for power-cycle truth. **Wi‑Fi NVM** remains independent — do not regress Wi‑Fi storage behavior.
 - **Bitstream telemetry — MCU→UI stalls / HUD jumps** (\*known issue, **2026-05-12\***): Live data sometimes stops in the UI; telemetry / progress-style indicators can jump. **Canonical analysis and phased fix plan:** [`BITSTREAM_TELEMETRY_STALE_PIPELINE.md`](./BITSTREAM_TELEMETRY_STALE_PIPELINE.md). **P1–P2 shipped:** **Reconnect telemetry** + wedge banner + opt-in **Auto-reconnect on wedge** (Telemetry performance); Quick Command **`bitstream-reconnect-telemetry`**. **P3–P4 (partial) shipped:** decode debug, StrictMode / **`wsUrl`** connect guard, in-memory **UNKNOWN** sensor tests — remaining: smoothing / unified Hz, transport surfacing, manual soak — see doc.
 - **Asset Manager (self-contained + hooks)**: Implement per **`src/webview/assets-manager/docs/ASSET_MANAGER_ARCHITECTURE.md`** — **`AssetManagerProvider`** + hooks; mount **`AssetManagerShell`** from Bitstream (P0), then fold **Free pack** UI and Sensor Studio / **`App`** entry points; **no** duplicate URL logic outside **`resolveWebviewModelAssetUrl`**. **First UI slice:** [Global Directories panel design](./GLOBAL_DIRECTORIES_PANEL_DESIGN.md) (P0 read-only + refresh).
+- **Pack resource catalog redesign (future)**: Interim trio — [`studio-asset-manifest.v1.json`](../src/webview/assets-manager/registry/studio-asset-manifest.v1.json), [`free-pack-model-ids.v1.json`](../src/webview/assets-manager/registry/free-pack-model-ids.v1.json), [`free-pack-cubemap-ids.v1.json`](../src/webview/assets-manager/registry/free-pack-cubemap-ids.v1.json) — plus split scripts **`sync:studio-manifest-models`** / **`sync:studio-manifest-textures`**. **Target:** single **`sync:studio-pack-catalog`** + **`studio-catalog.overrides.json`** → generated **`studio-asset-manifest.v2.json`**; deprecate id-list duplicates and hand-merged manifest. **Plan:** [`STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md`](../src/webview/assets-manager/docs/STUDIO_ASSET_MANIFEST_IMPLEMENTATION_PLAN.md) (M0–M5). Align with **Asset Manager** + **Asset Browser** rows above.
 - **Sensor Studio — NodeInspector (engine-style redesign + refactor)**: **P0–P3 done** (rotation model row: catalog + **`studioAssetId`** + badges). **P4**: **localStorage**; **multi-select**; **homogeneous multi-edit** (batch label/config/oscilloscope); **scrub** on typed settings; **Live** tab + multi live list; **rotation** dense controls use **`TRNParameterSlider`** value scrub + **`TRNVector3Field`** pointer scrub where applicable. Broader Asset Browser (IBL picker, manifests) stays on the **Asset Browser** roadmap.
 
 ### NodeInspector refactor checklist
@@ -586,20 +604,26 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ### Sensor Studio — physics stack (Tier D / Domain E)
 
-**Logged 2026-05-31; expanded 2026-05-31.** Scene wiring (fog, compositor, camera-switch, particles) is **shipped**; **physics remains future work**. Full design: **[`TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)**.
+**Logged 2026-05-31; engine locked 2026-06-02; deferred after D1.** Scene wiring (fog, compositor, camera-switch, particles) is **shipped**; **Rapier D2+ and dynamics remain on the plan — complete later** (not current sprint). Full design: **[`TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)** · tracker **Deferred (on plan — complete later)**.
 
-**Why deferred**
+**Why deferred (through D1)**
 
-- Host-side WASM physics (Jolt / Rapier) adds bundle size, worker/COI constraints, and a **fifth evaluator** tick — not required for v0.1 Sensor Studio telemetry + 3D preview goals.
-- **Digital Twin** vehicle sim (`webview/simulations/vehicle-physics/`) is the first Jolt consumer; flow-canvas physics should **reuse** that WASM packaging and collider conventions when un-gated, not fork a second engine path.
+- Host-side physics adds bundle size and a **fifth evaluator** tick — not required for v0.1 Sensor Studio telemetry + 3D preview goals.
+- **D2+** uses **Rapier** in Sensor Studio; **Jolt** stays in the **Digital Twin vehicle hub** (and other hub cases later) — separate runtimes, shared collider *conventions* only where useful.
 
-**Engine options (decision backlog)**
+**Engine assignment (locked 2026-06-02)**
+
+| Engine | Role in Bitstream Studio |
+| ------ | ------------------------ |
+| **Rapier** | **Sensor Studio** flow canvas + Model Viewer physics preview (Tier D2+) |
+| **Jolt** | **Simulation hub** vehicle physics (`simulations/vehicle-physics/`); optional future hub scenarios |
+| **Ammo.js** | node-animator reference only — not for new Bitstream work |
 
 | Engine      | Pros                                                  | Cons                                    | Where used today               |
 | ----------- | ----------------------------------------------------- | --------------------------------------- | ------------------------------ |
-| **Jolt**    | Vehicle sim already partial in hub; CM55 not involved | Heavier WASM; worker setup              | `simulations/vehicle-physics/` |
-| **Rapier**  | npm deps retained post-2026-05-30 cleanup             | No shipped Bitstream integration yet    | —                              |
-| **Ammo.js** | node-animator reference                               | Legacy; prefer Jolt/Rapier for new work | node-animator (reference only) |
+| **Rapier**  | npm-native; fits R3F (`@react-three/rapier`); chosen for Sensor Studio | D2 integration not shipped yet          | deps only until D2             |
+| **Jolt**    | Vehicle sim partial in hub                            | Heavier WASM; hub-only scope            | `simulations/vehicle-physics/` |
+| **Ammo.js** | node-animator reference                               | Legacy                                  | node-animator (reference only) |
 
 **Product surfaces (when scheduled)**
 
@@ -689,6 +713,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 | Logged `YYYY-MM-DD` | Source                 | Requirement                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Status                               |
 | ------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| **2026-06-02**      | User / Sensor Studio   | **GLB animation flow (Phase 4+):** Model catalog → Animations workflow; **per-clip** graph control (speed, direction, loop, weight, trim); **Merge** / **Blend** nodes; cover baked Blender/glTF clip + sibling morph/part/light/camera drives. Plan: **`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`**.                                                                                                                                                        | `accepted`                           |
 | **2026-05-31**      | User / Sensor Studio   | **Flow-canvas physics (Tier D):** Add physics nodes + fifth evaluator when Digital Twin / engine path is ready; track in **`TIER_D_PHYSICS_FOUNDATION.md`** and _Planned / next → physics domain_; start with D1 catalog/import stubs only.                                                                                                                                                                                                                  | `accepted`                           |
 | **2026-05-31**      | User / Sensor Studio   | **Multi-domain flow editor:** Support keyboard/mouse events and Blender-like goals (geometry/shader parity targets) — 3D transforms, GLB animations, PBR materials — via **separate evaluators** on one canvas; plan in **`FLOW_DOMAINS.md`**; **implementation gated** until user says start.                                                                                                                                                               | `accepted`                           |
 | **2026-05-31**      | User / extension       | **Unified configurable Bitstream broker port:** Expert Connection **Broker URL** should eventually align with bridge listen port (**`ternion.ws.brokerPort`** / dev **`T3D_WS_PORT`**), not only **`ws-client-store`**. Single setting for webview + extension spawn + external sim + diagnostics.                                                                                                                                                           | `accepted`                           |
@@ -704,6 +729,31 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 | **2026-05-10**      | Product / UX review    | **AI Dev Trace (`AiDevTracePanel`)**: Answer area must show **progress / empty-state copy** (not blank); **new Send** must **isolate** the run vs prior events (clear + active-request scope); **timeline** timestamps **human-readable**, **`requestId`** non-blocking (short label, full in tooltip). Track shipped work in **Recently completed**.                                                                                                        | `accepted`                           |
 | `YYYY-MM-DD`        | e.g. user, PM, issue # | One sentence                                                                                                                                                                                                                                                                                                                                                                                                                                                 | `inbox`                              |
 |                     |                        |                                                                                                                                                                                                                                                                                                                                                                                                                                                              | `accepted` · `deferred` · `rejected` |
+
+---
+
+## Deferred (on plan — complete later)
+
+Items stay in the roadmap and design docs; **not** scheduled for the current sprint. Resume when product re-prioritizes.
+
+### Sensor Studio — physics domain (Tier D / Domain E)
+
+**Status:** **Deferred after D1** — stubs + engine choice locked; **Rapier** preview (D2+) and dynamics (D3–D4) to finish later.  
+**Canonical plan:** **[`TIER_D_PHYSICS_FOUNDATION.md`](../src/webview/sensor-studio/docs/TIER_D_PHYSICS_FOUNDATION.md)** · **[`FLOW_DOMAINS.md`](../src/webview/sensor-studio/docs/FLOW_DOMAINS.md)** Phase 7.
+
+| Engine | Where |
+| ------ | ----- |
+| **Rapier** | Sensor Studio flow canvas + Model Viewer (**D2+**) |
+| **Jolt** | Digital Twin vehicle hub (`simulations/vehicle-physics/`) and future hub cases |
+
+**Checklist (resume at D2):**
+
+- [x] **D1 — Parity shell** — catalog stubs + NA import + eval no-ops + **`physicsScene`** port type (**2026-06-02**)
+- [ ] **D2 — Static preview (Rapier)** — `FlowWirePhysicsSceneV1`; Model Viewer **`phys`** input; `rotation-preview-physics-runtime.ts`; static colliders + debug draw
+- [ ] **D3 — Dynamics** — rigid bodies, spawner, joints; fixed-step physics tick; mesh transform sync
+- [ ] **D4 — Integration** — IK + animation blend; **Hardware setup** collider truth; optional hub bridges
+
+**Dependencies when resumed:** node-animator physics evaluators (reference); vehicle hub Jolt per [`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md) Phase 3 (separate runtime from Sensor Studio Rapier).
 
 ---
 

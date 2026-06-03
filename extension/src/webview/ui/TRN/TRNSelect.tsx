@@ -1,8 +1,15 @@
-import { ChevronDown, Check } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { twMerge } from "tailwind-merge";
+import {
+  TRN_FLOATING_MENU_DEFAULT_MAX_HEIGHT_PX,
+  TRN_FLOATING_MENU_GAP_PX,
+  TRN_FLOATING_MENU_VIEWPORT_PADDING_PX,
+  resolveTrnFloatingMenuHorizontal,
+  resolveTrnFloatingMenuPlacement,
+} from "./trn-floating-menu-placement.js";
 import { TRNIconButton } from "./TRNIconButton.js";
 import {
   TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
@@ -21,6 +28,8 @@ export type TRNSelectOption = {
   disabled?: boolean;
   /** Leading glyph in listbox rows (and optional trigger context). */
   icon?: ReactNode;
+  /** Trailing content on the row (e.g. source badge). */
+  rightSlot?: ReactNode;
 };
 
 export type TRNSelectProps = {
@@ -70,45 +79,10 @@ type MenuBox = {
   maxHeight: number;
 };
 
-const MENU_VIEWPORT_PADDING_PX = 8;
-const MENU_GAP_PX = 4;
-const MENU_DEFAULT_MAX_HEIGHT_PX = 320;
-
 function estimateMenuHeightPx(optionCount: number): number {
   const rowPx = 34;
   const chromePx = 12;
-  return Math.min(MENU_DEFAULT_MAX_HEIGHT_PX, optionCount * rowPx + chromePx);
-}
-
-function resolveMenuPlacement(args: {
-  triggerRect: DOMRect;
-  menuHeightPx: number;
-  trigger: "default" | "icon";
-}): Pick<MenuBox, "top" | "maxHeight"> {
-  const maxMenuHeight = Math.min(MENU_DEFAULT_MAX_HEIGHT_PX, window.innerHeight * 0.5);
-  const menuHeight = Math.min(maxMenuHeight, Math.max(48, args.menuHeightPx));
-  const spaceBelow =
-    window.innerHeight - MENU_VIEWPORT_PADDING_PX - (args.triggerRect.bottom + MENU_GAP_PX);
-  const spaceAbove = args.triggerRect.top - MENU_GAP_PX - MENU_VIEWPORT_PADDING_PX;
-  const openBelow = spaceBelow >= menuHeight || spaceBelow >= spaceAbove;
-
-  if (openBelow) {
-    return {
-      top: args.triggerRect.bottom + MENU_GAP_PX,
-      maxHeight: Math.max(48, Math.min(menuHeight, spaceBelow)),
-    };
-  }
-
-  const fitHeight = Math.max(48, Math.min(menuHeight, spaceAbove));
-  let top = args.triggerRect.top - MENU_GAP_PX - fitHeight;
-  if (top < MENU_VIEWPORT_PADDING_PX) {
-    top = MENU_VIEWPORT_PADDING_PX;
-  }
-  const maxHeight = Math.max(
-    48,
-    Math.min(fitHeight, args.triggerRect.top - MENU_GAP_PX - top),
-  );
-  return { top, maxHeight };
+  return Math.min(TRN_FLOATING_MENU_DEFAULT_MAX_HEIGHT_PX, optionCount * rowPx + chromePx);
 }
 
 export function TRNSelect(props: TRNSelectProps) {
@@ -156,18 +130,17 @@ export function TRNSelect(props: TRNSelectProps) {
       }
       const rect = root.getBoundingClientRect();
       const measuredHeight = menuRef.current?.offsetHeight ?? estimateMenuHeightPx(options.length);
-      const placement = resolveMenuPlacement({
+      const placement = resolveTrnFloatingMenuPlacement({
         triggerRect: rect,
         menuHeightPx: measuredHeight,
-        trigger,
       });
 
       if (trigger === "icon") {
         const panelWidth = Math.min(window.innerWidth * 0.92, 288);
         let left = rect.left + rect.width / 2 - panelWidth / 2;
         left = Math.max(
-          MENU_VIEWPORT_PADDING_PX,
-          Math.min(left, window.innerWidth - panelWidth - MENU_VIEWPORT_PADDING_PX),
+          TRN_FLOATING_MENU_VIEWPORT_PADDING_PX,
+          Math.min(left, window.innerWidth - panelWidth - TRN_FLOATING_MENU_VIEWPORT_PADDING_PX),
         );
         setMenuBox({
           left,
@@ -176,15 +149,12 @@ export function TRNSelect(props: TRNSelectProps) {
           maxHeight: placement.maxHeight,
         });
       } else {
-        let left = rect.left;
-        const panelWidth = rect.width;
-        left = Math.max(
-          MENU_VIEWPORT_PADDING_PX,
-          Math.min(left, window.innerWidth - panelWidth - MENU_VIEWPORT_PADDING_PX),
-        );
+        const horizontal = resolveTrnFloatingMenuHorizontal({
+          triggerRect: rect,
+          panelWidthPx: rect.width,
+        });
         setMenuBox({
-          left,
-          width: panelWidth,
+          ...horizontal,
           top: placement.top,
           maxHeight: placement.maxHeight,
         });
@@ -281,11 +251,7 @@ export function TRNSelect(props: TRNSelectProps) {
                           size === "sm" ? "text-xs" : size === "lg" ? "text-sm" : null,
                           isSelected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
                         )}
-                        rightSlot={
-                          isSelected ? (
-                            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                          ) : null
-                        }
+                        rightSlot={opt.rightSlot ?? null}
                         onClick={() => {
                           if (optDisabled) {
                             return;

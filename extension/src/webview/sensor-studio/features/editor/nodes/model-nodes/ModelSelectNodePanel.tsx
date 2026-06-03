@@ -3,11 +3,14 @@ import { TRNSelect, type TRNSelectOption } from "../../../../../ui/TRN";
 import { useStudioAssetDescriptors } from "../../../asset-browser/useStudioAssetDescriptors";
 import {
   getStudioModelDescriptorById,
-  listStudioModelDescriptors,
   persistedModelUrlFromStudioDescriptor,
   resolveStudioModelGltfFetchUrl,
-  STUDIO_MODEL_SELECT_CUSTOM,
 } from "../../../asset-browser/studio-model-scene-bindings";
+import {
+  applyStudioModelCatalogSelectToNodeConfig,
+  buildStudioModelCatalogSelectOptions,
+  readStudioModelCatalogSelectValue,
+} from "./studio-model-catalog-select";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
 import { readGeneratedChildNodeIds, readGlbExtractTag } from "../../model/model-generated-bindings";
@@ -35,48 +38,21 @@ export function ModelSelectNodePanel(props: ModelSelectNodePanelProps) {
   const storedFetchUrl =
     typeof defaultConfig.selectedModelUrl === "string" ? defaultConfig.selectedModelUrl.trim() : "";
 
-  const selectValue = useMemo(() => {
-    if (assetId.length > 0) {
-      const d = getStudioModelDescriptorById(assetId, descriptors);
-      if (d != null) {
-        return assetId;
-      }
-    }
-    return STUDIO_MODEL_SELECT_CUSTOM;
-  }, [assetId, descriptors]);
+  const selectValue = useMemo(
+    () => readStudioModelCatalogSelectValue(defaultConfig, descriptors),
+    [assetId, defaultConfig, descriptors],
+  );
 
   const options = useMemo<TRNSelectOption[]>(
-    () => [
-      { value: STUDIO_MODEL_SELECT_CUSTOM, label: "None" },
-      ...listStudioModelDescriptors(descriptors).map((d) => ({
-        value: d.id,
-        label: d.label,
-      })),
-    ],
+    () => buildStudioModelCatalogSelectOptions(descriptors),
     [descriptors],
   );
 
   const applySelection = useCallback(
     (nextId: string) => {
-      if (nextId === STUDIO_MODEL_SELECT_CUSTOM || nextId.length === 0) {
-        updateField(nodeId, "selectedStudioAssetId", "");
-        updateField(nodeId, "selectedModelUrl", "");
-        return;
-      }
-      const d = getStudioModelDescriptorById(nextId, descriptors);
-      if (d == null) {
-        updateField(nodeId, "selectedStudioAssetId", "");
-        updateField(nodeId, "selectedModelUrl", "");
-        return;
-      }
-      const persisted = persistedModelUrlFromStudioDescriptor(d);
-      const fetchUrl = resolveStudioModelGltfFetchUrl(
-        { url: persisted, studioAssetId: d.id },
-        descriptors,
-        "",
-      );
-      updateField(nodeId, "selectedStudioAssetId", d.id);
-      updateField(nodeId, "selectedModelUrl", fetchUrl);
+      applyStudioModelCatalogSelectToNodeConfig(nextId, descriptors, (key, value) => {
+        updateField(nodeId, key, value);
+      });
     },
     [descriptors, nodeId, updateField],
   );

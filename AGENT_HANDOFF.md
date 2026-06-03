@@ -185,6 +185,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-02 | **Workbench layout modals + Stage catalog:** Save/Manage layouts centered TRN modals (`WORKBENCH_LAYOUT_DIALOGS.md`); model picker badges/icons; snapshot **`studioAssetId`** sync; viewport keep-until-loaded + rig-policy template swap; **`TRNSelect`** `rightSlot` / no row checkmark |
 | 2026-06-02 | **GLB Animation Lab UX:** Inspector tab rename + truncate; tag **Filter** menu; env cubemap background in lab; parallel-all + loop auto-play; **`tests/bitstream-app/animation-lab-twin-tag-filter.test.ts`** |
 | 2026-06-02 | **Startup checklist v3:** First-run sequential tour when all green; recheck + presentation fixes; tests under **`tests/startup-checklist/`** |
 | 2026-06-01 | **Shell toolbar — control deck + metrics:** `ShellControlDeck`; wire RX (BS2 JSON window) + decode FPS chips; header menu slot; Studio canvas menu-only; `formatWallClockAgeAgo`; `RuntimeServicesHealthPanel` `input.ext` fix |

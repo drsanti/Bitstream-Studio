@@ -47,12 +47,13 @@ import {
 } from "../../../asset-browser/studio-environment-scene-bindings";
 import {
   getStudioModelDescriptorById,
-  listStudioModelDescriptors,
   persistedModelUrlFromStudioDescriptor,
   resolveStudioModelDescriptorForPersistedModel,
   rotationInspectorModelCatalogSelectValue,
   STUDIO_MODEL_SELECT_CUSTOM,
 } from "../../../asset-browser/studio-model-scene-bindings";
+import { buildRotationInspectorModelCatalogSelectOptions } from "../../nodes/model-nodes/studio-model-catalog-select-ui";
+import { assetSourceLabel } from "../../../../../assets-manager/browse/asset-source-label";
 import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
@@ -62,7 +63,7 @@ import {
   type EmbeddedRigPolicy,
   type Scene3DConfigV1,
   type StudioLightsPresetId,
-} from "../../nodes/rotation/scene3d-config";
+} from "../../../../core/scene3d/scene3d-config";
 import type { RotationInspectorRailPanelId } from "../inspector/node-inspector-ui-persistence";
 import {
   readRotationRailsMap,
@@ -113,11 +114,23 @@ const RAIL_ENTRIES: readonly TRNInspectorIconRailItem<Rotation3DInspectorRailPan
 type Rotation3DInspectorCardsProps = {
   scene3dRaw: unknown;
   onChangeScene3d: (next: Scene3DConfigV1) => void;
+  /**
+   * Stage workbench: route catalog picks to wired Model Select (or Scene Output bake)
+   * instead of only patching the in-memory scene3d draft.
+   */
+  onPickStudioModelCatalog?: (catalogId: string) => void;
+  /** Extra hint on the Model catalog field (e.g. wired Models on Scene Output). */
+  modelCatalogHint?: string;
   /** Stable id for the inspected entity (e.g. flow node id); restores last rail tab per id in-session. */
   inspectorRailResetKey?: string | null;
+  /** When set, only this panel body is rendered (for Stage inspector draggable cards). */
+  singlePanel?: Rotation3DInspectorRailPanel;
+  /** Omit emerald chrome when nested inside {@link CanvasInspectorCard}. */
+  chromeless?: boolean;
 };
 
 export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
+  const { singlePanel, chromeless = false } = props;
   const { descriptors } = useStudioAssetDescriptors();
 
   const scene3d = useMemo(
@@ -125,11 +138,8 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
     [props.scene3dRaw],
   );
 
-  const modelSelectOptions = useMemo<TRNSelectOption[]>(
-    () => [
-      { value: STUDIO_MODEL_SELECT_CUSTOM, label: "Custom URL…" },
-      ...listStudioModelDescriptors(descriptors).map((d) => ({ value: d.id, label: d.label })),
-    ],
+  const modelSelectOptions = useMemo(
+    () => buildRotationInspectorModelCatalogSelectOptions(descriptors),
     [descriptors],
   );
 
@@ -163,6 +173,8 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
     () => rotationInspectorModelCatalogSelectValue(scene3d.model, descriptors),
     [scene3d.model, descriptors],
   );
+
+  const showModelUrlField = modelCatalogSelectValue === STUDIO_MODEL_SELECT_CUSTOM;
 
   const railByNodeIdRef = useRef<Map<string, Rotation3DInspectorRailPanel>>(
     readRotationRailsMap(),
@@ -257,24 +269,28 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
     [scene3d.environment, descriptors],
   );
 
-  return (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden rounded-md border border-emerald-900/25 bg-linear-to-br from-emerald-950/15 via-zinc-950/55 to-zinc-950/85 shadow-[inset_0_1px_0_0_rgba(16,185,129,0.06)]">
-      <TRNInspectorIconRail
-        ariaLabel="3D scene inspector sections"
-        items={RAIL_ENTRIES}
-        activeId={activeRailPanel}
-        onActiveChange={onRailPanelChange}
-        tone="emerald"
-      />
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-zinc-950/35">
-        {activeRailPanel === "model" ? (
+  const panelActive = (id: Rotation3DInspectorRailPanel): boolean =>
+    singlePanel != null ? singlePanel === id : activeRailPanel === id;
+
+  const showPanelHeading = !chromeless;
+
+  const panelScroll = (
+    <>
+        {panelActive("model") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Model
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Model
+              </div>
+            ) : null}
             <TRNFormSection
               title="Model"
-              description="Scale is kept as-authored (no auto-scaling). Catalog entries match the Asset Browser models list."
+              showHeading={showPanelHeading}
+              description={
+                showPanelHeading
+                  ? "Scale is kept as-authored (no auto-scaling). Catalog entries match the Asset Browser models list."
+                  : undefined
+              }
               className="border-0 bg-transparent p-0"
             >
               <div className="flex flex-wrap items-center gap-2 rounded border border-zinc-800/80 bg-zinc-950/30 px-2 py-1.5">
@@ -282,11 +298,11 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                   <>
                     <span className="truncate text-[11px] font-medium text-zinc-200">{resolvedStudioModel.label}</span>
                     <span
-                      className={`shrink-0 rounded border px-1 py-px text-[8px] font-semibold uppercase tracking-wide ${studioAssetSourceBadgeClasses(
+                      className={`shrink-0 rounded border px-1 py-px text-[8px] font-semibold tracking-wide ${studioAssetSourceBadgeClasses(
                         resolvedStudioModel.source,
                       )}`}
                     >
-                      {resolvedStudioModel.source}
+                      {assetSourceLabel(resolvedStudioModel.source)}
                     </span>
                     <span className="truncate font-mono text-[9px] text-zinc-500">{resolvedStudioModel.id}</span>
                   </>
@@ -299,7 +315,12 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
 
               <TRNFormField
                 label="Catalog"
-                hint="Pick a curated model (same ids as Asset Browser) or use a custom URL below."
+                hint={
+                  props.modelCatalogHint ??
+                  (showModelUrlField
+                    ? "Pick Custom URL… to edit the GLB/GLTF path below."
+                    : "Curated models from the Asset Browser; resolved path is shown in the summary row.")
+                }
               >
                 <TRNSelect
                   ariaLabel="Studio model catalog"
@@ -308,6 +329,10 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                   value={modelCatalogSelectValue}
                   options={modelSelectOptions}
                   onValueChange={(value) => {
+                    if (props.onPickStudioModelCatalog != null) {
+                      props.onPickStudioModelCatalog(value);
+                      return;
+                    }
                     if (value === STUDIO_MODEL_SELECT_CUSTOM) {
                       set((prev) => {
                         const { studioAssetId: _sid, ...rest } = prev.model;
@@ -331,25 +356,27 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                 />
               </TRNFormField>
 
-              <TRNFormField
-                label="URL"
-                hint="GLB/GLTF URL. Relative paths should resolve from the webview bundle."
-              >
-                <TRNInlineEdit
-                  value={scene3d.model.url}
-                  onCommit={(next) =>
-                    set((prev) => {
-                      const { studioAssetId: _sid, ...rest } = prev.model;
-                      return {
-                        ...prev,
-                        model: { ...rest, url: next.trim(), studioAssetId: undefined },
-                      };
-                    })
-                  }
-                  inputClassName="font-mono text-[11px]"
-                  placeholder="models/psoc-e84-ai/psoc-e84-ai.glb"
-                />
-              </TRNFormField>
+              {showModelUrlField ? (
+                <TRNFormField
+                  label="URL"
+                  hint="GLB/GLTF URL. Relative paths should resolve from the webview bundle."
+                >
+                  <TRNInlineEdit
+                    value={scene3d.model.url}
+                    onCommit={(next) =>
+                      set((prev) => {
+                        const { studioAssetId: _sid, ...rest } = prev.model;
+                        return {
+                          ...prev,
+                          model: { ...rest, url: next.trim(), studioAssetId: undefined },
+                        };
+                      })
+                    }
+                    inputClassName="font-mono text-[11px]"
+                    placeholder="models/psoc-e84-ai/psoc-e84-ai.glb"
+                  />
+                </TRNFormField>
+              ) : null}
 
               <TRNFormField
                 label="Embedded rig policy"
@@ -404,14 +431,21 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
           </section>
         ) : null}
 
-        {activeRailPanel === "environment" ? (
+        {panelActive("environment") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Environment
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Environment
+              </div>
+            ) : null}
             <TRNFormSection
               title="Environment"
-              description="Workspace-style: environment is always applied; IBL toggles intensity. Cubemap presets match the rotation preview toolbar; additional list rows are catalog environments that do not map to a built-in preset path."
+              showHeading={showPanelHeading}
+              description={
+                showPanelHeading
+                  ? "Workspace-style: environment is always applied; IBL toggles intensity. Cubemap presets match the rotation preview toolbar; additional list rows are catalog environments that do not map to a built-in preset path."
+                  : undefined
+              }
               className="border-0 bg-transparent p-0"
             >
               <div className="flex flex-wrap items-center gap-2 rounded border border-zinc-800/80 bg-zinc-950/30 px-2 py-1.5">
@@ -584,14 +618,17 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
           </section>
         ) : null}
 
-        {activeRailPanel === "renderer" ? (
+        {panelActive("renderer") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Renderer
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Renderer
+              </div>
+            ) : null}
             <TRNFormSection
               title="Renderer"
-              description="Tone mapping: ACES, output: sRGB."
+              showHeading={showPanelHeading}
+              description={showPanelHeading ? "Tone mapping: ACES, output: sRGB." : undefined}
               className="border-0 bg-transparent p-0"
             >
               <div className="flex items-center justify-between rounded border border-zinc-700/80 bg-transparent px-2 py-1">
@@ -762,14 +799,17 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
           </section>
         ) : null}
 
-        {activeRailPanel === "camera" ? (
+        {panelActive("camera") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Camera
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Camera
+              </div>
+            ) : null}
             <TRNFormSection
               title="Camera"
-              description="Unity-style: FOV + transform + look-at target."
+              showHeading={showPanelHeading}
+              description={showPanelHeading ? "Unity-style: FOV + transform + look-at target." : undefined}
               className="border-0 bg-transparent p-0"
             >
               <TRNParameterSlider valueScrubEnabled
@@ -857,14 +897,19 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
           </section>
         ) : null}
 
-        {activeRailPanel === "orbit" ? (
+        {panelActive("orbit") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Orbit controls
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Orbit controls
+              </div>
+            ) : null}
             <TRNFormSection
               title="Controls"
-              description="OrbitControls: all parameters apply live to the viewport."
+              showHeading={showPanelHeading}
+              description={
+                showPanelHeading ? "OrbitControls: all parameters apply live to the viewport." : undefined
+              }
               className="border-0 bg-transparent p-0"
             >
               <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
@@ -1371,14 +1416,21 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
           </section>
         ) : null}
 
-        {activeRailPanel === "lights" ? (
+        {panelActive("lights") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Lights
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Lights
+              </div>
+            ) : null}
             <TRNFormSection
               title="Lights"
-              description="Workspace-style defaults use low ambient and rely on environment lighting."
+              showHeading={showPanelHeading}
+              description={
+                showPanelHeading
+                  ? "Workspace-style defaults use low ambient and rely on environment lighting."
+                  : undefined
+              }
               className="border-0 bg-transparent p-0"
             >
               <TRNParameterSlider valueScrubEnabled
@@ -1744,14 +1796,21 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
           </section>
         ) : null}
 
-        {activeRailPanel === "helpers" ? (
+        {panelActive("helpers") ? (
           <section className="space-y-2 px-2 pb-3 pt-2 text-[11px] text-zinc-200">
-            <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
-              Helpers
-            </div>
+            {showPanelHeading ? (
+              <div className="border-b border-emerald-900/25 pb-1 text-[11px] font-semibold text-emerald-100/90">
+                Helpers
+              </div>
+            ) : null}
             <TRNFormSection
               title="Scene helpers"
-              description="Orientation overlays for the node preview. Grid colors match Three.js GridHelper (axis emphasis vs cells)."
+              showHeading={showPanelHeading}
+              description={
+                showPanelHeading
+                  ? "Orientation overlays for the node preview. Grid colors match Three.js GridHelper (axis emphasis vs cells)."
+                  : undefined
+              }
               className="border-0 bg-transparent p-0"
             >
               <TRNAccordion
@@ -2068,6 +2127,34 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
             </TRNFormSection>
           </section>
         ) : null}
+    </>
+  );
+
+  if (singlePanel != null) {
+    return (
+      <div
+        className={
+          chromeless
+            ? "min-h-0 min-w-0 text-[11px] text-zinc-200"
+            : "min-h-0 min-w-0 overflow-hidden rounded-md border border-emerald-900/25 bg-zinc-950/45"
+        }
+      >
+        {panelScroll}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden rounded-md border border-emerald-900/25 bg-linear-to-br from-emerald-950/15 via-zinc-950/55 to-zinc-950/85 shadow-[inset_0_1px_0_0_rgba(16,185,129,0.06)]">
+      <TRNInspectorIconRail
+        ariaLabel="3D scene inspector sections"
+        items={RAIL_ENTRIES}
+        activeId={activeRailPanel}
+        onActiveChange={onRailPanelChange}
+        tone="emerald"
+      />
+      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-zinc-950/35">
+        {panelScroll}
       </div>
     </div>
   );
