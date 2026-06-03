@@ -22,7 +22,9 @@ Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMa
 
 **Not in the shell toolbar** (canvas toolbars): Fit view, Clear graph, auto-layout, socket expand/collapse — see **`FlowCanvasToolbar`** and **`NodeSelectionToolbar`**.
 
-**Smart connect (planned):** drag from a socket and release on empty canvas → filtered **Add Node** menu (same as Shift+A) + optional auto-wire. Modifiers: **Shift** = full menu, **Alt** = place without connect. Footer hints while dragging. Spec: **`SMART_CONNECT.md`**.
+**Smart connect:** drag from a socket and release on empty canvas → filtered **Add Node** menu (same as Shift+A) + optional auto-wire. Modifiers: **Shift** = full menu, **Alt** = place without connect. Footer hints while dragging. Spec: **`SMART_CONNECT.md`**.
+
+**Socket wiring:** single inputs **replace** the previous wire; drag from a wired single input **pops** the wire first (reconnect). Multi-input: **`number-average`** only. Spec: **`SOCKET_CONNECTION_POLICY.md`**.
 
 **3D GLB preview transport** (`RotationPreviewPanelV4` — Model Viewer, 3D Rotation): when the loaded GLB has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
 

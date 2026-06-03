@@ -295,6 +295,7 @@ import {
 } from "../model/model-generated-bindings";
 import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
 import { splitEdgeWithReroute, applyRerouteBridgeOnEdgeRemoves, removeFlowNodesFromGraph } from "../layout/reroute-graph-ops";
+import { connectWithPolicy } from "../connect/socket-connection-policy";
 import { applyFlowAutoLayout as runFlowAutoLayout } from "../layout/flow-auto-layout";
 import {
   applyFlowFrameDragStop,
@@ -316,7 +317,6 @@ import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-no
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
   isStudioFlowNode,
-  layoutNodeAcceptsInput,
   patchLayoutNodesAfterConnect,
   resolveFlowSourcePortType,
 } from "../layout/layout-port-resolution";
@@ -864,6 +864,8 @@ type FlowEditorState = {
   onNodesChange: (changes: Parameters<typeof applyNodeChanges<StudioNode>>[0]) => void;
   onEdgesChange: (changes: Parameters<typeof applyEdgeChanges<Edge>>[0]) => void;
   onConnect: (connection: Connection) => void;
+  /** Remove edges before reconnect drag (single-input pop-on-start). */
+  popEdgesForSocketReconnect: (edgeIds: readonly string[]) => void;
   onSelectionChange: (selectedNodeIds: string[]) => void;
   addNodeFromCatalog: (
     entry: NodeCatalogEntry,
@@ -1147,48 +1149,6 @@ function edgeLabelForSource(
   return t ?? "";
 }
 
-function canConnect(
-  connection: Connection,
-  nodes: FlowGraphNode[],
-  subgraphs: Record<string, StudioSubgraphDocument>,
-): boolean {
-  if (connection.source == null || connection.target == null) {
-    return false;
-  }
-  const sourceNode = nodes.find((n) => n.id === connection.source);
-  const targetNode = nodes.find((n) => n.id === connection.target);
-  if (sourceNode == null || targetNode == null) {
-    return false;
-  }
-  const sourceHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
-  const targetHandle = connection.targetHandle ?? STUDIO_HANDLE_IN;
-  const sourceType = getSourcePortType(sourceNode, sourceHandle, subgraphs);
-  if (sourceType == null) {
-    return false;
-  }
-  if (isStudioNodeGroupNode(targetNode)) {
-    const targetType = getTargetPortType(targetNode, targetHandle, subgraphs);
-    return targetType != null && sourceType === targetType;
-  }
-  if (isLayoutFlowNode(targetNode)) {
-    if (targetNode.type === "studio-note" || targetNode.type === "studio-frame") {
-      return false;
-    }
-    return layoutNodeAcceptsInput(targetNode, targetHandle, sourceType);
-  }
-  if (!isStudioFlowNode(targetNode)) {
-    if (targetNode.type === "studio-group-output") {
-      const targetType = getTargetPortType(targetNode, targetHandle, subgraphs);
-      return targetType != null && sourceType === targetType;
-    }
-    return false;
-  }
-  const targetType = getTargetPortType(targetNode, targetHandle, subgraphs);
-  if (targetType == null) {
-    return false;
-  }
-  return sourceType === targetType;
-}
 
 function asFiniteNumber(value: unknown, fallback: number): number {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -3463,39 +3423,53 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     });
     flushFlowSimulationPins(get);
   },
+  popEdgesForSocketReconnect: (edgeIds) => {
+    if (edgeIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const removeIds = new Set(edgeIds);
+    set((state) => {
+      const nextEdges = state.edges.filter((e) => !removeIds.has(e.id));
+      return {
+        edges: nextEdges,
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          reconcileGlbEventModelScopeFromEdges(state.nodes, nextEdges),
+          nextEdges,
+        ),
+      };
+    });
+    flushFlowSimulationPins(get);
+  },
   onConnect: (connection) => {
     const st = get();
-    if (!canConnect(connection, st.nodes, st.subgraphs)) {
+    const result = connectWithPolicy(connection, {
+      nodes: st.nodes,
+      edges: st.edges,
+      subgraphs: st.subgraphs,
+    });
+    if (!result.ok) {
       return;
     }
-    const hasDuplicate = get().edges.some(
-      (edge) =>
-        edge.source === connection.source &&
-        edge.target === connection.target &&
-        edge.sourceHandle === connection.sourceHandle &&
-        edge.targetHandle === connection.targetHandle,
-    );
-    if (hasDuplicate) {
-      return;
-    }
-    const sourceNode = get().nodes.find((n) => n.id === connection.source);
+    const sourceNode = st.nodes.find((n) => n.id === connection.source);
     const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
     const label =
-      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle, get().subgraphs) : "";
+      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs) : "";
+    const priorEdgeIds = new Set(st.edges.map((e) => e.id));
     get().pushUndoSnapshot();
     set((state) => {
-      const nextEdges = addEdge(
-        {
-          ...connection,
-          sourceHandle: connection.sourceHandle ?? STUDIO_HANDLE_OUT,
-          targetHandle: connection.targetHandle ?? STUDIO_HANDLE_IN,
+      const nextEdges = result.edges.map((edge) => {
+        if (priorEdgeIds.has(edge.id)) {
+          return edge;
+        }
+        return {
+          ...edge,
           id: `${connection.source}-${connection.target}-${Date.now()}`,
           animated: true,
           label,
           style: { strokeWidth: 2 },
-        },
-        state.edges,
-      );
+        };
+      });
       return {
         edges: nextEdges,
         nodes: attachConfigErrorsWithModelChildRegistry(

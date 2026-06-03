@@ -5,6 +5,7 @@ import {
   type OnConnectStartParams,
   type ReactFlowInstance,
   ReactFlow,
+  type Connection,
   type Edge,
   type FinalConnectionState,
   type OnConnect,
@@ -79,6 +80,10 @@ import {
   type SmartConnectDragContext,
   type SmartConnectPortType,
 } from "../connect/smart-connect-catalog";
+import {
+  edgesToPopOnConnectStart,
+  validateStudioConnection,
+} from "../connect/socket-connection-policy";
 import { FlowConnectDragHint } from "./flow-toolbar/FlowConnectDragHint";
 import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import {
@@ -564,6 +569,22 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       [subgraphs],
     );
 
+    const popEdgesForSocketReconnect = useFlowEditorStore(
+      (s) => s.popEdgesForSocketReconnect,
+    );
+
+    const isValidConnection = useCallback(
+      (connection: Connection | Edge) => {
+        const edgeId = "id" in connection ? connection.id : undefined;
+        return validateStudioConnection(
+          connection,
+          { nodes, edges, subgraphs },
+          { allowIncomplete: true, excludeEdgeId: edgeId },
+        ).ok;
+      },
+      [edges, nodes, subgraphs],
+    );
+
     const handleConnectStart = useCallback(
       (_event: MouseEvent | TouchEvent, params: OnConnectStartParams) => {
         const { nodeId, handleId, handleType } = params;
@@ -576,6 +597,16 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         ) {
           setConnectingLineStroke(null);
           return;
+        }
+        const popIds = edgesToPopOnConnectStart(
+          nodeId,
+          handleId,
+          handleType,
+          nodes,
+          edges,
+        );
+        if (popIds.length > 0) {
+          popEdgesForSocketReconnect(popIds);
         }
         const node = nodes.find((n) => n.id === nodeId);
         if (node == null) {
@@ -614,7 +645,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           altKey: _event.altKey,
         });
       },
-      [edges, nodes, portColorMap, resolveConnectPortType],
+      [edges, nodes, popEdgesForSocketReconnect, portColorMap, resolveConnectPortType],
     );
 
     const handleConnectEnd = useCallback(
@@ -882,6 +913,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             onConnect={handleConnect}
             onConnectStart={handleConnectStart}
             onConnectEnd={handleConnectEnd}
+            isValidConnection={isValidConnection}
             onEdgeClick={handleEdgeClick}
             connectionLineStyle={connectionLineStyle}
             onSelectionChange={(selection) => {
