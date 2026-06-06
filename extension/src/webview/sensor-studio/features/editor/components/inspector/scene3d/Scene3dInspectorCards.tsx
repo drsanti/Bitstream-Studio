@@ -2,18 +2,11 @@ import { getEngineEnvironmentCubeMaps } from "@/engine-environment/t3dEngineEnvi
 import {
   ArrowDown,
   ArrowUp,
-  Box,
-  Camera,
   Copy,
-  Globe2,
-  Grid3x3,
-  Lightbulb,
-  MonitorPlay,
-  MousePointer2,
   Plus,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, type ReactNode } from "react";
 import {
   TRNAccordion,
   TRNAccordionContent,
@@ -23,14 +16,12 @@ import {
   TRNFormField,
   TRNFormSection,
   TRNInlineEdit,
-  TRNInspectorIconRail,
   TRNMenuSectionTitle,
   TRNParameterSlider,
   TRNSelect,
   TRNTransformSection,
   TRNToggleSwitch,
   TRNVector3Field,
-  type TRNInspectorIconRailItem,
   type TRNSelectOption,
   type TRNVector3,
 } from "../../../../../../ui/TRN";
@@ -64,11 +55,9 @@ import {
   type Scene3DConfigV1,
   type StudioLightsPresetId,
 } from "../../../../../core/scene3d/scene3d-config";
+import { SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS } from "./scene3d-inspector-accordion-chrome";
 import type { Scene3dInspectorPanelId } from "../node-inspector-ui-persistence";
-import {
-  readScene3dInspectorPanelByNodeId,
-  writeScene3dInspectorPanelByNodeId,
-} from "../node-inspector-ui-persistence";
+import { Scene3dInspectorAdvancedTier } from "./Scene3dInspectorAdvancedTier";
 
 const ORBIT_MOUSE_OPTIONS: TRNSelectOption[] = [
   { value: "ROTATE", label: "Rotate" },
@@ -106,16 +95,6 @@ const EMBEDDED_RIG_POLICY_OPTIONS: TRNSelectOption[] = [
   { value: "strip", label: "Strip embedded — studio rig only" },
 ];
 
-const RAIL_ENTRIES: readonly TRNInspectorIconRailItem<Scene3dInspectorPanelId>[] = [
-  { id: "model", label: "Model", Icon: Box },
-  { id: "environment", label: "Environment", Icon: Globe2 },
-  { id: "renderer", label: "Renderer", Icon: MonitorPlay },
-  { id: "camera", label: "Camera", Icon: Camera },
-  { id: "orbit", label: "Orbit controls", Icon: MousePointer2 },
-  { id: "lights", label: "Lights", Icon: Lightbulb },
-  { id: "helpers", label: "Helpers", Icon: Grid3x3 },
-];
-
 type Scene3dInspectorCardsProps = {
   scene3dRaw: unknown;
   onChangeScene3d: (next: Scene3DConfigV1) => void;
@@ -126,16 +105,16 @@ type Scene3dInspectorCardsProps = {
   onPickStudioModelCatalog?: (catalogId: string) => void;
   /** Extra hint on the Model catalog field (e.g. wired Models on Scene Output). */
   modelCatalogHint?: string;
-  /** Stable id for the inspected entity (e.g. flow node id); restores last rail tab per id in-session. */
-  inspectorRailResetKey?: string | null;
-  /** When set, only this panel body is rendered (for Stage inspector draggable cards). */
-  singlePanel?: Scene3dInspectorPanelId;
+  /** When set, only this panel body is rendered (Stage / Node inspector cards). */
+  singlePanel: Scene3dInspectorPanelId;
   /** Omit emerald chrome when nested inside {@link CanvasInspectorCard}. */
   chromeless?: boolean;
+  /** Node tab settings filter — expands Advanced tiers when keywords match. */
+  settingsSearch?: string;
 };
 
 export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
-  const { singlePanel, chromeless = false } = props;
+  const { singlePanel, chromeless = false, settingsSearch } = props;
   const { descriptors } = useStudioAssetDescriptors();
 
   const scene3d = useMemo(
@@ -180,33 +159,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
   );
 
   const showModelUrlField = modelCatalogSelectValue === STUDIO_MODEL_SELECT_CUSTOM;
-
-  const railByNodeIdRef = useRef<Map<string, Scene3dInspectorPanelId>>(
-    readScene3dInspectorPanelByNodeId(),
-  );
-
-  const [activeRailPanel, setActiveRailPanel] =
-    useState<Scene3dInspectorPanelId>("model");
-
-  useEffect(() => {
-    const key = props.inspectorRailResetKey;
-    if (key == null) {
-      setActiveRailPanel("model");
-      return;
-    }
-    setActiveRailPanel(railByNodeIdRef.current.get(key) ?? "model");
-  }, [props.inspectorRailResetKey]);
-
-  const onRailPanelChange = useCallback(
-    (panel: Scene3dInspectorPanelId) => {
-      setActiveRailPanel(panel);
-      if (props.inspectorRailResetKey != null) {
-        railByNodeIdRef.current.set(props.inspectorRailResetKey, panel);
-        writeScene3dInspectorPanelByNodeId(railByNodeIdRef.current);
-      }
-    },
-    [props.inspectorRailResetKey],
-  );
 
   const set = (patch: (prev: Scene3DConfigV1) => Scene3DConfigV1) => {
     props.onChangeScene3d(persistScene3DConfig(patch(scene3d)));
@@ -274,8 +226,17 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
     [scene3d.environment, descriptors],
   );
 
-  const panelActive = (id: Scene3dInspectorPanelId): boolean =>
-    singlePanel != null ? singlePanel === id : activeRailPanel === id;
+  if (singlePanel == null) {
+    return null;
+  }
+
+  const advanced = (panelId: Scene3dInspectorPanelId, children: ReactNode) => (
+    <Scene3dInspectorAdvancedTier panelId={panelId} settingsSearch={settingsSearch}>
+      {children}
+    </Scene3dInspectorAdvancedTier>
+  );
+
+  const panelActive = (id: Scene3dInspectorPanelId): boolean => singlePanel === id;
 
   const showPanelHeading = !chromeless;
 
@@ -361,28 +322,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 />
               </TRNFormField>
 
-              {showModelUrlField ? (
-                <TRNFormField
-                  label="URL"
-                  hint="GLB/GLTF URL. Relative paths should resolve from the webview bundle."
-                >
-                  <TRNInlineEdit
-                    value={scene3d.model.url}
-                    onCommit={(next) =>
-                      set((prev) => {
-                        const { studioAssetId: _sid, ...rest } = prev.model;
-                        return {
-                          ...prev,
-                          model: { ...rest, url: next.trim(), studioAssetId: undefined },
-                        };
-                      })
-                    }
-                    inputClassName="font-mono text-[11px]"
-                    placeholder="models/psoc-e84-ai/psoc-e84-ai.glb"
-                  />
-                </TRNFormField>
-              ) : null}
-
               <TRNFormField
                 label="Embedded rig policy"
                 hint="GLB files may include lights and cameras. Hybrid keeps embedded lights but removes embedded cameras so the orbit preview stays consistent."
@@ -406,32 +345,59 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 />
               </TRNFormField>
 
-              <TRNTransformSection
-                value={{
-                  position: scene3d.model.transform.position,
-                  rotationDeg: scene3d.model.transform.rotationDeg,
-                  scale: scene3d.model.transform.scale,
-                  uniformScale:
-                    Math.abs(scene3d.model.transform.scale.x - scene3d.model.transform.scale.y) <
-                      1e-6 &&
-                    Math.abs(scene3d.model.transform.scale.x - scene3d.model.transform.scale.z) <
-                      1e-6,
-                }}
-                onChange={(next) =>
-                  set((prev) => ({
-                    ...prev,
-                    model: {
-                      ...prev.model,
-                      transform: {
-                        ...prev.model.transform,
-                        position: next.position,
-                        rotationDeg: next.rotationDeg ?? prev.model.transform.rotationDeg,
-                        scale: next.scale,
-                      },
-                    },
-                  }))
-                }
-              />
+              {advanced(
+                "model",
+                <>
+                  {showModelUrlField ? (
+                    <TRNFormField
+                      label="URL"
+                      hint="GLB/GLTF URL. Relative paths should resolve from the webview bundle."
+                    >
+                      <TRNInlineEdit
+                        value={scene3d.model.url}
+                        onCommit={(next) =>
+                          set((prev) => {
+                            const { studioAssetId: _sid, ...rest } = prev.model;
+                            return {
+                              ...prev,
+                              model: { ...rest, url: next.trim(), studioAssetId: undefined },
+                            };
+                          })
+                        }
+                        inputClassName="font-mono text-[11px]"
+                        placeholder="models/psoc-e84-ai/psoc-e84-ai.glb"
+                      />
+                    </TRNFormField>
+                  ) : null}
+
+                  <TRNTransformSection
+                    value={{
+                      position: scene3d.model.transform.position,
+                      rotationDeg: scene3d.model.transform.rotationDeg,
+                      scale: scene3d.model.transform.scale,
+                      uniformScale:
+                        Math.abs(scene3d.model.transform.scale.x - scene3d.model.transform.scale.y) <
+                          1e-6 &&
+                        Math.abs(scene3d.model.transform.scale.x - scene3d.model.transform.scale.z) <
+                          1e-6,
+                    }}
+                    onChange={(next) =>
+                      set((prev) => ({
+                        ...prev,
+                        model: {
+                          ...prev.model,
+                          transform: {
+                            ...prev.model.transform,
+                            position: next.position,
+                            rotationDeg: next.rotationDeg ?? prev.model.transform.rotationDeg,
+                            scale: next.scale,
+                          },
+                        },
+                      }))
+                    }
+                  />
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
@@ -554,38 +520,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 }
               />
 
-              <TRNParameterSlider valueScrubEnabled
-                name="IBL off strength"
-                value={scene3d.environment.iblOffStrengthFrac}
-                min={0}
-                max={1}
-                step={0.01}
-                unit=""
-                valueFormatter={(v) => v.toFixed(2)}
-                onChange={(v) =>
-                  set((prev) => ({
-                    ...prev,
-                    environment: { ...prev.environment, iblOffStrengthFrac: v },
-                  }))
-                }
-              />
-
-              <TRNParameterSlider valueScrubEnabled
-                name="Yaw"
-                value={scene3d.environment.yawDeg}
-                min={-180}
-                max={180}
-                step={1}
-                unit="deg"
-                valueFormatter={(v) => `${Math.round(v)}`}
-                onChange={(v) =>
-                  set((prev) => ({
-                    ...prev,
-                    environment: { ...prev.environment, yawDeg: v },
-                  }))
-                }
-              />
-
               <div className="flex items-center justify-between rounded border border-zinc-700/80 bg-transparent px-2 py-1">
                 <span className="text-xs font-medium text-zinc-200">Show background</span>
                 <TRNToggleSwitch
@@ -600,25 +534,62 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 />
               </div>
 
-              <TRNFormField
-                label="Fallback background"
-                hint="Used when background cubemap is hidden."
-              >
-                <TRNInlineEdit
-                  value={scene3d.environment.backgroundColorHex}
-                  onCommit={(next) =>
-                    set((prev) => ({
-                      ...prev,
-                      environment: {
-                        ...prev.environment,
-                        backgroundColorHex: next.trim(),
-                      },
-                    }))
-                  }
-                  inputClassName="font-mono text-[11px]"
-                  placeholder="#09090b"
-                />
-              </TRNFormField>
+              {advanced(
+                "environment",
+                <>
+                  <TRNParameterSlider valueScrubEnabled
+                    name="IBL off strength"
+                    value={scene3d.environment.iblOffStrengthFrac}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    unit=""
+                    valueFormatter={(v) => v.toFixed(2)}
+                    onChange={(v) =>
+                      set((prev) => ({
+                        ...prev,
+                        environment: { ...prev.environment, iblOffStrengthFrac: v },
+                      }))
+                    }
+                  />
+
+                  <TRNParameterSlider valueScrubEnabled
+                    name="Yaw"
+                    value={scene3d.environment.yawDeg}
+                    min={-180}
+                    max={180}
+                    step={1}
+                    unit="deg"
+                    valueFormatter={(v) => `${Math.round(v)}`}
+                    onChange={(v) =>
+                      set((prev) => ({
+                        ...prev,
+                        environment: { ...prev.environment, yawDeg: v },
+                      }))
+                    }
+                  />
+
+                  <TRNFormField
+                    label="Fallback background"
+                    hint="Used when background cubemap is hidden."
+                  >
+                    <TRNInlineEdit
+                      value={scene3d.environment.backgroundColorHex}
+                      onCommit={(next) =>
+                        set((prev) => ({
+                          ...prev,
+                          environment: {
+                            ...prev.environment,
+                            backgroundColorHex: next.trim(),
+                          },
+                        }))
+                      }
+                      inputClassName="font-mono text-[11px]"
+                      placeholder="#09090b"
+                    />
+                  </TRNFormField>
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
@@ -664,83 +635,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 />
               </div>
 
-              {scene3d.renderer.shadowsEnabled ? (
-                <>
-                  <TRNFormField
-                    label="Shadow map size"
-                    hint="Higher looks sharper but costs GPU memory and fill-rate."
-                  >
-                    <TRNSelect
-                      ariaLabel="Shadow map resolution"
-                      size="sm"
-                      value={String(scene3d.renderer.shadowMapSize)}
-                      options={SHADOW_MAP_SIZE_OPTIONS}
-                      onValueChange={(value) => {
-                        const n = Number.parseInt(value, 10);
-                        if (!Number.isFinite(n)) {
-                          return;
-                        }
-                        set((prev) => ({
-                          ...prev,
-                          renderer: { ...prev.renderer, shadowMapSize: n },
-                        }));
-                      }}
-                    />
-                  </TRNFormField>
-
-                  <TRNParameterSlider valueScrubEnabled
-                    name="Shadow coverage (±)"
-                    nameTitle="Orthographic half-extent around the scene; raise for larger models, lower for tighter crops."
-                    value={scene3d.renderer.shadowOrthoExtent}
-                    min={4}
-                    max={120}
-                    step={1}
-                    unit=""
-                    valueFormatter={(v) => String(Math.round(v))}
-                    onChange={(v) =>
-                      set((prev) => ({
-                        ...prev,
-                        renderer: { ...prev.renderer, shadowOrthoExtent: v },
-                      }))
-                    }
-                  />
-
-                  <TRNParameterSlider valueScrubEnabled
-                    name="Shadow bias"
-                    nameTitle="Depth bias on shadow maps; small tweaks reduce acne or gap artifacts."
-                    value={scene3d.renderer.shadowBias}
-                    min={-0.002}
-                    max={0.002}
-                    step={0.00002}
-                    unit=""
-                    valueFormatter={(v) => v.toFixed(5)}
-                    onChange={(v) =>
-                      set((prev) => ({
-                        ...prev,
-                        renderer: { ...prev.renderer, shadowBias: v },
-                      }))
-                    }
-                  />
-
-                  <TRNParameterSlider valueScrubEnabled
-                    name="Shadow normal bias"
-                    nameTitle="Offset along normals when sampling shadows; counter Peter Pan contact shadows vs shading shifts."
-                    value={scene3d.renderer.shadowNormalBias}
-                    min={0}
-                    max={0.15}
-                    step={0.002}
-                    unit=""
-                    valueFormatter={(v) => v.toFixed(3)}
-                    onChange={(v) =>
-                      set((prev) => ({
-                        ...prev,
-                        renderer: { ...prev.renderer, shadowNormalBias: v },
-                      }))
-                    }
-                  />
-                </>
-              ) : null}
-
               <TRNParameterSlider valueScrubEnabled
                 name="Exposure"
                 value={scene3d.renderer.toneMappingExposure}
@@ -757,49 +651,131 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 }
               />
 
-              <TRNParameterSlider valueScrubEnabled
-                name="DPR min"
-                value={scene3d.renderer.dprMin}
-                min={0.5}
-                max={3}
-                step={0.1}
-                unit="×"
-                valueFormatter={(v) => v.toFixed(1)}
-                onChange={(v) =>
-                  set((prev) => ({
-                    ...prev,
-                    renderer: { ...prev.renderer, dprMin: v },
-                  }))
-                }
-              />
-              <TRNParameterSlider valueScrubEnabled
-                name="DPR max"
-                value={scene3d.renderer.dprMax}
-                min={0.5}
-                max={3}
-                step={0.1}
-                unit="×"
-                valueFormatter={(v) => v.toFixed(1)}
-                onChange={(v) =>
-                  set((prev) => ({
-                    ...prev,
-                    renderer: { ...prev.renderer, dprMax: v },
-                  }))
-                }
-              />
+              {advanced(
+                "renderer",
+                <>
+                  {scene3d.renderer.shadowsEnabled ? (
+                    <>
+                      <TRNFormField
+                        label="Shadow map size"
+                        hint="Higher looks sharper but costs GPU memory and fill-rate."
+                      >
+                        <TRNSelect
+                          ariaLabel="Shadow map resolution"
+                          size="sm"
+                          value={String(scene3d.renderer.shadowMapSize)}
+                          options={SHADOW_MAP_SIZE_OPTIONS}
+                          onValueChange={(value) => {
+                            const n = Number.parseInt(value, 10);
+                            if (!Number.isFinite(n)) {
+                              return;
+                            }
+                            set((prev) => ({
+                              ...prev,
+                              renderer: { ...prev.renderer, shadowMapSize: n },
+                            }));
+                          }}
+                        />
+                      </TRNFormField>
 
-              <TRNFormField label="Clear color" hint="Used when background cubemap is hidden.">
-                <TRNColorRingPicker
-                  ariaLabel="Clear color"
-                  valueHex={scene3d.renderer.clearColorHex}
-                  onValueHexChange={(nextHex) =>
-                    set((prev) => ({
-                      ...prev,
-                      renderer: { ...prev.renderer, clearColorHex: nextHex.trim() },
-                    }))
-                  }
-                />
-              </TRNFormField>
+                      <TRNParameterSlider valueScrubEnabled
+                        name="Shadow coverage (±)"
+                        nameTitle="Orthographic half-extent around the scene; raise for larger models, lower for tighter crops."
+                        value={scene3d.renderer.shadowOrthoExtent}
+                        min={4}
+                        max={120}
+                        step={1}
+                        unit=""
+                        valueFormatter={(v) => String(Math.round(v))}
+                        onChange={(v) =>
+                          set((prev) => ({
+                            ...prev,
+                            renderer: { ...prev.renderer, shadowOrthoExtent: v },
+                          }))
+                        }
+                      />
+
+                      <TRNParameterSlider valueScrubEnabled
+                        name="Shadow bias"
+                        nameTitle="Depth bias on shadow maps; small tweaks reduce acne or gap artifacts."
+                        value={scene3d.renderer.shadowBias}
+                        min={-0.002}
+                        max={0.002}
+                        step={0.00002}
+                        unit=""
+                        valueFormatter={(v) => v.toFixed(5)}
+                        onChange={(v) =>
+                          set((prev) => ({
+                            ...prev,
+                            renderer: { ...prev.renderer, shadowBias: v },
+                          }))
+                        }
+                      />
+
+                      <TRNParameterSlider valueScrubEnabled
+                        name="Shadow normal bias"
+                        nameTitle="Offset along normals when sampling shadows; counter Peter Pan contact shadows vs shading shifts."
+                        value={scene3d.renderer.shadowNormalBias}
+                        min={0}
+                        max={0.15}
+                        step={0.002}
+                        unit=""
+                        valueFormatter={(v) => v.toFixed(3)}
+                        onChange={(v) =>
+                          set((prev) => ({
+                            ...prev,
+                            renderer: { ...prev.renderer, shadowNormalBias: v },
+                          }))
+                        }
+                      />
+                    </>
+                  ) : null}
+
+                  <TRNParameterSlider valueScrubEnabled
+                    name="DPR min"
+                    value={scene3d.renderer.dprMin}
+                    min={0.5}
+                    max={3}
+                    step={0.1}
+                    unit="×"
+                    valueFormatter={(v) => v.toFixed(1)}
+                    onChange={(v) =>
+                      set((prev) => ({
+                        ...prev,
+                        renderer: { ...prev.renderer, dprMin: v },
+                      }))
+                    }
+                  />
+                  <TRNParameterSlider valueScrubEnabled
+                    name="DPR max"
+                    value={scene3d.renderer.dprMax}
+                    min={0.5}
+                    max={3}
+                    step={0.1}
+                    unit="×"
+                    valueFormatter={(v) => v.toFixed(1)}
+                    onChange={(v) =>
+                      set((prev) => ({
+                        ...prev,
+                        renderer: { ...prev.renderer, dprMax: v },
+                      }))
+                    }
+                  />
+
+                  <TRNFormField label="Clear color" hint="Used when background cubemap is hidden.">
+                    <TRNColorRingPicker
+                      ariaLabel="Clear color"
+                      valueHex={scene3d.renderer.clearColorHex}
+                      onValueHexChange={(nextHex) =>
+                        set((prev) => ({
+                          ...prev,
+                          renderer: { ...prev.renderer, clearColorHex: nextHex.trim() },
+                        }))
+                      }
+                    />
+                  </TRNFormField>
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
@@ -833,56 +809,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 }
               />
 
-              <TRNTransformSection
-                title="Transform"
-                value={{
-                  position: scene3d.camera.transform.position,
-                  rotationDeg: { x: 0, y: 0, z: 0 },
-                  scale: { x: 1, y: 1, z: 1 },
-                  uniformScale: true,
-                }}
-                onChange={(next) =>
-                  set((prev) => ({
-                    ...prev,
-                    camera: {
-                      ...prev.camera,
-                      transform: {
-                        ...prev.camera.transform,
-                        position: next.position,
-                      },
-                    },
-                  }))
-                }
-                showRotation={false}
-                showScale={false}
-              />
-
-              <TRNFormField label="LookAt target">
-                <TRNTransformSection
-                  title="Target"
-                  value={{
-                    position: scene3d.camera.transform.target,
-                    rotationDeg: { x: 0, y: 0, z: 0 },
-                    scale: { x: 1, y: 1, z: 1 },
-                    uniformScale: true,
-                  }}
-                  onChange={(next) =>
-                    set((prev) => ({
-                      ...prev,
-                      camera: {
-                        ...prev.camera,
-                        transform: {
-                          ...prev.camera.transform,
-                          target: next.position,
-                        },
-                      },
-                    }))
-                  }
-                  showRotation={false}
-                  showScale={false}
-                />
-              </TRNFormField>
-
               <TRNParameterSlider valueScrubEnabled
                 name="Frame margin"
                 value={scene3d.camera.frameMargin}
@@ -898,6 +824,61 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   }))
                 }
               />
+
+              {advanced(
+                "camera",
+                <>
+                  <TRNTransformSection
+                    title="Transform"
+                    value={{
+                      position: scene3d.camera.transform.position,
+                      rotationDeg: { x: 0, y: 0, z: 0 },
+                      scale: { x: 1, y: 1, z: 1 },
+                      uniformScale: true,
+                    }}
+                    onChange={(next) =>
+                      set((prev) => ({
+                        ...prev,
+                        camera: {
+                          ...prev.camera,
+                          transform: {
+                            ...prev.camera.transform,
+                            position: next.position,
+                          },
+                        },
+                      }))
+                    }
+                    showRotation={false}
+                    showScale={false}
+                  />
+
+                  <TRNFormField label="LookAt target">
+                    <TRNTransformSection
+                      title="Target"
+                      value={{
+                        position: scene3d.camera.transform.target,
+                        rotationDeg: { x: 0, y: 0, z: 0 },
+                        scale: { x: 1, y: 1, z: 1 },
+                        uniformScale: true,
+                      }}
+                      onChange={(next) =>
+                        set((prev) => ({
+                          ...prev,
+                          camera: {
+                            ...prev.camera,
+                            transform: {
+                              ...prev.camera.transform,
+                              target: next.position,
+                            },
+                          },
+                        }))
+                      }
+                      showRotation={false}
+                      showScale={false}
+                    />
+                  </TRNFormField>
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
@@ -970,6 +951,79 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                     }
                   />
                 </div>
+              </div>
+
+              {scene3d.controls.enableDamping ? (
+                <TRNParameterSlider valueScrubEnabled
+                  name="Damping factor"
+                  value={scene3d.controls.dampingFactor}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  unit=""
+                  valueFormatter={(v) => v.toFixed(2)}
+                  onChange={(v) =>
+                    set((prev) => ({
+                      ...prev,
+                      controls: { ...prev.controls, dampingFactor: v },
+                    }))
+                  }
+                />
+              ) : null}
+
+              <TRNParameterSlider valueScrubEnabled
+                name="Min distance"
+                value={scene3d.controls.minDistance}
+                min={0}
+                max={50}
+                step={0.05}
+                unit=""
+                valueFormatter={(v) => v.toFixed(2)}
+                onChange={(v) =>
+                  set((prev) => ({
+                    ...prev,
+                    controls: { ...prev.controls, minDistance: v },
+                  }))
+                }
+              />
+              <div className="flex items-center justify-between rounded border border-zinc-700/80 bg-transparent px-2 py-1">
+                <span className="text-xs font-medium text-zinc-200">Limit max distance</span>
+                <TRNToggleSwitch
+                  checked={scene3d.controls.maxDistance != null}
+                  ariaLabel="Toggle max distance limit"
+                  onCheckedChange={(checked) =>
+                    set((prev) => ({
+                      ...prev,
+                      controls: {
+                        ...prev.controls,
+                        maxDistance: checked ? (prev.controls.maxDistance ?? 100) : null,
+                      },
+                    }))
+                  }
+                />
+              </div>
+              {scene3d.controls.maxDistance != null ? (
+                <TRNParameterSlider valueScrubEnabled
+                  name="Max distance"
+                  value={scene3d.controls.maxDistance}
+                  min={0.5}
+                  max={500}
+                  step={0.5}
+                  unit=""
+                  valueFormatter={(v) => v.toFixed(1)}
+                  onChange={(v) =>
+                    set((prev) => ({
+                      ...prev,
+                      controls: { ...prev.controls, maxDistance: v },
+                    }))
+                  }
+                />
+              ) : null}
+
+              {advanced(
+                "orbit",
+                <>
+              <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                 <div className="flex items-center justify-between rounded border border-zinc-700/80 bg-transparent px-2 py-1">
                   <span className="text-xs font-medium text-zinc-200">Screen-space pan</span>
                   <TRNToggleSwitch
@@ -1010,24 +1064,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   />
                 </div>
               </div>
-
-              {scene3d.controls.enableDamping ? (
-                <TRNParameterSlider valueScrubEnabled
-                  name="Damping factor"
-                  value={scene3d.controls.dampingFactor}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  unit=""
-                  valueFormatter={(v) => v.toFixed(2)}
-                  onChange={(v) =>
-                    set((prev) => ({
-                      ...prev,
-                      controls: { ...prev.controls, dampingFactor: v },
-                    }))
-                  }
-                />
-              ) : null}
 
               <TRNParameterSlider valueScrubEnabled
                 name="Rotate speed"
@@ -1119,55 +1155,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   }))
                 }
               />
-
-              <TRNParameterSlider valueScrubEnabled
-                name="Min distance"
-                value={scene3d.controls.minDistance}
-                min={0}
-                max={50}
-                step={0.05}
-                unit=""
-                valueFormatter={(v) => v.toFixed(2)}
-                onChange={(v) =>
-                  set((prev) => ({
-                    ...prev,
-                    controls: { ...prev.controls, minDistance: v },
-                  }))
-                }
-              />
-              <div className="flex items-center justify-between rounded border border-zinc-700/80 bg-transparent px-2 py-1">
-                <span className="text-xs font-medium text-zinc-200">Limit max distance</span>
-                <TRNToggleSwitch
-                  checked={scene3d.controls.maxDistance != null}
-                  ariaLabel="Toggle max distance limit"
-                  onCheckedChange={(checked) =>
-                    set((prev) => ({
-                      ...prev,
-                      controls: {
-                        ...prev.controls,
-                        maxDistance: checked ? (prev.controls.maxDistance ?? 100) : null,
-                      },
-                    }))
-                  }
-                />
-              </div>
-              {scene3d.controls.maxDistance != null ? (
-                <TRNParameterSlider valueScrubEnabled
-                  name="Max distance"
-                  value={scene3d.controls.maxDistance}
-                  min={0.5}
-                  max={500}
-                  step={0.5}
-                  unit=""
-                  valueFormatter={(v) => v.toFixed(1)}
-                  onChange={(v) =>
-                    set((prev) => ({
-                      ...prev,
-                      controls: { ...prev.controls, maxDistance: v },
-                    }))
-                  }
-                />
-              ) : null}
 
               <TRNParameterSlider valueScrubEnabled
                 name="Min polar angle"
@@ -1307,7 +1294,7 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
 
               <TRNAccordion type="multiple" className="rounded border border-zinc-700/70 bg-zinc-950/40">
                 <TRNAccordionItem value="orbit-bindings" className="border-0">
-                  <TRNAccordionTrigger className="px-2 py-1 text-[11px] font-medium text-zinc-100 hover:bg-zinc-800/40">
+                  <TRNAccordionTrigger className={SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS}>
                     Mouse / touch bindings
                   </TRNAccordionTrigger>
                   <TRNAccordionContent
@@ -1417,6 +1404,8 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   </TRNAccordionContent>
                 </TRNAccordionItem>
               </TRNAccordion>
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
@@ -1456,21 +1445,6 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   }))
                 }
               />
-              <TRNFormField label="Ambient color">
-                <TRNColorRingPicker
-                  ariaLabel="Ambient color"
-                  valueHex={scene3d.lights.ambient.colorHex}
-                  onValueHexChange={(nextHex) =>
-                    set((prev) => ({
-                      ...prev,
-                      lights: {
-                        ...prev.lights,
-                        ambient: { ...prev.lights.ambient, colorHex: nextHex.trim() },
-                      },
-                    }))
-                  }
-                />
-              </TRNFormField>
 
               <TRNFormField
                 label="Lighting presets"
@@ -1494,6 +1468,25 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                     </button>
                   ))}
                 </div>
+              </TRNFormField>
+
+              {advanced(
+                "lights",
+                <>
+              <TRNFormField label="Ambient color">
+                <TRNColorRingPicker
+                  ariaLabel="Ambient color"
+                  valueHex={scene3d.lights.ambient.colorHex}
+                  onValueHexChange={(nextHex) =>
+                    set((prev) => ({
+                      ...prev,
+                      lights: {
+                        ...prev.lights,
+                        ambient: { ...prev.lights.ambient, colorHex: nextHex.trim() },
+                      },
+                    }))
+                  }
+                />
               </TRNFormField>
 
               <div className="space-y-2 border-t border-emerald-900/20 pt-2">
@@ -1753,6 +1746,8 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   </div>
                 ))}
               </div>
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
@@ -1774,35 +1769,39 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
               }
               className="border-0 bg-transparent p-0"
             >
+              <div className="flex items-center justify-between rounded border border-zinc-700/80 px-2 py-1">
+                <span className="text-xs text-zinc-300">Grid visible</span>
+                <TRNToggleSwitch
+                  checked={scene3d.helpers.grid.enabled}
+                  ariaLabel="Toggle grid"
+                  onCheckedChange={(checked) =>
+                    set((prev) => ({
+                      ...prev,
+                      helpers: {
+                        ...prev.helpers,
+                        grid: { ...prev.helpers.grid, enabled: checked },
+                      },
+                    }))
+                  }
+                />
+              </div>
+
+              {advanced(
+                "helpers",
+                <>
               <TRNAccordion
                 type="multiple"
-                defaultValue={["helpers-grid"]}
+                defaultValue={[]}
                 className="rounded border border-zinc-700/70 bg-zinc-950/40"
               >
                 <TRNAccordionItem value="helpers-grid" className="border-0 border-b border-zinc-800/70">
-                  <TRNAccordionTrigger className="px-2 py-1 text-[11px] font-medium text-zinc-100 hover:bg-zinc-800/40">
+                  <TRNAccordionTrigger className={SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS}>
                     Grid
                   </TRNAccordionTrigger>
                   <TRNAccordionContent
                     className="border-t border-zinc-800/60 bg-zinc-950/30 px-2 pb-2 pt-1.5"
                     innerClassName="space-y-2"
                   >
-                    <div className="flex items-center justify-between rounded border border-zinc-700/80 px-2 py-1">
-                      <span className="text-xs text-zinc-300">Visible</span>
-                      <TRNToggleSwitch
-                        checked={scene3d.helpers.grid.enabled}
-                        ariaLabel="Toggle grid"
-                        onCheckedChange={(checked) =>
-                          set((prev) => ({
-                            ...prev,
-                            helpers: {
-                              ...prev.helpers,
-                              grid: { ...prev.helpers.grid, enabled: checked },
-                            },
-                          }))
-                        }
-                      />
-                    </div>
                     <TRNParameterSlider valueScrubEnabled
                       name="Size"
                       value={scene3d.helpers.grid.size}
@@ -1915,7 +1914,7 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 </TRNAccordionItem>
 
                 <TRNAccordionItem value="helpers-axes" className="border-0 border-b border-zinc-800/70">
-                  <TRNAccordionTrigger className="px-2 py-1 text-[11px] font-medium text-zinc-100 hover:bg-zinc-800/40">
+                  <TRNAccordionTrigger className={SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS}>
                     World axes
                   </TRNAccordionTrigger>
                   <TRNAccordionContent
@@ -1978,7 +1977,7 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 </TRNAccordionItem>
 
                 <TRNAccordionItem value="helpers-camera" className="border-0 border-b border-zinc-800/70">
-                  <TRNAccordionTrigger className="px-2 py-1 text-[11px] font-medium text-zinc-100 hover:bg-zinc-800/40">
+                  <TRNAccordionTrigger className={SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS}>
                     Camera frustum
                   </TRNAccordionTrigger>
                   <TRNAccordionContent
@@ -2008,7 +2007,7 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                 </TRNAccordionItem>
 
                 <TRNAccordionItem value="helpers-dirlight" className="border-0">
-                  <TRNAccordionTrigger className="px-2 py-1 text-[11px] font-medium text-zinc-100 hover:bg-zinc-800/40">
+                  <TRNAccordionTrigger className={SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS}>
                     Directional light
                   </TRNAccordionTrigger>
                   <TRNAccordionContent
@@ -2085,38 +2084,23 @@ export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
                   </TRNAccordionContent>
                 </TRNAccordionItem>
               </TRNAccordion>
+                </>,
+              )}
             </TRNFormSection>
           </section>
         ) : null}
     </>
   );
 
-  if (singlePanel != null) {
-    return (
-      <div
-        className={
-          chromeless
-            ? "min-h-0 min-w-0 text-[11px] text-zinc-200"
-            : "min-h-0 min-w-0 overflow-hidden rounded-md border border-emerald-900/25 bg-zinc-950/45"
-        }
-      >
-        {panelScroll}
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-full min-h-0 min-w-0 flex-1 overflow-hidden rounded-md border border-emerald-900/25 bg-linear-to-br from-emerald-950/15 via-zinc-950/55 to-zinc-950/85 shadow-[inset_0_1px_0_0_rgba(16,185,129,0.06)]">
-      <TRNInspectorIconRail
-        ariaLabel="3D scene inspector sections"
-        items={RAIL_ENTRIES}
-        activeId={activeRailPanel}
-        onActiveChange={onRailPanelChange}
-        tone="emerald"
-      />
-      <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-zinc-950/35">
-        {panelScroll}
-      </div>
+    <div
+      className={
+        chromeless
+          ? "min-h-0 min-w-0 text-[11px] text-zinc-200"
+          : "min-h-0 min-w-0 overflow-hidden rounded-md border border-emerald-900/25 bg-zinc-950/45"
+      }
+    >
+      {panelScroll}
     </div>
   );
 }

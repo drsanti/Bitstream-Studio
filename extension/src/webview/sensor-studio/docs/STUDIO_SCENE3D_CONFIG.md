@@ -81,7 +81,7 @@ Grid, body axes, camera frustum helper, and directional helper plane — each bl
 
 ## Inspector layout (high level)
 
-The Scene3D inspector groups **Basic** (model, environment essentials, framing) vs **Advanced** (full transforms, shadow numeric fields, controls JSON-adjacent sections). Scene JSON is editable via an accordion; **`persistScene3DConfig`** should run when saving node config so legacy keys do not linger.
+Each Scene3D card shows **Basic** fields by default and an collapsible **Advanced** tier (transforms, shadow numerics, orbit bindings, directional lights, helper details). A **Scene JSON** card at the bottom edits the coerced `scene3d` blob via `persistScene3DConfig` on blur. Node tab search expands matching Advanced tiers and the JSON card when keywords hit.
 
 ## Data flow (coercion and preview)
 

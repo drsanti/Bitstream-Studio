@@ -6,6 +6,7 @@ import {
 } from "../../../../core/scene3d/scene3d-config";
 import type { StudioNode } from "../../store/flow-editor.store";
 import { Scene3dInspectorCards } from "./scene3d/Scene3dInspectorCards";
+import { Scene3dInspectorJsonSection } from "./scene3d/Scene3dInspectorJsonSection";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import {
   DEFAULT_NODE_SCENE3D_CARD_ORDER,
@@ -26,6 +27,7 @@ export type NodeInspectorScene3dSectionProps = {
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   /** When set, only cards whose id is included are rendered (settings search). */
   visibleCardIds?: readonly Scene3dInspectorPanelId[];
+  settingsSearch?: string;
 };
 
 function nodeScene3dModelCatalogHint(nodeId: string): string {
@@ -39,7 +41,7 @@ function nodeScene3dModelCatalogHint(nodeId: string): string {
 }
 
 export function NodeInspectorScene3dSection(props: NodeInspectorScene3dSectionProps) {
-  const { selectedNode, onUpdateConfigField, visibleCardIds } = props;
+  const { selectedNode, onUpdateConfigField, visibleCardIds, settingsSearch } = props;
   const catalogNodeId = selectedNode.data.nodeId;
 
   const [cardOrder, setCardOrder] = useState<Scene3dInspectorPanelId[]>(() =>
@@ -99,9 +101,6 @@ export function NodeInspectorScene3dSection(props: NodeInspectorScene3dSectionPr
 
   return (
     <div className="space-y-2">
-      <p className="px-0.5 text-[10px] leading-snug text-zinc-500">
-        Preview scene for this node — collapsible cards match the Stage Scene3D inspector layout.
-      </p>
       {cardsToRender.map((id) => (
         <div
           key={id}
@@ -144,10 +143,16 @@ export function NodeInspectorScene3dSection(props: NodeInspectorScene3dSectionPr
               scene3dRaw={selectedNode.data.defaultConfig?.scene3d}
               onChangeScene3d={onChangeScene3d}
               modelCatalogHint={id === "model" ? modelCatalogHint : undefined}
+              settingsSearch={settingsSearch}
             />
           </CanvasInspectorCard>
         </div>
       ))}
+      <Scene3dInspectorJsonSection
+        scene3dRaw={selectedNode.data.defaultConfig?.scene3d}
+        onChangeScene3d={onChangeScene3d}
+        settingsSearch={settingsSearch}
+      />
     </div>
   );
 }

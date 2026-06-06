@@ -8,6 +8,7 @@ import {
   patchStageSceneModelCatalogSelect,
 } from "../../../stage/stage-viewport-helpers";
 import { Scene3dInspectorCards } from "./scene3d/Scene3dInspectorCards";
+import { Scene3dInspectorJsonSection } from "./scene3d/Scene3dInspectorJsonSection";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import {
   DEFAULT_STAGE_SCENE3D_CARD_ORDER,
@@ -131,6 +132,10 @@ export function StageInspectorScene3dTab() {
           </CanvasInspectorCard>
         </div>
       ))}
+      <Scene3dInspectorJsonSection
+        scene3dRaw={scene3dRaw}
+        onChangeScene3d={onChangeScene3d}
+      />
     </div>
   );
 }

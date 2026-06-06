@@ -191,7 +191,7 @@ export function TRNAccordionTrigger(props: TRNAccordionTriggerProps) {
   return (
     <div
       className={twMerge(
-        "flex w-full items-center gap-1 px-3 py-2 text-left text-sm font-semibold",
+        "flex w-full items-center gap-1 px-2 py-0 text-left text-sm font-semibold",
         item.disabled ? "cursor-not-allowed opacity-50" : "",
         className,
       )}
@@ -214,7 +214,7 @@ export function TRNAccordionTrigger(props: TRNAccordionTriggerProps) {
       <button
         type="button"
         className={
-          "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-transparent " +
+          "inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-transparent " +
           "disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-400/45 "
         }
         disabled={item.disabled}
@@ -223,7 +223,7 @@ export function TRNAccordionTrigger(props: TRNAccordionTriggerProps) {
         onClick={toggle}
       >
         <ChevronDown
-          className="h-4 w-4 transition-transform duration-200 ease-out"
+          className="h-3.5 w-3.5 transition-transform duration-200 ease-out"
           style={{ transform: item.isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
         />
       </button>

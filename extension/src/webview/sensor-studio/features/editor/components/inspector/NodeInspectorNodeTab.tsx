@@ -21,6 +21,7 @@ import {
   shouldShowScene3dInspectorSettings,
   shouldShowTypedSettingsSection,
 } from "./settings/node-inspector-settings-search";
+import { SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS } from "./scene3d/scene3d-inspector-accordion-chrome";
 import {
   readSettingsJsonAccordionValue,
   SETTINGS_JSON_ACCORDION_VALUE,
@@ -241,6 +242,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
                   selectedNode={selectedNode}
                   onUpdateConfigField={onUpdateConfigField}
                   visibleCardIds={visibleScene3dCardIds}
+                  settingsSearch={settingsSearch}
                 />
               ) : null
             ) : id === "advanced" ? (
@@ -264,7 +266,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
                     }}
                   >
                     <TRNAccordionItem value="default-config-json" className="border-0">
-                      <TRNAccordionTrigger className="px-2 py-1.5 text-xs font-normal text-zinc-400 hover:bg-zinc-800/35">
+                      <TRNAccordionTrigger className={SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS}>
                         Default config (JSON)
                       </TRNAccordionTrigger>
                       <TRNAccordionContent

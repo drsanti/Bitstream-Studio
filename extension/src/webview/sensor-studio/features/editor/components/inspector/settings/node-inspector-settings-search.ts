@@ -100,6 +100,8 @@ const ROTATION_SEARCH = [
   "rotation",
   "3d",
   "scene",
+  "scene3d",
+  "scene json",
   "model",
   "grid",
   "euler",
@@ -109,6 +111,8 @@ const ROTATION_SEARCH = [
   "shadow",
   "light",
   "mesh",
+  "json",
+  "raw",
 ];
 
 const SCENE3D_CARD_SEARCH: Record<string, readonly string[]> = {
