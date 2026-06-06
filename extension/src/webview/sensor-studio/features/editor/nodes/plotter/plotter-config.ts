@@ -37,6 +37,8 @@ export type PlotterConfig = {
   timeDivisions: number;
   ampDivisions: number;
   showLegend: boolean;
+  /** Stop appending samples while frozen (trace buffer is retained). */
+  pauseAcquisition: boolean;
   channels: Record<string, PlotterChannelStyle>;
 };
 
@@ -65,6 +67,7 @@ export const DEFAULT_PLOTTER_CONFIG: PlotterConfig = {
   timeDivisions: 8,
   ampDivisions: 6,
   showLegend: true,
+  pauseAcquisition: false,
   channels: PLOTTER_INPUT_IDS.reduce(
     (acc, id) => {
       acc[id] = {
@@ -183,6 +186,7 @@ export function coercePlotterConfig(raw: unknown): PlotterConfig {
     timeDivisions: Math.round(clamp(asFinite(o.timeDivisions, d.timeDivisions), 2, 32)),
     ampDivisions: Math.round(clamp(asFinite(o.ampDivisions, d.ampDivisions), 2, 24)),
     showLegend: asBool(o.showLegend, d.showLegend),
+    pauseAcquisition: asBool(o.pauseAcquisition, d.pauseAcquisition),
     channels,
   };
 }

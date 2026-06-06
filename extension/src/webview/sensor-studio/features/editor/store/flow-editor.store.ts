@@ -1178,6 +1178,8 @@ type FlowEditorState = {
   ) => { ok: true } | { ok: false; message: string };
   /** Replace plotter `defaultConfig` in one undo step (coerced + persisted). */
   updateSelectedNodePlotterConfig: (next: PlotterConfig) => void;
+  /** Clear live trace buffers on the selected plotter node(s). */
+  clearSelectedPlotterHistory: () => void;
   tickSimulation: () => void;
   /** Domain C — keyboard event sources → wired action nodes. Returns true when consumed. */
   dispatchFlowKeyboardEvent: (event: {
@@ -6260,6 +6262,41 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }));
     flushFlowSimulationPins(get);
   },
+  clearSelectedPlotterHistory: () => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    const targetIds =
+      multiIds != null
+        ? multiIds.filter((id) => {
+            const node = st.nodes.find((n) => n.id === id);
+            return node != null && isPlotterNodeId(node.data.nodeId);
+          })
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    if (targetIds.length === 0) {
+      return;
+    }
+    const ref = st.nodes.find((node) => node.id === targetIds[0]);
+    if (ref == null || !isPlotterNodeId(ref.data.nodeId)) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(targetIds);
+    set((state) => ({
+      nodes: state.nodes.map((node) =>
+        idSet.has(node.id)
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                livePlotHistory: {},
+              },
+            }
+          : node,
+      ),
+    }));
+  },
   updateSelectedNodeConfigFromJson: (nextJson) => {
     const st = get();
     if (getHomogeneousMultiSelectionIds(st) != null) {
@@ -7927,8 +7964,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       if (!isPlotterNodeId(node.data.nodeId)) {
         continue;
       }
-      const handles = node.data.inputHandles ?? [];
       const plotterCfg = coercePlotterConfig(node.data.defaultConfig);
+      if (plotterCfg.pauseAcquisition) {
+        continue;
+      }
+      const handles = node.data.inputHandles ?? [];
       const cap = plotterCfg.historyLength;
       const prev = node.data.livePlotHistory ?? {};
       const nextCh: Record<string, number[]> = {};
