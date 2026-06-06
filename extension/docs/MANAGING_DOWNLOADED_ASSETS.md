@@ -157,6 +157,8 @@ A **full welcome page on every launch** is optional; empty states inside each fe
 
 The free pack uses the **GitHub REST API** to list the full `assets/` tree, then downloads each file from **`raw.githubusercontent.com`**. Unauthenticated API calls are limited (~60/hour per IP). When the API returns **403 rate limit**, **`syncTernionFreeAssets`** and **`getTernionFreeAssetsIndex`** automatically fall back to **public raw manifest URLs** (`freeAssetIndexFromRawManifests.ts`) — no token required for normal end-user sync.
 
+**Studio-aligned models (default):** Full-pack sync and online catalog listing **skip upstream-only model folders** not in **`free-pack-model-ids.v1.json`** (nine studio models; excludes retired **`robot-4th-project`**). Textures, feeds, HDRI, and other non-model blobs are unchanged. Selective sync (**`onlyRepoPaths`**, Free Loader row selection) is not filtered. Opt out: **`studioAlignedModels: false`** on **`syncTernionFreeAssets`** (maintainer tooling only).
+
 | Audience | `GITHUB_TOKEN` |
 | -------- | -------------- |
 | **VSIX / end users** | **Not required** — use Free Loader or wait for rate limit reset; never ship or share a maintainer PAT. |
@@ -200,6 +202,7 @@ Ship with **`IS_DEV_MODE: false`** in [`GlobalConfig.ts`](../src/GlobalConfig.ts
 - `extensionAssetPaths.ts` — globalStorage roots, reveal allowlist
 - `model-downloader-handle.ts` — Model Loader default paths and scans
 - `panels/TernionDigitalTwin.ts` — webview messages (`asset-get-default-download-paths`, `asset-sync-free-pack-start`, …)
+- `asset-sync/studioFreePackCatalog.ts` — studio nine-model allowlist for full-pack sync
 - `asset-sync/syncTernionFreeAssets.ts` — GitHub sync and `resolveDefaultBridgeFreeAssetsOutputDir`
 - `asset-sync/freeAssetIndexFromRawManifests.ts` — raw manifest listing when API is rate-limited
 - `asset-sync/diagnoseFreePackStorageReport.ts` — shared diagnosis report (CLI + VS Code command)

@@ -17,6 +17,11 @@ import {
   isGitHubApiRateLimitError,
   listFreeAssetRepoPathsViaRawManifests,
 } from "./freeAssetIndexFromRawManifests";
+import {
+  filterIndexEntriesToStudioFreePackCatalog,
+  filterRepoPathsToStudioFreePackCatalog,
+  STUDIO_FREE_PACK_MODEL_FOLDER_IDS,
+} from "./studioFreePackCatalog";
 
 export const TERNION_FREE_ASSETS_OWNER = "drsanti";
 export const TERNION_FREE_ASSETS_REPO = "ternion-3d-assets-free";
@@ -58,6 +63,11 @@ export interface SyncTernionFreeAssetsOptions {
    * If set, download only these repo paths (must each match `assets/...` and appear in the tree).
    */
   onlyRepoPaths?: string[];
+  /**
+   * When true (default), full-pack listing/sync skips upstream model folders not in the studio
+   * catalog (`free-pack-model-ids.v1.json`). Ignored when {@link onlyRepoPaths} is non-empty.
+   */
+  studioAlignedModels?: boolean;
 }
 
 /** One row in the free-pack index (GitHub tree blobs under `assets/`). */
@@ -267,7 +277,7 @@ export async function getTernionFreeAssetsIndex(options?: {
   const token = options?.githubToken ?? process.env.GITHUB_TOKEN;
   try {
     const blobs = await fetchAssetsTreeBlobs(owner, repo, ref, token);
-    return blobs.map((e) => {
+    const entries = blobs.map((e) => {
       const repoPath = e.path!;
       const relativePath = repoPath.slice("assets/".length);
       const size =
@@ -278,6 +288,7 @@ export async function getTernionFreeAssetsIndex(options?: {
         sizeBytes: size,
       };
     });
+    return applyStudioAlignedModelFilter(entries, options?.studioAlignedModels);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (!isGitHubApiRateLimitError(msg)) {
@@ -301,6 +312,39 @@ function rawUrl(
     .map((s) => encodeURIComponent(s))
     .join("/");
   return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${enc}`;
+}
+
+function applyStudioAlignedModelFilter(
+  entries: TernionFreeAssetIndexEntry[],
+  studioAlignedModels?: boolean,
+): TernionFreeAssetIndexEntry[] {
+  if (studioAlignedModels === false) {
+    return entries;
+  }
+  return filterIndexEntriesToStudioFreePackCatalog(entries).kept;
+}
+
+function applyStudioAlignedRepoPathFilter(
+  repoPaths: string[],
+  studioAlignedModels?: boolean,
+): string[] {
+  if (studioAlignedModels === false) {
+    return repoPaths;
+  }
+  return filterRepoPathsToStudioFreePackCatalog(repoPaths).kept;
+}
+
+function shouldApplyStudioAlignedModelFilter(options: {
+  onlyRepoPaths?: string[];
+  studioAlignedModels?: boolean;
+}): boolean {
+  if (options.studioAlignedModels === false) {
+    return false;
+  }
+  if (options.onlyRepoPaths && options.onlyRepoPaths.length > 0) {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -350,6 +394,14 @@ export async function syncTernionFreeAssets(
       errors: [msg],
       outputRootDir,
     };
+  }
+
+  const studioAligned = shouldApplyStudioAlignedModelFilter(options);
+  if (studioAligned) {
+    blobPaths = applyStudioAlignedRepoPathFilter(
+      blobPaths,
+      options.studioAlignedModels,
+    );
   }
 
   if (options.onlyRepoPaths && options.onlyRepoPaths.length > 0) {
@@ -436,3 +488,5 @@ export async function syncTernionFreeAssets(
 export function resolveDefaultBridgeFreeAssetsOutputDir(): string {
   return resolveStandaloneBridgeFreePackOutputDir();
 }
+
+export { STUDIO_FREE_PACK_MODEL_FOLDER_IDS } from "./studioFreePackCatalog";

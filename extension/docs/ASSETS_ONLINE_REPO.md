@@ -148,7 +148,7 @@ So **local `free/models/...`** mirrors **`assets/models/...`** on GitHub — not
 
 ### Studio catalog vs upstream `models/manifest.json`
 
-Bitstream Studio ships **nine** pack models in **`studio-asset-manifest.v1.json`** / **`free-pack-model-ids.v1.json`**. The upstream repo **`assets/models/manifest.json`** may still list extra folders (e.g. retired **`robot-4th-project`**) until maintainers clean GitHub. **Studio Asset Browser does not expose retired models.** Old flows that reference **`robot-4th-project`** migrate to the default PSoC E84 GLB via **`migrate-legacy-pack-model.ts`**. Planned: align full pack sync with the studio list and remove retired entries upstream — see **`DEVELOPMENT_TRACKER.md`** (_Free pack / assets UX cleanup_).
+Bitstream Studio ships **nine** pack models in **`studio-asset-manifest.v1.json`** / **`free-pack-model-ids.v1.json`**. The upstream repo **`assets/models/manifest.json`** may still list extra folders (e.g. retired **`robot-4th-project`**) until maintainers clean GitHub. **Studio Asset Browser does not expose retired models.** Old flows that reference **`robot-4th-project`** migrate to the default PSoC E84 GLB via **`migrate-legacy-pack-model.ts`**. **Full-pack sync** (`syncTernionFreeAssets`, Free Loader, **Sync Free Pack to Disk**) filters model blobs to the studio nine via **`studioFreePackCatalog.ts`**; upstream manifest cleanup remains optional — see **`DEVELOPMENT_TRACKER.md`** (_Free pack / assets UX cleanup_).
 
 ### Listing when GitHub API is rate-limited
 
@@ -162,7 +162,7 @@ Bitstream Studio ships **nine** pack models in **`studio-asset-manifest.v1.json`
 | ---- | ------------ | ----------------- |
 | **Bitstream Studio** | `main/assets/**` | `ONLINE_ASSETS_BASE_URI` + relative paths; optional manifest overlay |
 | **Sensor Studio Asset Browser** | `assets/studio-asset-manifest.v1.json` + pack paths | `loadAssetManifestOverlay` |
-| **Free Loader / bridge** | All blobs under `assets/` | `syncTernionFreeAssets` |
+| **Free Loader / bridge** | Studio-aligned blobs under `assets/` (nine models + textures/feeds) | `syncTernionFreeAssets` + **`studioFreePackCatalog.ts`** |
 | **Dev cubemap bundle** | `assets/textures/cubemap/...` | `npm run sync:studio-cubemap-assets` |
 | **Node Animator** (external) | `assets/feed.json` + child manifests | `npm run download:feeds` — see [ternion-3d-assets-free README](https://github.com/drsanti/ternion-3d-assets-free) |
 

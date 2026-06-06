@@ -11,6 +11,7 @@ import {
   TERNION_FREE_ASSETS_REPO,
   type TernionFreeAssetIndexEntry,
 } from "./syncTernionFreeAssets";
+import { STUDIO_FREE_PACK_MODEL_FOLDER_IDS } from "./studioFreePackCatalog";
 
 const CUBEMAP_FACE_NAMES = ["posx", "negx", "posy", "negy", "posz", "negz"] as const;
 
@@ -82,10 +83,7 @@ export async function listFreeAssetRepoPathsViaRawManifests(
     pushUnique(paths, "feeds/ternion-official.feed.json");
   }
 
-  const modelIds = await rawFetchJson<string[]>(`${base}/models/manifest.json`);
-  if (!Array.isArray(modelIds)) {
-    throw new Error("models/manifest.json must be a string array");
-  }
+  const modelIds = STUDIO_FREE_PACK_MODEL_FOLDER_IDS;
   for (const id of modelIds) {
     const folder = String(id).trim();
     if (folder.length > 0) {
