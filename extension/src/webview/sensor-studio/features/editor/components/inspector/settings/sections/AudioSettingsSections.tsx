@@ -8,9 +8,11 @@ import {
   Plug,
   Waves,
   Radio,
+  FileJson,
 } from "lucide-react";
-import { useMemo } from "react";
-import { TRNButton } from "../../../../../../../ui/TRN";
+import { useCallback, useMemo, useState } from "react";
+import { TRNButton, TRNHintText } from "../../../../../../../ui/TRN";
+import { readClipboardText, writeClipboardText } from "../../../../../../../ui/utils/clipboard";
 import { FlowNodeHeaderBadge } from "../../../../nodes/flow-node/FlowNodeHeaderBadge";
 import {
   audioOutputCardErrorLine,
@@ -68,10 +70,18 @@ import {
   clampAnalyserFftSize,
 } from "../../../../../../core/audio/clamp-analyser-fft-size";
 import {
-  applyMotorPresetToConfig,
-  MOTOR_MACHINE_PRESETS,
-  readMotorPresetId,
+  applyMachineFamilyDefaultPreset,
+  applyMachinePresetById,
+  listMachinePresetOptions,
+  MACHINE_FAMILY_OPTIONS,
+  readMachineFamilyId,
+  readMachinePresetId,
+  resolveMachinePresetHint,
 } from "../../../../../../core/audio/audio-machine-config";
+import {
+  exportAudioMachinePresetJson,
+  parseAudioMachinePresetJson,
+} from "../../../../../../core/audio/audio-machine-preset-export";
 import {
   AUDIO_SFX_PRESETS,
   applyAudioSfxPresetToConfig,
@@ -1268,8 +1278,10 @@ export function AudioMachineSettingsSection(props: NodeInspectorSettingsSectionP
   const { selectedNode, onUpdateConfigField, patchSelectedNodeConfigFields } = props;
   const cfg = selectedNode.data.defaultConfig as Record<string, unknown>;
   const edges = useFlowEditorStore((s) => s.edges);
+  const family = readMachineFamilyId(cfg.family);
   const enabled = cfg.enabled !== false;
-  const presetId = readMotorPresetId(cfg.preset);
+  const presetId = readMachinePresetId(family, cfg.preset);
+  const presetOptions = listMachinePresetOptions(family);
   const speed = readFiniteNumber(cfg.speed, 0.35);
   const load = readFiniteNumber(cfg.load, 0.25);
   const gain = readFiniteNumber(cfg.gain, 0.1);
@@ -1278,6 +1290,19 @@ export function AudioMachineSettingsSection(props: NodeInspectorSettingsSectionP
   const harmonicMix = readFiniteNumber(cfg.harmonicMix, 0.15);
   const rippleMix = readFiniteNumber(cfg.rippleMix, 0.22);
   const noiseMix = readFiniteNumber(cfg.noiseMix, 0.05);
+  const rumbleBaseHz = readFiniteNumber(cfg.rumbleBaseHz, 38);
+  const rumbleSpanHz = readFiniteNumber(cfg.rumbleSpanHz, 95);
+  const cylinders = readFiniteNumber(cfg.cylinders, 4);
+  const roughness = readFiniteNumber(cfg.roughness, 0.28);
+  const turboMix = readFiniteNumber(cfg.turboMix, 0.18);
+  const motorBaseHz = readFiniteNumber(cfg.motorBaseHz, 120);
+  const motorSpanHz = readFiniteNumber(cfg.motorSpanHz, 620);
+  const detuneCents = readFiniteNumber(cfg.detuneCents, 8);
+  const washMix = readFiniteNumber(cfg.washMix, 0.34);
+  const cycleBaseHz = readFiniteNumber(cfg.cycleBaseHz, 1.2);
+  const cycleSpanHz = readFiniteNumber(cfg.cycleSpanHz, 7);
+  const frictionMix = readFiniteNumber(cfg.frictionMix, 0.36);
+  const clankMix = readFiniteNumber(cfg.clankMix, 0.22);
 
   const isSpeedWired = useMemo(
     () => edges.some((e) => e.target === selectedNode.id && e.targetHandle === "speed"),
@@ -1291,6 +1316,35 @@ export function AudioMachineSettingsSection(props: NodeInspectorSettingsSectionP
     () => edges.some((e) => e.target === selectedNode.id && e.targetHandle === "gain"),
     [edges, selectedNode.id],
   );
+  const isTriggerWired = useMemo(
+    () => edges.some((e) => e.target === selectedNode.id && e.targetHandle === "trigger"),
+    [edges, selectedNode.id],
+  );
+  const presetHint = resolveMachinePresetHint(family, presetId);
+  const [presetIoFeedback, setPresetIoFeedback] = useState<string | null>(null);
+
+  const handleCopyPresetJson = useCallback(async () => {
+    const json = exportAudioMachinePresetJson(cfg, {
+      label: selectedNode.data.label?.trim() || undefined,
+    });
+    const ok = await writeClipboardText(json);
+    setPresetIoFeedback(ok ? "Preset JSON copied to clipboard." : "Copy failed — check browser permissions.");
+  }, [cfg, selectedNode.data.label]);
+
+  const handleImportPresetJson = useCallback(async () => {
+    const raw = await readClipboardText();
+    if (raw == null || raw.trim().length === 0) {
+      setPresetIoFeedback("Clipboard is empty — copy a preset JSON export first.");
+      return;
+    }
+    const parsed = parseAudioMachinePresetJson(raw);
+    if (!parsed.ok) {
+      setPresetIoFeedback(parsed.error);
+      return;
+    }
+    patchSelectedNodeConfigFields(parsed.fields);
+    setPresetIoFeedback("Preset imported from clipboard.");
+  }, [patchSelectedNodeConfigFields]);
 
   return (
     <div className={INSPECTOR_NODE_TAB_CARD_STACK_CLASS}>
@@ -1325,91 +1379,303 @@ export function AudioMachineSettingsSection(props: NodeInspectorSettingsSectionP
           disabled={isLoadWired}
           onCommit={(next) => onUpdateConfigField("load", Math.max(0, Math.min(1, next)))}
         />
-        {(isSpeedWired || isLoadWired || isGainWired) ? (
+        {(isSpeedWired || isLoadWired || isGainWired || isTriggerWired) ? (
           <p className="text-[11px] leading-snug text-zinc-500">
             Wired pins override inspector defaults.
+            {family === "machine" && isTriggerWired
+              ? " Trigger fires a clank on rising edge."
+              : null}
           </p>
         ) : null}
       </InspectorCollapsibleSection>
 
       <InspectorCollapsibleSection
-        title="Motor preset"
+        title="Sound family"
         icon={<Activity className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
-        iconHint="v0.2a — Motor family. Engine, drone, and machine families are planned."
+        iconHint="Motor, Engine, Drone, and Industrial families use different synthesis recipes."
         defaultExpanded
       >
         <InspectorSelectRow
-          label="Preset"
-          ariaLabel="Audio machine motor preset"
-          value={presetId}
-          options={MOTOR_MACHINE_PRESETS.map((p) => ({ value: p.id, label: p.label }))}
+          label="Family"
+          ariaLabel="Audio machine sound family"
+          value={family}
+          options={MACHINE_FAMILY_OPTIONS.map((f) => ({ value: f.id, label: f.label }))}
           onChange={(next) => {
-            const preset = MOTOR_MACHINE_PRESETS.find((p) => p.id === next);
-            if (preset == null) {
+            if (
+              next === "motor" ||
+              next === "engine" ||
+              next === "drone" ||
+              next === "machine"
+            ) {
+              patchSelectedNodeConfigFields(applyMachineFamilyDefaultPreset(next));
+            }
+          }}
+        />
+        <InspectorSelectRow
+          label="Preset"
+          ariaLabel="Audio machine preset"
+          value={presetId}
+          options={presetOptions}
+          onChange={(next) => {
+            const patch = applyMachinePresetById(family, next);
+            if (patch == null) {
               onUpdateConfigField("preset", next);
               return;
             }
-            patchSelectedNodeConfigFields(applyMotorPresetToConfig(preset));
+            patchSelectedNodeConfigFields(patch);
           }}
         />
+        {presetHint != null ? (
+          <TRNHintText className="text-[11px] leading-snug">{presetHint}</TRNHintText>
+        ) : null}
       </InspectorCollapsibleSection>
 
       <InspectorCollapsibleSection
-        title="Motor layers"
-        icon={<Waves className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
-        iconHint="Whine pitch range and layer mix for the motor recipe."
+        title="Preset I/O"
+        icon={<FileJson className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
+        iconHint="Export the current drive + layer tuning as JSON, or paste an export to apply it."
         defaultExpanded={false}
       >
-        <div className="grid grid-cols-2 gap-2">
-          <InspectorNumericScrubRow
-            label="Base (Hz)"
-            ariaLabel="Motor whine base Hz"
-            value={whineBaseHz}
-            step={1}
-            onCommit={(next) => onUpdateConfigField("whineBaseHz", Math.max(20, next))}
-          />
-          <InspectorNumericScrubRow
-            label="Span (Hz)"
-            ariaLabel="Motor whine span Hz"
-            value={whineSpanHz}
-            step={10}
-            onCommit={(next) => onUpdateConfigField("whineSpanHz", Math.max(0, next))}
-          />
+        <div className="flex flex-wrap gap-2">
+          <TRNButton
+            size="compact"
+            hint="Copy drive and layer fields as portable JSON."
+            onClick={() => void handleCopyPresetJson()}
+          >
+            Copy JSON
+          </TRNButton>
+          <TRNButton
+            size="compact"
+            hint="Apply a preset JSON export from the clipboard."
+            onClick={() => void handleImportPresetJson()}
+          >
+            Import from clipboard
+          </TRNButton>
         </div>
-        <InspectorNumericScrubRow
-          label="Gain"
-          ariaLabel="Audio machine gain"
-          value={gain}
-          step={0.01}
-          fractionDigits={2}
-          disabled={isGainWired}
-          onCommit={(next) => onUpdateConfigField("gain", Math.max(0, Math.min(1, next)))}
-        />
-        <InspectorNumericScrubRow
-          label="Harmonic mix"
-          ariaLabel="Motor harmonic mix"
-          value={harmonicMix}
-          step={0.01}
-          fractionDigits={2}
-          onCommit={(next) => onUpdateConfigField("harmonicMix", Math.max(0, Math.min(1, next)))}
-        />
-        <InspectorNumericScrubRow
-          label="Ripple mix"
-          ariaLabel="Motor ripple mix"
-          value={rippleMix}
-          step={0.01}
-          fractionDigits={2}
-          onCommit={(next) => onUpdateConfigField("rippleMix", Math.max(0, Math.min(1, next)))}
-        />
-        <InspectorNumericScrubRow
-          label="Noise mix"
-          ariaLabel="Motor noise mix"
-          value={noiseMix}
-          step={0.01}
-          fractionDigits={2}
-          onCommit={(next) => onUpdateConfigField("noiseMix", Math.max(0, Math.min(1, next)))}
-        />
+        {presetIoFeedback != null ? (
+          <p className="text-[11px] leading-snug text-zinc-500">{presetIoFeedback}</p>
+        ) : null}
       </InspectorCollapsibleSection>
+
+      {family === "motor" ? (
+        <InspectorCollapsibleSection
+          title="Motor layers"
+          icon={<Waves className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
+          iconHint="Whine pitch range and layer mix for the motor recipe."
+          defaultExpanded={false}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <InspectorNumericScrubRow
+              label="Base (Hz)"
+              ariaLabel="Motor whine base Hz"
+              value={whineBaseHz}
+              step={1}
+              onCommit={(next) => onUpdateConfigField("whineBaseHz", Math.max(20, next))}
+            />
+            <InspectorNumericScrubRow
+              label="Span (Hz)"
+              ariaLabel="Motor whine span Hz"
+              value={whineSpanHz}
+              step={10}
+              onCommit={(next) => onUpdateConfigField("whineSpanHz", Math.max(0, next))}
+            />
+          </div>
+          <InspectorNumericScrubRow
+            label="Gain"
+            ariaLabel="Audio machine gain"
+            value={gain}
+            step={0.01}
+            fractionDigits={2}
+            disabled={isGainWired}
+            onCommit={(next) => onUpdateConfigField("gain", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Harmonic mix"
+            ariaLabel="Motor harmonic mix"
+            value={harmonicMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("harmonicMix", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Ripple mix"
+            ariaLabel="Motor ripple mix"
+            value={rippleMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("rippleMix", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Noise mix"
+            ariaLabel="Motor noise mix"
+            value={noiseMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("noiseMix", Math.max(0, Math.min(1, next)))}
+          />
+        </InspectorCollapsibleSection>
+      ) : null}
+
+      {family === "engine" ? (
+        <InspectorCollapsibleSection
+          title="Engine layers"
+          icon={<Waves className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
+          iconHint="Rumble, firing pulses, turbo whistle, and exhaust roughness."
+          defaultExpanded={false}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <InspectorNumericScrubRow
+              label="Rumble base (Hz)"
+              ariaLabel="Engine rumble base Hz"
+              value={rumbleBaseHz}
+              step={1}
+              onCommit={(next) => onUpdateConfigField("rumbleBaseHz", Math.max(18, next))}
+            />
+            <InspectorNumericScrubRow
+              label="Rumble span (Hz)"
+              ariaLabel="Engine rumble span Hz"
+              value={rumbleSpanHz}
+              step={1}
+              onCommit={(next) => onUpdateConfigField("rumbleSpanHz", Math.max(0, next))}
+            />
+          </div>
+          <InspectorNumericScrubRow
+            label="Cylinders"
+            ariaLabel="Engine cylinder count"
+            value={cylinders}
+            step={1}
+            onCommit={(next) => onUpdateConfigField("cylinders", Math.max(1, Math.round(next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Gain"
+            ariaLabel="Audio machine gain"
+            value={gain}
+            step={0.01}
+            fractionDigits={2}
+            disabled={isGainWired}
+            onCommit={(next) => onUpdateConfigField("gain", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Roughness"
+            ariaLabel="Engine exhaust roughness"
+            value={roughness}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("roughness", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Turbo mix"
+            ariaLabel="Engine turbo mix"
+            value={turboMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("turboMix", Math.max(0, Math.min(1, next)))}
+          />
+        </InspectorCollapsibleSection>
+      ) : null}
+
+      {family === "machine" ? (
+        <InspectorCollapsibleSection
+          title="Industrial layers"
+          icon={<Waves className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
+          iconHint="Cycle rhythm, friction noise, and clank strength on Trigger."
+          defaultExpanded={false}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <InspectorNumericScrubRow
+              label="Cycle base (Hz)"
+              ariaLabel="Industrial cycle base Hz"
+              value={cycleBaseHz}
+              step={0.1}
+              fractionDigits={1}
+              onCommit={(next) => onUpdateConfigField("cycleBaseHz", Math.max(0.2, next))}
+            />
+            <InspectorNumericScrubRow
+              label="Cycle span (Hz)"
+              ariaLabel="Industrial cycle span Hz"
+              value={cycleSpanHz}
+              step={0.1}
+              fractionDigits={1}
+              onCommit={(next) => onUpdateConfigField("cycleSpanHz", Math.max(0, next))}
+            />
+          </div>
+          <InspectorNumericScrubRow
+            label="Gain"
+            ariaLabel="Audio machine gain"
+            value={gain}
+            step={0.01}
+            fractionDigits={2}
+            disabled={isGainWired}
+            onCommit={(next) => onUpdateConfigField("gain", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Friction mix"
+            ariaLabel="Industrial friction mix"
+            value={frictionMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("frictionMix", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Clank mix"
+            ariaLabel="Industrial clank mix"
+            value={clankMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("clankMix", Math.max(0, Math.min(1, next)))}
+          />
+        </InspectorCollapsibleSection>
+      ) : null}
+
+      {family === "drone" ? (
+        <InspectorCollapsibleSection
+          title="Drone layers"
+          icon={<Waves className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
+          iconHint="Multi-motor whine spread and blade wash noise."
+          defaultExpanded={false}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <InspectorNumericScrubRow
+              label="Motor base (Hz)"
+              ariaLabel="Drone motor base Hz"
+              value={motorBaseHz}
+              step={1}
+              onCommit={(next) => onUpdateConfigField("motorBaseHz", Math.max(40, next))}
+            />
+            <InspectorNumericScrubRow
+              label="Motor span (Hz)"
+              ariaLabel="Drone motor span Hz"
+              value={motorSpanHz}
+              step={10}
+              onCommit={(next) => onUpdateConfigField("motorSpanHz", Math.max(0, next))}
+            />
+          </div>
+          <InspectorNumericScrubRow
+            label="Detune (cents)"
+            ariaLabel="Drone motor detune cents"
+            value={detuneCents}
+            step={1}
+            onCommit={(next) => onUpdateConfigField("detuneCents", Math.max(0, next))}
+          />
+          <InspectorNumericScrubRow
+            label="Gain"
+            ariaLabel="Audio machine gain"
+            value={gain}
+            step={0.01}
+            fractionDigits={2}
+            disabled={isGainWired}
+            onCommit={(next) => onUpdateConfigField("gain", Math.max(0, Math.min(1, next)))}
+          />
+          <InspectorNumericScrubRow
+            label="Wash mix"
+            ariaLabel="Drone blade wash mix"
+            value={washMix}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => onUpdateConfigField("washMix", Math.max(0, Math.min(1, next)))}
+          />
+        </InspectorCollapsibleSection>
+      ) : null}
     </div>
   );
 }

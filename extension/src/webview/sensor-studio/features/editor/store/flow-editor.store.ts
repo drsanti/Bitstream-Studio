@@ -132,10 +132,21 @@ import {
   applyAudioSfxPresetToConfig,
   resolveAudioSfxPreset,
 } from "../../../core/audio/audio-sfx-config";
-import { resolveMotorPreset } from "../../../core/audio/audio-machine-config";
+import {
+  readMachineFamilyId,
+  resolveDronePreset,
+  resolveEnginePreset,
+  resolveIndustrialPreset,
+  resolveMotorPreset,
+} from "../../../core/audio/audio-machine-config";
 import {
   clampMachineLoad,
   clampMachineSpeed,
+  resolveDroneDetuneHz,
+  resolveDroneMotorHz,
+  resolveEngineFireHz,
+  resolveEngineRumbleHz,
+  resolveIndustrialCycleHz,
   resolveMotorWhineHz,
 } from "../../../core/audio/audio-machine-speed";
 import { clampAnalyserFftSize } from "../../../core/audio/clamp-analyser-fft-size";
@@ -146,6 +157,12 @@ import {
   resolveAudioMonitorSourceNodeId,
 } from "../../../core/audio/resolve-audio-monitor-source";
 import { studioAudioRuntime } from "../../../core/audio/studio-audio-runtime";
+import { studioCameraRuntime } from "../../../core/camera/studio-camera-runtime";
+import {
+  isFlowWireVideoBusV1,
+  makeFlowWireVideoBusV1,
+  makeFlowWireVideoTextureV1,
+} from "../../../core/camera/flow-wire-video";
 import type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
 import {
   coerceFlowWireFogV1,
@@ -747,6 +764,10 @@ export type StudioDemoTemplateId =
   | "audio-lab"
   | "audio-file-playback"
   | "audio-oscillator-tone"
+  | "audio-machine-rpm"
+  | "audio-machine-map-range"
+  | "audio-machine-fault-lab"
+  | "camera-video-texture"
   | "stage-scene-output";
 
 export type FlowSnapshot = {
@@ -836,6 +857,7 @@ let layoutUndoPrimed = false;
 let layoutUndoIdleTimer: ReturnType<typeof setTimeout> | undefined;
 const oscillatorSweepOnceAnchorMsByNodeId = new Map<string, number>();
 const sfxTriggerWasHighByNodeId = new Map<string, boolean>();
+const machineTriggerWasHighByNodeId = new Map<string, boolean>();
 
 function nodeChangesAreLayoutOnly(
   changes: Parameters<typeof applyNodeChanges<StudioNode>>[0],
@@ -2266,6 +2288,10 @@ function flowValueAsCamera(v: unknown): FlowWireCameraV1 | null {
     return null;
   }
   return coerceFlowWireCameraV1(v);
+}
+
+function flowValueAsVideoBus(v: unknown): ReturnType<typeof makeFlowWireVideoBusV1> | null {
+  return isFlowWireVideoBusV1(v) ? v : null;
 }
 
 function flowValueAsAnimation(v: unknown): FlowWireAnimationV1 | null {
@@ -5403,6 +5429,450 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
 
+    if (templateId === "audio-machine-rpm") {
+      const rampEntry = catalog.find((entry) => entry.id === "ramp-sim");
+      const machineEntry = catalog.find((entry) => entry.id === "audio-machine");
+      const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
+      const outEntry = catalog.find((entry) => entry.id === "audio-output");
+      if (rampEntry == null || machineEntry == null || scopeEntry == null || outEntry == null) {
+        return;
+      }
+
+      const rampNode = makeNode(rampEntry, "demo-rpm-ramp", 72, 200);
+      rampNode.data.label = "RPM ramp";
+      rampNode.data.defaultConfig = {
+        ...rampNode.data.defaultConfig,
+        rate: 0.12,
+        min: 0,
+        max: 1,
+        wrap: true,
+      };
+
+      const machineNode = makeNode(machineEntry, "demo-rpm-machine", 320, 200);
+      machineNode.data.label = "Audio Machine (EV motor)";
+      machineNode.data.defaultConfig = {
+        ...machineNode.data.defaultConfig,
+        family: "motor",
+        preset: "ev-motor",
+        enabled: true,
+        speed: 0,
+        load: 0.35,
+        gain: 0.11,
+      };
+
+      const scopeNode = makeNode(scopeEntry, "demo-rpm-scope", 600, 80);
+      scopeNode.data.label = "Audio Scope";
+      scopeNode.data.defaultConfig = {
+        ...scopeNode.data.defaultConfig,
+        enabled: true,
+        mode: "spectrum",
+      };
+
+      const outNode = makeNode(outEntry, "demo-rpm-out", 600, 250);
+      outNode.data.label = "Audio Output";
+      outNode.data.defaultConfig = {
+        ...outNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        gain: 0.18,
+        maxGain: 0.25,
+        limiterEnabled: true,
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-rpm-e1",
+          source: rampNode.id,
+          target: machineNode.id,
+          sourceHandle: "out",
+          targetHandle: "speed",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-rpm-e2",
+          source: machineNode.id,
+          target: scopeNode.id,
+          sourceHandle: "audio",
+          targetHandle: "audio",
+          animated: true,
+          label: getSourcePortType(machineNode, "audio", {}) ?? "audioBus",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-rpm-e3",
+          source: machineNode.id,
+          target: outNode.id,
+          sourceHandle: "audio",
+          targetHandle: "audio",
+          animated: true,
+          label: getSourcePortType(machineNode, "audio", {}) ?? "audioBus",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [rampNode, machineNode, scopeNode, outNode],
+            [machineNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([machineNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      return;
+    }
+
+    if (templateId === "audio-machine-map-range") {
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const mapEntry = catalog.find((entry) => entry.id === "map-range");
+      const machineEntry = catalog.find((entry) => entry.id === "audio-machine");
+      const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
+      const outEntry = catalog.find((entry) => entry.id === "audio-output");
+      if (
+        sineEntry == null ||
+        mapEntry == null ||
+        machineEntry == null ||
+        scopeEntry == null ||
+        outEntry == null
+      ) {
+        return;
+      }
+
+      const sineNode = makeNode(sineEntry, "demo-map-sine", 72, 200);
+      sineNode.data.label = "Speed proxy (sine)";
+      sineNode.data.defaultConfig = {
+        ...sineNode.data.defaultConfig,
+        frequency: 0.07,
+        amplitude: 1,
+        offset: 0,
+        phase: 0,
+      };
+
+      const mapNode = makeNode(mapEntry, "demo-map-range", 280, 200);
+      mapNode.data.label = "Map to 0..1";
+      mapNode.data.defaultConfig = {
+        ...mapNode.data.defaultConfig,
+        inMin: -1,
+        inMax: 1,
+        outMin: 0,
+        outMax: 1,
+        clamp: true,
+      };
+
+      const machineNode = makeNode(machineEntry, "demo-map-machine", 500, 200);
+      machineNode.data.label = "Audio Machine (conveyor)";
+      machineNode.data.defaultConfig = {
+        ...machineNode.data.defaultConfig,
+        family: "machine",
+        preset: "conveyor",
+        enabled: true,
+        speed: 0.35,
+        load: 0.4,
+        gain: 0.1,
+      };
+
+      const scopeNode = makeNode(scopeEntry, "demo-map-scope", 760, 80);
+      scopeNode.data.label = "Audio Scope";
+      scopeNode.data.defaultConfig = {
+        ...scopeNode.data.defaultConfig,
+        enabled: true,
+        mode: "spectrum",
+      };
+
+      const outNode = makeNode(outEntry, "demo-map-out", 760, 250);
+      outNode.data.label = "Audio Output";
+      outNode.data.defaultConfig = {
+        ...outNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        gain: 0.18,
+        maxGain: 0.25,
+        limiterEnabled: true,
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-map-e1",
+          source: sineNode.id,
+          target: mapNode.id,
+          sourceHandle: "out",
+          targetHandle: "value",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-map-e2",
+          source: mapNode.id,
+          target: machineNode.id,
+          sourceHandle: "out",
+          targetHandle: "speed",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-map-e3",
+          source: machineNode.id,
+          target: scopeNode.id,
+          sourceHandle: "audio",
+          targetHandle: "audio",
+          animated: true,
+          label: getSourcePortType(machineNode, "audio", {}) ?? "audioBus",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-map-e4",
+          source: machineNode.id,
+          target: outNode.id,
+          sourceHandle: "audio",
+          targetHandle: "audio",
+          animated: true,
+          label: getSourcePortType(machineNode, "audio", {}) ?? "audioBus",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [sineNode, mapNode, machineNode, scopeNode, outNode],
+            [machineNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([machineNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      return;
+    }
+
+    if (templateId === "audio-machine-fault-lab") {
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const mapEntry = catalog.find((entry) => entry.id === "map-range");
+      const thresholdEntry = catalog.find((entry) => entry.id === "threshold");
+      const machineEntry = catalog.find((entry) => entry.id === "audio-machine");
+      const sfxEntry = catalog.find((entry) => entry.id === "audio-sfx");
+      const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
+      const outEntry = catalog.find((entry) => entry.id === "audio-output");
+      if (
+        sineEntry == null ||
+        mapEntry == null ||
+        thresholdEntry == null ||
+        machineEntry == null ||
+        sfxEntry == null ||
+        scopeEntry == null ||
+        outEntry == null
+      ) {
+        return;
+      }
+
+      const sineNode = makeNode(sineEntry, "demo-fault-sine", 40, 220);
+      sineNode.data.label = "Speed proxy";
+      sineNode.data.defaultConfig = {
+        ...sineNode.data.defaultConfig,
+        frequency: 0.05,
+        amplitude: 1,
+        offset: 0,
+      };
+
+      const mapNode = makeNode(mapEntry, "demo-fault-map", 240, 220);
+      mapNode.data.label = "Map to 0..1";
+      mapNode.data.defaultConfig = {
+        ...mapNode.data.defaultConfig,
+        inMin: -1,
+        inMax: 1,
+        outMin: 0,
+        outMax: 1,
+        clamp: true,
+      };
+
+      const thresholdNode = makeNode(thresholdEntry, "demo-fault-threshold", 440, 120);
+      thresholdNode.data.label = "High speed fault";
+      thresholdNode.data.defaultConfig = {
+        ...thresholdNode.data.defaultConfig,
+        operator: ">",
+        value: 0.88,
+      };
+
+      const machineNode = makeNode(machineEntry, "demo-fault-machine", 440, 260);
+      machineNode.data.label = "Press (clank)";
+      machineNode.data.defaultConfig = {
+        ...machineNode.data.defaultConfig,
+        family: "machine",
+        preset: "press",
+        enabled: true,
+        load: 0.45,
+        gain: 0.12,
+      };
+
+      const sfxNode = makeNode(sfxEntry, "demo-fault-sfx", 440, 400);
+      sfxNode.data.label = "Fault beep";
+      sfxNode.data.defaultConfig = {
+        ...sfxNode.data.defaultConfig,
+        preset: "beep",
+        enabled: true,
+        gain: 0.15,
+      };
+
+      const scopeNode = makeNode(scopeEntry, "demo-fault-scope", 700, 80);
+      scopeNode.data.defaultConfig = {
+        ...scopeNode.data.defaultConfig,
+        enabled: true,
+        mode: "waveform",
+      };
+
+      const outNode = makeNode(outEntry, "demo-fault-out", 700, 260);
+      outNode.data.defaultConfig = {
+        ...outNode.data.defaultConfig,
+        enabled: false,
+        gate: false,
+        gain: 0.18,
+        maxGain: 0.25,
+        limiterEnabled: true,
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-fault-e1",
+          source: sineNode.id,
+          target: mapNode.id,
+          sourceHandle: "out",
+          targetHandle: "value",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-fault-e2",
+          source: mapNode.id,
+          target: machineNode.id,
+          sourceHandle: "out",
+          targetHandle: "speed",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-fault-e3",
+          source: mapNode.id,
+          target: thresholdNode.id,
+          sourceHandle: "out",
+          targetHandle: "in",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-fault-e4",
+          source: thresholdNode.id,
+          target: machineNode.id,
+          sourceHandle: "out",
+          targetHandle: "trigger",
+          animated: true,
+          label: "boolean",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-fault-e5",
+          source: thresholdNode.id,
+          target: sfxNode.id,
+          sourceHandle: "out",
+          targetHandle: "trigger",
+          animated: true,
+          label: "boolean",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-fault-e6",
+          source: machineNode.id,
+          target: scopeNode.id,
+          sourceHandle: "audio",
+          targetHandle: "audio",
+          animated: true,
+          label: getSourcePortType(machineNode, "audio", {}) ?? "audioBus",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-fault-e7",
+          source: machineNode.id,
+          target: outNode.id,
+          sourceHandle: "audio",
+          targetHandle: "audio",
+          animated: true,
+          label: getSourcePortType(machineNode, "audio", {}) ?? "audioBus",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [sineNode, mapNode, thresholdNode, machineNode, sfxNode, scopeNode, outNode],
+            [machineNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([machineNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      return;
+    }
+
+    if (templateId === "camera-video-texture") {
+      const cameraEntry = catalog.find((entry) => entry.id === "camera-input");
+      const textureEntry = catalog.find((entry) => entry.id === "video-texture");
+      if (cameraEntry == null || textureEntry == null) {
+        return;
+      }
+
+      const cameraNode = makeNode(cameraEntry, "demo-cam-in", 80, 200);
+      cameraNode.data.label = "Webcam";
+      cameraNode.data.defaultConfig = {
+        ...cameraNode.data.defaultConfig,
+        enabled: true,
+        width: 1280,
+        height: 720,
+        targetFps: 30,
+        facingMode: "user",
+        mirrorPreview: true,
+      };
+
+      const textureNode = makeNode(textureEntry, "demo-cam-tex", 380, 200);
+      textureNode.data.label = "Video Texture";
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-cam-e1",
+          source: cameraNode.id,
+          target: textureNode.id,
+          sourceHandle: "video",
+          targetHandle: "in",
+          animated: true,
+          label: getSourcePortType(cameraNode, "video", {}) ?? "videoBus",
+          style: { strokeWidth: 2 },
+        },
+      ];
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection([cameraNode, textureNode], [cameraNode.id]),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([cameraNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      return;
+    }
+
     if (templateId === "rotation-glb-anim") {
       const eulerTapEntry = catalog.find(
         (entry) => entry.id === "bmi270-tap-euler",
@@ -6753,6 +7223,73 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (node.data.nodeId === "camera-input") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const enabledIncoming = readIncoming(node.id, "enabled");
+          const enabled =
+            typeof enabledIncoming === "boolean" ? enabledIncoming : cfg.enabled === true;
+          const deviceId =
+            typeof cfg.deviceId === "string" ? cfg.deviceId : "default";
+          const facingMode = cfg.facingMode === "environment" ? "environment" : "user";
+          const widthRaw = typeof cfg.width === "number" ? cfg.width : 1280;
+          const heightRaw = typeof cfg.height === "number" ? cfg.height : 720;
+          const targetFpsRaw = typeof cfg.targetFps === "number" ? cfg.targetFps : 30;
+
+          studioCameraRuntime.enableCamera(node.id, enabled);
+          if (enabled) {
+            void studioCameraRuntime.ensureCameraActive(node.id, {
+              deviceId,
+              facingMode,
+              width: widthRaw,
+              height: heightRaw,
+              targetFps: targetFpsRaw,
+              mirrorPreview: cfg.mirrorPreview !== false,
+            });
+          }
+
+          const ui = studioCameraRuntime.getCameraUiState(node.id);
+          const active = ui.status === "active";
+          if (active) {
+            pinValues.set(
+              studioFlowPinKey(node.id, "video"),
+              makeFlowWireVideoBusV1(node.id),
+            );
+          }
+          const dims = studioCameraRuntime.getCameraDimensions(node.id);
+          const fps = active ? studioCameraRuntime.tickCameraFps(node.id, nowMs) : 0;
+          pinValues.set(studioFlowPinKey(node.id, "active"), active);
+          pinValues.set(studioFlowPinKey(node.id, "fps"), fps);
+          pinValues.set(studioFlowPinKey(node.id, "width"), dims.width);
+          pinValues.set(studioFlowPinKey(node.id, "height"), dims.height);
+          continue;
+        }
+
+        if (node.data.nodeId === "video-texture") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const flipY = cfg.flipY === true;
+          const incoming = readIncoming(node.id, "in");
+          const bus = flowValueAsVideoBus(incoming);
+          if (bus == null) {
+            studioCameraRuntime.releaseVideoTexture(node.id);
+            pinValues.set(studioFlowPinKey(node.id, "ready"), false);
+            continue;
+          }
+
+          studioCameraRuntime.ensureVideoTexture(node.id, bus.sourceNodeId, { flipY });
+          const ready = studioCameraRuntime.isVideoTextureReady(node.id);
+          if (ready) {
+            pinValues.set(
+              studioFlowPinKey(node.id, "out"),
+              makeFlowWireVideoTextureV1({
+                sourceNodeId: node.id,
+                cameraNodeId: bus.sourceNodeId,
+              }),
+            );
+          }
+          pinValues.set(studioFlowPinKey(node.id, "ready"), ready);
+          continue;
+        }
+
         if (node.data.nodeId === "audio-oscillator") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
           const waveform =
@@ -6838,41 +7375,185 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "audio-machine") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
           const enabled = cfg.enabled !== false;
-          const preset = resolveMotorPreset(cfg.preset);
+          const family = readMachineFamilyId(cfg.family);
           const speed = clampMachineSpeed(
             readSimInput(readIncoming(node.id, "speed"), cfg.speed, 0.35),
           );
           const load = clampMachineLoad(
             readSimInput(readIncoming(node.id, "load"), cfg.load, 0.25),
           );
-          const gainRaw = readSimInput(readIncoming(node.id, "gain"), cfg.gain, preset.gain);
-          const gain =
-            typeof gainRaw === "number" && Number.isFinite(gainRaw)
-              ? Math.max(0, Math.min(1, gainRaw))
-              : preset.gain;
-          const whineBaseHz =
-            typeof cfg.whineBaseHz === "number" ? cfg.whineBaseHz : preset.whineBaseHz;
-          const whineSpanHz =
-            typeof cfg.whineSpanHz === "number" ? cfg.whineSpanHz : preset.whineSpanHz;
-          const harmonicMix =
-            typeof cfg.harmonicMix === "number" ? cfg.harmonicMix : preset.harmonicMix;
-          const rippleMix =
-            typeof cfg.rippleMix === "number" ? cfg.rippleMix : preset.rippleMix;
-          const noiseMix =
-            typeof cfg.noiseMix === "number" ? cfg.noiseMix : preset.noiseMix;
-          const whineHz = resolveMotorWhineHz({ speed, whineBaseHz, whineSpanHz });
-          const active = enabled && speed > 0.001 && gain > 0.001;
 
-          studioAudioRuntime.setMachineSound(node.id, {
-            enabled: active,
-            speed,
-            load,
-            gain,
-            whineHz,
-            harmonicMix,
-            rippleMix,
-            noiseMix,
-          });
+          let gain = 0.1;
+          let machineArgs: Parameters<typeof studioAudioRuntime.setMachineSound>[1];
+
+          if (family === "engine") {
+            const preset = resolveEnginePreset(cfg.preset);
+            const gainRaw = readSimInput(readIncoming(node.id, "gain"), cfg.gain, preset.gain);
+            gain =
+              typeof gainRaw === "number" && Number.isFinite(gainRaw)
+                ? Math.max(0, Math.min(1, gainRaw))
+                : preset.gain;
+            const rumbleBaseHz =
+              typeof cfg.rumbleBaseHz === "number" ? cfg.rumbleBaseHz : preset.rumbleBaseHz;
+            const rumbleSpanHz =
+              typeof cfg.rumbleSpanHz === "number" ? cfg.rumbleSpanHz : preset.rumbleSpanHz;
+            const cylinders =
+              typeof cfg.cylinders === "number" ? cfg.cylinders : preset.cylinders;
+            const roughness =
+              typeof cfg.roughness === "number" ? cfg.roughness : preset.roughness;
+            const turboMix =
+              typeof cfg.turboMix === "number" ? cfg.turboMix : preset.turboMix;
+            const rumbleHz = resolveEngineRumbleHz({ speed, rumbleBaseHz, rumbleSpanHz });
+            const fireHz = resolveEngineFireHz({ speed, cylinders });
+            machineArgs = {
+              family: "engine",
+              enabled: false,
+              speed,
+              load,
+              gain,
+              whineHz: 0,
+              harmonicMix: 0,
+              rippleMix: 0,
+              noiseMix: 0,
+              rumbleHz,
+              fireHz,
+              turboMix,
+              roughness,
+              motorHz: 0,
+              motorDetuneHz: 0,
+              washMix: 0,
+              cycleHz: 0,
+              frictionMix: 0,
+              clankMix: 0,
+            };
+          } else if (family === "drone") {
+            const preset = resolveDronePreset(cfg.preset);
+            const gainRaw = readSimInput(readIncoming(node.id, "gain"), cfg.gain, preset.gain);
+            gain =
+              typeof gainRaw === "number" && Number.isFinite(gainRaw)
+                ? Math.max(0, Math.min(1, gainRaw))
+                : preset.gain;
+            const motorBaseHz =
+              typeof cfg.motorBaseHz === "number" ? cfg.motorBaseHz : preset.motorBaseHz;
+            const motorSpanHz =
+              typeof cfg.motorSpanHz === "number" ? cfg.motorSpanHz : preset.motorSpanHz;
+            const detuneCents =
+              typeof cfg.detuneCents === "number" ? cfg.detuneCents : preset.detuneCents;
+            const washMix =
+              typeof cfg.washMix === "number" ? cfg.washMix : preset.washMix;
+            const motorHz = resolveDroneMotorHz({ speed, motorBaseHz, motorSpanHz });
+            const motorDetuneHz = resolveDroneDetuneHz(motorHz, detuneCents);
+            machineArgs = {
+              family: "drone",
+              enabled: false,
+              speed,
+              load,
+              gain,
+              whineHz: 0,
+              harmonicMix: 0,
+              rippleMix: 0,
+              noiseMix: 0,
+              rumbleHz: 0,
+              fireHz: 0,
+              turboMix: 0,
+              roughness: 0,
+              motorHz,
+              motorDetuneHz,
+              washMix,
+              cycleHz: 0,
+              frictionMix: 0,
+              clankMix: 0,
+            };
+          } else if (family === "machine") {
+            const preset = resolveIndustrialPreset(cfg.preset);
+            const gainRaw = readSimInput(readIncoming(node.id, "gain"), cfg.gain, preset.gain);
+            gain =
+              typeof gainRaw === "number" && Number.isFinite(gainRaw)
+                ? Math.max(0, Math.min(1, gainRaw))
+                : preset.gain;
+            const cycleBaseHz =
+              typeof cfg.cycleBaseHz === "number" ? cfg.cycleBaseHz : preset.cycleBaseHz;
+            const cycleSpanHz =
+              typeof cfg.cycleSpanHz === "number" ? cfg.cycleSpanHz : preset.cycleSpanHz;
+            const frictionMix =
+              typeof cfg.frictionMix === "number" ? cfg.frictionMix : preset.frictionMix;
+            const clankMix =
+              typeof cfg.clankMix === "number" ? cfg.clankMix : preset.clankMix;
+            const cycleHz = resolveIndustrialCycleHz({ speed, cycleBaseHz, cycleSpanHz });
+
+            const triggerIncoming = readIncoming(node.id, "trigger");
+            const triggerHigh = triggerIncoming === true;
+            const wasHigh = machineTriggerWasHighByNodeId.get(node.id) ?? false;
+            if (triggerHigh && !wasHigh && enabled) {
+              void studioAudioRuntime.triggerMachineClank(node.id, { gain, clankMix });
+            }
+            machineTriggerWasHighByNodeId.set(node.id, triggerHigh);
+
+            machineArgs = {
+              family: "machine",
+              enabled: false,
+              speed,
+              load,
+              gain,
+              whineHz: 0,
+              harmonicMix: 0,
+              rippleMix: 0,
+              noiseMix: 0,
+              rumbleHz: 0,
+              fireHz: 0,
+              turboMix: 0,
+              roughness: 0,
+              motorHz: 0,
+              motorDetuneHz: 0,
+              washMix: 0,
+              cycleHz,
+              frictionMix,
+              clankMix,
+            };
+          } else {
+            const preset = resolveMotorPreset(cfg.preset);
+            const gainRaw = readSimInput(readIncoming(node.id, "gain"), cfg.gain, preset.gain);
+            gain =
+              typeof gainRaw === "number" && Number.isFinite(gainRaw)
+                ? Math.max(0, Math.min(1, gainRaw))
+                : preset.gain;
+            const whineBaseHz =
+              typeof cfg.whineBaseHz === "number" ? cfg.whineBaseHz : preset.whineBaseHz;
+            const whineSpanHz =
+              typeof cfg.whineSpanHz === "number" ? cfg.whineSpanHz : preset.whineSpanHz;
+            const harmonicMix =
+              typeof cfg.harmonicMix === "number" ? cfg.harmonicMix : preset.harmonicMix;
+            const rippleMix =
+              typeof cfg.rippleMix === "number" ? cfg.rippleMix : preset.rippleMix;
+            const noiseMix =
+              typeof cfg.noiseMix === "number" ? cfg.noiseMix : preset.noiseMix;
+            const whineHz = resolveMotorWhineHz({ speed, whineBaseHz, whineSpanHz });
+            machineArgs = {
+              family: "motor",
+              enabled: false,
+              speed,
+              load,
+              gain,
+              whineHz,
+              harmonicMix,
+              rippleMix,
+              noiseMix,
+              rumbleHz: 0,
+              fireHz: 0,
+              turboMix: 0,
+              roughness: 0,
+              motorHz: 0,
+              motorDetuneHz: 0,
+              washMix: 0,
+              cycleHz: 0,
+              frictionMix: 0,
+              clankMix: 0,
+            };
+          }
+
+          const active = enabled && speed > 0.001 && gain > 0.001;
+          machineArgs.enabled = active;
+          studioAudioRuntime.setMachineSound(node.id, machineArgs);
 
           pinValues.set(studioFlowPinKey(node.id, "active"), active);
           pinValues.set(studioFlowPinKey(node.id, "level"), active ? gain * speed : 0);

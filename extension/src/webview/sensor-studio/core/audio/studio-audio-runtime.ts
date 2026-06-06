@@ -88,7 +88,10 @@ export type SfxTriggerArgs = {
   releaseMs: number;
 };
 
+export type MachineFamily = "motor" | "engine" | "drone" | "machine";
+
 export type MachineSoundArgs = {
+  family: MachineFamily;
   enabled: boolean;
   speed: number;
   load: number;
@@ -97,9 +100,20 @@ export type MachineSoundArgs = {
   harmonicMix: number;
   rippleMix: number;
   noiseMix: number;
+  rumbleHz: number;
+  fireHz: number;
+  turboMix: number;
+  roughness: number;
+  motorHz: number;
+  motorDetuneHz: number;
+  washMix: number;
+  cycleHz: number;
+  frictionMix: number;
+  clankMix: number;
 };
 
 type MachineState = {
+  family: MachineFamily;
   enabled: boolean;
   speed: number;
   load: number;
@@ -108,6 +122,16 @@ type MachineState = {
   harmonicMix: number;
   rippleMix: number;
   noiseMix: number;
+  rumbleHz: number;
+  fireHz: number;
+  turboMix: number;
+  roughness: number;
+  motorHz: number;
+  motorDetuneHz: number;
+  washMix: number;
+  cycleHz: number;
+  frictionMix: number;
+  clankMix: number;
   whineOsc?: OscillatorNode;
   harmOsc?: OscillatorNode;
   rippleOsc?: OscillatorNode;
@@ -664,9 +688,14 @@ class StudioAudioRuntime {
   }
 
   setMachineSound(nodeId: string, args: MachineSoundArgs): void {
+    const existing = this.machineByNodeId.get(nodeId);
+    if (existing != null && existing.family !== args.family) {
+      this.stopMachine(nodeId);
+    }
     const st =
-      this.machineByNodeId.get(nodeId) ??
+      existing ??
       ({
+        family: "motor",
         enabled: false,
         speed: 0,
         load: 0,
@@ -675,7 +704,18 @@ class StudioAudioRuntime {
         harmonicMix: 0,
         rippleMix: 0,
         noiseMix: 0,
+        rumbleHz: 40,
+        fireHz: 8,
+        turboMix: 0,
+        roughness: 0,
+        motorHz: 120,
+        motorDetuneHz: 6,
+        washMix: 0,
+        cycleHz: 2,
+        frictionMix: 0,
+        clankMix: 0,
       } satisfies MachineState);
+    st.family = args.family;
     st.enabled = args.enabled === true;
     st.speed = clamp01(args.speed);
     st.load = clamp01(args.load);
@@ -684,8 +724,58 @@ class StudioAudioRuntime {
     st.harmonicMix = clamp01(args.harmonicMix);
     st.rippleMix = clamp01(args.rippleMix);
     st.noiseMix = clamp01(args.noiseMix);
+    st.rumbleHz = Math.max(18, args.rumbleHz);
+    st.fireHz = Math.max(2, args.fireHz);
+    st.turboMix = clamp01(args.turboMix);
+    st.roughness = clamp01(args.roughness);
+    st.motorHz = Math.max(40, args.motorHz);
+    st.motorDetuneHz = Math.max(0, args.motorDetuneHz);
+    st.washMix = clamp01(args.washMix);
+    st.cycleHz = Math.max(0.2, args.cycleHz);
+    st.frictionMix = clamp01(args.frictionMix);
+    st.clankMix = clamp01(args.clankMix);
     this.machineByNodeId.set(nodeId, st);
     void this.applyMachineGraph(nodeId);
+  }
+
+  async triggerMachineClank(
+    nodeId: string,
+    args: { gain: number; clankMix: number },
+  ): Promise<void> {
+    const st = this.machineByNodeId.get(nodeId);
+    if (st?.sumGain == null) {
+      return;
+    }
+    const ctxRes = await this.ensureAudioContextRunning();
+    if (!ctxRes.ok || this.ctx == null) {
+      return;
+    }
+    const ctx = this.ctx;
+    const peak = clamp01(args.gain) * clamp01(args.clankMix) * 0.75;
+    if (peak <= 0.001) {
+      return;
+    }
+    const t0 = ctx.currentTime + 0.005;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(140, t0);
+    osc.frequency.exponentialRampToValueAtTime(45, t0 + 0.07);
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0, t0);
+    gainNode.gain.linearRampToValueAtTime(peak, t0 + 0.005);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.14);
+    osc.connect(gainNode);
+    gainNode.connect(st.sumGain);
+    osc.start(t0);
+    osc.stop(t0 + 0.16);
+    window.setTimeout(() => {
+      try {
+        osc.disconnect();
+      } catch {}
+      try {
+        gainNode.disconnect();
+      } catch {}
+    }, 220);
   }
 
   setMachineMonitorGain(nodeId: string, gain: number): void {
@@ -823,6 +913,19 @@ class StudioAudioRuntime {
     const t = ctx.currentTime;
     st.sumGain.gain.setTargetAtTime(masterLevel, t, 0.04);
 
+    if (st.family === "engine") {
+      this.applyEngineMachineLayers(st, ctx, t, loadBright);
+      return;
+    }
+    if (st.family === "drone") {
+      this.applyDroneMachineLayers(st, ctx, t);
+      return;
+    }
+    if (st.family === "machine") {
+      this.applyIndustrialMachineLayers(st, ctx, t);
+      return;
+    }
+
     const ensureWhine = () => {
       if (st.whineOsc != null && st.whineGain != null) {
         return;
@@ -940,6 +1043,310 @@ class StudioAudioRuntime {
       const center = Math.max(120, Math.min(8000, st.whineHz * (0.8 + st.load * 0.5)));
       st.noiseFilter.frequency.setTargetAtTime(center, t, 0.05);
       st.noiseGain.gain.setTargetAtTime(st.noiseMix * 0.25, t, 0.03);
+    }
+  }
+
+  private applyEngineMachineLayers(
+    st: MachineState,
+    ctx: AudioContext,
+    t: number,
+    loadBright: number,
+  ): void {
+    const ensureRumble = () => {
+      if (st.whineOsc != null && st.whineGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "sawtooth";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.whineOsc = osc;
+      st.whineGain = gainNode;
+    };
+
+    const ensureFire = () => {
+      if (st.rippleOsc != null && st.rippleGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "square";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.rippleOsc = osc;
+      st.rippleGain = gainNode;
+    };
+
+    const ensureTurbo = () => {
+      if (st.harmOsc != null && st.harmGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.harmOsc = osc;
+      st.harmGain = gainNode;
+    };
+
+    const ensureExhaust = () => {
+      if (st.noiseSource != null && st.noiseGain != null && st.noiseFilter != null) {
+        return;
+      }
+      if (this.noiseBuffer == null) {
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i += 1) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        this.noiseBuffer = buffer;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      src.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.Q.value = 0.8;
+      const gainNode = ctx.createGain();
+      src.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      src.start();
+      st.noiseSource = src;
+      st.noiseFilter = filter;
+      st.noiseGain = gainNode;
+    };
+
+    ensureRumble();
+    if (st.fireHz > 0 && st.roughness > 0.01) {
+      ensureFire();
+    } else {
+      this.disconnectOscillator(st.rippleOsc);
+      delete st.rippleOsc;
+      delete st.rippleGain;
+    }
+
+    const turboActive = st.turboMix > 0.01 && st.speed > 0.35;
+    if (turboActive) {
+      ensureTurbo();
+    } else {
+      this.disconnectOscillator(st.harmOsc);
+      delete st.harmOsc;
+      delete st.harmGain;
+    }
+
+    if (st.roughness > 0.01) {
+      ensureExhaust();
+    } else if (st.noiseSource != null) {
+      try {
+        st.noiseSource.stop();
+      } catch {}
+      st.noiseSource.disconnect();
+      st.noiseFilter?.disconnect();
+      st.noiseGain?.disconnect();
+      delete st.noiseSource;
+      delete st.noiseFilter;
+      delete st.noiseGain;
+    }
+
+    st.whineOsc!.frequency.setTargetAtTime(st.rumbleHz, t, 0.04);
+    st.whineGain!.gain.setTargetAtTime(0.42 * loadBright, t, 0.04);
+
+    if (st.rippleOsc != null && st.rippleGain != null) {
+      st.rippleOsc.frequency.setTargetAtTime(st.fireHz, t, 0.03);
+      st.rippleGain.gain.setTargetAtTime(st.roughness * 0.12 * (0.5 + st.load * 0.5), t, 0.03);
+    }
+
+    if (st.harmOsc != null && st.harmGain != null) {
+      st.harmOsc.frequency.setTargetAtTime(st.rumbleHz * 14, t, 0.04);
+      st.harmGain.gain.setTargetAtTime(st.turboMix * 0.22 * st.speed, t, 0.04);
+    }
+
+    if (st.noiseFilter != null && st.noiseGain != null) {
+      st.noiseFilter.frequency.setTargetAtTime(
+        Math.max(80, st.rumbleHz * (2.2 + st.load)),
+        t,
+        0.05,
+      );
+      st.noiseGain.gain.setTargetAtTime(st.roughness * 0.3, t, 0.03);
+    }
+  }
+
+  private applyDroneMachineLayers(st: MachineState, ctx: AudioContext, t: number): void {
+    const ensureMotor = (
+      slot: "whine" | "harm" | "ripple",
+      type: OscillatorType,
+      detuneHz: number,
+    ) => {
+      const oscKey = slot === "whine" ? "whineOsc" : slot === "harm" ? "harmOsc" : "rippleOsc";
+      const gainKey = slot === "whine" ? "whineGain" : slot === "harm" ? "harmGain" : "rippleGain";
+      if (st[oscKey] != null && st[gainKey] != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = type;
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st[oscKey] = osc;
+      st[gainKey] = gainNode;
+      osc.frequency.setValueAtTime(Math.max(40, st.motorHz + detuneHz), t);
+    };
+
+    const ensureWash = () => {
+      if (st.noiseSource != null && st.noiseGain != null && st.noiseFilter != null) {
+        return;
+      }
+      if (this.noiseBuffer == null) {
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i += 1) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        this.noiseBuffer = buffer;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      src.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 0.9;
+      const gainNode = ctx.createGain();
+      src.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      src.start();
+      st.noiseSource = src;
+      st.noiseFilter = filter;
+      st.noiseGain = gainNode;
+    };
+
+    const spread = st.motorDetuneHz;
+    ensureMotor("whine", "sine", 0);
+    ensureMotor("harm", "sine", spread);
+    ensureMotor("ripple", "sine", -spread);
+
+    if (st.washMix > 0.01) {
+      ensureWash();
+    } else if (st.noiseSource != null) {
+      try {
+        st.noiseSource.stop();
+      } catch {}
+      st.noiseSource.disconnect();
+      st.noiseFilter?.disconnect();
+      st.noiseGain?.disconnect();
+      delete st.noiseSource;
+      delete st.noiseFilter;
+      delete st.noiseGain;
+    }
+
+    const motorGain = 0.22;
+    st.whineOsc!.frequency.setTargetAtTime(st.motorHz, t, 0.03);
+    st.whineGain!.gain.setTargetAtTime(motorGain, t, 0.03);
+    st.harmOsc!.frequency.setTargetAtTime(st.motorHz + spread, t, 0.03);
+    st.harmGain!.gain.setTargetAtTime(motorGain * 0.85, t, 0.03);
+    st.rippleOsc!.frequency.setTargetAtTime(Math.max(40, st.motorHz - spread), t, 0.03);
+    st.rippleGain!.gain.setTargetAtTime(motorGain * 0.8, t, 0.03);
+
+    if (st.noiseFilter != null && st.noiseGain != null) {
+      st.noiseFilter.frequency.setTargetAtTime(st.motorHz * 2.4, t, 0.05);
+      st.noiseGain.gain.setTargetAtTime(st.washMix * 0.35, t, 0.03);
+    }
+  }
+
+  private applyIndustrialMachineLayers(st: MachineState, ctx: AudioContext, t: number): void {
+    const ensureCycle = () => {
+      if (st.whineOsc != null && st.whineGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.whineOsc = osc;
+      st.whineGain = gainNode;
+    };
+
+    const ensureStroke = () => {
+      if (st.rippleOsc != null && st.rippleGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.rippleOsc = osc;
+      st.rippleGain = gainNode;
+    };
+
+    const ensureFriction = () => {
+      if (st.noiseSource != null && st.noiseGain != null && st.noiseFilter != null) {
+        return;
+      }
+      if (this.noiseBuffer == null) {
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i += 1) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        this.noiseBuffer = buffer;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      src.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 1.1;
+      const gainNode = ctx.createGain();
+      src.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      src.start();
+      st.noiseSource = src;
+      st.noiseFilter = filter;
+      st.noiseGain = gainNode;
+    };
+
+    ensureCycle();
+    ensureStroke();
+    if (st.frictionMix > 0.01) {
+      ensureFriction();
+    } else if (st.noiseSource != null) {
+      try {
+        st.noiseSource.stop();
+      } catch {}
+      st.noiseSource.disconnect();
+      st.noiseFilter?.disconnect();
+      st.noiseGain?.disconnect();
+      delete st.noiseSource;
+      delete st.noiseFilter;
+      delete st.noiseGain;
+    }
+
+    this.disconnectOscillator(st.harmOsc);
+    delete st.harmOsc;
+    delete st.harmGain;
+
+    const cycleGain = 0.38;
+    st.whineOsc!.frequency.setTargetAtTime(st.cycleHz, t, 0.04);
+    st.whineGain!.gain.setTargetAtTime(cycleGain, t, 0.04);
+    st.rippleOsc!.frequency.setTargetAtTime(st.cycleHz * 2, t, 0.04);
+    st.rippleGain!.gain.setTargetAtTime(cycleGain * 0.35 * (0.5 + st.load * 0.5), t, 0.04);
+
+    if (st.noiseFilter != null && st.noiseGain != null) {
+      const center = 320 + st.speed * 1800;
+      st.noiseFilter.frequency.setTargetAtTime(center, t, 0.05);
+      st.noiseGain.gain.setTargetAtTime(st.frictionMix * 0.32 * (0.4 + st.load * 0.6), t, 0.03);
     }
   }
 

@@ -34,6 +34,8 @@ const STUDIO_PORT_TYPES: readonly StudioPortType[] = [
   "contactShadows",
   "particleEmitter",
   "audioBus",
+  "videoBus",
+  "videoTexture",
   "physicsScene",
   "physicsCollider",
   "physicsBody",

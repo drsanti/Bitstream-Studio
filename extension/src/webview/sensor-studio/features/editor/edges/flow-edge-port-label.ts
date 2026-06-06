@@ -17,6 +17,8 @@ const PORT_TYPE_LABEL: Partial<Record<StudioPortType, string>> = {
   contactShadows: "Contact shadows",
   particleEmitter: "Particles",
   audioBus: "Audio",
+  videoBus: "Video",
+  videoTexture: "Texture",
   physicsScene: "Physics scene",
   physicsCollider: "Collider",
   physicsBody: "Rigid body",

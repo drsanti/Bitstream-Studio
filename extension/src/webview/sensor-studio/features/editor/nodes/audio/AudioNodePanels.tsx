@@ -44,9 +44,12 @@ import {
 import { machineWiredInputParts } from "./audio-machine-chrome";
 import { sfxWiredInputParts } from "./audio-sfx-chrome";
 import {
-  applyMotorPresetToConfig,
-  MOTOR_MACHINE_PRESETS,
-  readMotorPresetId,
+  applyMachineFamilyDefaultPreset,
+  applyMachinePresetById,
+  listMachinePresetOptions,
+  MACHINE_FAMILY_OPTIONS,
+  readMachineFamilyId,
+  readMachinePresetId,
 } from "../../../../core/audio/audio-machine-config";
 import {
   micInputCardErrorLine,
@@ -576,13 +579,18 @@ export function AudioMachineNodePanel(props: { nodeId: string; defaultConfig: Re
   const { nodeId, defaultConfig } = props;
   const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
   const edges = useFlowEditorStore((s) => s.edges);
+  const family = readMachineFamilyId(defaultConfig.family);
   const enabled = defaultConfig.enabled !== false;
-  const presetId = readMotorPresetId(defaultConfig.preset);
+  const presetId = readMachinePresetId(family, defaultConfig.preset);
   const speedRaw = typeof defaultConfig.speed === "number" ? defaultConfig.speed : Number(defaultConfig.speed);
   const speed = Number.isFinite(speedRaw) ? speedRaw : 0.35;
 
-  const presetOptions: TRNSelectOption[] = MOTOR_MACHINE_PRESETS.map((p) => ({
-    value: p.id,
+  const familyOptions: TRNSelectOption[] = MACHINE_FAMILY_OPTIONS.map((f) => ({
+    value: f.id,
+    label: f.label,
+  }));
+  const presetOptions: TRNSelectOption[] = listMachinePresetOptions(family).map((p) => ({
+    value: p.value,
     label: p.label,
   }));
 
@@ -598,7 +606,16 @@ export function AudioMachineNodePanel(props: { nodeId: string; defaultConfig: Re
     () => edges.some((e) => e.target === nodeId && e.targetHandle === "gain"),
     [edges, nodeId],
   );
-  const wiredParts = machineWiredInputParts({ isSpeedWired, isLoadWired, isGainWired });
+  const isTriggerWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "trigger"),
+    [edges, nodeId],
+  );
+  const wiredParts = machineWiredInputParts({
+    isSpeedWired,
+    isLoadWired,
+    isGainWired,
+    isTriggerWired,
+  });
 
   return (
     <div
@@ -608,7 +625,9 @@ export function AudioMachineNodePanel(props: { nodeId: string; defaultConfig: Re
       )}
       data-flow-node-body-panel
     >
-      <FlowNodeIntrinsicWidthMarker labels={["Preset", "Speed", ...presetOptions.map((o) => o.label)]} />
+      <FlowNodeIntrinsicWidthMarker
+        labels={["Family", "Preset", "Speed", ...familyOptions.map((o) => o.label), ...presetOptions.map((o) => o.label)]}
+      />
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
           Enabled
@@ -620,18 +639,42 @@ export function AudioMachineNodePanel(props: { nodeId: string; defaultConfig: Re
         />
       </div>
       <div className="space-y-1">
+        <div className="text-[10px] font-medium text-zinc-500">Family</div>
+        <TRNSelect
+          ariaLabel="Audio machine sound family"
+          value={family}
+          options={familyOptions}
+          onValueChange={(next) => {
+            if (
+              next === "motor" ||
+              next === "engine" ||
+              next === "drone" ||
+              next === "machine"
+            ) {
+              for (const [key, value] of Object.entries(applyMachineFamilyDefaultPreset(next))) {
+                update(nodeId, key, value);
+              }
+            }
+          }}
+          size="sm"
+          sectionTitle="Family"
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full"
+        />
+      </div>
+      <div className="space-y-1">
         <div className="text-[10px] font-medium text-zinc-500">Preset</div>
         <TRNSelect
-          ariaLabel="Audio machine motor preset"
+          ariaLabel="Audio machine preset"
           value={presetId}
           options={presetOptions}
           onValueChange={(next) => {
-            const preset = MOTOR_MACHINE_PRESETS.find((p) => p.id === next);
-            if (preset == null) {
+            const patch = applyMachinePresetById(family, next);
+            if (patch == null) {
               update(nodeId, "preset", next);
               return;
             }
-            for (const [key, value] of Object.entries(applyMotorPresetToConfig(preset))) {
+            for (const [key, value] of Object.entries(patch)) {
               update(nodeId, key, value);
             }
           }}

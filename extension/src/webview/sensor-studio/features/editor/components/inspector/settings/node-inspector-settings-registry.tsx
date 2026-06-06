@@ -45,6 +45,10 @@ import {
   AudioSfxSettingsSection,
   MicInputSettingsSection,
 } from "./sections/AudioSettingsSections";
+import {
+  CameraInputSettingsSection,
+  VideoTextureSettingsSection,
+} from "./sections/CameraSettingsSections";
 import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
 import { StudioModelSettingsSection } from "./sections/StudioModelSettingsSection";
 
@@ -100,6 +104,8 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "event-set-glb-part": EventSetGlbPartSettingsSection,
   "event-trigger-glb-anim": EventTriggerGlbAnimSettingsSection,
   "mic-input": MicInputSettingsSection,
+  "camera-input": CameraInputSettingsSection,
+  "video-texture": VideoTextureSettingsSection,
   "audio-output": AudioOutputSettingsSection,
   "audio-scope": AudioScopeSettingsSection,
   "audio-file-player": AudioFilePlayerSettingsSection,

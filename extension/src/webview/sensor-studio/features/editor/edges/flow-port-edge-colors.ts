@@ -35,6 +35,8 @@ export type FlowPortThemeColors = {
   contactShadowsColor: string;
   particleEmitterColor: string;
   audioBusColor: string;
+  videoBusColor: string;
+  videoTextureColor: string;
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
@@ -97,6 +99,8 @@ export function buildFlowPortColorMap(colors: FlowPortThemeColors): Record<Studi
     contactShadows: colors.contactShadowsColor,
     particleEmitter: colors.particleEmitterColor,
     audioBus: colors.audioBusColor,
+    videoBus: colors.videoBusColor,
+    videoTexture: colors.videoTextureColor,
     physicsScene: colors.physicsSceneColor,
     physicsCollider: colors.physicsColliderColor,
     physicsBody: colors.physicsBodyColor,

@@ -9,3 +9,5 @@ export type FlowWireAudioBusV1 = {
   /** Flow node id of the audio source (mic / oscillator / file player). */
   sourceNodeId: string;
 };
+
+export type { FlowWireVideoBusV1, FlowWireVideoTextureV1 } from "../camera/flow-wire-video";

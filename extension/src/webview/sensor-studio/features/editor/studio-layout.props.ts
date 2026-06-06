@@ -40,6 +40,8 @@ export type StudioLayoutProps = {
   contactShadowsColor: string;
   particleEmitterColor: string;
   audioBusColor: string;
+  videoBusColor: string;
+  videoTextureColor: string;
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;

@@ -1,15 +1,15 @@
-import { describe, expect, it } from "vitest";
+import assert from "node:assert/strict";
+import test from "node:test";
+
 import { clampAnalyserFftSize } from "../../src/webview/sensor-studio/core/audio/clamp-analyser-fft-size";
 
-describe("clampAnalyserFftSize", () => {
-  it("returns nearest power of two", () => {
-    expect(clampAnalyserFftSize(2047)).toBe(2048);
-    expect(clampAnalyserFftSize(2048)).toBe(2048);
-    expect(clampAnalyserFftSize(3000)).toBe(4096);
-  });
+test("clampAnalyserFftSize returns nearest power of two", () => {
+  assert.equal(clampAnalyserFftSize(2047), 2048);
+  assert.equal(clampAnalyserFftSize(2048), 2048);
+  assert.equal(clampAnalyserFftSize(3000), 2048);
+});
 
-  it("clamps to analyser bounds", () => {
-    expect(clampAnalyserFftSize(16)).toBe(32);
-    expect(clampAnalyserFftSize(65536)).toBe(32768);
-  });
+test("clampAnalyserFftSize clamps to analyser bounds", () => {
+  assert.equal(clampAnalyserFftSize(16), 32);
+  assert.equal(clampAnalyserFftSize(65536), 32768);
 });

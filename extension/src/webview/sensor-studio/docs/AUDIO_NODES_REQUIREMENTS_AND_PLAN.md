@@ -261,10 +261,13 @@ All node ids, ports, and default configs live in:
 - Exposes **`audioBus`** output for scope/output wiring.
 - Scope monitor picker lists SFX nodes; idle message: “SFX idle — fire Trigger”.
 
-### Audio Machine (`audio-machine`) — v0.2a
+### Audio Machine (`audio-machine`) — v0.2a–b
 
-- Continuous procedural motor sounds driven by **Speed** (0..1) and **Load** (0..1).
-- **Motor** family presets: Servo, CNC spindle, EV motor (Engine / Drone / Machine families planned).
+- Continuous procedural mechanical sounds driven by **Speed** (0..1) and **Load** (0..1).
+- **Motor** presets: Servo, CNC spindle, EV motor.
+- **Engine** presets: Inline-4, V6, Diesel (rumble + firing + turbo).
+- **Drone** presets: Quad, Hex, Racing (multi-motor whine + wash).
+- **Industrial** presets: Conveyor, Lathe, Press (cycle rhythm + friction; **Trigger** clank).
 - Layered runtime: whine + harmonics + torque ripple + noise (`studio-audio-runtime.ts`).
 - Pins: `speed`, `load`, `gain` in; `active`, `level`, `audio` out.
 - Design doc: [`AUDIO_MACHINE_SOUND_DESIGN.md`](./AUDIO_MACHINE_SOUND_DESIGN.md).

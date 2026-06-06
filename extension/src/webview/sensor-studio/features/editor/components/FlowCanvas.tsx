@@ -137,6 +137,8 @@ type FlowCanvasProps = {
   contactShadowsColor: string;
   particleEmitterColor: string;
   audioBusColor: string;
+  videoBusColor: string;
+  videoTextureColor: string;
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
@@ -205,6 +207,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       contactShadowsColor,
       particleEmitterColor,
       audioBusColor,
+      videoBusColor,
+      videoTextureColor,
       physicsSceneColor,
       physicsColliderColor,
       physicsBodyColor,
@@ -336,6 +340,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           contactShadowsColor,
       particleEmitterColor,
       audioBusColor,
+      videoBusColor,
+      videoTextureColor,
       physicsSceneColor,
       physicsColliderColor,
       physicsBodyColor,
@@ -357,6 +363,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         contactShadowsColor,
         particleEmitterColor,
         audioBusColor,
+        videoBusColor,
+        videoTextureColor,
         physicsSceneColor,
         physicsColliderColor,
         physicsBodyColor,

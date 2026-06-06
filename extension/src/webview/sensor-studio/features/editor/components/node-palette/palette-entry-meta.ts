@@ -33,6 +33,8 @@ const SCENE_NODE_SUBGROUP: Readonly<Record<string, PaletteSceneSubgroup>> = {
   "model-select": "sources",
   environment: "sources",
   "camera-view": "sources",
+  "camera-input": "sources",
+  "video-texture": "sources",
   "model-viewer": "viewports",
   "rotation-3d-euler": "viewports",
   "rotation-3d-quaternion": "viewports",

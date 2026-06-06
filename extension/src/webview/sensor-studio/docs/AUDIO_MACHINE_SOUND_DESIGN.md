@@ -1,6 +1,6 @@
 # Sensor Studio — Audio Machine (procedural mechanical sounds)
 
-**Status:** v0.2a in progress — **Motor** family + **Speed** pin.  
+**Status:** v0.2c shipped — **Motor**, **Engine**, **Drone**, and **Industrial** families + **Speed** / **Trigger** pins; RPM + Map Range demo templates.  
 **Related:** [`AUDIO_NODES_REQUIREMENTS_AND_PLAN.md`](./AUDIO_NODES_REQUIREMENTS_AND_PLAN.md), [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md).
 
 ## Goal
@@ -64,17 +64,29 @@ Electric whine + optional ripple + light bearing noise.
 
 **Params:** whine base/span Hz, harmonic mix, ripple mix, noise mix, gain.
 
-### Drone (v0.2b — planned)
+### Drone (v0.2b — shipped)
 
-Multi-osc motor whine + blade wash. Params: motor count, detune, wash amount.
+Multi-osc motor whine + blade wash. Presets: Quad (small), Hex (cine), Racing quad.
 
-### Engine (v0.2b — planned)
+**Params:** motor base/span Hz, detune cents, wash mix, gain.
 
-Rumble + firing pulses + optional turbo. Params: cylinders, idle/max RPM, roughness.
+### Engine (v0.2b — shipped)
 
-### Machine (v0.2c — planned)
+Rumble + firing pulses + optional turbo. Presets: Inline-4, V6, Diesel.
 
-Rhythmic cycle tone + friction noise + optional clanks on Trigger.
+**Params:** rumble base/span Hz, cylinders, roughness, turbo mix, gain.
+
+### Industrial (v0.2c — shipped, family id `machine`)
+
+Rhythmic cycle tone + friction noise + clanks on **Trigger** (rising edge).
+
+| Preset | Character |
+|--------|-----------|
+| **Conveyor** | Low belt rhythm + roller friction |
+| **Lathe** | Faster spindle cycle |
+| **Press** | Slow strokes, strong clank |
+
+**Params:** cycle base/span Hz, friction mix, clank mix, gain.
 
 ## Telemetry wiring (target demo)
 
@@ -89,9 +101,9 @@ Threshold → Audio SFX.Trigger  (fault beep)
 | Phase | Deliverable |
 |-------|-------------|
 | **0.2a** | `audio-machine` node, Motor presets, Speed pin, runtime layers, tests |
-| **0.2b** | Drone + Engine families |
-| **0.2c** | Machine rhythm + demo template |
-| **0.3** | Per-family inspector depth, preset export JSON |
+| **0.2b** | Drone + Engine families + RPM demo template |
+| **0.2c** | Industrial family + Trigger clank + Map Range demo template |
+| **0.3** | Preset hint copy, preset export/import JSON (inspector Preset I/O), fault-lab demo template |
 | **0.4** | Optional hybrid sample layers |
 | **0.5** | Filter-cutoff modulation, stereo width |
 

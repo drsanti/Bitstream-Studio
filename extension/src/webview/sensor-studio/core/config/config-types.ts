@@ -43,6 +43,8 @@ export type DataTypeColorsPayload = {
   contactShadows: string;
   particleEmitter: string;
   audioBus: string;
+  videoBus: string;
+  videoTexture: string;
   physicsScene: string;
   physicsCollider: string;
   physicsBody: string;
@@ -68,6 +70,8 @@ export type NodeCatalogOutputPort = {
     | "contactShadows"
     | "particleEmitter"
     | "audioBus"
+    | "videoBus"
+    | "videoTexture"
     | "physicsScene"
     | "physicsCollider"
     | "physicsBody";

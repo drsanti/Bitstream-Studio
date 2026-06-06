@@ -5,6 +5,7 @@ import { useBmi270FusionQuatWireTapStore } from "../../bitstream-app/state/bmi27
 import { graphNeedsMaterialDomainEvalInGraph } from "../core/flow/material-domain-eval";
 import {
   graphNeedsAudioFrameTick,
+  graphNeedsCameraFrameTick,
   graphNeedsSceneFrameTick,
 } from "../core/flow/scene-flow-frame-subscribers";
 import { graphHasSceneOutputNode } from "../core/stage/evaluate-stage-scene-snapshot";
@@ -58,6 +59,7 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
       return (
         graphNeedsSceneFrameTick(st.nodes) ||
         graphNeedsAudioFrameTick(st.nodes) ||
+        graphNeedsCameraFrameTick(st.nodes) ||
         graphHasSceneOutputNode(st.nodes) ||
         graphNeedsMaterialDomainEvalInGraph({
           nodes: st.nodes,

@@ -16,6 +16,8 @@ export type StudioPortType =
   | "contactShadows"
   | "particleEmitter"
   | "audioBus"
+  | "videoBus"
+  | "videoTexture"
   | "physicsScene"
   | "physicsCollider"
   | "physicsBody";

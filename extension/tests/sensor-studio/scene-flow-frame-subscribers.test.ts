@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   graphNeedsAudioFrameTick,
+  graphNeedsCameraFrameTick,
   graphNeedsSceneFrameTick,
   nodeIdNeedsSceneFrameTick,
 } from "../../src/webview/sensor-studio/core/flow/scene-flow-frame-subscribers";
@@ -48,4 +49,10 @@ test("graphNeedsSceneFrameTick is true when any subscriber is present", () => {
 test("graphNeedsAudioFrameTick is true when audio nodes are on the canvas", () => {
   assert.equal(graphNeedsAudioFrameTick([canvasNode("plotter")]), false);
   assert.equal(graphNeedsAudioFrameTick([canvasNode("audio-oscillator")]), true);
+});
+
+test("graphNeedsCameraFrameTick is true when camera nodes are on the canvas", () => {
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("plotter")]), false);
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("camera-input")]), true);
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("video-texture")]), true);
 });

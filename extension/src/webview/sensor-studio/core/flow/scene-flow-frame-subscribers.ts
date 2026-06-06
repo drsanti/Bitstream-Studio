@@ -41,6 +41,12 @@ export const SCENE_FRAME_AUDIO_NODE_IDS: ReadonlySet<string> = new Set([
   "audio-scope",
 ]);
 
+/** Camera / video texture nodes — getUserMedia + VideoTexture lifecycle on rAF. */
+export const SCENE_FRAME_CAMERA_NODE_IDS: ReadonlySet<string> = new Set([
+  "camera-input",
+  "video-texture",
+]);
+
 export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
   return (
     SCENE_FRAME_PREVIEW_NODE_IDS.has(nodeId) ||
@@ -57,4 +63,8 @@ export function graphNeedsSceneFrameTick(nodes: ReadonlyArray<Node<StudioNodeDat
 
 export function graphNeedsAudioFrameTick(nodes: ReadonlyArray<Node<StudioNodeData>>): boolean {
   return nodes.some((node) => SCENE_FRAME_AUDIO_NODE_IDS.has(node.data.nodeId));
+}
+
+export function graphNeedsCameraFrameTick(nodes: ReadonlyArray<Node<StudioNodeData>>): boolean {
+  return nodes.some((node) => SCENE_FRAME_CAMERA_NODE_IDS.has(node.data.nodeId));
 }

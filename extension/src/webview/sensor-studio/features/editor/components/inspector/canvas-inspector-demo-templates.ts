@@ -25,6 +25,26 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
       hint: "Audio File Player → Audio Scope + Audio Output (wired Audio bus) + Plotter (time/duration). Paste a URL, enable the output engine, then Play.",
     },
     {
+      value: "audio-machine-rpm",
+      label: "Audio machine RPM",
+      hint: "Ramp (0→1) → Audio Machine.Speed → Audio Scope + Audio Output (wired Audio bus). Enable the output engine to hear EV motor whine rise with the ramp.",
+    },
+    {
+      value: "audio-machine-map-range",
+      label: "Audio machine (Map Range)",
+      hint: "Sine (−1..1) → Map Range (0..1) → Industrial Audio Machine.Speed → Scope + Output. Wire Threshold → Trigger for press clanks.",
+    },
+    {
+      value: "audio-machine-fault-lab",
+      label: "Audio machine fault lab",
+      hint: "Sine → Map Range → Machine.Speed; Threshold (>0.88) → Machine.Trigger + SFX beep. Press preset clanks on peaks; enable Audio Output to listen.",
+    },
+    {
+      value: "camera-video-texture",
+      label: "Camera video texture",
+      hint: "Camera Input → Video Texture (wired Video bus). Enable the camera node and allow browser permission; Ready goes true when the stream is live.",
+    },
+    {
       value: "stage-scene-output",
       label: "Stage + Scene Output",
       hint: "Model Source (PSoC E84 pack model) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",

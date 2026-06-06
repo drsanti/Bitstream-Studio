@@ -118,6 +118,12 @@ import { AudioOscillatorHeaderBadge } from "./audio/AudioOscillatorHeaderBadge";
 import { AudioOutputHeaderBadge } from "./audio/AudioOutputHeaderBadge";
 import { AudioScopeHeaderBadge } from "./audio/AudioScopeHeaderBadge";
 import { MicInputHeaderBadge } from "./audio/MicInputHeaderBadge";
+import {
+  CameraInputNodePanel,
+  VideoTextureNodePanel,
+} from "./camera/CameraNodePanels";
+import { CameraInputHeaderBadge } from "./camera/CameraInputHeaderBadge";
+import { VideoTextureHeaderBadge } from "./camera/VideoTextureHeaderBadge";
 import { isStudioFlexPlotCanvasNodeId } from "./flow-node/studio-flex-plot-canvas";
 import {
   coercePlotterConfig,
@@ -656,6 +662,14 @@ function StudioNodeCard(props: NodeProps) {
     data.nodeId === "mic-input" ? (
       <MicInputHeaderBadge nodeId={id} configEnabled={micCaptureEnabled} />
     ) : null;
+  const cameraCaptureEnabled =
+    data.nodeId === "camera-input" && data.defaultConfig.enabled === true;
+  const cameraHeaderBadge =
+    data.nodeId === "camera-input" ? (
+      <CameraInputHeaderBadge nodeId={id} configEnabled={cameraCaptureEnabled} />
+    ) : null;
+  const videoTextureHeaderBadge =
+    data.nodeId === "video-texture" ? <VideoTextureHeaderBadge nodeId={id} /> : null;
   const oscHeaderBadge =
     data.nodeId === "audio-oscillator" ? (
       <AudioOscillatorHeaderBadge nodeId={id} defaultConfig={data.defaultConfig} />
@@ -680,6 +694,8 @@ function StudioNodeCard(props: NodeProps) {
   const headerTrailing =
     compareOperationChip != null ||
     micHeaderBadge != null ||
+    cameraHeaderBadge != null ||
+    videoTextureHeaderBadge != null ||
     oscHeaderBadge != null ||
     filePlayerHeaderBadge != null ||
     audioOutputHeaderBadge != null ||
@@ -690,6 +706,8 @@ function StudioNodeCard(props: NodeProps) {
       <>
         {compareOperationChip}
         {micHeaderBadge}
+        {cameraHeaderBadge}
+        {videoTextureHeaderBadge}
         {oscHeaderBadge}
         {filePlayerHeaderBadge}
         {audioOutputHeaderBadge}
@@ -1449,6 +1467,15 @@ function StudioNodeCard(props: NodeProps) {
                   nodeId={id}
                   defaultConfig={data.defaultConfig}
                 />
+              ) : null}
+              {data.nodeId === "camera-input" ? (
+                <CameraInputNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "video-texture" ? (
+                <VideoTextureNodePanel nodeId={id} />
               ) : null}
               {data.nodeId === "audio-output" ? (
                 <AudioOutputNodePanel

@@ -20,6 +20,8 @@ export const dataTypeColorsSchema = z.object({
     contactShadows: z.string().min(1).default("#C084FC"),
     particleEmitter: z.string().min(1).default("#FB923C"),
     audioBus: z.string().min(1).default("#F472B6"),
+    videoBus: z.string().min(1).default("#38BDF8"),
+    videoTexture: z.string().min(1).default("#2DD4BF"),
     physicsScene: z.string().min(1).default("#4ADE80"),
     physicsCollider: z.string().min(1).default("#2DD4BF"),
     physicsBody: z.string().min(1).default("#38BDF8"),

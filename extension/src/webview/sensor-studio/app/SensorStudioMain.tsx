@@ -979,6 +979,8 @@ export function SensorStudioMain() {
         contactShadowsColor={dataTypeColors.contactShadows}
         particleEmitterColor={dataTypeColors.particleEmitter}
         audioBusColor={dataTypeColors.audioBus}
+        videoBusColor={dataTypeColors.videoBus}
+        videoTextureColor={dataTypeColors.videoTexture}
         physicsSceneColor={dataTypeColors.physicsScene}
         physicsColliderColor={dataTypeColors.physicsCollider}
         physicsBodyColor={dataTypeColors.physicsBody}

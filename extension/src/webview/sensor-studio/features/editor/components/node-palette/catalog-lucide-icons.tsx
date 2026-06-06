@@ -49,6 +49,7 @@ import {
   Sparkles,
   Wind,
   Zap,
+  Video,
 } from "lucide-react";
 
 /** Maps `NodeCatalogEntry.icon` (kebab-style slug) → Lucide component. */
@@ -88,6 +89,7 @@ const CATALOG_LUCIDE_BY_SLUG: Record<string, LucideIcon> = {
   "monitor-play": MonitorPlay,
   globe: Globe,
   camera: Camera,
+  videocam: Video,
   clapperboard: Clapperboard,
   "toggle-left": ToggleLeft,
   keyboard: Keyboard,

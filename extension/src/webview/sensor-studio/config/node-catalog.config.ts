@@ -447,6 +447,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           { id: "speed", portType: "number", label: "Speed" },
           { id: "load", portType: "number", label: "Load" },
           { id: "gain", portType: "number", label: "Gain" },
+          { id: "trigger", portType: "boolean", label: "Trigger" },
         ],
         outputPorts: [
           { id: "active", portType: "boolean", label: "Active" },
@@ -775,6 +776,49 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
         outputPorts: [
           { id: "out", portType: "environment", label: "Environment" },
+        ],
+      },
+      {
+        id: "camera-input",
+        category: "scene",
+        title: "Camera Input",
+        description:
+          "Webcam / camera capture (permission-gated). Emits a Video bus handle plus stream health scalars for downstream texture and vision nodes.",
+        icon: "videocam",
+        defaultVisible: true,
+        defaultConfig: {
+          enabled: false,
+          deviceId: "default",
+          width: 1280,
+          height: 720,
+          targetFps: 30,
+          facingMode: "user",
+          mirrorPreview: true,
+        },
+        inputPorts: [{ id: "enabled", portType: "boolean", label: "Enabled" }],
+        outputPorts: [
+          { id: "video", portType: "videoBus", label: "Video" },
+          { id: "active", portType: "boolean", label: "Active" },
+          { id: "fps", portType: "number", label: "FPS" },
+          { id: "width", portType: "number", label: "Width" },
+          { id: "height", portType: "number", label: "Height" },
+        ],
+      },
+      {
+        id: "video-texture",
+        category: "scene",
+        title: "Video Texture",
+        description:
+          "Convert a wired Video bus into a Three.js VideoTexture handle for material / scene nodes (Phase B).",
+        icon: "image",
+        defaultVisible: true,
+        defaultConfig: {
+          flipY: false,
+        },
+        inputPorts: [{ id: "in", portType: "videoBus", label: "In" }],
+        outputPorts: [
+          { id: "out", portType: "videoTexture", label: "Texture" },
+          { id: "ready", portType: "boolean", label: "Ready" },
         ],
       },
       {

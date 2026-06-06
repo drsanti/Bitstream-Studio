@@ -19,6 +19,8 @@ const studioPortTypeEnum = z.enum([
   "contactShadows",
   "particleEmitter",
   "audioBus",
+  "videoBus",
+  "videoTexture",
   "physicsScene",
   "physicsCollider",
   "physicsBody",

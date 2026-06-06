@@ -336,6 +336,7 @@
     "test:bitstream": "npm run test:bitstream2",
     "test:bitstream2": "npx tsx --test --test-force-exit tests/bitstream2/*.test.ts",
     "test:sensor-studio": "npx tsx --test --test-force-exit tests/sensor-studio/*.test.ts",
+    "test:sensor-studio:audio": "npx tsx --test --test-force-exit tests/sensor-studio/audio-machine-preset-export.test.ts tests/sensor-studio/audio-machine-speed.test.ts tests/sensor-studio/audio-scope-display-config.test.ts tests/sensor-studio/clamp-analyser-fft-size.test.ts tests/sensor-studio/oscillator-sweep.test.ts tests/sensor-studio/resolve-audio-monitor-source.test.ts",
     "bitstream2:mock-probe": "npx tsx src/bitstream2/dev/run-mock-probe.ts",
     "bitstream2:dev-inject": "npx tsx src/bitstream2/dev/run-ws-injector.ts",
     "bitstream2:sim-scenario": "npx tsx src/bitstream2/dev/run-sim-scenario.ts",
