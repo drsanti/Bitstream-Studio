@@ -42,13 +42,13 @@ const UTILITY_DETAILS_BY_NODE_ID: Partial<Record<string, UtilityInspectorDetails
     wireNotes: ["Out: **transform** · literal scene transform (no `eulerMapping` tag)."],
   },
   "model-viewer": {
-    role: "GLB preview driven by the incoming **Model** URL wire plus optional structured scene wires.",
+    role: "3D model preview driven by the incoming **Model** wire plus optional structured scene wires.",
     learnMore: [
       "**Transform** input accepts a **transform** wire. Literal wires set root position, scale, and `rotationDeg` (XYZ). Fusion-tagged wires from **Transform from Euler** drive root orientation via quaternion (same path as IMU board preview).",
       "Environment, Camera, and Animation inputs merge into the saved scene3d snapshot for this node.",
     ],
     inStudio: [
-      "Link or wire a **Studio Model** / Asset Browser GLB on the **Model** input.",
+      "Link or wire a **Model Source** / Asset Browser model on the **Model** input.",
       "For BMI270 orientation on a rig, wire **Transform from Euler** (fusion mapping) into **Transform** — not the raw vec3 into Model Viewer directly.",
     ],
     wireNotes: [
@@ -112,47 +112,47 @@ const UTILITY_DETAILS_BY_NODE_ID: Partial<Record<string, UtilityInspectorDetails
     ],
   },
   "event-toggle-glb-part": {
-    role: "Event **action** — flips GLB **part** visibility (hidden / visible) on each **event** pulse.",
+    role: "Event **action** — flips model **part** visibility (hidden / visible) on each **event** pulse.",
     learnMore: [
-      "Bind a part from Library **GLB → Parts** (**Evt** spawn) or set `glbExtractKind` / `glbExtractRef` manually.",
+      "Bind a part from Library **Model → Parts** (**Evt** spawn) or set material/part extract metadata manually.",
       "Visibility scalar is stored in config (`value`: 0 hidden, 1 visible). Preview uses &gt; 0.5 as visible.",
-      "No boolean **out** wire — drives the linked **Model viewer** via `collectGlbScalarDrivesForModel`.",
+      "No boolean **out** wire — drives the linked **Model Viewer** via scene scalar drives.",
     ],
     inStudio: [
-      "Example: **On Key → Toggle GLB Part** (door mesh) with **Model viewer** on the same Model.",
+      "Example: **On Key → Toggle Model Part** (door mesh) with **Model Viewer** on the same model.",
     ],
     wireNotes: [
       "In: **event** · trigger.",
-      "Model: **Studio Model** · scopes part to a GLB (required when multiple models).",
+      "Model: **Model Source** · scopes part to a model (required when multiple models).",
     ],
   },
   "event-set-glb-part": {
-    role: "Event **action** — sets GLB **part** visibility to a configured state on each **event** pulse.",
+    role: "Event **action** — sets model **part** visibility to a configured state on each **event** pulse.",
     learnMore: [
       "Like **Set Boolean**, applies `setTo` (visible/hidden) without flipping.",
-      "Pair **On Key → Set GLB Part (visible)** and **On Click → Set GLB Part (hidden)** for explicit show/hide.",
+      "Pair **On Key → Set Model Part (visible)** and **On Click → Set Model Part (hidden)** for explicit show/hide.",
     ],
     inStudio: [
       "Use when you need deterministic show/hide rather than toggle per pulse.",
     ],
     wireNotes: [
       "In: **event** · trigger.",
-      "Model: **Studio Model** · scopes part to a GLB (required when multiple models).",
+      "Model: **Model Source** · scopes part to a model (required when multiple models).",
     ],
   },
   "event-trigger-glb-anim": {
-    role: "Event **action** — restarts a bound GLB **animation** clip in the linked **Model viewer** on each **event** pulse.",
+    role: "Event **action** — restarts a bound **animation** clip in the linked **Model Viewer** on each **event** pulse.",
     learnMore: [
       "Uses structured mixer drives with `restartNonce` — each pulse replays from the clip start (default **once**).",
-      "Spawn from Library **GLB → Animations → Evt** or bind `glbExtractKind: animation` manually.",
+      "Spawn from Library **Model → Animations → Evt** or bind an animation extract manually.",
       "Configure loop mode, speed, and weight on the Node tab.",
     ],
     inStudio: [
-      "Example: **On Key → Trigger GLB Anim** (door open clip) with **Studio Model → Model** wired.",
+      "Example: **On Key → Play Animation** (door open clip) with **Model Source → Model** wired.",
     ],
     wireNotes: [
       "In: **event** · trigger.",
-      "Model: **Studio Model** · scopes clip and viewer drive (required when multiple models).",
+      "Model: **Model Source** · scopes clip and viewer drive (required when multiple models).",
     ],
   },
 };

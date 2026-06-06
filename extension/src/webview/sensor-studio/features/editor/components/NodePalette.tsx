@@ -13,15 +13,18 @@ import { filterPaletteEntries } from "./node-palette/filter-palette-entries";
 import { LibraryEntryRow } from "./node-palette/LibraryEntryRow";
 import {
   getPaletteEntryMeta,
+  getSceneSubgroupLabel,
   getSubgroupChip,
   getSubgroupLabel,
   isPaletteSensorFamilySubgroup,
   isPaletteSensorPrimaryEntry,
   isPaletteSensorTapEntry,
+  PALETTE_SCENE_SUBGROUP_ORDER,
   PALETTE_SENSOR_FAMILY_SUBGROUPS,
   PALETTE_SENSOR_SUBGROUP_ORDER,
   resolvePaletteRowVariant,
   splitSensorFamilyPanelEntries,
+  type PaletteSceneSubgroup,
   type PaletteSensorFamilySubgroup,
   type PaletteSensorSubgroup,
 } from "./node-palette/palette-entry-meta";
@@ -59,6 +62,7 @@ const CATEGORY_ORDER: NodeCatalogEntry["category"][] = [
   "audio",
   "transform",
   "logic",
+  "scene",
   "output",
   "utility",
   "generator",
@@ -70,6 +74,7 @@ const CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string> = {
   audio: "Audio",
   transform: "Transform",
   logic: "Logic",
+  scene: "Scene",
   output: "Output",
   utility: "Utility",
   generator: "Generator",
@@ -361,6 +366,71 @@ export function NodePalette(props: NodePaletteProps) {
     return map;
   }, [sensorNodes]);
 
+  const sceneNodes = groupedByCategory.get("scene") ?? [];
+  const sceneBySubgroup = useMemo(() => {
+    const map = new Map<PaletteSceneSubgroup, NodeCatalogEntry[]>();
+    for (const sg of PALETTE_SCENE_SUBGROUP_ORDER) {
+      map.set(sg, []);
+    }
+    for (const entry of sceneNodes) {
+      const meta = getPaletteEntryMeta(entry);
+      const sg = meta.sceneSubgroup;
+      if (sg != null) {
+        map.get(sg)?.push(entry);
+      }
+    }
+    return map;
+  }, [sceneNodes]);
+
+  const renderSceneSections = () => (
+    <>
+      {PALETTE_SCENE_SUBGROUP_ORDER.map((sg) => {
+        const list = sceneBySubgroup.get(sg) ?? [];
+        if (list.length === 0) {
+          return null;
+        }
+        const collapsed = collapsedSubgroups.has(sg);
+        return (
+          <div key={sg} className={dense ? "space-y-1" : "space-y-1.5"}>
+            <button
+              type="button"
+              className={`flex w-full select-none items-center gap-1.5 border-b border-zinc-700/70 text-left font-semibold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
+                dense ? "pb-0.5 text-[9px]" : "pb-1 text-[10px]"
+              }`}
+              style={{ borderColor }}
+              aria-expanded={!collapsed}
+              onClick={() => toggleSubgroupCollapsed(sg)}
+            >
+              {collapsed ? (
+                <ChevronRight className="size-3 shrink-0" aria-hidden />
+              ) : (
+                <ChevronDown className="size-3 shrink-0" aria-hidden />
+              )}
+              <span
+                className="size-1.5 shrink-0 rounded-full ring-1 ring-white/10"
+                style={{ backgroundColor: categoryColors?.scene ?? "#52525b" }}
+                aria-hidden
+              />
+              <span className="min-w-0 flex-1 truncate">{getSceneSubgroupLabel(sg)}</span>
+              <span className="shrink-0 opacity-70">{list.length}</span>
+            </button>
+            {!collapsed
+              ? list.map((entry) => (
+                  <LibraryEntryRow
+                    key={entry.id}
+                    entry={entry}
+                    borderColor={borderColor}
+                    onAddNode={onAddNode}
+                    categoryAccent={entryAccent(entry)}
+                  />
+                ))
+              : null}
+          </div>
+        );
+      })}
+    </>
+  );
+
   const renderSensorFamilyTreeRows = (
     list: NodeCatalogEntry[],
     layout: SensorFamilyTreeLayout,
@@ -641,6 +711,28 @@ export function NodePalette(props: NodePaletteProps) {
         </section>
       );
     }
+    if (category === "scene") {
+      if (sceneNodes.length === 0) {
+        return null;
+      }
+      const stripe = categoryColors?.scene;
+      return (
+        <section key="scene" className={dense ? "space-y-1.5" : "space-y-2"}>
+          <h3
+            className={`sticky top-0 z-10 -mx-2 mb-1 border-b border-zinc-800/80 px-2 font-semibold uppercase tracking-wide text-zinc-200 ${
+              dense ? "py-1.5 text-[10px]" : "py-2 text-[11px]"
+            }`}
+            style={{
+              backgroundColor: panelColor,
+              ...(stripe != null ? { boxShadow: `inset 3px 0 0 0 ${stripe}` } : {}),
+            }}
+          >
+            Scene
+          </h3>
+          {renderSceneSections()}
+        </section>
+      );
+    }
     const stripe = categoryColors?.[category];
     return (
       <section key={category} className={dense ? "space-y-1.5" : "space-y-2"}>
@@ -717,8 +809,8 @@ export function NodePalette(props: NodePaletteProps) {
               title={
                 tab === "glb"
                   ? paletteFilterActive
-                    ? "GLB entries matching search"
-                    : "Extracted GLB entries for the selected Model"
+                    ? "Model entries matching search"
+                    : "Extracted model parts for the selected Model Source"
                   : tab === "groups"
                     ? paletteFilterActive
                       ? "Saved groups matching search"
@@ -801,7 +893,7 @@ export function NodePalette(props: NodePaletteProps) {
             }`}
           >
             <Box className={`shrink-0 opacity-80 ${dense ? "size-3" : "size-3.5"}`} aria-hidden />
-            GLB
+            Model
           </button>
           <button
             id="palette-tab-groups"
@@ -892,7 +984,7 @@ export function NodePalette(props: NodePaletteProps) {
             style={{ borderColor }}
             aria-label={
               tab === "glb"
-                ? "Search GLB extraction list"
+                ? "Search model extraction list"
                 : tab === "groups"
                   ? "Search saved node groups"
                   : "Search library"

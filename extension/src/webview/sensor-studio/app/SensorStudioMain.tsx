@@ -219,6 +219,7 @@ export function SensorStudioMain() {
       audio: "#fb7185",
       transform: "#fbbf24",
       logic: "#a78bfa",
+      scene: "#818cf8",
       output: "#22d3ee",
       utility: "#e879f9",
       generator: "#94a3b8",

@@ -24,15 +24,15 @@ describe("palette-display-meta", () => {
     assert.equal(resolvePaletteDisplayGroup(mockEntry("bmi270", "sensor")), "data");
     assert.equal(resolvePaletteDisplayGroup(mockEntry("number-constant", "input")), "input");
     assert.equal(resolvePaletteDisplayGroup(mockEntry("event-toggle-glb-part", "utility")), "events");
-    assert.equal(resolvePaletteDisplayGroup(mockEntry("model-select", "utility")), "scene");
-    assert.equal(resolvePaletteDisplayGroup(mockEntry("glb-animation-bundle", "generator")), "animation");
+    assert.equal(resolvePaletteDisplayGroup(mockEntry("model-select", "scene")), "scene");
+    assert.equal(resolvePaletteDisplayGroup(mockEntry("glb-animation-bundle", "scene")), "scene");
   });
 
   it("groups entries by display taxonomy", () => {
     const entries = [
       mockEntry("bmi270", "sensor"),
       mockEntry("event-toggle-glb-part", "utility"),
-      mockEntry("model-select", "utility"),
+      mockEntry("model-select", "scene"),
     ];
     const grouped = groupEntriesByDisplayGroup(entries);
     assert.equal(grouped.get("data")?.length, 1);
@@ -64,7 +64,7 @@ describe("recent-catalog-nodes", () => {
       assert.deepEqual(readRecentCatalogNodeIds(), ["model-select", "bmi270"]);
 
       const resolved = resolveRecentCatalogEntries(readRecentCatalogNodeIds(), [
-        mockEntry("model-select", "utility"),
+        mockEntry("model-select", "scene"),
         mockEntry("bmi270", "sensor"),
       ]);
       assert.equal(resolved.length, 2);

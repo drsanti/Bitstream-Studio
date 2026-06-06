@@ -82,6 +82,7 @@ export type NodeCatalogEntry = {
     | "audio"
     | "transform"
     | "logic"
+    | "scene"
     | "output"
     | "utility"
     | "generator";

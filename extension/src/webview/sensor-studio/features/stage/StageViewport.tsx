@@ -223,7 +223,7 @@ export function StageViewport() {
         <p className="text-sm font-medium text-zinc-200">Stage</p>
         <p className="max-w-md text-xs leading-relaxed text-zinc-500">
           Add a <span className="font-medium text-zinc-400">Scene Output</span> node on the Flow
-          canvas and wire <span className="font-medium text-zinc-400">Models</span> (Studio Model
+          canvas and wire <span className="font-medium text-zinc-400">Models</span> (Model Source
           nodes) plus optional Environment, Camera, Transform, and Animation inputs.
         </p>
         {loadDemoButton}
@@ -237,7 +237,7 @@ export function StageViewport() {
         <MonitorPlay className="size-8 text-amber-400/70" strokeWidth={1.75} aria-hidden />
         <p className="text-sm font-medium text-zinc-200">Scene Output ready</p>
         <p className="max-w-md text-xs leading-relaxed text-zinc-500">
-          Wire at least one <span className="font-medium text-zinc-400">Studio Model</span> into the{" "}
+          Wire at least one <span className="font-medium text-zinc-400">Model Source</span> into the{" "}
           <span className="font-medium text-zinc-400">Models</span> socket on Scene Output.
         </p>
         {loadDemoButton}

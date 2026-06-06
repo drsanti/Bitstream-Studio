@@ -60,6 +60,9 @@ export function resolvePaletteDisplayGroup(entry: NodeCatalogEntry): PaletteDisp
   if (entry.category === "logic") {
     return "logic";
   }
+  if (entry.category === "scene") {
+    return "scene";
+  }
   if (entry.category === "output") {
     return "output";
   }

@@ -10,6 +10,7 @@ test("studioNodeDefaultResizable enables viewport and output nodes", () => {
 });
 
 test("studioNodeDefaultResizable disables compact utility nodes", () => {
+  assert.equal(studioNodeDefaultResizable("model-select"), false);
   assert.equal(studioNodeDefaultResizable("number-constant"), false);
   assert.equal(studioNodeDefaultResizable("math"), false);
   assert.equal(studioNodeDefaultResizable("bmi270-input"), false);

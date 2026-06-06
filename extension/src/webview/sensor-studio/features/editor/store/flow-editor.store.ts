@@ -393,6 +393,20 @@ import {
   resolveStudioNodeMinDimensionFloor,
   studioNodeDefaultResizable,
 } from "../nodes/flow-node/studio-node-resize-defaults";
+import {
+  computeViewportPreviewNodeDimensions,
+  coerceStudioViewportPreviewAspect,
+  coerceStudioViewportPreviewSizeTier,
+  patchViewportPreviewHeadHeight,
+  resolveViewportPreviewChromeFromNode,
+  STUDIO_VIEWPORT_PREVIEW_DEFAULT_ASPECT,
+  STUDIO_VIEWPORT_PREVIEW_DEFAULT_SIZE_TIER,
+  STUDIO_VIEWPORT_PREVIEW_PANEL_CHROME_HEIGHT_PX,
+  stripViewportPreviewLayoutUi,
+  type StudioViewportPreviewAspect,
+  type StudioViewportPreviewSizeTier,
+} from "../nodes/flow-node/studio-viewport-preview-layout";
+import { isScene3dInspectorNodeId } from "../nodes/scene3d/scene3d-inspector-node-ids";
 import type {
   LayoutFlowNode,
   LayoutMenuEntryId,
@@ -609,6 +623,12 @@ export type StudioNodeData = {
     contentMinHeight?: number;
     /** Persisted RF width per socket/body chrome profile (`studio-node-chrome-layout.ts`). */
     layoutWidthByChrome?: Partial<Record<StudioNodeChromeLayoutKey, number>>;
+    /** Last 3D preview aspect preset (Inspector → Canvas). */
+    previewAspect?: "4:3" | "16:9" | "1:1";
+    /** Last 3D preview size tier (`studio-viewport-preview-layout.ts`). */
+    previewSizeTier?: "sm" | "md" | "lg";
+    /** Measured header + sockets + panel chrome above viewport (px). */
+    viewportPreviewHeadHeight?: number;
   };
   inputType?: StudioPortType;
   /** Single-output nodes (legacy); omit when `outputHandles` is set. */
@@ -1128,10 +1148,20 @@ type FlowEditorState = {
     contentMinWidth: number,
     contentMinHeight: number,
   ) => void;
+  /** Live header + socket + panel chrome for 3D preview node sizing (no undo). */
+  syncStudioNodeViewportPreviewHeadHeight: (
+    nodeId: string,
+    headHeightPx: number,
+  ) => void;
   /** Set explicit RF width/height for the current homogeneous selection (or single node). */
   updateSelectedStudioNodeLayoutDimensions: (patch: {
     width?: number;
     height?: number;
+  }) => void;
+  /** Apply 3D preview aspect + size tier to the current selection (enables manual resize). */
+  applySelectedViewportPreviewLayout: (patch: {
+    aspect?: StudioViewportPreviewAspect;
+    sizeTier?: StudioViewportPreviewSizeTier;
   }) => void;
   /**
    * Single-selection config patch without pushing an undo snapshot (e.g. animation playback ticks).
@@ -1954,6 +1984,26 @@ function applyStudioNodeLayoutHeight(
   };
 }
 
+function applyStudioNodeLayoutDimensions(
+  node: StudioNode,
+  widthPx: number,
+  heightPx: number,
+): StudioNode {
+  const width = Math.max(1, Math.round(widthPx));
+  const height = Math.max(1, Math.round(heightPx));
+  const cleared = clearStudioNodeMeasuredBox(node);
+  return {
+    ...cleared,
+    width,
+    height,
+    style: {
+      ...(cleared.style ?? {}),
+      width,
+      height,
+    },
+  };
+}
+
 function clearStudioNodeMeasuredBox(node: StudioNode): StudioNode {
   const measured = node.measured;
   if (measured?.width == null && measured?.height == null) {
@@ -1984,12 +2034,12 @@ function applyStudioNodeLayoutWidth(
   };
 }
 
-/** After chrome/UI patch: strip fixed layout so content measure can resize width + height. */
+/** After chrome/UI patch: remeasure auto-sized nodes; keep manual RF size when resizable. */
 function applyStudioNodeChromeLayoutSwitch(
   node: StudioNode,
   data: StudioNodeData,
 ): StudioNode {
-  return { ...stripStudioNodeFixedLayout(node), data };
+  return prepareStudioNodeShellRemeasure({ ...node, data });
 }
 
 /** Keep React Flow node height aligned with utility collapse state (including after hydrate). */
@@ -4780,7 +4830,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const modelFlowId = "demo-stage-model-select";
 
       const modelNode = makeNode(modelEntry, modelFlowId, 80, 300);
-      modelNode.data.label = "Studio Model (PSoC E84)";
+      modelNode.data.label = "Model Source (PSoC E84)";
       modelNode.data.defaultConfig = {
         ...modelNode.data.defaultConfig,
         selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
@@ -4864,7 +4914,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const matRef = "Material";
 
       const modelNode = makeNode(modelEntry, modelFlowId, 72, 280);
-      modelNode.data.label = "Studio Model (PSoC E84)";
+      modelNode.data.label = "Model Source (PSoC E84)";
       modelNode.data.defaultConfig = {
         ...modelNode.data.defaultConfig,
         selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
@@ -5251,7 +5301,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
       };
       const modelNode = makeNode(modelEntry, modelFlowId, 72, 360);
-      modelNode.data.label = "Studio Model (PSoC E84)";
+      modelNode.data.label = "Model Source (PSoC E84)";
       modelNode.data.defaultConfig = {
         ...modelNode.data.defaultConfig,
         selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
@@ -5940,6 +5990,33 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       }),
     }));
   },
+  syncStudioNodeViewportPreviewHeadHeight: (nodeId, headHeightPx) => {
+    const id = nodeId.trim();
+    if (id.length === 0 || !Number.isFinite(headHeightPx)) {
+      return;
+    }
+    set((state) => ({
+      nodes: state.nodes.map((node) => {
+        if (node.id !== id || node.type !== "studio") {
+          return node;
+        }
+        if (!isScene3dInspectorNodeId(node.data.nodeId)) {
+          return node;
+        }
+        const nextUi = patchViewportPreviewHeadHeight(node.data.ui, headHeightPx);
+        if (nextUi === node.data.ui) {
+          return node;
+        }
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            ui: nextUi,
+          },
+        };
+      }),
+    }));
+  },
   updateSelectedStudioNodeLayoutDimensions: (patch) => {
     const st = get();
     const multiIds = getHomogeneousMultiSelectionIds(st);
@@ -5952,11 +6029,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (targetIds.length === 0) {
       return;
     }
-    if (patch.width != null) {
+    if (patch.width != null || patch.height != null) {
       get().pushUndoSnapshot();
     }
     const changes: Parameters<typeof applyNodeChanges<StudioNode>>[0] = [];
     const widthPatches: Array<{ id: string; width: number }> = [];
+    const idSet = new Set(targetIds);
     for (const id of targetIds) {
       const node = st.nodes.find((n) => n.id === id);
       if (node == null) {
@@ -5977,10 +6055,82 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (changes.length === 0) {
       return;
     }
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          const nextUi = stripViewportPreviewLayoutUi(data.ui);
+          if (nextUi === data.ui) {
+            return n;
+          }
+          return { ...n, data: { ...data, ui: nextUi } };
+        }),
+        state.edges,
+      ),
+    }));
     get().onNodesChange(changes);
     for (const { id, width } of widthPatches) {
       get().persistStudioNodeCanvasWidthForActiveChrome(id, width);
     }
+  },
+  applySelectedViewportPreviewLayout: (patch) => {
+    const st = get();
+    const multiIds = getHomogeneousMultiSelectionIds(st);
+    const targetIds =
+      multiIds != null
+        ? multiIds
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    if (targetIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(targetIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          if (!isScene3dInspectorNodeId(data.nodeId)) {
+            return n;
+          }
+          const aspect =
+            patch.aspect ??
+            coerceStudioViewportPreviewAspect(data.ui?.previewAspect) ??
+            STUDIO_VIEWPORT_PREVIEW_DEFAULT_ASPECT;
+          const sizeTier =
+            patch.sizeTier ??
+            coerceStudioViewportPreviewSizeTier(data.ui?.previewSizeTier) ??
+            STUDIO_VIEWPORT_PREVIEW_DEFAULT_SIZE_TIER;
+          const chrome = resolveViewportPreviewChromeFromNode(n as StudioNode);
+          const layout = computeViewportPreviewNodeDimensions(
+            aspect,
+            sizeTier,
+            data.nodeId,
+            chrome,
+          );
+          const nextUi = {
+            ...data.ui,
+            resizable: true,
+            previewAspect: aspect,
+            previewSizeTier: sizeTier,
+          };
+          return applyStudioNodeLayoutDimensions(
+            { ...n, data: { ...data, ui: nextUi } } as StudioNode,
+            layout.width,
+            layout.height,
+          );
+        }),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
   },
   applySelectedNodeConfigFieldLive: (key, value) => {
     const st = get();

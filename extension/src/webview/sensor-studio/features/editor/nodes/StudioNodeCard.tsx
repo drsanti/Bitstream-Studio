@@ -72,6 +72,7 @@ import {
 } from "./flow-node/socket-display";
 import { studioNodeAllowsBodyCollapse } from "./flow-node/studio-body-collapse";
 import { resolveStudioNodeMinDimensionFloor } from "./flow-node/studio-node-resize-defaults";
+import { STUDIO_VIEWPORT_PREVIEW_PANEL_CHROME_HEIGHT_PX } from "./flow-node/studio-viewport-preview-layout";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
@@ -151,6 +152,9 @@ function StudioNodeCard(props: NodeProps) {
   const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
   const syncStudioNodeContentMinDimensions = useFlowEditorStore(
     (s) => s.syncStudioNodeContentMinDimensions,
+  );
+  const syncStudioNodeViewportPreviewHeadHeight = useFlowEditorStore(
+    (s) => s.syncStudioNodeViewportPreviewHeadHeight,
   );
   const syncStudioNodeWidthFromContentMeasure = useFlowEditorStore(
     (s) => s.syncStudioNodeWidthFromContentMeasure,
@@ -287,6 +291,7 @@ function StudioNodeCard(props: NodeProps) {
       : null;
 
   const utilityBodyFitsContent =
+    data.nodeId === "model-select" ||
     data.nodeId === "object-transform" ||
     data.nodeId === "transform-from-euler" ||
     data.nodeId === "on-key" ||
@@ -314,6 +319,11 @@ function StudioNodeCard(props: NodeProps) {
     !showNodeBody ||
     (showNodeBody && compactConfigBodyNode);
 
+  const nodeResizable = data.ui?.resizable === true;
+  /** Resizable plotter / 3D viewport bodies must flex to fill RF node height. */
+  const resizableFlexBody =
+    nodeResizable && flowBodyFlexCol && !shellFitsContent;
+
   const headerChromeKey = useMemo(
     () =>
       [
@@ -335,7 +345,6 @@ function StudioNodeCard(props: NodeProps) {
     ],
   );
 
-  const nodeResizable = data.ui?.resizable === true;
   const minDimensionFloor = resolveStudioNodeMinDimensionFloor(data.nodeId);
   const minNodeWidth =
     typeof data.ui?.minWidth === "number" && Number.isFinite(data.ui.minWidth)
@@ -392,6 +401,12 @@ function StudioNodeCard(props: NodeProps) {
       const bodyEl = bodyMeasureRef.current;
       const bodyH = bodyEl?.offsetHeight ?? 0;
       const next = Math.max(0, Math.ceil(headerH + socketsH + bodyH));
+      if (isScene3dInspectorNodeId(data.nodeId)) {
+        syncStudioNodeViewportPreviewHeadHeight(
+          id,
+          headerH + socketsH + STUDIO_VIEWPORT_PREVIEW_PANEL_CHROME_HEIGHT_PX,
+        );
+      }
       setMeasuredHeaderSocketsMinHeight((prev) =>
         prev === next ? prev : next,
       );
@@ -1260,7 +1275,12 @@ function StudioNodeCard(props: NodeProps) {
           {showNodeBody ? (
             <div
               ref={nodeResizable ? bodyMeasureRef : undefined}
-              className="min-w-0 w-full max-w-full overflow-hidden"
+              className={twMerge(
+                "min-w-0 w-full max-w-full overflow-hidden",
+                resizableFlexBody
+                  ? "flex min-h-0 min-w-0 flex-1 flex-col"
+                  : null,
+              )}
             >
             <FlowNodeBody
               className={
@@ -1269,7 +1289,9 @@ function StudioNodeCard(props: NodeProps) {
                   : flowBodyFlexCol
                     ? isPlotterNodeId(data.nodeId)
                       ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
-                      : "flex min-h-0 flex-1 flex-col"
+                      : resizableFlexBody
+                        ? "flex h-full min-h-0 flex-1 flex-col"
+                        : "flex min-h-0 flex-1 flex-col"
                     : "space-y-0"
               }
             >

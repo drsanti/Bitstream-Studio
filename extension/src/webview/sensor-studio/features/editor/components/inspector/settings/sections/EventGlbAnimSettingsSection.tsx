@@ -78,7 +78,7 @@ function GlbAnimBindHint(props: {
     <div className="nodrag space-y-2">
       {isBound ? (
         <div className="rounded border border-cyan-900/45 bg-cyan-950/20 px-2 py-1.5">
-          <div className="text-[11px] font-medium text-cyan-100/95">GLB animation binding</div>
+          <div className="text-[11px] font-medium text-cyan-100/95">Animation binding</div>
           <div className="mt-1 break-all font-mono text-[10px] leading-snug text-zinc-400">
             <span className="uppercase text-cyan-300/80">animation</span>
             <span className="mx-1 text-zinc-600">·</span>
@@ -87,25 +87,25 @@ function GlbAnimBindHint(props: {
           {props.clipOptions.length > 0 &&
           !props.clipOptions.some((o) => o.value === boundRef) ? (
             <div className="mt-1.5 text-[10px] leading-snug text-amber-200/90">
-              This clip is not on the linked GLB — pick a clip below.
+              This clip is not on the linked model — pick a clip below.
             </div>
           ) : null}
         </div>
       ) : props.triggerNonce > 0 ? (
         <div className="rounded border border-amber-900/55 bg-amber-950/30 px-2 py-1.5 text-[10px] leading-snug text-amber-100/95">
           **{props.triggerNonce}** event pulses received but **no clip is bound** — choose a clip
-          below (or Library **GLB → Animations → Evt**).
+          below (or Library **Model → Animations → Evt**).
         </div>
       ) : (
         <TRNHintText tone="muted" className="text-[10px] leading-snug">
-          Pick a clip below or spawn from Library **GLB → Animations** (**Evt**) with **Studio Model**
+          Pick a clip below or spawn from Library **Model → Animations** (**Evt**) with **Model Source**
           selected.
         </TRNHintText>
       )}
       {selectOptions.length > 0 ? (
-        <TRNFormField label="GLB clip" id="event-trigger-glb-anim-clip" className="space-y-1.5">
+        <TRNFormField label="Animation clip" id="event-trigger-glb-anim-clip" className="space-y-1.5">
           <TRNSelect
-            ariaLabel="GLB animation clip to trigger"
+            ariaLabel="Animation clip to trigger"
             value={selectValue}
             options={
               isBound && !props.clipOptions.some((o) => o.value === boundRef)
@@ -126,8 +126,8 @@ function GlbAnimBindHint(props: {
         </TRNFormField>
       ) : (
         <TRNHintText tone="muted" className="text-[10px] leading-snug">
-          Wire **Studio Model → Model** on this node (or link via **Model viewer**) so this panel can
-          list animation clips from the GLB.
+          Wire **Model Source → Model** on this node (or link via **Model Viewer**) so this panel can
+          list animation clips from the model.
         </TRNHintText>
       )}
     </div>
@@ -241,9 +241,9 @@ export function EventTriggerGlbAnimSettingsSection(props: NodeInspectorSettingsS
 
   return (
     <InspectorCollapsibleSection
-      title="Trigger GLB animation"
+      title="Play Animation"
       icon={<Clapperboard className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
-      iconHint="Each event pulse increments an internal counter and restarts the bound clip in the Model viewer preview."
+      iconHint="Each event pulse increments an internal counter and restarts the bound clip in the Model Viewer preview."
       defaultExpanded
     >
       <GlbAnimBindHint
@@ -254,18 +254,18 @@ export function EventTriggerGlbAnimSettingsSection(props: NodeInspectorSettingsS
       />
       {extraction.state === "loading" ? (
         <TRNHintText tone="muted" className="text-[10px]">
-          Loading GLB clip list…
+          Loading animation clip list…
         </TRNHintText>
       ) : null}
       {extraction.state === "ok" && extraction.result.animations.length === 0 ? (
         <TRNHintText tone="muted" className="text-[10px] leading-snug text-amber-200/90">
-          This GLB has **no named animation clips**. Use a model with clips or drive morphs / parts
+          This model has **no named animation clips**. Use a model with clips or drive morphs / parts
           instead.
         </TRNHintText>
       ) : null}
       <TRNHintText className="text-[10px]">
-        Triggers fired: **{triggerNonce}**. Drives the **Model viewer** wired to the same **Studio
-        Model** (wire **Model** on this node or on the viewer).
+        Triggers fired: **{triggerNonce}**. Drives the **Model Viewer** wired to the same **Model
+        Source** (wire **Model** on this node or on the viewer).
       </TRNHintText>
       <TRNFormField label="Loop mode" id="event-trigger-glb-anim-loop" className="space-y-1.5">
         <TRNSelect
@@ -284,7 +284,7 @@ export function EventTriggerGlbAnimSettingsSection(props: NodeInspectorSettingsS
       <div className="grid grid-cols-2 gap-2">
         <TRNFormField label="Speed" id="event-trigger-glb-anim-speed" className="space-y-1">
           <InspectorNumericField
-            ariaLabel="GLB animation speed"
+            ariaLabel="Animation speed"
             value={speed}
             step={0.1}
             onCommit={(n) => {
@@ -294,7 +294,7 @@ export function EventTriggerGlbAnimSettingsSection(props: NodeInspectorSettingsS
         </TRNFormField>
         <TRNFormField label="Weight" id="event-trigger-glb-anim-weight" className="space-y-1">
           <InspectorNumericField
-            ariaLabel="GLB animation weight"
+            ariaLabel="Animation weight"
             value={weight}
             min={0}
             max={1}

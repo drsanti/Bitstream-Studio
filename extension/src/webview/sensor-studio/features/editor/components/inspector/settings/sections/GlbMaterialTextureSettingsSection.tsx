@@ -29,7 +29,7 @@ export function GlbMaterialTextureSettingsSection(props: NodeInspectorSettingsSe
               value: s,
               label: materialTextureSlotLabel(s),
             }))}
-            ariaLabel="GLB material texture map slot"
+            ariaLabel="Material texture map slot"
             size="sm"
             onValueChange={(next) =>
               onUpdateConfigField(
@@ -42,7 +42,7 @@ export function GlbMaterialTextureSettingsSection(props: NodeInspectorSettingsSe
       ) : null}
       <TRNHintText tone="muted" className="text-[11px] leading-snug">
         Pick a **2D texture** on the node card (Asset Browser textures). Default slot is **Base color
-        (map)**. Spawn from Library **GLB → Materials → Tex** with a **Studio Model** selected.
+        (map)**. Spawn from Library **Model → Materials → Tex** with a **Model Source** selected.
       </TRNHintText>
     </div>
   );

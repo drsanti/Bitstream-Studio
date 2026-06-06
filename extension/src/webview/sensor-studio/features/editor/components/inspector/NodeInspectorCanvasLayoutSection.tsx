@@ -3,8 +3,10 @@ import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { InspectorCanvasSubsection } from "./InspectorCanvasSubsection";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorNodeLayoutSizeFields } from "./InspectorNodeLayoutSizeFields";
+import { InspectorViewportPreviewLayoutFields } from "./InspectorViewportPreviewLayoutFields";
 import { InspectorSection } from "./InspectorSection";
 import type { StudioNode } from "../../store/flow-editor.store";
+import { isScene3dInspectorNodeId } from "../../nodes/scene3d/scene3d-inspector-node-ids";
 import {
   isSocketValuesVisible,
   isSocketsExpanded,
@@ -26,6 +28,9 @@ export function NodeInspectorCanvasLayoutSection(
   const hasBodyPanel = studioNodeHasHideableBody(selectedNode.data);
   const allowBodyCollapse = studioNodeAllowsBodyCollapse(selectedNode.data);
   const nodeResizable = selectedNode.data.ui?.resizable === true;
+  const showViewportPreviewPresets = isScene3dInspectorNodeId(
+    selectedNode.data.nodeId,
+  );
 
   const edges = useFlowEditorStore((s) => s.edges);
   const setSocketValuesVisibleForNodes = useFlowEditorStore(
@@ -105,6 +110,9 @@ export function NodeInspectorCanvasLayoutSection(
           onCheckedChange={(next) => updateSelectedNodeUiResizable(next)}
           ariaLabel="Allow manual resize on canvas"
         />
+        {showViewportPreviewPresets ? (
+          <InspectorViewportPreviewLayoutFields selectedNode={selectedNode} />
+        ) : null}
         {nodeResizable ? (
           <InspectorNodeLayoutSizeFields
             nodeId={selectedNode.id}

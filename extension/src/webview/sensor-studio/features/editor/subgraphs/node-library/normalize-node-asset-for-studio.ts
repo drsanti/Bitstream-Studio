@@ -416,7 +416,7 @@ function normalizeInnerNode(node: Node): Node {
       ...node,
       type: "studio",
       data: {
-        label: typeof data.graphTitle === "string" ? data.graphTitle : "GLB Texture",
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Material Texture",
         category: "transform",
         nodeId: "glb-material-texture",
         defaultConfig: {
@@ -466,7 +466,7 @@ function normalizeInnerNode(node: Node): Node {
       ...node,
       type: "studio",
       data: {
-        label: typeof data.graphTitle === "string" ? data.graphTitle : "GLB Animation Bundle",
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Animation Clips",
         category: "utility",
         nodeId: "glb-animation-bundle",
         defaultConfig: {
@@ -481,7 +481,7 @@ function normalizeInnerNode(node: Node): Node {
       ...node,
       type: "studio",
       data: {
-        label: typeof data.graphTitle === "string" ? data.graphTitle : "Toggle GLB Part",
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Toggle Model Part",
         category: "logic",
         nodeId: "event-toggle-glb-part",
         defaultConfig: {
@@ -878,7 +878,7 @@ function normalizeInnerNode(node: Node): Node {
       ...node,
       type: "studio",
       data: {
-        label: typeof data.graphTitle === "string" ? data.graphTitle : "GLB Material Color",
+        label: typeof data.graphTitle === "string" ? data.graphTitle : "Material Color",
         category: "generator",
         nodeId: "glb-material-color",
         defaultConfig: {

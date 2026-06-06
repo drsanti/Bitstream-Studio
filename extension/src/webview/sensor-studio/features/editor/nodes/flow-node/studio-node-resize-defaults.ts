@@ -19,7 +19,7 @@ export const STUDIO_NODE_DEFAULT_MIN_DIMENSIONS: StudioNodeMinDimensions = {
  */
 const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   "scene-output": { minWidth: 185, minHeight: 72 },
-  "model-select": { minWidth: 208, minHeight: 132 },
+  "model-select": { minWidth: 208, minHeight: 88 },
   environment: { minWidth: 240, minHeight: 220 },
   "camera-view": { minWidth: 240, minHeight: 220 },
   "model-viewer": { minWidth: 280, minHeight: 200 },
@@ -52,7 +52,6 @@ const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
 /** Output / viewport nodes default to manual canvas resize (Inspector → Canvas size). */
 const DEFAULT_RESIZABLE_NODE_IDS = new Set<string>([
   "model-viewer",
-  "model-select",
   "scene-output",
   "plotter",
   "sparkline",

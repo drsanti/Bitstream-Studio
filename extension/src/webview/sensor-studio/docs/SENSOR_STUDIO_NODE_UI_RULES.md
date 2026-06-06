@@ -26,7 +26,7 @@ Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMa
 
 **Socket wiring:** single inputs **replace** the previous wire; drag from a wired single input **pops** the wire first (reconnect). Multi-input: **`number-average`** only. Spec: **`SOCKET_CONNECTION_POLICY.md`**.
 
-**3D GLB preview transport** (`StudioSceneViewport` — Model Viewer, 3D Rotation): when the loaded GLB has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
+**3D model preview transport** (`StudioSceneViewport` — Model Viewer, 3D Rotation): when the loaded model has animation clips, **Play / Pause / Stop** appear **bottom-left** on the viewport (`GlbPreviewPlaybackControls`). Manual transport runs **all clips in parallel** when no animation flow wire or inspector drive is active; **flow / bundle / event drives take over** and disable the buttons. Implementation: **`glb-preview-user-transport.ts`**.
 
 Use **`TRNTooltip`** + **`TRNMenu*`** for menus; no native `title` on toolbar controls.
 
@@ -80,6 +80,23 @@ Library **line-2** previews are **hardware sensor rows only** (`paletteShowsHard
 
 Constants: **`PALETTE_*_ROW_LABEL`** for palette; **`SENSOR_TEMPERATURE_PORT_LABEL`** for non–BMI270 canvas sockets and tap temp ports. Extend **`sensor-port-labels.ts`** when adding a new sensor family — do not hardcode labels in **`palette-live-preview.ts`**.
 
+### Node Palette — Scene category
+
+3D / scene wiring nodes use catalog **`category: "scene"`** (not `input` / `output`). Operator-facing copy uses **plain language** — avoid **GLB**, **Studio Model**, and file-format jargon in titles, descriptions, palette rows, inspector sections, and socket hints. Internal ids stay stable (`model-select`, `glb-material-param`, …).
+
+| Zone | Rule |
+| ---- | ---- |
+| **Palette section label** | **`PALETTE_CATEGORY_LABEL.scene`** → **Scene** |
+| **Subgroups** | **`PALETTE_SCENE_SUBGROUP_ORDER`**: Sources → Viewports → Stage → Materials → Animation → Scene control |
+| **Subgroup map** | **`SCENE_NODE_SUBGROUP`** in **`palette-entry-meta.ts`** — assign every new scene node |
+| **Layouts** | Sectioned, accordion, two-line, and classic palettes all render scene subgroups via **`palette-subgroup-layout.ts`** |
+| **Library tab** | Internal tab id **`glb`**; operator label **Model** (extract / spawn from linked **Model Source**) |
+| **Inspector tint** | **`InspectorCategoryIcon`** — **`Layers`** + scene accent (`#818cf8`) |
+
+**Model Source** (`model-select`): canvas shows **model picker only** (no preview card, no linked-node list). Summary + **Focus** actions for linked nodes live in inspector **`StudioModelSettingsSection`**. Default **non-resizable** auto-fit width.
+
+**Model tab spawn hints:** Tex / Clr / Evt side buttons use **`TRNTooltip`** (`triggerWrapper="span"`) — not native **`title`**.
+
 ### Single-output sensor tap nodes (BMI270 / DPS368 / SHT40 / BMM350 taps)
 
 | Zone                      | Role                                                                                                              |
@@ -96,9 +113,9 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | ---- | ------ |
 | **Every scalar output pin** | Live preview on the socket row — **`syncSocketLivePreviewHandlesFromPinValues`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, **`liveStringByHandle`**, **`liveVector3ByHandle`** from evaluated pins |
 | **Bundled wire types** | No scalar preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
-| **Catalog / wire badges** | **`SocketStructuredWireBadge`** — port-type accent border, **`text-[10px]`**, **`max-w-[9rem]`** truncate; visible text via **`truncateSocketStringPreview`** (~14 chars); full text in **`title`** when truncated |
+| **Catalog / wire badges** | **`SocketStructuredWireBadge`** — port-type accent border, **`text-[10px]`**, **`max-w-full min-w-0 truncate`**; CSS ellipsis when the row is narrow; full label when space allows |
 | **Environment / Camera** | Preset / FOV labels from **`resolveEnvironmentWireSocketLabel`** / **`resolveCameraWireSocketLabel`** |
-| **Studio Model (string `model` pins)** | **`modelSelectEmitDisplayName`** (catalog label, not URL) on **`model-select` `out`**, **`model-viewer` `in`**, GLB event **`model`** — same badge as Environment |
+| **Model Source (string `model` pins)** | **`modelSelectEmitDisplayName`** (catalog / asset label, not URL) on **`model-select` `out`**, **`model-viewer` `in`**, event **`model`** inputs — same badge as Environment; pass full display name (no JS pre-truncate) |
 | **Boolean** | Display **`true`** / **`false`** (lowercase); **`true`** → emerald (`text-emerald-300`), **`false`** → muted zinc (`text-zinc-400`) |
 | **Generic string** | Plain **`SocketLivePreview`** (zinc text, no badge) — raw pin strings only; prefer a resolver + badge when the value is a catalog pick or bundled wire |
 | **Card body** | No fallback **`ReadingPanel`** for scalar-only utility nodes — socket row only |
@@ -383,7 +400,7 @@ Homogeneous multi-select applies width/height commits to every selected node of 
 
 ## Adding a new catalog node
 
-1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temperature (°C)`** last on BMI270).
+1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; **`scene`** for 3D model / viewport / stage / material / animation wiring; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temperature (°C)`** last on BMI270). Operator titles/descriptions: plain language (see **Node Palette — Scene category**).
 2. **Typography** — follow **Typography** (Inter; node title **`text-[13px]`**, socket labels/previews **`11px`**).
 3. **Socket preview kind** — pick one (see **Socket preview taxonomy** below); wire through **`socketLivePreviewForOutputHandle`** / **`socketLivePreviewForInputHandle`** — do not render ad-hoc preview spans on the card.
 4. **Live reading colors** — follow **Live reading semantic colors**; socket previews must use **`socketLivePreviewForOutputHandle`** (or **`getLiveScalarReadingColorClass`** / **`ReadingAxisNumber`** for custom readouts).
@@ -398,7 +415,7 @@ Homogeneous multi-select applies width/height commits to every selected node of 
 | ---- | ---- | ----------- | -------------- |
 | **Live scalar** | `number` / `boolean` evaluated pins | **`SocketLivePreview`** | Pin value; semantic tint for numbers |
 | **Live vector / quat** | `vector3` / `quaternion` | **`SocketLivePreview`** | Pin value; axis colors |
-| **Catalog / wire badge** | Asset or bundled-wire picks (environment, camera, studio model, future catalog refs) | **`SocketStructuredWireBadge`** | `resolve*WireSocketLabel` or `*EmitDisplayName` helper — **not** raw URLs on the row |
+| **Catalog / wire badge** | Asset or bundled-wire picks (environment, camera, **Model Source**, future catalog refs) | **`SocketStructuredWireBadge`** | `resolve*WireSocketLabel` or `*EmitDisplayName` helper — **not** raw URLs on the row |
 | **Generic string** | Opaque string payloads (URLs, ids) with no friendly resolver | **`SocketLivePreview`** `string` | Truncated pin value; full value in **`title`** |
 
 **Row layout (unchanged):** port label (**`Model`**, **`Environment`**) stays on the label column; the badge/preview sits in the preview column (output: before label; input: after label). Example output row: `[badge: Cubemap — park] Environment` — same structure as `[badge: PSoC E84…] Model`.

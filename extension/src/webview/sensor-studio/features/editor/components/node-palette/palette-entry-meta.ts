@@ -1,6 +1,60 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
 import { STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID } from "../../store/flow-editor.store";
 
+/** Scene grouping for Scene palette rows (3D model / viewport / stage wiring). */
+export type PaletteSceneSubgroup =
+  | "sources"
+  | "viewports"
+  | "stage"
+  | "materials"
+  | "animation"
+  | "control";
+
+/** Order of sections within Scene when using sectioned / accordion layouts. */
+export const PALETTE_SCENE_SUBGROUP_ORDER: PaletteSceneSubgroup[] = [
+  "sources",
+  "viewports",
+  "stage",
+  "materials",
+  "animation",
+  "control",
+];
+
+const SCENE_SUBGROUP_LABEL: Record<PaletteSceneSubgroup, string> = {
+  sources: "Sources",
+  viewports: "Viewports",
+  stage: "Stage",
+  materials: "Materials",
+  animation: "Animation",
+  control: "Scene control",
+};
+
+const SCENE_NODE_SUBGROUP: Readonly<Record<string, PaletteSceneSubgroup>> = {
+  "model-select": "sources",
+  environment: "sources",
+  "camera-view": "sources",
+  "model-viewer": "viewports",
+  "rotation-3d-euler": "viewports",
+  "rotation-3d-quaternion": "viewports",
+  "scene-output": "stage",
+  "glb-material-param": "materials",
+  "glb-material-texture": "materials",
+  "glb-material-color": "materials",
+  "glb-animation-bundle": "animation",
+  "scene-time": "animation",
+  "scene-settings": "control",
+  "scene-light": "control",
+  "camera-switch": "control",
+};
+
+function sceneSubgroupFromId(id: string): PaletteSceneSubgroup {
+  return SCENE_NODE_SUBGROUP[id] ?? "sources";
+}
+
+export function getSceneSubgroupLabel(subgroup: PaletteSceneSubgroup): string {
+  return SCENE_SUBGROUP_LABEL[subgroup];
+}
+
 /** Sensor grouping for SENSOR palette rows only (non-sensor categories omit subgroup). */
 export type PaletteSensorSubgroup =
   | "general"
@@ -66,6 +120,8 @@ export type PaletteEntryMeta = {
   chip: string | null;
   /** SENSOR-only subgroup; null when `entry.category !== "sensor"`. */
   sensorSubgroup: PaletteSensorSubgroup | null;
+  /** SCENE-only subgroup; null when `entry.category !== "scene"`. */
+  sceneSubgroup: PaletteSceneSubgroup | null;
   /** Human header for section / accordion. */
   subgroupLabel: string;
   /** Second line for “two-line” layout. */
@@ -86,6 +142,7 @@ export const PALETTE_CATEGORY_LABEL: Record<NodeCatalogEntry["category"], string
   audio: "Audio",
   transform: "Transform",
   logic: "Logic",
+  scene: "Scene",
   output: "Output",
   utility: "Utility",
   generator: "Generator",
@@ -218,10 +275,23 @@ export function getPaletteEntryKindLabel(entry: NodeCatalogEntry): string | null
 }
 
 export function getPaletteEntryMeta(entry: NodeCatalogEntry): PaletteEntryMeta {
+  if (entry.category === "scene") {
+    const sceneSubgroup = sceneSubgroupFromId(entry.id);
+    const subgroupLabel = SCENE_SUBGROUP_LABEL[sceneSubgroup];
+    return {
+      chip: null,
+      sensorSubgroup: null,
+      sceneSubgroup,
+      subgroupLabel,
+      subtitle: `${subgroupLabel} · ${entry.title}`,
+    };
+  }
+
   if (entry.category !== "sensor") {
     return {
       chip: null,
       sensorSubgroup: null,
+      sceneSubgroup: null,
       subgroupLabel: "",
       subtitle: entry.description,
     };
@@ -235,6 +305,7 @@ export function getPaletteEntryMeta(entry: NodeCatalogEntry): PaletteEntryMeta {
   return {
     chip,
     sensorSubgroup,
+    sceneSubgroup: null,
     subgroupLabel,
     subtitle,
   };

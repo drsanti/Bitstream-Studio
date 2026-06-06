@@ -1,7 +1,31 @@
-import { useMemo } from "react";
-import { TRNHintText } from "../../../../../ui/TRN";
+import { useMemo, type ReactNode } from "react";
+import { TRNHintText, TRNTooltip } from "../../../../../ui/TRN";
 import { studioGlbExtractRowKey, type StudioGltfExtractRow } from "../../gltf/studio-gltf-extract";
 import { setStudioGlbExtractDragData } from "./glb-extract-drag";
+
+function ExtractSpawnHintButton(props: {
+  hint: string;
+  className: string;
+  borderColor: string;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const { hint, className, borderColor, onClick, children } = props;
+  return (
+    <TRNTooltip
+      placement="top"
+      openDelayMs={450}
+      triggerWrapper="span"
+      triggerAriaLabel={hint}
+      content={hint}
+      trigger={
+        <button type="button" className={className} style={{ borderColor }} onClick={onClick}>
+          {children}
+        </button>
+      }
+    />
+  );
+}
 
 export type GlbExtractionTabPanelProps = {
   borderColor: string;
@@ -173,19 +197,19 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
     <div className={dense ? "space-y-2 pt-2" : "space-y-3 pt-3"}>
       {parentModelFlowNodeId == null ? (
         <TRNHintText tone="muted" className={dense ? "text-[10px]" : "text-[11px]"}>
-          Select exactly one <span className="font-medium text-zinc-300">Model</span> flow node on
-          the canvas. This tab loads that model&apos;s GLB and lists clips, lights, cameras, and other
-          extractable items (same idea as node-animator&apos;s scene graph palette).
+          Select exactly one <span className="font-medium text-zinc-300">Model Source</span> flow node on
+          the canvas. This tab loads that model and lists clips, lights, cameras, and other
+          extractable items.
         </TRNHintText>
       ) : state === "idle" ? (
         <TRNHintText tone="muted" className={dense ? "text-[10px]" : "text-[11px]"}>
-          The selected Model has no resolved URL yet. Pick a catalog GLB on the Model node first.
+          The selected model has no resolved URL yet. Pick a catalog model on the Model Source node first.
         </TRNHintText>
       ) : null}
 
       {parentModelFlowNodeId != null && state === "loading" ? (
         <div className="rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-3 text-center text-[11px] text-zinc-400">
-          Loading GLB…
+          Loading model…
         </div>
       ) : null}
 
@@ -206,22 +230,22 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
       {state === "ok" && totalRows > 0 ? (
         <>
           <TRNHintText tone="muted" className={dense ? "text-[10px] leading-snug" : "text-[11px]"}>
-            Click a row to add a linked drive block tagged with this GLB reference, or drag onto
+            Click a row to add a linked drive block tagged with this model reference, or drag onto
             the canvas. <span className="font-medium text-zinc-300">Materials</span> spawn{" "}
-            <span className="font-medium text-zinc-300">GLB Material Param</span> (PBR scalars); use{" "}
+            <span className="font-medium text-zinc-300">Material Property</span> (PBR scalars); use{" "}
             <span className="font-medium text-cyan-200/90">Tex</span> for{" "}
-            <span className="font-medium text-zinc-300">GLB Material Texture</span> (map swap). For{" "}
+            <span className="font-medium text-zinc-300">Material Texture</span> (map swap). For{" "}
             <span className="font-medium text-zinc-300">Parts</span>, use{" "}
             <span className="font-medium text-amber-200/90">Evt</span> for{" "}
-            <span className="font-medium text-zinc-300">Toggle GLB Part</span>; for{" "}
+            <span className="font-medium text-zinc-300">Toggle Model Part</span>; for{" "}
             <span className="font-medium text-zinc-300">Animations</span>, **Evt** adds{" "}
-            <span className="font-medium text-zinc-300">Trigger GLB Anim</span>. With a linked{" "}
-            <span className="font-medium text-zinc-300">Model viewer</span> (same Model), live
+            <span className="font-medium text-zinc-300">Play Animation</span>. With a linked{" "}
+            <span className="font-medium text-zinc-300">Model Viewer</span> (same model), live
             values drive morph, light, animation, part visibility (&gt; 0.5), material PBR +
             texture maps, and camera pose (strongest drive &gt; 0.5) in the preview.
           </TRNHintText>
           {searchQuery.trim().length > 0 && filteredTotal === 0 ? (
-            <p className="text-center text-[11px] text-zinc-500">No GLB entries match this search.</p>
+            <p className="text-center text-[11px] text-zinc-500">No model entries match this search.</p>
           ) : null}
           {SECTIONS.map((sec) => {
             const list = filtered[sec.key];
@@ -292,56 +316,52 @@ export function GlbExtractionTabPanel(props: GlbExtractionTabPanelProps) {
                             </span>
                           </button>
                           {row.kind === "material" && onSpawnGlbMaterialTextureExtract != null ? (
-                            <button
-                              type="button"
+                            <ExtractSpawnHintButton
+                              hint="Add Material Texture drive for this material"
                               className={textureSpawnButtonClass}
-                              style={{ borderColor }}
-                              title="Add GLB Material Texture drive for this material"
+                              borderColor={borderColor}
                               onClick={() => {
                                 spawnMaterialTexture(row);
                               }}
                             >
                               Tex
-                            </button>
+                            </ExtractSpawnHintButton>
                           ) : null}
                           {row.kind === "material" && onSpawnGlbMaterialColorExtract != null ? (
-                            <button
-                              type="button"
+                            <ExtractSpawnHintButton
+                              hint="Add Material Color drive for this material"
                               className={colorSpawnButtonClass}
-                              style={{ borderColor }}
-                              title="Add GLB Material Color drive for this material"
+                              borderColor={borderColor}
                               onClick={() => {
                                 spawnMaterialColor(row);
                               }}
                             >
                               Clr
-                            </button>
+                            </ExtractSpawnHintButton>
                           ) : null}
                           {row.kind === "part" && onSpawnGlbEventPartExtract != null ? (
-                            <button
-                              type="button"
+                            <ExtractSpawnHintButton
+                              hint="Add Toggle Model Part event action for this part"
                               className={eventSpawnButtonClass}
-                              style={{ borderColor }}
-                              title="Add Toggle GLB Part event action for this part"
+                              borderColor={borderColor}
                               onClick={() => {
                                 spawnEventPart(row);
                               }}
                             >
                               Evt
-                            </button>
+                            </ExtractSpawnHintButton>
                           ) : null}
                           {row.kind === "animation" && onSpawnGlbEventAnimExtract != null ? (
-                            <button
-                              type="button"
+                            <ExtractSpawnHintButton
+                              hint="Add Play Animation event action for this clip"
                               className={eventSpawnButtonClass}
-                              style={{ borderColor }}
-                              title="Add Trigger GLB Anim event action for this clip"
+                              borderColor={borderColor}
                               onClick={() => {
                                 spawnEventAnim(row);
                               }}
                             >
                               Evt
-                            </button>
+                            </ExtractSpawnHintButton>
                           ) : null}
                         </div>
                       </div>

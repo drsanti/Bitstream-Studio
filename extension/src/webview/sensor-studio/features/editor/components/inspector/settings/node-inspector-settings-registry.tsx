@@ -56,6 +56,7 @@ import {
   MicInputSettingsSection,
 } from "./sections/AudioSettingsSections";
 import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
+import { StudioModelSettingsSection } from "./sections/StudioModelSettingsSection";
 
 const VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS = Object.fromEntries(
   VECTOR_QUATERNION_MATH_NODE_IDS.map((id) => [id, VectorQuaternionMathSettingsSection]),
@@ -85,6 +86,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   oscilloscope: PlotterSettingsSection,
   "sensor-input": SensorInputSettingsSection,
   environment: EnvironmentSettingsSection,
+  "model-select": StudioModelSettingsSection,
   "scene-output": SceneOutputSettingsSection,
   "glb-animation-bundle": GlbAnimationBundleConnectionSection,
   "boolean-constant": BooleanConstantSettingsSection,

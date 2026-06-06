@@ -662,10 +662,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       ...VECTOR_QUATERNION_MATH_CATALOG_ENTRIES,
       {
         id: "model-select",
-        category: "utility",
-        title: "Studio Model",
+        category: "scene",
+        title: "Model Source",
         description:
-          "GLB from the Asset Browser or catalog dropdown. Drag a model from Asset Browser onto the canvas to spawn this node. Wire **Model** into a Model Viewer (or 3D Rotation) input.",
+          "Pick a 3D model from Assets or the catalog dropdown. Drag a model from Asset Browser onto the canvas to spawn this node. Wire **Model** into a Model Viewer (or 3D Rotation) input.",
         icon: "package",
         defaultVisible: true,
         defaultConfig: {
@@ -677,7 +677,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "environment",
-        category: "utility",
+        category: "scene",
         title: "Environment",
         description:
           "Author cubemap / HDRI, background, and IBL settings once. Wire the output into the **Environment** input on 3D Rotation or Model Viewer nodes to override their saved scene environment while connected. Optional **boolean / number** inputs (exposed per pin in the inspector) let other nodes drive Use IBL, background texture, IBL strength, IBL-off fraction, and environment yaw; a connected wire overrides the on-card control for that field.",
@@ -696,7 +696,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "camera-view",
-        category: "utility",
+        category: "scene",
         title: "Camera / View",
         description:
           "Author FOV, camera position, look-at target, and orbit distance limits once. Wire the output into the **Camera** input on Model Viewer or 3D Rotation nodes to override their saved scene camera while connected.",
@@ -739,10 +739,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "glb-animation-bundle",
-        category: "utility",
-        title: "GLB Animation Bundle",
+        category: "scene",
+        title: "Animation Clips",
         description:
-          "Drive GLB animation clips with a structured wire. When the node is linked to the same Model as your viewer (add from palette with Model selected), the inspector lists clip names from the GLB — toggle each clip and set time (s) and speed without JSON. Wire out into **Model Viewer** or **3D Rotation** **Animation**. Optional Advanced section edits raw clips JSON.",
+          "Drive model animation clips with a structured wire. When the node is linked to the same model as your viewer (add from the library with Model Source selected), the inspector lists clip names — toggle each clip and set time (s) and speed without JSON. Wire out into **Model Viewer** or **3D Rotation** **Animation**. Optional Advanced section edits raw clips JSON.",
         icon: "clapperboard",
         defaultVisible: false,
         defaultConfig: {
@@ -785,7 +785,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "transform",
         title: "Material Mix",
         description:
-          "Blend two numeric inputs with a factor (shader-graph primitive). Wire **Out** into **GLB Material Param** **Value** to drive animated PBR channels.",
+          "Blend two numeric inputs with a factor (shader-graph primitive). Wire **Out** into **Material Property** **Value** to drive animated PBR channels.",
         icon: "between-horizontal-start",
         defaultVisible: false,
         defaultConfig: {
@@ -848,7 +848,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "logic",
         title: "On Stage Pick",
         description:
-          "Emit an **event** pulse when you pick a model in the **Stage** workbench viewport (Domain C). Updates Stage focus to the picked instance. Wire into **Set Boolean**, **Toggle Boolean**, or GLB actions.",
+          "Emit an **event** pulse when you pick a model in the **Stage** workbench viewport (Domain C). Updates Stage focus to the picked instance. Wire into **Set Boolean**, **Toggle Boolean**, or model animation / part actions.",
         icon: "scan-line",
         defaultVisible: true,
         defaultConfig: {
@@ -904,9 +904,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "event-toggle-glb-part",
         category: "logic",
-        title: "Toggle GLB Part",
+        title: "Toggle Model Part",
         description:
-          "On each incoming **event** pulse, flip **part** visibility for a GLB part bound from the Library **GLB** tab (0 hidden, 1 visible). Requires a linked **Model viewer** on the same Model.",
+          "On each incoming **event** pulse, flip **part** visibility for a model part bound from the Library **Model** tab (0 hidden, 1 visible). Requires a linked **Model Viewer** on the same model.",
         icon: "eye",
         defaultVisible: true,
         defaultConfig: {
@@ -920,9 +920,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "event-set-glb-part",
         category: "logic",
-        title: "Set GLB Part",
+        title: "Set Model Part",
         description:
-          "On each incoming **event** pulse, set **part** visibility to a configured visible/hidden state for a GLB part bound from the Library **GLB** tab.",
+          "On each incoming **event** pulse, set **part** visibility to a configured visible/hidden state for a model part bound from the Library **Model** tab.",
         icon: "eye",
         defaultVisible: true,
         defaultConfig: {
@@ -937,9 +937,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       {
         id: "event-trigger-glb-anim",
         category: "logic",
-        title: "Trigger GLB Anim",
+        title: "Play Animation",
         description:
-          "On each incoming **event** pulse, restart a bound GLB **animation** clip in the **Model viewer** for the wired **Model** (default **once**). Wire **Studio Model → Model** for multi-model graphs; spawn from Library **GLB → Animations → Evt**.",
+          "On each incoming **event** pulse, restart a bound **animation** clip in the **Model Viewer** for the wired **Model** (default **once**). Wire **Model Source → Model** for multi-model graphs; spawn from Library **Model → Animations → Evt**.",
         icon: "clapperboard",
         defaultVisible: true,
         defaultConfig: {
@@ -1075,7 +1075,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "rotation-3d-euler",
-        category: "output",
+        category: "scene",
         title: "3D Rotation (Euler)",
         description:
           "Preview 3D object orientation from Euler vector input (rad), using a vanilla Three.js viewport for reliable resizing. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, and **Studio Light** inputs override saved scene settings while connected.",
@@ -1105,7 +1105,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "rotation-3d-quaternion",
-        category: "output",
+        category: "scene",
         title: "3D Rotation (Quaternion)",
         description:
           "Preview 3D object orientation from quaternion input, using a vanilla Three.js viewport for reliable resizing. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, and **Studio Light** inputs override saved scene settings while connected.",
@@ -1135,7 +1135,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "scene-output",
-        category: "output",
+        category: "scene",
         title: "Scene Output",
         description:
           "Commits wired **Models** and optional **Environment**, **Camera**, **Transform**, **Animation**, scene FX, and **Physics** to the **Stage** workbench (full Three.js + Rapier). Use **Model Viewer** on the canvas for authoring previews.",
@@ -1166,10 +1166,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "model-viewer",
-        category: "output",
+        category: "scene",
         title: "Model Viewer",
         description:
-          "GLB preview in a Three.js viewport. Wire a **Studio Model** node (or Asset Browser drag) into **Model**; preview stays empty until a model URL is wired. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, **Studio Light**, **Post-FX**, and **Contact Shadows** inputs override saved scene settings while connected.",
+          "3D model preview in a viewport. Wire a **Model Source** node (or Asset Browser drag) into **Model**; preview stays empty until a model is wired. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, **Studio Light**, **Post-FX**, and **Contact Shadows** inputs override saved scene settings while connected.",
         icon: "scan-line",
         defaultVisible: true,
         defaultConfig: {
@@ -1301,7 +1301,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       // ─────────────────────────────────────────────────────────────────────
       {
         id: "scene-time",
-        category: "generator",
+        category: "scene",
         title: "Scene Time",
         description:
           "Elapsed scene time in seconds and frames (30 fps frame counter).",
@@ -1385,7 +1385,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "scene-settings",
-        category: "utility",
+        category: "scene",
         title: "Scene Settings",
         description: "Scene exposure value for downstream preview wiring.",
         icon: "globe",
@@ -1435,7 +1435,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "scene-light",
-        category: "utility",
+        category: "scene",
         title: "Light",
         description:
           "Point or directional light scalars (intensity, RGB, position).",
@@ -1473,10 +1473,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "camera-switch",
-        category: "utility",
+        category: "scene",
         title: "Camera Switch",
         description:
-          "Active camera slot index 0–7; scoped to Model selects embedded GLB camera by sorted name.",
+          "Active camera slot index 0–7; scoped to Model Source when the model embeds named cameras.",
         icon: "clapperboard",
         defaultVisible: false,
         defaultConfig: { index: 0, cameraRig: [] as string[] },
@@ -1605,7 +1605,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "utility",
         title: "Material Variant",
         description:
-          "GLB material variant name string (wired variant overrides card).",
+          "Model material variant name string (wired variant overrides card).",
         icon: "palette",
         defaultVisible: false,
         defaultConfig: { modelSourceId: "", variant: "" },
@@ -1922,10 +1922,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "glb-material-param",
-        category: "generator",
-        title: "GLB Material Param",
+        category: "scene",
+        title: "Material Property",
         description:
-          "Drive a PBR channel (emissive, roughness, metalness, opacity) on a named GLB material. Spawn from Library **GLB → Materials** or bind `glbExtractKind: material` manually. Optional **Value** input overrides the card slider.",
+          "Drive a PBR channel (emissive, roughness, metalness, opacity) on a named model material. Spawn from Library **Model → Materials** or bind a material extract manually. Optional **Value** input overrides the card slider.",
         icon: "palette",
         defaultVisible: true,
         defaultConfig: {
@@ -1939,10 +1939,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "glb-material-texture",
-        category: "generator",
-        title: "GLB Material Texture",
+        category: "scene",
+        title: "Material Texture",
         description:
-          "Swap a texture map (base color, normal, roughness, etc.) on a named GLB material. Spawn from Library **GLB → Materials → Tex** or bind `glbExtractKind: material` manually. Pick a 2D texture on the node card.",
+          "Swap a texture map (base color, normal, roughness, etc.) on a named model material. Spawn from Library **Model → Materials → Tex** or bind a material extract manually. Pick a 2D texture on the node card.",
         icon: "image",
         defaultVisible: true,
         defaultConfig: {
@@ -1954,10 +1954,10 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
       },
       {
         id: "glb-material-color",
-        category: "generator",
-        title: "GLB Material Color",
+        category: "scene",
+        title: "Material Color",
         description:
-          "Drive base or emissive **RGB** on a named GLB material. Spawn from Library **GLB → Materials → Clr** or bind manually. Optional **Color** vector3 input overrides the picker.",
+          "Drive base or emissive **RGB** on a named model material. Spawn from Library **Model → Materials → Clr** or bind manually. Optional **Color** vector3 input overrides the picker.",
         icon: "palette",
         defaultVisible: true,
         defaultConfig: {

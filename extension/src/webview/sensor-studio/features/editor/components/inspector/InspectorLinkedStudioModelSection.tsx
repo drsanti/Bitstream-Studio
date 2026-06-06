@@ -86,7 +86,7 @@ export function InspectorLinkedStudioModelSection(
     <div className="flex items-center gap-1.5 rounded border border-zinc-700/60 bg-zinc-900/40 px-2 py-1.5 text-[11px] text-zinc-400">
       <Link2 className="h-3.5 w-3.5 shrink-0 text-cyan-500/80" aria-hidden />
       <span className="min-w-0">
-        Linked Studio Model ·{" "}
+        Linked model source ·{" "}
         <span className="font-medium text-zinc-200">{link.displayLabel}</span>
         {"nodeLabel" in link && link.nodeLabel != null ? (
           <span className="ml-1 truncate text-zinc-500">({link.nodeLabel})</span>

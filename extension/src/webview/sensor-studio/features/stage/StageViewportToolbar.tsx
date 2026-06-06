@@ -88,7 +88,7 @@ export function StageViewportToolbar(props: {
       modelCount > 1 && studioModelSourceLabel != null
         ? ` (${studioModelSourceLabel})`
         : "";
-    return `${name}${slot} — updates wired Studio Model node`;
+    return `${name}${slot} — updates wired Model Source node`;
   }, [
     modelCount,
     studioModelCatalogOptions,

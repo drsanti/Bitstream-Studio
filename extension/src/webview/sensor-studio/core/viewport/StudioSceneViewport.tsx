@@ -1548,7 +1548,7 @@ export const StudioSceneViewport = forwardRef<
           if (loadedRoots.length === 0) {
             setInitError(
               emptyHintRef.current ??
-                "No model URL — wire Studio Model nodes into Scene Output.",
+                "No model URL — wire Model Source nodes into Scene Output.",
             );
             return;
           }
@@ -1617,7 +1617,7 @@ export const StudioSceneViewport = forwardRef<
           loadedModelKey = reasonKey;
           setInitError(
             emptyHintRef.current ??
-              "No model URL — wire a Studio Model node or pick a GLB in the inspector.",
+              "No model URL — wire a Model Source node or pick a model in the inspector.",
           );
           return;
         }
@@ -1717,9 +1717,18 @@ export const StudioSceneViewport = forwardRef<
       // Fire and forget; safe-guarded by `disposed`.
       void loadEnvironment();
 
+      let lastResizeW = 0;
+      let lastResizeH = 0;
+      let resizeRaf: number | null = null;
+
       const resize = () => {
         const w = Math.max(1, Math.round(host.clientWidth));
         const h = Math.max(1, Math.round(host.clientHeight));
+        if (w === lastResizeW && h === lastResizeH) {
+          return;
+        }
+        lastResizeW = w;
+        lastResizeH = h;
         if (renderer != null) {
           applyPreviewPixelRatio(
             renderer,
@@ -1732,9 +1741,22 @@ export const StudioSceneViewport = forwardRef<
         camera.updateProjectionMatrix();
       };
 
+      const scheduleResize = () => {
+        if (resizeRaf != null) {
+          cancelAnimationFrame(resizeRaf);
+        }
+        // Double rAF: flex layout after RF node edge drag may settle one frame late.
+        resizeRaf = requestAnimationFrame(() => {
+          resizeRaf = requestAnimationFrame(() => {
+            resizeRaf = null;
+            resize();
+          });
+        });
+      };
+
       resizeRendererRef.current = resize;
       resize();
-      const ro = new ResizeObserver(() => resize());
+      const ro = new ResizeObserver(() => scheduleResize());
       ro.observe(host);
 
       if (stageFullBleed) {
@@ -2061,6 +2083,13 @@ export const StudioSceneViewport = forwardRef<
         cameraHelper?.update();
 
         controls.update(deltaSec);
+
+        const hostW = Math.max(1, Math.round(host.clientWidth));
+        const hostH = Math.max(1, Math.round(host.clientHeight));
+        if (hostW !== lastResizeW || hostH !== lastResizeH) {
+          resize();
+        }
+
         renderer?.render(scene, camera);
         raf = requestAnimationFrame(loop);
       };
@@ -2086,6 +2115,10 @@ export const StudioSceneViewport = forwardRef<
 
       return () => {
         resizeRendererRef.current = null;
+        if (resizeRaf != null) {
+          cancelAnimationFrame(resizeRaf);
+          resizeRaf = null;
+        }
         unbindStagePick?.();
         unbindStagePick = null;
         cancelAnimationFrame(raf);
@@ -2269,11 +2302,11 @@ export const StudioSceneViewport = forwardRef<
   }
 
   return (
-    <ReadingPanel className="relative flex min-h-0 flex-1 flex-col space-y-1">
-      <div className="flex items-center justify-between gap-2">
+    <ReadingPanel className="relative mt-0 flex h-full min-h-0 w-full max-w-full flex-1 flex-col overflow-hidden space-y-1">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <ReadingLabel className="block">{props.title}</ReadingLabel>
       </div>
-      <div className="min-h-0 w-full flex-1">{viewportShell}</div>
+      <div className="min-h-0 h-full w-full flex-1 basis-0">{viewportShell}</div>
     </ReadingPanel>
   );
 });

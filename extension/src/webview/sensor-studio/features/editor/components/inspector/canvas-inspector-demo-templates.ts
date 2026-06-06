@@ -27,17 +27,17 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
     {
       value: "stage-scene-output",
       label: "Stage + Scene Output",
-      hint: "Studio Model (PSoC E84 pack GLB) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",
+      hint: "Model Source (PSoC E84 pack model) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",
     },
     {
       value: "material-glb-drives",
-      label: "Material GLB drives",
-      hint: "Studio Model (PSoC E84 pack GLB) → **Model Viewer** + linked **GLB Material Param** (roughness slider) and **GLB Material Texture** (sample bridge face on **map**). Re-bind material names via Library **GLB → Materials** if your GLB uses different refs.",
+      label: "Material drives",
+      hint: "Model Source (PSoC E84 pack model) → **Model Viewer** + linked **Material Property** (roughness slider) and **Material Texture** (sample bridge face on **map**). Re-bind material names via Library **Model → Materials** if your model uses different refs.",
     },
     {
       value: "rotation-glb-anim",
-      label: "Rotation + GLB anim",
-      hint: "BMI270 Euler → 3D Rotation with **Animation** bundle + **On Click → Trigger GLB Anim** (pack default GLB). Bind a clip on the trigger/bundle, then click empty canvas to fire.",
+      label: "Rotation + animation",
+      hint: "BMI270 Euler → 3D Rotation with **Animation Clips** + **On Click → Play Animation** (pack default model). Bind a clip on the trigger/bundle, then click empty canvas to fire.",
     },
     {
       value: "signal-chain",

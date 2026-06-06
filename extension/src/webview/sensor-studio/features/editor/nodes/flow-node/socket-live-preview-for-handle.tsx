@@ -29,7 +29,6 @@ import {
   resolveCameraWireSocketLabel,
   resolveEnvironmentWireSocketLabel,
 } from "./structured-socket-preview-label";
-import { truncateSocketStringPreview } from "./truncate-socket-string";
 
 export type SocketPreviewContext = {
   flowNodeId?: string;
@@ -56,7 +55,7 @@ function modelStringSocketLivePreview(
   }
   return (
     <SocketStructuredWireBadge
-      label={truncateSocketStringPreview(fullLabel)}
+      label={fullLabel}
       title={fullLabel}
       portType="string"
     />

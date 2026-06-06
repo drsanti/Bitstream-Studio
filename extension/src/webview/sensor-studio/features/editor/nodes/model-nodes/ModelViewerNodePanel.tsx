@@ -57,11 +57,11 @@ function readBoolean(cfg: Record<string, unknown>, key: string, fallback: boolea
 }
 
 const MODEL_VIEWER_EMPTY_HINT =
-  "Wire a Studio Model node (drag a GLB from Asset Browser onto the canvas, or add Studio Model from the palette).";
+  "Wire a Model Source node (drag a 3D model from Asset Browser onto the canvas, or add Model Source from the library).";
 
 /**
  * Flow node: GLTF preview driven by the incoming **Model** wire (fetchable GLB URL).
- * No silent default mesh — stays empty until wired or linked to a configured Studio Model.
+ * No silent default mesh — stays empty until wired or linked to a configured Model Source.
  */
 export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
   const {

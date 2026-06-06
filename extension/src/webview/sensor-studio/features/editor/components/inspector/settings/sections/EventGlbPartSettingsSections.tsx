@@ -27,14 +27,14 @@ function GlbPartBindHint(props: {
   if (glbTag == null || glbTag.kind !== "part") {
     return (
       <TRNHintText tone="muted" className="text-[10px] leading-snug">
-        Spawn from Library **GLB → Parts** (**Evt** button) with a Model selected, or add GLB metadata
-        manually. Only **part** visibility is supported for event actions in v0.1.
+        Spawn from Library **Model → Parts** (**Evt** button) with Model Source selected, or add part
+        extract metadata manually. Only **part** visibility is supported for event actions in v0.1.
       </TRNHintText>
     );
   }
   return (
     <div className="nodrag rounded border border-cyan-900/45 bg-cyan-950/20 px-2 py-1.5">
-      <div className="text-[11px] font-medium text-cyan-100/95">GLB part binding</div>
+      <div className="text-[11px] font-medium text-cyan-100/95">Model part binding</div>
       <div className="mt-1 break-all font-mono text-[10px] leading-snug text-zinc-400">
         <span className="uppercase text-cyan-300/80">{glbTag.kind}</span>
         <span className="mx-1 text-zinc-600">·</span>
@@ -42,8 +42,8 @@ function GlbPartBindHint(props: {
       </div>
       <TRNHintText tone="muted" className="mt-1 text-[10px] leading-snug">
         {props.partDriveMode === "opacity"
-          ? "Opacity mode passes 0–1 to linked **Model viewer** part drives (0 hides the mesh)."
-          : "Values > 0.5 show the part in a linked **Model viewer** on the same Model; ≤ 0.5 hides it."}
+          ? "Opacity mode passes 0–1 to linked **Model Viewer** part drives (0 hides the mesh)."
+          : "Values > 0.5 show the part in a linked **Model Viewer** on the same model; ≤ 0.5 hides it."}
       </TRNHintText>
     </div>
   );
@@ -59,7 +59,7 @@ function PartDriveModeRow(props: {
       description="Visibility-only is on/off. Opacity allows fractional fade in the preview."
     >
       <TRNSegmentedControl
-        ariaLabel="GLB part drive mode"
+        ariaLabel="Model part drive mode"
         className="nodrag w-full"
         fullWidth
         size="sm"
@@ -89,7 +89,7 @@ export function EventToggleGlbPartSettingsSection(props: NodeInspectorSettingsSe
 
   return (
     <InspectorCollapsibleSection
-      title="Toggle GLB part"
+      title="Toggle Model Part"
       icon={<Eye className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
       iconHint="Each event pulse flips part visibility between hidden and visible."
       defaultExpanded
@@ -140,7 +140,7 @@ export function EventSetGlbPartSettingsSection(props: NodeInspectorSettingsSecti
 
   return (
     <InspectorCollapsibleSection
-      title="Set GLB part"
+      title="Set Model Part"
       icon={<Eye className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
       iconHint="Each event pulse writes the configured visible/hidden state (does not flip)."
       defaultExpanded
