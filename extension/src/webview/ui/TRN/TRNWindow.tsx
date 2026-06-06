@@ -1591,9 +1591,17 @@ export function TRNWindow(props: TRNWindowProps) {
     );
   }
 
-  return (
+  const viewportOverlay = (
     <div className="pointer-events-none fixed inset-0" style={{ zIndex: overlayZIndex }}>
       {overlayInner}
     </div>
   );
+
+  // Portal to document.body so fixed overlays stack above workbench panes / React Flow
+  // transforms (inline render stays trapped in the pane stacking context).
+  if (typeof document !== "undefined") {
+    return createPortal(viewportOverlay, document.body);
+  }
+
+  return viewportOverlay;
 }

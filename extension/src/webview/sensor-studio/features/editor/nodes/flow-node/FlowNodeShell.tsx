@@ -27,7 +27,9 @@ export const FlowNodeShell = forwardRef<HTMLDivElement, FlowNodeShellProps>(
         className={twMerge(
           FLOW_NODE_MIN_WIDTH_CLASS,
           "inline-flex min-w-0 max-w-full cursor-default flex-col overflow-visible rounded-md border text-zinc-100 shadow-[0_8px_24px_rgba(0,0,0,0.35)]",
-          glass ? flowNodeShellGlassClass(glassPreset) : "border-zinc-700/80 bg-zinc-950/85",
+          glass
+            ? flowNodeShellGlassClass(glassPreset)
+            : "border-zinc-700/80 bg-zinc-950/85",
           className,
         )}
         {...rest}
