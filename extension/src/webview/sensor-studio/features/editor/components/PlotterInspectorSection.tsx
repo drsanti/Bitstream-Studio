@@ -19,14 +19,17 @@ import {
   PLOTTER_INPUT_IDS,
   coercePlotterConfig,
   type PlotterChannelStyle,
+  type PlotterChannelColorMode,
   type PlotterConfig,
   type PlotterInputId,
 } from "../nodes/plotter/plotter-config";
+import { resolvePlotterChannelColors } from "../nodes/plotter/plotter-channel-colors";
 import type { StudioNode } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { InspectorCollapsibleSection } from "./inspector/InspectorCollapsibleSection";
 import { InspectorCompactToggleRow } from "./inspector/InspectorCompactToggleRow";
 import { InspectorColorRow, InspectorSelectRow } from "./inspector/InspectorDenseControls";
+import { InspectorPropertyRow } from "./inspector/InspectorPropertyRow";
 import {
   InspectorNumericScrubRow,
   InspectorTextRow,
@@ -134,6 +137,16 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
     () => resolvePlotterChannelWireHints(selectedNode.id, edges, nodes),
     [selectedNode.id, edges, nodes],
   );
+  const channelColors = useMemo(
+    () =>
+      resolvePlotterChannelColors({
+        plotterFlowNodeId: selectedNode.id,
+        config: cfg,
+        edges,
+        nodes,
+      }),
+    [selectedNode.id, cfg, edges, nodes],
+  );
 
   const livePointCount = useMemo(() => {
     let max = 0;
@@ -169,6 +182,7 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
 
   const activeChannel = cfg.channels[activeChannelId] ?? cfg.channels.ch1!;
   const activeWire = wireHints[activeChannelId];
+  const activeTraceColor = channelColors[activeChannelId] ?? activeChannel.colorHex;
   const activeHistory = livePlotHistory[activeChannelId] ?? [];
   const activeStats = useMemo(
     () => computePlotterChannelStats(activeHistory),
@@ -429,7 +443,8 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
         />
 
         <InspectorCompactToggleRow
-          label="Visible on canvas"
+          label="Show trace in chart"
+          hint="Hide this channel's line without clearing its history."
           checked={activeChannel.visible}
           onCheckedChange={(next) => {
             patchChannel(activeChannelId, { visible: next });
@@ -445,18 +460,58 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
             patchChannel(activeChannelId, { label: next });
           }}
         />
-        <InspectorColorRow
-          label="Trace color"
-          ariaLabel={`Plotter ${activeChannelId} color`}
-          value={
-            /^#[0-9a-fA-F]{6}$/.test(activeChannel.colorHex)
-              ? activeChannel.colorHex
-              : "#22d3ee"
-          }
+        <InspectorSegmentButtonGroup
+          ariaLabel="Plotter trace color source"
+          layout="grid-2"
+          value={activeChannel.colorMode}
+          options={[
+            {
+              value: "followWire",
+              label: "Follow wire",
+              hint: "Match upstream socket semantics (axis X/Y/Z/W or sensor tint).",
+            },
+            {
+              value: "custom",
+              label: "Custom",
+              hint: "Fixed color from the picker below.",
+            },
+          ]}
           onChange={(next) => {
-            patchChannel(activeChannelId, { colorHex: next });
+            patchChannel(activeChannelId, { colorMode: next as PlotterChannelColorMode });
           }}
         />
+        {activeChannel.colorMode === "custom" ? (
+          <InspectorColorRow
+            label="Trace color"
+            ariaLabel={`Plotter ${activeChannelId} color`}
+            value={
+              /^#[0-9a-fA-F]{6}$/.test(activeChannel.colorHex)
+                ? activeChannel.colorHex
+                : "#22d3ee"
+            }
+            onChange={(next) => {
+              patchChannel(activeChannelId, { colorHex: next });
+            }}
+          />
+        ) : (
+          <InspectorPropertyRow
+            label="Wire color"
+            description={
+              activeWire != null
+                ? `${activeWire.sourceLabel} · ${activeWire.handleLabel}`
+                : "Connect a wire to inherit semantic color."
+            }
+          >
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="inline-block h-3 w-6 shrink-0 rounded-sm border border-zinc-600/70"
+                style={{ backgroundColor: activeTraceColor }}
+                aria-hidden
+              />
+              <span className="text-[10px] text-zinc-400">{activeTraceColor}</span>
+            </span>
+          </InspectorPropertyRow>
+        )}
         <InspectorSelectRow
           label="Line style"
           ariaLabel={`Plotter ${activeChannelId} line style`}

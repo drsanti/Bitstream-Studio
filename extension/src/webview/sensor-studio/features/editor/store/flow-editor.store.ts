@@ -391,6 +391,7 @@ import {
 import {
   applyStudioNodeMinDimensionsToUi,
   resolveStudioNodeMinDimensionFloor,
+  resolveStudioNodeInitialLayoutHeight,
   studioNodeDefaultResizable,
 } from "../nodes/flow-node/studio-node-resize-defaults";
 import {
@@ -615,7 +616,7 @@ export type StudioNodeData = {
     bodyControlsVisible?: boolean;
     /**
      * When `false`, canvas toolbar cannot collapse the body (visual nodes default off).
-     * Enable per node in Inspector → Canvas.
+     * Enable per node in Inspector → Node → Body panel.
      */
     allowBodyCollapse?: boolean;
     /** Live content-driven minimum from canvas measure (see `StudioNodeCard`). */
@@ -623,7 +624,7 @@ export type StudioNodeData = {
     contentMinHeight?: number;
     /** Persisted RF width per socket/body chrome profile (`studio-node-chrome-layout.ts`). */
     layoutWidthByChrome?: Partial<Record<StudioNodeChromeLayoutKey, number>>;
-    /** Last 3D preview aspect preset (Inspector → Canvas). */
+    /** Last 3D preview aspect preset (Inspector → Node → Card size). */
     previewAspect?: "4:3" | "16:9" | "1:1";
     /** Last 3D preview size tier (`studio-viewport-preview-layout.ts`). */
     previewSizeTier?: "sm" | "md" | "lg";
@@ -1599,10 +1600,13 @@ function attachConfigErrors(
             })()
           : coercedData;
     let piped: StudioNodeData = withScene3d;
-    // Default: auto content-fit sizing; edge resize is opt-in per node (Inspector → Canvas).
+    // Default: auto content-fit sizing; edge resize is opt-in per node (Inspector → Node → Card size).
     const uiWithFloors = applyStudioNodeMinDimensionsToUi(piped.nodeId, {
       ...piped.ui,
-      resizable: piped.ui?.resizable ?? studioNodeDefaultResizable(piped.nodeId),
+      resizable:
+        typeof piped.ui?.resizable === "boolean"
+          ? piped.ui.resizable
+          : studioNodeDefaultResizable(piped.nodeId),
       allowBodyCollapse:
         piped.ui?.allowBodyCollapse ??
         studioNodeDefaultAllowBodyCollapse(piped.nodeId),
@@ -2128,24 +2132,31 @@ function createStudioNodeFromCatalogEntry(
 ): StudioNode {
   const id = `${entry.id}-${Date.now()}-${Math.round(Math.random() * 1000)}`;
   const inferred = inferPortTypes(entry);
-  const ui: StudioNodeData["ui"] =
-    options?.ui != null
-      ? {
-          resizable: false,
-          allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
-          ...options.ui,
-        }
-      : {
-          resizable: false,
-          allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
-        };
+  const ui: StudioNodeData["ui"] = {
+    allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
+    resizable: studioNodeDefaultResizable(entry.id),
+    ...options?.ui,
+  };
   const catalogFloor = resolveStudioNodeMinDimensionFloor(entry.id);
+  const seedLayoutBox =
+    ui.resizable === true || isPlotterNodeId(entry.id);
+  const initialHeight = seedLayoutBox
+    ? resolveStudioNodeInitialLayoutHeight(entry.id, catalogFloor)
+    : undefined;
   const base: StudioNode = {
     id,
     type: "studio",
     position,
     width: catalogFloor.minWidth,
-    style: { width: catalogFloor.minWidth },
+    ...(seedLayoutBox && initialHeight != null
+      ? {
+          height: initialHeight,
+          style: {
+            width: catalogFloor.minWidth,
+            height: initialHeight,
+          },
+        }
+      : { style: { width: catalogFloor.minWidth } }),
     dragHandle: dragHandleSelectorForNodeId(entry.id),
     data: {
       label: entry.title,
@@ -5877,11 +5888,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const st = get();
     const multiIds = getHomogeneousMultiSelectionIds(st);
     const targetIds =
-      multiIds != null
-        ? multiIds
+      multiIds ??
+      (st.selectedNodeIds.length > 0
+        ? st.selectedNodeIds
         : st.selectedNodeId != null
           ? [st.selectedNodeId]
-          : [];
+          : []);
     if (targetIds.length === 0) {
       return;
     }
@@ -5897,16 +5909,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           if (!resizable) {
             const stripped = stripStudioNodeFixedLayout(node as StudioNode);
             const clearedUi = clearStudioNodeChromeLayoutWidths(
-              studioNodeUiWithoutDisplayOverrides({
-                ...data.ui,
-                resizable: false,
-              }),
+              studioNodeUiWithoutDisplayOverrides(data.ui),
             );
             const fitW = resolveFitWidthFromContentMeasure(data.nodeId, clearedUi);
             return applyStudioNodeLayoutWidth(
               {
                 ...stripped,
-                data: { ...data, ui: clearedUi },
+                data: {
+                  ...data,
+                  ui: { ...clearedUi, resizable: false },
+                },
               } as StudioNode,
               fitW,
             );

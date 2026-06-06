@@ -113,6 +113,7 @@ import {
   isPlotterNodeId,
   PLOTTER_INPUT_IDS,
 } from "./plotter/plotter-config";
+import { resolvePlotterChannelColors } from "./plotter/plotter-channel-colors";
 import { isScene3dInspectorNodeId } from "./scene3d/scene3d-inspector-node-ids";
 import {
   coerceScene3DConfigV1,
@@ -206,6 +207,22 @@ function StudioNodeCard(props: NodeProps) {
     }),
     [id, descriptors, flowNodesWithCatalogData, flowEdges],
   );
+  const plotterConfig = useMemo(
+    () =>
+      isPlotterNodeId(data.nodeId) ? coercePlotterConfig(data.defaultConfig) : null,
+    [data.defaultConfig, data.nodeId],
+  );
+  const plotterChannelColors = useMemo(() => {
+    if (plotterConfig == null) {
+      return undefined;
+    }
+    return resolvePlotterChannelColors({
+      plotterFlowNodeId: id,
+      config: plotterConfig,
+      edges: flowEdges,
+      nodes: flowNodes,
+    });
+  }, [plotterConfig, flowEdges, flowNodes, id]);
   const socketsExpanded = isSocketsExpanded(data.ui);
   const socketValuesVisible = isSocketValuesVisible(data.ui);
   const bodyControlsVisible = isBodyControlsVisible(data.ui);
@@ -228,7 +245,7 @@ function StudioNodeCard(props: NodeProps) {
         });
       return {
         ...flowNodeHandleStyle(side, accent),
-        ...studioHandleDimStyle(dimmed),
+        ...studioHandleDimStyle(dimmed, canvasPrefs.handleUnwiredDimOpacity),
       };
     },
     [canvasPrefs.handleDimWhenUnwired, edges, id],
@@ -320,9 +337,12 @@ function StudioNodeCard(props: NodeProps) {
     (showNodeBody && compactConfigBodyNode);
 
   const nodeResizable = data.ui?.resizable === true;
-  /** Resizable plotter / 3D viewport bodies must flex to fill RF node height. */
+  /** Visual plot / gauge bodies flex to fill RF node height (resizable or plotter). */
   const resizableFlexBody =
-    nodeResizable && flowBodyFlexCol && !shellFitsContent;
+    (nodeResizable || isPlotterNodeId(data.nodeId)) &&
+    flowBodyFlexCol &&
+    !shellFitsContent &&
+    showNodeBody;
 
   const headerChromeKey = useMemo(
     () =>
@@ -1274,7 +1294,11 @@ function StudioNodeCard(props: NodeProps) {
 
           {showNodeBody ? (
             <div
-              ref={nodeResizable ? bodyMeasureRef : undefined}
+              ref={
+                nodeResizable || isPlotterNodeId(data.nodeId)
+                  ? bodyMeasureRef
+                  : undefined
+              }
               className={twMerge(
                 "min-w-0 w-full max-w-full overflow-hidden",
                 resizableFlexBody
@@ -1574,16 +1598,17 @@ function StudioNodeCard(props: NodeProps) {
                 />
               ) : null}
               {isPlotterNodeId(data.nodeId) ? (
-                <ReadingPanel className="mt-0 flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none ring-0">
+                <ReadingPanel className="mt-0 flex h-full min-h-[120px] min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent p-0 shadow-none ring-0">
                   <PlotterCanvas
-                    className="relative box-border min-h-0 min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
+                    className="relative box-border min-h-[120px] min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
                     histories={data.livePlotHistory ?? {}}
                     channelOrder={
                       data.inputHandles?.map((h) => h.id) ?? [
                         ...PLOTTER_INPUT_IDS,
                       ]
                     }
-                    config={coercePlotterConfig(data.defaultConfig)}
+                    config={plotterConfig ?? coercePlotterConfig(data.defaultConfig)}
+                    channelColors={plotterChannelColors}
                   />
                 </ReadingPanel>
               ) : null}

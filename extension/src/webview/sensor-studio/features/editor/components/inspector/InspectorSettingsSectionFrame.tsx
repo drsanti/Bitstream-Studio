@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { TRNInteractiveCard } from "../../../../../ui/TRN";
+import { InspectorScopeThisNodeChip } from "./InspectorScopeChip";
+import { InspectorSection } from "./InspectorSection";
 
 export type InspectorSettingsSectionFrameProps = {
   title: string;
@@ -15,7 +16,7 @@ export type InspectorSettingsSectionFrameProps = {
   fillAvailableHeight?: boolean;
 };
 
-/** Shared bordered “card” chrome for typed inspector sections. */
+/** Shared bordered card for typed inspector sections with form fields. */
 export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFrameProps) {
   const {
     title,
@@ -25,32 +26,26 @@ export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFra
     defaultExpanded = true,
     fillAvailableHeight = false,
   } = props;
-  if (fillAvailableHeight) {
-    return (
-      <TRNInteractiveCard
-        title={title}
-        shell="glass"
-        className={"flex min-h-0 flex-1 flex-col " + className}
-        headerTitleClassName="text-[11px] font-semibold text-zinc-200/95"
-        contentClassName="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden border-t border-zinc-800/60 pt-2"
-        collapsible={collapsible}
-        defaultExpanded={defaultExpanded}
-      >
-        {children}
-      </TRNInteractiveCard>
-    );
-  }
+
+  const contentClassName = fillAvailableHeight
+    ? "flex min-h-0 flex-1 flex-col gap-2 overflow-hidden border-t border-zinc-800/60 pt-2"
+    : "min-h-0 space-y-3 border-t border-zinc-800/60 px-2 py-1.5 pt-2";
+
   return (
-    <TRNInteractiveCard
+    <InspectorSection
       title={title}
-      shell="glass"
-      className={className}
-      headerTitleClassName="text-[11px] font-semibold text-zinc-200/95"
-      contentClassName="min-h-0 border-t border-zinc-800/60 pt-2"
+      variant="compact"
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}
+      className={
+        fillAvailableHeight
+          ? `flex min-h-0 flex-1 flex-col ${className}`
+          : className
+      }
+      contentClassName={contentClassName}
+      headerTrailing={<InspectorScopeThisNodeChip />}
     >
-      <div className="space-y-3">{children}</div>
-    </TRNInteractiveCard>
+      {fillAvailableHeight ? children : <div className="space-y-3">{children}</div>}
+    </InspectorSection>
   );
 }

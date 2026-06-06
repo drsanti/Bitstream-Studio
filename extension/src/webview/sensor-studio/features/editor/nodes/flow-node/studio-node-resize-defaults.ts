@@ -49,7 +49,7 @@ const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   "sht40-input": { minWidth: 220, minHeight: 120 },
 };
 
-/** Output / viewport nodes default to manual canvas resize (Inspector → Canvas size). */
+/** Output / viewport nodes default to manual canvas resize (Inspector → Node → Card size). */
 const DEFAULT_RESIZABLE_NODE_IDS = new Set<string>([
   "model-viewer",
   "scene-output",
@@ -90,6 +90,17 @@ export function resolveStudioNodeMinDimensionFloor(nodeId: string): StudioNodeMi
     );
   }
   return MIN_BY_NODE_ID[nodeId] ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS;
+}
+
+/** RF height when spawning from the palette (includes visual body band, not chrome-only min). */
+export function resolveStudioNodeInitialLayoutHeight(
+  nodeId: string,
+  floor: StudioNodeMinDimensions = resolveStudioNodeMinDimensionFloor(nodeId),
+): number {
+  if (isPlotterNodeId(nodeId)) {
+    return Math.max(floor.minHeight, 280);
+  }
+  return floor.minHeight;
 }
 
 /** Merge catalog floors into `ui` when `minWidth` / `minHeight` are unset. */

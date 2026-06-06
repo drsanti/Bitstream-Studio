@@ -1,21 +1,33 @@
 import type { ReactNode } from "react";
-import { TRNCard, TRNHintTooltip } from "../../../../../ui/TRN";
+import { InspectorScopeThisNodeChip } from "./InspectorScopeChip";
+import { InspectorSection } from "./InspectorSection";
 
 export type InspectorCollapsibleSectionProps = {
   title: string;
   icon?: ReactNode;
-  /** Shown in a hover tooltip on the header icon ({@link TRNHintTooltip}). */
+  /** Title hover tooltip when the section has form fields. */
   iconHint?: string;
   /** Optional pill beside the title (e.g. port type badge). */
   badge?: ReactNode;
   defaultExpanded?: boolean;
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
+  /** When false, omit the “This node” scope chip (default true). */
+  showScopeChip?: boolean;
 };
 
+function hasRenderableChildren(children: ReactNode): boolean {
+  if (children == null || children === false) {
+    return false;
+  }
+  if (Array.isArray(children)) {
+    return children.some((child) => child != null && child !== false);
+  }
+  return true;
+}
+
 /**
- * Collapsible glass section for Node Inspector typed settings.
- * Matches Model Preview debug cards ({@link TRNCard} soft glass + header hint tooltips).
+ * Typed node settings card — same chrome as layout cards ({@link InspectorSection} compact).
  */
 export function InspectorCollapsibleSection(props: InspectorCollapsibleSectionProps) {
   const {
@@ -26,33 +38,37 @@ export function InspectorCollapsibleSection(props: InspectorCollapsibleSectionPr
     defaultExpanded = true,
     children,
     className = "",
+    showScopeChip = true,
   } = props;
 
-  const headerIcon =
-    icon != null && iconHint != null && iconHint.length > 0 ? (
-      <TRNHintTooltip
-        trigger={icon}
-        content={iconHint}
-        triggerAriaLabel={`About ${title}`}
-        placement="top-start"
-      />
-    ) : (
-      icon
-    );
+  const hasBody = hasRenderableChildren(children);
+
+  if (!hasBody) {
+    return null;
+  }
+
+  const hint = iconHint != null && iconHint.length > 0 ? iconHint : undefined;
+
+  const headerTrailing =
+    badge != null || showScopeChip ? (
+      <span className="inline-flex shrink-0 items-center gap-1.5">
+        {badge}
+        {showScopeChip ? <InspectorScopeThisNodeChip /> : null}
+      </span>
+    ) : undefined;
 
   return (
-    <TRNCard
-      className={"shrink-0 " + className}
+    <InspectorSection
       title={title}
-      icon={headerIcon}
-      titleTrailing={badge}
+      hint={hint}
+      titleLeadingSlot={icon}
+      headerTrailing={headerTrailing}
+      variant="compact"
       defaultExpanded={defaultExpanded}
-      collapsible
-      glass
-      glassPreset="soft"
-      contentClassName="space-y-1.5"
+      className={className}
+      contentClassName="space-y-1.5 px-2 py-1.5"
     >
       {children}
-    </TRNCard>
+    </InspectorSection>
   );
 }

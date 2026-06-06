@@ -11,6 +11,8 @@ export type PlotterCanvasProps = {
   histories: Record<string, number[]>;
   channelOrder: readonly string[];
   config: PlotterConfig;
+  /** Effective trace colors (follow-wire semantics or custom hex). */
+  channelColors?: Record<string, string>;
   /** React Flow viewport zoom on the canvas; omit (1) outside the flow pane. */
   displayScale?: number;
 };
@@ -87,13 +89,14 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
     histories,
     channelOrder,
     config,
+    channelColors,
     displayScale: displayScaleOverride,
   } = props;
   const displayScale = useStudioCanvasDisplayScale(displayScaleOverride);
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dataRef = useRef({ histories, channelOrder, config, displayScale });
-  dataRef.current = { histories, channelOrder, config, displayScale };
+  const dataRef = useRef({ histories, channelOrder, config, channelColors, displayScale });
+  dataRef.current = { histories, channelOrder, config, channelColors, displayScale };
 
   const rafRef = useRef<number>(0);
 
@@ -117,7 +120,11 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
       const dpr = resolveStudioCanvasDpr(dataRef.current.displayScale);
       prepareHiDpiCanvas2d(canvas, ctx, wCss, hCss, dpr);
 
-      const { histories: h, channelOrder: order, config: cfg } = dataRef.current;
+      const { histories: h, channelOrder: order, config: cfg, channelColors: colors } =
+        dataRef.current;
+
+      const traceColor = (id: string, sty: PlotterChannelStyle): string =>
+        colors?.[id] ?? sty.colorHex;
 
       ctx.fillStyle = "rgba(9, 9, 11, 0.92)";
       ctx.fillRect(0, 0, wCss, hCss);
@@ -214,7 +221,8 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
           continue;
         }
         const lw = s.sty.lineWidthPx;
-        ctx.strokeStyle = s.sty.colorHex;
+        const color = traceColor(s.id, s.sty);
+        ctx.strokeStyle = color;
         ctx.lineWidth = lw;
         ctx.lineJoin = "round";
         ctx.lineCap = "round";
@@ -249,7 +257,7 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
           ctx.stroke();
         }
         ctx.setLineDash([]);
-        drawMarkers(ctx, mx, my, s.sty.marker, s.sty.colorHex, lw);
+        drawMarkers(ctx, mx, my, s.sty.marker, traceColor(s.id, s.sty), lw);
       }
 
       if (cfg.showLegend && series.length > 0 && legendBand > 0) {
@@ -259,7 +267,7 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
         const ly = plotH + legendBand / 2;
         for (const s of series) {
           const label = s.sty.label.trim().length > 0 ? s.sty.label : s.id;
-          ctx.fillStyle = s.sty.colorHex;
+          ctx.fillStyle = traceColor(s.id, s.sty);
           ctx.fillRect(lx, ly - 4, 10, 4);
           lx += 14;
           ctx.fillStyle = "rgba(228, 228, 231, 0.92)";
@@ -292,7 +300,7 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
 
   useLayoutEffect(() => {
     schedulePaintRef.current();
-  }, [histories, channelOrder, config, displayScale]);
+  }, [histories, channelOrder, config, channelColors, displayScale]);
 
   const wrapClass =
     className ??

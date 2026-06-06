@@ -264,15 +264,14 @@ Follow **node-animator** `socketGridLayout` / `SocketHandle` — zero-width anch
 ## Typed settings sections
 
 1. Register in **`node-inspector-settings-registry.tsx`** (`nodeId` → section component).
-2. Prefer **`InspectorCollapsibleSection`** (`TRNCard` soft glass, collapsible).
-3. Numeric fields: **`InspectorNumericScrubRow`** + **`TRNScrubNumberInput`** — drag on the value to scrub (Shift = finer); arrow keys and typing still work. Use `pointerScrubEnabled={false}` only when each tick must not scrub (e.g. number constant undo batching).
-4. Dropdowns: **`InspectorSelectRow`** + **`TRNSelect`** (glass menu) — not native `<select>`.
-5. Booleans in collapsible cards: **`InspectorCompactToggleRow`** (slim) — not **`TRNInlineToggleRow`** card chrome unless the node body uses it.
-6. Long copy: **`TRNHintTooltip`** on labels — not inline walls of text.
+2. Prefer **`InspectorCollapsibleSection`** — compact **`InspectorSection`** / **`TRNInteractiveCard`** glass, **This node** scope chip, title hint tooltip. **Do not** register info-only nodes (no form fields) — behavior belongs on the card / Details tab.
+3. Multi-block sections with many fields: **`InspectorSettingsSectionFrame`** (same chrome).
+4. Numeric fields: **`InspectorNumericScrubRow`** + **`TRNScrubNumberInput`** — drag on the value to scrub (Shift = finer); arrow keys and typing still work. Use `pointerScrubEnabled={false}` only when each tick must not scrub (e.g. number constant undo batching).
+5. Dropdowns: **`InspectorSelectRow`** + **`TRNSelect`** (glass menu) — not native `<select>`.
+6. Booleans in collapsible cards: **`InspectorCompactToggleRow`** (slim) — not **`TRNInlineToggleRow`** card chrome unless the node body uses it.
+7. Long copy: **`TRNHintTooltip`** on labels — not inline walls of text.
 
 **Reference implementation:** **`MapRangeSettingsSection.tsx`** (map-range + clamp toggle + grouped range inputs).
-
-Legacy **`InspectorSettingsSectionFrame`** remains for sections not yet migrated.
 
 ---
 
@@ -328,6 +327,7 @@ Resolution order: **`handleId`** → catalog **`nodeId`** (tap nodes use handle 
 | ---- | --------- | ---- |
 | **vector3** (accel, gyro, magnetic, euler) | **`ReadingAxisNumber`** + **`socketFixedCell`** | **`readingParamAxisValueClass`** — x red, y emerald, z sky |
 | **quaternion** | **`QuaternionScalarsGrid`** | Same axis map (w pink) |
+| **number** pins **`x` / `y` / `z` / `w`** (Split Vector, Combine Vector, …) | **`ReadingAxisNumber`** on each scalar output | Same axis map as vector3 rows |
 
 No scalar color helper on vec3/quat rows — axis colors are separate by design.
 
@@ -356,7 +356,7 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 
 ### Flow node resize (min width / min height)
 
-All studio nodes default to **`ui.resizable`** from **`studioNodeDefaultResizable(nodeId)`** when unset (viewport/output nodes **on**, compact utilities **off**). **Height** auto-fits via **`syncFlowNodeHeightFit`** in **`StudioNodeCard`** when resize is off. **Width** auto-fits when the **display mode** changes (live values, unwired sockets, body visibility) via **`syncStudioNodeWidthFromContentMeasure`**. Manual edge drag requires **`ui.resizable: true`**; toggle in Inspector → **Canvas → Canvas size → Allow manual resize on canvas**. Turning resize **off** strips fixed dimensions and re-measures width.
+All studio nodes default to **`ui.resizable`** from **`studioNodeDefaultResizable(nodeId)`** when unset (viewport/output nodes **on**, compact utilities **off**). **Height** auto-fits via **`syncFlowNodeHeightFit`** in **`StudioNodeCard`** when resize is off. **Width** auto-fits when the **display mode** changes (live values, unwired sockets, body visibility) via **`syncStudioNodeWidthFromContentMeasure`**. Manual edge drag requires **`ui.resizable: true`**; toggle in Inspector → **Node → Card size → Manual resize**. Turning resize **off** strips fixed dimensions and re-measures width.
 
 | Rule | Detail |
 | ---- | ------ |
@@ -367,7 +367,7 @@ All studio nodes default to **`ui.resizable`** from **`studioNodeDefaultResizabl
 | **Auto width apply** | Non-resizable nodes: sync whenever **`fitW !== currentW`**; resizable nodes: grow on mode change / unset width only |
 | **Header chrome churn** | **`headerChromeKey`** remeasure on label/health/invalid/family/compare/body changes; **`MutationObserver`** on **`data-flow-node-header-measure`** for badge DOM add/remove |
 | **Fit width** | **Shift+W** on canvas selection — manual re-measure (undoable) |
-| **Socket display** | Inspector → **Canvas** — live values + unwired socket toggles |
+| **Socket rows** | Inspector → **Node → Socket rows** — live values beside ports + unwired port visibility |
 | **Reset to defaults** | **Shift+R** on canvas selection — restores factory display and re-fits from content (undoable) |
 | **Body overflow** | **`FlowNodeBody`**, body measure wrapper, and card panels use **`min-w-0 max-w-full overflow-hidden`** — content must not paint outside the shell when narrowed |
 | **TRNSelect on cards** | **`FLOW_NODE_TRN_SELECT_CLASS`** (`w-full min-w-0 max-w-full`) — **never** `min-w-40` / `min-w-48` on flow node selects |
@@ -378,9 +378,13 @@ All studio nodes default to **`ui.resizable`** from **`studioNodeDefaultResizabl
 
 **New node with dropdown / long labels:** add **`FlowNodeIntrinsicWidthMarker`**, **`FLOW_NODE_TRN_SELECT_CLASS`**, and a catalog row in **`studio-node-resize-defaults.ts`**.
 
-### Canvas size (auto-fit; no inspector size fields)
+### Card size (auto-fit; manual opt-in)
 
-Width and height are derived from content measure when manual resize is off — **Inspector → Canvas** exposes **Socket display**, **Node body**, and **Canvas size** (resize toggle + W/H when on). **`Shift+W`** / **`Shift+R`** on canvas selection re-measure width and reset size. Edge resize uses **`resolveStudioNodeEffectiveMinDimensions`** (catalog + live **`ui.contentMin*`** from **`StudioNodeCard`**) when **`ui.resizable: true`**.
+Width and height are derived from content measure when manual resize is off — **Inspector → Node** exposes three cards: **Socket rows**, **Body panel** (when the node has a body), and **Card size** (manual resize toggle + W/H when on). **`Shift+W`** / **`Shift+R`** when a node is selected re-measure width and reset size. Edge resize uses **`resolveStudioNodeEffectiveMinDimensions`** (catalog + live **`ui.contentMin*`** from **`StudioNodeCard`**) when **`ui.resizable: true`**.
+
+Graph-wide socket dot fade (**Dim unwired sockets**) lives in the **Flow canvas** inspector → **Wires** tab only — not in the per-node **Socket rows** card.
+
+Whole-graph grid, wires, and viewport defaults live in the **Flow canvas** inspector (deselect all nodes).
 
 Homogeneous multi-select applies width/height commits to every selected node of the same catalog type.
 

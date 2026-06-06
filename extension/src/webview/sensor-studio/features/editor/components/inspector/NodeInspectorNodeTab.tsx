@@ -222,7 +222,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
                 <InspectorTextField
                   ariaLabel="Node label"
                   value={selectedNode.data.label}
-                  placeholder="Display name on canvas"
+                  placeholder="Display name on flow canvas"
                   leadingIcon={<Tag className="h-3.5 w-3.5" aria-hidden />}
                   onChange={onUpdateLabel}
                 />

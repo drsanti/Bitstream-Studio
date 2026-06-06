@@ -378,7 +378,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
             disabled={bodyControlsToggleDisabled}
             title={
               bodyControlsToggleDisabled
-                ? "Node body collapse disabled — enable in Inspector → Canvas"
+                ? "Node body collapse disabled — enable in Inspector → Node → Body panel"
                 : bodyControlsVisible
                   ? "Hide node body on selection (Shift+B)"
                   : "Show node body on selection (Shift+B)"

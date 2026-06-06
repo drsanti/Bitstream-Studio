@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
-import { InspectorCanvasSubsection } from "./InspectorCanvasSubsection";
+import { InspectorScopeThisNodeChip } from "./InspectorScopeChip";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorNodeLayoutSizeFields } from "./InspectorNodeLayoutSizeFields";
 import { InspectorViewportPreviewLayoutFields } from "./InspectorViewportPreviewLayoutFields";
@@ -27,7 +27,10 @@ export function NodeInspectorCanvasLayoutSection(
   const { selectedNode, onAllowBodyCollapseChange } = props;
   const hasBodyPanel = studioNodeHasHideableBody(selectedNode.data);
   const allowBodyCollapse = studioNodeAllowsBodyCollapse(selectedNode.data);
-  const nodeResizable = selectedNode.data.ui?.resizable === true;
+  const nodeResizable = useFlowEditorStore(
+    (s) =>
+      s.nodes.find((n) => n.id === selectedNode.id)?.data.ui?.resizable === true,
+  );
   const showViewportPreviewPresets = isScene3dInspectorNodeId(
     selectedNode.data.nodeId,
   );
@@ -60,55 +63,70 @@ export function NodeInspectorCanvasLayoutSection(
   );
 
   return (
-    <InspectorSection
-      title="Canvas"
-      variant="compact"
-      contentClassName="space-y-2 px-2 py-1.5"
-      hint="Socket display auto-fits width. Enable manual resize for viewport and output nodes."
-    >
-      <InspectorCanvasSubsection title="Socket display">
+    <div className="space-y-2">
+      <p className="px-0.5 text-[10px] leading-snug text-zinc-500">
+        Card layout on the flow graph. Grid and graph-wide wire style → deselect
+        all nodes (Flow canvas inspector).
+      </p>
+
+      <InspectorSection
+        title="Socket rows"
+        hint="Ports and live readouts on this node's header strip."
+        variant="compact"
+        headerTrailing={<InspectorScopeThisNodeChip />}
+      >
         <InspectorCompactToggleRow
-          label="Show socket live values"
-          hint="Live readouts beside each port (Shift+V on canvas selection)."
+          label="Live values beside ports"
+          hint="Show numbers and badges next to each port on this card (Shift+V when selected)."
           checked={socketValuesVisible}
           onCheckedChange={(next) =>
             setSocketValuesVisibleForNodes(nodeIds, next)
           }
-          ariaLabel="Show socket live values"
+          ariaLabel="Live values beside ports"
         />
         <InspectorCompactToggleRow
-          label="Show unwired sockets"
+          label="Unwired ports visible"
           hint={
             socketCollapseDisabled
-              ? "This node has only one socket or every socket is wired — nothing to collapse."
-              : "When off, only wired socket rows stay visible (Shift+H on canvas selection)."
+              ? "This node has only one port or every port is wired — nothing to hide."
+              : "When off, only ports that have a wire stay visible (Shift+H when selected)."
           }
           checked={socketsExpanded}
           disabled={socketCollapseDisabled}
           onCheckedChange={(next) => setSocketsExpandedForNodes(nodeIds, next)}
-          ariaLabel="Show unwired sockets"
+          ariaLabel="Unwired ports visible"
         />
-      </InspectorCanvasSubsection>
+      </InspectorSection>
 
       {hasBodyPanel ? (
-        <InspectorCanvasSubsection title="Node body" separated>
+        <InspectorSection
+          title="Body panel"
+          hint="The panel under the header — chart, knob, preview, and similar controls."
+          variant="compact"
+          headerTrailing={<InspectorScopeThisNodeChip />}
+        >
           <InspectorCompactToggleRow
-            label="Allow collapsing node body"
-            hint="When enabled, hide the body with the selection toolbar Panel button or Shift+B."
+            label="Allow hiding body panel"
+            hint="When enabled, collapse the body with the selection toolbar Panel button or Shift+B."
             checked={allowBodyCollapse}
             onCheckedChange={onAllowBodyCollapseChange}
-            ariaLabel="Allow collapsing node body"
+            ariaLabel="Allow hiding body panel"
           />
-        </InspectorCanvasSubsection>
+        </InspectorSection>
       ) : null}
 
-      <InspectorCanvasSubsection title="Canvas size" separated>
+      <InspectorSection
+        title="Card size"
+        hint="Width and height of this node's card on the flow graph."
+        variant="compact"
+        headerTrailing={<InspectorScopeThisNodeChip />}
+      >
         <InspectorCompactToggleRow
-          label="Allow manual resize on canvas"
-          hint="When on, drag edges or corners while the node is selected. Shift+R reset size · Shift+W re-measure width."
+          label="Manual resize"
+          hint="Drag this card's edges or corners while selected. Off = auto-fit from content. Shift+R reset size · Shift+W re-measure width."
           checked={nodeResizable}
           onCheckedChange={(next) => updateSelectedNodeUiResizable(next)}
-          ariaLabel="Allow manual resize on canvas"
+          ariaLabel="Manual resize on flow canvas"
         />
         {showViewportPreviewPresets ? (
           <InspectorViewportPreviewLayoutFields selectedNode={selectedNode} />
@@ -123,7 +141,7 @@ export function NodeInspectorCanvasLayoutSection(
             }
           />
         ) : null}
-      </InspectorCanvasSubsection>
-    </InspectorSection>
+      </InspectorSection>
+    </div>
   );
 }

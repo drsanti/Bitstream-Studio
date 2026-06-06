@@ -4,7 +4,7 @@ import { twMerge } from "tailwind-merge";
 export type InspectorCanvasSubsectionProps = {
   title: string;
   children: ReactNode;
-  /** When true, adds top divider spacing (not the first block in Canvas). */
+  /** When true, adds top divider spacing (not the first block in On flow canvas). */
   separated?: boolean;
   className?: string;
 };

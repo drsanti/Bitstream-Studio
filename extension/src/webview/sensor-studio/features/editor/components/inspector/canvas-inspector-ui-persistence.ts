@@ -1,4 +1,4 @@
-/** Persists Canvas inspector tab when no flow node is selected. */
+/** Persists Flow canvas inspector tab when no flow node is selected. */
 
 const PREFIX = "ternion.sensor-studio.canvasInspector.";
 

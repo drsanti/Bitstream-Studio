@@ -24,8 +24,18 @@ export function studioHandleBaseClass(
   );
 }
 
-export function studioHandleDimStyle(dimmed: boolean): CSSProperties | undefined {
-  return dimmed ? { opacity: 0.38 } : undefined;
+/** Default canvas pref for unwired handle fade (see `handleUnwiredDimOpacity`). */
+export const DEFAULT_UNWIRED_HANDLE_OPACITY = 0.38;
+
+export function studioHandleDimStyle(
+  dimmed: boolean,
+  opacity = DEFAULT_UNWIRED_HANDLE_OPACITY,
+): CSSProperties | undefined {
+  if (!dimmed) {
+    return undefined;
+  }
+  const clamped = Math.min(0.85, Math.max(0.15, opacity));
+  return { opacity: clamped };
 }
 
 export function isFlowHandleWired(args: {

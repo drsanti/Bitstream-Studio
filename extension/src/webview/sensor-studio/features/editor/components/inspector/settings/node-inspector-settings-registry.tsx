@@ -10,7 +10,6 @@ import { GlbAnimationBundleConnectionSection } from "./sections/GlbAnimationBund
 import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
 import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSettingsSection";
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
-import { LerpSettingsSection } from "./sections/LerpSettingsSection";
 import { LogicGateSettingsSection } from "./sections/LogicGateSettingsSection";
 import { MultiplexerSettingsSection } from "./sections/MultiplexerSettingsSection";
 import { LedIndicatorSettingsSection } from "./sections/LedIndicatorSettingsSection";
@@ -34,17 +33,7 @@ import { OnStagePickSettingsSection } from "./sections/OnStagePickSettingsSectio
 import { OnKeySettingsSection } from "./sections/OnKeySettingsSection";
 import { PlotterSettingsSection } from "./sections/PlotterSettingsSection";
 import { SensorInputSettingsSection } from "./sections/SensorInputSettingsSection";
-import {
-  CombineQuaternionSettingsSection,
-  CombineXyzSettingsSection,
-  QuaternionConstantSettingsSection,
-  SplitQuaternionSettingsSection,
-  SplitVectorSettingsSection,
-  SwitchSettingsSection,
-  VectorConstantSettingsSection,
-} from "./sections/SwitchCombineSettingsSections";
 import { VectorQuaternionMathSettingsSection } from "./sections/VectorQuaternionMathSettingsSection";
-import { VECTOR_QUATERNION_MATH_NODE_IDS } from "../../../../../core/flow/flow-vector-quaternion-math-eval";
 import { SparklineSettingsSection } from "./sections/SparklineSettingsSection";
 import { ThresholdSettingsSection } from "./sections/ThresholdSettingsSection";
 import { TransformFromEulerSettingsSection } from "./sections/TransformFromEulerSettingsSection";
@@ -58,9 +47,10 @@ import {
 import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
 import { StudioModelSettingsSection } from "./sections/StudioModelSettingsSection";
 
-const VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS = Object.fromEntries(
-  VECTOR_QUATERNION_MATH_NODE_IDS.map((id) => [id, VectorQuaternionMathSettingsSection]),
-) as Record<string, typeof VectorQuaternionMathSettingsSection>;
+const VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS = {
+  "vector-add": VectorQuaternionMathSettingsSection,
+  "compare-vector-length": VectorQuaternionMathSettingsSection,
+} as const;
 
 /**
  * Catalog `nodeId` → settings UI for the Node Inspector **Node** tab (above JSON / rotation blocks).
@@ -99,14 +89,6 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "material-mix": MaterialMixSettingsSection,
   math: MathSettingsSection,
   compare: CompareSettingsSection,
-  lerp: LerpSettingsSection,
-  switch: SwitchSettingsSection,
-  "combine-xyz": CombineXyzSettingsSection,
-  "combine-quaternion": CombineQuaternionSettingsSection,
-  "vector-splitter": SplitVectorSettingsSection,
-  "quaternion-splitter": SplitQuaternionSettingsSection,
-  "vector-constant": VectorConstantSettingsSection,
-  "quaternion-constant": QuaternionConstantSettingsSection,
   "logic-gate": LogicGateSettingsSection,
   multiplexer: MultiplexerSettingsSection,
   "value-normalizer": ValueNormalizerSettingsSection,

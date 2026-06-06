@@ -8,6 +8,10 @@ import {
 } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/sync-socket-live-preview-handles";
 import { resolveInputScalarHintFromUpstream } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/resolve-input-scalar-hints";
 import { resolveLiveScalarReadingKind } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/readings/live-reading-colors";
+import { resolveReadingAxisFromHandleOrLabel } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/readings/param-axis-classes";
+import { resolveScalarSemanticColorHex } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/readings/scalar-semantic-color-hex";
+import { resolvePlotterChannelColorHex } from "../../src/webview/sensor-studio/features/editor/nodes/plotter/plotter-channel-colors";
+import { DEFAULT_PLOTTER_CONFIG } from "../../src/webview/sensor-studio/features/editor/nodes/plotter/plotter-config";
 import { truncateSocketStringPreview } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/truncate-socket-string";
 import { studioFlowPinKey } from "../../src/webview/sensor-studio/features/editor/store/flow-editor.store";
 
@@ -251,6 +255,51 @@ test("resolveInputScalarHintFromUpstream walks map-range and clamp utility chain
   assert.equal(hint?.nodeId, "sht40-input");
   assert.equal(hint?.handleId, "humidity");
   assert.equal(resolveLiveScalarReadingKind(hint!), "humidity");
+});
+
+test("resolveReadingAxisFromHandleOrLabel maps split/combine axis pins", () => {
+  assert.equal(resolveReadingAxisFromHandleOrLabel("x", "Out"), "x");
+  assert.equal(resolveReadingAxisFromHandleOrLabel("y"), "y");
+  assert.equal(resolveReadingAxisFromHandleOrLabel(undefined, "Z"), "z");
+  assert.equal(resolveReadingAxisFromHandleOrLabel("w", "W"), "w");
+  assert.equal(resolveReadingAxisFromHandleOrLabel("temp", "Temperature (°C)"), null);
+});
+
+test("resolveScalarSemanticColorHex maps axis and sensor kinds", () => {
+  assert.equal(
+    resolveScalarSemanticColorHex({ handleId: "x", streamMode: "live" }, "#ffffff"),
+    "#fca5a5",
+  );
+  assert.equal(
+    resolveScalarSemanticColorHex(
+      { handleId: "temp", streamMode: "live" },
+      "#ffffff",
+    ),
+    "#fb923c",
+  );
+  assert.equal(
+    resolveScalarSemanticColorHex({ handleId: "out", streamMode: "idle" }, "#ffffff"),
+    "#71717a",
+  );
+});
+
+test("resolvePlotterChannelColorHex respects followWire vs custom", () => {
+  const ch = { ...DEFAULT_PLOTTER_CONFIG.channels.ch1! };
+  assert.equal(
+    resolvePlotterChannelColorHex(ch, {
+      handleId: "y",
+      nodeId: "vector-splitter",
+      streamMode: "live",
+    }),
+    "#6ee7b7",
+  );
+  assert.equal(
+    resolvePlotterChannelColorHex(
+      { ...ch, colorMode: "custom", colorHex: "#112233" },
+      { handleId: "y", nodeId: "vector-splitter", streamMode: "live" },
+    ),
+    "#112233",
+  );
 });
 
 test("truncateSocketStringPreview shortens long strings", () => {

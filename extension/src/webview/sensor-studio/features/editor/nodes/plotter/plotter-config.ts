@@ -13,10 +13,13 @@ export type PlotterInputId = (typeof PLOTTER_INPUT_IDS)[number];
 
 export type PlotterLineStyle = "solid" | "dashed" | "dotted";
 export type PlotterMarkerStyle = "none" | "dots" | "cross";
+export type PlotterChannelColorMode = "followWire" | "custom";
 
 export type PlotterChannelStyle = {
   label: string;
   visible: boolean;
+  /** When `followWire`, trace color follows upstream socket semantics (axis / sensor). */
+  colorMode: PlotterChannelColorMode;
   colorHex: string;
   lineStyle: PlotterLineStyle;
   lineWidthPx: number;
@@ -73,6 +76,7 @@ export const DEFAULT_PLOTTER_CONFIG: PlotterConfig = {
       acc[id] = {
         label: DEFAULT_CHANNEL_LABELS[id],
         visible: true,
+        colorMode: "followWire",
         colorHex: DEFAULT_CHANNEL_COLORS[id],
         lineStyle: "solid",
         lineWidthPx: 1.75,
@@ -129,6 +133,7 @@ function coerceChannel(raw: unknown, id: PlotterInputId): PlotterChannelStyle {
   return {
     label: typeof o.label === "string" && o.label.trim().length > 0 ? o.label.trim() : d.label,
     visible: asBool(o.visible, d.visible),
+    colorMode: o.colorMode === "custom" ? "custom" : "followWire",
     colorHex: asHexColor(o.colorHex, d.colorHex),
     lineStyle: asLineStyle(o.lineStyle, d.lineStyle),
     lineWidthPx: clamp(asFinite(o.lineWidthPx, d.lineWidthPx), 0.5, 6),

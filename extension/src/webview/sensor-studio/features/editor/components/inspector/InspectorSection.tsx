@@ -7,6 +7,8 @@ export type InspectorSectionProps = {
   title: string;
   /** Hover tooltip on the section title. */
   hint?: ReactNode;
+  /** Icon or label before the title (e.g. catalog node icon). */
+  titleLeadingSlot?: ReactNode;
   /** Optional actions on the section header row (right). */
   headerTrailing?: ReactNode;
   defaultExpanded?: boolean;
@@ -25,6 +27,7 @@ export function InspectorSection(props: InspectorSectionProps) {
   const {
     title,
     hint,
+    titleLeadingSlot,
     headerTrailing,
     defaultExpanded = true,
     onExpandedChange,
@@ -53,6 +56,7 @@ export function InspectorSection(props: InspectorSectionProps) {
     <TRNInteractiveCard
       title={title}
       hint={hint}
+      titleLeadingSlot={titleLeadingSlot}
       titleTrailingSlot={headerTrailing}
       shell={variant === "error" ? "accent-rose" : "glass"}
       className={className}

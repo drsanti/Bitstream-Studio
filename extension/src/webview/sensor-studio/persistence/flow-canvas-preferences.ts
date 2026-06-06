@@ -75,6 +75,8 @@ export type FlowCanvasPreferences = {
   handleBorderWidthPx: FlowCanvasHandleBorderWidthPx;
   /** Lower opacity on handles with no connected wire. */
   handleDimWhenUnwired: boolean;
+  /** Opacity for unwired handles when {@link handleDimWhenUnwired} is true (0.15–0.85). */
+  handleUnwiredDimOpacity: number;
   /** Fan parallel wires between the same node pair (0 = off, px spacing). */
   edgeParallelSpacing: number;
   /** Bundle fan-out / fan-in from shared sockets (orthogonal offset). */
@@ -118,6 +120,7 @@ export const DEFAULT_FLOW_CANVAS_PREFERENCES: FlowCanvasPreferences = {
   handleSizePx: 12,
   handleBorderWidthPx: 2,
   handleDimWhenUnwired: false,
+  handleUnwiredDimOpacity: 0.38,
   edgeParallelSpacing: 0,
   edgeBundleMode: "off",
   edgeBundleSpacing: 12,
@@ -245,6 +248,12 @@ export function coerceFlowCanvasPreferences(raw: unknown): FlowCanvasPreferences
         ? (o.handleBorderWidthPx as FlowCanvasHandleBorderWidthPx)
         : DEFAULT_FLOW_CANVAS_PREFERENCES.handleBorderWidthPx,
     handleDimWhenUnwired: o.handleDimWhenUnwired === true,
+    handleUnwiredDimOpacity: coerceFiniteInRange(
+      o.handleUnwiredDimOpacity,
+      DEFAULT_FLOW_CANVAS_PREFERENCES.handleUnwiredDimOpacity,
+      0.15,
+      0.85,
+    ),
     edgeParallelSpacing: Math.round(
       coerceFiniteInRange(o.edgeParallelSpacing, 0, 0, 32),
     ),

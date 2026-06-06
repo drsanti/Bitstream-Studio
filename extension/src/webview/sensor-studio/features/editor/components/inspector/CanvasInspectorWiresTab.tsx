@@ -24,7 +24,7 @@ import {
 } from "./canvas-inspector-helpers";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
-import { InspectorNumericScrubRow } from "./InspectorNumericScrubRow";
+import { InspectorNumericField, InspectorNumericScrubRow } from "./InspectorNumericScrubRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import {
   InspectorSegmentButtonGroup,
@@ -418,7 +418,7 @@ export function CanvasInspectorWiresTab(props: CanvasInspectorWiresTabProps) {
           />
           <InspectorCompactToggleRow
             label="Dim unrelated wires"
-            hint="Fade wires that do not touch the selected node(s)."
+            hint="Fade connection lines that do not touch the selected node(s). Does not change socket dots — use Dim unwired sockets for that."
             checked={flowCanvasPreferences.dimUnrelatedEdgesOnSelection}
             onCheckedChange={(next) =>
               onFlowCanvasPreferencesChange({ dimUnrelatedEdgesOnSelection: next })
@@ -557,12 +557,30 @@ export function CanvasInspectorWiresTab(props: CanvasInspectorWiresTabProps) {
         <div className="mt-2.5 border-t border-zinc-800/60 pt-2.5">
           <InspectorCompactToggleRow
             label="Dim unwired sockets"
-            hint="Lower opacity on handles with no connected wire."
+            hint="Fade socket dots with no wire on all nodes. Not the same as Dim unrelated wires, which fades connection lines."
             checked={flowCanvasPreferences.handleDimWhenUnwired}
             onCheckedChange={(next) =>
               onFlowCanvasPreferencesChange({ handleDimWhenUnwired: next })
             }
           />
+          {flowCanvasPreferences.handleDimWhenUnwired ? (
+            <InspectorPropertyRow
+              label="Unwired fade"
+              description="Opacity for unwired handles (0.15–0.85)."
+            >
+              <InspectorNumericField
+                ariaLabel="Unwired socket dim opacity"
+                value={flowCanvasPreferences.handleUnwiredDimOpacity}
+                min={0.15}
+                max={0.85}
+                step={0.05}
+                fractionDigits={2}
+                onCommit={(next) =>
+                  onFlowCanvasPreferencesChange({ handleUnwiredDimOpacity: next })
+                }
+              />
+            </InspectorPropertyRow>
+          ) : null}
         </div>
       </CanvasInspectorCard>
     ),

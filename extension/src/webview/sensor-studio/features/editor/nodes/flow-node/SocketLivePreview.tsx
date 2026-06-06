@@ -10,6 +10,7 @@ import {
   resolveLiveScalarReadingFractionDigits,
   type LiveReadingStreamTone,
 } from "./readings/live-reading-colors";
+import { resolveReadingAxisFromHandleOrLabel } from "./readings/param-axis-classes";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./readings/socket-live-value-cell";
 import { truncateSocketStringPreview } from "./truncate-socket-string";
 import { twMerge } from "tailwind-merge";
@@ -108,8 +109,24 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
       return null;
     }
     const hints = { handleId, nodeId, label: portLabel };
-    const scalarTone = getLiveScalarReadingColorClass(streamMode, hints);
     const fractionDigits = fractionDigitsOverride ?? resolveLiveScalarReadingFractionDigits(hints);
+    const paramAxis = resolveReadingAxisFromHandleOrLabel(handleId, portLabel);
+    if (paramAxis != null) {
+      return (
+        <ReadingAxisNumber
+          data-flow-socket-live-preview
+          axis={paramAxis}
+          value={scalar}
+          compact
+          socketFixedCell
+          textAlign={textAlign}
+          fractionDigits={fractionDigits}
+          signedPositive={signedPositive}
+          className={streamMode === "idle" ? "text-zinc-500" : undefined}
+        />
+      );
+    }
+    const scalarTone = getLiveScalarReadingColorClass(streamMode, hints);
     return (
       <ReadingNumber
         data-flow-socket-live-preview
