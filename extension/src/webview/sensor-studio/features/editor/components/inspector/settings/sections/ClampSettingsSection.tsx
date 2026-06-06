@@ -1,6 +1,6 @@
 import { Shrink } from "lucide-react";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
-import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
+import { InspectorMinMaxRangeGrid } from "../../InspectorMinMaxRangeGrid";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 function readFiniteConfigNumber(
@@ -22,23 +22,13 @@ export function ClampSettingsSection(props: NodeInspectorSettingsSectionProps) {
       iconHint="Limits Value to Min and Max. Wired pins override defaults on the node card."
       defaultExpanded
     >
-      <InspectorNumericScrubRow
-        label="Min"
-        description="Values below min output min."
-        ariaLabel="Clamp minimum"
-        value={readFiniteConfigNumber(cfg.min, -1)}
-        step={0.01}
-        onCommit={(next) => {
+      <InspectorMinMaxRangeGrid
+        min={readFiniteConfigNumber(cfg.min, -1)}
+        max={readFiniteConfigNumber(cfg.max, 1)}
+        onCommitMin={(next) => {
           onUpdateConfigField("min", next);
         }}
-      />
-      <InspectorNumericScrubRow
-        label="Max"
-        description="Values above max output max."
-        ariaLabel="Clamp maximum"
-        value={readFiniteConfigNumber(cfg.max, 1)}
-        step={0.01}
-        onCommit={(next) => {
+        onCommitMax={(next) => {
           onUpdateConfigField("max", next);
         }}
       />

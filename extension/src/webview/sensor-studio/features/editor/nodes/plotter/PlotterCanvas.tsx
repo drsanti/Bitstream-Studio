@@ -5,6 +5,7 @@ import {
 } from "../display/canvas-hi-dpi";
 import { useStudioCanvasDisplayScale } from "../display/studio-canvas-display-scale";
 import type { PlotterChannelStyle, PlotterConfig } from "./plotter-config";
+import { computePlotterAutoYRange } from "./plotter-y-range";
 
 export type PlotterCanvasProps = {
   className?: string;
@@ -149,30 +150,19 @@ export function PlotterCanvas(props: PlotterCanvasProps) {
 
       let y0 = cfg.yMin;
       let y1 = cfg.yMax;
-      if (cfg.autoScale && series.length > 0) {
-        let lo = Infinity;
-        let hi = -Infinity;
-        for (const s of series) {
-          for (const v of s.pts) {
-            if (!Number.isFinite(v)) {
-              continue;
-            }
-            const t = v * cfg.verticalGain + cfg.verticalOffset;
-            lo = Math.min(lo, t);
-            hi = Math.max(hi, t);
-          }
+      if (cfg.autoScale) {
+        const autoRange = computePlotterAutoYRange({
+          histories: h,
+          channelOrder: order,
+          channels: cfg.channels,
+          historyLength: historyCap,
+          verticalGain: cfg.verticalGain,
+          verticalOffset: cfg.verticalOffset,
+        });
+        if (autoRange != null) {
+          y0 = autoRange.yMin;
+          y1 = autoRange.yMax;
         }
-        if (!Number.isFinite(lo) || !Number.isFinite(hi)) {
-          lo = -1;
-          hi = 1;
-        }
-        if (Math.abs(hi - lo) < 1e-9) {
-          lo -= 0.5;
-          hi += 0.5;
-        }
-        const padY = (hi - lo) * 0.08;
-        y0 = lo - padY;
-        y1 = hi + padY;
       }
 
       if (cfg.showGrid) {

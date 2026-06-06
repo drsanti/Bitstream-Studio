@@ -30,6 +30,17 @@ export const SCENE_FRAME_TIME_SOURCE_NODE_IDS: ReadonlySet<string> = new Set([
   "frame-delta",
 ]);
 
+/** Web Audio nodes — sweep, routing, and analyser refresh need rAF ticks without UART. */
+export const SCENE_FRAME_AUDIO_NODE_IDS: ReadonlySet<string> = new Set([
+  "mic-input",
+  "audio-oscillator",
+  "audio-sfx",
+  "audio-machine",
+  "audio-file-player",
+  "audio-output",
+  "audio-scope",
+]);
+
 export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
   return (
     SCENE_FRAME_PREVIEW_NODE_IDS.has(nodeId) ||
@@ -42,4 +53,8 @@ export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
 /** True when the canvas should run Domain B (rAF) ticks in addition to telemetry ticks. */
 export function graphNeedsSceneFrameTick(nodes: ReadonlyArray<Node<StudioNodeData>>): boolean {
   return nodes.some((node) => nodeIdNeedsSceneFrameTick(node.data.nodeId));
+}
+
+export function graphNeedsAudioFrameTick(nodes: ReadonlyArray<Node<StudioNodeData>>): boolean {
+  return nodes.some((node) => SCENE_FRAME_AUDIO_NODE_IDS.has(node.data.nodeId));
 }

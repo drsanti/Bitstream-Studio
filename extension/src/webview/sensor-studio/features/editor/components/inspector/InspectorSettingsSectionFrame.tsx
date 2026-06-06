@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
-import { InspectorScopeThisNodeChip } from "./InspectorScopeChip";
+import {
+  inferInspectorScopeBadge,
+  type InspectorScopeBadgeLabel,
+} from "./inspector-section-scope-badges";
+import { InspectorSectionScopeBadge } from "./InspectorScopeChip";
 import { InspectorSection } from "./InspectorSection";
 
 export type InspectorSettingsSectionFrameProps = {
   title: string;
   children: ReactNode;
+  /** Meaningful scope label; inferred from `title` when omitted. Pass `null` to hide. */
+  scopeBadge?: InspectorScopeBadgeLabel | string | null;
   /** Extra classes on the outer chrome (border panel). */
   className?: string;
   collapsible?: boolean;
@@ -21,11 +27,17 @@ export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFra
   const {
     title,
     children,
+    scopeBadge: scopeBadgeProp,
     className = "",
     collapsible = true,
     defaultExpanded = true,
     fillAvailableHeight = false,
   } = props;
+
+  const scopeBadge =
+    scopeBadgeProp === null
+      ? undefined
+      : (scopeBadgeProp ?? inferInspectorScopeBadge(title));
 
   const contentClassName = fillAvailableHeight
     ? "flex min-h-0 flex-1 flex-col gap-2 overflow-hidden border-t border-zinc-800/60 pt-2"
@@ -43,7 +55,11 @@ export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFra
           : className
       }
       contentClassName={contentClassName}
-      headerTrailing={<InspectorScopeThisNodeChip />}
+      headerTrailing={
+        scopeBadge != null ? (
+          <InspectorSectionScopeBadge label={scopeBadge} />
+        ) : undefined
+      }
     >
       {fillAvailableHeight ? children : <div className="space-y-3">{children}</div>}
     </InspectorSection>

@@ -10,7 +10,10 @@ import {
   type SplitLayoutNodeData,
 } from "./layout-flow-nodes.types";
 
-export function isStudioFlowNode(node: Node): boolean {
+export function isStudioFlowNode(node: Node | null | undefined): boolean {
+  if (node == null) {
+    return false;
+  }
   return node.type === "studio" || node.type == null;
 }
 

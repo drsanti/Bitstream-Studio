@@ -10,7 +10,7 @@ import { resolveInputScalarHintFromUpstream } from "../../src/webview/sensor-stu
 import { resolveLiveScalarReadingKind } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/readings/live-reading-colors";
 import { resolveReadingAxisFromHandleOrLabel } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/readings/param-axis-classes";
 import { resolveScalarSemanticColorHex } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/readings/scalar-semantic-color-hex";
-import { resolvePlotterChannelColorHex } from "../../src/webview/sensor-studio/features/editor/nodes/plotter/plotter-channel-colors";
+import { resolvePlotterChannelColorHex, resolvePlotterWireSemanticColorHex } from "../../src/webview/sensor-studio/features/editor/nodes/plotter/plotter-channel-colors";
 import { DEFAULT_PLOTTER_CONFIG } from "../../src/webview/sensor-studio/features/editor/nodes/plotter/plotter-config";
 import { truncateSocketStringPreview } from "../../src/webview/sensor-studio/features/editor/nodes/flow-node/truncate-socket-string";
 import { studioFlowPinKey } from "../../src/webview/sensor-studio/features/editor/store/flow-editor.store";
@@ -299,6 +299,66 @@ test("resolvePlotterChannelColorHex respects followWire vs custom", () => {
       { handleId: "y", nodeId: "vector-splitter", streamMode: "live" },
     ),
     "#112233",
+  );
+});
+
+test("resolvePlotterWireSemanticColorHex ignores plotter colorMode", () => {
+  const nodes = [
+    {
+      id: "split",
+      type: "studio" as const,
+      data: {
+        nodeId: "vector-split",
+        label: "Split",
+        category: "utility" as const,
+        defaultConfig: {},
+        outputHandles: [
+          { id: "x", portType: "number" as const, label: "X" },
+          { id: "y", portType: "number" as const, label: "Y" },
+        ],
+        liveNumberByHandle: { y: 1 },
+      },
+    },
+    {
+      id: "plotter",
+      type: "studio" as const,
+      data: {
+        nodeId: "plotter",
+        label: "Plotter",
+        category: "utility" as const,
+        defaultConfig: {},
+        inputHandles: [{ id: "ch1", portType: "number" as const, label: "Ch1" }],
+      },
+    },
+  ];
+  const edges = [
+    {
+      id: "wire-1",
+      source: "split",
+      target: "plotter",
+      sourceHandle: "y",
+      targetHandle: "ch1",
+    },
+  ];
+  assert.equal(
+    resolvePlotterWireSemanticColorHex({
+      plotterFlowNodeId: "plotter",
+      channelId: "ch1",
+      fallbackHex: "#ffffff",
+      edges,
+      nodes,
+    }),
+    "#6ee7b7",
+  );
+  assert.equal(
+    resolvePlotterWireSemanticColorHex({
+      plotterFlowNodeId: "plotter",
+      channelId: "ch2",
+      fallbackHex: "#ffffff",
+      edges,
+      nodes,
+    }),
+    null,
   );
 });
 

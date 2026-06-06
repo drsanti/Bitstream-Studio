@@ -1,5 +1,4 @@
 import {
-  Activity,
   ArrowDownUp,
   LayoutGrid,
   LineChart,
@@ -23,12 +22,16 @@ import {
   type PlotterConfig,
   type PlotterInputId,
 } from "../nodes/plotter/plotter-config";
-import { resolvePlotterChannelColors } from "../nodes/plotter/plotter-channel-colors";
+import { resolvePlotterChannelColors, resolvePlotterWireSemanticColorHex } from "../nodes/plotter/plotter-channel-colors";
+import {
+  computePlotterAutoYRange,
+  formatPlotterYRangeSummary,
+} from "../nodes/plotter/plotter-y-range";
 import type { StudioNode } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { InspectorCollapsibleSection } from "./inspector/InspectorCollapsibleSection";
 import { InspectorCompactToggleRow } from "./inspector/InspectorCompactToggleRow";
-import { InspectorColorRow, InspectorSelectRow } from "./inspector/InspectorDenseControls";
+import { InspectorColorField, InspectorSelectRow } from "./inspector/InspectorDenseControls";
 import { InspectorPropertyRow } from "./inspector/InspectorPropertyRow";
 import {
   InspectorNumericScrubRow,
@@ -183,6 +186,17 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
   const activeChannel = cfg.channels[activeChannelId] ?? cfg.channels.ch1!;
   const activeWire = wireHints[activeChannelId];
   const activeTraceColor = channelColors[activeChannelId] ?? activeChannel.colorHex;
+  const activeWireSemanticColor = useMemo(
+    () =>
+      resolvePlotterWireSemanticColorHex({
+        plotterFlowNodeId: selectedNode.id,
+        channelId: activeChannelId,
+        fallbackHex: activeChannel.colorHex,
+        edges,
+        nodes,
+      }),
+    [selectedNode.id, activeChannelId, activeChannel.colorHex, edges, nodes],
+  );
   const activeHistory = livePlotHistory[activeChannelId] ?? [];
   const activeStats = useMemo(
     () => computePlotterChannelStats(activeHistory),
@@ -211,6 +225,40 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
     Math.abs(preset - cfg.verticalGain) < Math.abs(best - cfg.verticalGain) ? preset : best,
   );
 
+  const liveAutoYRange = useMemo(
+    () =>
+      computePlotterAutoYRange({
+        histories: livePlotHistory,
+        channelOrder: PLOTTER_INPUT_IDS,
+        channels: cfg.channels,
+        historyLength: cfg.historyLength,
+        verticalGain: cfg.verticalGain,
+        verticalOffset: cfg.verticalOffset,
+      }),
+    [
+      livePlotHistory,
+      cfg.channels,
+      cfg.historyLength,
+      cfg.verticalGain,
+      cfg.verticalOffset,
+    ],
+  );
+
+  const applyFitToLiveYRange = useCallback(() => {
+    const range = computePlotterAutoYRange({
+      histories: livePlotHistory,
+      channelOrder: PLOTTER_INPUT_IDS,
+      channels: cfg.channels,
+      historyLength: cfg.historyLength,
+      verticalGain: cfg.verticalGain,
+      verticalOffset: cfg.verticalOffset,
+    });
+    if (range == null) {
+      return;
+    }
+    patch((c) => ({ ...c, yMin: range.yMin, yMax: range.yMax }));
+  }, [cfg.channels, cfg.historyLength, cfg.verticalGain, cfg.verticalOffset, livePlotHistory, patch]);
+
   const channelLabels = useMemo(() => {
     const labels: Record<string, string> = {};
     for (const id of PLOTTER_INPUT_IDS) {
@@ -230,10 +278,7 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
 
   return (
     <div className="space-y-2">
-      <div className="space-y-1.5 px-0.5">
-        <p className="text-[11px] leading-snug text-zinc-500">
-          Multi-channel trend chart — one point per flow tick. Wire scalars to Ch 1–4.
-        </p>
+      <div className="px-0.5">
         <PlotterStatusStrip cfg={cfg} livePointCount={livePointCount} />
       </div>
 
@@ -323,68 +368,123 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
           hint="Fit all visible traces into the plot area. Turn off to set fixed Y min and max."
           checked={cfg.autoScale}
           onCheckedChange={(next) => {
-            patch((c) => ({ ...c, autoScale: next }));
+            patch((c) => {
+              if (next) {
+                return { ...c, autoScale: true };
+              }
+              const range = computePlotterAutoYRange({
+                histories: livePlotHistory,
+                channelOrder: PLOTTER_INPUT_IDS,
+                channels: c.channels,
+                historyLength: c.historyLength,
+                verticalGain: c.verticalGain,
+                verticalOffset: c.verticalOffset,
+              });
+              if (range == null) {
+                return { ...c, autoScale: false };
+              }
+              return {
+                ...c,
+                autoScale: false,
+                yMin: range.yMin,
+                yMax: range.yMax,
+              };
+            });
           }}
         />
-        <div className="grid grid-cols-2 gap-1.5">
-          <InspectorNumericScrubRow
-            label="Y min"
-            ariaLabel="Plotter Y minimum"
-            value={cfg.yMin}
-            step={0.05}
-            disabled={cfg.autoScale}
-            onCommit={(next) => {
-              patch((c) => ({ ...c, yMin: next }));
-            }}
-          />
-          <InspectorNumericScrubRow
-            label="Y max"
-            ariaLabel="Plotter Y maximum"
-            value={cfg.yMax}
-            step={0.05}
-            disabled={cfg.autoScale}
-            onCommit={(next) => {
-              patch((c) => ({ ...c, yMax: next }));
-            }}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <InspectorNumericScrubRow
-            label="Gain"
-            ariaLabel="Plotter vertical gain"
-            value={cfg.verticalGain}
-            min={0.001}
-            max={1e6}
-            step={0.05}
-            onCommit={(next) => {
-              patch((c) => ({ ...c, verticalGain: next }));
-            }}
-          />
-          <InspectorNumericScrubRow
-            label="Offset"
-            ariaLabel="Plotter vertical offset"
-            value={cfg.verticalOffset}
-            step={0.05}
-            onCommit={(next) => {
-              patch((c) => ({ ...c, verticalOffset: next }));
-            }}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-            Gain preset
-          </div>
-          <TRNChipButtonGroup
-            ariaLabel="Plotter vertical gain preset"
-            value={nearestGainPreset}
-            options={gainPresetOptions}
-            columns={5}
-            size="sm"
-            onChange={(next) => {
-              patch((c) => ({ ...c, verticalGain: next }));
-            }}
-          />
-        </div>
+
+        {cfg.autoScale ? (
+          liveAutoYRange != null ? (
+            <div className="rounded border border-zinc-800/80 bg-zinc-950/50 px-2 py-1.5 text-[10px] leading-snug text-zinc-400">
+              <span className="font-medium text-zinc-300">Live range</span>{" "}
+              {formatPlotterYRangeSummary(liveAutoYRange)}
+            </div>
+          ) : null
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Fixed limits
+                </div>
+                <TRNButton
+                  type="button"
+                  size="compact"
+                  className="h-[22px] shrink-0 px-2 text-[10px]"
+                  hint="Set Y min and max from the current visible trace data."
+                  disabled={liveAutoYRange == null}
+                  onClick={applyFitToLiveYRange}
+                >
+                  Fit to data
+                </TRNButton>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <InspectorNumericScrubRow
+                  label="Y min"
+                  ariaLabel="Plotter Y minimum"
+                  value={cfg.yMin}
+                  step={0.05}
+                  onCommit={(next) => {
+                    patch((c) => ({ ...c, yMin: next }));
+                  }}
+                />
+                <InspectorNumericScrubRow
+                  label="Y max"
+                  ariaLabel="Plotter Y maximum"
+                  value={cfg.yMax}
+                  step={0.05}
+                  onCommit={(next) => {
+                    patch((c) => ({ ...c, yMax: next }));
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                Scale & shift
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <InspectorNumericScrubRow
+                  label="Gain"
+                  ariaLabel="Plotter vertical gain"
+                  value={cfg.verticalGain}
+                  min={0.001}
+                  max={1e6}
+                  step={0.05}
+                  onCommit={(next) => {
+                    patch((c) => ({ ...c, verticalGain: next }));
+                  }}
+                />
+                <InspectorNumericScrubRow
+                  label="Offset"
+                  ariaLabel="Plotter vertical offset"
+                  value={cfg.verticalOffset}
+                  step={0.05}
+                  onCommit={(next) => {
+                    patch((c) => ({ ...c, verticalOffset: next }));
+                  }}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                  Gain preset
+                </div>
+                <TRNChipButtonGroup
+                  ariaLabel="Plotter vertical gain preset"
+                  value={nearestGainPreset}
+                  options={gainPresetOptions}
+                  columns={5}
+                  size="sm"
+                  onChange={(next) => {
+                    patch((c) => ({ ...c, verticalGain: next }));
+                  }}
+                />
+              </div>
+            </div>
+          </>
+        )}
+
         <InspectorNumericScrubRow
           label="Amplitude divisions"
           description="Horizontal grid lines across the plot height."
@@ -481,18 +581,44 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
           }}
         />
         {activeChannel.colorMode === "custom" ? (
-          <InspectorColorRow
+          <InspectorPropertyRow
             label="Trace color"
-            ariaLabel={`Plotter ${activeChannelId} color`}
-            value={
-              /^#[0-9a-fA-F]{6}$/.test(activeChannel.colorHex)
-                ? activeChannel.colorHex
-                : "#22d3ee"
-            }
-            onChange={(next) => {
-              patchChannel(activeChannelId, { colorHex: next });
-            }}
-          />
+            description="Custom trace color. Use the ring, screen eyedropper, or match the wired socket."
+          >
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div className="min-w-0 flex-1">
+                <InspectorColorField
+                  ariaLabel={`Plotter ${activeChannelId} color`}
+                  value={
+                    /^#[0-9a-fA-F]{6}$/.test(activeChannel.colorHex)
+                      ? activeChannel.colorHex
+                      : "#22d3ee"
+                  }
+                  onChange={(next) => {
+                    patchChannel(activeChannelId, { colorHex: next });
+                  }}
+                />
+              </div>
+              {activeWireSemanticColor != null ? (
+                <TRNButton
+                  type="button"
+                  size="compact"
+                  className="h-[26px] shrink-0 px-2 text-[10px]"
+                  hint={`Use wired socket color (${activeWireSemanticColor})${
+                    activeWire != null
+                      ? ` from ${activeWire.sourceLabel} · ${activeWire.handleLabel}`
+                      : ""
+                  }`}
+                  aria-label={`Use wire color for ${activeChannelId}`}
+                  onClick={() => {
+                    patchChannel(activeChannelId, { colorHex: activeWireSemanticColor });
+                  }}
+                >
+                  Wire
+                </TRNButton>
+              ) : null}
+            </div>
+          </InspectorPropertyRow>
         ) : (
           <InspectorPropertyRow
             label="Wire color"
@@ -575,11 +701,6 @@ export function PlotterInspectorSection(props: PlotterInspectorSectionProps) {
           )}
         </div>
       </InspectorCollapsibleSection>
-
-      <div className="flex items-center gap-1.5 px-0.5 text-[10px] text-zinc-600">
-        <Activity className="h-3 w-3 shrink-0 opacity-70" aria-hidden />
-        Full per-pin history is on the Live tab.
-      </div>
     </div>
   );
 }

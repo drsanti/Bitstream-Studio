@@ -1,14 +1,31 @@
-import { TRNInlineToggleRow, TRNScrubNumberInput } from "../../../../../ui/TRN";
+import { TRNInlineToggleRow, TRNBadgedScrubNumberFieldGrid } from "../../../../../ui/TRN";
 import { MAP_RANGE_INPUT_DEFAULTS } from "../../../../core/flow/map-range-operations";
 import { STUDIO_HANDLE_IN } from "../../store/flow-editor.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
+import { FlowCardBadgedScrubNumberField } from "../flow-node/FlowCardBadgedScrubNumberField";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
 
 const RANGE_FIELDS = [
-  { key: "inMin" as const, label: "From min", fallback: MAP_RANGE_INPUT_DEFAULTS.inMin },
-  { key: "inMax" as const, label: "From max", fallback: MAP_RANGE_INPUT_DEFAULTS.inMax },
-  { key: "outMin" as const, label: "To min", fallback: MAP_RANGE_INPUT_DEFAULTS.outMin },
-  { key: "outMax" as const, label: "To max", fallback: MAP_RANGE_INPUT_DEFAULTS.outMax },
+  {
+    key: "inMin" as const,
+    badge: { kind: "text" as const, text: "In−", tone: "sky" as const },
+    fallback: MAP_RANGE_INPUT_DEFAULTS.inMin,
+  },
+  {
+    key: "inMax" as const,
+    badge: { kind: "text" as const, text: "In+", tone: "sky" as const },
+    fallback: MAP_RANGE_INPUT_DEFAULTS.inMax,
+  },
+  {
+    key: "outMin" as const,
+    badge: { kind: "text" as const, text: "Out−", tone: "violet" as const },
+    fallback: MAP_RANGE_INPUT_DEFAULTS.outMin,
+  },
+  {
+    key: "outMax" as const,
+    badge: { kind: "text" as const, text: "Out+", tone: "violet" as const },
+    fallback: MAP_RANGE_INPUT_DEFAULTS.outMax,
+  },
 ] as const;
 
 function readFiniteConfigNumber(raw: unknown, fallback: number): number {
@@ -34,6 +51,8 @@ export function MapRangeNodePanel(props: MapRangeNodePanelProps) {
         (e.targetHandle ?? STUDIO_HANDLE_IN) === handleId,
     );
 
+  const visibleFields = RANGE_FIELDS.filter(({ key }) => !isHandleWired(key));
+
   return (
     <ReadingPanel className="nodrag nopan space-y-2">
       <TRNInlineToggleRow
@@ -44,23 +63,22 @@ export function MapRangeNodePanel(props: MapRangeNodePanelProps) {
           updateField(nodeId, "clamp", next);
         }}
       />
-      {RANGE_FIELDS.filter(({ key }) => !isHandleWired(key)).map(({ key, label, fallback }) => (
-        <label
-          key={key}
-          className="flex items-center gap-2 text-[10px] text-zinc-400"
-        >
-          <span className="w-14 shrink-0 text-zinc-300">{label}</span>
-          <TRNScrubNumberInput
-            className="min-w-0 flex-1"
-            value={readFiniteConfigNumber(defaultConfig[key], fallback)}
-            step={0.01}
-            aria-label={`Map range ${label}`}
-            onChange={(next) => {
-              updateField(nodeId, key, next);
-            }}
-          />
-        </label>
-      ))}
+      {visibleFields.length > 0 ? (
+        <TRNBadgedScrubNumberFieldGrid columns={2}>
+          {visibleFields.map(({ key, badge, fallback }) => (
+            <FlowCardBadgedScrubNumberField
+              key={key}
+              badge={badge}
+              ariaLabel={`Map range ${key}`}
+              value={readFiniteConfigNumber(defaultConfig[key], fallback)}
+              step={0.01}
+              onCommit={(next) => {
+                updateField(nodeId, key, next);
+              }}
+            />
+          ))}
+        </TRNBadgedScrubNumberFieldGrid>
+      ) : null}
     </ReadingPanel>
   );
 }

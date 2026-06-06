@@ -20,6 +20,7 @@ import {
 } from "../../subgraphs/studio-subgraph.types";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { GroupSocketSortableList } from "./GroupSocketSortableList";
+import { INSPECTOR_SCOPE_BADGES } from "./inspector-section-scope-badges";
 import { InspectorCollapsibleSection } from "./InspectorCollapsibleSection";
 
 type NodeGroupInspectorSectionProps = {
@@ -371,6 +372,7 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
 
       <InspectorCollapsibleSection
         title="Inputs"
+        scopeBadge={INSPECTOR_SCOPE_BADGES.interface}
         icon={<LogIn size={14} aria-hidden />}
         iconHint="Sockets on the left of the group shell — wires from the parent graph connect here."
         badge={
@@ -408,6 +410,7 @@ export function NodeGroupInspectorSection(props: NodeGroupInspectorSectionProps)
 
       <InspectorCollapsibleSection
         title="Outputs"
+        scopeBadge={INSPECTOR_SCOPE_BADGES.interface}
         icon={<LogOut size={14} aria-hidden />}
         iconHint="Sockets on the right of the group shell — wires to the parent graph leave here."
         badge={

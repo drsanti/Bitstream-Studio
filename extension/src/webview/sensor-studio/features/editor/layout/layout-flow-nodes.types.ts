@@ -91,6 +91,9 @@ export function isFlowLayoutNodeType(type: string | undefined): type is FlowLayo
   return type != null && (FLOW_LAYOUT_NODE_TYPES as readonly string[]).includes(type);
 }
 
-export function isLayoutFlowNode(node: Node): node is LayoutFlowNode {
+export function isLayoutFlowNode(node: Node | null | undefined): node is LayoutFlowNode {
+  if (node == null) {
+    return false;
+  }
   return isFlowLayoutNodeType(node.type);
 }

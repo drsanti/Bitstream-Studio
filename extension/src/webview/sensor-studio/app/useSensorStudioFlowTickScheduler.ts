@@ -3,7 +3,10 @@ import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.s
 import { useBmi270FusionEulerWireTapStore } from "../../bitstream-app/state/bmi270FusionEulerWireTap.store";
 import { useBmi270FusionQuatWireTapStore } from "../../bitstream-app/state/bmi270FusionQuatWireTap.store";
 import { graphNeedsMaterialDomainEvalInGraph } from "../core/flow/material-domain-eval";
-import { graphNeedsSceneFrameTick } from "../core/flow/scene-flow-frame-subscribers";
+import {
+  graphNeedsAudioFrameTick,
+  graphNeedsSceneFrameTick,
+} from "../core/flow/scene-flow-frame-subscribers";
 import { graphHasSceneOutputNode } from "../core/stage/evaluate-stage-scene-snapshot";
 import { useFlowEditorStore } from "../features/editor/store/flow-editor.store";
 
@@ -54,6 +57,7 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
       const st = useFlowEditorStore.getState();
       return (
         graphNeedsSceneFrameTick(st.nodes) ||
+        graphNeedsAudioFrameTick(st.nodes) ||
         graphHasSceneOutputNode(st.nodes) ||
         graphNeedsMaterialDomainEvalInGraph({
           nodes: st.nodes,

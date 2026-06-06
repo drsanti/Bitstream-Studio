@@ -7,11 +7,11 @@ import {
   TRNHintText,
   TRNInteractiveCard,
   TRNParameterSlider,
-  TRNScrubNumberInput,
   TRNSelect,
   type TRNSelectOption,
   TRNToggleSwitch,
 } from "../../../../../../../ui/TRN";
+import { InspectorNumericField } from "../../InspectorNumericScrubRow";
 import {
   resolveFlowWireClipTrimRange,
   type FlowWireAnimationClipV1,
@@ -155,7 +155,7 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
           type="button"
           className="min-w-0! px-1.5"
           onClick={() => onStepFrame(-1 / fps)}
-          title="Step back one frame"
+          hint="Step back one frame"
         >
           <SkipBack className="size-3.5" strokeWidth={2} aria-hidden />
         </TRNButton>
@@ -165,7 +165,7 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
           className="min-w-0! px-2"
           selected={playing}
           onClick={onTogglePlay}
-          title={playing ? "Pause" : "Play"}
+          hint={playing ? "Pause" : "Play"}
         >
           {playing ? <Pause className="size-3.5" strokeWidth={2} aria-hidden /> : <Play className="size-3.5" strokeWidth={2} aria-hidden />}
         </TRNButton>
@@ -174,7 +174,7 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
           type="button"
           className="min-w-0! px-1.5"
           onClick={onStopToTrimStart}
-          title="Stop playback and jump to trim start"
+          hint="Stop playback and jump to trim start"
         >
           <Square className="size-3.5" strokeWidth={2} aria-hidden />
         </TRNButton>
@@ -183,22 +183,21 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
           type="button"
           className="min-w-0! px-1.5"
           onClick={() => onStepFrame(1 / fps)}
-          title="Step forward one frame"
+          hint="Step forward one frame"
         >
           <SkipForward className="size-3.5" strokeWidth={2} aria-hidden />
         </TRNButton>
         <span className="ml-1 shrink-0 text-zinc-500">Speed</span>
-        <TRNScrubNumberInput
+        <InspectorNumericField
+          ariaLabel="Clip playback speed"
+          className="min-w-0 shrink"
           value={clip.speed ?? 1}
           min={-4}
           max={4}
           step={0.05}
           fractionDigits={2}
           pointerScrubEnabled={false}
-          onChange={(v) => onCommitClipPatch({ speed: v })}
-          className="min-w-0 shrink"
-          inputClassName="h-6 w-[4.25rem] rounded border border-zinc-700/80 bg-zinc-950/60 px-1 py-0 font-mono text-[10px] text-zinc-200"
-          aria-label="Clip playback speed"
+          onCommit={(v) => onCommitClipPatch({ speed: v })}
         />
       </div>
 
@@ -227,59 +226,51 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
 
       <div className="grid grid-cols-2 gap-2">
         <TRNFormField label="Trim in (s)" id={`${uid}-trim-in`}>
-          <TRNScrubNumberInput
-            id={`${uid}-trim-in`}
+          <InspectorNumericField
+            ariaLabel="Trim in seconds"
             value={trimStart}
             min={0}
             max={Math.max(0, trimEnd)}
             step={0.01}
             fractionDigits={2}
             pointerScrubEnabled={false}
-            onChange={(v) => onCommitClipPatch({ trimStartS: Math.max(0, v) })}
-            inputClassName="h-6 w-full rounded border border-zinc-700/80 bg-zinc-950/60 px-1 font-mono text-[10px] text-zinc-200"
-            aria-label="Trim in seconds"
+            onCommit={(v) => onCommitClipPatch({ trimStartS: Math.max(0, v) })}
           />
         </TRNFormField>
         <TRNFormField label="Trim out (s)" id={`${uid}-trim-out`}>
-          <TRNScrubNumberInput
-            id={`${uid}-trim-out`}
+          <InspectorNumericField
+            ariaLabel="Trim out seconds"
             value={trimEnd}
             min={0}
             step={0.01}
             fractionDigits={2}
             pointerScrubEnabled={false}
-            onChange={(v) => onCommitClipPatch({ trimEndS: Math.max(0, v) })}
-            inputClassName="h-6 w-full rounded border border-zinc-700/80 bg-zinc-950/60 px-1 font-mono text-[10px] text-zinc-200"
-            aria-label="Trim out seconds"
+            onCommit={(v) => onCommitClipPatch({ trimEndS: Math.max(0, v) })}
           />
         </TRNFormField>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <TRNFormField label="Fade in (ms)" id={`${uid}-fade-in`}>
-          <TRNScrubNumberInput
-            id={`${uid}-fade-in`}
+          <InspectorNumericField
+            ariaLabel="Fade in milliseconds"
             value={fadeIn}
             min={0}
             step={10}
             fractionDigits={0}
             pointerScrubEnabled={false}
-            onChange={(v) => onCommitClipPatch({ fadeInMs: Math.max(0, v) })}
-            inputClassName="h-6 w-full rounded border border-zinc-700/80 bg-zinc-950/60 px-1 font-mono text-[10px] text-zinc-200"
-            aria-label="Fade in milliseconds"
+            onCommit={(v) => onCommitClipPatch({ fadeInMs: Math.max(0, v) })}
           />
         </TRNFormField>
         <TRNFormField label="Fade out (ms)" id={`${uid}-fade-out`}>
-          <TRNScrubNumberInput
-            id={`${uid}-fade-out`}
+          <InspectorNumericField
+            ariaLabel="Fade out milliseconds"
             value={fadeOut}
             min={0}
             step={10}
             fractionDigits={0}
             pointerScrubEnabled={false}
-            onChange={(v) => onCommitClipPatch({ fadeOutMs: Math.max(0, v) })}
-            inputClassName="h-6 w-full rounded border border-zinc-700/80 bg-zinc-950/60 px-1 font-mono text-[10px] text-zinc-200"
-            aria-label="Fade out milliseconds"
+            onCommit={(v) => onCommitClipPatch({ fadeOutMs: Math.max(0, v) })}
           />
         </TRNFormField>
       </div>

@@ -21,6 +21,7 @@ import {
   STAGE_SCENE3D_CARD_HINTS,
   STAGE_SCENE3D_CARD_TITLES,
 } from "./stage-inspector-ui-persistence";
+import { INSPECTOR_NODE_TAB_CARD_STACK_CLASS } from "./inspector-node-tab-stack";
 
 export type NodeInspectorScene3dSectionProps = {
   selectedNode: StudioNode;
@@ -100,7 +101,7 @@ export function NodeInspectorScene3dSection(props: NodeInspectorScene3dSectionPr
   }
 
   return (
-    <div className="space-y-2">
+    <div className={INSPECTOR_NODE_TAB_CARD_STACK_CLASS}>
       {cardsToRender.map((id) => (
         <div
           key={id}

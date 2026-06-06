@@ -4,7 +4,6 @@ import { BooleanConstantSettingsSection } from "./sections/BooleanConstantSettin
 import { CompareSettingsSection } from "./sections/CompareSettingsSection";
 import { ClampSettingsSection } from "./sections/ClampSettingsSection";
 import { EnvironmentSettingsSection } from "./sections/EnvironmentSettingsSection";
-import { GaugeSettingsSection } from "./sections/GaugeSettingsSection";
 import { GlbMaterialTextureSettingsSection } from "./sections/GlbMaterialTextureSettingsSection";
 import { GlbAnimationBundleConnectionSection } from "./sections/GlbAnimationBundleConnectionSection";
 import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
@@ -42,6 +41,8 @@ import {
   AudioFilePlayerSettingsSection,
   AudioOscillatorSettingsSection,
   AudioScopeSettingsSection,
+  AudioMachineSettingsSection,
+  AudioSfxSettingsSection,
   MicInputSettingsSection,
 } from "./sections/AudioSettingsSections";
 import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
@@ -63,8 +64,6 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "map-range": MapRangeSettingsSection,
   clamp: ClampSettingsSection,
   "low-pass": LowPassSettingsSection,
-  /** @deprecated Legacy gauge — migrates to bar-meter on hydrate. */
-  gauge: GaugeSettingsSection,
   "radial-gauge": RadialGaugeSettingsSection,
   "bar-meter": BarMeterSettingsSection,
   knob: KnobSettingsSection,
@@ -105,5 +104,7 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "audio-scope": AudioScopeSettingsSection,
   "audio-file-player": AudioFilePlayerSettingsSection,
   "audio-oscillator": AudioOscillatorSettingsSection,
+  "audio-sfx": AudioSfxSettingsSection,
+  "audio-machine": AudioMachineSettingsSection,
   ...VECTOR_QUATERNION_MATH_INSPECTOR_SECTIONS,
 };

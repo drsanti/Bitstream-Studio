@@ -21,8 +21,6 @@ export function validateStudioNodeConfig(nodeId: string, cfg: Record<string, unk
       return validateMapRange(safeCfg);
     case "clamp":
       return validateClamp(safeCfg);
-    case "gauge":
-      return validateGauge(safeCfg);
     case "sparkline":
       return validateSparkline(safeCfg);
     case "plotter":
@@ -133,19 +131,6 @@ function validateClamp(cfg: Record<string, unknown>): string[] {
   const v = r.data;
   if (typeof v.min === "number" && typeof v.max === "number" && v.min > v.max) {
     out.push("min must be ≤ max");
-  }
-  return out;
-}
-
-function validateGauge(cfg: Record<string, unknown>): string[] {
-  const schema = z.object({
-    unit: z.string().optional(),
-    decimals: z.number().finite().int().min(0).max(6).optional(),
-  });
-  const r = schema.safeParse(cfg);
-  const out: string[] = [];
-  if (!r.success) {
-    pushIssues(out, r.error.issues);
   }
   return out;
 }
@@ -340,7 +325,6 @@ function validateNumberConstant(cfg: Record<string, unknown>): string[] {
       min: z.number().finite().nullable().optional(),
       max: z.number().finite().nullable().optional(),
       step: z.number().finite().positive().nullable().optional(),
-      cardValueControl: z.enum(["input", "slider"]).optional(),
       glbExtractKind: z.string().optional(),
       glbExtractRef: z.string().optional(),
     })

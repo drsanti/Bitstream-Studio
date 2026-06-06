@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
-import { InspectorScopeThisNodeChip } from "./InspectorScopeChip";
+import { INSPECTOR_SCOPE_BADGES } from "./inspector-section-scope-badges";
+import { InspectorSectionScopeBadge } from "./InspectorScopeChip";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorNodeLayoutSizeFields } from "./InspectorNodeLayoutSizeFields";
 import { InspectorViewportPreviewLayoutFields } from "./InspectorViewportPreviewLayoutFields";
@@ -15,6 +16,7 @@ import {
 } from "../../nodes/flow-node/socket-display";
 import { readStudioFlowNodeLayoutSize } from "../../nodes/flow-node/studio-node-layout-size";
 import { studioNodeAllowsBodyCollapse } from "../../nodes/flow-node/studio-body-collapse";
+import { INSPECTOR_NODE_TAB_CARD_STACK_CLASS } from "./inspector-node-tab-stack";
 
 export type NodeInspectorCanvasLayoutSectionProps = {
   selectedNode: StudioNode;
@@ -63,17 +65,14 @@ export function NodeInspectorCanvasLayoutSection(
   );
 
   return (
-    <div className="space-y-2">
-      <p className="px-0.5 text-[10px] leading-snug text-zinc-500">
-        Card layout on the flow graph. Grid and graph-wide wire style → deselect
-        all nodes (Flow canvas inspector).
-      </p>
-
+    <div className={INSPECTOR_NODE_TAB_CARD_STACK_CLASS}>
       <InspectorSection
         title="Socket rows"
         hint="Ports and live readouts on this node's header strip."
         variant="compact"
-        headerTrailing={<InspectorScopeThisNodeChip />}
+        headerTrailing={
+          <InspectorSectionScopeBadge label={INSPECTOR_SCOPE_BADGES.layout} />
+        }
       >
         <InspectorCompactToggleRow
           label="Live values beside ports"
@@ -103,7 +102,9 @@ export function NodeInspectorCanvasLayoutSection(
           title="Body panel"
           hint="The panel under the header — chart, knob, preview, and similar controls."
           variant="compact"
-          headerTrailing={<InspectorScopeThisNodeChip />}
+          headerTrailing={
+            <InspectorSectionScopeBadge label={INSPECTOR_SCOPE_BADGES.layout} />
+          }
         >
           <InspectorCompactToggleRow
             label="Allow hiding body panel"
@@ -119,7 +120,9 @@ export function NodeInspectorCanvasLayoutSection(
         title="Card size"
         hint="Width and height of this node's card on the flow graph."
         variant="compact"
-        headerTrailing={<InspectorScopeThisNodeChip />}
+        headerTrailing={
+          <InspectorSectionScopeBadge label={INSPECTOR_SCOPE_BADGES.layout} />
+        }
       >
         <InspectorCompactToggleRow
           label="Manual resize"

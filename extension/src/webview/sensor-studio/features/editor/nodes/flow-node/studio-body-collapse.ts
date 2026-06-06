@@ -1,4 +1,4 @@
-import { isPlotterNodeId } from "../plotter/plotter-config";
+import { isStudioFlexPlotCanvasNodeId } from "./studio-flex-plot-canvas";
 import { isScene3dInspectorNodeId } from "../scene3d/scene3d-inspector-node-ids";
 import type { StudioNodeData } from "../../store/flow-editor.store";
 
@@ -16,7 +16,7 @@ const STUDIO_VISUAL_CANVAS_BODY_NODE_IDS = new Set([
 
 /** Default for Inspector + toolbar: visual nodes cannot collapse body until enabled. */
 export function studioNodeDefaultAllowBodyCollapse(nodeId: string): boolean {
-  if (isPlotterNodeId(nodeId) || isScene3dInspectorNodeId(nodeId)) {
+  if (isStudioFlexPlotCanvasNodeId(nodeId) || isScene3dInspectorNodeId(nodeId)) {
     return false;
   }
   return !STUDIO_VISUAL_CANVAS_BODY_NODE_IDS.has(nodeId);

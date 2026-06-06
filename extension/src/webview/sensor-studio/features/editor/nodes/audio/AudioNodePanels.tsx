@@ -1,14 +1,57 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import { twMerge } from "tailwind-merge";
-import { studioAudioRuntime } from "../../../../core/audio/studio-audio-runtime";
+import { clampAnalyserFftSize } from "../../../../core/audio/clamp-analyser-fft-size";
 import { resolveAudioSinkSourceNodeId } from "../../../../core/audio/resolve-audio-monitor-source";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
-import { TRNSelect, TRNScrubNumberInput, type TRNSelectOption } from "../../../../../ui/TRN";
-import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
-import { InspectorTextField } from "../../components/inspector/InspectorNumericScrubRow";
+import {
+  applyAudioSfxPresetToConfig,
+  AUDIO_SFX_PRESETS,
+  readAudioSfxPresetId,
+} from "../../../../core/audio/audio-sfx-config";
+import { TRNButton, TRNSelect, TRNToggleSwitch, type TRNSelectOption } from "../../../../../ui/TRN";
+import { InspectorSegmentButtonGroup } from "../../components/inspector/InspectorSegmentButtonGroup";
+import { FlowCardScrubNumberField } from "../flow-node/FlowCardScrubNumberField";
 import { FlowNodeIntrinsicWidthMarker } from "../flow-node/FlowNodeIntrinsicWidthMarker";
-import { widestTrnSelectOptionLabel } from "../flow-node/flow-node-intrinsic-width-utils";
+import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
+import { coerceAudioScopeDisplayConfig } from "./audio-scope-display-config";
+import { AudioScopeCanvas } from "./AudioScopeCanvas";
+import {
+  FLOW_NODE_BODY_PANEL_CLASS,
+  widestTrnSelectOptionLabel,
+} from "../flow-node/flow-node-intrinsic-width-utils";
 import { FLOW_NODE_TRN_SELECT_CLASS } from "../flow-node/flow-node-trn-select-layout";
+import {
+  audioOutputCardErrorLine,
+  audioOutputWiredInputParts,
+  clampAudioOutputGain,
+  readAudioOutputMaxGain,
+  useAudioOutputRuntimeUi,
+} from "./audio-output-chrome";
+import {
+  AUDIO_SCOPE_MODE_CARD_SEGMENT_OPTIONS,
+  audioScopeWiredInputParts,
+  resolveAudioScopeEnabled,
+} from "./audio-scope-chrome";
+import {
+  filePlayerCardErrorLine,
+  filePlayerWiredInputParts,
+  useFilePlayerRuntimeUi,
+} from "./audio-file-player-chrome";
+import {
+  OSCILLATOR_WAVEFORM_OPTIONS,
+  oscillatorWiredInputParts,
+} from "./audio-oscillator-chrome";
+import { machineWiredInputParts } from "./audio-machine-chrome";
+import { sfxWiredInputParts } from "./audio-sfx-chrome";
+import {
+  applyMotorPresetToConfig,
+  MOTOR_MACHINE_PRESETS,
+  readMotorPresetId,
+} from "../../../../core/audio/audio-machine-config";
+import {
+  micInputCardErrorLine,
+  useMicInputRuntimeUi,
+} from "./mic-input-chrome";
 
 function readBool(dc: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const v = dc[key];
@@ -20,70 +63,54 @@ function readString(dc: Record<string, unknown>, key: string, fallback: string):
   return typeof v === "string" ? v : fallback;
 }
 
+function WiredOverrideHint(props: { parts: string[] }) {
+  const { parts } = props;
+  if (parts.length === 0) {
+    return null;
+  }
+  return (
+    <p className="text-[10px] leading-snug text-zinc-500">
+      {parts.map((part, index) => (
+        <span key={part}>
+          {index > 0 ? <span> · </span> : null}
+          <span className="font-medium text-zinc-400">{part}</span> is wired
+        </span>
+      ))}
+      <span> — card controls are overridden.</span>
+    </p>
+  );
+}
+
 export function MicInputNodePanel(props: { nodeId: string; defaultConfig: Record<string, unknown> }) {
   const { nodeId, defaultConfig } = props;
   const enabled = readBool(defaultConfig, "enabled", false);
   const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
-  const [ui, setUi] = useState(() => studioAudioRuntime.getMicUiState(nodeId));
-
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      setUi(studioAudioRuntime.getMicUiState(nodeId));
-    }, 250);
-    return () => window.clearInterval(t);
-  }, [nodeId]);
-
-  const statusLabel =
-    ui.status === "active"
-      ? "Active"
-      : ui.status === "requesting"
-        ? "Requesting…"
-        : ui.status === "denied"
-          ? "Denied"
-          : ui.status === "error"
-            ? "Error"
-            : enabled
-              ? "Idle"
-              : "Disabled";
-
-  const statusClass =
-    ui.status === "active"
-      ? "text-emerald-300"
-      : ui.status === "requesting"
-        ? "text-cyan-200/90"
-        : ui.status === "denied"
-          ? "text-amber-200/90"
-          : ui.status === "error"
-            ? "text-rose-200/90"
-            : "text-zinc-400";
+  const runtime = useMicInputRuntimeUi(nodeId);
+  const errorLine = micInputCardErrorLine(runtime, enabled);
 
   return (
-    <ReadingPanel className="nodrag nopan space-y-2 px-3 pb-3 pt-2">
+    <div
+      className={twMerge(
+        "nodrag nopan space-y-1.5 border-t border-zinc-800/55 px-2.5 py-2",
+        FLOW_NODE_BODY_PANEL_CLASS,
+      )}
+      data-flow-node-body-panel
+    >
+      <FlowNodeIntrinsicWidthMarker labels={["Capture"]} />
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-zinc-300">Microphone</div>
-        <div className={twMerge("text-[10px] font-semibold uppercase tracking-wide", statusClass)}>
-          {statusLabel}
-        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Capture
+        </span>
+        <TRNToggleSwitch
+          checked={enabled}
+          ariaLabel="Enable microphone capture"
+          onCheckedChange={(next) => update(nodeId, "enabled", next)}
+        />
       </div>
-      <button
-        type="button"
-        className={twMerge(
-          "nodrag w-full rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-          enabled
-            ? "border-emerald-500/35 bg-emerald-950/25 text-emerald-100 hover:bg-emerald-950/35"
-            : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-        )}
-        onClick={() => update(nodeId, "enabled", !enabled)}
-      >
-        {enabled ? "Disable mic" : "Enable mic"}
-      </button>
-      {ui.errorMessage != null && ui.errorMessage.trim().length > 0 ? (
-        <div className="text-[10px] leading-snug text-rose-200/85">{ui.errorMessage}</div>
+      {errorLine != null ? (
+        <div className="text-[10px] leading-snug text-rose-200/85">{errorLine}</div>
       ) : null}
-      <div className="text-[10px] leading-snug text-zinc-500">
-        Tip: enabling microphone requires permission in the webview.
-      </div>
-    </ReadingPanel>
+    </div>
   );
 }
 
@@ -91,40 +118,12 @@ export function AudioOutputNodePanel(props: { nodeId: string; defaultConfig: Rec
   const { nodeId, defaultConfig } = props;
   const enabled = readBool(defaultConfig, "enabled", false);
   const gate = readBool(defaultConfig, "gate", false);
-  const gainRaw = typeof defaultConfig.gain === "number" ? defaultConfig.gain : Number(defaultConfig.gain);
-  const gain = Number.isFinite(gainRaw) ? gainRaw : 0;
-  const maxGainRaw =
-    typeof defaultConfig.maxGain === "number" ? defaultConfig.maxGain : Number(defaultConfig.maxGain);
-  const maxGain = Number.isFinite(maxGainRaw) ? Math.max(0, Math.min(1, maxGainRaw)) : 0.25;
+  const maxGain = readAudioOutputMaxGain(defaultConfig.maxGain);
+  const gain = clampAudioOutputGain(defaultConfig.gain, maxGain);
   const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
-  const muteAllAudio = useFlowEditorStore((s) => s.muteAllAudio);
   const edges = useFlowEditorStore((s) => s.edges);
-  const [ui, setUi] = useState(() => studioAudioRuntime.getMasterUiState());
-
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      setUi(studioAudioRuntime.getMasterUiState());
-    }, 250);
-    return () => window.clearInterval(t);
-  }, []);
-
-  const statusLabel =
-    ui.status === "running"
-      ? "Running"
-      : ui.status === "suspended"
-        ? "Suspended"
-        : ui.status === "error"
-          ? "Error"
-          : "Idle";
-
-  const statusClass =
-    ui.status === "running"
-      ? "text-emerald-300"
-      : ui.status === "suspended"
-        ? "text-amber-200/90"
-        : ui.status === "error"
-          ? "text-rose-200/90"
-          : "text-zinc-400";
+  const runtime = useAudioOutputRuntimeUi();
+  const errorLine = audioOutputCardErrorLine(runtime);
 
   const isGateWired = useMemo(
     () => edges.some((e) => e.target === nodeId && e.targetHandle === "gate"),
@@ -135,109 +134,70 @@ export function AudioOutputNodePanel(props: { nodeId: string; defaultConfig: Rec
     [edges, nodeId],
   );
 
+  const wiredParts = audioOutputWiredInputParts({ isGateWired, isGainWired });
+
   return (
-    <ReadingPanel className="nodrag nopan space-y-2 px-3 pb-3 pt-2">
+    <div
+      className={twMerge(
+        "nodrag nopan space-y-1.5 border-t border-zinc-800/55 px-2.5 py-2",
+        FLOW_NODE_BODY_PANEL_CLASS,
+      )}
+      data-flow-node-body-panel
+    >
+      <FlowNodeIntrinsicWidthMarker labels={["Engine", "Gate", "Gain"]} />
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-zinc-300">Audio Output</div>
-        <div className={twMerge("text-[10px] font-semibold uppercase tracking-wide", statusClass)}>
-          {statusLabel}
-        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Engine
+        </span>
+        <TRNToggleSwitch
+          checked={enabled}
+          ariaLabel="Enable audio engine"
+          onCheckedChange={(next) => update(nodeId, "enabled", next)}
+        />
       </div>
-      <button
-        type="button"
-        className={twMerge(
-          "nodrag w-full rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-          enabled
-            ? "border-cyan-500/35 bg-cyan-950/20 text-cyan-100 hover:bg-cyan-950/30"
-            : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-        )}
-        onClick={() => update(nodeId, "enabled", !enabled)}
-      >
-        {enabled ? "Disable audio engine" : "Enable audio engine"}
-      </button>
-      {ui.errorMessage != null && ui.errorMessage.trim().length > 0 ? (
-        <div className="text-[10px] leading-snug text-rose-200/85">{ui.errorMessage}</div>
-      ) : null}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className={twMerge(
-            "nodrag rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-            gate
-              ? "border-emerald-500/35 bg-emerald-950/20 text-emerald-100 hover:bg-emerald-950/30"
-              : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-            isGateWired ? "opacity-60" : "",
-          )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Gate
+        </span>
+        <TRNToggleSwitch
+          checked={gate}
+          ariaLabel="Audio output gate"
           disabled={isGateWired}
-          onClick={() => update(nodeId, "gate", !gate)}
-        >
-          {gate ? "Gate: on" : "Gate: off"}
-        </button>
+          onCheckedChange={(next) => update(nodeId, "gate", next)}
+        />
+      </div>
+      {!isGainWired ? (
         <div className="space-y-1">
           <div className="text-[10px] font-medium text-zinc-500">Gain</div>
-          <TRNScrubNumberInput
-            aria-label="Audio output gain"
-            value={Math.max(0, Math.min(maxGain, gain))}
+          <FlowCardScrubNumberField
+            ariaLabel="Audio output gain"
+            className="w-full"
+            value={gain}
             min={0}
             max={maxGain}
             step={0.01}
-            pointerScrubEnabled
-            disabled={isGainWired}
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-cyan-500/45 focus:ring-1 focus:ring-cyan-500/25"
-            onChange={(next) => update(nodeId, "gain", Math.max(0, Math.min(maxGain, next)))}
+            fractionDigits={2}
+            onCommit={(next) => update(nodeId, "gain", clampAudioOutputGain(next, maxGain))}
           />
         </div>
-      </div>
-      {isGateWired || isGainWired ? (
-        <div className="text-[10px] leading-snug text-zinc-500">
-          {isGateWired ? (
-            <>
-              <span className="font-medium text-zinc-400">Gate</span> is wired
-            </>
-          ) : null}
-          {isGateWired && isGainWired ? <span> · </span> : null}
-          {isGainWired ? (
-            <>
-              <span className="font-medium text-zinc-400">Gain</span> is wired
-            </>
-          ) : null}
-          <span> — card controls are overridden.</span>
-        </div>
       ) : null}
-      <div className="text-[10px] leading-snug text-zinc-500">
-        Wire <span className="font-medium text-zinc-400">Audio</span> from a source, or enable{" "}
-        <span className="font-medium text-zinc-400">Monitor mode</span> in the Inspector.
-      </div>
-      <button
-        type="button"
-        className={twMerge(
-          "nodrag w-full rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-          "border-rose-900/45 bg-rose-950/15 text-rose-100/90 hover:bg-rose-950/25",
-        )}
-        onClick={() => muteAllAudio()}
-      >
-        Mute all audio
-      </button>
-      <div className="text-[10px] leading-snug text-zinc-500">
-        Use the <span className="font-medium text-zinc-400">Gate</span> input to start/stop monitoring (mic) or playback (oscillator).
-      </div>
-      <div className="text-[10px] leading-snug text-zinc-500">
-        Safety cap: <span className="font-medium text-zinc-400">maxGain</span> ={" "}
-        <span className="font-mono text-zinc-300">{maxGain.toFixed(2)}</span>
-      </div>
-    </ReadingPanel>
+      <WiredOverrideHint parts={wiredParts} />
+      {errorLine != null ? (
+        <div className="text-[10px] leading-snug text-rose-200/85">{errorLine}</div>
+      ) : null}
+    </div>
   );
 }
 
 export function AudioScopeNodePanel(props: { nodeId: string; defaultConfig: Record<string, unknown> }) {
   const { nodeId, defaultConfig } = props;
-  const enabled = readBool(defaultConfig, "enabled", true);
+  const configEnabled = defaultConfig.enabled !== false;
   const mode = typeof defaultConfig.mode === "string" ? defaultConfig.mode : "waveform";
   const fpsRaw = typeof defaultConfig.fps === "number" ? defaultConfig.fps : 30;
   const fps = Number.isFinite(fpsRaw) ? Math.max(5, Math.min(60, Math.round(fpsRaw))) : 30;
   const fftSizeRaw =
     typeof defaultConfig.fftSize === "number" ? defaultConfig.fftSize : Number(defaultConfig.fftSize);
-  const fftSize = Number.isFinite(fftSizeRaw) ? Math.max(32, Math.min(32768, Math.round(fftSizeRaw))) : 2048;
+  const fftSize = Number.isFinite(fftSizeRaw) ? clampAnalyserFftSize(fftSizeRaw) : 2048;
   const smoothingRaw =
     typeof defaultConfig.smoothing === "number"
       ? defaultConfig.smoothing
@@ -246,288 +206,174 @@ export function AudioScopeNodePanel(props: { nodeId: string; defaultConfig: Reco
   const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
   const nodes = useFlowEditorStore((s) => s.nodes);
   const edges = useFlowEditorStore((s) => s.edges);
-  const selectedNodeId = useFlowEditorStore((s) => s.selectedNodeId);
+  const nodeData = useFlowEditorStore((s) => {
+    const n = s.nodes.find((x) => x.id === nodeId);
+    return n?.type === "studio" ? n.data : null;
+  });
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const rafRef = useRef<number>(0);
-  const lastRef = useRef<number>(0);
+  const isEnabledWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "enabled"),
+    [edges, nodeId],
+  );
+  const enabled = resolveAudioScopeEnabled(
+    defaultConfig,
+    nodeData?.liveInputBooleanByHandle?.enabled,
+    isEnabledWired,
+  );
+  const wiredParts = audioScopeWiredInputParts({ isEnabledWired });
+  const display = useMemo(
+    () => coerceAudioScopeDisplayConfig(defaultConfig),
+    [defaultConfig],
+  );
 
-  const sourceNodeId = useMemo(() => {
-    const wired = edges.find((e) => e.target === nodeId && e.targetHandle === "audio");
-    return resolveAudioSinkSourceNodeId({
-      sinkNodeId: nodeId,
-      cfg: defaultConfig,
-      nodes,
-      edges,
-      selectedNodeId,
-      wiredSourceNodeId: wired?.source ?? null,
-    });
-  }, [defaultConfig, edges, nodeId, nodes, selectedNodeId]);
+  const sourceNodeId = useMemo(
+    () =>
+      resolveAudioSinkSourceNodeId({
+        sinkNodeId: nodeId,
+        cfg: defaultConfig,
+        nodes,
+        edges,
+      }),
+    [defaultConfig, edges, nodeId, nodes],
+  );
 
-  const sourceKind = useMemo((): "mic" | "osc" | "file" | "unknown" => {
+  const sourceKind = useMemo((): "mic" | "osc" | "file" | "sfx" | "machine" | "unknown" => {
     if (sourceNodeId == null) return "unknown";
     const n = nodes.find((x) => x.id === sourceNodeId);
     if (n?.type !== "studio") return "unknown";
     if (n.data.nodeId === "mic-input") return "mic";
     if (n.data.nodeId === "audio-oscillator") return "osc";
     if (n.data.nodeId === "audio-file-player") return "file";
+    if (n.data.nodeId === "audio-sfx") return "sfx";
+    if (n.data.nodeId === "audio-machine") return "machine";
     return "unknown";
   }, [nodes, sourceNodeId]);
 
-  useEffect(() => {
-    const loop = (ts: number) => {
-      rafRef.current = requestAnimationFrame(loop);
-      if (!enabled) return;
-      if (ts - (lastRef.current || 0) < 1000 / fps) return;
-      lastRef.current = ts;
-
-      const c = canvasRef.current;
-      if (c == null) return;
-      const ctx = c.getContext("2d");
-      if (ctx == null) return;
-
-      const w = c.width;
-      const h = c.height;
-      ctx.clearRect(0, 0, w, h);
-
-      if (sourceNodeId == null) {
-        ctx.fillStyle = "rgba(161,161,170,0.65)";
-        ctx.font = "10px sans-serif";
-        ctx.fillText("Wire Audio or enable Monitor mode", 8, 14);
-        return;
-      }
-
-      const buffers =
-        sourceKind === "mic"
-          ? (studioAudioRuntime.setMicAnalyserSettings(sourceNodeId, { fftSize, smoothing }),
-            studioAudioRuntime.readMicBuffers(sourceNodeId))
-          : sourceKind === "osc"
-            ? (studioAudioRuntime.setOscillatorAnalyserSettings(sourceNodeId, { fftSize, smoothing }),
-              studioAudioRuntime.readOscillatorBuffers(sourceNodeId))
-            : sourceKind === "file"
-              ? (studioAudioRuntime.setFilePlayerAnalyserSettings(sourceNodeId, { fftSize, smoothing }),
-                studioAudioRuntime.readFilePlayerBuffers(sourceNodeId))
-          : (studioAudioRuntime.setMasterAnalyserSettings({ fftSize, smoothing }),
-            studioAudioRuntime.readMasterBuffers());
-      if (buffers == null) {
-        ctx.fillStyle = "rgba(161,161,170,0.65)";
-        ctx.font = "10px sans-serif";
-        ctx.fillText(
-          sourceKind === "mic"
-            ? "Mic inactive"
-            : sourceKind === "osc"
-              ? "Osc inactive"
-              : sourceKind === "file"
-                ? "File inactive"
-                : "Audio inactive",
-          8,
-          14,
-        );
-        return;
-      }
-
-      const stroke = "rgba(34,211,238,0.85)";
-      ctx.lineWidth = 1.5;
-      ctx.strokeStyle = stroke;
-      ctx.beginPath();
-
-      if (mode === "spectrum" || mode === "both") {
-        const data = buffers.freq;
-        const n = data.length;
-        const barW = Math.max(1, Math.floor(w / Math.max(1, Math.min(n, 64))));
-        for (let i = 0; i < 64; i += 1) {
-          const idx = Math.floor((i / 64) * n);
-          const v = data[idx] / 255;
-          const bh = Math.max(1, Math.round(v * (h - 6)));
-          const x = i * barW;
-          ctx.fillStyle = "rgba(34,211,238,0.45)";
-          ctx.fillRect(x, h - bh, Math.max(1, barW - 1), bh);
-        }
-      } else {
-        const data = buffers.time;
-        for (let i = 0; i < data.length; i += 1) {
-          const x = (i / (data.length - 1)) * w;
-          const v = (data[i] - 128) / 128;
-          const y = h / 2 - v * (h * 0.42);
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-    };
-    rafRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [enabled, fps, mode, sourceNodeId]);
-
-  const modeOptions: TRNSelectOption[] = [
-    { value: "waveform", label: "Waveform" },
-    { value: "spectrum", label: "Spectrum" },
-    { value: "both", label: "Both" },
-  ];
-  const fftOptions: TRNSelectOption[] = [
-    { value: "256", label: "256" },
-    { value: "512", label: "512" },
-    { value: "1024", label: "1024" },
-    { value: "2048", label: "2048" },
-    { value: "4096", label: "4096" },
-    { value: "8192", label: "8192" },
-  ];
-
-  const scopeIntrinsicLabels = [
-    modeOptions.find((o) => o.value === mode)?.label ?? mode,
-    widestTrnSelectOptionLabel(modeOptions),
-    widestTrnSelectOptionLabel(fftOptions),
-    "Audio Scope",
-    "Smoothing",
-  ];
-
   return (
-    <ReadingPanel
-      className="nodrag nopan relative space-y-2 overflow-hidden px-3 pb-3 pt-2"
-      data-flow-node-intrinsic-extra-px={96}
-    >
-      <FlowNodeIntrinsicWidthMarker labels={scopeIntrinsicLabels} />
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-zinc-300">Audio Scope</div>
-        <div className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
-          {enabled ? mode : "disabled"}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <TRNSelect
-          ariaLabel="Scope mode"
-          value={mode}
-          options={modeOptions}
-          onValueChange={(next) => update(nodeId, "mode", next)}
-          size="sm"
-          sectionTitle="Scope mode"
-          className={FLOW_NODE_TRN_SELECT_CLASS}
-          buttonClassName="w-full min-w-0 max-w-full"
+    <div className="nodrag nopan flex min-h-0 w-full max-w-full flex-1 flex-col">
+      <div
+        className={twMerge(
+          "relative shrink-0 space-y-1.5 border-t border-zinc-800/55 px-2.5 py-2",
+          FLOW_NODE_BODY_PANEL_CLASS,
+        )}
+        data-flow-node-body-panel
+        data-flow-node-intrinsic-extra-px={96}
+      >
+        <FlowNodeIntrinsicWidthMarker
+          labels={[
+            "Display",
+            ...AUDIO_SCOPE_MODE_CARD_SEGMENT_OPTIONS.map((o) => o.label),
+          ]}
         />
-      </div>
-      <p className="text-[10px] leading-snug text-zinc-500">
-        Wire <span className="font-medium text-zinc-400">Audio</span> from a source, or enable{" "}
-        <span className="font-medium text-zinc-400">Monitor mode</span> in the Inspector.
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <TRNSelect
-          ariaLabel="Scope FFT size"
-          value={String(fftSize)}
-          options={fftOptions}
-          onValueChange={(next) => update(nodeId, "fftSize", Number(next))}
-          size="sm"
-          sectionTitle="FFT size"
-          className={FLOW_NODE_TRN_SELECT_CLASS}
-          buttonClassName="w-full min-w-0 max-w-full"
-        />
-        <div className="space-y-1">
-          <div className="text-[10px] font-medium text-zinc-500">Smoothing</div>
-          <TRNScrubNumberInput
-            aria-label="Scope smoothing"
-            value={smoothing}
-            min={0}
-            max={1}
-            step={0.01}
-            pointerScrubEnabled
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-cyan-500/45 focus:ring-1 focus:ring-cyan-500/25"
-            onChange={(next) => update(nodeId, "smoothing", Math.max(0, Math.min(1, next)))}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+            Display
+          </span>
+          <TRNToggleSwitch
+            checked={configEnabled}
+            ariaLabel="Enable audio scope display"
+            disabled={isEnabledWired}
+            onCheckedChange={(next) => update(nodeId, "enabled", next)}
           />
         </div>
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-zinc-500">Mode</div>
+          <InspectorSegmentButtonGroup
+            ariaLabel="Scope mode"
+            layout="row"
+            value={mode}
+            options={AUDIO_SCOPE_MODE_CARD_SEGMENT_OPTIONS.map((o) => ({
+              value: o.value,
+              label: o.label,
+              hint: o.hint,
+            }))}
+            onChange={(next) => update(nodeId, "mode", next)}
+          />
+        </div>
+        <WiredOverrideHint parts={wiredParts} />
       </div>
-      <canvas
-        ref={canvasRef}
-        width={260}
-        height={88}
-        className="nodrag block w-full rounded-md border border-zinc-800/80 bg-zinc-950/30"
-      />
-    </ReadingPanel>
+      <ReadingPanel className="nodrag mt-0 flex h-full min-h-[120px] min-w-0 flex-1 flex-col overflow-hidden rounded-none border-0 bg-transparent px-2.5 pb-2.5 pt-1.5 shadow-none ring-0">
+        <AudioScopeCanvas
+          className="relative box-border min-h-[120px] min-w-0 h-full w-full flex-1 basis-0 overflow-hidden self-stretch"
+          enabled={enabled}
+          mode={mode}
+          fps={fps}
+          fftSize={fftSize}
+          smoothing={smoothing}
+          sourceNodeId={sourceNodeId}
+          sourceKind={sourceKind}
+          display={display}
+        />
+      </ReadingPanel>
+    </div>
   );
 }
 
 export function AudioFilePlayerNodePanel(props: { nodeId: string; defaultConfig: Record<string, unknown> }) {
   const { nodeId, defaultConfig } = props;
   const enabled = readBool(defaultConfig, "enabled", false);
-  const url = readString(defaultConfig, "url", "");
   const gate = readBool(defaultConfig, "gate", false);
   const loop = readBool(defaultConfig, "loop", false);
   const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
-  const [ui, setUi] = useState(() => studioAudioRuntime.getFilePlayerUiState(nodeId));
+  const edges = useFlowEditorStore((s) => s.edges);
+  const runtime = useFilePlayerRuntimeUi(nodeId);
+  const errorLine = filePlayerCardErrorLine(runtime);
 
-  useEffect(() => {
-    const t = window.setInterval(() => {
-      setUi(studioAudioRuntime.getFilePlayerUiState(nodeId));
-    }, 250);
-    return () => window.clearInterval(t);
-  }, [nodeId]);
-
-  const statusLabel =
-    ui.status === "ready"
-      ? "Ready"
-      : ui.status === "loading"
-        ? "Loading…"
-        : ui.status === "error"
-          ? "Error"
-          : enabled
-            ? "Idle"
-            : "Disabled";
+  const isGateWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "gate"),
+    [edges, nodeId],
+  );
+  const isGainWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "gain"),
+    [edges, nodeId],
+  );
+  const wiredParts = filePlayerWiredInputParts({ isGateWired, isGainWired });
 
   return (
-    <ReadingPanel className="nodrag nopan space-y-2 px-3 pb-3 pt-2">
+    <div
+      className={twMerge(
+        "nodrag nopan space-y-1.5 border-t border-zinc-800/55 px-2.5 py-2",
+        FLOW_NODE_BODY_PANEL_CLASS,
+      )}
+      data-flow-node-body-panel
+    >
+      <FlowNodeIntrinsicWidthMarker labels={["Source", "Playback", "Loop"]} />
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-zinc-300">Audio File</div>
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{statusLabel}</div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Source
+        </span>
+        <TRNToggleSwitch
+          checked={enabled}
+          ariaLabel="Enable audio file source"
+          onCheckedChange={(next) => update(nodeId, "enabled", next)}
+        />
       </div>
-      <InspectorTextField
-        ariaLabel="Audio file URL"
-        value={url}
-        placeholder="https://…/file.wav"
-        onChange={(next) => update(nodeId, "url", next)}
-      />
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          className={twMerge(
-            "nodrag rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-            enabled
-              ? "border-emerald-500/35 bg-emerald-950/20 text-emerald-100 hover:bg-emerald-950/30"
-              : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-          )}
-          onClick={() => update(nodeId, "enabled", !enabled)}
-        >
-          {enabled ? "Enabled" : "Enable"}
-        </button>
-        <button
-          type="button"
-          className={twMerge(
-            "nodrag rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-            gate
-              ? "border-cyan-500/35 bg-cyan-950/20 text-cyan-100 hover:bg-cyan-950/30"
-              : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-          )}
-          onClick={() => update(nodeId, "gate", !gate)}
-        >
-          {gate ? "Stop" : "Play"}
-        </button>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Playback
+        </span>
+        <TRNToggleSwitch
+          checked={gate}
+          ariaLabel="Audio file gate playback"
+          disabled={isGateWired}
+          onCheckedChange={(next) => update(nodeId, "gate", next)}
+        />
       </div>
-      <button
-        type="button"
-        className={twMerge(
-          "nodrag w-full rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-          loop
-            ? "border-violet-500/35 bg-violet-950/20 text-violet-100 hover:bg-violet-950/30"
-            : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-        )}
-        onClick={() => update(nodeId, "loop", !loop)}
-      >
-        {loop ? "Loop: on" : "Loop: off"}
-      </button>
-      {ui.errorMessage != null && ui.errorMessage.trim().length > 0 ? (
-        <div className="text-[10px] leading-snug text-rose-200/85">{ui.errorMessage}</div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Loop
+        </span>
+        <TRNToggleSwitch
+          checked={loop}
+          ariaLabel="Audio file loop playback"
+          onCheckedChange={(next) => update(nodeId, "loop", next)}
+        />
+      </div>
+      <WiredOverrideHint parts={wiredParts} />
+      {errorLine != null ? (
+        <div className="text-[10px] leading-snug text-rose-200/85">{errorLine}</div>
       ) : null}
-      <div className="text-[10px] leading-snug text-zinc-500">
-        Requires <span className="font-medium text-zinc-400">Audio Output</span> enabled for playback.
-      </div>
-    </ReadingPanel>
+    </div>
   );
 }
 
@@ -537,26 +383,17 @@ export function AudioOscillatorNodePanel(props: { nodeId: string; defaultConfig:
   const edges = useFlowEditorStore((s) => s.edges);
   const waveform = readString(defaultConfig, "waveform", "sine");
   const gate = readBool(defaultConfig, "gate", false);
-  const sweepEnabled = readBool(defaultConfig, "sweepEnabled", false);
-  const sweepStartHz = Number(defaultConfig.sweepStartHz ?? 220);
-  const sweepEndHz = Number(defaultConfig.sweepEndHz ?? 880);
-  const sweepPeriodS = Number(defaultConfig.sweepPeriodS ?? 4);
   const freqHz = Number(defaultConfig.freqHz ?? 440);
   const gain = Number(defaultConfig.gain ?? 0);
 
-  const waveformOptions: TRNSelectOption[] = [
-    { value: "sine", label: "Sine" },
-    { value: "square", label: "Square" },
-    { value: "sawtooth", label: "Saw" },
-    { value: "triangle", label: "Triangle" },
-  ];
+  const waveformOptions: TRNSelectOption[] = OSCILLATOR_WAVEFORM_OPTIONS.map((o) => ({
+    value: o.value,
+    label: o.value === "sawtooth" ? "Saw" : o.label,
+  }));
 
   const clampNum = (n: number, fallback: number) => (Number.isFinite(n) ? n : fallback);
   const f = Math.max(0, clampNum(freqHz, 440));
   const g = Math.max(0, Math.min(1, clampNum(gain, 0)));
-  const ss = Math.max(0, clampNum(sweepStartHz, 220));
-  const se = Math.max(0, clampNum(sweepEndHz, 880));
-  const sp = Math.max(0.25, clampNum(sweepPeriodS, 4));
 
   const isFreqWired = useMemo(
     () => edges.some((e) => e.target === nodeId && e.targetHandle === "freqHz"),
@@ -571,159 +408,255 @@ export function AudioOscillatorNodePanel(props: { nodeId: string; defaultConfig:
     [edges, nodeId],
   );
 
+  const wiredParts = oscillatorWiredInputParts({ isFreqWired, isGainWired, isGateWired });
+  const showFreqGain = !isFreqWired || !isGainWired;
+
   return (
-    <ReadingPanel className="nodrag nopan relative space-y-2 overflow-hidden px-3 pb-3 pt-2">
+    <div
+      className={twMerge(
+        "nodrag nopan space-y-2 border-t border-zinc-800/55 px-2.5 py-2",
+        FLOW_NODE_BODY_PANEL_CLASS,
+      )}
+      data-flow-node-body-panel
+    >
       <FlowNodeIntrinsicWidthMarker
         labels={[
-          waveformOptions.find((o) => o.value === waveform)?.label ?? waveform,
+          "Playback",
+          "Waveform",
           widestTrnSelectOptionLabel(waveformOptions),
-          "Oscillator",
           "Freq (Hz)",
         ]}
       />
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-zinc-300">Oscillator</div>
-        <div className="text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
-          {gate ? "GATE ON" : "GATE OFF"}
-        </div>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Playback
+        </span>
+        <TRNToggleSwitch
+          checked={gate}
+          ariaLabel="Oscillator gate playback"
+          disabled={isGateWired}
+          onCheckedChange={(next) => update(nodeId, "gate", next)}
+        />
       </div>
-      <TRNSelect
-        ariaLabel="Oscillator waveform"
-        value={waveform}
-        options={waveformOptions}
-        onValueChange={(next) => update(nodeId, "waveform", next)}
-        size="sm"
-        sectionTitle="Waveform"
-        className={FLOW_NODE_TRN_SELECT_CLASS}
-        buttonClassName="w-full min-w-0 max-w-full"
-      />
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <div className="text-[10px] font-medium text-zinc-500">Freq (Hz)</div>
-          <TRNScrubNumberInput
-            aria-label="Oscillator frequency"
-            value={f}
-            min={0}
-            step={1}
-            pointerScrubEnabled
-            disabled={isFreqWired}
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-cyan-500/45 focus:ring-1 focus:ring-cyan-500/25"
-            onChange={(next) => update(nodeId, "freqHz", next)}
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="text-[10px] font-medium text-zinc-500">Gain</div>
-          <TRNScrubNumberInput
-            aria-label="Oscillator gain"
-            value={g}
-            min={0}
-            max={1}
-            step={0.01}
-            pointerScrubEnabled
-            disabled={isGainWired}
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-cyan-500/45 focus:ring-1 focus:ring-cyan-500/25"
-            onChange={(next) => update(nodeId, "gain", next)}
-          />
-        </div>
+      <div className="space-y-1">
+        <div className="text-[10px] font-medium text-zinc-500">Waveform</div>
+        <TRNSelect
+          ariaLabel="Oscillator waveform"
+          value={waveform}
+          options={waveformOptions}
+          onValueChange={(next) => update(nodeId, "waveform", next)}
+          size="sm"
+          sectionTitle="Waveform"
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full"
+        />
       </div>
-      <div className="grid grid-cols-2 gap-2 pt-1">
-        <button
-          type="button"
-          className={twMerge(
-            "nodrag rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-            sweepEnabled
-              ? "border-violet-500/35 bg-violet-950/20 text-violet-100 hover:bg-violet-950/30"
-              : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-            isFreqWired ? "opacity-60" : "",
-          )}
-          disabled={isFreqWired}
-          onClick={() => update(nodeId, "sweepEnabled", !sweepEnabled)}
-        >
-          {sweepEnabled ? "Sweep: on" : "Sweep: off"}
-        </button>
-        <div className="space-y-1">
-          <div className="text-[10px] font-medium text-zinc-500">Period (s)</div>
-          <TRNScrubNumberInput
-            aria-label="Oscillator sweep period seconds"
-            value={sp}
-            min={0.25}
-            step={0.25}
-            pointerScrubEnabled
-            disabled={isFreqWired}
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-violet-500/45 focus:ring-1 focus:ring-violet-500/25"
-            onChange={(next) => update(nodeId, "sweepPeriodS", Math.max(0.25, next))}
-          />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="space-y-1">
-          <div className="text-[10px] font-medium text-zinc-500">Start (Hz)</div>
-          <TRNScrubNumberInput
-            aria-label="Oscillator sweep start frequency"
-            value={ss}
-            min={0}
-            step={1}
-            pointerScrubEnabled
-            disabled={isFreqWired}
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-violet-500/45 focus:ring-1 focus:ring-violet-500/25"
-            onChange={(next) => update(nodeId, "sweepStartHz", Math.max(0, next))}
-          />
-        </div>
-        <div className="space-y-1">
-          <div className="text-[10px] font-medium text-zinc-500">End (Hz)</div>
-          <TRNScrubNumberInput
-            aria-label="Oscillator sweep end frequency"
-            value={se}
-            min={0}
-            step={1}
-            pointerScrubEnabled
-            disabled={isFreqWired}
-            inputClassName="w-full rounded-md border border-zinc-700/70 bg-zinc-950/30 px-2 py-1.5 text-[11px] text-zinc-100 outline-none focus:border-violet-500/45 focus:ring-1 focus:ring-violet-500/25"
-            onChange={(next) => update(nodeId, "sweepEndHz", Math.max(0, next))}
-          />
-        </div>
-      </div>
-      {isFreqWired || isGainWired || isGateWired ? (
-        <div className="text-[10px] leading-snug text-zinc-500">
-          {isFreqWired ? (
-            <>
-              <span className="font-medium text-zinc-400">Freq</span> is wired (sweep disabled)
-            </>
+      {showFreqGain ? (
+        <div className="grid grid-cols-2 gap-2">
+          {!isFreqWired ? (
+            <div className="space-y-1">
+              <div className="text-[10px] font-medium text-zinc-500">Freq (Hz)</div>
+              <FlowCardScrubNumberField
+                ariaLabel="Oscillator frequency"
+                className="w-full"
+                value={f}
+                min={0}
+                step={1}
+                fractionDigits={0}
+                onCommit={(next) => update(nodeId, "freqHz", next)}
+              />
+            </div>
           ) : null}
-          {isFreqWired && (isGainWired || isGateWired) ? <span> · </span> : null}
-          {isGainWired ? (
-            <>
-              <span className="font-medium text-zinc-400">Gain</span> is wired
-            </>
+          {!isGainWired ? (
+            <div className="space-y-1">
+              <div className="text-[10px] font-medium text-zinc-500">Gain</div>
+              <FlowCardScrubNumberField
+                ariaLabel="Oscillator gain"
+                className="w-full"
+                value={g}
+                min={0}
+                max={1}
+                step={0.01}
+                fractionDigits={2}
+                onCommit={(next) => update(nodeId, "gain", next)}
+              />
+            </div>
           ) : null}
-          {isGainWired && isGateWired ? <span> · </span> : null}
-          {isGateWired ? (
-            <>
-              <span className="font-medium text-zinc-400">Gate</span> is wired
-            </>
-          ) : null}
-          <span> — card controls are overridden.</span>
         </div>
       ) : null}
-      <button
-        type="button"
-        className={twMerge(
-          "nodrag w-full rounded-md border px-2.5 py-1.5 text-[11px] font-medium transition-colors",
-          gate
-            ? "border-cyan-500/35 bg-cyan-950/20 text-cyan-100 hover:bg-cyan-950/30"
-            : "border-zinc-700/70 bg-zinc-950/20 text-zinc-200 hover:bg-zinc-900/40",
-          isGateWired ? "opacity-60" : "",
-        )}
-        disabled={isGateWired}
-        onClick={() => update(nodeId, "gate", !gate)}
-      >
-        {gate ? "Stop (gate off)" : "Play (gate on)"}
-      </button>
-      <div className="text-[10px] leading-snug text-zinc-500">
-        Sweep applies only when the <span className="font-medium text-zinc-400">Freq</span> input pin is unwired. Enable{" "}
-        <span className="font-medium text-zinc-400">Audio Output</span> to hear it.
-      </div>
-    </ReadingPanel>
+      <WiredOverrideHint parts={wiredParts} />
+    </div>
   );
 }
 
+export function AudioSfxNodePanel(props: { nodeId: string; defaultConfig: Record<string, unknown> }) {
+  const { nodeId, defaultConfig } = props;
+  const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
+  const fireSfx = useFlowEditorStore((s) => s.fireAudioSfxNode);
+  const edges = useFlowEditorStore((s) => s.edges);
+  const nodeData = useFlowEditorStore((s) => {
+    const n = s.nodes.find((x) => x.id === nodeId);
+    return n?.type === "studio" ? n.data : null;
+  });
+  const enabled = defaultConfig.enabled !== false;
+  const presetId = readAudioSfxPresetId(defaultConfig.preset);
+  const playing = nodeData?.liveBooleanByHandle?.playing === true;
+
+  const presetOptions: TRNSelectOption[] = AUDIO_SFX_PRESETS.map((p) => ({
+    value: p.id,
+    label: p.label,
+  }));
+
+  const isTriggerWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "trigger"),
+    [edges, nodeId],
+  );
+  const isGainWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "gain"),
+    [edges, nodeId],
+  );
+  const wiredParts = sfxWiredInputParts({ isTriggerWired, isGainWired });
+
+  return (
+    <div
+      className={twMerge(
+        "nodrag nopan space-y-2 border-t border-zinc-800/55 px-2.5 py-2",
+        FLOW_NODE_BODY_PANEL_CLASS,
+      )}
+      data-flow-node-body-panel
+    >
+      <FlowNodeIntrinsicWidthMarker labels={["Preset", "Fire", ...presetOptions.map((o) => o.label)]} />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Enabled
+        </span>
+        <TRNToggleSwitch
+          checked={enabled}
+          ariaLabel="Enable audio SFX node"
+          onCheckedChange={(next) => update(nodeId, "enabled", next)}
+        />
+      </div>
+      <div className="space-y-1">
+        <div className="text-[10px] font-medium text-zinc-500">Preset</div>
+        <TRNSelect
+          ariaLabel="Audio SFX preset"
+          value={presetId}
+          options={presetOptions}
+          onValueChange={(next) => {
+            const preset = AUDIO_SFX_PRESETS.find((p) => p.id === next);
+            if (preset == null) {
+              update(nodeId, "preset", next);
+              return;
+            }
+            for (const [key, value] of Object.entries(applyAudioSfxPresetToConfig(preset))) {
+              update(nodeId, key, value);
+            }
+          }}
+          size="sm"
+          sectionTitle="Preset"
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full"
+        />
+      </div>
+      <TRNButton
+        size="compact"
+        className="w-full"
+        hint="Fire a one-shot preview of the preset."
+        disabled={!enabled}
+        onClick={() => fireSfx(nodeId)}
+      >
+        {playing ? "Playing…" : "Fire"}
+      </TRNButton>
+      <WiredOverrideHint parts={wiredParts} />
+    </div>
+  );
+}
+
+export function AudioMachineNodePanel(props: { nodeId: string; defaultConfig: Record<string, unknown> }) {
+  const { nodeId, defaultConfig } = props;
+  const update = useFlowEditorStore((s) => s.updateNodeConfigFieldByNodeId);
+  const edges = useFlowEditorStore((s) => s.edges);
+  const enabled = defaultConfig.enabled !== false;
+  const presetId = readMotorPresetId(defaultConfig.preset);
+  const speedRaw = typeof defaultConfig.speed === "number" ? defaultConfig.speed : Number(defaultConfig.speed);
+  const speed = Number.isFinite(speedRaw) ? speedRaw : 0.35;
+
+  const presetOptions: TRNSelectOption[] = MOTOR_MACHINE_PRESETS.map((p) => ({
+    value: p.id,
+    label: p.label,
+  }));
+
+  const isSpeedWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "speed"),
+    [edges, nodeId],
+  );
+  const isLoadWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "load"),
+    [edges, nodeId],
+  );
+  const isGainWired = useMemo(
+    () => edges.some((e) => e.target === nodeId && e.targetHandle === "gain"),
+    [edges, nodeId],
+  );
+  const wiredParts = machineWiredInputParts({ isSpeedWired, isLoadWired, isGainWired });
+
+  return (
+    <div
+      className={twMerge(
+        "nodrag nopan space-y-2 border-t border-zinc-800/55 px-2.5 py-2",
+        FLOW_NODE_BODY_PANEL_CLASS,
+      )}
+      data-flow-node-body-panel
+    >
+      <FlowNodeIntrinsicWidthMarker labels={["Preset", "Speed", ...presetOptions.map((o) => o.label)]} />
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+          Enabled
+        </span>
+        <TRNToggleSwitch
+          checked={enabled}
+          ariaLabel="Enable audio machine node"
+          onCheckedChange={(next) => update(nodeId, "enabled", next)}
+        />
+      </div>
+      <div className="space-y-1">
+        <div className="text-[10px] font-medium text-zinc-500">Preset</div>
+        <TRNSelect
+          ariaLabel="Audio machine motor preset"
+          value={presetId}
+          options={presetOptions}
+          onValueChange={(next) => {
+            const preset = MOTOR_MACHINE_PRESETS.find((p) => p.id === next);
+            if (preset == null) {
+              update(nodeId, "preset", next);
+              return;
+            }
+            for (const [key, value] of Object.entries(applyMotorPresetToConfig(preset))) {
+              update(nodeId, key, value);
+            }
+          }}
+          size="sm"
+          sectionTitle="Preset"
+          className={FLOW_NODE_TRN_SELECT_CLASS}
+          buttonClassName="w-full min-w-0 max-w-full"
+        />
+      </div>
+      {!isSpeedWired ? (
+        <div className="space-y-1">
+          <div className="text-[10px] font-medium text-zinc-500">Speed</div>
+          <FlowCardScrubNumberField
+            ariaLabel="Audio machine speed"
+            className="w-full"
+            value={speed}
+            min={0}
+            max={1}
+            step={0.01}
+            fractionDigits={2}
+            onCommit={(next) => update(nodeId, "speed", next)}
+          />
+        </div>
+      ) : null}
+      <WiredOverrideHint parts={wiredParts} />
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { ChevronLeft, ChevronRight, Lock, Unlock, Settings2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, RotateCcw, Unlock, Settings2, X } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import {
   TRN_SCRUB_DEFAULT_ACTIVATION_THRESHOLD_PX,
@@ -20,10 +20,14 @@ import {
   type TrnScrubNumberFieldStoredSettingsV1,
 } from "./trnScrubNumberFieldStorage.js";
 
+export type TRNScrubNumberFieldIconVisibility = "hidden" | "always" | "hover";
+
 export type TRNScrubNumberFieldAppearance = {
   variant?: "minimal" | "full";
-  stepButtonsVisibility?: "hidden" | "always" | "hover";
-  lockIconVisibility?: "hidden" | "always" | "hover";
+  stepButtonsVisibility?: TRNScrubNumberFieldIconVisibility;
+  lockIconVisibility?: TRNScrubNumberFieldIconVisibility;
+  resetIconVisibility?: TRNScrubNumberFieldIconVisibility;
+  clearIconVisibility?: TRNScrubNumberFieldIconVisibility;
 };
 
 export type TRNScrubNumberFieldWheelBoundedMode = "step" | "span-percent";
@@ -57,13 +61,34 @@ export type TRNScrubNumberFieldProps = {
   interaction?: TRNScrubNumberFieldInteraction;
   /** Optional persistence key for saving settings. */
   settingsKey?: string;
+  /** When set, renders a clear control inside the shell (optional bounds). */
+  onClear?: () => void;
+  clearAriaLabel?: string;
+  /** Override built-in reset-to-`defaultValue` behavior. */
+  onReset?: () => void;
+  resetAriaLabel?: string;
+  /** Strip outer shell chrome — parent provides border (e.g. {@link TRNBadgedScrubNumberField}). */
+  embedded?: boolean;
 };
 
 const FIELD_SHELL_BASE =
   "group/trnScrubField inline-flex min-w-0 items-center gap-1 rounded border border-zinc-700/80 bg-zinc-950/45 px-1 py-1";
 
-const ICON_BTN_BASE =
-  "nodrag inline-flex h-5 w-5 shrink-0 items-center justify-center rounded bg-transparent p-0 text-zinc-400 outline-none transition-colors hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-cyan-400/45 disabled:opacity-50";
+const ICON_BTN_BASE_MD =
+  "nodrag inline-flex h-4 w-4 shrink-0 items-center justify-center rounded bg-transparent p-0 text-zinc-400 outline-none transition-colors hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-cyan-400/45 disabled:opacity-50";
+
+const ICON_BTN_BASE_SM =
+  "nodrag inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded bg-transparent p-0 text-zinc-400 outline-none transition-colors hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-cyan-400/45 disabled:opacity-50";
+
+function scrubIconBtnClass(size: "sm" | "md"): string {
+  return size === "sm" ? ICON_BTN_BASE_SM : ICON_BTN_BASE_MD;
+}
+
+/** Lock toggle — unlocked = editable (green tint), locked = blocked (red tint). */
+const LOCK_BTN_UNLOCKED_TONE =
+  "bg-emerald-500/15 text-emerald-300/95 hover:bg-emerald-500/25 hover:text-emerald-100";
+const LOCK_BTN_LOCKED_TONE =
+  "bg-red-500/15 text-red-300/95 hover:bg-red-500/25 hover:text-red-100";
 
 const STEP_BTN_TONE =
   "border border-zinc-700/70 bg-zinc-900/55 hover:border-zinc-600/80 hover:bg-zinc-800/70";
@@ -95,6 +120,23 @@ const DRAG_SENSITIVITY_PRESETS: Record<
     thr: TRN_SCRUB_DEFAULT_ACTIVATION_THRESHOLD_PX,
   },
 };
+
+function scrubFieldIconHoverClass(visibility: TRNScrubNumberFieldIconVisibility): string {
+  return visibility === "hover"
+    ? "opacity-0 group-hover/trnScrubField:opacity-100 group-focus-within/trnScrubField:opacity-100"
+    : "";
+}
+
+function scrubValuesEqual(a: number, b: number, fractionDigits?: number): boolean {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) {
+    return false;
+  }
+  if (fractionDigits != null && fractionDigits >= 0) {
+    const quantum = Math.pow(10, -fractionDigits) / 2;
+    return Math.abs(a - b) <= quantum;
+  }
+  return a === b;
+}
 
 function finiteSpan(min?: number, max?: number): number | null {
   if (
@@ -128,6 +170,11 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
     appearance,
     interaction,
     settingsKey,
+    onClear,
+    clearAriaLabel,
+    onReset,
+    resetAriaLabel,
+    embedded = false,
   } = props;
 
   const portalTarget = typeof document !== "undefined" ? document.body : null;
@@ -155,16 +202,24 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
         stepAuto: stored?.valueRules?.stepAuto ?? true,
       },
       appearance: {
-        variant: stored?.appearance?.variant ?? appearance?.variant ?? "minimal",
+        variant: appearance?.variant ?? stored?.appearance?.variant ?? "minimal",
         stepButtonsVisibility:
-          stored?.appearance?.stepButtonsVisibility ??
           appearance?.stepButtonsVisibility ??
+          stored?.appearance?.stepButtonsVisibility ??
           // Back-compat with older booleans.
           ((stored as any)?.appearance?.showStepButtons === false ? "hidden" : "hover"),
         lockIconVisibility:
-          stored?.appearance?.lockIconVisibility ??
           appearance?.lockIconVisibility ??
+          stored?.appearance?.lockIconVisibility ??
           ((stored as any)?.appearance?.showLockToggle === false ? "hidden" : "hover"),
+        resetIconVisibility:
+          appearance?.resetIconVisibility ??
+          stored?.appearance?.resetIconVisibility ??
+          "hover",
+        clearIconVisibility:
+          appearance?.clearIconVisibility ??
+          stored?.appearance?.clearIconVisibility ??
+          "hover",
       },
       interaction: {
         pointerScrubEnabled:
@@ -220,6 +275,8 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
     variant: settings.appearance?.variant ?? "minimal",
     stepButtonsVisibility: settings.appearance?.stepButtonsVisibility ?? "hover",
     lockIconVisibility: settings.appearance?.lockIconVisibility ?? "hover",
+    resetIconVisibility: settings.appearance?.resetIconVisibility ?? "hover",
+    clearIconVisibility: settings.appearance?.clearIconVisibility ?? "hover",
   };
 
   const mergedInteraction: Required<TRNScrubNumberFieldInteraction> = {
@@ -273,20 +330,17 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
         ? settings.valueRules?.step
         : undefined;
 
-  const iconSizeClass = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
+  const iconSizeClass = size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3";
+  const iconBtnClass = scrubIconBtnClass(size);
   const shellClass =
     size === "sm"
       ? "px-1 py-[3px]"
       : "px-1 py-1";
 
-  const stepButtonsVisibleClass =
-    mergedAppearance.stepButtonsVisibility === "hover"
-      ? "opacity-0 group-hover/trnScrubField:opacity-100 group-focus-within/trnScrubField:opacity-100"
-      : "";
-  const lockVisibleClass =
-    mergedAppearance.lockIconVisibility === "hover"
-      ? "opacity-0 group-hover/trnScrubField:opacity-100 group-focus-within/trnScrubField:opacity-100"
-      : "";
+  const stepButtonsVisibleClass = scrubFieldIconHoverClass(mergedAppearance.stepButtonsVisibility);
+  const lockVisibleClass = scrubFieldIconHoverClass(mergedAppearance.lockIconVisibility);
+  const resetVisibleClass = scrubFieldIconHoverClass(mergedAppearance.resetIconVisibility);
+  const clearVisibleClass = scrubFieldIconHoverClass(mergedAppearance.clearIconVisibility);
 
   useEffect(() => {
     if (menuAnchor == null) return;
@@ -349,9 +403,36 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
   const showFull = mergedAppearance.variant === "full";
   const showStepButtons = showFull && mergedAppearance.stepButtonsVisibility !== "hidden";
   const showLockToggle = showFull && mergedAppearance.lockIconVisibility !== "hidden";
+  const resetTarget =
+    defaultValue != null && Number.isFinite(defaultValue) ? defaultValue : null;
+  const canReset = onReset != null || resetTarget != null;
+  const showResetIcon = canReset && mergedAppearance.resetIconVisibility !== "hidden";
+  const showClearIcon =
+    onClear != null && mergedAppearance.clearIconVisibility !== "hidden";
+  const resetAlreadyAtDefault =
+    resetTarget != null &&
+    onReset == null &&
+    scrubValuesEqual(value, resetTarget, fractionDigits);
+
+  const runReset = () => {
+    if (disabled || locked) {
+      return;
+    }
+    if (onReset != null) {
+      onReset();
+      return;
+    }
+    if (resetTarget != null) {
+      onChange(resetTarget);
+    }
+  };
 
   const shellProps = {
-    className: twMerge(FIELD_SHELL_BASE, shellClass, className),
+    className: twMerge(
+      embedded ? "inline-flex min-w-0 flex-1 items-center gap-1" : FIELD_SHELL_BASE,
+      embedded ? "" : shellClass,
+      className,
+    ),
     onContextMenu: (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -385,7 +466,7 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
               label={locked ? "Unlock" : "Lock"}
               icon={
                 locked ? (
-                  <Lock className="h-4 w-4 text-zinc-300" aria-hidden strokeWidth={2.25} />
+                  <Lock className="h-3 w-3 text-zinc-300" aria-hidden strokeWidth={2.25} />
                 ) : (
                   <Unlock className="h-4 w-4 text-zinc-300" aria-hidden strokeWidth={2.25} />
                 )
@@ -535,6 +616,78 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
                     const updated: TrnScrubNumberFieldStoredSettingsV1 = {
                       ...settings,
                       appearance: { ...settings.appearance, lockIconVisibility: o.id },
+                    };
+                    setSettings(updated);
+                    if (settingsKey) saveTrnScrubNumberFieldSettings(settingsKey, updated);
+                  }}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] text-zinc-300">Show reset</div>
+          <div className={INLINE_CHOICE_WRAP} role="radiogroup" aria-label="Reset icon visibility">
+            {([
+              { id: "hidden", label: "Hidden" },
+              { id: "always", label: "Always" },
+              { id: "hover", label: "On hover" },
+            ] as const).map((o) => {
+              const active = mergedAppearance.resetIconVisibility === o.id;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={twMerge(
+                    INLINE_CHOICE_BTN,
+                    active
+                      ? "border-cyan-500/45 bg-cyan-500/18 text-cyan-100"
+                      : "border-zinc-700/80 bg-zinc-900/75 text-zinc-100 hover:bg-zinc-800/75",
+                  )}
+                  onClick={() => {
+                    const updated: TrnScrubNumberFieldStoredSettingsV1 = {
+                      ...settings,
+                      appearance: { ...settings.appearance, resetIconVisibility: o.id },
+                    };
+                    setSettings(updated);
+                    if (settingsKey) saveTrnScrubNumberFieldSettings(settingsKey, updated);
+                  }}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3">
+          <div className="text-[11px] text-zinc-300">Show clear</div>
+          <div className={INLINE_CHOICE_WRAP} role="radiogroup" aria-label="Clear icon visibility">
+            {([
+              { id: "hidden", label: "Hidden" },
+              { id: "always", label: "Always" },
+              { id: "hover", label: "On hover" },
+            ] as const).map((o) => {
+              const active = mergedAppearance.clearIconVisibility === o.id;
+              return (
+                <button
+                  key={o.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  className={twMerge(
+                    INLINE_CHOICE_BTN,
+                    active
+                      ? "border-cyan-500/45 bg-cyan-500/18 text-cyan-100"
+                      : "border-zinc-700/80 bg-zinc-900/75 text-zinc-100 hover:bg-zinc-800/75",
+                  )}
+                  onClick={() => {
+                    const updated: TrnScrubNumberFieldStoredSettingsV1 = {
+                      ...settings,
+                      appearance: { ...settings.appearance, clearIconVisibility: o.id },
                     };
                     setSettings(updated);
                     if (settingsKey) saveTrnScrubNumberFieldSettings(settingsKey, updated);
@@ -781,7 +934,7 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
           <button
             type="button"
             className={twMerge(
-              ICON_BTN_BASE,
+              iconBtnClass,
               STEP_BTN_TONE,
               mergedAppearance.stepButtonsVisibility === "always" ? "" : stepButtonsVisibleClass,
             )}
@@ -824,7 +977,7 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
           <button
             type="button"
             className={twMerge(
-              ICON_BTN_BASE,
+              iconBtnClass,
               STEP_BTN_TONE,
               mergedAppearance.stepButtonsVisibility === "always" ? "" : stepButtonsVisibleClass,
             )}
@@ -843,7 +996,8 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
           <button
             type="button"
             className={twMerge(
-              ICON_BTN_BASE,
+              iconBtnClass,
+              locked ? LOCK_BTN_LOCKED_TONE : LOCK_BTN_UNLOCKED_TONE,
               mergedAppearance.lockIconVisibility === "always" ? "" : lockVisibleClass,
             )}
             aria-label={locked ? "Unlock value" : "Lock value"}
@@ -858,6 +1012,42 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
             ) : (
               <Unlock className={iconSizeClass} aria-hidden strokeWidth={2.25} />
             )}
+          </button>
+        ) : null}
+
+        {showResetIcon ? (
+          <button
+            type="button"
+            className={twMerge(
+              iconBtnClass,
+              mergedAppearance.resetIconVisibility === "always" ? "" : resetVisibleClass,
+            )}
+            aria-label={resetAriaLabel ?? "Reset to default value"}
+            disabled={disabled || locked || resetAlreadyAtDefault}
+            onClick={(e) => {
+              e.preventDefault();
+              runReset();
+            }}
+          >
+            <RotateCcw className={iconSizeClass} aria-hidden strokeWidth={2.25} />
+          </button>
+        ) : null}
+
+        {showClearIcon ? (
+          <button
+            type="button"
+            className={twMerge(
+              iconBtnClass,
+              mergedAppearance.clearIconVisibility === "always" ? "" : clearVisibleClass,
+            )}
+            aria-label={clearAriaLabel ?? "Clear value"}
+            disabled={disabled}
+            onClick={(e) => {
+              e.preventDefault();
+              onClear?.();
+            }}
+          >
+            <X className={iconSizeClass} aria-hidden strokeWidth={2.25} />
           </button>
         ) : null}
       </div>

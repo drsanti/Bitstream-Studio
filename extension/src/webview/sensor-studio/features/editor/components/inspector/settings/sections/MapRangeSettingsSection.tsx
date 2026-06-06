@@ -1,7 +1,8 @@
 import { ArrowLeftRight } from "lucide-react";
+import { INSPECTOR_NODE_TAB_CARD_STACK_CLASS } from "../../inspector-node-tab-stack";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
 import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
-import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
+import { InspectorInOutDomainRangeGrid } from "../../InspectorInOutDomainRangeGrid";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 function readFiniteConfigNumber(
@@ -35,7 +36,7 @@ export function MapRangeSettingsSection(props: NodeInspectorSettingsSectionProps
   const clampEnabled = cfg.clamp !== false;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={INSPECTOR_NODE_TAB_CARD_STACK_CLASS}>
       <InspectorCollapsibleSection
         title="Map range"
         icon={<ArrowLeftRight className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
@@ -56,46 +57,24 @@ export function MapRangeSettingsSection(props: NodeInspectorSettingsSectionProps
         title="Range inputs"
         badge={<InspectorTypeBadge>Float</InspectorTypeBadge>}
         icon={<ArrowLeftRight className="h-3.5 w-3.5 text-zinc-400" aria-hidden />}
-        iconHint="Input domain (from min / max) and output domain (to min / max). Equal from min and from max passes through out min."
+        iconHint="Input domain (In− / In+) and output domain (Out− / Out+). Equal from min and from max passes through out min."
         defaultExpanded
       >
-        <InspectorNumericScrubRow
-          label="From min"
-          description="Lower bound of the incoming value domain."
-          ariaLabel="Map range from min"
-          value={inMin}
-          step={0.01}
-          onCommit={(next) => {
+        <InspectorInOutDomainRangeGrid
+          inMin={inMin}
+          inMax={inMax}
+          outMin={outMin}
+          outMax={outMax}
+          onCommitInMin={(next) => {
             onUpdateConfigField("inMin", next);
           }}
-        />
-        <InspectorNumericScrubRow
-          label="From max"
-          description="Upper bound of the incoming value domain."
-          ariaLabel="Map range from max"
-          value={inMax}
-          step={0.01}
-          onCommit={(next) => {
+          onCommitInMax={(next) => {
             onUpdateConfigField("inMax", next);
           }}
-        />
-        <InspectorNumericScrubRow
-          label="To min"
-          description="Output when the input equals from min."
-          ariaLabel="Map range to min"
-          value={outMin}
-          step={0.01}
-          onCommit={(next) => {
+          onCommitOutMin={(next) => {
             onUpdateConfigField("outMin", next);
           }}
-        />
-        <InspectorNumericScrubRow
-          label="To max"
-          description="Output when the input equals from max."
-          ariaLabel="Map range to max"
-          value={outMax}
-          step={0.01}
-          onCommit={(next) => {
+          onCommitOutMax={(next) => {
             onUpdateConfigField("outMax", next);
           }}
         />

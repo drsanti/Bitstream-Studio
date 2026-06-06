@@ -1,12 +1,21 @@
-import { TRNScrubNumberInput } from "../../../../../ui/TRN";
+import { TRNBadgedScrubNumberFieldGrid } from "../../../../../ui/TRN";
 import { CLAMP_INPUT_DEFAULTS } from "../../../../core/flow/clamp-operations";
 import { STUDIO_HANDLE_IN } from "../../store/flow-editor.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
+import { FlowCardBadgedScrubNumberField } from "../flow-node/FlowCardBadgedScrubNumberField";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
 
 const FIELDS = [
-  { key: "min" as const, label: "Min", fallback: CLAMP_INPUT_DEFAULTS.min },
-  { key: "max" as const, label: "Max", fallback: CLAMP_INPUT_DEFAULTS.max },
+  {
+    key: "min" as const,
+    badge: { kind: "text" as const, text: "Min", tone: "sky" as const },
+    fallback: CLAMP_INPUT_DEFAULTS.min,
+  },
+  {
+    key: "max" as const,
+    badge: { kind: "text" as const, text: "Max", tone: "violet" as const },
+    fallback: CLAMP_INPUT_DEFAULTS.max,
+  },
 ] as const;
 
 function readFiniteConfigNumber(raw: unknown, fallback: number): number {
@@ -33,31 +42,26 @@ export function ClampNodePanel(props: ClampNodePanelProps) {
 
   const visibleFields = FIELDS.filter(({ key }) => !isHandleWired(key));
 
-  // If both `Min` and `Max` handles are wired, socket rows already show the live values.
-  // Avoid rendering disabled config controls (which create empty padding).
   if (visibleFields.length === 0) {
     return null;
   }
 
   return (
     <ReadingPanel className="nodrag nopan space-y-2">
-      {visibleFields.map(({ key, label, fallback }) => (
-        <label
-          key={key}
-          className="flex items-center gap-2 text-[10px] text-zinc-400"
-        >
-          <span className="w-8 shrink-0 text-zinc-300">{label}</span>
-          <TRNScrubNumberInput
-            className="min-w-0 flex-1"
+      <TRNBadgedScrubNumberFieldGrid columns={2}>
+        {visibleFields.map(({ key, badge, fallback }) => (
+          <FlowCardBadgedScrubNumberField
+            key={key}
+            badge={badge}
+            ariaLabel={`Clamp ${key}`}
             value={readFiniteConfigNumber(defaultConfig[key], fallback)}
             step={0.01}
-            aria-label={`Clamp ${label}`}
-            onChange={(next) => {
+            onCommit={(next) => {
               updateField(nodeId, key, next);
             }}
           />
-        </label>
-      ))}
+        ))}
+      </TRNBadgedScrubNumberFieldGrid>
     </ReadingPanel>
   );
 }

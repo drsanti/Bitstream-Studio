@@ -87,22 +87,36 @@ export const EdgeSelectionToolbar = memo(function EdgeSelectionToolbar(
 
   const [anchor, setAnchor] = useState<{ left: number; top: number } | null>(null);
 
+  const setAnchorIfChanged = useCallback((next: { left: number; top: number } | null) => {
+    setAnchor((prev) => {
+      if (prev === next) {
+        return prev;
+      }
+      if (prev == null || next == null) {
+        return next;
+      }
+      if (Math.round(prev.left) === Math.round(next.left) && Math.round(prev.top) === Math.round(next.top)) {
+        return prev;
+      }
+      return next;
+    });
+  }, []);
+
   const updateAnchor = useCallback(() => {
     const wrapper = wrapperRef.current;
     if (wrapper == null || selectedEdge?.source == null || selectedEdge.target == null) {
-      setAnchor(null);
+      setAnchorIfChanged(null);
       return;
     }
     const bounds = unionNodeBounds(wrapper, [selectedEdge.source, selectedEdge.target]);
     if (bounds == null) {
-      setAnchor(null);
       return;
     }
-    setAnchor({
-      left: bounds.left + bounds.width / 2,
-      top: bounds.top - TOOLBAR_GAP_PX,
+    setAnchorIfChanged({
+      left: Math.round(bounds.left + bounds.width / 2),
+      top: Math.round(bounds.top - TOOLBAR_GAP_PX),
     });
-  }, [selectedEdge, wrapperRef]);
+  }, [selectedEdge, wrapperRef, setAnchorIfChanged]);
 
   useLayoutEffect(() => {
     updateAnchor();

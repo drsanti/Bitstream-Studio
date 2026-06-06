@@ -106,15 +106,6 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-      <div className="shrink-0 border-b border-zinc-800/70 px-2.5 py-2">
-        <div className="text-[11px] font-semibold tracking-wide text-zinc-100/95">
-          Flow canvas
-        </div>
-        <p className="mt-0.5 text-[10px] leading-snug text-zinc-500">
-          Whole-graph grid, wires, and flow document. Per-node card layout is under Node tab
-          (Socket rows, Body panel, Card size).
-        </p>
-      </div>
       <TRNTabs
         value={activeTab}
         onValueChange={(next) =>

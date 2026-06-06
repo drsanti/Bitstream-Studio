@@ -37,6 +37,26 @@ const DRAG_FLIP_THRESHOLD_PX = 2;
 
 type ToolbarPlacement = "above" | "below";
 
+type ToolbarAnchor = {
+  left: number;
+  top: number;
+  placement: ToolbarPlacement;
+};
+
+function toolbarAnchorsEqual(a: ToolbarAnchor | null, b: ToolbarAnchor | null): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a == null || b == null) {
+    return false;
+  }
+  return (
+    Math.round(a.left) === Math.round(b.left) &&
+    Math.round(a.top) === Math.round(b.top) &&
+    a.placement === b.placement
+  );
+}
+
 function unionNodeBounds(
   wrapper: HTMLElement,
   nodeIds: string[],
@@ -98,16 +118,25 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     (s) => s.toggleSocketValuesVisibleForNodes,
   );
 
-  const selectedIds = useMemo(() => {
+  const selectedIdsKey = useMemo(() => {
     if (selectedNodeIdsFromStore.length > 0) {
-      return selectedNodeIdsFromStore;
+      return selectedNodeIdsFromStore.join("\0");
     }
     if (selectedNodeId != null) {
-      return [selectedNodeId];
+      return selectedNodeId;
     }
-    // Fallback (React Flow `selected` flags) — useful during transition / debug.
-    return nodes.filter((n) => n.selected).map((n) => n.id);
+    return nodes
+      .filter((n) => n.selected)
+      .map((n) => n.id)
+      .join("\0");
   }, [nodes, selectedNodeId, selectedNodeIdsFromStore]);
+
+  const selectedIds = useMemo((): string[] => {
+    if (selectedIdsKey.length === 0) {
+      return [];
+    }
+    return selectedIdsKey.split("\0");
+  }, [selectedIdsKey]);
   const selectedNodes = useMemo(
     () => selectedIds.map((id) => nodes.find((n) => n.id === id)).filter(Boolean),
     [nodes, selectedIds],
@@ -201,51 +230,38 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     [selectedNodes],
   );
 
-  const [anchor, setAnchor] = useState<{
-    left: number;
-    top: number;
-    placement: ToolbarPlacement;
-  } | null>(null);
+  const [anchor, setAnchor] = useState<ToolbarAnchor | null>(null);
 
   const lastBoundsTopRef = useRef<number | null>(null);
   const dragPlacementRef = useRef<ToolbarPlacement>("above");
-  const lastAnchorRef = useRef<typeof anchor>(null);
+  const lastAnchorRef = useRef<ToolbarAnchor | null>(null);
+  const selectedIdsRef = useRef(selectedIds);
+  const isDraggingSelectionRef = useRef(isDraggingSelection);
+  selectedIdsRef.current = selectedIds;
+  isDraggingSelectionRef.current = isDraggingSelection;
 
-  const setAnchorIfChanged = useCallback(
-    (next: { left: number; top: number; placement: ToolbarPlacement } | null) => {
-      setAnchor((prev) => {
-        if (prev === next) {
-          return prev;
-        }
-        if (prev == null || next == null) {
-          return next;
-        }
-        if (prev.left === next.left && prev.top === next.top && prev.placement === next.placement) {
-          return prev;
-        }
-        return next;
-      });
-    },
-    [],
-  );
+  const setAnchorIfChanged = useCallback((next: ToolbarAnchor | null) => {
+    setAnchor((prev) => (toolbarAnchorsEqual(prev, next) ? prev : next));
+  }, []);
 
   const updateAnchor = useCallback(() => {
     const wrapper = wrapperRef.current;
-    if (wrapper == null || selectedIds.length === 0) {
+    const ids = selectedIdsRef.current;
+    const dragging = isDraggingSelectionRef.current;
+    if (wrapper == null || ids.length === 0) {
       setAnchorIfChanged(null);
       lastBoundsTopRef.current = null;
       return;
     }
 
-    const bounds = unionNodeBounds(wrapper, selectedIds);
+    const bounds = unionNodeBounds(wrapper, ids);
     if (bounds == null) {
-      setAnchorIfChanged(null);
-      lastBoundsTopRef.current = null;
+      // Nodes may not be mounted on the first layout pass — keep the previous anchor.
       return;
     }
 
     let placement: ToolbarPlacement = "above";
-    if (isDraggingSelection) {
+    if (dragging) {
       const prevTop = lastBoundsTopRef.current;
       if (prevTop != null) {
         const deltaY = bounds.top - prevTop;
@@ -268,18 +284,37 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
         : bounds.top - TOOLBAR_GAP_PX;
 
     setAnchorIfChanged({
-      left: bounds.left + bounds.width / 2,
-      top,
+      left: Math.round(bounds.left + bounds.width / 2),
+      top: Math.round(top),
       placement,
     });
-  }, [selectedIds, wrapperRef, isDraggingSelection, setAnchorIfChanged]);
+  }, [wrapperRef, setAnchorIfChanged]);
 
   useLayoutEffect(() => {
+    if (selectedIdsKey.length === 0) {
+      setAnchorIfChanged(null);
+      lastBoundsTopRef.current = null;
+      return;
+    }
+    lastBoundsTopRef.current = null;
     updateAnchor();
-  }, [updateAnchor, selectedIds]);
+    // React Flow nodes may not be in the DOM on the first layout pass (hydrate / refresh).
+    const retryFrame = requestAnimationFrame(() => {
+      updateAnchor();
+    });
+    return () => cancelAnimationFrame(retryFrame);
+  }, [selectedIdsKey, updateAnchor, setAnchorIfChanged]);
 
   useLayoutEffect(() => {
-    if (selectedIds.length === 0) {
+    if (selectedIdsKey.length === 0) {
+      return;
+    }
+    window.addEventListener("resize", updateAnchor);
+    return () => window.removeEventListener("resize", updateAnchor);
+  }, [selectedIdsKey, updateAnchor]);
+
+  useLayoutEffect(() => {
+    if (!isDraggingSelection || selectedIdsKey.length === 0) {
       return;
     }
     let frame = 0;
@@ -288,12 +323,8 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    window.addEventListener("resize", updateAnchor);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener("resize", updateAnchor);
-    };
-  }, [selectedIds.length, updateAnchor]);
+    return () => cancelAnimationFrame(frame);
+  }, [isDraggingSelection, selectedIdsKey, updateAnchor]);
 
   const handleFit = useCallback(
     (event: React.MouseEvent) => {

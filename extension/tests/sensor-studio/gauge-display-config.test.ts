@@ -7,6 +7,7 @@ import {
   coerceNumericDisplayConfig,
   coerceRadialGaugeConfig,
   gaugeZonesFromPreset,
+  matchGaugeZonePreset,
   LEGACY_GAUGE_MIGRATION_TARGET,
   LEGACY_GAUGE_NODE_ID,
   migrateLegacyGaugeNodeData,
@@ -43,6 +44,16 @@ test("gaugeZonesFromPreset maps traffic light to current scale", () => {
   assert.equal(zones[0]?.from, 0);
   assert.equal(zones[0]?.to, 120);
   assert.equal(zones[2]?.to, 200);
+});
+
+test("matchGaugeZonePreset resolves preset templates and custom edits", () => {
+  const traffic = gaugeZonesFromPreset("traffic", 0, 100);
+  assert.equal(matchGaugeZonePreset(traffic, 0, 100), "traffic");
+  assert.equal(matchGaugeZonePreset(gaugeZonesFromPreset("cold-hot", 0, 100), 0, 100), "cold-hot");
+  assert.equal(
+    matchGaugeZonePreset([{ from: 0, to: 50, color: "#ff00ff" }], 0, 100),
+    "custom",
+  );
 });
 
 test("normalizeGaugeHexColor rejects invalid values", () => {

@@ -239,7 +239,10 @@ export type {
 export { TRNSelect } from "./TRNSelect.js";
 export type { TRNSelectProps, TRNSelectOption } from "./TRNSelect.js";
 export { TRNColorRingPicker } from "./TRNColorRingPicker.js";
-export type { TRNColorRingPickerProps } from "./TRNColorRingPicker.js";
+export type {
+  TRNColorRingPickerProps,
+  TRNColorRingPickerTriggerVariant,
+} from "./TRNColorRingPicker.js";
 export { TRNGlassButton } from "./TRNGlassButton.js";
 export type {
   TRNGlassButtonProps,
@@ -270,9 +273,27 @@ export { TRNScrubNumberField } from "./TRNScrubNumberField.js";
 export type {
   TRNScrubNumberFieldProps,
   TRNScrubNumberFieldAppearance,
+  TRNScrubNumberFieldIconVisibility,
   TRNScrubNumberFieldInteraction,
   TRNScrubNumberFieldWheelBoundedMode,
 } from "./TRNScrubNumberField.js";
+export { TRNOptionalScrubNumberField } from "./TRNOptionalScrubNumberField.js";
+export type { TRNOptionalScrubNumberFieldProps } from "./TRNOptionalScrubNumberField.js";
+export { TRNScrubFieldBadge } from "./TRNScrubFieldBadge.js";
+export type { TRNScrubFieldBadgeProps, TRNScrubFieldBadgeSpec } from "./TRNScrubFieldBadge.js";
+export type { TRNScrubFieldBadgeTone } from "./trn-scrub-field-badge-tones.js";
+export {
+  TRNBadgedScrubNumberField,
+  TRN_BADGED_SCRUB_COMPACT_APPEARANCE,
+  TRN_BADGED_SCRUB_FULL_APPEARANCE,
+} from "./TRNBadgedScrubNumberField.js";
+export type {
+  TRNBadgedScrubNumberFieldDensity,
+  TRNBadgedScrubNumberFieldProps,
+} from "./TRNBadgedScrubNumberField.js";
+export { TRNBadgedScrubNumberFieldGrid } from "./TRNBadgedScrubNumberFieldGrid.js";
+export type { TRNBadgedScrubNumberFieldGridProps } from "./TRNBadgedScrubNumberFieldGrid.js";
+export { TRN_DENSE_FIELD_SHELL } from "./trn-dense-field-shell.js";
 export {
   TRNVector3Field,
   TRN_VECTOR3_AXIS_UNLOCKED,

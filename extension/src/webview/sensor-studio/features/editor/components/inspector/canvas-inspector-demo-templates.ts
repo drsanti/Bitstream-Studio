@@ -12,17 +12,17 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
     {
       value: "audio-oscillator-tone",
       label: "Audio oscillator tone",
-      hint: "Oscillator → Audio Output + Audio Scope. Enable output engine, then toggle Gate to hear a safe 440 Hz test tone.",
+      hint: "Oscillator → Audio Scope + Audio Output (wired Audio bus). Sweep 220–880 Hz is on by default. Enable the output engine, then toggle Gate for a safe test tone.",
     },
     {
       value: "audio-lab",
       label: "Audio lab",
-      hint: "Microphone → Plotter (RMS/Peak/Centroid) + Audio Scope + Audio Output monitoring. Enable mic and audio output, then use Gate/Gain to listen safely.",
+      hint: "Microphone → Plotter (RMS/Peak/Centroid) + Audio Scope + Audio Output (wired Audio bus). Enable mic and the output engine, then use Gate/Gain to listen safely.",
     },
     {
       value: "audio-file-playback",
       label: "Audio file playback",
-      hint: "Audio File Player → Audio Output + Audio Scope + Plotter (time/duration). Paste a URL, enable output engine, then Play.",
+      hint: "Audio File Player → Audio Scope + Audio Output (wired Audio bus) + Plotter (time/duration). Paste a URL, enable the output engine, then Play.",
     },
     {
       value: "stage-scene-output",
@@ -42,7 +42,7 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
     {
       value: "signal-chain",
       label: "Signal chain",
-      hint: "BMI270 tap → threshold → gauge — good default for live telemetry demos.",
+      hint: "Sensor Input → Low pass → Threshold → Indicator + Bar meter + Sparkline — good default for live telemetry demos.",
     },
     {
       value: "basic-indicator",

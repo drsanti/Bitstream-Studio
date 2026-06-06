@@ -1,3 +1,8 @@
+import { resolveMotorRippleHz } from "./audio-machine-speed";
+import type { SweepCurve, SweepDirection } from "./oscillator-sweep";
+import { interpolateSweepHz } from "./oscillator-sweep";
+import { clampAnalyserFftSize } from "./clamp-analyser-fft-size";
+
 export type StudioAudioStartResult =
   | { ok: true }
   | { ok: false; reason: "no-window" | "unsupported" | "permission-denied" | "error"; message: string };
@@ -60,6 +65,65 @@ type MasterState = {
   limiterEnabled: boolean;
 };
 
+type SfxTapState = {
+  analyser: AnalyserNode;
+  monitorGain: GainNode;
+  timeData: Uint8Array;
+  freqData: Uint8Array;
+  playing: boolean;
+  playingUntilCtxTime: number;
+  level: number;
+};
+
+export type SfxTriggerArgs = {
+  waveform: string;
+  sourceKind: "tone" | "noise";
+  startHz: number;
+  endHz: number;
+  durationS: number;
+  curve: SweepCurve;
+  direction: SweepDirection;
+  gain: number;
+  attackMs: number;
+  releaseMs: number;
+};
+
+export type MachineSoundArgs = {
+  enabled: boolean;
+  speed: number;
+  load: number;
+  gain: number;
+  whineHz: number;
+  harmonicMix: number;
+  rippleMix: number;
+  noiseMix: number;
+};
+
+type MachineState = {
+  enabled: boolean;
+  speed: number;
+  load: number;
+  gain: number;
+  whineHz: number;
+  harmonicMix: number;
+  rippleMix: number;
+  noiseMix: number;
+  whineOsc?: OscillatorNode;
+  harmOsc?: OscillatorNode;
+  rippleOsc?: OscillatorNode;
+  noiseSource?: AudioBufferSourceNode;
+  noiseFilter?: BiquadFilterNode;
+  whineGain?: GainNode;
+  harmGain?: GainNode;
+  rippleGain?: GainNode;
+  noiseGain?: GainNode;
+  sumGain?: GainNode;
+  monitorGain?: GainNode;
+  analyser?: AnalyserNode;
+  timeData?: Uint8Array;
+  freqData?: Uint8Array;
+};
+
 function hasWindow(): boolean {
   return typeof window !== "undefined";
 }
@@ -67,22 +131,6 @@ function hasWindow(): boolean {
 function clamp01(v: number): number {
   if (!Number.isFinite(v)) return 0;
   return Math.min(1, Math.max(0, v));
-}
-
-function clampFftSize(v: number): number {
-  const n = Math.round(v);
-  // Valid AnalyserNode.fftSize values are powers of two in [32, 32768].
-  const min = 32;
-  const max = 32768;
-  const clamped = Math.max(min, Math.min(max, Number.isFinite(n) ? n : 2048));
-  // Round to nearest power of two (prefer stability over strictness).
-  let p = 1;
-  while (p < clamped) p *= 2;
-  const lower = p / 2;
-  if (lower >= min && Math.abs(lower - clamped) < Math.abs(p - clamped)) {
-    return lower;
-  }
-  return Math.max(min, Math.min(max, p));
 }
 
 class StudioAudioRuntime {
@@ -104,6 +152,9 @@ class StudioAudioRuntime {
   private masterTimeData: Uint8Array | null = null;
   private masterFreqData: Uint8Array | null = null;
   private masterLimiter: DynamicsCompressorNode | null = null;
+  private sfxTapByNodeId = new Map<string, SfxTapState>();
+  private machineByNodeId = new Map<string, MachineState>();
+  private noiseBuffer: AudioBuffer | null = null;
 
   getAudioContextStatus(): MasterState["status"] {
     if (this.ctx == null) return "idle";
@@ -190,6 +241,15 @@ class StudioAudioRuntime {
       this.setFilePlayerMonitorGain(nodeId, 0);
       this.stopFilePlayer(st);
     }
+    for (const [nodeId, st] of this.sfxTapByNodeId) {
+      st.playing = false;
+      st.level = 0;
+      this.setSfxMonitorGain(nodeId, 0);
+    }
+    for (const nodeId of this.machineByNodeId.keys()) {
+      this.stopMachine(nodeId);
+      this.setMachineMonitorGain(nodeId, 0);
+    }
   }
 
   enableMic(nodeId: string, enabled: boolean): void {
@@ -208,6 +268,8 @@ class StudioAudioRuntime {
   }
 
   async ensureMicActive(nodeId: string, args: { deviceId: string; fftSize: number; smoothing: number }): Promise<void> {
+    const fftSize = clampAnalyserFftSize(args.fftSize);
+    const smoothing = clamp01(args.smoothing);
     const st = this.micByNodeId.get(nodeId) ?? {
       enabled: false,
       status: "idle",
@@ -221,8 +283,12 @@ class StudioAudioRuntime {
     }
     if (st.status === "active" && st.analyser != null) {
       // Keep analyser settings in sync.
-      st.analyser.fftSize = args.fftSize;
-      st.analyser.smoothingTimeConstant = clamp01(args.smoothing);
+      if (st.analyser.fftSize !== fftSize) {
+        st.analyser.fftSize = fftSize;
+        st.timeData = new Uint8Array(st.analyser.fftSize);
+        st.freqData = new Uint8Array(st.analyser.frequencyBinCount);
+      }
+      st.analyser.smoothingTimeConstant = smoothing;
       return;
     }
 
@@ -250,8 +316,8 @@ class StudioAudioRuntime {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
-      analyser.fftSize = args.fftSize;
-      analyser.smoothingTimeConstant = clamp01(args.smoothing);
+      analyser.fftSize = fftSize;
+      analyser.smoothingTimeConstant = smoothing;
       const monitorGain = ctx.createGain();
       monitorGain.gain.value = 0;
       source.connect(analyser);
@@ -419,6 +485,464 @@ class StudioAudioRuntime {
     return { analyser: st.analyser, time: st.timeData, freq: st.freqData };
   }
 
+  getSfxTransport(nodeId: string): { playing: boolean; level: number } {
+    const st = this.sfxTapByNodeId.get(nodeId);
+    if (st == null || this.ctx == null) {
+      return { playing: false, level: 0 };
+    }
+    const playing = st.playing && this.ctx.currentTime < st.playingUntilCtxTime;
+    if (!playing) {
+      st.playing = false;
+      st.level = 0;
+    }
+    return { playing: st.playing, level: st.level };
+  }
+
+  setSfxMonitorGain(nodeId: string, gain: number): void {
+    const st = this.sfxTapByNodeId.get(nodeId);
+    if (st?.monitorGain == null || this.ctx == null) {
+      return;
+    }
+    st.monitorGain.gain.setTargetAtTime(clamp01(gain), this.ctx.currentTime, 0.02);
+  }
+
+  setSfxAnalyserSettings(nodeId: string, args: { fftSize: number; smoothing: number }): void {
+    const st = this.sfxTapByNodeId.get(nodeId);
+    if (st?.analyser == null) {
+      return;
+    }
+    const fftSize = clampAnalyserFftSize(args.fftSize);
+    const smoothing = clamp01(args.smoothing);
+    if (st.analyser.fftSize !== fftSize) {
+      st.analyser.fftSize = fftSize;
+      st.timeData = new Uint8Array(st.analyser.fftSize);
+      st.freqData = new Uint8Array(st.analyser.frequencyBinCount);
+    }
+    st.analyser.smoothingTimeConstant = smoothing;
+  }
+
+  readSfxBuffers(nodeId: string): { analyser: AnalyserNode; time: Uint8Array; freq: Uint8Array } | null {
+    const st = this.sfxTapByNodeId.get(nodeId);
+    if (st == null) {
+      return null;
+    }
+    st.analyser.getByteTimeDomainData(st.timeData);
+    st.analyser.getByteFrequencyData(st.freqData);
+    let peak = 0;
+    for (let i = 0; i < st.timeData.length; i += 1) {
+      const v = Math.abs(st.timeData[i]! - 128) / 128;
+      if (v > peak) {
+        peak = v;
+      }
+    }
+    st.level = peak;
+    return { analyser: st.analyser, time: st.timeData, freq: st.freqData };
+  }
+
+  async triggerSfx(nodeId: string, args: SfxTriggerArgs): Promise<void> {
+    const ctxRes = await this.ensureAudioContextRunning();
+    if (!ctxRes.ok || this.ctx == null) {
+      return;
+    }
+    const ctx = this.ctx;
+    this.ensureMasterChain();
+    if (this.masterGain == null) {
+      return;
+    }
+
+    let tap = this.sfxTapByNodeId.get(nodeId);
+    if (tap == null) {
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
+      const monitorGain = ctx.createGain();
+      monitorGain.gain.value = 1;
+      analyser.connect(monitorGain);
+      monitorGain.connect(this.masterGain);
+      tap = {
+        analyser,
+        monitorGain,
+        timeData: new Uint8Array(analyser.fftSize),
+        freqData: new Uint8Array(analyser.frequencyBinCount),
+        playing: false,
+        playingUntilCtxTime: 0,
+        level: 0,
+      };
+      this.sfxTapByNodeId.set(nodeId, tap);
+    }
+
+    const durationS = Math.max(0.05, args.durationS);
+    const attackS = Math.max(0.001, args.attackMs / 1000);
+    const releaseS = Math.max(0.01, args.releaseMs / 1000);
+    const sustainEndS = Math.max(attackS, durationS - releaseS);
+    const peakGain = clamp01(args.gain);
+    const t0 = ctx.currentTime + 0.01;
+
+    const gainNode = ctx.createGain();
+    gainNode.gain.setValueAtTime(0, t0);
+    gainNode.gain.linearRampToValueAtTime(peakGain, t0 + attackS);
+    gainNode.gain.setValueAtTime(peakGain, t0 + sustainEndS);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + durationS);
+
+    const scheduleToneSweep = (osc: OscillatorNode) => {
+      const { lo, hi } = {
+        lo: Math.min(Math.max(1, args.startHz), Math.max(1, args.endHz)),
+        hi: Math.max(Math.max(1, args.startHz), Math.max(1, args.endHz)),
+      };
+      const rampHz = (time: number, t: number) => {
+        const hz = interpolateSweepHz(t, lo, hi, args.curve);
+        if (args.curve === "log") {
+          osc.frequency.exponentialRampToValueAtTime(Math.max(1, hz), time);
+        } else {
+          osc.frequency.linearRampToValueAtTime(hz, time);
+        }
+      };
+      osc.frequency.setValueAtTime(lo, t0);
+      if (args.direction === "up") {
+        rampHz(t0 + durationS, 1);
+      } else if (args.direction === "down") {
+        osc.frequency.setValueAtTime(hi, t0);
+        rampHz(t0 + durationS, 0);
+      } else {
+        const mid = t0 + durationS / 2;
+        rampHz(mid, 1);
+        if (args.curve === "log") {
+          osc.frequency.exponentialRampToValueAtTime(lo, t0 + durationS);
+        } else {
+          osc.frequency.linearRampToValueAtTime(lo, t0 + durationS);
+        }
+      }
+    };
+
+    if (args.sourceKind === "noise") {
+      if (this.noiseBuffer == null) {
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i += 1) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        this.noiseBuffer = buffer;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      src.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.frequency.setValueAtTime(Math.max(80, args.startHz), t0);
+      if (args.curve === "log") {
+        filter.frequency.exponentialRampToValueAtTime(
+          Math.max(80, args.endHz),
+          t0 + durationS,
+        );
+      } else {
+        filter.frequency.linearRampToValueAtTime(Math.max(80, args.endHz), t0 + durationS);
+      }
+      filter.Q.value = 1.2;
+      src.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(tap.analyser);
+      src.start(t0);
+      src.stop(t0 + durationS + 0.05);
+    } else {
+      const waveform = (["sine", "square", "sawtooth", "triangle"] as const).includes(
+        args.waveform as OscillatorType,
+      )
+        ? (args.waveform as OscillatorType)
+        : "sine";
+      const osc = ctx.createOscillator();
+      osc.type = waveform;
+      scheduleToneSweep(osc);
+      osc.connect(gainNode);
+      gainNode.connect(tap.analyser);
+      osc.start(t0);
+      osc.stop(t0 + durationS + 0.05);
+    }
+
+    tap.playing = true;
+    tap.playingUntilCtxTime = t0 + durationS;
+    tap.level = peakGain;
+  }
+
+  setMachineSound(nodeId: string, args: MachineSoundArgs): void {
+    const st =
+      this.machineByNodeId.get(nodeId) ??
+      ({
+        enabled: false,
+        speed: 0,
+        load: 0,
+        gain: 0,
+        whineHz: 220,
+        harmonicMix: 0,
+        rippleMix: 0,
+        noiseMix: 0,
+      } satisfies MachineState);
+    st.enabled = args.enabled === true;
+    st.speed = clamp01(args.speed);
+    st.load = clamp01(args.load);
+    st.gain = clamp01(args.gain);
+    st.whineHz = Math.max(20, args.whineHz);
+    st.harmonicMix = clamp01(args.harmonicMix);
+    st.rippleMix = clamp01(args.rippleMix);
+    st.noiseMix = clamp01(args.noiseMix);
+    this.machineByNodeId.set(nodeId, st);
+    void this.applyMachineGraph(nodeId);
+  }
+
+  setMachineMonitorGain(nodeId: string, gain: number): void {
+    const st = this.machineByNodeId.get(nodeId);
+    if (st?.monitorGain == null || this.ctx == null) {
+      return;
+    }
+    st.monitorGain.gain.setTargetAtTime(clamp01(gain), this.ctx.currentTime, 0.02);
+  }
+
+  setMachineAnalyserSettings(nodeId: string, args: { fftSize: number; smoothing: number }): void {
+    const st = this.machineByNodeId.get(nodeId);
+    if (st?.analyser == null) {
+      return;
+    }
+    const fftSize = clampAnalyserFftSize(args.fftSize);
+    const smoothing = clamp01(args.smoothing);
+    if (st.analyser.fftSize !== fftSize) {
+      st.analyser.fftSize = fftSize;
+      st.timeData = new Uint8Array(st.analyser.fftSize);
+      st.freqData = new Uint8Array(st.analyser.frequencyBinCount);
+    }
+    st.analyser.smoothingTimeConstant = smoothing;
+  }
+
+  readMachineBuffers(nodeId: string): { analyser: AnalyserNode; time: Uint8Array; freq: Uint8Array } | null {
+    const st = this.machineByNodeId.get(nodeId);
+    if (st?.analyser == null || st.timeData == null || st.freqData == null) {
+      return null;
+    }
+    st.analyser.getByteTimeDomainData(st.timeData);
+    st.analyser.getByteFrequencyData(st.freqData);
+    return { analyser: st.analyser, time: st.timeData, freq: st.freqData };
+  }
+
+  private disconnectOscillator(osc?: OscillatorNode): void {
+    if (osc == null) {
+      return;
+    }
+    try {
+      osc.stop();
+    } catch {}
+    try {
+      osc.disconnect();
+    } catch {}
+  }
+
+  private stopMachine(nodeId: string): void {
+    const st = this.machineByNodeId.get(nodeId);
+    if (st == null) {
+      return;
+    }
+    this.disconnectOscillator(st.whineOsc);
+    this.disconnectOscillator(st.harmOsc);
+    this.disconnectOscillator(st.rippleOsc);
+    if (st.noiseSource != null) {
+      try {
+        st.noiseSource.stop();
+      } catch {}
+      try {
+        st.noiseSource.disconnect();
+      } catch {}
+    }
+    try {
+      st.noiseFilter?.disconnect();
+    } catch {}
+    try {
+      st.whineGain?.disconnect();
+    } catch {}
+    try {
+      st.harmGain?.disconnect();
+    } catch {}
+    try {
+      st.rippleGain?.disconnect();
+    } catch {}
+    try {
+      st.noiseGain?.disconnect();
+    } catch {}
+    try {
+      st.sumGain?.disconnect();
+    } catch {}
+    delete st.whineOsc;
+    delete st.harmOsc;
+    delete st.rippleOsc;
+    delete st.noiseSource;
+    delete st.noiseFilter;
+    delete st.whineGain;
+    delete st.harmGain;
+    delete st.rippleGain;
+    delete st.noiseGain;
+    delete st.sumGain;
+    st.enabled = false;
+  }
+
+  private async applyMachineGraph(nodeId: string): Promise<void> {
+    const st = this.machineByNodeId.get(nodeId);
+    if (st == null) {
+      return;
+    }
+    if (!st.enabled || st.speed <= 0.001 || st.gain <= 0.001) {
+      this.stopMachine(nodeId);
+      return;
+    }
+    const ctxRes = await this.ensureAudioContextRunning();
+    if (!ctxRes.ok || this.ctx == null) {
+      return;
+    }
+    const ctx = this.ctx;
+    this.ensureMasterChain();
+    if (this.masterGain == null) {
+      return;
+    }
+
+    if (st.analyser == null || st.monitorGain == null) {
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 2048;
+      analyser.smoothingTimeConstant = 0.8;
+      const monitorGain = ctx.createGain();
+      monitorGain.gain.value = 1;
+      analyser.connect(monitorGain);
+      monitorGain.connect(this.masterGain);
+      st.analyser = analyser;
+      st.monitorGain = monitorGain;
+      st.timeData = new Uint8Array(analyser.fftSize);
+      st.freqData = new Uint8Array(analyser.frequencyBinCount);
+    }
+
+    if (st.sumGain == null) {
+      st.sumGain = ctx.createGain();
+      st.sumGain.connect(st.analyser);
+    }
+
+    const loadBright = 0.65 + st.load * 0.35;
+    const masterLevel = st.gain * (0.35 + st.speed * 0.65) * loadBright;
+    const t = ctx.currentTime;
+    st.sumGain.gain.setTargetAtTime(masterLevel, t, 0.04);
+
+    const ensureWhine = () => {
+      if (st.whineOsc != null && st.whineGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.whineOsc = osc;
+      st.whineGain = gainNode;
+    };
+
+    const ensureHarm = () => {
+      if (st.harmOsc != null && st.harmGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.harmOsc = osc;
+      st.harmGain = gainNode;
+    };
+
+    const ensureRipple = () => {
+      if (st.rippleOsc != null && st.rippleGain != null) {
+        return;
+      }
+      const osc = ctx.createOscillator();
+      osc.type = "square";
+      const gainNode = ctx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      osc.start();
+      st.rippleOsc = osc;
+      st.rippleGain = gainNode;
+    };
+
+    const ensureNoise = () => {
+      if (st.noiseSource != null && st.noiseGain != null && st.noiseFilter != null) {
+        return;
+      }
+      if (this.noiseBuffer == null) {
+        const buffer = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i += 1) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        this.noiseBuffer = buffer;
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      src.loop = true;
+      const filter = ctx.createBiquadFilter();
+      filter.type = "bandpass";
+      filter.Q.value = 1.4;
+      const gainNode = ctx.createGain();
+      src.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(st.sumGain!);
+      src.start();
+      st.noiseSource = src;
+      st.noiseFilter = filter;
+      st.noiseGain = gainNode;
+    };
+
+    ensureWhine();
+    if (st.harmonicMix > 0.01) {
+      ensureHarm();
+    } else {
+      this.disconnectOscillator(st.harmOsc);
+      delete st.harmOsc;
+      delete st.harmGain;
+    }
+    const rippleHz = resolveMotorRippleHz(st.whineHz, st.rippleMix);
+    if (rippleHz > 0) {
+      ensureRipple();
+    } else {
+      this.disconnectOscillator(st.rippleOsc);
+      delete st.rippleOsc;
+      delete st.rippleGain;
+    }
+    if (st.noiseMix > 0.01) {
+      ensureNoise();
+    } else if (st.noiseSource != null) {
+      try {
+        st.noiseSource.stop();
+      } catch {}
+      st.noiseSource.disconnect();
+      st.noiseFilter?.disconnect();
+      st.noiseGain?.disconnect();
+      delete st.noiseSource;
+      delete st.noiseFilter;
+      delete st.noiseGain;
+    }
+
+    st.whineOsc!.frequency.setTargetAtTime(st.whineHz, t, 0.03);
+    st.whineGain!.gain.setTargetAtTime(0.55, t, 0.03);
+
+    if (st.harmOsc != null && st.harmGain != null) {
+      st.harmOsc.frequency.setTargetAtTime(st.whineHz * 2, t, 0.03);
+      st.harmGain.gain.setTargetAtTime(st.harmonicMix * 0.35, t, 0.03);
+    }
+
+    if (st.rippleOsc != null && st.rippleGain != null) {
+      st.rippleOsc.frequency.setTargetAtTime(rippleHz, t, 0.03);
+      st.rippleGain.gain.setTargetAtTime(st.rippleMix * 0.08, t, 0.03);
+    }
+
+    if (st.noiseFilter != null && st.noiseGain != null) {
+      const center = Math.max(120, Math.min(8000, st.whineHz * (0.8 + st.load * 0.5)));
+      st.noiseFilter.frequency.setTargetAtTime(center, t, 0.05);
+      st.noiseGain.gain.setTargetAtTime(st.noiseMix * 0.25, t, 0.03);
+    }
+  }
+
   readFilePlayerBuffers(nodeId: string): { analyser: AnalyserNode; time: Uint8Array; freq: Uint8Array } | null {
     const st = this.fileByNodeId.get(nodeId);
     if (st == null || st.analyser == null || st.timeData == null || st.freqData == null) {
@@ -432,7 +956,7 @@ class StudioAudioRuntime {
   setMicAnalyserSettings(nodeId: string, args: { fftSize: number; smoothing: number }): void {
     const st = this.micByNodeId.get(nodeId);
     if (st?.analyser == null) return;
-    const fftSize = clampFftSize(args.fftSize);
+    const fftSize = clampAnalyserFftSize(args.fftSize);
     const smoothing = clamp01(args.smoothing);
     if (st.analyser.fftSize !== fftSize) {
       st.analyser.fftSize = fftSize;
@@ -445,7 +969,7 @@ class StudioAudioRuntime {
   setOscillatorAnalyserSettings(nodeId: string, args: { fftSize: number; smoothing: number }): void {
     const st = this.oscByNodeId.get(nodeId);
     if (st?.analyser == null) return;
-    const fftSize = clampFftSize(args.fftSize);
+    const fftSize = clampAnalyserFftSize(args.fftSize);
     const smoothing = clamp01(args.smoothing);
     if (st.analyser.fftSize !== fftSize) {
       st.analyser.fftSize = fftSize;
@@ -458,7 +982,7 @@ class StudioAudioRuntime {
   setFilePlayerAnalyserSettings(nodeId: string, args: { fftSize: number; smoothing: number }): void {
     const st = this.fileByNodeId.get(nodeId);
     if (st?.analyser == null) return;
-    const fftSize = clampFftSize(args.fftSize);
+    const fftSize = clampAnalyserFftSize(args.fftSize);
     const smoothing = clamp01(args.smoothing);
     if (st.analyser.fftSize !== fftSize) {
       st.analyser.fftSize = fftSize;
@@ -470,7 +994,7 @@ class StudioAudioRuntime {
 
   setMasterAnalyserSettings(args: { fftSize: number; smoothing: number }): void {
     if (this.masterAnalyser == null) return;
-    const fftSize = clampFftSize(args.fftSize);
+    const fftSize = clampAnalyserFftSize(args.fftSize);
     const smoothing = clamp01(args.smoothing);
     if (this.masterAnalyser.fftSize !== fftSize) {
       this.masterAnalyser.fftSize = fftSize;

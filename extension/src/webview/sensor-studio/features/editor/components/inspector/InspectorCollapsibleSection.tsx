@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
-import { InspectorScopeThisNodeChip } from "./InspectorScopeChip";
+import {
+  inferInspectorScopeBadge,
+  type InspectorScopeBadgeLabel,
+} from "./inspector-section-scope-badges";
+import { InspectorSectionScopeBadge } from "./InspectorScopeChip";
 import { InspectorSection } from "./InspectorSection";
 
 export type InspectorCollapsibleSectionProps = {
@@ -12,8 +16,12 @@ export type InspectorCollapsibleSectionProps = {
   defaultExpanded?: boolean;
   children?: ReactNode;
   className?: string;
-  /** When false, omit the “This node” scope chip (default true). */
-  showScopeChip?: boolean;
+  /**
+   * Meaningful scope label for this card (Config, Layout, Pins, …).
+   * When omitted, inferred from `title` when a known mapping exists.
+   * Pass `null` to hide the scope badge.
+   */
+  scopeBadge?: InspectorScopeBadgeLabel | string | null;
 };
 
 function hasRenderableChildren(children: ReactNode): boolean {
@@ -38,7 +46,7 @@ export function InspectorCollapsibleSection(props: InspectorCollapsibleSectionPr
     defaultExpanded = true,
     children,
     className = "",
-    showScopeChip = true,
+    scopeBadge: scopeBadgeProp,
   } = props;
 
   const hasBody = hasRenderableChildren(children);
@@ -49,11 +57,18 @@ export function InspectorCollapsibleSection(props: InspectorCollapsibleSectionPr
 
   const hint = iconHint != null && iconHint.length > 0 ? iconHint : undefined;
 
+  const scopeBadge =
+    scopeBadgeProp === null
+      ? undefined
+      : (scopeBadgeProp ?? inferInspectorScopeBadge(title));
+
   const headerTrailing =
-    badge != null || showScopeChip ? (
+    badge != null || scopeBadge != null ? (
       <span className="inline-flex shrink-0 items-center gap-1.5">
         {badge}
-        {showScopeChip ? <InspectorScopeThisNodeChip /> : null}
+        {scopeBadge != null ? (
+          <InspectorSectionScopeBadge label={scopeBadge} />
+        ) : null}
       </span>
     ) : undefined;
 

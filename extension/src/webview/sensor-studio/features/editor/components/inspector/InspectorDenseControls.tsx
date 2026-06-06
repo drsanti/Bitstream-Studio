@@ -1,11 +1,15 @@
 import type { TRNSelectOption } from "../../../../../ui/TRN";
-import { TRNSelect } from "../../../../../ui/TRN";
+import { TRNColorRingPicker, TRNSelect } from "../../../../../ui/TRN";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import {
-  INSPECTOR_DENSE_COLOR_INNER_CLASS,
+  INSPECTOR_DENSE_FIELD_INNER_CLASS,
   INSPECTOR_DENSE_FIELD_SHELL,
 } from "./inspector-numeric-field-shell";
 import { INSPECTOR_DENSE_SELECT_BUTTON_CLASS } from "./inspector-dense-select-button";
+
+function normalizeInspectorHexColor(value: string): string {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value.toLowerCase() : "#22d3ee";
+}
 
 export type InspectorSelectFieldProps = {
   ariaLabel: string;
@@ -55,25 +59,21 @@ export type InspectorColorFieldProps = {
   onChange: (next: string) => void;
 };
 
-/** Dense inspector color swatch — same outer shell height as numeric/text fields. */
+/** Dense inspector color swatch — square trigger opens {@link TRNColorRingPicker} hue ring. */
 export function InspectorColorField(props: InspectorColorFieldProps) {
   const { ariaLabel, value, onChange } = props;
+  const normalized = normalizeInspectorHexColor(value);
 
   return (
-    <div
-      className={
-        "nodrag w-full overflow-hidden p-0 " + INSPECTOR_DENSE_FIELD_SHELL
-      }
-    >
-      <input
-        type="color"
-        aria-label={ariaLabel}
-        className={INSPECTOR_DENSE_COLOR_INNER_CLASS}
-        value={value}
-        onChange={(event) => {
-          onChange(event.target.value);
-        }}
+    <div className={"nodrag w-full min-w-0 " + INSPECTOR_DENSE_FIELD_SHELL}>
+      <TRNColorRingPicker
+        ariaLabel={ariaLabel}
+        valueHex={normalized}
+        triggerVariant="swatch"
+        className="shrink-0"
+        onValueHexChange={onChange}
       />
+      <span className={`${INSPECTOR_DENSE_FIELD_INNER_CLASS} text-zinc-400`}>{normalized}</span>
     </div>
   );
 }

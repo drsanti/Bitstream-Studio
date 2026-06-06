@@ -1,6 +1,6 @@
 import { ArrowLeftRight } from "lucide-react";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
-import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
+import { InspectorInOutDomainRangeGrid } from "../../InspectorInOutDomainRangeGrid";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 function readFiniteConfigNumber(raw: unknown, fallback: number): number {
@@ -19,39 +19,21 @@ export function ValueNormalizerSettingsSection(props: NodeInspectorSettingsSecti
       iconHint="Maps Value from input domain to output domain. Wired pins override these defaults when connected."
       defaultExpanded
     >
-      <InspectorNumericScrubRow
-        label="In min"
-        ariaLabel="Value normalizer in min"
-        value={readFiniteConfigNumber(cfg.inMin, 0)}
-        step={0.01}
-        onCommit={(next) => {
+      <InspectorInOutDomainRangeGrid
+        inMin={readFiniteConfigNumber(cfg.inMin, 0)}
+        inMax={readFiniteConfigNumber(cfg.inMax, 1)}
+        outMin={readFiniteConfigNumber(cfg.outMin, 0)}
+        outMax={readFiniteConfigNumber(cfg.outMax, 1)}
+        onCommitInMin={(next) => {
           onUpdateConfigField("inMin", next);
         }}
-      />
-      <InspectorNumericScrubRow
-        label="In max"
-        ariaLabel="Value normalizer in max"
-        value={readFiniteConfigNumber(cfg.inMax, 1)}
-        step={0.01}
-        onCommit={(next) => {
+        onCommitInMax={(next) => {
           onUpdateConfigField("inMax", next);
         }}
-      />
-      <InspectorNumericScrubRow
-        label="Out min"
-        ariaLabel="Value normalizer out min"
-        value={readFiniteConfigNumber(cfg.outMin, 0)}
-        step={0.01}
-        onCommit={(next) => {
+        onCommitOutMin={(next) => {
           onUpdateConfigField("outMin", next);
         }}
-      />
-      <InspectorNumericScrubRow
-        label="Out max"
-        ariaLabel="Value normalizer out max"
-        value={readFiniteConfigNumber(cfg.outMax, 1)}
-        step={0.01}
-        onCommit={(next) => {
+        onCommitOutMax={(next) => {
           onUpdateConfigField("outMax", next);
         }}
       />

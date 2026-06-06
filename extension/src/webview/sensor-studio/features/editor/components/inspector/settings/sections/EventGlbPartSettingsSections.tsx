@@ -2,10 +2,10 @@ import { Eye } from "lucide-react";
 import {
   TRNFormField,
   TRNHintText,
-  TRNScrubNumberInput,
   TRNSegmentedControl,
   TRNToggleSwitch,
 } from "../../../../../../../ui/TRN";
+import { InspectorNumericField } from "../../InspectorNumericScrubRow";
 import {
   formatGlbPartVisibilityLabel,
   readGlbPartDriveMode,
@@ -115,14 +115,13 @@ export function EventToggleGlbPartSettingsSection(props: NodeInspectorSettingsSe
         </TRNFormField>
       ) : (
         <TRNFormField label="Starting opacity" id="event-toggle-glb-part-opacity" className="space-y-1.5">
-          <TRNScrubNumberInput
-            aria-label="GLB part starting opacity"
-            className="w-full"
+          <InspectorNumericField
+            ariaLabel="GLB part starting opacity"
             value={scalar}
             min={0}
             max={1}
             step={0.01}
-            onChange={(next) => {
+            onCommit={(next) => {
               props.onUpdateConfigField("value", next);
             }}
           />
@@ -162,14 +161,13 @@ export function EventSetGlbPartSettingsSection(props: NodeInspectorSettingsSecti
         </TRNFormField>
       ) : (
         <TRNFormField label="Set opacity on trigger" id="event-set-glb-part-opacity" className="space-y-1.5">
-          <TRNScrubNumberInput
-            aria-label="GLB part opacity applied on each event pulse"
-            className="w-full"
+          <InspectorNumericField
+            ariaLabel="GLB part opacity applied on each event pulse"
             value={setTo}
             min={0}
             max={1}
             step={0.01}
-            onChange={(next) => {
+            onCommit={(next) => {
               props.onUpdateConfigField("setTo", next);
             }}
           />

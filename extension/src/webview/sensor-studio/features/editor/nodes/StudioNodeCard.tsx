@@ -71,7 +71,10 @@ import {
   studioNodeHasHideableBody,
 } from "./flow-node/socket-display";
 import { studioNodeAllowsBodyCollapse } from "./flow-node/studio-body-collapse";
-import { resolveStudioNodeMinDimensionFloor } from "./flow-node/studio-node-resize-defaults";
+import {
+  isStudioAudioCompactBodyNodeId,
+  resolveStudioNodeMinDimensionFloor,
+} from "./flow-node/studio-node-resize-defaults";
 import { STUDIO_VIEWPORT_PREVIEW_PANEL_CHROME_HEIGHT_PX } from "./flow-node/studio-viewport-preview-layout";
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
@@ -106,8 +109,16 @@ import {
   AudioOscillatorNodePanel,
   AudioOutputNodePanel,
   AudioScopeNodePanel,
+  AudioMachineNodePanel,
+  AudioSfxNodePanel,
   MicInputNodePanel,
 } from "./audio/AudioNodePanels";
+import { AudioFilePlayerHeaderBadge } from "./audio/AudioFilePlayerHeaderBadge";
+import { AudioOscillatorHeaderBadge } from "./audio/AudioOscillatorHeaderBadge";
+import { AudioOutputHeaderBadge } from "./audio/AudioOutputHeaderBadge";
+import { AudioScopeHeaderBadge } from "./audio/AudioScopeHeaderBadge";
+import { MicInputHeaderBadge } from "./audio/MicInputHeaderBadge";
+import { isStudioFlexPlotCanvasNodeId } from "./flow-node/studio-flex-plot-canvas";
 import {
   coercePlotterConfig,
   isPlotterNodeId,
@@ -251,9 +262,10 @@ function StudioNodeCard(props: NodeProps) {
     [canvasPrefs.handleDimWhenUnwired, edges, id],
   );
   const isRotationNode = isScene3dInspectorNodeId(data.nodeId);
+  const flexPlotCanvasNode = isStudioFlexPlotCanvasNodeId(data.nodeId);
   const flowBodyFlexCol =
     isRotationNode ||
-    isPlotterNodeId(data.nodeId) ||
+    flexPlotCanvasNode ||
     data.nodeId === "radial-gauge" ||
     data.nodeId === "bar-meter" ||
     data.nodeId === "knob";
@@ -330,16 +342,17 @@ function StudioNodeCard(props: NodeProps) {
     data.nodeId === "logic-gate" ||
     data.nodeId === "map-range" ||
     data.nodeId === "clamp" ||
-    data.nodeId === "multiplexer";
+    data.nodeId === "multiplexer" ||
+    isStudioAudioCompactBodyNodeId(data.nodeId);
   const shellFitsContent =
     utilityBodyFitsContent ||
     !showNodeBody ||
     (showNodeBody && compactConfigBodyNode);
 
   const nodeResizable = data.ui?.resizable === true;
-  /** Visual plot / gauge bodies flex to fill RF node height (resizable or plotter). */
+  /** Visual plot / gauge bodies flex to fill RF node height (resizable or plot canvas). */
   const resizableFlexBody =
-    (nodeResizable || isPlotterNodeId(data.nodeId)) &&
+    (nodeResizable || flexPlotCanvasNode) &&
     flowBodyFlexCol &&
     !shellFitsContent &&
     showNodeBody;
@@ -352,6 +365,29 @@ function StudioNodeCard(props: NodeProps) {
         hasInvalid ? "1" : "0",
         showSensorFamilyTag ? (sensorFamilyTagLabel ?? "") : "",
         compareOperation ?? "",
+        data.nodeId === "mic-input"
+          ? data.defaultConfig.enabled === true
+            ? "mic-on"
+            : "mic-off"
+          : "",
+        data.nodeId === "audio-oscillator"
+          ? data.defaultConfig.gate === true
+            ? "osc-on"
+            : "osc-off"
+          : "",
+        data.nodeId === "audio-file-player"
+          ? data.defaultConfig.enabled === true
+            ? "file-on"
+            : "file-off"
+          : "",
+        data.nodeId === "audio-output"
+          ? data.defaultConfig.enabled === true
+            ? "out-on"
+            : "out-off"
+          : "",
+        data.nodeId === "audio-scope"
+          ? `${data.defaultConfig.enabled !== false ? "scope-on" : "scope-off"}:${String(data.defaultConfig.mode ?? "waveform")}`
+          : "",
         showNodeBody ? "body" : "compact",
       ].join("\0"),
     [
@@ -361,6 +397,10 @@ function StudioNodeCard(props: NodeProps) {
       showSensorFamilyTag,
       sensorFamilyTagLabel,
       compareOperation,
+      data.nodeId,
+      data.defaultConfig.enabled,
+      data.defaultConfig.gate,
+      data.defaultConfig.mode,
       showNodeBody,
     ],
   );
@@ -610,17 +650,50 @@ function StudioNodeCard(props: NodeProps) {
       <CompareOperationHeaderChip operation={compareOperation} />
     ) : null;
 
+  const micCaptureEnabled =
+    data.nodeId === "mic-input" && data.defaultConfig.enabled === true;
+  const micHeaderBadge =
+    data.nodeId === "mic-input" ? (
+      <MicInputHeaderBadge nodeId={id} configEnabled={micCaptureEnabled} />
+    ) : null;
+  const oscHeaderBadge =
+    data.nodeId === "audio-oscillator" ? (
+      <AudioOscillatorHeaderBadge nodeId={id} defaultConfig={data.defaultConfig} />
+    ) : null;
+  const filePlayerHeaderBadge =
+    data.nodeId === "audio-file-player" ? (
+      <AudioFilePlayerHeaderBadge nodeId={id} defaultConfig={data.defaultConfig} />
+    ) : null;
+  const audioOutputHeaderBadge =
+    data.nodeId === "audio-output" ? (
+      <AudioOutputHeaderBadge defaultConfig={data.defaultConfig} />
+    ) : null;
+  const audioScopeHeaderBadge =
+    data.nodeId === "audio-scope" ? (
+      <AudioScopeHeaderBadge nodeId={id} defaultConfig={data.defaultConfig} />
+    ) : null;
+
   const headerLeading = (
     <FlowNodeHeaderIcon nodeId={data.nodeId} category={data.category} />
   );
 
   const headerTrailing =
     compareOperationChip != null ||
+    micHeaderBadge != null ||
+    oscHeaderBadge != null ||
+    filePlayerHeaderBadge != null ||
+    audioOutputHeaderBadge != null ||
+    audioScopeHeaderBadge != null ||
     sensorHealthBadge != null ||
     invalidBadge != null ||
     sensorFamilyTag != null ? (
       <>
         {compareOperationChip}
+        {micHeaderBadge}
+        {oscHeaderBadge}
+        {filePlayerHeaderBadge}
+        {audioOutputHeaderBadge}
+        {audioScopeHeaderBadge}
         {sensorFamilyTag}
         {invalidBadge}
         {sensorHealthBadge}
@@ -1215,7 +1288,7 @@ function StudioNodeCard(props: NodeProps) {
           className={[
             "relative transition-shadow duration-150",
             isSelected ? "studio-flow-node--selected" : null,
-            isPlotterNodeId(data.nodeId) ||
+            flexPlotCanvasNode ||
             data.nodeId === "model-select" ||
             data.nodeId === "model-viewer" ||
             data.nodeId === "radial-gauge" ||
@@ -1242,7 +1315,7 @@ function StudioNodeCard(props: NodeProps) {
               ref={socketsMeasureRef}
               className={twMerge(
                 "nodrag min-w-0 w-full max-w-full overflow-visible py-1.5 pl-0 pr-0",
-                isPlotterNodeId(data.nodeId) ? "pb-0 pt-1.5" : null,
+                flexPlotCanvasNode ? "pb-0 pt-1.5" : null,
               )}
             >
               {inputSockets.length > 0 ? (
@@ -1295,7 +1368,10 @@ function StudioNodeCard(props: NodeProps) {
           {showNodeBody ? (
             <div
               ref={
-                nodeResizable || isPlotterNodeId(data.nodeId)
+                showNodeBody &&
+                (nodeResizable ||
+                  flexPlotCanvasNode ||
+                  isStudioAudioCompactBodyNodeId(data.nodeId))
                   ? bodyMeasureRef
                   : undefined
               }
@@ -1311,7 +1387,7 @@ function StudioNodeCard(props: NodeProps) {
                 compactConfigBodyNode
                   ? "px-0 pb-0 pt-0"
                   : flowBodyFlexCol
-                    ? isPlotterNodeId(data.nodeId)
+                    ? flexPlotCanvasNode
                       ? "flex min-h-0 flex-1 flex-col px-0 pb-0 pt-0"
                       : resizableFlexBody
                         ? "flex h-full min-h-0 flex-1 flex-col"
@@ -1397,6 +1473,12 @@ function StudioNodeCard(props: NodeProps) {
                   nodeId={id}
                   defaultConfig={data.defaultConfig}
                 />
+              ) : null}
+              {data.nodeId === "audio-sfx" ? (
+                <AudioSfxNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+              ) : null}
+              {data.nodeId === "audio-machine" ? (
+                <AudioMachineNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
               ) : null}
               {data.nodeId === "boolean-constant" ? (
                 <BooleanConstantNodePanel

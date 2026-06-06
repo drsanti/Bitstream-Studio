@@ -22,10 +22,15 @@ function mountWebviewRoot(): void
   createRoot(rootEl).render(<BitstreamWebviewRoot />);
 }
 
-void unregisterStaleCoiServiceWorker().then((reloading) =>
-{
-  if (!reloading)
+void unregisterStaleCoiServiceWorker()
+  .then((reloading) =>
+  {
+    if (!reloading)
+    {
+      mountWebviewRoot();
+    }
+  })
+  .catch(() =>
   {
     mountWebviewRoot();
-  }
-});
+  });

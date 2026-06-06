@@ -74,7 +74,6 @@ export function entryMatchesSmartConnect(
 const NUMBER_OUTPUT_SINK_IDS = [
   "plotter",
   "sparkline",
-  "gauge",
   "radial-gauge",
   "bar-meter",
 ] as const;

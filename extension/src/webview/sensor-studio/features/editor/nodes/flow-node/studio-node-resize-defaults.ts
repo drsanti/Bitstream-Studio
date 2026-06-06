@@ -1,3 +1,4 @@
+import { isStudioFlexPlotCanvasNodeId } from "./studio-flex-plot-canvas";
 import { isPlotterNodeId } from "../plotter/plotter-config";
 import { isScene3dInspectorNodeId } from "../scene3d/scene3d-inspector-node-ids";
 import type { StudioNodeData } from "../../store/flow-editor.store";
@@ -12,6 +13,20 @@ export const STUDIO_NODE_DEFAULT_MIN_DIMENSIONS: StudioNodeMinDimensions = {
   minWidth: 170,
   minHeight: 64,
 };
+
+/** Audio control nodes — auto-fit width/height like map-range / clamp (inspector holds long copy). */
+export const STUDIO_AUDIO_COMPACT_BODY_NODE_IDS = new Set([
+  "mic-input",
+  "audio-output",
+  "audio-file-player",
+  "audio-oscillator",
+  "audio-sfx",
+  "audio-machine",
+]);
+
+export function isStudioAudioCompactBodyNodeId(nodeId: string): boolean {
+  return STUDIO_AUDIO_COMPACT_BODY_NODE_IDS.has(nodeId);
+}
 
 /**
  * Minimum React Flow node size floors (before header/socket/body measurement).
@@ -30,11 +45,13 @@ const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   "bar-meter": { minWidth: 170, minHeight: 180 },
   knob: { minWidth: 170, minHeight: 180 },
   "glb-animation-bundle": { minWidth: 220, minHeight: 160 },
-  "mic-input": { minWidth: 200, minHeight: 110 },
-  "audio-output": { minWidth: 200, minHeight: 110 },
-  "audio-scope": { minWidth: 200, minHeight: 110 },
-  "audio-file-player": { minWidth: 200, minHeight: 110 },
-  "audio-oscillator": { minWidth: 200, minHeight: 110 },
+  "mic-input": { minWidth: 200, minHeight: 72 },
+  "audio-output": { minWidth: 220, minHeight: 72 },
+  "audio-scope": { minWidth: 280, minHeight: 168 },
+  "audio-file-player": { minWidth: 220, minHeight: 72 },
+  "audio-oscillator": { minWidth: 220, minHeight: 72 },
+  "audio-sfx": { minWidth: 220, minHeight: 96 },
+  "audio-machine": { minWidth: 220, minHeight: 96 },
   "glb-material-texture": { minWidth: 200, minHeight: 120 },
   "glb-material-color": { minWidth: 200, minHeight: 100 },
   "glb-material-param": { minWidth: 200, minHeight: 100 },
@@ -55,7 +72,6 @@ const DEFAULT_RESIZABLE_NODE_IDS = new Set<string>([
   "scene-output",
   "plotter",
   "sparkline",
-  "gauge",
   "radial-gauge",
   "bar-meter",
   "knob",
@@ -63,10 +79,6 @@ const DEFAULT_RESIZABLE_NODE_IDS = new Set<string>([
   "camera-view",
   "glb-animation-bundle",
   "audio-scope",
-  "mic-input",
-  "audio-output",
-  "audio-file-player",
-  "audio-oscillator",
 ]);
 
 /** Default `ui.resizable` when unset on hydrate / new node (operator can toggle in Inspector). */
@@ -97,7 +109,7 @@ export function resolveStudioNodeInitialLayoutHeight(
   nodeId: string,
   floor: StudioNodeMinDimensions = resolveStudioNodeMinDimensionFloor(nodeId),
 ): number {
-  if (isPlotterNodeId(nodeId)) {
+  if (isStudioFlexPlotCanvasNodeId(nodeId)) {
     return Math.max(floor.minHeight, 280);
   }
   return floor.minHeight;

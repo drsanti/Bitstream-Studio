@@ -15,6 +15,8 @@ export type TrnScrubNumberFieldStoredSettingsV1 = {
     variant?: "minimal" | "full";
     stepButtonsVisibility?: "hidden" | "always" | "hover";
     lockIconVisibility?: "hidden" | "always" | "hover";
+    resetIconVisibility?: "hidden" | "always" | "hover";
+    clearIconVisibility?: "hidden" | "always" | "hover";
   };
   interaction?: {
     pointerScrubEnabled?: boolean;

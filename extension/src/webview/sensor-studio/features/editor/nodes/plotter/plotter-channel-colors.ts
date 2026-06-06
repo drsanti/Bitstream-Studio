@@ -73,3 +73,33 @@ export function resolvePlotterChannelColors(args: {
   }
   return out;
 }
+
+/** Semantic hex from the wired upstream socket (ignores plotter `colorMode`). */
+export function resolvePlotterWireSemanticColorHex(args: {
+  plotterFlowNodeId: string;
+  channelId: PlotterInputId;
+  fallbackHex: string;
+  edges: readonly Edge[];
+  nodes: readonly { id: string; type?: string; data: StudioNodeData }[];
+}): string | null {
+  const incomingByTarget = buildIncomingByTarget(args.edges);
+  const nodeById = new Map(args.nodes.map((node) => [node.id, node]));
+  const hint = resolveInputScalarHintFromUpstream({
+    targetFlowId: args.plotterFlowNodeId,
+    targetHandle: args.channelId,
+    incomingByTarget,
+    nodeById,
+  });
+  if (hint == null) {
+    return null;
+  }
+  return resolveScalarSemanticColorHex(
+    {
+      handleId: hint.handleId,
+      nodeId: hint.nodeId,
+      label: hint.label,
+      streamMode: hint.streamMode,
+    },
+    args.fallbackHex,
+  );
+}

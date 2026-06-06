@@ -44,7 +44,7 @@ export function useQuickAction(
     }
     const cleanup = callback(api);
     return cleanup;
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   return api;
 }

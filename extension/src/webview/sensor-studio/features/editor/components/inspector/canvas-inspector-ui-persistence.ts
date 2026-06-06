@@ -57,6 +57,7 @@ export type CanvasInspectorCanvasTabCardId =
   | "grid"
   | "canvas-chrome"
   | "selection"
+  | "numeric-scrub"
   | "workbench";
 
 export const DEFAULT_CANVAS_TAB_CARD_ORDER: readonly CanvasInspectorCanvasTabCardId[] = [
@@ -64,6 +65,7 @@ export const DEFAULT_CANVAS_TAB_CARD_ORDER: readonly CanvasInspectorCanvasTabCar
   "grid",
   "canvas-chrome",
   "selection",
+  "numeric-scrub",
   "workbench",
 ];
 
@@ -123,6 +125,7 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
       grid: false,
       "canvas-chrome": false,
       selection: false,
+      "numeric-scrub": true,
       workbench: false,
     };
   }
@@ -143,6 +146,7 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
       grid: obj.grid === true || obj["wires-grid"] === true,
       "canvas-chrome": obj["canvas-chrome"] === true,
       selection: obj.selection === true,
+      "numeric-scrub": obj["numeric-scrub"] === true,
       workbench: obj.workbench === true,
     };
   } catch {
@@ -151,6 +155,7 @@ export function readCanvasTabCardCollapsed(): Record<CanvasInspectorCanvasTabCar
       grid: false,
       "canvas-chrome": false,
       selection: false,
+      "numeric-scrub": true,
       workbench: false,
     };
   }

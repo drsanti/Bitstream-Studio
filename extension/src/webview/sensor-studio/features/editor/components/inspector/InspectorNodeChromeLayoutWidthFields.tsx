@@ -1,4 +1,5 @@
-import { TRNScrubNumberInput } from "../../../../../ui/TRN";
+import { TRNHintTooltip } from "../../../../../ui/TRN";
+import { InspectorNumericField } from "./InspectorNumericScrubRow";
 import { resolveStudioNodeMinDimensionFloor } from "../../nodes/flow-node/studio-node-resize-defaults";
 import {
   readStudioFlowNodeLayoutSize,
@@ -54,32 +55,39 @@ export function InspectorNodeChromeLayoutWidthFields(
                 : "border-zinc-700/60 bg-zinc-900/35")
             }
           >
-            <span
-              className={
-                "min-w-0 flex-1 text-[10px] font-medium leading-snug " +
-                (isActive ? "text-violet-100" : "text-zinc-300")
-              }
-              title={meta.hint}
-            >
-              {meta.label}
-              {isActive ? (
-                <span className="ml-1 text-[9px] font-semibold uppercase tracking-wide text-violet-300/90">
-                  · active
+            <TRNHintTooltip
+              content={meta.hint}
+              triggerWrapper="span"
+              triggerAriaLabel={`About ${meta.label}`}
+              className="min-w-0 flex-1"
+              trigger={
+                <span
+                  className={
+                    "cursor-help text-[10px] font-medium leading-snug " +
+                    (isActive ? "text-violet-100" : "text-zinc-300")
+                  }
+                >
+                  {meta.label}
+                  {isActive ? (
+                    <span className="ml-1 text-[9px] font-semibold uppercase tracking-wide text-violet-300/90">
+                      · active
+                    </span>
+                  ) : null}
+                  {unset ? (
+                    <span className="ml-1 text-[9px] text-zinc-500">· unset</span>
+                  ) : null}
                 </span>
-              ) : null}
-              {unset ? (
-                <span className="ml-1 text-[9px] text-zinc-500">· unset</span>
-              ) : null}
-            </span>
-            <TRNScrubNumberInput
-              aria-label={`Width for ${meta.label}`}
+              }
+            />
+            <InspectorNumericField
+              ariaLabel={`Width for ${meta.label}`}
+              className="w-22 shrink-0"
               value={displayValue}
               min={STUDIO_FLOW_NODE_LAYOUT_ABSOLUTE_MIN_PX}
               max={LAYOUT_SIZE_MAX_PX}
               step={1}
               fractionDigits={0}
-              pointerScrubEnabled
-              onChange={(next) => onCommitChromeWidth(key, next)}
+              onCommit={(next) => onCommitChromeWidth(key, next)}
             />
           </label>
         );

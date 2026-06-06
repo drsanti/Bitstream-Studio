@@ -22,6 +22,7 @@ import {
   shouldShowTypedSettingsSection,
 } from "./settings/node-inspector-settings-search";
 import { SCENE3D_INSPECTOR_ACCORDION_TRIGGER_CLASS } from "./scene3d/scene3d-inspector-accordion-chrome";
+import { INSPECTOR_NODE_TAB_CARD_STACK_CLASS } from "./inspector-node-tab-stack";
 import {
   readSettingsJsonAccordionValue,
   SETTINGS_JSON_ACCORDION_VALUE,
@@ -198,7 +199,9 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
         </div>
       </div>
 
-      <div className="scrollbar-hide min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden pb-0.5">
+      <div
+        className={`scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-0.5 ${INSPECTOR_NODE_TAB_CARD_STACK_CLASS}`}
+      >
         {selectedNode.data.configErrors != null &&
         selectedNode.data.configErrors.length > 0 ? (
           <div className="rounded border border-rose-700/70 bg-rose-950/35 px-2 py-1.5">
@@ -234,7 +237,9 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
               />
             ) : id === "typed" ? (
               showTypedSection && CatalogSection != null ? (
-                <CatalogSection {...sectionProps} />
+                <div className={INSPECTOR_NODE_TAB_CARD_STACK_CLASS}>
+                  <CatalogSection {...sectionProps} />
+                </div>
               ) : null
             ) : id === "scene3d" ? (
               showScene3dBlock ? (

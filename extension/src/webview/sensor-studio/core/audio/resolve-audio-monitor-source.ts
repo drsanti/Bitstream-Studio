@@ -1,25 +1,42 @@
 import type { Node } from "@xyflow/react";
 
-/** v0.1 graphs used `sourceMode` alone; v0.2 adds an explicit monitor toggle. */
+/** Monitor routing is opt-in via `monitorModeEnabled` (v0.2). Unwired sinks stay idle otherwise. */
 export function readMonitorModeEnabled(cfg: Record<string, unknown>): boolean {
-  if (typeof cfg.monitorModeEnabled === "boolean") {
-    return cfg.monitorModeEnabled;
-  }
-  const mode = typeof cfg.sourceMode === "string" ? cfg.sourceMode : "none";
-  return mode !== "none";
+  return cfg.monitorModeEnabled === true;
 }
 
 function isAudioSourceCatalogId(nodeId: string | undefined): boolean {
   return (
     nodeId === "mic-input" ||
     nodeId === "audio-oscillator" ||
-    nodeId === "audio-file-player"
+    nodeId === "audio-file-player" ||
+    nodeId === "audio-sfx" ||
+    nodeId === "audio-machine"
   );
+}
+
+export type AudioBusEdge = {
+  target?: string | null;
+  targetHandle?: string | null;
+  source?: string | null;
+};
+
+/** Wired `audio` input on a sink (`audio-output`, `audio-scope`, …). */
+export function findWiredAudioBusSourceNodeId(
+  sinkNodeId: string,
+  edges: ReadonlyArray<AudioBusEdge>,
+): string | null {
+  const edge = edges.find(
+    (e) => e.target === sinkNodeId && (e.targetHandle ?? "in") === "audio",
+  );
+  const source = edge?.source;
+  return typeof source === "string" && source.length > 0 ? source : null;
 }
 
 /**
  * Resolve monitor routing for audio-output / audio-scope when no `audioBus` edge is wired.
  * Returns null when monitor is off, mode is `none`, or no candidate source exists.
+ * Does not use canvas selection — routing follows wires, explicit node id, or nearest source.
  */
 export function resolveAudioMonitorSourceNodeId(args: {
   forNodeId: string;
@@ -27,7 +44,6 @@ export function resolveAudioMonitorSourceNodeId(args: {
   sourceMode: unknown;
   explicitSourceNodeId: unknown;
   nodes: Node[];
-  selectedNodeId: string | null | undefined;
 }): string | null {
   if (!args.monitorModeEnabled) {
     return null;
@@ -42,14 +58,6 @@ export function resolveAudioMonitorSourceNodeId(args: {
     typeof args.explicitSourceNodeId === "string" ? args.explicitSourceNodeId.trim() : "";
   if (mode === "node" && explicit.length > 0) {
     return explicit;
-  }
-
-  const selectedId = args.selectedNodeId;
-  if (typeof selectedId === "string" && selectedId.length > 0) {
-    const selected = args.nodes.find((n) => n.id === selectedId);
-    if (selected?.type === "studio" && isAudioSourceCatalogId(selected.data.nodeId)) {
-      return selected.id;
-    }
   }
 
   const anchor = args.nodes.find((n) => n.id === args.forNodeId);
@@ -79,13 +87,16 @@ export function resolveAudioSinkSourceNodeId(args: {
   sinkNodeId: string;
   cfg: Record<string, unknown>;
   nodes: Node[];
-  edges: Array<{ target?: string | null; targetHandle?: string | null; source?: string | null }>;
-  selectedNodeId: string | null | undefined;
+  edges: ReadonlyArray<AudioBusEdge>;
   wiredSourceNodeId?: string | null;
 }): string | null {
   const wired = (args.wiredSourceNodeId ?? "").trim();
   if (wired.length > 0) {
     return wired;
+  }
+  const fromEdge = findWiredAudioBusSourceNodeId(args.sinkNodeId, args.edges);
+  if (fromEdge != null) {
+    return fromEdge;
   }
   return resolveAudioMonitorSourceNodeId({
     forNodeId: args.sinkNodeId,
@@ -93,6 +104,5 @@ export function resolveAudioSinkSourceNodeId(args: {
     sourceMode: args.cfg.sourceMode,
     explicitSourceNodeId: args.cfg.sourceNodeId,
     nodes: args.nodes,
-    selectedNodeId: args.selectedNodeId,
   });
 }

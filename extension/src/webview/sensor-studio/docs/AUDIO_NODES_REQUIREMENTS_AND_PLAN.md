@@ -252,6 +252,22 @@ All node ids, ports, and default configs live in:
 
 - Sweep only applies when the `freqHz` input pin is **unwired**.
 - If a `freqHz` value is wired, it overrides sweep.
+- Inspector **Sweep** section adds **curve** (`linear` / `log`), **direction** (`up` / `down` / `up-down`), and **mode** (`loop` / `once`).
+
+### Audio SFX (`audio-sfx`)
+
+- One-shot Web Audio presets: riser, downer, siren, beep, noise burst.
+- **Trigger** pin (boolean edge) + card **Fire** preview.
+- Exposes **`audioBus`** output for scope/output wiring.
+- Scope monitor picker lists SFX nodes; idle message: “SFX idle — fire Trigger”.
+
+### Audio Machine (`audio-machine`) — v0.2a
+
+- Continuous procedural motor sounds driven by **Speed** (0..1) and **Load** (0..1).
+- **Motor** family presets: Servo, CNC spindle, EV motor (Engine / Drone / Machine families planned).
+- Layered runtime: whine + harmonics + torque ripple + noise (`studio-audio-runtime.ts`).
+- Pins: `speed`, `load`, `gain` in; `active`, `level`, `audio` out.
+- Design doc: [`AUDIO_MACHINE_SOUND_DESIGN.md`](./AUDIO_MACHINE_SOUND_DESIGN.md).
 
 ---
 
@@ -307,7 +323,7 @@ This enables filter/mix chains without pushing buffers through pins.
 
 #### v0.2 model (in progress)
 
-- **Sources** (`mic-input`, `audio-oscillator`, `audio-file-player`) expose an **`audioBus` output**.
+- **Sources** (`mic-input`, `audio-oscillator`, `audio-file-player`, `audio-sfx`, `audio-machine`) expose an **`audioBus` output**.
 - **Sinks** (`audio-output`, `audio-scope`) accept an **`audioBus` input**.
 - When an `audioBus` input is wired:
   - **Monitor mode** in the Inspector is **disabled / ignored**

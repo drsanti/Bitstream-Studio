@@ -5,6 +5,7 @@ import { TRNButton } from "../../../../../ui/TRN";
 import type { FlowCanvasGridSize, FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
 import { CANVAS_GRID_SIZE_OPTIONS, formatCanvasZoomPercent } from "./canvas-inspector-helpers";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
+import { InspectorColorField } from "./InspectorDenseControls";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { InspectorSegmentButtonGroup, type InspectorSegmentOption } from "./InspectorSegmentButtonGroup";
@@ -17,6 +18,7 @@ import {
   writeCanvasTabCardOrder,
   type CanvasInspectorCanvasTabCardId,
 } from "./canvas-inspector-ui-persistence";
+import { ScrubFieldInspectorPreferences } from "./ScrubFieldInspectorPreferences";
 
 export type CanvasInspectorCanvasTabProps = {
   flowViewport?: Viewport | null;
@@ -201,23 +203,23 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
                 : "Custom canvas fill."
             }
           >
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                className="h-8 min-w-0 flex-1 cursor-pointer rounded border border-zinc-700 bg-zinc-900"
-                value={
-                  /^#[0-9a-fA-F]{6}$/.test(effectiveBackgroundHex)
-                    ? effectiveBackgroundHex
-                    : "#09090b"
-                }
-                aria-label="Flow canvas background color"
-                onChange={(e) =>
-                  onFlowCanvasPreferencesChange({ backgroundHex: e.target.value })
-                }
-              />
+            <div className="flex min-w-0 items-center gap-1.5">
+              <div className="min-w-0 flex-1">
+                <InspectorColorField
+                  ariaLabel="Flow canvas background color"
+                  value={
+                    /^#[0-9a-fA-F]{6}$/.test(effectiveBackgroundHex)
+                      ? effectiveBackgroundHex
+                      : "#09090b"
+                  }
+                  onChange={(next) =>
+                    onFlowCanvasPreferencesChange({ backgroundHex: next })
+                  }
+                />
+              </div>
               <TRNButton
                 size="compact"
-                className="shrink-0"
+                className="h-[26px] shrink-0 px-2 text-[10px]"
                 disabled={usingThemeBackground}
                 hint="Revert to the Sensor Studio theme canvas color."
                 onClick={() => onFlowCanvasPreferencesChange({ backgroundHex: null })}
@@ -259,6 +261,18 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             Clear sel.
           </TRNButton>
         </div>
+      </CanvasInspectorCard>
+    ),
+    "numeric-scrub": (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-numeric-scrub"
+        title="Numeric scrub fields"
+        hint="Global scrub field chrome and interaction for Number nodes and other numeric controls."
+        collapsible
+        collapsed={collapsedById["numeric-scrub"]}
+        onCollapsedChange={(next) => setCardCollapsed("numeric-scrub", next)}
+      >
+        <ScrubFieldInspectorPreferences showValueRules />
       </CanvasInspectorCard>
     ),
     workbench:

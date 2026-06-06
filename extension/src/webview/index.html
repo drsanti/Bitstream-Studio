@@ -14,27 +14,39 @@
       if (host !== "localhost" && host !== "127.0.0.1" && host !== "[::1]") return;
       var marker = "t3d-coi-serviceworker";
       var reloadKey = "bitstream-studio.coi-sw-cleanup-reload";
-      navigator.serviceWorker.getRegistrations().then(function (regs) {
-        var coiRegs = regs.filter(function (r) {
-          var url =
-            (r.active && r.active.scriptURL) ||
-            (r.waiting && r.waiting.scriptURL) ||
-            (r.installing && r.installing.scriptURL) ||
-            "";
-          return url.indexOf(marker) !== -1;
-        });
-        var ctrl = navigator.serviceWorker.controller;
-        var ctrlIsCoi = ctrl && ctrl.scriptURL.indexOf(marker) !== -1;
-        if (!coiRegs.length && !ctrlIsCoi) return;
-        Promise.all(coiRegs.map(function (r) { return r.unregister(); })).then(function () {
-          if (ctrlIsCoi && !sessionStorage.getItem(reloadKey)) {
-            sessionStorage.setItem(reloadKey, "1");
-            location.reload();
-          } else {
-            try { sessionStorage.removeItem(reloadKey); } catch (e) { /* ignore */ }
-          }
-        });
-      });
+      function cleanupCoiServiceWorkers() {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then(function (regs) {
+            var coiRegs = regs.filter(function (r) {
+              var url =
+                (r.active && r.active.scriptURL) ||
+                (r.waiting && r.waiting.scriptURL) ||
+                (r.installing && r.installing.scriptURL) ||
+                "";
+              return url.indexOf(marker) !== -1;
+            });
+            var ctrl = navigator.serviceWorker.controller;
+            var ctrlIsCoi = ctrl && ctrl.scriptURL.indexOf(marker) !== -1;
+            if (!coiRegs.length && !ctrlIsCoi) return;
+            Promise.all(coiRegs.map(function (r) { return r.unregister(); }))
+              .then(function () {
+                if (ctrlIsCoi && !sessionStorage.getItem(reloadKey)) {
+                  sessionStorage.setItem(reloadKey, "1");
+                  location.reload();
+                } else {
+                  try { sessionStorage.removeItem(reloadKey); } catch (e) { /* ignore */ }
+                }
+              })
+              .catch(function () { /* ignore unregister failures */ });
+          })
+          .catch(function () { /* document not ready for SW queries — main.tsx retries */ });
+      }
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", cleanupCoiServiceWorkers, { once: true });
+      } else {
+        cleanupCoiServiceWorkers();
+      }
     })();
   </script>
 </head>

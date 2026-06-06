@@ -36,7 +36,16 @@ export async function unregisterStaleCoiServiceWorker(): Promise<boolean>
     return false;
   }
 
-  const registrations = await navigator.serviceWorker.getRegistrations();
+  let registrations: readonly ServiceWorkerRegistration[];
+  try
+  {
+    registrations = await navigator.serviceWorker.getRegistrations();
+  }
+  catch
+  {
+    // InvalidStateError — embedded webview / navigation / HMR timing
+    return false;
+  }
   const coiRegs = registrations.filter((reg) =>
   {
     const url =

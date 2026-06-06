@@ -1,6 +1,6 @@
 import { Check, Pipette, X } from "lucide-react";
 import type { ReactNode } from "react";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { twMerge } from "tailwind-merge";
 import { TRNMenuPanel } from "./TRNMenu.js";
@@ -8,6 +8,7 @@ import {
   resolveTrnFloatingMenuHorizontal,
   resolveTrnFloatingMenuPlacement,
 } from "./trn-floating-menu-placement.js";
+import { isEyeDropperSupported, sampleScreenColorHex } from "./trn-eyedropper.js";
 
 function wrapHueDegrees(value: number): number {
   const n = value % 360;
@@ -96,15 +97,19 @@ type ColorRingMenuBox = {
   maxHeight: number;
 };
 
+export type TRNColorRingPickerTriggerVariant = "field" | "swatch";
+
 export type TRNColorRingPickerProps = {
   valueHex: string;
   onValueHexChange: (nextHex: string) => void;
   ariaLabel: string;
   disabled?: boolean;
-  /** Trigger label; defaults to the hex string. */
+  /** Trigger label; defaults to the hex string (field variant only). */
   label?: ReactNode;
   /** Trigger size; `sm` uses `py-1`. */
   size?: "sm" | "md" | "lg";
+  /** `field` = full-width row with swatch + label; `swatch` = compact square only. */
+  triggerVariant?: TRNColorRingPickerTriggerVariant;
   className?: string;
 };
 
@@ -116,6 +121,7 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
     disabled = false,
     label,
     size = "sm",
+    triggerVariant = "field",
     className,
   } = props;
 
@@ -125,6 +131,8 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const ringRef = useRef<HTMLDivElement | null>(null);
   const [draftHex, setDraftHex] = useState(valueHex);
+  const [eyedropperBusy, setEyedropperBusy] = useState(false);
+  const eyedropperSupported = isEyeDropperSupported();
 
   const hue = useMemo(() => hexToHueDegrees(valueHex), [valueHex]);
 
@@ -218,10 +226,29 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
     onValueHexChange(nextHex);
   };
 
+  const handleEyedropperPick = useCallback(async () => {
+    if (!eyedropperSupported || eyedropperBusy || disabled) {
+      return;
+    }
+    setEyedropperBusy(true);
+    setOpen(false);
+    try {
+      const sampled = await sampleScreenColorHex();
+      if (sampled != null) {
+        onValueHexChange(sampled);
+        setDraftHex(sampled);
+      }
+    } finally {
+      setEyedropperBusy(false);
+    }
+  }, [disabled, eyedropperBusy, eyedropperSupported, onValueHexChange]);
+
   const triggerPad =
     size === "sm" ? "py-1" : size === "lg" ? "py-2 text-sm" : "py-1.5";
 
   const portalTarget = typeof document !== "undefined" ? document.body : null;
+
+  const normalizedHex = normalizeHexColor(valueHex, "#22d3ee");
 
   const menuPanel =
     open && menuBox != null && portalTarget != null ? (
@@ -268,7 +295,7 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
                   aria-hidden
                 />
               </div>
-              <div className="text-[10px] text-zinc-300">{valueHex}</div>
+              <div className="text-[10px] text-zinc-300">{normalizedHex}</div>
             </div>
 
             <div className="min-w-0 flex-1">
@@ -281,25 +308,41 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
                 placeholder="#22c55e"
                 spellCheck={false}
               />
-              <div className="mt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-1 rounded border border-white/12 bg-white/6 px-2 py-1 text-[11px] text-zinc-100 hover:bg-white/10"
-                  onClick={() => setOpen(false)}
-                >
-                  <X className="h-3.5 w-3.5" aria-hidden /> Close
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-1 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-100 hover:bg-emerald-500/15"
-                  onClick={() => {
-                    const next = normalizeHexColor(draftHex, valueHex);
-                    onValueHexChange(next);
-                    setOpen(false);
-                  }}
-                >
-                  <Check className="h-3.5 w-3.5" aria-hidden /> Apply
-                </button>
+              <div className="mt-2 flex flex-col gap-2">
+                {eyedropperSupported ? (
+                  <button
+                    type="button"
+                    className="inline-flex w-full items-center justify-center gap-1.5 rounded border border-white/12 bg-white/6 px-2 py-1 text-[11px] text-zinc-100 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={eyedropperBusy || disabled}
+                    aria-label="Pick color from screen"
+                    onClick={() => {
+                      void handleEyedropperPick();
+                    }}
+                  >
+                    <Pipette className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                    Pick from screen
+                  </button>
+                ) : null}
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-1 rounded border border-white/12 bg-white/6 px-2 py-1 text-[11px] text-zinc-100 hover:bg-white/10"
+                    onClick={() => setOpen(false)}
+                  >
+                    <X className="h-3.5 w-3.5" aria-hidden /> Close
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-1 rounded border border-emerald-500/25 bg-emerald-500/10 px-2 py-1 text-[11px] text-emerald-100 hover:bg-emerald-500/15"
+                    onClick={() => {
+                      const next = normalizeHexColor(draftHex, valueHex);
+                      onValueHexChange(next);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className="h-3.5 w-3.5" aria-hidden /> Apply
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -307,8 +350,30 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
       </div>
     ) : null;
 
-  return (
-    <div ref={rootRef} className={twMerge("relative w-full", className)}>
+  const swatchTrigger =
+    triggerVariant === "swatch" ? (
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) setOpen((v) => !v);
+        }}
+        className={twMerge(
+          "nodrag inline-flex h-[22px] w-[22px] shrink-0 cursor-pointer rounded-sm border border-zinc-600/80 " +
+            "shadow-[inset_0_0_0_1px_rgba(0,0,0,0.25)] transition-opacity " +
+            "hover:opacity-90 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/25 " +
+            "disabled:cursor-not-allowed disabled:opacity-50",
+          open ? "ring-1 ring-white/20" : "",
+        )}
+        style={{ backgroundColor: normalizedHex }}
+      />
+    ) : null;
+
+  const fieldTrigger =
+    triggerVariant === "field" ? (
       <button
         type="button"
         aria-label={ariaLabel}
@@ -330,13 +395,24 @@ export function TRNColorRingPicker(props: TRNColorRingPickerProps) {
         <span className="inline-flex min-w-0 items-center gap-2">
           <span
             className="inline-flex h-3.5 w-3.5 shrink-0 rounded-sm border border-zinc-700/80"
-            style={{ backgroundColor: valueHex }}
+            style={{ backgroundColor: normalizedHex }}
             aria-hidden
           />
-          <span className="min-w-0 truncate">{label ?? valueHex}</span>
+          <span className="min-w-0 truncate">{label ?? normalizedHex}</span>
         </span>
         <Pipette className="h-3.5 w-3.5 shrink-0 text-zinc-400" strokeWidth={2.25} aria-hidden />
       </button>
+    ) : null;
+
+  return (
+    <div
+      ref={rootRef}
+      className={twMerge(
+        triggerVariant === "swatch" ? "relative inline-flex" : "relative w-full",
+        className,
+      )}
+    >
+      {swatchTrigger ?? fieldTrigger}
 
       {menuPanel != null && portalTarget != null ? createPortal(menuPanel, portalTarget) : null}
     </div>

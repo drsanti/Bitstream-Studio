@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { TRNButton, TRNHintText } from "../../../../../../ui/TRN";
 import {
   InspectorFieldGrid,
@@ -13,6 +13,7 @@ import {
   type GaugeDisplayZone,
   type GaugeZonePresetId,
   gaugeZonesFromPreset,
+  matchGaugeZonePreset,
   normalizeGaugeHexColor,
 } from "../../../nodes/display/gauge-display-config";
 
@@ -23,9 +24,15 @@ export type GaugeZonesEditorProps = {
   onChange: (next: GaugeDisplayZone[]) => void;
 };
 
+const GAUGE_ZONE_CUSTOM_PRESET_VALUE = "custom" as const;
+
 export function GaugeZonesEditor(props: GaugeZonesEditorProps) {
   const { zones, min, max, onChange } = props;
-  const [presetValue, setPresetValue] = useState("");
+
+  const selectedPreset = useMemo(
+    () => matchGaugeZonePreset(zones, min, max),
+    [zones, min, max],
+  );
 
   const patchZone = useCallback(
     (index: number, patch: Partial<GaugeDisplayZone>) => {
@@ -58,23 +65,23 @@ export function GaugeZonesEditor(props: GaugeZonesEditorProps) {
   }, [max, min, onChange, zones]);
 
   const applyPreset = useCallback(
-    (presetId: string) => {
-      const preset = presetId as GaugeZonePresetId;
-      if (!GAUGE_ZONE_PRESET_OPTIONS.some((p) => p.id === preset)) {
-        return;
-      }
-      onChange(gaugeZonesFromPreset(preset, min, max));
+    (presetId: GaugeZonePresetId) => {
+      onChange(gaugeZonesFromPreset(presetId, min, max));
     },
     [max, min, onChange],
   );
 
   const presetOptions = useMemo(
     () => [
-      { value: "", label: "Apply preset…" },
       ...GAUGE_ZONE_PRESET_OPTIONS.map((preset) => ({
         value: preset.id,
         label: preset.label,
       })),
+      {
+        value: GAUGE_ZONE_CUSTOM_PRESET_VALUE,
+        label: "Custom",
+        disabled: true,
+      },
     ],
     [],
   );
@@ -85,12 +92,15 @@ export function GaugeZonesEditor(props: GaugeZonesEditorProps) {
         label="Preset"
         description="Replace all zones with a template mapped to the current min/max scale."
         ariaLabel="Gauge zone preset"
-        value={presetValue}
+        value={selectedPreset}
         options={presetOptions}
         onChange={(next) => {
-          setPresetValue("");
-          if (next.length > 0) {
-            applyPreset(next);
+          if (
+            next.length > 0 &&
+            next !== GAUGE_ZONE_CUSTOM_PRESET_VALUE &&
+            GAUGE_ZONE_PRESET_OPTIONS.some((preset) => preset.id === next)
+          ) {
+            applyPreset(next as GaugeZonePresetId);
           }
         }}
       />

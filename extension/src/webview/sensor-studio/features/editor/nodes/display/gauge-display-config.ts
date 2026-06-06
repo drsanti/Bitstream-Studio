@@ -131,6 +131,42 @@ export function gaugeZonesFromPreset(
   ];
 }
 
+const GAUGE_ZONE_COMPARE_EPSILON = 1e-6;
+
+function gaugeZonesEqual(
+  left: readonly GaugeDisplayZone[],
+  right: readonly GaugeDisplayZone[],
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((zone, index) => {
+    const other = right[index];
+    if (other == null) {
+      return false;
+    }
+    return (
+      Math.abs(zone.from - other.from) <= GAUGE_ZONE_COMPARE_EPSILON &&
+      Math.abs(zone.to - other.to) <= GAUGE_ZONE_COMPARE_EPSILON &&
+      zone.color.toLowerCase() === other.color.toLowerCase()
+    );
+  });
+}
+
+/** Preset id when zones match a template at the current scale; otherwise `custom`. */
+export function matchGaugeZonePreset(
+  zones: readonly GaugeDisplayZone[],
+  min: number,
+  max: number,
+): GaugeZonePresetId | "custom" {
+  for (const preset of GAUGE_ZONE_PRESET_OPTIONS) {
+    if (gaugeZonesEqual(zones, gaugeZonesFromPreset(preset.id, min, max))) {
+      return preset.id;
+    }
+  }
+  return "custom";
+}
+
 export function gaugePreviewValue(cfg: GaugeScaleReadoutConfig): number {
   const lo = Math.min(cfg.min, cfg.max);
   const hi = Math.max(cfg.min, cfg.max);

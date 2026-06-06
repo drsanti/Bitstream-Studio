@@ -1,22 +1,12 @@
-import {
-  TRNScrubNumberInput,
-  TRNScrubNumberField,
-  TRNSegmentedControl,
-  TRNToggleSwitch,
-} from "../../../../../ui/TRN";
+import { TRNToggleSwitch } from "../../../../../ui/TRN";
+import { FlowCardScrubNumberField } from "../flow-node/FlowCardScrubNumberField";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
 import {
   coerceNumberConstantValue,
-  getNumberConstantSliderRange,
-  readNumberConstantCardValueControl,
   readNumberConstantMode,
   readOptionalFiniteNumber,
 } from "./number-constant-helpers";
-
-/** Same chrome as `TRNVector3Field` / inspector number rows (`NumberConstantSettingsSection`). */
-const TRN_DENSE_NUMERIC_FIELD_SHELL =
-  "flex min-w-0 items-center gap-1 rounded border border-zinc-700/80 bg-zinc-950/45 px-1 py-1";
 
 export type BooleanConstantNodePanelProps = {
   nodeId: string;
@@ -78,21 +68,15 @@ export function NumberConstantNodePanel(props: NumberConstantNodePanelProps) {
 
   return (
     <div className="nodrag mt-2 min-w-0 w-full max-w-full">
-      <TRNScrubNumberField
+      <FlowCardScrubNumberField
         ariaLabel="Numeric constant value"
         className="w-full"
-        inputClassName="text-xs"
         value={display}
         step={valueStep}
         min={min}
         max={max}
         fractionDigits={mode === "integer" ? 0 : undefined}
-        settingsKey="number-constant"
-        appearance={{ variant: "full", buttonsVisible: "hover" }}
-        interaction={{ pointerScrubEnabled: true, wheelEnabled: true, wheelBoundedMode: "span-percent" }}
-        onChange={(next) => {
-          commitValue(next);
-        }}
+        onCommit={commitValue}
       />
     </div>
   );

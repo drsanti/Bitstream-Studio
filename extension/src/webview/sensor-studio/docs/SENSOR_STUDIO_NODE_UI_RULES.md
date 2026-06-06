@@ -264,12 +264,12 @@ Follow **node-animator** `socketGridLayout` / `SocketHandle` — zero-width anch
 ## Typed settings sections
 
 1. Register in **`node-inspector-settings-registry.tsx`** (`nodeId` → section component).
-2. Prefer **`InspectorCollapsibleSection`** — compact **`InspectorSection`** / **`TRNInteractiveCard`** glass, **This node** scope chip, title hint tooltip. **Do not** register info-only nodes (no form fields) — behavior belongs on the card / Details tab.
+2. Prefer **`InspectorCollapsibleSection`** — compact **`InspectorSection`** / **`TRNInteractiveCard`** glass, optional **scope badge** on the title (`scopeBadge` or inferred via **`inferInspectorScopeBadge`**: Config, Layout, Pins, Monitor, … — not a generic “This node” label), title hint tooltip. **Do not** register info-only nodes (no form fields) — behavior belongs on the card / Details tab.
 3. Multi-block sections with many fields: **`InspectorSettingsSectionFrame`** (same chrome).
-4. Numeric fields: **`InspectorNumericScrubRow`** + **`TRNScrubNumberInput`** — drag on the value to scrub (Shift = finer); arrow keys and typing still work. Use `pointerScrubEnabled={false}` only when each tick must not scrub (e.g. number constant undo batching).
+4. Numeric fields: **`InspectorNumericScrubRow`** / **`InspectorNumericField`** → **`TRNScrubNumberField`** (full chrome: ‹ › step, lock, optional ↺/✕). Flow-wide prefs: canvas inspector **Numeric scrub fields** card → localStorage key **`inspector-numeric`** — **`inspector-scrub-field-presets.ts`**. Domain pairs: **`InspectorInOutDomainRangeGrid`** (In−/In+/Out−/Out+), **`InspectorMinMaxRangeGrid`** (Min/Max). Card size W/H: **`InspectorNodeLayoutSizeFields`**. Optional bounds: **`InspectorOptionalScrubNumberField`**. Use `pointerScrubEnabled={false}` only when each tick must not scrub (e.g. animation clip trim, audio gain).
 5. Dropdowns: **`InspectorSelectRow`** + **`TRNSelect`** (glass menu) — not native `<select>`.
 6. Booleans in collapsible cards: **`InspectorCompactToggleRow`** (slim) — not **`TRNInlineToggleRow`** card chrome unless the node body uses it.
-7. Long copy: **`TRNHintTooltip`** on labels — not inline walls of text.
+7. No **section-level intro paragraphs** (muted `<p>` / `<div>` prose above inspector cards). Use **`InspectorSection` `hint`**, section **`iconHint`**, row **`description`**, or **`TRNHintTooltip`** on labels instead.
 
 **Reference implementation:** **`MapRangeSettingsSection.tsx`** (map-range + clamp toggle + grouped range inputs).
 
@@ -394,7 +394,12 @@ Homogeneous multi-select applies width/height commits to every selected node of 
 
 | Control                                     | Use                                      |
 | ------------------------------------------- | ---------------------------------------- |
-| **`TRNScrubNumberInput`**                   | Inspector numerics, optional card scrubs |
+| **`TRNScrubNumberField`**                   | Inspector numerics via **`InspectorNumericField`**; flow cards when full chrome is needed |
+| **`TRNBadgedScrubNumberField`**             | W/H, vector axes, other labeled dense rows |
+| **`TRNOptionalScrubNumberField`**           | Optional min/max/step (Number limits) |
+| **`FlowCardScrubNumberField`**              | Flow node card numerics — same `inspector-numeric` prefs, `size="sm"` |
+| **`FlowCardBadgedScrubNumberField`**        | Map range / Clamp card bodies (badged 2-col grid) |
+| **`TRNScrubNumberInput`**                   | Internal input inside `TRNScrubNumberField` only — do not use directly in Sensor Studio UI |
 | **`TRNSelect`** / **`TRNSegmentedControl`** | Enums and modes                          |
 | **`TRNChipButtonGroup`**                    | Small mutually exclusive options; **`columns={4}`** for Hz rate presets (`SensorHzRateField`) — equal-width chips, wrap to next row (no horizontal scroll) |
 | Native `<select>`                           | Avoid in new UI                          |

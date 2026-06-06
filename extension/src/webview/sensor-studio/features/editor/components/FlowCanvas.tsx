@@ -314,6 +314,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     const pendingTargetInputReconnectRef = useRef<{ edgeId: string } | null>(null);
     /** Prevents the pane click that follows connect-end from instantly closing the add menu. */
     const suppressPaneDismissRef = useRef(false);
+    /** Skips one React Flow selection sync after Shift+click edge reroute insert. */
+    const skipSelectionSyncAfterEdgeRerouteRef = useRef(false);
 
     const portColorMap = useMemo(
       () =>
@@ -1002,7 +1004,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           x: event.clientX,
           y: event.clientY,
         });
+        skipSelectionSyncAfterEdgeRerouteRef.current = true;
         insertRerouteOnEdge(edge.id, flowPos);
+        requestAnimationFrame(() => {
+          skipSelectionSyncAfterEdgeRerouteRef.current = false;
+        });
       },
       [insertRerouteOnEdge],
     );
@@ -1221,6 +1227,9 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             }}
             connectionLineStyle={connectionLineStyle}
             onSelectionChange={(selection) => {
+              if (skipSelectionSyncAfterEdgeRerouteRef.current) {
+                return;
+              }
               onSelectionChange(selection.nodes.map((n) => n.id));
               if (selection.nodes.length > 0 || selection.edges.length > 0) {
                 setActiveEditorType("flow");
