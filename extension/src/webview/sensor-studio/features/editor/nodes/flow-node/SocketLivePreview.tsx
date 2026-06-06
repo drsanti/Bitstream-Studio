@@ -60,7 +60,10 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   if (portType === "vector3" && vector3 != null) {
     const fractionDigits = handleId === "euler" ? 3 : 2;
     return (
-      <ReadingValueGroup className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "justify-end gap-x-1")}>
+      <ReadingValueGroup
+        data-flow-socket-live-preview
+        className={twMerge(SOCKET_LIVE_VALUE_TYPOGRAPHY, "justify-end gap-x-1")}
+      >
         <ReadingAxisNumber
           compact
           socketFixedCell
@@ -89,6 +92,7 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   if (portType === "quaternion" && quaternion != null) {
     return (
       <QuaternionScalarsGrid
+        data-flow-socket-live-preview
         compact
         w={quaternion.w}
         x={quaternion.x}

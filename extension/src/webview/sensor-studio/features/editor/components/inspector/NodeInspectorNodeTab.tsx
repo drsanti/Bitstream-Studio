@@ -43,12 +43,7 @@ export type NodeInspectorNodeTabProps = {
   /** When true (multi-select, same `nodeId`), hide JSON — store rejects multi JSON apply. */
   suppressDefaultConfigJson?: boolean;
   onUpdateLabel: (nextLabel: string) => void;
-  onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateNodeUiAllowBodyCollapse: (allow: boolean) => void;
-  onUpdateStudioNodeLayoutDimensions: (patch: {
-    width?: number;
-    height?: number;
-  }) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (
     nextJson: string,
@@ -70,9 +65,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
     isRotation3DNode,
     suppressDefaultConfigJson = false,
     onUpdateLabel,
-    onUpdateNodeUiResizable,
     onUpdateNodeUiAllowBodyCollapse,
-    onUpdateStudioNodeLayoutDimensions,
     onUpdateConfigField,
     onUpdateConfigJson,
     jsonDraft,
@@ -224,9 +217,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
             ) : id === "canvas" ? (
               <NodeInspectorCanvasLayoutSection
                 selectedNode={selectedNode}
-                onResizableChange={onUpdateNodeUiResizable}
                 onAllowBodyCollapseChange={onUpdateNodeUiAllowBodyCollapse}
-                onLayoutDimensionsChange={onUpdateStudioNodeLayoutDimensions}
               />
             ) : id === "typed" ? (
               showTypedSection && CatalogSection != null ? (

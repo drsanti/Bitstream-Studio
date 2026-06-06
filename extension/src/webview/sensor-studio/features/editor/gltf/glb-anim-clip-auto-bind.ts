@@ -1,3 +1,5 @@
+import type { StudioAssetDescriptor } from "../../asset-browser/studio-asset.types";
+import { resolveStudioModelGltfFetchUrl } from "../../asset-browser/studio-model-scene-bindings";
 import { extractStudioGltfComponents } from "./studio-gltf-extract";
 import {
   readGlbExtractTag,
@@ -18,10 +20,34 @@ type FlowNodeLike = {
  * When a **Trigger GLB Anim** node has no clip binding but its scoped GLB exposes exactly one
  * animation, persist that clip so event pulses can drive the Model viewer without opening the inspector.
  */
+function resolveModelSelectFetchUrl(
+  nodes: readonly FlowNodeLike[],
+  modelFlowId: string,
+  catalog: readonly StudioAssetDescriptor[],
+): string | null {
+  const logical = resolveStudioSourceModelGlbUrl(nodes, modelFlowId);
+  if (logical == null || logical.trim().length === 0) {
+    return null;
+  }
+  const n = nodes.find((x) => x.id === modelFlowId);
+  const dc = n?.data.defaultConfig;
+  const studioAssetId =
+    dc != null && typeof dc.selectedStudioAssetId === "string"
+      ? dc.selectedStudioAssetId.trim()
+      : undefined;
+  const fetchUrl = resolveStudioModelGltfFetchUrl(
+    { url: logical.trim(), studioAssetId },
+    catalog,
+    "",
+  );
+  return fetchUrl.length > 0 ? fetchUrl : null;
+}
+
 export async function resolveSingleClipAutoBindPatchesForGlbAnimNodes(args: {
   nodes: readonly FlowNodeLike[];
   edges: readonly StudioFlowEdgeLike[];
   targetFlowNodeIds: readonly string[];
+  catalog: readonly StudioAssetDescriptor[];
 }): Promise<Map<string, Record<string, unknown>>> {
   const patches = new Map<string, Record<string, unknown>>();
   const urlCache = new Map<string, string | null>();
@@ -41,14 +67,14 @@ export async function resolveSingleClipAutoBindPatchesForGlbAnimNodes(args: {
     }
     let glbUrl = urlCache.get(modelFlowId);
     if (glbUrl === undefined) {
-      glbUrl = resolveStudioSourceModelGlbUrl(args.nodes, modelFlowId);
+      glbUrl = resolveModelSelectFetchUrl(args.nodes, modelFlowId, args.catalog);
       urlCache.set(modelFlowId, glbUrl);
     }
     if (glbUrl == null || glbUrl.trim().length === 0) {
       continue;
     }
     try {
-      const extraction = await extractStudioGltfComponents(glbUrl.trim());
+      const extraction = await extractStudioGltfComponents(glbUrl);
       if (extraction.animations.length !== 1) {
         continue;
       }

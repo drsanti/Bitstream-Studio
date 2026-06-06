@@ -69,12 +69,7 @@ export type NodeInspectorProps = {
   /** Minimap / category chips (same colors as the flow canvas). */
   categoryColors: Record<NodeCatalogEntry["category"], string>;
   onUpdateLabel: (nextLabel: string) => void;
-  onUpdateNodeUiResizable: (resizable: boolean) => void;
   onUpdateNodeUiAllowBodyCollapse: (allow: boolean) => void;
-  onUpdateStudioNodeLayoutDimensions: (patch: {
-    width?: number;
-    height?: number;
-  }) => void;
   onUpdateConfigField: (key: string, value: unknown) => boolean;
   onUpdateConfigJson: (
     nextJson: string,
@@ -98,9 +93,7 @@ export function NodeInspector(props: NodeInspectorProps) {
     catalogEntries,
     categoryColors,
     onUpdateLabel,
-    onUpdateNodeUiResizable,
     onUpdateNodeUiAllowBodyCollapse,
-    onUpdateStudioNodeLayoutDimensions,
     onUpdateConfigField,
     onUpdateConfigJson,
     canvasInspector,
@@ -395,12 +388,8 @@ export function NodeInspector(props: NodeInspectorProps) {
                     isRotation3DNode={isRotation3DNode}
                     suppressDefaultConfigJson={homogeneousMultiEdit}
                     onUpdateLabel={onUpdateLabel}
-                    onUpdateNodeUiResizable={onUpdateNodeUiResizable}
                     onUpdateNodeUiAllowBodyCollapse={
                       onUpdateNodeUiAllowBodyCollapse
-                    }
-                    onUpdateStudioNodeLayoutDimensions={
-                      onUpdateStudioNodeLayoutDimensions
                     }
                     onUpdateConfigField={onUpdateConfigField}
                     onUpdateConfigJson={onUpdateConfigJson}

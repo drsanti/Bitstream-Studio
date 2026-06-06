@@ -38,14 +38,16 @@ import {
   ReadingPanel,
 } from "./flow-node";
 import {
-  flowNodeDimensionChanges,
-  syncFlowNodeShellDimensions,
+  syncFlowNodeHeightFit,
 } from "./flow-node/FlowNodeEdgeResize";
 import {
+  resolveStudioNodeChromeLayoutKey,
+} from "./flow-node/studio-node-chrome-layout";
+import {
   measureFlowNodeBodyIntrinsicWidth,
-  measureFlowNodeHeaderLeadingIconWidth,
-  measureFlowNodeHeaderTitleIntrinsicWidth,
-  measureFlowNodeSocketRegionIntrinsicWidth,
+  measureFlowNodeHeaderIntrinsicWidth,
+  resolveFlowNodeSocketRegionMinWidthPx,
+  resolveFlowNodeSocketRegionLabelOnlyWidthPx,
   resolveMaxAutoWidthPx,
 } from "./flow-node/flow-node-intrinsic-size";
 import {
@@ -59,7 +61,7 @@ import {
   studioHandleBaseClass,
   studioHandleDimStyle,
 } from "./flow-node/flow-node-handle-chrome";
-import { FLOW_NODE_HEADER_BADGE_CLASS } from "./flow-node/theme/flow-node-tokens";
+import { FlowNodeHeaderBadge } from "./flow-node/FlowNodeHeaderBadge";
 import {
   isBodyControlsVisible,
   isSocketValuesVisible,
@@ -148,6 +150,9 @@ export function StudioNodeCard(props: NodeProps) {
   const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
   const syncStudioNodeContentMinDimensions = useFlowEditorStore(
     (s) => s.syncStudioNodeContentMinDimensions,
+  );
+  const syncStudioNodeWidthFromContentMeasure = useFlowEditorStore(
+    (s) => s.syncStudioNodeWidthFromContentMeasure,
   );
   const flowNodeWidth = useFlowEditorStore(
     (s) => s.nodes.find((n) => n.id === id)?.width,
@@ -241,27 +246,24 @@ export function StudioNodeCard(props: NodeProps) {
   /** Hide `sim` — only surfaced when hardware stream is absent (no extra pill). */
   const sensorHealthBadge =
     data.sensorHealth != null && data.sensorHealth !== "sim" ? (
-      <span
-        className={`${FLOW_NODE_HEADER_BADGE_CLASS} ${
+      <FlowNodeHeaderBadge
+        tone={
           data.sensorHealth === "live"
-            ? "border-emerald-500/60 bg-emerald-950/50 text-emerald-300"
+            ? "live"
             : data.sensorHealth === "stale"
-              ? "border-amber-500/60 bg-amber-950/45 text-amber-200"
+              ? "stale"
               : data.sensorHealth === "offline"
-                ? "border-rose-500/65 bg-rose-950/45 text-rose-200"
-                : "border-zinc-500/60 bg-zinc-900/60 text-zinc-300"
-        }`}
+                ? "offline"
+                : "neutral"
+        }
+        pulseDot={data.sensorHealth === "live"}
       >
         {data.sensorHealth}
-      </span>
+      </FlowNodeHeaderBadge>
     ) : null;
 
   const invalidBadge = hasInvalid ? (
-    <span
-      className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-rose-500/70 bg-rose-950/45 text-rose-200`}
-    >
-      Invalid
-    </span>
+    <FlowNodeHeaderBadge tone="invalid">Invalid</FlowNodeHeaderBadge>
   ) : null;
 
   const sensorFamilyTagLabel =
@@ -274,12 +276,14 @@ export function StudioNodeCard(props: NodeProps) {
     tagNorm.length > 0 &&
     labelNorm !== tagNorm;
   const sensorFamilyTag = showSensorFamilyTag ? (
-    <span
-      className={`${FLOW_NODE_HEADER_BADGE_CLASS} border-cyan-500/45 bg-cyan-950/35 text-cyan-200/90`}
-    >
-      {sensorFamilyTagLabel}
-    </span>
+    <FlowNodeHeaderBadge tone="family">{sensorFamilyTagLabel}</FlowNodeHeaderBadge>
   ) : null;
+
+  const compareOperation =
+    data.nodeId === "compare" &&
+    typeof data.defaultConfig.operation === "string"
+      ? normalizeCompareOperation(data.defaultConfig.operation)
+      : null;
 
   const utilityBodyFitsContent =
     data.nodeId === "object-transform" ||
@@ -309,6 +313,27 @@ export function StudioNodeCard(props: NodeProps) {
     !showNodeBody ||
     (showNodeBody && compactConfigBodyNode);
 
+  const headerChromeKey = useMemo(
+    () =>
+      [
+        data.label,
+        data.sensorHealth ?? "",
+        hasInvalid ? "1" : "0",
+        showSensorFamilyTag ? (sensorFamilyTagLabel ?? "") : "",
+        compareOperation ?? "",
+        showNodeBody ? "body" : "compact",
+      ].join("\0"),
+    [
+      data.label,
+      data.sensorHealth,
+      hasInvalid,
+      showSensorFamilyTag,
+      sensorFamilyTagLabel,
+      compareOperation,
+      showNodeBody,
+    ],
+  );
+
   const nodeResizable = data.ui?.resizable === true;
   const minDimensionFloor = resolveStudioNodeMinDimensionFloor(data.nodeId);
   const minNodeWidth =
@@ -320,22 +345,34 @@ export function StudioNodeCard(props: NodeProps) {
       ? Math.round(data.ui.minHeight)
       : minDimensionFloor.minHeight;
 
+  const hasHideableBody = studioNodeHasHideableBody(data);
+  const chromeLayoutKey = useMemo(
+    () => resolveStudioNodeChromeLayoutKey(data.ui, hasHideableBody),
+    [data.ui, hasHideableBody],
+  );
+  const lastAutoFitChromeLayoutKeyRef = useRef<string | null>(null);
+  const chromeLayoutKeyRef = useRef(chromeLayoutKey);
+  const socketValuesVisibleRef = useRef(socketValuesVisible);
+  const flowNodeWidthRef = useRef(flowNodeWidth);
+  chromeLayoutKeyRef.current = chromeLayoutKey;
+  socketValuesVisibleRef.current = socketValuesVisible;
+  flowNodeWidthRef.current = flowNodeWidth;
+
+  useLayoutEffect(() => {
+    lastAutoFitChromeLayoutKeyRef.current = null;
+  }, [socketValuesVisible, socketsExpanded, bodyControlsVisible, showNodeBody]);
+
   const headerMeasureRef = useRef<HTMLDivElement | null>(null);
   const socketsMeasureRef = useRef<HTMLDivElement | null>(null);
   const bodyMeasureRef = useRef<HTMLDivElement | null>(null);
-  const headerTitleMeasureRef = useRef<HTMLSpanElement | null>(null);
-  const headerTrailingMeasureRef = useRef<HTMLDivElement | null>(null);
+  const measureContentSizeRef = useRef<(() => void) | null>(null);
+  const lastSyncedWidthRef = useRef<number | null>(null);
   const [measuredHeaderSocketsMinHeight, setMeasuredHeaderSocketsMinHeight] =
     useState<number | null>(null);
   const [measuredHeaderSocketsMinWidth, setMeasuredHeaderSocketsMinWidth] =
     useState<number | null>(null);
 
   useLayoutEffect(() => {
-    if (!nodeResizable) {
-      setMeasuredHeaderSocketsMinHeight(null);
-      setMeasuredHeaderSocketsMinWidth(null);
-      return;
-    }
     const headerEl = headerMeasureRef.current;
     const socketsEl = socketsMeasureRef.current;
     if (headerEl == null) {
@@ -353,26 +390,14 @@ export function StudioNodeCard(props: NodeProps) {
       );
 
       const SPARE_PX = 14;
-      const socketWidths =
+      const liveValuesHidden = !socketValuesVisibleRef.current;
+      const socketsIntrinsicW =
         socketsEl != null
-          ? measureFlowNodeSocketRegionIntrinsicWidth(socketsEl)
-          : { labels: 0, previews: 0 };
-      const FIXED_PX = 46;
-      const socketsIntrinsicW = Math.ceil(
-        socketWidths.labels + socketWidths.previews + FIXED_PX,
-      );
-      const headerTitleW = measureFlowNodeHeaderTitleIntrinsicWidth(
-        headerTitleMeasureRef.current,
-      );
-      const headerLeadingIconW = measureFlowNodeHeaderLeadingIconWidth(
-        headerTitleMeasureRef.current,
-      );
-      const headerTrailingW =
-        headerTrailingMeasureRef.current?.scrollWidth ?? 0;
-      const HEADER_FIXED_PX = 36;
-      const headerIntrinsicW = Math.ceil(
-        headerTitleW + headerLeadingIconW + headerTrailingW + HEADER_FIXED_PX,
-      );
+          ? liveValuesHidden
+            ? resolveFlowNodeSocketRegionLabelOnlyWidthPx(socketsEl)
+            : resolveFlowNodeSocketRegionMinWidthPx(socketsEl)
+          : 0;
+      const headerIntrinsicW = measureFlowNodeHeaderIntrinsicWidth(headerEl);
       const bodyIntrinsicW =
         bodyEl != null ? measureFlowNodeBodyIntrinsicWidth(bodyEl) : 0;
       let nextW = Math.max(
@@ -387,10 +412,52 @@ export function StudioNodeCard(props: NodeProps) {
       setMeasuredHeaderSocketsMinWidth((prev) =>
         prev === nextW ? prev : nextW,
       );
+
+      const key = chromeLayoutKeyRef.current;
+      const fitW = Math.max(minNodeWidth, nextW);
+      const currentW = flowNodeWidthRef.current;
+      const roundedCurrentW =
+        typeof currentW === "number" && Number.isFinite(currentW) && currentW > 0
+          ? Math.round(currentW)
+          : null;
+      const modeChanged = lastAutoFitChromeLayoutKeyRef.current !== key;
+
+      const syncWidth = (nextFitW: number) => {
+        syncStudioNodeWidthFromContentMeasure(id, nextFitW);
+        flowNodeWidthRef.current = nextFitW;
+        if (lastSyncedWidthRef.current !== nextFitW) {
+          lastSyncedWidthRef.current = nextFitW;
+          queueMicrotask(() => updateNodeInternals(id));
+        }
+      };
+
+      if (nodeResizable) {
+        const widthStripped = roundedCurrentW == null;
+        const needsGrow =
+          roundedCurrentW != null && fitW > roundedCurrentW;
+        if (modeChanged || widthStripped || needsGrow) {
+          if (modeChanged) {
+            lastAutoFitChromeLayoutKeyRef.current = key;
+          }
+          syncWidth(fitW);
+        }
+      } else {
+        if (modeChanged) {
+          lastAutoFitChromeLayoutKeyRef.current = key;
+        }
+        if (roundedCurrentW !== fitW) {
+          syncWidth(fitW);
+        }
+      }
+    };
+    measureContentSizeRef.current = measure;
+    const measureAndSyncAfterLayout = () => {
+      measure();
+      requestAnimationFrame(measure);
     };
     const bodyEl = bodyMeasureRef.current;
-    measure();
-    const ro = new ResizeObserver(measure);
+    measureAndSyncAfterLayout();
+    const ro = new ResizeObserver(measureAndSyncAfterLayout);
     ro.observe(headerEl);
     if (socketsEl != null) {
       ro.observe(socketsEl);
@@ -398,10 +465,29 @@ export function StudioNodeCard(props: NodeProps) {
     if (bodyEl != null) {
       ro.observe(bodyEl);
     }
-    return () => ro.disconnect();
+    const headerMeasureRoot = headerEl.querySelector<HTMLElement>(
+      "[data-flow-node-header-measure]",
+    );
+    const headerMo =
+      headerMeasureRoot != null
+        ? new MutationObserver(measureAndSyncAfterLayout)
+        : null;
+    if (headerMeasureRoot != null && headerMo != null) {
+      headerMo.observe(headerMeasureRoot, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    }
+    return () => {
+      ro.disconnect();
+      headerMo?.disconnect();
+      if (measureContentSizeRef.current === measure) {
+        measureContentSizeRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    nodeResizable,
     // Socket rows / visibility changes that can affect required minimum height.
     socketsExpanded,
     socketValuesVisible,
@@ -409,12 +495,39 @@ export function StudioNodeCard(props: NodeProps) {
     bodyControlsVisible,
     data.nodeId,
     data.label,
+    data.sensorHealth,
+    data.sensorInvalidReason,
+    data.sensorInvalidByHandle,
     data.inputHandles?.length,
     data.outputHandles?.length,
     data.inputType,
     data.outputType,
     data.defaultConfig,
+    chromeLayoutKey,
+    id,
+    minNodeWidth,
+    nodeResizable,
+    headerChromeKey,
+    syncStudioNodeWidthFromContentMeasure,
+    updateNodeInternals,
   ]);
+
+  useLayoutEffect(() => {
+    const runMeasure = measureContentSizeRef.current;
+    if (runMeasure == null) {
+      return;
+    }
+    runMeasure();
+    let innerFrame = 0;
+    const outerFrame = requestAnimationFrame(() => {
+      runMeasure();
+      innerFrame = requestAnimationFrame(runMeasure);
+    });
+    return () => {
+      cancelAnimationFrame(outerFrame);
+      cancelAnimationFrame(innerFrame);
+    };
+  }, [headerChromeKey, id]);
 
   const mathOperation =
     data.nodeId === "math" && typeof data.defaultConfig.operation === "string"
@@ -450,12 +563,6 @@ export function StudioNodeCard(props: NodeProps) {
     updateNodeInternals(id);
   }, [id, socketValuesVisible, socketsExpanded, updateNodeInternals]);
 
-  const compareOperation =
-    data.nodeId === "compare" &&
-    typeof data.defaultConfig.operation === "string"
-      ? normalizeCompareOperation(data.defaultConfig.operation)
-      : null;
-
   const compareOperationChip =
     compareOperation != null && !showNodeBody ? (
       <CompareOperationHeaderChip operation={compareOperation} />
@@ -470,18 +577,12 @@ export function StudioNodeCard(props: NodeProps) {
     sensorHealthBadge != null ||
     invalidBadge != null ||
     sensorFamilyTag != null ? (
-      <div className="inline-flex items-center gap-1.5">
+      <>
         {compareOperationChip}
-        {sensorHealthBadge != null ||
-        invalidBadge != null ||
-        sensorFamilyTag != null ? (
-          <div className="inline-flex flex-row-reverse items-center gap-1">
-            {sensorFamilyTag}
-            {invalidBadge}
-            {sensorHealthBadge}
-          </div>
-        ) : null}
-      </div>
+        {sensorFamilyTag}
+        {invalidBadge}
+        {sensorHealthBadge}
+      </>
     ) : null;
 
   const hasSocketRegion =
@@ -500,9 +601,6 @@ export function StudioNodeCard(props: NodeProps) {
   );
 
   useEffect(() => {
-    if (!nodeResizable) {
-      return;
-    }
     syncStudioNodeContentMinDimensions(
       id,
       effectiveMinNodeWidth,
@@ -510,7 +608,6 @@ export function StudioNodeCard(props: NodeProps) {
     );
   }, [
     id,
-    nodeResizable,
     effectiveMinNodeWidth,
     effectiveMinNodeHeight,
     syncStudioNodeContentMinDimensions,
@@ -1007,76 +1104,27 @@ export function StudioNodeCard(props: NodeProps) {
   const shellRef = useRef<HTMLDivElement | null>(null);
   const flowNodeShellRef = useRef<HTMLDivElement | null>(null);
   const resizeActive = isSelected && nodeResizable;
-  const prevEffectiveMinRef = useRef({ width: 0, height: 0 });
-
   useLayoutEffect(() => {
-    if (!nodeResizable) {
-      return;
-    }
-    const prev = prevEffectiveMinRef.current;
-    const currentW =
-      flowNodeWidth != null && Number.isFinite(flowNodeWidth)
-        ? Math.round(flowNodeWidth)
-        : 0;
-    const currentH =
-      flowNodeHeight != null && Number.isFinite(flowNodeHeight)
-        ? Math.round(flowNodeHeight)
-        : 0;
-    const contentMinGrewW = effectiveMinNodeWidth > prev.width;
-    const contentMinGrewH = effectiveMinNodeHeight > prev.height;
-    const bumpWidth =
-      contentMinGrewW &&
-      (currentW === 0 || (currentW >= prev.width && currentW < effectiveMinNodeWidth));
-    const bumpHeight =
-      contentMinGrewH &&
-      (currentH === 0 || (currentH >= prev.height && currentH < effectiveMinNodeHeight));
-    prevEffectiveMinRef.current = {
-      width: effectiveMinNodeWidth,
-      height: effectiveMinNodeHeight,
-    };
-    if (!bumpWidth && !bumpHeight) {
-      return;
-    }
-    onNodesChangeAny(
-      flowNodeDimensionChanges(
-        id,
-        bumpWidth ? effectiveMinNodeWidth : currentW || effectiveMinNodeWidth,
-        bumpHeight ? effectiveMinNodeHeight : currentH || effectiveMinNodeHeight,
-      ),
-    );
-  }, [
-    id,
-    nodeResizable,
-    flowNodeHeight,
-    flowNodeWidth,
-    effectiveMinNodeWidth,
-    effectiveMinNodeHeight,
-    onNodesChange,
-  ]);
-
-  useLayoutEffect(() => {
-    if (!shellFitsContent) {
-      return;
-    }
-    // Socket-only nodes (Lerp, split/combine, math toolkit, …) fit content by default.
-    // Auto-sync would snap RF dimensions back to intrinsic shell size and undo edge resize.
     if (nodeResizable) {
       return;
     }
     let frame = 0;
     frame = requestAnimationFrame(() => {
       const shellEl = shellRef.current;
-      if (shellEl == null) {
-        return;
+      let targetH = effectiveMinNodeHeight;
+      if (shellEl != null && !shellFitsContent) {
+        targetH = Math.max(targetH, Math.round(shellEl.offsetHeight));
       }
-      syncFlowNodeShellDimensions(
+      const currentW =
+        typeof flowNodeWidth === "number" && flowNodeWidth > 0
+          ? flowNodeWidth
+          : effectiveMinNodeWidth;
+      syncFlowNodeHeightFit(
         id,
-        shellEl,
-        effectiveMinNodeWidth,
-        effectiveMinNodeHeight,
-        flowNodeWidth,
-        flowNodeHeight,
+        targetH,
         onNodesChangeAny,
+        currentW,
+        flowNodeHeight,
       );
     });
     return () => {
@@ -1088,8 +1136,8 @@ export function StudioNodeCard(props: NodeProps) {
     shellFitsContent,
     socketValuesVisible,
     socketsExpanded,
+    bodyControlsVisible,
     id,
-    effectiveMinNodeWidth,
     effectiveMinNodeHeight,
     flowNodeWidth,
     flowNodeHeight,
@@ -1098,6 +1146,7 @@ export function StudioNodeCard(props: NodeProps) {
     visibleOutputHandles?.length ?? 0,
     inputSockets.length,
     outputSockets.length,
+    edges.length,
   ]);
 
   return (
@@ -1136,27 +1185,15 @@ export function StudioNodeCard(props: NodeProps) {
             .filter(Boolean)
             .join(" ")}
         >
-          <div ref={headerMeasureRef}>
-            <FlowNodeHeader
-              glass
-              glassPreset="medium"
-              className="studio-node-drag-handle cursor-move"
-              leading={headerLeading}
-              primary={
-                <span
-                  ref={headerTitleMeasureRef}
-                  className="inline-block min-w-0 w-max max-w-full truncate text-[13px] font-semibold leading-none text-zinc-100"
-                >
-                  {data.label}
-                </span>
-              }
-              trailing={
-                headerTrailing != null ? (
-                  <div ref={headerTrailingMeasureRef}>{headerTrailing}</div>
-                ) : null
-              }
-            />
-          </div>
+          <FlowNodeHeader
+            ref={headerMeasureRef}
+            glass
+            glassPreset="medium"
+            className="studio-node-drag-handle cursor-move"
+            leading={headerLeading}
+            primary={data.label}
+            trailing={headerTrailing}
+          />
 
           {hasSocketRegion ? (
             <div
@@ -1168,8 +1205,14 @@ export function StudioNodeCard(props: NodeProps) {
             >
               {inputSockets.length > 0 ? (
                 <FlowNodeSocketRegion
-                  equalizeLabelWidth
-                  className="grid grid-cols-[0_max-content_max-content] gap-x-1 gap-y-0.5"
+                  equalizeLabelWidth={socketValuesVisible}
+                  showLivePreviewColumn={socketValuesVisible}
+                  className={twMerge(
+                    "grid gap-x-1 gap-y-0.5",
+                    socketValuesVisible
+                      ? "grid-cols-[0_max-content_max-content]"
+                      : "grid-cols-[0_max-content_0]",
+                  )}
                 >
                   {inputSockets}
                 </FlowNodeSocketRegion>
@@ -1177,10 +1220,10 @@ export function StudioNodeCard(props: NodeProps) {
               {outputSockets.length > 0 ? (
                 <FlowNodeSocketRegion
                   alignedOutputColumns={alignedOutputSocketColumns}
-                  equalizeLabelWidth
-                  className={
-                    alignedOutputSocketColumns ? "w-full max-w-full" : undefined
-                  }
+                  equalizeLabelWidth={socketValuesVisible}
+                  showLivePreviewColumn={socketValuesVisible}
+                  alignRowsToEnd={!alignedOutputSocketColumns}
+                  className="w-full max-w-full"
                 >
                   {outputSockets}
                 </FlowNodeSocketRegion>

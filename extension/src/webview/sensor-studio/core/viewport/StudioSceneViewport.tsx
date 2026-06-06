@@ -11,7 +11,7 @@ import {
 } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { fetchAndParseGltfFromUrl } from "../../features/editor/gltf/load-gltf-from-url.js";
 import { getEngineEnvironmentCubeMaps } from "@/engine-environment/t3dEngineEnvironment";
 import { ReadingLabel } from "../../features/editor/nodes/flow-node/readings/ReadingLabel";
 import { ReadingPanel } from "../../features/editor/nodes/flow-node/readings/ReadingPanel";
@@ -31,10 +31,16 @@ import {
   ROTATION_PREVIEW_TONE_MAPPING_EXPOSURE,
 } from "../../../bitstream-app/components/3d-rotation/shared/rotationPreviewConstants";
 import { usePreviewMeshMissingUiStore } from "../../../bitstream-app/state/previewMeshMissingUi.store.js";
+import type { NotifyMissingAssetPayload } from "../../../bitstream-app/state/previewMeshMissingUi.store.js";
 import {
   buildGlobalDirectoryFallbackOptions,
+  inferPackRelativePathFromAssetUrl,
   resolveGlobalDirectoryFetchFallbackUrl,
 } from "../../../asset-resolution/global-directory-online-fallback";
+import {
+  friendlyGlbLoadErrorMessage,
+  missingLocalMirrorDialogBullets,
+} from "../../../model-loader/ui/glb-local-mirror-integrity.js";
 import { preflightModelPreviewUrlWithGlobalDirectoryFallback } from "../../../model-loader/ui/preflightModelPreviewUrl.js";
 import { resolveStudioWebGlPixelRatio } from "../../features/editor/nodes/display/canvas-hi-dpi";
 import { useStudioCanvasDisplayScale } from "../../features/editor/nodes/display/studio-canvas-display-scale";
@@ -230,13 +236,54 @@ export type StudioSceneViewportProps = {
   onStagePick?: (detail: StageViewportPickDetail) => void;
 };
 
+/** Stable identity — avoids reload loops when `model.url` toggles relative path vs resolved fetch URL. */
+function stableModelLoadKey(model: Scene3DConfigV1["model"]): string {
+  const policy = model.embeddedRigPolicy;
+  const sid = model.studioAssetId?.trim() ?? "";
+  if (sid.length > 0) {
+    return `id:${sid}\u0000${policy}`;
+  }
+  const url = model.url.trim();
+  const rel = inferPackRelativePathFromAssetUrl(url) ?? url;
+  return `url:${rel}\u0000${policy}`;
+}
+
 function modelLoadKey(s: Scene3DConfigV1): string {
-  return `${s.model.url}\u0000${s.model.embeddedRigPolicy}`;
+  return stableModelLoadKey(s.model);
 }
 
 function modelUrlFromLoadKey(key: string): string {
   const sep = key.indexOf("\u0000");
-  return sep >= 0 ? key.slice(0, sep) : key;
+  const head = sep >= 0 ? key.slice(0, sep) : key;
+  if (head.startsWith("url:")) {
+    return head.slice(4);
+  }
+  return head.startsWith("id:") ? "" : head;
+}
+
+function modelUrlForPolicyOnlyCompare(
+  loadedKey: string,
+  model: Scene3DConfigV1["model"],
+): string {
+  const fromKey = modelUrlFromLoadKey(loadedKey);
+  return fromKey.length > 0 ? fromKey : model.url.trim();
+}
+
+/** Flow-node and Stage previews should not hijack the shell with the full Free Loader modal. */
+function notifyMissingAssetForPreviewScope(
+  previewScopeKey: string,
+  payload: NotifyMissingAssetPayload,
+): void {
+  const embeddedFlow = previewScopeKey.startsWith("flow-node:");
+  const stageWorkbench =
+    previewScopeKey === "sensor-studio-stage" || previewScopeKey === "stage-fullbleed";
+  const suppressFreeLoaderModal = embeddedFlow || stageWorkbench;
+  usePreviewMeshMissingUiStore.getState().notifyMissingAsset({
+    ...payload,
+    autoOpenFreeAssetsLoader: suppressFreeLoaderModal
+      ? false
+      : payload.autoOpenFreeAssetsLoader,
+  });
 }
 
 /** Strip embedded GLTF lights/cameras under `root` according to studio policy. */
@@ -288,6 +335,16 @@ function disposeObject3D(root: THREE.Object3D) {
       return;
     }
     (material as THREE.Material).dispose?.();
+  });
+}
+
+/** Superseded in-flight GLB — geometry only (avoid revoking blob textures still parsing elsewhere). */
+function disposeSupersededGltfScene(root: THREE.Object3D): void {
+  root.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.isMesh === true) {
+      mesh.geometry?.dispose();
+    }
   });
 }
 
@@ -851,7 +908,7 @@ export const StudioSceneViewport = forwardRef<
           await tryPresetFaces(onlineUrls);
         }
         if (!disposed && scene.environment == null) {
-          usePreviewMeshMissingUiStore.getState().notifyMissingAsset({
+          notifyMissingAssetForPreviewScope(previewScopeKeyRef.current, {
             dedupeKey: `studio-rotation-cubemap:${previewScopeKeyRef.current}:${urls[0]}`,
             title: "Environment / cubemap not available",
             description: `Could not load all six cubemap face images for preset path:\n${preset.path}\n\nExample URL:\n${urls[0]}\n\nUse Asset Manager → Actions to sync cubemap textures or the free asset pack.`,
@@ -1195,7 +1252,6 @@ export const StudioSceneViewport = forwardRef<
       let gltfPristineTemplate: THREE.Object3D | null = null;
       let gltfPristineTemplateUrl = "";
       let gltfPristineAnimations: THREE.AnimationClip[] = [];
-      const modelLoader = new GLTFLoader();
 
       const clearGltfPristineTemplate = (): void => {
         if (gltfPristineTemplate != null) {
@@ -1231,7 +1287,10 @@ export const StudioSceneViewport = forwardRef<
         root.add(modelRoot);
         if (previousRoot != null) {
           root.remove(previousRoot);
-          disposeObject3D(previousRoot);
+          const rootToDispose = previousRoot;
+          requestAnimationFrame(() => {
+            disposeObject3D(rootToDispose);
+          });
         }
         embeddedCameraNames = collectEmbeddedGlbCameraNames(modelRoot);
         loadedModelKey = reasonKey;
@@ -1465,13 +1524,9 @@ export const StudioSceneViewport = forwardRef<
               continue;
             }
             try {
-              const gltf = await new Promise<import("three/examples/jsm/loaders/GLTFLoader.js").GLTF>(
-                (resolve, reject) => {
-                  modelLoader.load(loadUrl, resolve, undefined, reject);
-                },
-              );
+              const gltf = await fetchAndParseGltfFromUrl(loadUrl);
               if (disposed || myGen !== stageMultiLoadGen) {
-                disposeObject3D(gltf.scene);
+                disposeSupersededGltfScene(gltf.scene);
                 return;
               }
               applyEmbeddedRigPolicy(gltf.scene, policy);
@@ -1599,58 +1654,61 @@ export const StudioSceneViewport = forwardRef<
           const loadUrl = pf.ok ? pf.url : urlAtStart;
           if (!pf.ok) {
             inflightModelKey = null;
+            loadedModelKey = reasonKey;
             setInitError(pf.message);
-            usePreviewMeshMissingUiStore.getState().notifyMissingAsset({
+            notifyMissingAssetForPreviewScope(previewScopeKeyRef.current, {
               dedupeKey: `studio-rotation-model:${previewScopeKeyRef.current}:${urlAtStart}`,
               title: "Model file not available",
-              description: `${pf.message}\n\nURL:\n${urlAtStart}\n\nUse Asset Manager → Actions to sync the free pack or download catalog models.`,
+              summary: pf.message,
+              detail: `URL:\n${urlAtStart}`,
+              bullets: missingLocalMirrorDialogBullets,
             });
             return;
           }
 
-          modelLoader.load(
-            loadUrl,
-            (gltf) => {
-              inflightModelKey = null;
-              if (disposed) {
-                disposeObject3D(gltf.scene);
-                return;
+          try {
+            const gltf = await fetchAndParseGltfFromUrl(loadUrl);
+            inflightModelKey = null;
+            if (disposed) {
+              disposeObject3D(gltf.scene);
+              return;
+            }
+            const wantKey = modelLoadKey(scene3dRef.current);
+            if (wantKey !== reasonKey) {
+              disposeSupersededGltfScene(gltf.scene);
+              if (wantKey !== loadedModelKey) {
+                beginModelLoad(wantKey);
               }
-              const wantKey = modelLoadKey(scene3dRef.current);
-              if (wantKey !== reasonKey) {
-                disposeObject3D(gltf.scene);
-                if (wantKey !== loadedModelKey) {
-                  beginModelLoad(wantKey);
-                }
-                return;
-              }
-              if (gltfPristineTemplateUrl !== loadUrl) {
-                clearGltfPristineTemplate();
-                gltfPristineTemplate = gltf.scene.clone(true);
-                gltfPristineTemplateUrl = loadUrl;
-                gltfPristineAnimations = gltf.animations ?? [];
-              }
-              applyEmbeddedRigPolicy(
-                gltf.scene,
-                scene3dRef.current.model.embeddedRigPolicy,
-              );
-              mountSingleModelRoot(gltf.scene, reasonKey, gltf.animations ?? []);
-            },
-            undefined,
-            (err) => {
-              inflightModelKey = null;
-              if (!disposed) {
-                const msg =
-                  err instanceof Error ? err.message : "unknown error";
-                setInitError(`Failed to load model: ${msg}`);
-                usePreviewMeshMissingUiStore.getState().notifyMissingAsset({
-                  dedupeKey: `studio-rotation-model-err:${previewScopeKeyRef.current}:${urlAtStart}`,
-                  title: "Failed to load 3D model",
-                  description: `${msg}\n\nURL:\n${loadUrl}\n\nUse Asset Manager → Actions to sync or download this asset.`,
-                });
-              }
-            },
-          );
+              return;
+            }
+            if (gltfPristineTemplateUrl !== loadUrl) {
+              clearGltfPristineTemplate();
+              gltfPristineTemplate = gltf.scene.clone(true);
+              gltfPristineTemplateUrl = loadUrl;
+              gltfPristineAnimations = gltf.animations ?? [];
+            }
+            applyEmbeddedRigPolicy(
+              gltf.scene,
+              scene3dRef.current.model.embeddedRigPolicy,
+            );
+            mountSingleModelRoot(gltf.scene, reasonKey, gltf.animations ?? []);
+          } catch (err) {
+            inflightModelKey = null;
+            loadedModelKey = reasonKey;
+            if (!disposed) {
+              const raw =
+                err instanceof Error ? err.message : "unknown error";
+              const summary = friendlyGlbLoadErrorMessage(raw);
+              setInitError(`Failed to load model: ${summary}`);
+              notifyMissingAssetForPreviewScope(previewScopeKeyRef.current, {
+                dedupeKey: `studio-rotation-model-err:${previewScopeKeyRef.current}:${urlAtStart}`,
+                title: "Failed to load 3D model",
+                summary,
+                detail: `Technical:\n${raw}\n\nURL:\n${loadUrl}`,
+                bullets: missingLocalMirrorDialogBullets,
+              });
+            }
+          }
         })();
       };
 
@@ -1963,10 +2021,11 @@ export const StudioSceneViewport = forwardRef<
           const mk = modelLoadKey(s);
           if (mk !== loadedModelKey && inflightModelKey == null) {
             const nextUrl = s.model.url.trim();
-            const loadedUrl = modelUrlFromLoadKey(loadedModelKey);
+            const loadedUrl = modelUrlForPolicyOnlyCompare(loadedModelKey, s.model);
             const policyOnlyChange =
               nextUrl.length > 0 &&
               nextUrl === loadedUrl &&
+              stableModelLoadKey(s.model) === loadedModelKey &&
               gltfPristineTemplate != null;
             if (policyOnlyChange) {
               beginModelLoadFromTemplate(mk);

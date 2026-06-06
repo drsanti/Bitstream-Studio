@@ -1,8 +1,9 @@
+import type { HTMLAttributes } from "react";
 import { ReadingAxisNumber } from "./ReadingAxisNumber";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./socket-live-value-cell";
 import { twMerge } from "tailwind-merge";
 
-export type QuaternionScalarsGridProps = {
+export type QuaternionScalarsGridProps = HTMLAttributes<HTMLDivElement> & {
   w: number | null | undefined;
   x: number | null | undefined;
   y: number | null | undefined;
@@ -30,6 +31,8 @@ export function QuaternionScalarsGrid(props: QuaternionScalarsGridProps) {
     compact = false,
     align = "end",
     textAlign = "right",
+    className,
+    ...rest
   } = props;
   const compactJustify = align === "start" ? "justify-start" : "justify-end";
   const gridJustify = align === "start" ? "justify-items-start" : "justify-items-end";
@@ -42,9 +45,15 @@ export function QuaternionScalarsGrid(props: QuaternionScalarsGridProps) {
               SOCKET_LIVE_VALUE_TYPOGRAPHY,
               "flex max-w-full items-baseline gap-x-1",
               compactJustify,
+              className,
             )
-          : twMerge("grid w-max max-w-full grid-cols-4 items-baseline gap-x-2 text-[10px]", gridJustify)
+          : twMerge(
+              "grid w-max max-w-full grid-cols-4 items-baseline gap-x-2 text-[10px]",
+              gridJustify,
+              className,
+            )
       }
+      {...rest}
     >
       <ReadingAxisNumber
         axis="w"

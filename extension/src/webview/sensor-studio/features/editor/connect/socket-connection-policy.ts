@@ -292,9 +292,11 @@ export function validateStudioConnection(
 export function connectWithPolicy(
   connection: Connection,
   graph: StudioConnectionGraph,
+  options?: { excludeEdgeId?: string },
 ): { ok: true; edges: Edge[]; removedEdgeIds: string[] } | { ok: false; reason: ConnectionRejectReason } {
   const validation = validateStudioConnection(connection, graph, {
     allowIncomplete: false,
+    excludeEdgeId: options?.excludeEdgeId,
   });
   if (!validation.ok) {
     return validation;

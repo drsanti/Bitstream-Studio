@@ -64,11 +64,13 @@ Uses the same checks as legacy `canConnect`: studio pins, layout `layoutNodeAcce
 
 | Gesture | Behavior |
 | ------- | -------- |
-| Drag from **wired single input** | Existing incoming edge(s) to that socket are **removed** first (undo step), then the connection drag proceeds. |
+| Drag from **wired single input** | Incoming edge **stays visible** on the **source output** while dragging; replace runs on **successful connect** (undo step then). Cancel drag on empty canvas → wire unchanged. `FlowCanvas` must not clear the pending replace id in `onConnectEnd` before `onConnect` (event order). |
 | Drag from **multi input** | Wires are **not** popped on drag-start; new connects **add** another wire (replace list empty). |
-| Drag from **output** | Outgoing wires are **not** popped unless the socket is listed in `SINGLE_OUTPUT_SOCKETS` (none in v0.1). |
+| Drag from **output** | Outgoing wires are **popped** on drag-start when the socket is listed in `SINGLE_OUTPUT_SOCKETS` (none in v0.1). |
 
-Releasing on empty canvas after pop-without-reconnect still triggers **smart connect** when the drag started from a socket.
+Releasing on empty canvas after a cancelled input reconnect still triggers **smart connect** when the drag started from a socket.
+
+**Edge-end reconnect:** drag a wire endpoint (`onReconnect`) — use when moving only one end without pulling from the node handle.
 
 ---
 
@@ -77,7 +79,7 @@ Releasing on empty canvas after pop-without-reconnect still triggers **smart con
 ```ts
 validateStudioConnection(connection, graph, options?) → { ok: true } | { ok: false; reason }
 
-connectWithPolicy(connection, graph) → { ok: true; edges; removedEdgeIds } | { ok: false; reason }
+connectWithPolicy(connection, graph, options?) → { ok: true; edges; removedEdgeIds } | { ok: false; reason }
 
 edgesToPopOnConnectStart(nodeId, handleId, handleType, nodes, edges) → string[]
 ```

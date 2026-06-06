@@ -124,7 +124,54 @@ export function flowNodeDimensionChanges(
   ];
 }
 
-/** Shrink/grow RF node box to match measured shell after body show/hide. */
+/** Auto height only — width is user/profile controlled (`studio-node-chrome-layout.ts`). */
+export function syncFlowNodeHeightFit(
+  nodeId: string,
+  targetHeight: number,
+  onNodesChange: (changes: NodeChange[]) => void,
+  currentWidth: number,
+  currentHeight?: number,
+): void {
+  const height = Math.max(1, Math.round(targetHeight));
+  const width = Math.max(1, Math.round(currentWidth));
+  const curH =
+    currentHeight != null && Number.isFinite(currentHeight)
+      ? Math.round(currentHeight)
+      : undefined;
+  if (curH === height) {
+    return;
+  }
+  onNodesChange(flowNodeDimensionChanges(nodeId, width, height));
+}
+
+/**
+ * Fit RF node box to content (grow and shrink). Top-left position unchanged — dimensions only.
+ */
+export function syncFlowNodeContentFit(
+  nodeId: string,
+  targetWidth: number,
+  targetHeight: number,
+  onNodesChange: (changes: NodeChange[]) => void,
+  currentWidth?: number,
+  currentHeight?: number,
+): void {
+  const width = Math.max(1, Math.round(targetWidth));
+  const height = Math.max(1, Math.round(targetHeight));
+  const curW =
+    currentWidth != null && Number.isFinite(currentWidth)
+      ? Math.round(currentWidth)
+      : undefined;
+  const curH =
+    currentHeight != null && Number.isFinite(currentHeight)
+      ? Math.round(currentHeight)
+      : undefined;
+  if (curW === width && curH === height) {
+    return;
+  }
+  onNodesChange(flowNodeDimensionChanges(nodeId, width, height));
+}
+
+/** @deprecated Prefer {@link syncFlowNodeContentFit} for auto-sized nodes. */
 export function syncFlowNodeShellDimensions(
   nodeId: string,
   shellEl: HTMLElement,
@@ -134,20 +181,14 @@ export function syncFlowNodeShellDimensions(
   currentHeight: number | undefined,
   onNodesChange: (changes: NodeChange[]) => void,
 ): void {
-  const measuredWidth = Math.max(minWidth, Math.round(shellEl.offsetWidth));
-  const measuredHeight = Math.max(minHeight, Math.round(shellEl.offsetHeight));
-  const width =
-    currentWidth != null && Number.isFinite(currentWidth)
-      ? Math.max(measuredWidth, Math.round(currentWidth))
-      : measuredWidth;
-  const height =
-    currentHeight != null && Number.isFinite(currentHeight)
-      ? Math.max(measuredHeight, Math.round(currentHeight))
-      : measuredHeight;
-  if (currentWidth === width && currentHeight === height) {
-    return;
-  }
-  onNodesChange(flowNodeDimensionChanges(nodeId, width, height));
+  syncFlowNodeContentFit(
+    nodeId,
+    Math.max(minWidth, Math.round(shellEl.offsetWidth)),
+    Math.max(minHeight, Math.round(shellEl.offsetHeight)),
+    onNodesChange,
+    currentWidth,
+    currentHeight,
+  );
 }
 
 function flowNodeResizeChanges(
@@ -260,6 +301,13 @@ export function FlowNodeEdgeResize(props: FlowNodeEdgeResizeProps) {
         window.removeEventListener("pointermove", onPointerMove);
         window.removeEventListener("pointerup", onPointerUp);
         window.removeEventListener("pointercancel", onPointerUp);
+        const latest = useFlowEditorStore.getState().nodes.find((n) => n.id === nodeId);
+        if (latest != null) {
+          const w = readNodeLayoutRect(latest, shellRef.current).width;
+          useFlowEditorStore
+            .getState()
+            .persistStudioNodeCanvasWidthForActiveChrome(nodeId, w);
+        }
       };
 
       window.addEventListener("pointermove", onPointerMove);

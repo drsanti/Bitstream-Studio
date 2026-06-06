@@ -263,7 +263,10 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     });
     const connectDragRef = useRef<SmartConnectDragContext | null>(null);
     const connectSucceededRef = useRef(false);
-    const reconnectBatchedUndoRef = useRef(false);
+    /** Source-side pop-on-start uses batched undo; target-side defers pop until connect. */
+    const reconnectUndoModeRef = useRef<"none" | "batched" | "deferred">("none");
+    /** Wired single-input drag: keep edge until reconnect completes so source stays plugged. */
+    const pendingTargetInputReconnectRef = useRef<{ edgeId: string } | null>(null);
     /** Prevents the pane click that follows connect-end from instantly closing the add menu. */
     const suppressPaneDismissRef = useRef(false);
 
@@ -633,7 +636,10 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
 
     const isValidConnection = useCallback(
       (connection: Connection | Edge) => {
-        const edgeId = "id" in connection ? connection.id : undefined;
+        const edgeId =
+          "id" in connection
+            ? connection.id
+            : pendingTargetInputReconnectRef.current?.edgeId;
         return validateStudioConnection(
           connection,
           { nodes, edges, subgraphs },
@@ -664,9 +670,17 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           edges,
         );
         if (popIds.length > 0) {
-          useFlowEditorStore.getState().pushUndoSnapshot();
-          popEdgesForSocketReconnect(popIds, { recordUndo: false });
-          reconnectBatchedUndoRef.current = true;
+          if (handleType === "target") {
+            pendingTargetInputReconnectRef.current = { edgeId: popIds[0]! };
+            reconnectUndoModeRef.current = "deferred";
+          } else {
+            useFlowEditorStore.getState().pushUndoSnapshot();
+            popEdgesForSocketReconnect(popIds, { recordUndo: false });
+            reconnectUndoModeRef.current = "batched";
+          }
+        } else {
+          reconnectUndoModeRef.current = "none";
+          pendingTargetInputReconnectRef.current = null;
         }
         const node = nodes.find((n) => n.id === nodeId);
         if (node == null) {
@@ -714,6 +728,24 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         connectDragRef.current = null;
         setConnectingLineStroke(null);
 
+        const droppedOnPane =
+          connectionState.toNode == null && connectionState.toHandle == null;
+
+        // Target-side reconnect keeps the old edge until `onConnect` (excludeEdgeId).
+        // Do not clear pending here when the pointer is still over a handle — `onConnectEnd`
+        // can run before `onConnect`, which previously left the old wire and added a second edge.
+        if (!connectSucceededRef.current) {
+          if (reconnectUndoModeRef.current === "deferred") {
+            if (droppedOnPane) {
+              pendingTargetInputReconnectRef.current = null;
+              reconnectUndoModeRef.current = "none";
+            }
+          } else {
+            pendingTargetInputReconnectRef.current = null;
+            reconnectUndoModeRef.current = "none";
+          }
+        }
+
         const clientX =
           "clientX" in event ? event.clientX : event.changedTouches?.[0]?.clientX;
         const clientY =
@@ -741,6 +773,10 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             );
             if (!check.ok) {
               toastConnectionRejected(check.reason);
+              if (reconnectUndoModeRef.current === "deferred") {
+                pendingTargetInputReconnectRef.current = null;
+                reconnectUndoModeRef.current = "none";
+              }
             }
           }
           return;
@@ -782,9 +818,17 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         }
         setConnectingLineStroke(null);
         connectDragRef.current = null;
-        const skipUndo = reconnectBatchedUndoRef.current;
-        reconnectBatchedUndoRef.current = false;
-        onConnect(connection, { skipUndoSnapshot: skipUndo });
+        const undoMode = reconnectUndoModeRef.current;
+        reconnectUndoModeRef.current = "none";
+        const pendingEdgeId = pendingTargetInputReconnectRef.current?.edgeId;
+        pendingTargetInputReconnectRef.current = null;
+        if (undoMode === "deferred") {
+          useFlowEditorStore.getState().pushUndoSnapshot();
+        }
+        onConnect(connection, {
+          skipUndoSnapshot: undoMode === "batched" || undoMode === "deferred",
+          excludeEdgeId: pendingEdgeId,
+        });
       },
       [onConnect],
     );

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { fetchAndParseGltfFromUrl } from "./load-gltf-from-url.js";
 
 /**
  * Heuristic keywords for “addressable” rig / mechanism parts (aligned with node-animator’s
@@ -62,19 +62,12 @@ function objectPath(obj: THREE.Object3D): string {
   return segments.length > 0 ? segments.join("/") : obj.uuid;
 }
 
+/** Drop GPU geometry only — do not `material.dispose()` (revokes GLTF blob texture URLs). */
 function disposeLoadedScene(root: THREE.Object3D): void {
   root.traverse((o) => {
     const mesh = o as THREE.Mesh;
     if (mesh.isMesh === true) {
       mesh.geometry?.dispose();
-      const mats = mesh.material;
-      if (Array.isArray(mats)) {
-        for (const m of mats) {
-          m?.dispose?.();
-        }
-      } else {
-        mats?.dispose?.();
-      }
     }
   });
 }
@@ -109,8 +102,7 @@ export async function extractStudioGltfComponents(fetchUrl: string): Promise<Stu
     };
   }
 
-  const loader = new GLTFLoader();
-  const gltf = await loader.loadAsync(trimmed);
+  const gltf = await fetchAndParseGltfFromUrl(trimmed);
   const scene = gltf.scene;
   const animations = gltf.animations ?? [];
 

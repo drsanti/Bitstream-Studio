@@ -23,6 +23,8 @@ export type FlowKeyboardShortcutActions = {
   onExportFlow: () => void;
   onImportFlowPick: () => void;
   requestFitView: () => void;
+  resetSelectionStudioNodesToDefaults: () => void;
+  fitSelectionStudioNodesWidth: () => void;
   setTemplateId: (templateId: StudioDemoTemplateId) => void;
 };
 
@@ -58,6 +60,16 @@ export function handleFlowKeyboardShortcut(
     (key === "a" || key === "A")
   ) {
     ctx.flowCanvasGraphRef.current?.toggleAddNodeMenu();
+    return true;
+  }
+
+  if (event.shiftKey && !mod && !event.altKey && (key === "r" || key === "R")) {
+    ctx.resetSelectionStudioNodesToDefaults();
+    return true;
+  }
+
+  if (event.shiftKey && !mod && !event.altKey && (key === "w" || key === "W")) {
+    ctx.fitSelectionStudioNodesWidth();
     return true;
   }
 

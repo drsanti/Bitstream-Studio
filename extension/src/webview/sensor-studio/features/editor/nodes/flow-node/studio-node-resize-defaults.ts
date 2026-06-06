@@ -42,6 +42,11 @@ const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   compare: { minWidth: 180, minHeight: 96 },
   "logic-gate": { minWidth: 180, minHeight: 96 },
   multiplexer: { minWidth: 180, minHeight: 96 },
+  /** Multi-pin live sensor sources — aligned preview + label rows. */
+  "bmi270-input": { minWidth: 248, minHeight: 148 },
+  "bmm350-input": { minWidth: 220, minHeight: 120 },
+  "dps368-input": { minWidth: 220, minHeight: 120 },
+  "sht40-input": { minWidth: 220, minHeight: 120 },
 };
 
 export function resolveStudioNodeMinDimensionFloor(nodeId: string): StudioNodeMinDimensions {

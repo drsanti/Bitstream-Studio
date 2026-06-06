@@ -2,7 +2,6 @@ import type { StudioAssetDescriptor } from "../../../asset-browser/studio-asset.
 import {
   getStudioModelDescriptorById,
   persistedModelUrlFromStudioDescriptor,
-  resolveStudioModelGltfFetchUrl,
   STUDIO_MODEL_SELECT_CUSTOM,
 } from "../../../asset-browser/studio-model-scene-bindings";
 
@@ -44,11 +43,6 @@ export function applyStudioModelCatalogSelectToNodeConfig(
     return;
   }
   const persisted = persistedModelUrlFromStudioDescriptor(d);
-  const fetchUrl = resolveStudioModelGltfFetchUrl(
-    { url: persisted, studioAssetId: d.id },
-    descriptors,
-    "",
-  );
   onUpdateField("selectedStudioAssetId", d.id);
-  onUpdateField("selectedModelUrl", fetchUrl);
+  onUpdateField("selectedModelUrl", persisted);
 }

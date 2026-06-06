@@ -1,112 +1,90 @@
 import { useMemo } from "react";
+import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
-import { InspectorNodeLayoutSizeFields } from "./InspectorNodeLayoutSizeFields";
-import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { InspectorSection } from "./InspectorSection";
+import type { StudioNode } from "../../store/flow-editor.store";
 import {
-  readStudioFlowNodeLayoutSize,
-  resolveStudioNodeEffectiveMinDimensions,
-} from "../../nodes/flow-node/studio-node-layout-size";
-import {
-  isStudioSensorSocketPreviewNodeId,
-  type StudioNode,
-} from "../../store/flow-editor.store";
-import { studioNodeHasHideableBody } from "../../nodes/flow-node/socket-display";
+  isSocketValuesVisible,
+  isSocketsExpanded,
+  studioNodeHasHideableBody,
+  studioNodeSupportsSocketCollapse,
+} from "../../nodes/flow-node/socket-display";
 import { studioNodeAllowsBodyCollapse } from "../../nodes/flow-node/studio-body-collapse";
 
 export type NodeInspectorCanvasLayoutSectionProps = {
   selectedNode: StudioNode;
-  onResizableChange: (next: boolean) => void;
   onAllowBodyCollapseChange: (next: boolean) => void;
-  onLayoutDimensionsChange: (patch: { width?: number; height?: number }) => void;
 };
 
 export function NodeInspectorCanvasLayoutSection(
   props: NodeInspectorCanvasLayoutSectionProps,
 ) {
-  const {
-    selectedNode,
-    onResizableChange,
-    onAllowBodyCollapseChange,
-    onLayoutDimensionsChange,
-  } = props;
-  const resizable = selectedNode.data.ui?.resizable === true;
-  const autoHeightHint = isStudioSensorSocketPreviewNodeId(selectedNode.data.nodeId);
+  const { selectedNode, onAllowBodyCollapseChange } = props;
   const hasBodyPanel = studioNodeHasHideableBody(selectedNode.data);
   const allowBodyCollapse = studioNodeAllowsBodyCollapse(selectedNode.data);
 
-  const layout = useMemo(() => readStudioFlowNodeLayoutSize(selectedNode), [selectedNode]);
-  const effectiveMin = useMemo(
-    () =>
-      resolveStudioNodeEffectiveMinDimensions(
-        selectedNode.data.nodeId,
-        selectedNode.data.ui,
-      ),
-    [selectedNode.data.nodeId, selectedNode.data.ui],
+  const edges = useFlowEditorStore((s) => s.edges);
+  const setSocketValuesVisibleForNodes = useFlowEditorStore(
+    (s) => s.setSocketValuesVisibleForNodes,
   );
+  const setSocketsExpandedForNodes = useFlowEditorStore(
+    (s) => s.setSocketsExpandedForNodes,
+  );
+
+  const socketValuesVisible = isSocketValuesVisible(selectedNode.data.ui);
+  const socketsExpanded = isSocketsExpanded(selectedNode.data.ui);
+  const socketCollapseDisabled = !studioNodeSupportsSocketCollapse(
+    selectedNode,
+    edges,
+  );
+
+  const nodeIds = useMemo(() => [selectedNode.id], [selectedNode.id]);
+
   return (
     <InspectorSection
       title="Canvas"
       variant="compact"
       contentClassName="space-y-2 px-2 py-1.5"
-      hint={
-        autoHeightHint
-          ? "Height usually follows socket content until you resize vertically."
-          : undefined
-      }
+      hint="Width and height auto-fit when socket display or body visibility changes."
     >
-      <InspectorCompactToggleRow
-        label="Allow resize on canvas"
-        hint="Saved in this flow · drag edges when the node is selected."
-        checked={resizable}
-        onCheckedChange={onResizableChange}
-        ariaLabel="Allow resize on canvas"
-      />
-      {hasBodyPanel ? (
-        <InspectorCompactToggleRow
-          label="Allow collapsing node body"
-          hint="When enabled, hide the body with the selection toolbar Panel button or Shift+B."
-          checked={allowBodyCollapse}
-          onCheckedChange={onAllowBodyCollapseChange}
-          ariaLabel="Allow collapsing node body"
-        />
-      ) : null}
-
-      <div className="space-y-1.5 border-t border-zinc-800/60 pt-2">
+      <div className="space-y-2">
         <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-          Node size (px)
+          Socket display
         </div>
-        <InspectorNodeLayoutSizeFields
-          nodeId={selectedNode.id}
-          width={layout.width}
-          height={layout.height}
-          disabled={!resizable}
-          onCommit={onLayoutDimensionsChange}
+        <InspectorCompactToggleRow
+          label="Show socket live values"
+          hint="Live readouts beside each port (Shift+V on canvas selection)."
+          checked={socketValuesVisible}
+          onCheckedChange={(next) =>
+            setSocketValuesVisibleForNodes(nodeIds, next)
+          }
+          ariaLabel="Show socket live values"
         />
-        <div className="rounded-md border border-zinc-700/60 bg-zinc-900/40 px-2 py-1.5">
-          <div className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-zinc-500">
-            Minimum (edge resize)
-          </div>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1">
-            <InspectorPropertyRow
-              label="Min width"
-              description="Edge resize on canvas cannot go below this"
-            >
-              <span className="text-[11px] font-medium text-zinc-300">
-                {effectiveMin.minWidth}
-              </span>
-            </InspectorPropertyRow>
-            <InspectorPropertyRow
-              label="Min height"
-              description="Edge resize on canvas cannot go below this"
-            >
-              <span className="text-[11px] font-medium text-zinc-300">
-                {effectiveMin.minHeight}
-              </span>
-            </InspectorPropertyRow>
-          </div>
-        </div>
+        <InspectorCompactToggleRow
+          label="Show unwired sockets"
+          hint={
+            socketCollapseDisabled
+              ? "This node has only one socket or every socket is wired — nothing to collapse."
+              : "When off, only wired socket rows stay visible (Shift+H on canvas selection)."
+          }
+          checked={socketsExpanded}
+          disabled={socketCollapseDisabled}
+          onCheckedChange={(next) => setSocketsExpandedForNodes(nodeIds, next)}
+          ariaLabel="Show unwired sockets"
+        />
       </div>
+
+      {hasBodyPanel ? (
+        <div className="space-y-2 border-t border-zinc-800/60 pt-2">
+          <InspectorCompactToggleRow
+            label="Allow collapsing node body"
+            hint="When enabled, hide the body with the selection toolbar Panel button or Shift+B."
+            checked={allowBodyCollapse}
+            onCheckedChange={onAllowBodyCollapseChange}
+            ariaLabel="Allow collapsing node body"
+          />
+        </div>
+      ) : null}
     </InspectorSection>
   );
 }

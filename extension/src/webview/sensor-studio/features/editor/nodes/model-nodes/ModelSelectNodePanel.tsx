@@ -6,7 +6,6 @@ import { useStudioAssetDescriptors } from "../../../asset-browser/useStudioAsset
 import {
   getStudioModelDescriptorById,
   persistedModelUrlFromStudioDescriptor,
-  resolveStudioModelGltfFetchUrl,
   STUDIO_MODEL_SELECT_CUSTOM,
 } from "../../../asset-browser/studio-model-scene-bindings";
 import {
@@ -96,18 +95,13 @@ export function ModelSelectNodePanel(props: ModelSelectNodePanelProps) {
       return;
     }
     const persisted = persistedModelUrlFromStudioDescriptor(d);
-    const fetchUrl = resolveStudioModelGltfFetchUrl(
-      { url: persisted, studioAssetId: d.id },
-      descriptors,
-      "",
-    );
-    const key = `${assetId}\u0000${fetchUrl}`;
+    const key = `${assetId}\u0000${persisted}`;
     if (key === lastSyncedKeyRef.current) {
       return;
     }
-    if (fetchUrl.length > 0 && fetchUrl !== storedFetchUrl) {
+    if (persisted.length > 0 && persisted !== storedFetchUrl) {
       lastSyncedKeyRef.current = key;
-      updateField(nodeId, "selectedModelUrl", fetchUrl);
+      updateField(nodeId, "selectedModelUrl", persisted);
     }
   }, [assetId, descriptors, nodeId, storedFetchUrl, updateField]);
 

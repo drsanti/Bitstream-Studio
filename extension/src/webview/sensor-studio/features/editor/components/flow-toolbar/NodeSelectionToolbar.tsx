@@ -15,12 +15,7 @@ import { isStudioFrameNode } from "../../layout/frame-flow-nodes";
 import { isStudioNodeGroupNode } from "../../subgraphs/studio-subgraph.types";
 import {
   getBodyControlsVisibleUIState,
-  getSocketValuesVisibleUIState,
-  getSocketsExpandedUIState,
   selectionAllowsBodyCollapse,
-  selectionHasHideableBody,
-  selectionSupportsSocketCollapse,
-  selectionSupportsSocketToolbar,
 } from "../../nodes/flow-node/socket-display";
 import {
   FLOW_TOOLBAR_DIVIDER_CLASS,
@@ -28,7 +23,7 @@ import {
   flowToolbarBtnClass,
   flowToolbarDangerBtnClass,
 } from "./flow-toolbar-tokens";
-import { BodyControlsToggle, SocketDisplayToggle, SocketValuesToggle } from "./FlowToolbarToggles";
+import { BodyControlsToggle } from "./FlowToolbarToggles";
 
 const TOOLBAR_GAP_PX = 10;
 const DRAG_FLIP_THRESHOLD_PX = 2;
@@ -77,7 +72,6 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
 }) {
   const { wrapperRef, onFitSelection } = props;
   const nodes = useFlowEditorStore((s) => s.nodes);
-  const edges = useFlowEditorStore((s) => s.edges);
   const selectedNodeId = useFlowEditorStore((s) => s.selectedNodeId);
   const selectedNodeIdsFromStore = useFlowEditorStore((s) => s.selectedNodeIds);
   const duplicateSelection = useFlowEditorStore((s) => s.duplicateSelection);
@@ -88,10 +82,6 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   const ungroupSelection = useFlowEditorStore((s) => s.ungroupSelection);
   const duplicateGroupLinked = useFlowEditorStore((s) => s.duplicateGroupLinked);
   const duplicateGroupDeepCopy = useFlowEditorStore((s) => s.duplicateGroupDeepCopy);
-  const toggleSocketsExpandedForNodes = useFlowEditorStore((s) => s.toggleSocketsExpandedForNodes);
-  const toggleSocketValuesVisibleForNodes = useFlowEditorStore(
-    (s) => s.toggleSocketValuesVisibleForNodes,
-  );
   const toggleBodyControlsVisibleForNodes = useFlowEditorStore(
     (s) => s.toggleBodyControlsVisibleForNodes,
   );
@@ -164,7 +154,6 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       }),
     [selectedIds, nodes],
   );
-  const showSocketControls = studioSelectedIds.length > 0;
   const showBodyControls = studioSelectedIds.length > 0;
   const bodyControlsToggleDisabled = useMemo(() => {
     if (studioSelectedIds.length === 0) {
@@ -173,27 +162,10 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     return !selectionAllowsBodyCollapse(nodes, studioSelectedIds);
   }, [nodes, studioSelectedIds]);
 
-  const socketsExpanded = useMemo(
-    () => getSocketsExpandedUIState(nodes, studioSelectedIds),
-    [nodes, studioSelectedIds],
-  );
-  const socketValuesVisible = useMemo(
-    () => getSocketValuesVisibleUIState(nodes, studioSelectedIds),
-    [nodes, studioSelectedIds],
-  );
   const bodyControlsVisible = useMemo(
     () => getBodyControlsVisibleUIState(nodes, studioSelectedIds),
     [nodes, studioSelectedIds],
   );
-
-  const socketDisplayToggleDisabled = useMemo(() => {
-    if (studioSelectedIds.length === 0) {
-      return true;
-    }
-    // Disable when collapsing/expanding would be a no-op for the entire selection
-    // (e.g. all selected nodes have only one socket, or all sockets are wired already).
-    return !selectionSupportsSocketCollapse(nodes, edges, studioSelectedIds);
-  }, [nodes, edges, studioSelectedIds]);
 
   const isDraggingSelection = useMemo(
     () => selectedNodes.some((n) => (n as FlowGraphNode & { dragging?: boolean }).dragging),
@@ -330,38 +302,6 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       {countLabel != null ? (
         <>
           <span className="px-2 text-[10px] font-semibold text-zinc-400">{countLabel}</span>
-          <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
-        </>
-      ) : null}
-      {showSocketControls ? (
-        <>
-          <SocketValuesToggle
-            pressed={socketValuesVisible}
-            onToggle={() => toggleSocketValuesVisibleForNodes(studioSelectedIds)}
-            title={
-              socketValuesVisible
-                ? "Hide socket values on selection (Shift+V)"
-                : "Show socket values on selection (Shift+V)"
-            }
-            ariaLabel={
-              socketValuesVisible ? "Hide socket values on selection" : "Show socket values on selection"
-            }
-          />
-          <SocketDisplayToggle
-            pressed={socketsExpanded}
-            onToggle={() => toggleSocketsExpandedForNodes(studioSelectedIds)}
-            disabled={socketDisplayToggleDisabled}
-            title={
-              socketDisplayToggleDisabled
-                ? "No unused sockets to collapse"
-                : socketsExpanded
-                  ? "Collapse unwired sockets on selection (Shift+H)"
-                  : "Expand all sockets on selection (Shift+H)"
-            }
-            ariaLabel={
-              socketsExpanded ? "Collapse sockets on selection" : "Expand sockets on selection"
-            }
-          />
           <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}

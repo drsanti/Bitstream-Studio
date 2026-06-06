@@ -100,6 +100,27 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       ),
     [nodes, edges, defaultConfig, nodeId],
   );
+
+  const linkedStudioAssetId = useMemo((): string | undefined => {
+    const scopeId = resolveStudioModelScopeNodeId({
+      nodes,
+      edges,
+      defaultConfig,
+      flowNodeId: nodeId,
+      catalogNodeId: "model-viewer",
+    });
+    if (scopeId == null || scopeId.trim().length === 0) {
+      return undefined;
+    }
+    const src = nodes.find((n) => n.id === scopeId);
+    if (src?.data.nodeId !== "model-select") {
+      return undefined;
+    }
+    const dc = src.data.defaultConfig as Record<string, unknown>;
+    const sid =
+      typeof dc.selectedStudioAssetId === "string" ? dc.selectedStudioAssetId.trim() : "";
+    return sid.length > 0 ? sid : undefined;
+  }, [nodes, edges, defaultConfig, nodeId]);
   const fallbackRaw = defaultConfig.fallbackModelUrl;
   const fallback =
     typeof fallbackRaw === "string" && fallbackRaw.trim().length > 0 ? fallbackRaw.trim() : "";
@@ -128,6 +149,7 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       model: {
         ...base.model,
         url: logicalModelUrl,
+        studioAssetId: linkedStudioAssetId,
       },
     };
     const withEnv = mergeFlowWireEnvironmentIntoScene3d(withModel, liveEnvironmentWire ?? null);
@@ -146,6 +168,7 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
   }, [
     defaultConfig.scene3d,
     logicalModelUrl,
+    linkedStudioAssetId,
     liveEnvironmentWire,
     liveCameraWire,
     liveTransformWire,

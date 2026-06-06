@@ -330,7 +330,7 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 ## Flow node cards
 
 - Shared chrome: **`FlowNodeShell`**, **`FlowNodeHeader`**, **`FlowNodeBody`**, socket rows under `nodes/flow-node/`.
-- **`FlowNodeHeader`** is one flex row: **left cluster** (`data-flow-node-header-leading`) = prefix icon + title (`w-max` title, no `flex-1` on title — avoids resizable width feedback loops); **right cluster** (`data-flow-node-header-trailing`) = badges/toggles. Drag handle class **`studio-node-drag-handle`** on the header root.
+- **`FlowNodeHeader`** — one row, **two columns**: **col 1** (`data-flow-node-header-leading`, left) = prefix icon + title; **col 2** (`data-flow-node-header-trailing`, right) = status/mode badges. Drag handle class **`studio-node-drag-handle`** on the header root. Width probe: **`measureFlowNodeHeaderIntrinsicWidth`** sums both columns off-DOM + padding.
 - **Prefix icon:** **`FlowNodeHeaderIcon`** for every catalog node (same Lucide slug as palette). Do not add per-node icon switches in **`StudioNodeCard`**.
 - **No header chevrons** on **Environment** / **Camera View** — card body panels are always shown; use inspector or **Hide body** toolbar when collapsing utility panels.
 - **Category accent** tints the **header** only — port/wire colors come from **`portType`**, not category.
@@ -339,12 +339,19 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 
 ### Flow node resize (min width / min height)
 
-All studio nodes default to **`ui.resizable: true`**. Edge resize clamps to **`effectiveMinNodeWidth`** / **`effectiveMinNodeHeight`** computed in **`StudioNodeCard`** (header + sockets + body measurement, floored by **`studio-node-resize-defaults.ts`**).
+All studio nodes default to **`ui.resizable: false`**. **Height** auto-fits via **`syncFlowNodeHeightFit`** in **`StudioNodeCard`**. **Width** auto-fits when the **display mode** changes (live values, unwired sockets, body visibility) via **`syncStudioNodeWidthFromContentMeasure`**. Manual edge drag requires **`ui.resizable: true`** in flow JSON (no inspector toggle); toggling display mode re-measures width again.
 
 | Rule | Detail |
 | ---- | ------ |
 | **Catalog floor** | Set per-`nodeId` in **`resolveStudioNodeMinDimensionFloor`** — baseline before live measure |
-| **Live measure** | **`ResizeObserver`** on header, sockets, body wrapper — updates effective min when content changes |
+| **Live measure** | **`ResizeObserver`** on header, sockets, body — updates **`ui.contentMinWidth`** / **`contentMinHeight`**; non-resizable nodes re-sync width whenever **`fitW`** changes |
+| **Display mode key** | **`resolveStudioNodeChromeLayoutKey`** — combines live values, socket expand, body visibility (used to trigger width refit, not per-mode saved width) |
+| **Header width** | **`measureFlowNodeHeaderIntrinsicWidth`** — off-DOM sum of icon + untruncated title + trailing chips + padding; **`max(header, sockets, body)`** sets node width |
+| **Auto width apply** | Non-resizable nodes: sync whenever **`fitW !== currentW`**; resizable nodes: grow on mode change / unset width only |
+| **Header chrome churn** | **`headerChromeKey`** remeasure on label/health/invalid/family/compare/body changes; **`MutationObserver`** on **`data-flow-node-header-measure`** for badge DOM add/remove |
+| **Fit width** | **Shift+W** on canvas selection — manual re-measure (undoable) |
+| **Socket display** | Inspector → **Canvas** — live values + unwired socket toggles |
+| **Reset to defaults** | **Shift+R** on canvas selection — restores factory display and re-fits from content (undoable) |
 | **Body overflow** | **`FlowNodeBody`**, body measure wrapper, and card panels use **`min-w-0 max-w-full overflow-hidden`** — content must not paint outside the shell when narrowed |
 | **TRNSelect on cards** | **`FLOW_NODE_TRN_SELECT_CLASS`** (`w-full min-w-0 max-w-full`) — **never** `min-w-40` / `min-w-48` on flow node selects |
 | **Intrinsic width marker** | **`FlowNodeIntrinsicWidthMarker`** + widest option/selected labels — off-DOM probe via **`data-flow-node-intrinsic-width`** (avoids `w-full` scrollWidth feedback loops) |
@@ -354,14 +361,9 @@ All studio nodes default to **`ui.resizable: true`**. Edge resize clamps to **`e
 
 **New node with dropdown / long labels:** add **`FlowNodeIntrinsicWidthMarker`**, **`FLOW_NODE_TRN_SELECT_CLASS`**, and a catalog row in **`studio-node-resize-defaults.ts`**.
 
-### Inspector → Canvas → Node size
+### Canvas size (auto-fit; no inspector size fields)
 
-| Field | Editable | Source |
-| ----- | -------- | ------ |
-| **Width / Height** | Yes when **Allow resize** is on | RF `node.width` / `node.height`; inspector commits may go **below** content min (may clip); only hard floor **1 px** |
-| **Min width / Min height** | Read-only | **Edge resize** clamp — **`resolveStudioNodeEffectiveMinDimensions`** (catalog + live **`ui.contentMin*`** from **`StudioNodeCard`**) |
-
-**Width / height control chrome:** **`InspectorNodeLayoutSizeFields`** — two **`TRNVector3Field`**-style cells in a `grid-cols-2` row: **`[W]`** violet badge + **`TRNScrubNumberInput`** + per-axis lock; **`[H]`** amber badge + scrub + lock. Locks are inspector-session only (reset on node change). Do not use labeled **`InspectorNumericScrubRow`** for canvas box size.
+Width and height are derived from content measure — **Inspector → Canvas** exposes **socket display** toggles only. **`Shift+W`** / **`Shift+R`** on canvas selection remain for manual re-measure and factory reset. Edge resize uses **`resolveStudioNodeEffectiveMinDimensions`** (catalog + live **`ui.contentMin*`** from **`StudioNodeCard`**) when **`ui.resizable: true`**.
 
 Homogeneous multi-select applies width/height commits to every selected node of the same catalog type.
 
@@ -442,7 +444,7 @@ Future **Oscilloscope** node (backlog): independent acquisition rate, ms/div tim
 ### Resizable panel nodes (plotter, model-viewer, …)
 
 - Set explicit **`data.ui.minWidth` / `minHeight`** in **`attachConfigErrors`** when the default body needs a floor.
-- **Canvas resize:** TRNWindow-style edge/corner drag via **`FlowNodeEdgeResize`** when **`data.ui.resizable === true`** and the node is selected. Operator enables per node on Inspector → **Node → Allow resize on canvas**. Default **off**; **plotter** and **model-viewer** default **on** at create/hydrate.
+- **Canvas resize:** TRNWindow-style edge/corner drag via **`FlowNodeEdgeResize`** when **`data.ui.resizable === true`** and the node is selected. Operator enables per node on Inspector → **Canvas → Allow resize on canvas**. Default **off** (auto content-fit).
 - **Wrap-content** nodes (live sensor cards): height **`auto`** via **`utilityBodyFitsContent`**; vertical resize sets an explicit flow height.
 
 ## Flow graph execution (dataflow)

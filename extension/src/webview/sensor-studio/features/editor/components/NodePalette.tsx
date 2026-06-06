@@ -1,6 +1,8 @@
 import { BookOpen, Boxes, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../../core/config/config-types";
+import { resolveStudioModelGltfFetchUrl } from "../../asset-browser/studio-model-scene-bindings";
+import { useStudioAssetDescriptors } from "../../asset-browser/useStudioAssetDescriptors";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { resolveSingleModelSelectParentId, readGlbExtractTag, readSourceModelNodeId } from "../model/model-generated-bindings";
 import { studioGlbExtractRowKey } from "../gltf/studio-gltf-extract";
@@ -159,6 +161,7 @@ export function NodePalette(props: NodePaletteProps) {
   const paletteLayout: NodePaletteLayoutMode = "sectioned";
 
   const nodeGroupLibrary = useFlowEditorStore((s) => s.nodeGroupLibrary);
+  const { descriptors } = useStudioAssetDescriptors();
   const parentModelFlowNodeId = useFlowEditorStore((s) => resolveSingleModelSelectParentId(s));
   const modelNodes = useFlowEditorStore((s) => s.nodes);
   const glbFetchUrl = useMemo(() => {
@@ -169,9 +172,23 @@ export function NodePalette(props: NodePaletteProps) {
     if (n?.data.nodeId !== "model-select") {
       return null;
     }
-    const u = n.data.defaultConfig["selectedModelUrl"];
-    return typeof u === "string" && u.trim().length > 0 ? u.trim() : null;
-  }, [parentModelFlowNodeId, modelNodes]);
+    const dc = n.data.defaultConfig as Record<string, unknown>;
+    const logical =
+      typeof dc.selectedModelUrl === "string" ? dc.selectedModelUrl.trim() : "";
+    if (logical.length === 0) {
+      return null;
+    }
+    const studioAssetId =
+      typeof dc.selectedStudioAssetId === "string"
+        ? dc.selectedStudioAssetId.trim()
+        : undefined;
+    const fetchUrl = resolveStudioModelGltfFetchUrl(
+      { url: logical, studioAssetId },
+      descriptors,
+      "",
+    );
+    return fetchUrl.length > 0 ? fetchUrl : null;
+  }, [parentModelFlowNodeId, modelNodes, descriptors]);
 
   const filteredGroupLibraryCount = useMemo(() => {
     const q = query.trim().toLowerCase();

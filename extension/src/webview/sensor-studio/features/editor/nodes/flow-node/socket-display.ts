@@ -7,6 +7,77 @@ import { studioNodeAllowsBodyCollapse } from "./studio-body-collapse";
 
 export type StudioNodeUiFlags = NonNullable<StudioNodeData["ui"]>;
 
+/** `true` when collapsing sockets would hide at least one unwired row on this node. */
+export function studioNodeSupportsSocketCollapse(
+  node: FlowGraphNode,
+  edges: readonly Edge[],
+): boolean {
+  return nodeHasCollapsibleSockets(node, edges);
+}
+
+function patchStudioNodeUiBooleanFlag(
+  ui: StudioNodeUiFlags | undefined,
+  key: "socketsExpanded" | "socketValuesVisible" | "bodyControlsVisible",
+  enabled: boolean,
+): StudioNodeUiFlags | undefined {
+  if (enabled) {
+    if (ui == null || ui[key] === undefined) {
+      return ui;
+    }
+    const next = { ...ui };
+    delete next[key];
+    return Object.keys(next).length > 0 ? next : undefined;
+  }
+  if (ui?.[key] === false) {
+    return ui;
+  }
+  return { ...ui, [key]: false };
+}
+
+/** Apply explicit body panel visibility (factory default = shown / key omitted). */
+export function patchStudioNodeUiBodyControlsVisible(
+  ui: StudioNodeUiFlags | undefined,
+  visible: boolean,
+): StudioNodeUiFlags | undefined {
+  return patchStudioNodeUiBooleanFlag(ui, "bodyControlsVisible", visible);
+}
+
+/** Apply explicit socket / live-value visibility (factory default = enabled / key omitted). */
+export function patchStudioNodeUiSocketDisplay(
+  ui: StudioNodeUiFlags | undefined,
+  patch: {
+    socketsExpanded?: boolean;
+    socketValuesVisible?: boolean;
+  },
+): StudioNodeUiFlags | undefined {
+  let next = ui;
+  if (patch.socketValuesVisible !== undefined) {
+    next = patchStudioNodeUiBooleanFlag(next, "socketValuesVisible", patch.socketValuesVisible);
+  }
+  if (patch.socketsExpanded !== undefined) {
+    next = patchStudioNodeUiBooleanFlag(next, "socketsExpanded", patch.socketsExpanded);
+  }
+  return next;
+}
+
+/** Drop canvas chrome overrides so unset flags resolve to factory defaults (see helpers below). */
+export function studioNodeUiWithoutDisplayOverrides(
+  ui: StudioNodeUiFlags | undefined,
+): StudioNodeUiFlags | undefined {
+  if (ui == null) {
+    return undefined;
+  }
+  const {
+    socketsExpanded: _socketsExpanded,
+    socketValuesVisible: _socketValuesVisible,
+    bodyControlsVisible: _bodyControlsVisible,
+    resizable: _resizable,
+    layoutWidthByChrome: _layoutWidthByChrome,
+    ...rest
+  } = ui;
+  return Object.keys(rest).length > 0 ? rest : undefined;
+}
+
 /** `true` or unset = expanded; `false` = hide unwired socket rows. */
 export function isSocketsExpanded(ui: StudioNodeUiFlags | undefined): boolean {
   return ui?.socketsExpanded !== false;

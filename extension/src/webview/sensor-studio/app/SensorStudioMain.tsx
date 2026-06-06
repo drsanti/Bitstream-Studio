@@ -31,7 +31,6 @@ import type { StudioAssetDragPayloadV1 } from "../features/asset-browser/studio-
 import {
   getStudioModelDescriptorById,
   persistedModelUrlFromStudioDescriptor,
-  resolveStudioModelGltfFetchUrl,
 } from "../features/asset-browser/studio-model-scene-bindings";
 import { useStudioAssetDescriptors } from "../features/asset-browser/useStudioAssetDescriptors";
 import {
@@ -132,6 +131,10 @@ function sortNodesByFlowPositionProximity(
 export function SensorStudioMain() {
   const persistedBootstrapRef = useRef(readPersistedFlowDocument());
   const { descriptors } = useStudioAssetDescriptors();
+  const setStudioAssetDescriptors = useFlowEditorStore((s) => s.setStudioAssetDescriptors);
+  useEffect(() => {
+    setStudioAssetDescriptors(descriptors);
+  }, [descriptors, setStudioAssetDescriptors]);
   const [bootViewport] = useState<StudioPersistedViewport | null>(() => {
     const raw = persistedBootstrapRef.current;
     const v = raw?.viewport;
@@ -159,12 +162,8 @@ export function SensorStudioMain() {
   const onClearCanvas = useFlowEditorStore((s) => s.resetCanvas);
   const onRunTemplate = useFlowEditorStore((s) => s.runDemoTemplate);
   const onUpdateLabel = useFlowEditorStore((s) => s.updateSelectedNodeLabel);
-  const onUpdateNodeUiResizable = useFlowEditorStore((s) => s.updateSelectedNodeUiResizable);
   const onUpdateNodeUiAllowBodyCollapse = useFlowEditorStore(
     (s) => s.updateSelectedNodeUiAllowBodyCollapse,
-  );
-  const onUpdateStudioNodeLayoutDimensions = useFlowEditorStore(
-    (s) => s.updateSelectedStudioNodeLayoutDimensions,
   );
   const onUpdateConfigField = useFlowEditorStore((s) => s.updateSelectedNodeConfigField);
   const onUpdateConfigJson = useFlowEditorStore((s) => s.updateSelectedNodeConfigFromJson);
@@ -565,11 +564,6 @@ export function SensorStudioMain() {
         return;
       }
       const persisted = persistedModelUrlFromStudioDescriptor(d);
-      const fetchUrl = resolveStudioModelGltfFetchUrl(
-        { url: persisted, studioAssetId: d.id },
-        descriptors,
-        "",
-      );
       const st = useFlowEditorStore.getState();
       const allEmptyViewers = findModelViewersWithEmptyModelInput(st.nodes, st.edges);
       const selectedEmpty = allEmptyViewers.filter((v) => st.selectedNodeIds.includes(v.id));
@@ -593,7 +587,7 @@ export function SensorStudioMain() {
         flowNodeLabel: payload.label,
         mergeDefaultConfig: {
           selectedStudioAssetId: d.id,
-          selectedModelUrl: fetchUrl,
+          selectedModelUrl: persisted,
         },
       });
 
@@ -731,6 +725,30 @@ export function SensorStudioMain() {
     toggleBodyControlsVisibleForNodes(studioIds);
   }, [selectedStudioNodeIdsForToggle, toggleBodyControlsVisibleForNodes]);
 
+  const resetStudioNodesToDefaults = useFlowEditorStore(
+    (s) => s.resetStudioNodesToDefaults,
+  );
+
+  const resetSelectionStudioNodesToDefaults = useCallback(() => {
+    const studioIds = selectedStudioNodeIdsForToggle();
+    if (studioIds.length === 0) {
+      return;
+    }
+    resetStudioNodesToDefaults(studioIds);
+  }, [resetStudioNodesToDefaults, selectedStudioNodeIdsForToggle]);
+
+  const fitStudioNodesWidthToContent = useFlowEditorStore(
+    (s) => s.fitStudioNodesWidthToContent,
+  );
+
+  const fitSelectionStudioNodesWidth = useCallback(() => {
+    const studioIds = selectedStudioNodeIdsForToggle();
+    if (studioIds.length === 0) {
+      return;
+    }
+    fitStudioNodesWidthToContent(studioIds);
+  }, [fitStudioNodesWidthToContent, selectedStudioNodeIdsForToggle]);
+
   const onDuplicateFlowSelection = useCallback(() => {
     duplicateSelection();
   }, [duplicateSelection]);
@@ -843,6 +861,8 @@ export function SensorStudioMain() {
       toggleSelectionSocketsExpanded,
       toggleSelectionSocketValuesVisible,
       toggleSelectionBodyControlsVisible,
+      resetSelectionStudioNodesToDefaults,
+      fitSelectionStudioNodesWidth,
       setTemplateId,
     }),
     [
@@ -867,6 +887,8 @@ export function SensorStudioMain() {
       toggleSelectionSocketsExpanded,
       toggleSelectionSocketValuesVisible,
       toggleSelectionBodyControlsVisible,
+      resetSelectionStudioNodesToDefaults,
+      fitSelectionStudioNodesWidth,
     ],
   );
 
@@ -971,9 +993,7 @@ export function SensorStudioMain() {
         onConnect={onConnect}
         onSelectionChange={onSelectionChange}
         onUpdateLabel={onUpdateLabel}
-        onUpdateNodeUiResizable={onUpdateNodeUiResizable}
         onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
-        onUpdateStudioNodeLayoutDimensions={onUpdateStudioNodeLayoutDimensions}
         onUpdateConfigField={onUpdateConfigField}
         onUpdateConfigJson={onUpdateConfigJson}
         templateId={templateId}

@@ -133,6 +133,60 @@ describe("socket-connection-policy", () => {
     assert.equal(result.edges.length, 2);
   });
 
+  it("replaces prior wire when excludeEdgeId defers pop until connect (model-viewer in)", () => {
+    const nodes: FlowGraphNode[] = [
+      {
+        id: "model",
+        type: "studio",
+        position: { x: 0, y: 0 },
+        data: {
+          nodeId: "model-select",
+          label: "Studio Model",
+          category: "utility",
+          defaultConfig: {},
+          outputHandles: [{ id: "out", portType: "string", label: "Model" }],
+        },
+      },
+      {
+        id: "viewer",
+        type: "studio",
+        position: { x: 300, y: 0 },
+        data: {
+          nodeId: "model-viewer",
+          label: "Model Viewer",
+          category: "output",
+          defaultConfig: {},
+          inputHandles: [{ id: "in", portType: "string", label: "Model" }],
+        },
+      },
+    ];
+    const edges: Edge[] = [
+      {
+        id: "old-wire",
+        source: "model",
+        target: "viewer",
+        sourceHandle: "out",
+        targetHandle: "in",
+      },
+    ];
+    const result = connectWithPolicy(
+      {
+        source: "model",
+        target: "viewer",
+        sourceHandle: "out",
+        targetHandle: "in",
+      },
+      { nodes, edges, subgraphs: {} },
+      { excludeEdgeId: "old-wire" },
+    );
+    assert.equal(result.ok, true);
+    if (!result.ok) {
+      return;
+    }
+    assert.deepEqual(result.removedEdgeIds, ["old-wire"]);
+    assert.equal(result.edges.length, 1);
+  });
+
   it("lists incoming edges to replace for single-input sockets", () => {
     const nodes = [mathNode("math")];
     const edges: Edge[] = [

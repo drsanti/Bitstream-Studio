@@ -177,6 +177,7 @@ import {
   computeMathInputHandles,
   MATH_OUTPUT_HANDLE,
 } from "../../../core/flow/math-node-inputs";
+import type { StudioAssetDescriptor } from "../../asset-browser/studio-asset.types";
 import { resolveSingleClipAutoBindPatchesForGlbAnimNodes } from "../gltf/glb-anim-clip-auto-bind";
 import {
   buildFlowClipboardPayload,
@@ -349,14 +350,31 @@ import {
   nextBodyControlsVisibleForBatch,
   nextSocketValuesVisibleForBatch,
   nextSocketsExpandedForBatch,
+  patchStudioNodeUiBodyControlsVisible,
+  patchStudioNodeUiSocketDisplay,
+  studioNodeHasHideableBody,
+  studioNodeUiWithoutDisplayOverrides,
 } from "../nodes/flow-node/socket-display";
+import {
+  clearStudioNodeChromeLayoutWidths,
+  copyChromeLayoutWidthToAllKeys,
+  migrateStudioNodeChromeLayoutWidth,
+  patchStudioNodeChromeLayoutWidth,
+  resolveFitWidthFromContentMeasure,
+  resolveStudioNodeChromeLayoutKey,
+  studioNodeChromeLayoutKeysForData,
+  type StudioNodeChromeLayoutKey,
+} from "../nodes/flow-node/studio-node-chrome-layout";
 import { studioNodeDefaultAllowBodyCollapse } from "../nodes/flow-node/studio-body-collapse";
 import { flowNodeDimensionChanges } from "../nodes/flow-node/FlowNodeEdgeResize";
 import {
   clampStudioFlowNodeLayoutDimension,
   readStudioFlowNodeLayoutSize,
 } from "../nodes/flow-node/studio-node-layout-size";
-import { applyStudioNodeMinDimensionsToUi } from "../nodes/flow-node/studio-node-resize-defaults";
+import {
+  applyStudioNodeMinDimensionsToUi,
+  resolveStudioNodeMinDimensionFloor,
+} from "../nodes/flow-node/studio-node-resize-defaults";
 import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
 import {
@@ -554,6 +572,8 @@ export type StudioNodeData = {
     /** Live content-driven minimum from canvas measure (see `StudioNodeCard`). */
     contentMinWidth?: number;
     contentMinHeight?: number;
+    /** Persisted RF width per socket/body chrome profile (`studio-node-chrome-layout.ts`). */
+    layoutWidthByChrome?: Partial<Record<StudioNodeChromeLayoutKey, number>>;
   };
   inputType?: StudioPortType;
   /** Single-output nodes (legacy); omit when `outputHandles` is set. */
@@ -889,6 +909,9 @@ type FlowEditorState = {
   ungroupNodeGroup: (hostNodeId: string) => void;
   duplicateGroupLinked: (hostNodeId: string) => void;
   duplicateGroupDeepCopy: (hostNodeId: string) => void;
+  /** Synced from {@link useStudioAssetDescriptors} for GLB fetch resolution in store-side helpers. */
+  studioAssetDescriptors: readonly StudioAssetDescriptor[];
+  setStudioAssetDescriptors: (descriptors: readonly StudioAssetDescriptor[]) => void;
   nodeGroupLibrary: StudioNodeAssetFile[];
   remoteNodeGraphAssets: Record<string, StudioNodeAssetFile>;
   registerRemoteNodeGraphAsset: (asset: StudioNodeAssetFile) => void;
@@ -912,7 +935,7 @@ type FlowEditorState = {
   onEdgesChange: (changes: Parameters<typeof applyEdgeChanges<Edge>>[0]) => void;
   onConnect: (
     connection: Connection,
-    options?: { skipUndoSnapshot?: boolean },
+    options?: { skipUndoSnapshot?: boolean; excludeEdgeId?: string },
   ) => void;
   /** Drag an existing wire end to another socket (React Flow `onReconnect`). */
   onReconnect: (
@@ -952,7 +975,29 @@ type FlowEditorState = {
   detachSelectionFromFrame: () => boolean;
   toggleSocketsExpandedForNodes: (nodeIds: string[]) => void;
   toggleSocketValuesVisibleForNodes: (nodeIds: string[]) => void;
+  setSocketsExpandedForNodes: (nodeIds: string[], expanded: boolean) => void;
+  setSocketValuesVisibleForNodes: (nodeIds: string[], visible: boolean) => void;
+  setStudioNodeChromeLayoutWidth: (
+    nodeIds: string[],
+    chromeKey: StudioNodeChromeLayoutKey,
+    widthPx: number,
+  ) => void;
+  copyStudioNodeCanvasWidthToAllChromeModes: (nodeIds: string[]) => void;
+  fitStudioNodesWidthToContent: (nodeIds: string[]) => void;
+  /** Measure-driven width sync when display mode changes (no undo). */
+  syncStudioNodeWidthFromContentMeasure: (
+    nodeId: string,
+    measuredWidthPx: number,
+  ) => void;
+  /** @deprecated Use syncStudioNodeWidthFromContentMeasure */
+  syncStudioNodeChromeWidthFromMeasureIfUnset: (
+    nodeId: string,
+    measuredWidthPx: number,
+  ) => void;
+  persistStudioNodeCanvasWidthForActiveChrome: (nodeId: string, widthPx: number) => void;
   toggleBodyControlsVisibleForNodes: (nodeIds: string[]) => void;
+  /** Restore factory display (live values, all sockets) + auto content-fit size. Undoable. */
+  resetStudioNodesToDefaults: (nodeIds: string[]) => void;
   applyFlowAutoLayout: (direction: "LR" | "TB") => void;
   updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
   /** Update layout-node top-level props (style/zIndex/draggable/...). Undo is NOT pushed. */
@@ -1381,16 +1426,19 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
           })()
         : coercedData;
     let piped: StudioNodeData = withScene3d;
-    // Default: every Studio node is resizable on canvas unless explicitly disabled.
+    // Default: auto content-fit sizing; edge resize is opt-in per node (Inspector → Canvas).
+    const uiWithFloors = applyStudioNodeMinDimensionsToUi(piped.nodeId, {
+      ...piped.ui,
+      resizable: piped.ui?.resizable ?? false,
+      allowBodyCollapse:
+        piped.ui?.allowBodyCollapse ??
+        studioNodeDefaultAllowBodyCollapse(piped.nodeId),
+    });
+    const rfWidth =
+      typeof node.width === "number" && node.width > 0 ? node.width : undefined;
     piped = {
       ...piped,
-      ui: applyStudioNodeMinDimensionsToUi(piped.nodeId, {
-        ...piped.ui,
-        resizable: piped.ui?.resizable ?? true,
-        allowBodyCollapse:
-          piped.ui?.allowBodyCollapse ??
-          studioNodeDefaultAllowBodyCollapse(piped.nodeId),
-      }),
+      ui: migrateStudioNodeChromeLayoutWidth(piped.nodeId, uiWithFloors, rfWidth),
     };
     if (piped.nodeId === "plotter") {
       const plotterCfg = persistPlotterConfig(piped.defaultConfig);
@@ -1688,7 +1736,27 @@ function stripStudioNodeFixedHeight(node: StudioNode): StudioNode {
   };
 }
 
-/** Non-resizable studio nodes should reflow shell height when socket rows change. */
+/** Drop fixed width/height so auto content-fit can grow and shrink (socket chrome toggles). */
+function stripStudioNodeFixedLayout(node: StudioNode): StudioNode {
+  const { width: _width, height: _height, measured, style, ...rest } = node;
+  let nextStyle: StudioNode["style"];
+  if (style != null) {
+    const { width: _sw, height: _sh, ...styleRest } = style;
+    nextStyle = Object.keys(styleRest).length > 0 ? styleRest : undefined;
+  }
+  let nextMeasured: StudioNode["measured"];
+  if (measured != null) {
+    const { width: _mw, height: _mh, ...measuredRest } = measured;
+    nextMeasured = Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
+  }
+  return {
+    ...rest,
+    style: nextStyle,
+    measured: nextMeasured,
+  };
+}
+
+/** Auto-sized nodes drop fixed RF dimensions so content-fit can remeasure after chrome toggles. */
 function prepareStudioNodeShellRemeasure(node: StudioNode): StudioNode {
   if (node.type !== "studio") {
     return node;
@@ -1697,7 +1765,7 @@ function prepareStudioNodeShellRemeasure(node: StudioNode): StudioNode {
   if (data.ui?.resizable === true) {
     return node;
   }
-  return stripStudioNodeFixedHeight(node);
+  return stripStudioNodeFixedLayout(node);
 }
 
 function applyStudioNodeLayoutHeight(node: StudioNode, heightPx: number): StudioNode {
@@ -1710,6 +1778,41 @@ function applyStudioNodeLayoutHeight(node: StudioNode, heightPx: number): Studio
       height: rounded,
     },
   };
+}
+
+function clearStudioNodeMeasuredBox(node: StudioNode): StudioNode {
+  const measured = node.measured;
+  if (measured?.width == null && measured?.height == null) {
+    return node;
+  }
+  if (measured == null) {
+    return node;
+  }
+  const { width: _mw, height: _mh, ...measuredRest } = measured;
+  const nextMeasured =
+    Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
+  return { ...node, measured: nextMeasured };
+}
+
+function applyStudioNodeLayoutWidth(node: StudioNode, widthPx: number): StudioNode {
+  const rounded = Math.max(1, Math.round(widthPx));
+  const cleared = clearStudioNodeMeasuredBox(node);
+  return {
+    ...cleared,
+    width: rounded,
+    style: {
+      ...(cleared.style ?? {}),
+      width: rounded,
+    },
+  };
+}
+
+/** After chrome/UI patch: strip fixed layout so content measure can resize width + height. */
+function applyStudioNodeChromeLayoutSwitch(
+  node: StudioNode,
+  data: StudioNodeData,
+): StudioNode {
+  return { ...stripStudioNodeFixedLayout(node), data };
 }
 
 /** Keep React Flow node height aligned with utility collapse state (including after hydrate). */
@@ -1807,18 +1910,21 @@ function createStudioNodeFromCatalogEntry(
   const ui: StudioNodeData["ui"] =
     options?.ui != null
       ? {
-          resizable: true,
+          resizable: false,
           allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
           ...options.ui,
         }
       : {
-          resizable: true,
+          resizable: false,
           allowBodyCollapse: studioNodeDefaultAllowBodyCollapse(entry.id),
         };
+  const catalogFloor = resolveStudioNodeMinDimensionFloor(entry.id);
   const base: StudioNode = {
     id,
     type: "studio",
     position,
+    width: catalogFloor.minWidth,
+    style: { width: catalogFloor.minWidth },
     dragHandle: dragHandleSelectorForNodeId(entry.id),
     data: {
       label: entry.title,
@@ -2271,10 +2377,12 @@ function dispatchFlowEventSourcesWithGlbAnimAutoBind(
   if (targetIds.length === 0) {
     return;
   }
+  const catalog = get().studioAssetDescriptors;
   void resolveSingleClipAutoBindPatchesForGlbAnimNodes({
     nodes: get().nodes,
     edges: get().edges,
     targetFlowNodeIds: targetIds,
+    catalog,
   }).then((patches) => {
     if (patches.size === 0) {
       return;
@@ -2327,6 +2435,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   selectedNodeIds: [],
   undoStack: [],
   redoStack: [],
+  studioAssetDescriptors: [],
+  setStudioAssetDescriptors: (descriptors) => {
+    set({ studioAssetDescriptors: descriptors });
+  },
   nodeGroupLibrary: readPersistedNodeGroupLibrary(),
   remoteNodeGraphAssets: {},
   pushUndoSnapshot: () => {
@@ -3534,11 +3646,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   onConnect: (connection, options) => {
     const st = get();
-    const result = connectWithPolicy(connection, {
-      nodes: st.nodes,
-      edges: st.edges,
-      subgraphs: st.subgraphs,
-    });
+    const result = connectWithPolicy(
+      connection,
+      {
+        nodes: st.nodes,
+        edges: st.edges,
+        subgraphs: st.subgraphs,
+      },
+      { excludeEdgeId: options?.excludeEdgeId },
+    );
     if (!result.ok) {
       return;
     }
@@ -3871,27 +3987,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const st = get();
     const nextExpanded = nextSocketsExpandedForBatch(st.nodes, nodeIds);
-    get().pushUndoSnapshot();
-    const idSet = new Set(nodeIds);
-    set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(
-        state.nodes.map((n) => {
-          if (n.type !== "studio" || !idSet.has(n.id)) {
-            return n;
-          }
-          const data = n.data as StudioNodeData;
-          const base = prepareStudioNodeShellRemeasure(n as StudioNode);
-          return {
-            ...base,
-            data: {
-              ...data,
-              ui: { ...data.ui, socketsExpanded: nextExpanded },
-            },
-          };
-        }),
-        state.edges,
-      ),
-    }));
+    get().setSocketsExpandedForNodes(nodeIds, nextExpanded);
   },
   toggleSocketValuesVisibleForNodes: (nodeIds) => {
     if (nodeIds.length === 0) {
@@ -3899,6 +3995,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const st = get();
     const nextVisible = nextSocketValuesVisibleForBatch(st.nodes, nodeIds);
+    get().setSocketValuesVisibleForNodes(nodeIds, nextVisible);
+  },
+  setSocketsExpandedForNodes: (nodeIds, expanded) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
     get().pushUndoSnapshot();
     const idSet = new Set(nodeIds);
     set((state) => ({
@@ -3908,14 +4010,34 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             return n;
           }
           const data = n.data as StudioNodeData;
-          const base = prepareStudioNodeShellRemeasure(n as StudioNode);
-          return {
-            ...base,
-            data: {
-              ...data,
-              ui: { ...data.ui, socketValuesVisible: nextVisible },
-            },
+          const nextData: StudioNodeData = {
+            ...data,
+            ui: patchStudioNodeUiSocketDisplay(data.ui, { socketsExpanded: expanded }),
           };
+          return applyStudioNodeChromeLayoutSwitch(n as StudioNode, nextData);
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  setSocketValuesVisibleForNodes: (nodeIds, visible) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          const nextData: StudioNodeData = {
+            ...data,
+            ui: patchStudioNodeUiSocketDisplay(data.ui, { socketValuesVisible: visible }),
+          };
+          return applyStudioNodeChromeLayoutSwitch(n as StudioNode, nextData);
         }),
         state.edges,
       ),
@@ -3936,13 +4058,142 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             return n;
           }
           const data = n.data as StudioNodeData;
-          return {
-            ...n,
-            data: {
-              ...data,
-              ui: { ...data.ui, bodyControlsVisible: nextVisible },
-            },
+          const nextData: StudioNodeData = {
+            ...data,
+            ui: patchStudioNodeUiBodyControlsVisible(data.ui, nextVisible),
           };
+          return applyStudioNodeChromeLayoutSwitch(n as StudioNode, nextData);
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  setStudioNodeChromeLayoutWidth: (nodeIds, chromeKey, widthPx) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          const nextUi = patchStudioNodeChromeLayoutWidth(
+            data.ui,
+            chromeKey,
+            widthPx,
+          );
+          const nextData: StudioNodeData = { ...data, ui: nextUi };
+          const activeKey = resolveStudioNodeChromeLayoutKey(
+            nextData.ui,
+            studioNodeHasHideableBody(nextData),
+          );
+          if (activeKey !== chromeKey) {
+            return { ...n, data: nextData };
+          }
+          return applyStudioNodeChromeLayoutSwitch(n as StudioNode, nextData);
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  copyStudioNodeCanvasWidthToAllChromeModes: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          const width = readStudioFlowNodeLayoutSize(n as StudioNode).width;
+          const keys = studioNodeChromeLayoutKeysForData(data);
+          const nextUi = copyChromeLayoutWidthToAllKeys(data.ui, keys, width);
+          return { ...n, data: { ...data, ui: nextUi } };
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  fitStudioNodesWidthToContent: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          const fitW = resolveFitWidthFromContentMeasure(data.nodeId, data.ui);
+          return applyStudioNodeLayoutWidth({ ...n, data } as StudioNode, fitW);
+        }),
+        state.edges,
+      ),
+    }));
+  },
+  syncStudioNodeWidthFromContentMeasure: (nodeId, measuredWidthPx) => {
+    const id = nodeId.trim();
+    if (id.length === 0 || !Number.isFinite(measuredWidthPx)) {
+      return;
+    }
+    set((state) => ({
+      nodes: state.nodes.map((n) => {
+        if (n.id !== id || n.type !== "studio") {
+          return n;
+        }
+        const data = n.data as StudioNodeData;
+        const floor = resolveStudioNodeMinDimensionFloor(data.nodeId).minWidth;
+        const fitW = Math.max(floor, Math.round(measuredWidthPx));
+        const currentW = readStudioFlowNodeLayoutSize(n as StudioNode).width;
+        if (currentW === fitW) {
+          return n;
+        }
+        return applyStudioNodeLayoutWidth({ ...n, data } as StudioNode, fitW);
+      }),
+    }));
+  },
+  syncStudioNodeChromeWidthFromMeasureIfUnset: (nodeId, measuredWidthPx) => {
+    get().syncStudioNodeWidthFromContentMeasure(nodeId, measuredWidthPx);
+  },
+  persistStudioNodeCanvasWidthForActiveChrome: (_nodeId, _widthPx) => {
+    // Width lives on the React Flow node only; display-mode auto-fit handles toggles.
+  },
+  resetStudioNodesToDefaults: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const idSet = new Set(nodeIds);
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) => {
+          if (n.type !== "studio" || !idSet.has(n.id)) {
+            return n;
+          }
+          const data = n.data as StudioNodeData;
+          const stripped = stripStudioNodeFixedLayout(n as StudioNode);
+          const clearedUi = clearStudioNodeChromeLayoutWidths(
+            studioNodeUiWithoutDisplayOverrides(data.ui),
+          );
+          const fitW = resolveFitWidthFromContentMeasure(data.nodeId, clearedUi);
+          return applyStudioNodeLayoutWidth(
+            {
+              ...stripped,
+              data: { ...data, ui: clearedUi },
+            } as StudioNode,
+            fitW,
+          );
         }),
         state.edges,
       ),
@@ -4236,8 +4487,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         showGrid: true,
         [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
       };
-      viewerNode.data.ui = { resizable: true };
-
       const paramNode = makeNode(paramEntry, "demo-mat-param", 420, 320);
       paramNode.data.label = "Roughness drive";
       paramNode.data.defaultConfig = {
@@ -4334,7 +4583,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
       const plotterNode = makeNode(plotterEntry, "demo-audio-plotter", 420, 420);
       plotterNode.data.label = "Audio Features (Plotter)";
-      plotterNode.data.ui = { resizable: true };
 
       const fileNode =
         fileEntry != null ? makeNode(fileEntry, "demo-audio-file", 72, 360) : null;
@@ -4441,7 +4689,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
       const plotterNode = makeNode(plotterEntry, "demo-file-plotter", 420, 420);
       plotterNode.data.label = "File Transport (Plotter)";
-      plotterNode.data.ui = { resizable: true };
 
       get().pushUndoSnapshot();
       const demoEdges: Edge[] = [
@@ -4573,8 +4820,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         scene3d: rotScene3d,
         [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
       };
-      rotNode.data.ui = { resizable: true };
-
       const modelNode = makeNode(modelEntry, modelFlowId, 72, 360);
       modelNode.data.label = "Studio Model (PSoC E84)";
       modelNode.data.defaultConfig = {
@@ -5209,7 +5454,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (targetIds.length === 0) {
       return;
     }
+    if (patch.width != null) {
+      get().pushUndoSnapshot();
+    }
     const changes: Parameters<typeof applyNodeChanges<StudioNode>>[0] = [];
+    const widthPatches: Array<{ id: string; width: number }> = [];
     for (const id of targetIds) {
       const node = st.nodes.find((n) => n.id === id);
       if (node == null) {
@@ -5223,11 +5472,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         patch.height ?? current.height,
       );
       changes.push(...flowNodeDimensionChanges(id, width, height));
+      if (patch.width != null) {
+        widthPatches.push({ id, width });
+      }
     }
     if (changes.length === 0) {
       return;
     }
     get().onNodesChange(changes);
+    for (const { id, width } of widthPatches) {
+      get().persistStudioNodeCanvasWidthForActiveChrome(id, width);
+    }
   },
   applySelectedNodeConfigFieldLive: (key, value) => {
     const st = get();
