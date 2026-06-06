@@ -15,6 +15,8 @@ export const ternionFreeAssetPackCopy = {
   incompleteShort: "TERNION pack is incomplete — download to continue",
   filterOnlinePaths: "Filter pack list…",
   fetchIndexEmpty: "No catalog loaded yet. Use Refresh catalog to load the file list.",
+  fetchLocalEmpty: "No local scan yet. Use Refresh on disk to list files in your save folder.",
+  fetchIndexLoading: "Loading online catalog from GitHub (may take a few seconds)…",
   catalogRateLimit: {
     title: "Online catalog temporarily unavailable",
     summary:
@@ -44,6 +46,10 @@ export const ternionFreeAssetPackCopy = {
   quickCommandDownloadLabel: "Download TERNION assets",
   glbPreviewUnavailableHint:
     "Asset missing or incomplete. Open Setup → Download TERNION pack, or Free Assets Loader.",
+  glbLocalMirrorMissingPreflight:
+    "Local model file is missing or incomplete (it may have been removed from the save folder). Re-sync the TERNION pack in Asset Manager.",
+  glbLocalMirrorCorruptBody:
+    "The model file on this computer is missing, incomplete, or corrupted — often after files were deleted from the TERNION pack folder. In Asset Manager, use Setup or Free Loader to download the pack again, then reload this view.",
   missingAssetHelp:
     "Sync the TERNION pack (Setup → Download TERNION pack, or Free Assets Loader).",
   missingAssetHelpSuffix:
@@ -63,7 +69,7 @@ export const ternionFreeAssetPackCopy = {
     webGlPausedDetail:
       "WebGL context was lost — often after the landing backdrop releases the GPU or a driver reset. Restart the editor after syncing the TERNION pack if it keeps happening.",
     assetMissingSummary:
-      "A model or environment file is missing from this computer. Sync the TERNION pack to restore 3D previews.",
+      "A model file is missing or incomplete on this computer (it may have been deleted from the save folder). Sync the TERNION pack to restore 3D previews.",
   },
 
   results: {

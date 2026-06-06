@@ -183,7 +183,7 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
           ) : null}
 
           {showDetail ? (
-            <p className="text-[11px] text-zinc-500">
+            <div className="text-[11px] text-zinc-500">
               <TRNHintTooltip
                 trigger={<span className="text-zinc-400">Technical details</span>}
                 content={detail}
@@ -192,7 +192,7 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
                 triggerWrapper="span"
                 wide
               />
-            </p>
+            </div>
           ) : null}
 
           <div className="flex w-full flex-row flex-wrap justify-end gap-2 pt-1">

@@ -12,21 +12,24 @@ export const EXTENSION_GLOBAL_STORAGE_FOLDER = "terniondev.bitstream-studio";
 
 const EDITOR_APP_NAMES = ["Cursor", "Code", "VSCodium"] as const;
 
-function listEditorGlobalStorageDirs(): string[] {
-  const home = process.env.USERPROFILE || process.env.HOME;
-  if (!home) {
-    return [];
-  }
+/**
+ * Resolve editor `globalStorage` roots for a home directory and OS.
+ * Used by CLI diagnostics and unit tests (Windows vs macOS vs Linux).
+ */
+export function listEditorGlobalStorageDirsForHome(
+  home: string,
+  platform: NodeJS.Platform,
+): string[] {
   const out: string[] = [];
-  if (process.platform === "win32") {
+  if (platform === "win32") {
     for (const editor of EDITOR_APP_NAMES) {
       out.push(
-        path.join(home, "AppData", "Roaming", editor, "User", "globalStorage")
+        path.join(home, "AppData", "Roaming", editor, "User", "globalStorage"),
       );
     }
     return out;
   }
-  if (process.platform === "darwin") {
+  if (platform === "darwin") {
     for (const editor of EDITOR_APP_NAMES) {
       out.push(
         path.join(
@@ -35,8 +38,8 @@ function listEditorGlobalStorageDirs(): string[] {
           "Application Support",
           editor,
           "User",
-          "globalStorage"
-        )
+          "globalStorage",
+        ),
       );
     }
     return out;
@@ -47,6 +50,14 @@ function listEditorGlobalStorageDirs(): string[] {
     out.push(path.join(configHome, editor, "User", "globalStorage"));
   }
   return out;
+}
+
+export function listEditorGlobalStorageDirs(): string[] {
+  const home = process.env.USERPROFILE || process.env.HOME;
+  if (!home) {
+    return [];
+  }
+  return listEditorGlobalStorageDirsForHome(home, process.platform);
 }
 
 function extensionAssetsRootUnderGlobalStorage(gsBase: string): string {

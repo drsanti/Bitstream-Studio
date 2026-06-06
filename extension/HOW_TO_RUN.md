@@ -369,6 +369,26 @@ All tests green.
 
 Tracker mirror: **`docs/DEVELOPMENT_TRACKER.md`** § VSIX and marketplace readiness.
 
+### E — Cross-platform (Windows + macOS)
+
+**Before marketplace publish**, repeat **A** and **B** on **both** hosts (same VSIX build). UART (**C**) is optional per machine when hardware is available.
+
+| Gate | Windows | macOS |
+| ---- | ------- | ----- |
+| Install | `code --install-extension bitstream-studio-*.vsix` | Same (VS Code or Cursor) |
+| Free pack root | `%APPDATA%\Cursor\User\globalStorage\terniondev.bitstream-studio\assets\free` (or `Code` / `VSCodium`) | `~/Library/Application Support/Cursor/User/globalStorage/terniondev.bitstream-studio/assets/free` |
+| Diagnose command | **Bitstream Studio: Diagnose Free Pack on Disk** → Output shows paths + file count | Same |
+| Reveal folder | **Reveal free pack folder** opens Explorer | Same command opens Finder |
+| Free Loader sync | Online catalog → sync selected; **On this device** lists files | Same (no `GITHUB_TOKEN` required for end users) |
+| **Sync Free Pack to Disk** (command) | **Bitstream Studio: Sync Free Pack to Disk** — full pack → globalStorage | Same |
+| 3D preview | Default PCB GLB loads after free-pack sync (Sensor Telemetry / Studio) | Same |
+| Serial (optional) | COM port @ 921600 (`bitstream2:uart-probe --path COMx`) | `/dev/tty.usb*` or `/dev/cu.*` @ 921600 |
+| Bridge Node | Standalone **`node`** on PATH preferred (see bridge Output if COM list empty) | **`command -v node`** path used automatically |
+
+**Path rules (code):** VSIX writes use **`ExtensionContext.globalStorageUri`** (`extensionAssetPaths.ts`) — not hardcoded `%APPDATA%`. CLI **`check:free-pack-storage`** heuristics mirror Windows / macOS / Linux in **`extensionGlobalStoragePaths.ts`** (see **`tests/asset-sync/extension-global-storage-paths.test.ts`**).
+
+**Native serial:** `serialport` ships prebuilds for Windows and macOS; if the extension-managed bridge fails to list ports, install Node.js on PATH or set **`TERNION_SERIAL_BRIDGE_NODE`**.
+
 ---
 
 ## CLI tools (no browser)

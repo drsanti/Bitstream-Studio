@@ -13,6 +13,8 @@ import {
 import {
   setGetCurrentPanelCallback as setAiBridgeGetCurrentPanelCallback,
 } from "./ai-bridge-handle";
+import { registerDiagnoseFreePackStorageCommand } from "./commands/diagnoseFreePackStorageCommand";
+import { registerSyncFreePackStorageCommand } from "./commands/syncFreePackStorageCommand";
 
 // Module-level status bar items for conditional visibility
 let launchMenuStatusBarItem: vscode.StatusBarItem | undefined;
@@ -439,6 +441,11 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  const diagnoseFreePackStorageDisposable =
+    registerDiagnoseFreePackStorageCommand(context);
+  const syncFreePackStorageDisposable =
+    registerSyncFreePackStorageCommand(context);
+
   context.subscriptions.push(
     pickApplicationDisposable,
     openStudioDisposable,
@@ -460,6 +467,8 @@ export function activate(context: vscode.ExtensionContext) {
     openToolsPanelDisposable,
     openInBrowserDisposable,
     setBrowserAppPortDisposable,
+    diagnoseFreePackStorageDisposable,
+    syncFreePackStorageDisposable,
     launchMenuStatusBarItem,
     reloadWebviewStatusBarItem,
     reloadWindowStatusBarItem,

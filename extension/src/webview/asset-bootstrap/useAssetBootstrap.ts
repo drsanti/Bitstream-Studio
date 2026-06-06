@@ -10,6 +10,7 @@ import {
   type AssetBootstrapReadiness,
 } from "./runAssetBootstrapReadiness.js";
 import { useAssetBootstrapActionsStore } from "./assetBootstrapActions.store.js";
+import { clearFreeLoaderAutoOpenSuppress } from "../bitstream-app/state/previewMeshMissingUi.store.js";
 import { scheduleWebviewReloadAfterAssetSync } from "./requestWebviewReloadAfterAssetSync.js";
 import { ternionFreeAssetPackCopy } from "./ternionFreeAssetPackCopy.js";
 
@@ -75,6 +76,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
       }
       setReadiness(result);
       if (result.status === "ready") {
+        clearFreeLoaderAutoOpenSuppress();
         setPhase("ready");
         setStatusLine(null);
         return;
@@ -183,6 +185,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
             fileIndex: prev?.fileIndex ?? null,
             totalFiles: prev?.totalFiles ?? null,
           }));
+          clearFreeLoaderAutoOpenSuppress();
           setStatusLine(ternionFreeAssetPackCopy.results.reloadAfterSync);
           scheduleWebviewReloadAfterAssetSync();
           void runBrowserBootstrapCheck();
@@ -331,6 +334,7 @@ export function useAssetBootstrap(): UseAssetBootstrapResult {
           fileIndex: prev?.fileIndex ?? null,
           totalFiles: prev?.totalFiles ?? null,
         }));
+        clearFreeLoaderAutoOpenSuppress();
         setStatusLine(ternionFreeAssetPackCopy.results.reloadAfterSync);
         scheduleWebviewReloadAfterAssetSync();
       }

@@ -1496,7 +1496,8 @@ export function ModelPreviewModal({
       minHeight={360}
       modal
       modalBackdropCloses
-      zIndex={250}
+      /** Above floating workbench panes (4700–4800); below command palette (6000). */
+      zIndex={5200}
       heightMode="fixed"
       reopenStrategy="normalize"
       showFooter={false}

@@ -7,6 +7,11 @@ import {
   collectGlobalDirectoryOnlineFallbackUrls,
   type GlobalDirectoryFallbackCandidateOptions,
 } from "../../asset-resolution/global-directory-online-fallback";
+import {
+  MIN_VALID_GLB_BYTES,
+  missingLocalMirrorPreflightMessage,
+  parseHttpContentLength,
+} from "./glb-local-mirror-integrity.js";
 
 const GLB_MAGIC_LITTLE_ENDIAN = 0x46546c67;
 
@@ -65,17 +70,29 @@ async function sniffPreviewPayload(
 
   const buf = await res.arrayBuffer();
   if (buf.byteLength === 0) {
-    return { ok: false, message: "Empty response when loading preview." };
+    return { ok: false, message: missingLocalMirrorPreflightMessage(0) };
+  }
+
+  const declaredLen = parseHttpContentLength(res);
+  if (
+    declaredLen != null &&
+    declaredLen < MIN_VALID_GLB_BYTES &&
+    (url.toLowerCase().endsWith(".glb") || ct.includes("model/gltf-binary"))
+  ) {
+    return { ok: false, message: missingLocalMirrorPreflightMessage(declaredLen) };
   }
 
   const urlLower = url.toLowerCase();
   if (urlLower.endsWith(".glb") || ct.includes("model/gltf-binary")) {
     if (isGlbBinaryMagic(buf)) {
+      if (declaredLen != null && declaredLen < MIN_VALID_GLB_BYTES) {
+        return { ok: false, message: missingLocalMirrorPreflightMessage(declaredLen) };
+      }
       return { ok: true };
     }
     return {
       ok: false,
-      message: "Response is not a valid GLB (unexpected binary header).",
+      message: missingLocalMirrorPreflightMessage(buf.byteLength),
     };
   }
 
@@ -163,12 +180,21 @@ export async function preflightModelPreviewUrl(
       return { ok: false, message: "Cancelled." };
     }
     const headCt = (headRes.headers.get("content-type") ?? "").toLowerCase();
+    const headLen = parseHttpContentLength(headRes);
     if (headRes.ok && headCt.includes("text/html")) {
       return {
         ok: false,
         message:
           "Server returned HTML for this URL (missing model file — check src/assets paths or download roots).",
       };
+    }
+    if (
+      headRes.ok &&
+      (trimmed.toLowerCase().endsWith(".glb") || headCt.includes("model/gltf-binary")) &&
+      headLen != null &&
+      headLen < MIN_VALID_GLB_BYTES
+    ) {
+      return { ok: false, message: missingLocalMirrorPreflightMessage(headLen) };
     }
     if (
       !headRes.ok &&

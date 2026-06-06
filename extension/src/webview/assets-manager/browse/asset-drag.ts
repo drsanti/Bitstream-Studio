@@ -20,6 +20,8 @@ export function setStudioAssetDragData(
     return;
   }
   transfer.setData(STUDIO_ASSET_DRAG_MIME, JSON.stringify(body));
+  // Fallback for hosts that strip custom MIME types on drop.
+  transfer.setData("text/plain", body.studioAssetId);
   transfer.effectAllowed = "copy";
 }
 
@@ -28,7 +30,11 @@ export function parseStudioAssetDragData(
 ): StudioAssetDragPayloadV1 | null {
   const raw = transfer.getData(STUDIO_ASSET_DRAG_MIME);
   if (raw.length === 0) {
-    return null;
+    const plain = transfer.getData("text/plain").trim();
+    if (plain.length === 0) {
+      return null;
+    }
+    return { v: 1, studioAssetId: plain, label: plain };
   }
   try {
     const parsed = JSON.parse(raw) as StudioAssetDragPayloadV1;

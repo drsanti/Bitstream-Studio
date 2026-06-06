@@ -130,6 +130,16 @@
         "category": "Bitstream Studio"
       },
       {
+        "command": "bitstream-studio.diagnoseFreePackStorage",
+        "title": "Diagnose Free Pack on Disk",
+        "category": "Bitstream Studio"
+      },
+      {
+        "command": "bitstream-studio.syncFreePackStorage",
+        "title": "Sync Free Pack to Disk",
+        "category": "Bitstream Studio"
+      },
+      {
         "command": "bitstream-studio.toggleQuickAction",
         "title": "Bitstream Studio: Toggle Quick Actions",
         "category": "Bitstream Studio"
@@ -163,6 +173,14 @@
         },
         {
           "command": "bitstream-studio.stopBitstreamSimulator",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.diagnoseFreePackStorage",
+          "when": "true"
+        },
+        {
+          "command": "bitstream-studio.syncFreePackStorage",
           "when": "true"
         }
       ]
@@ -327,6 +345,8 @@
     "bitstream2:uart-matrix:standard": "npx tsx src/bitstream2/dev/run-uart-sensor-matrix.ts --tier=standard",
     "bitstream2:uart-cfg-roundtrip": "npx tsx src/bitstream2/dev/run-uart-sensor-cfg-roundtrip.ts",
     "bitstream2:uart-cfg-behavior": "npx tsx src/bitstream2/dev/run-uart-sensor-cfg-behavior.ts",
+    "check:free-pack-storage": "npx tsx src/asset-sync/dev/check-free-pack-globalstorage.ts",
+    "sync:free-pack-storage": "npx tsx src/asset-sync/dev/sync-free-pack-to-globalstorage.ts",
     "bitstream2:golden:gen": "npx tsx src/bitstream2/dev/generate-golden-fixtures.ts",
     "bitstream:serial:probe": "npx tsx src/bitstream/probe-serial-list.ts",
     "bitstream:serial:open-close": "npx tsx src/bitstream/probe-serial-open-close.ts",
@@ -364,7 +384,9 @@
     "publish:studio-asset-manifest": "Upload studio-asset-manifest.v1.json to ternion-3d-assets-free (GITHUB_TOKEN required).",
     "sync:studio-manifest-models": "Refresh studio-asset-manifest model rows from ternion-3d-assets-free assets/models/manifest.json.",
     "sync:studio-manifest-textures": "Refresh studio-asset-manifest cubemap/HDRI/image rows from assets/textures/*/manifest.json.",
-    "sync:studio-cubemap-assets": "Download cubemap JPEGs from ternion-3d-assets-free into src/assets/textures/cubemap/."
+    "sync:studio-cubemap-assets": "Download cubemap JPEGs from ternion-3d-assets-free into src/assets/textures/cubemap/.",
+    "check:free-pack-storage": "List free-pack files under Cursor/VS Code globalStorage (diagnostic CLI).",
+    "sync:free-pack-storage": "Download ternion-3d-assets-free into globalStorage assets/free (same as Free Loader sync)."
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.16",

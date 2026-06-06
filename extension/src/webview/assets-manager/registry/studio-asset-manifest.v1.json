@@ -60,15 +60,6 @@
       "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/psoc-e84-ai-board/psoc-e84-ai-board.glb"
     },
     {
-      "id": "model.robot-4w",
-      "category": "model",
-      "source": "pack",
-      "label": "Robot 4-wheel",
-      "summary": "Free pack GLB (robot-4w) — mirror via Asset Manager or online fallback.",
-      "relativePath": "models/robot-4w/robot-4w.glb",
-      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/models/robot-4w/robot-4w.glb"
-    },
-    {
       "id": "model.robot-arm",
       "category": "model",
       "source": "pack",

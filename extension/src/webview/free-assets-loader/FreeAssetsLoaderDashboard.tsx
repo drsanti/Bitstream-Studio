@@ -32,6 +32,7 @@ import {
   LOADER_MODAL_TABLE_FRAME_CLASS,
 } from "./loader-modal-chrome.js";
 import { scheduleWebviewReloadAfterAssetSync } from "../asset-bootstrap/requestWebviewReloadAfterAssetSync";
+import { clearFreeLoaderAutoOpenSuppress } from "../bitstream-app/state/previewMeshMissingUi.store.js";
 import {
   ternionFreeAssetPackCopy,
   TERNION_FREE_ASSET_PACK_NAME,
@@ -168,6 +169,7 @@ export function FreeAssetsLoaderDashboard({
   const [entries, setEntries] = useState<FreeAssetIndexEntry[]>([]);
   const [localEntries, setLocalEntries] = useState<FreeLocalAssetEntry[]>([]);
   const [localRootFs, setLocalRootFs] = useState("");
+  const [localScanAttempted, setLocalScanAttempted] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -268,33 +270,34 @@ export function FreeAssetsLoaderDashboard({
       setCatalogIssue(null);
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
+      if (raw.includes("Superseded by newer catalog request")) {
+        return;
+      }
       setCatalogIssue(classifyFreeAssetsCatalogFetchError(raw));
       setMainTab("online");
     }
-  }, [rt]);
+  }, [rt.listIndex]);
 
   const fetchLocalEntries = useCallback(async () => {
+    setLocalScanAttempted(true);
     try {
       const { entries: rows, rootFs } = await rt.listLocalFreeAssets();
       setLocalEntries(rows);
       if (rootFs?.trim()) {
         setLocalRootFs(rootFs.trim());
       }
-    } catch {
-      /* rt.error / optional toast */
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e);
+      if (raw.includes("Superseded by newer local scan request")) {
+        return;
+      }
+      setToast({
+        message: raw || "Could not scan local pack folder",
+        tone: "error",
+      });
+      scheduleToastClear(8000);
     }
-  }, [rt]);
-
-  const bridgeReady =
-    rt.isExtension || rt.bridge.connectionState === "connected";
-
-  useEffect(() => {
-    if (!open || !bridgeReady) {
-      return;
-    }
-    void fetchIndex();
-    void fetchLocalEntries();
-  }, [open, bridgeReady, fetchIndex, fetchLocalEntries]);
+  }, [rt.listLocalFreeAssets, scheduleToastClear]);
 
   const toggleRow = useCallback((repoPath: string) => {
     setSelected((prev) => {
@@ -363,6 +366,7 @@ export function FreeAssetsLoaderDashboard({
         scheduleToastClear(out ? 15000 : 8000);
         void fetchLocalEntries();
         if (res.errors.length === 0) {
+          clearFreeLoaderAutoOpenSuppress();
           scheduleWebviewReloadAfterAssetSync(1200);
         }
       } catch (e) {
@@ -660,7 +664,12 @@ export function FreeAssetsLoaderDashboard({
                   aria-label="Online catalog"
                 >
                   <div className="h-full min-h-[200px] max-h-full overflow-auto scrollbar-hide">
-                    {entries.length === 0 && !rt.listLoading ? (
+                    {rt.listLoading ? (
+                      <div className="flex min-h-[min(36vh,280px)] flex-col items-center justify-center gap-2 px-4 py-10 text-center text-zinc-400">
+                        <Loader2 className="h-6 w-6 animate-spin text-cyan-400/80" aria-hidden />
+                        <p className="text-[12px]">Loading online catalog…</p>
+                      </div>
+                    ) : entries.length === 0 ? (
                       catalogIssue ? (
                         <FreeAssetsLoaderCatalogIssuePanel
                           issue={catalogIssue}
@@ -674,7 +683,7 @@ export function FreeAssetsLoaderDashboard({
                         <div className="flex min-h-[min(36vh,280px)] flex-col items-center justify-center gap-3 px-4 py-10 text-center text-zinc-400">
                           <p>{ternionFreeAssetPackCopy.fetchIndexEmpty}</p>
                           <TRNButton size="compact" selected onClick={() => void fetchIndex()}>
-                            Load catalog
+                            Refresh catalog
                           </TRNButton>
                         </div>
                       )
@@ -753,9 +762,12 @@ export function FreeAssetsLoaderDashboard({
                 <TRNHintText>
                   Files under the TERNION pack save folder. Use the search field above to filter.
                 </TRNHintText>
-                {localRootFs ? (
-                  <p className="break-all text-[11px] text-zinc-400" title={localRootFs}>
-                    {localRootFs}
+                {localRootFs || pathToShow !== "(fetching path…)" ? (
+                  <p
+                    className="break-all text-[11px] text-zinc-400"
+                    title={localRootFs || pathToShow}
+                  >
+                    {localRootFs || pathToShow}
                   </p>
                 ) : null}
                 <div className="flex flex-wrap gap-1.5">
@@ -769,7 +781,6 @@ export function FreeAssetsLoaderDashboard({
                       )
                     }
                     onClick={() => void fetchLocalEntries()}
-                    disabled={rt.localListLoading}
                   >
                     Refresh on disk
                   </TRNButton>
@@ -800,9 +811,20 @@ export function FreeAssetsLoaderDashboard({
                     ) : filteredLocal.length === 0 ? (
                       <div className="flex min-h-[120px] flex-col items-center justify-center gap-2 px-4 py-8 text-center text-sm text-zinc-500">
                         <p>
-                          No files on disk yet, or none match the filter. Use Online
-                          catalog to sync, or refresh on disk.
+                          {!localScanAttempted
+                            ? ternionFreeAssetPackCopy.fetchLocalEmpty
+                            : search.trim()
+                              ? "No local paths match the filter."
+                              : "No files in the pack folder yet."}
+                          {localScanAttempted &&
+                          !search.trim() &&
+                          (localRootFs || pathToShow !== "(fetching path…)") ? (
+                            <> Check the path above matches where you synced the pack.</>
+                          ) : null}
                         </p>
+                        <TRNButton size="compact" selected onClick={() => void fetchLocalEntries()}>
+                          Refresh on disk
+                        </TRNButton>
                       </div>
                     ) : (
                       <SortableTable<LocalSortColumn>

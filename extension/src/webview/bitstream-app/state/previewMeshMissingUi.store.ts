@@ -3,6 +3,67 @@ import { ternionFreeAssetPackCopy } from "../../asset-bootstrap/ternionFreeAsset
 import { openAssetManagerBrowseModels } from "../../assets-manager/hooks/openAssetManagerBrowseModels.js";
 
 const SESSION_MISSING_DIALOG_PREFIX = "ternion:missing-asset-dialog:";
+/** Survives full page reload / VS Code webview refresh (sessionStorage often does not). */
+const PERSISTENT_MISSING_DIALOG_PREFIX = "ternion:missing-asset-notified:";
+const FREE_LOADER_AUTO_OPEN_SUPPRESS_LS = "ternion:suppress-free-loader-auto-open";
+
+function readMissingAssetNotified(storageKey: string): boolean {
+  if (typeof sessionStorage !== "undefined") {
+    if (sessionStorage.getItem(storageKey) === "1") {
+      return true;
+    }
+  }
+  if (typeof localStorage !== "undefined") {
+    if (localStorage.getItem(PERSISTENT_MISSING_DIALOG_PREFIX + storageKey) === "1") {
+      return true;
+    }
+  }
+  return false;
+}
+
+function markMissingAssetNotified(storageKey: string, persistAcrossReload: boolean): void {
+  if (typeof sessionStorage !== "undefined") {
+    sessionStorage.setItem(storageKey, "1");
+  }
+  if (persistAcrossReload && typeof localStorage !== "undefined") {
+    localStorage.setItem(PERSISTENT_MISSING_DIALOG_PREFIX + storageKey, "1");
+  }
+}
+
+function isFreeLoaderAutoOpenSuppressed(): boolean {
+  if (typeof localStorage === "undefined") {
+    return false;
+  }
+  try {
+    return localStorage.getItem(FREE_LOADER_AUTO_OPEN_SUPPRESS_LS) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** User closed the Free Loader after an auto-open; skip hijacking the shell until assets are ready or they reopen manually. */
+export function suppressFreeLoaderAutoOpen(): void {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  try {
+    localStorage.setItem(FREE_LOADER_AUTO_OPEN_SUPPRESS_LS, "1");
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+/** Call when bootstrap reports required assets on disk (or after a successful pack sync). */
+export function clearFreeLoaderAutoOpenSuppress(): void {
+  if (typeof localStorage === "undefined") {
+    return;
+  }
+  try {
+    localStorage.removeItem(FREE_LOADER_AUTO_OPEN_SUPPRESS_LS);
+  } catch {
+    /* ignore */
+  }
+}
 
 export type PreviewMeshDialogKind = "asset" | "webgl";
 
@@ -105,19 +166,21 @@ export const usePreviewMeshMissingUiStore = create<PreviewMeshMissingUiState>(
     modelCatalogOpen: false,
 
     notifyMissingAsset: (payload) => {
-      if (typeof sessionStorage !== "undefined") {
-        const storageKey = SESSION_MISSING_DIALOG_PREFIX + payload.dedupeKey;
-        if (sessionStorage.getItem(storageKey) === "1") {
-          return;
-        }
-        sessionStorage.setItem(storageKey, "1");
+      const storageKey = SESSION_MISSING_DIALOG_PREFIX + payload.dedupeKey;
+      if (readMissingAssetNotified(storageKey)) {
+        return;
       }
 
       const title = payload.title ?? DEFAULT_MISSING_TITLE;
       const kind = payload.kind ?? "asset";
       const { summary, detail, bullets } = resolveSummaryAndDetail(payload);
       const description = payload.description ?? (detail ? `${summary}\n\n${detail}` : summary);
-      const action = resolveMissingAssetUiAction(payload);
+      let action = resolveMissingAssetUiAction(payload);
+      if (action === "free-loader" && isFreeLoaderAutoOpenSuppressed()) {
+        action = "dialog";
+      }
+
+      markMissingAssetNotified(storageKey, action === "free-loader");
 
       if (action === "free-loader") {
         set({

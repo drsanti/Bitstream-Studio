@@ -146,6 +146,14 @@ Typical output roots:
 
 So **local `free/models/...`** mirrors **`assets/models/...`** on GitHub — not `main/models/...`.
 
+### Studio catalog vs upstream `models/manifest.json`
+
+Bitstream Studio ships **nine** pack models in **`studio-asset-manifest.v1.json`** / **`free-pack-model-ids.v1.json`**. The upstream repo **`assets/models/manifest.json`** may still list extra folders (e.g. retired **`robot-4th-project`**) until maintainers clean GitHub. **Studio Asset Browser does not expose retired models.** Old flows that reference **`robot-4th-project`** migrate to the default PSoC E84 GLB via **`migrate-legacy-pack-model.ts`**. Planned: align full pack sync with the studio list and remove retired entries upstream — see **`DEVELOPMENT_TRACKER.md`** (_Free pack / assets UX cleanup_).
+
+### Listing when GitHub API is rate-limited
+
+`syncTernionFreeAssets` tries the GitHub **tree API** first, then falls back to **`freeAssetIndexFromRawManifests.ts`** (public **`raw.githubusercontent.com`** manifest JSON). End users do **not** need a maintainer **`GITHUB_TOKEN`**.
+
 ---
 
 ## Consumers at a glance
@@ -230,6 +238,9 @@ All new assets go under **`assets/`**. Files at the **repository root** (`models
 | `src/webview/assets-manager/registry/studio-asset-manifest.v1.json` | Bundled descriptor list |
 | `src/webview/asset-resolution/global-directory-online-fallback.ts` | `ONLINE + relativePath` |
 | `src/asset-sync/syncTernionFreeAssets.ts` | GitHub `assets/` tree → local mirror |
+| `src/asset-sync/freeAssetIndexFromRawManifests.ts` | Raw manifest path list (API rate-limit fallback) |
+| `src/asset-sync/diagnoseFreePackStorageReport.ts` | globalStorage diagnosis report |
+| `src/commands/diagnoseFreePackStorageCommand.ts` | VS Code: Diagnose Free Pack on Disk |
 | `scripts/publish-studio-asset-manifest.mjs` | Upload manifest to `assets/studio-asset-manifest.v1.json` |
 | `scripts/sync-studio-cubemap-assets.mjs` | Pull cubemap JPEGs from `.../main/assets` |
 | `src/panels/TernionDigitalTwin.ts` | Injects `window.ONLINE_ASSETS_BASE_URI` into webview HTML |
@@ -242,4 +253,5 @@ When adding a feature that loads remote GLBs, cubemaps, or manifests: **start fr
 
 | Date | Change |
 | ---- | ------ |
+| **2026-06-04** | Document raw-manifest API fallback; studio vs upstream model list (`robot-4th-project` retired in Bitstream); maintainer CLI + VSIX diagnose command. |
 | **2026-05-31** | Initial doc — clarify `main/assets` vs repo root; consumer matrix; cleanup guidance. |

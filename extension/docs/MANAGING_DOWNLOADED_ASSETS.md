@@ -155,7 +155,39 @@ A **full welcome page on every launch** is optional; empty states inside each fe
 
 ## GitHub API and rate limits
 
-The free pack uses the **GitHub API** (tree + raw). For heavy use, set **`GITHUB_TOKEN`** in the environment of the extension host or bridge process.
+The free pack uses the **GitHub REST API** to list the full `assets/` tree, then downloads each file from **`raw.githubusercontent.com`**. Unauthenticated API calls are limited (~60/hour per IP). When the API returns **403 rate limit**, **`syncTernionFreeAssets`** and **`getTernionFreeAssetsIndex`** automatically fall back to **public raw manifest URLs** (`freeAssetIndexFromRawManifests.ts`) — no token required for normal end-user sync.
+
+| Audience | `GITHUB_TOKEN` |
+| -------- | -------------- |
+| **VSIX / end users** | **Not required** — use Free Loader or wait for rate limit reset; never ship or share a maintainer PAT. |
+| **Maintainers (dev repo)** | **Optional** — higher API limit for listing; set in the shell when running bridge/CLI locally only. |
+
+Manifest fallback lists **~92** known paths (models, cubemaps, HDRI, images, node-graph, feeds). A full API tree scan may find **more** blobs (e.g. extra metadata files). Studio catalog models are **9** folders — see **`free-pack-model-ids.v1.json`** (excludes retired **`robot-4th-project`**).
+
+## Maintainer tools (dev repo only)
+
+These commands require a **cloned `extension/`** tree with `npm install`. They are **not** available inside the installed VSIX.
+
+| Task | Command / action |
+| ---- | ---------------- |
+| List / scan globalStorage free pack | `npm run check:free-pack-storage` |
+| Download free pack → globalStorage | `npm run sync:free-pack-storage` (optional `--list`, `--paths assets/...`) |
+| Diagnose paths + file count (VSIX or dev) | Command Palette → **Bitstream Studio: Diagnose Free Pack on Disk** |
+| Download full free pack (VSIX or dev) | Command Palette → **Bitstream Studio: Sync Free Pack to Disk** |
+| End-user sync (VSIX, UI) | **Asset Manager → Free Loader** (Online catalog + On this device) |
+
+**Example free-pack roots (after first extension run):**
+
+| OS | Editor | Typical path |
+| -- | ------ | ------------ |
+| **Windows** | Cursor | `%APPDATA%\Cursor\User\globalStorage\terniondev.bitstream-studio\assets\free` |
+| **Windows** | VS Code | `%APPDATA%\Code\User\globalStorage\terniondev.bitstream-studio\assets\free` |
+| **macOS** | Cursor | `~/Library/Application Support/Cursor/User/globalStorage/terniondev.bitstream-studio/assets/free` |
+| **macOS** | VS Code | `~/Library/Application Support/Code/User/globalStorage/terniondev.bitstream-studio/assets/free` |
+
+The authoritative path in VSIX is always **`context.globalStorageUri`** — use **Diagnose Free Pack on Disk** or **Open folder** in Free Loader rather than typing paths by hand.
+
+Default write target (dev CLI when no extension folder exists yet): first editor candidate from **`extensionGlobalStoragePaths.ts`** (same layout as VS Code / Cursor above).
 
 ## Release builds and publish
 
@@ -169,6 +201,10 @@ Ship with **`IS_DEV_MODE: false`** in [`GlobalConfig.ts`](../src/GlobalConfig.ts
 - `model-downloader-handle.ts` — Model Loader default paths and scans
 - `panels/TernionDigitalTwin.ts` — webview messages (`asset-get-default-download-paths`, `asset-sync-free-pack-start`, …)
 - `asset-sync/syncTernionFreeAssets.ts` — GitHub sync and `resolveDefaultBridgeFreeAssetsOutputDir`
+- `asset-sync/freeAssetIndexFromRawManifests.ts` — raw manifest listing when API is rate-limited
+- `asset-sync/diagnoseFreePackStorageReport.ts` — shared diagnosis report (CLI + VS Code command)
+- `commands/diagnoseFreePackStorageCommand.ts` — **Diagnose Free Pack on Disk**
+- `commands/syncFreePackStorageCommand.ts` — **Sync Free Pack to Disk**
 - `model-downloader/ModelDownloaderWebSocketBridge.ts` and `model-downloader/protocol.ts` — bridge topics and payloads
 - `webview/free-assets-loader/useFreeAssetsLoaderRuntime.ts` and `webview/asset-sync/useFreeAssetsSyncOverWs.ts` — browser UI and WS client
 - `GlobalConfig.ts` — `IS_DEV_MODE` for publish vs dev-only UI; does not switch extension-host vs bridge (that is webview vs browser runtime)

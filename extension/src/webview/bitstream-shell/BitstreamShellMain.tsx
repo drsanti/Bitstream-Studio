@@ -6,7 +6,10 @@ import { TelemetryRxMetricsProvider } from "../bitstream-app/components/telemetr
 import { Bmi270StreamModeSyncEffect } from "../bitstream-app/sync-effects/Bmi270StreamModeSyncEffect";
 import { BitstreamShellRoot } from "./BitstreamShellRoot";
 import { useBitstreamConfigStore } from "../bitstream-app/state/bitstreamConfig.store";
-import { usePreviewMeshMissingUiStore } from "../bitstream-app/state/previewMeshMissingUi.store";
+import {
+  suppressFreeLoaderAutoOpen,
+  usePreviewMeshMissingUiStore,
+} from "../bitstream-app/state/previewMeshMissingUi.store";
 import { BitstreamSensorWorkspaceView } from "../bitstream-app/workspace/BitstreamSensorWorkspaceView";
 import { PreviewMeshStatusDialog } from "../bitstream-app/components/PreviewMeshStatusDialog.js";
 import { useStartupChecklistStore } from "../startup-checklist/startupChecklist.store.js";
@@ -83,6 +86,7 @@ export function BitstreamShellMain()
             open={freeAssetsLoaderOpen}
             onClose={() => {
               setFreeAssetsLoaderOpen(false);
+              suppressFreeLoaderAutoOpen();
             }}
           />
           <ModelLoaderDashboard

@@ -45,4 +45,7 @@ export function installDevAssetBaseUris(): void {
       root,
     ).toString();
   }
+  if (!win.LOCAL_ASSETS_BASE_URI?.trim()) {
+    win.LOCAL_ASSETS_BASE_URI = new URL("__extension_src_assets/", root).toString();
+  }
 }

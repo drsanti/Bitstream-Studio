@@ -30,10 +30,21 @@ Initial geometry: ~88% viewport, centered (`computeInitialFreeAssetsLoaderRect`)
 
 ## Behavior
 
-- **Auto-refresh** when the window opens (and when the browser bridge connects): loads online catalog + on-disk list without pressing Refresh.
+- **Manual refresh** per tab: **Refresh catalog** (online) and **Refresh on disk** (local). Nothing loads automatically when the window opens.
+- **Browser dev:** requires `npm start` or `npm run start:bridge` (combined broker on **:9999**). Local scan reads the same folder as sync — typically **Cursor/VS Code** `globalStorage/…/terniondev.bitstream-studio/assets/free`. Expand **Save folder & sync location** to verify the path.
+- **GitHub rate limit:** Online catalog may show amber “temporarily unavailable” when the API is exhausted; retry later or use **On this device** if the pack is already synced. Sync engine falls back to raw manifests when listing (see **`MANAGING_DOWNLOADED_ASSETS.md`**).
 - `useFreeAssetsLoaderRuntime` — WS broker, list/download progress, local scan, folder override
 - **VS Code extension:** built-in broker chip
 - **Browser + bridge:** connection chip when offline; setup commands in bottom collapsible **Development — bridge connection** (not a top banner)
+
+## Maintainer / VSIX tools
+
+| Context | Tool |
+| -------- | ----- |
+| **VSIX user** | Free Loader UI; Command Palette → **Bitstream Studio: Diagnose Free Pack on Disk** |
+| **Dev repo** | `npm run check:free-pack-storage`, `npm run sync:free-pack-storage` |
+
+Full detail: **`extension/docs/MANAGING_DOWNLOADED_ASSETS.md`** § Maintainer tools.
 
 ## Related docs
 

@@ -32,6 +32,8 @@ export interface SortableTableProps<SortId extends string> {
 const HEADER_ROW_CLASS =
   "border-b border-white/10 bg-[#0f1419]/98 text-[10px] font-semibold uppercase tracking-wider text-zinc-500 backdrop-blur-md";
 
+const HEADER_CELL_CLASS = "bg-[#0f1419]/98";
+
 const SORT_BUTTON_CLASS =
   "inline-flex w-full items-center gap-1 rounded px-0 py-0 text-left font-semibold uppercase tracking-wider text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline focus-visible:ring-2 focus-visible:ring-sky-500/50";
 
@@ -62,16 +64,20 @@ export function SortableTable<SortId extends string>({
     >
       {caption ? <caption className="sr-only">{caption}</caption> : null}
       <thead>
-        <tr className={HEADER_ROW_CLASS}>
+        <tr className={`${HEADER_ROW_CLASS} sticky top-0 z-10`}>
           {columns.map((col) => {
-            const sticky = "sticky top-0 z-1";
             const pad =
               col.align === "right"
                 ? col.sortable
                   ? "px-3 py-2.5"
                   : "px-3 py-2.5"
                 : "px-2 py-2.5 pl-3";
-            const thClass = [sticky, pad, col.headerClassName, alignClass(col.align, false)]
+            const thClass = [
+              HEADER_CELL_CLASS,
+              pad,
+              col.headerClassName,
+              alignClass(col.align, false),
+            ]
               .filter(Boolean)
               .join(" ");
 

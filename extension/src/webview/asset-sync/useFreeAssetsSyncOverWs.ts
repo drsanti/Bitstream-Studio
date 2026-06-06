@@ -257,6 +257,12 @@ export function useFreeAssetsSyncOverWs(
     if (!client?.isConnected()) {
       throw new Error("Not connected to asset bridge (start dev:with-model-loader)");
     }
+    const prev = pendingListRef.current;
+    if (prev) {
+      clearTimeout(prev.timeoutId);
+      pendingListRef.current = null;
+      prev.reject(new Error("Superseded by newer catalog request"));
+    }
     const requestId = nextRequestId();
     return new Promise<FreeAssetsListResult>((resolve, reject) => {
       const timeoutId = setTimeout(() => {
@@ -280,6 +286,12 @@ export function useFreeAssetsSyncOverWs(
     const client = clientRef.current;
     if (!client?.isConnected()) {
       throw new Error("Not connected to asset bridge (start dev:with-model-loader)");
+    }
+    const prev = pendingLocalListRef.current;
+    if (prev) {
+      clearTimeout(prev.timeoutId);
+      pendingLocalListRef.current = null;
+      prev.reject(new Error("Superseded by newer local scan request"));
     }
     const requestId = nextRequestId();
     return new Promise<FreeAssetsLocalListResult>((resolve, reject) => {

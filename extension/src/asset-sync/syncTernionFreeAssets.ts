@@ -12,6 +12,11 @@ import * as https from "node:https";
 import { createWriteStream } from "node:fs";
 import { pipeline } from "node:stream/promises";
 import { resolveStandaloneBridgeFreePackOutputDir } from "../standaloneBridgeAssetLayout";
+import {
+  getTernionFreeAssetsIndexViaRawManifests,
+  isGitHubApiRateLimitError,
+  listFreeAssetRepoPathsViaRawManifests,
+} from "./freeAssetIndexFromRawManifests";
 
 export const TERNION_FREE_ASSETS_OWNER = "drsanti";
 export const TERNION_FREE_ASSETS_REPO = "ternion-3d-assets-free";
@@ -47,6 +52,8 @@ export interface SyncTernionFreeAssetsOptions {
   /** Parallel downloads (default 6) */
   concurrency?: number;
   onProgress?: (p: SyncTernionFreeAssetsProgress) => void;
+  /** Called when listing falls back from GitHub API to raw manifests. */
+  onListingFallback?: (message: string) => void;
   /**
    * If set, download only these repo paths (must each match `assets/...` and appear in the tree).
    */
@@ -226,10 +233,22 @@ async function listAssetBlobPaths(
   owner: string,
   repo: string,
   ref: string,
-  token?: string
+  token?: string,
+  onListingFallback?: (reason: string) => void,
 ): Promise<string[]> {
-  const blobs = await fetchAssetsTreeBlobs(owner, repo, ref, token);
-  return blobs.map((e) => e.path!).filter(Boolean);
+  try {
+    const blobs = await fetchAssetsTreeBlobs(owner, repo, ref, token);
+    return blobs.map((e) => e.path!).filter(Boolean);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!isGitHubApiRateLimitError(msg)) {
+      throw e;
+    }
+    onListingFallback?.(
+      "GitHub API rate limit — listing via public raw manifests instead (no token required).",
+    );
+    return listFreeAssetRepoPathsViaRawManifests({ owner, repo, ref });
+  }
 }
 
 /**
@@ -240,23 +259,35 @@ export async function getTernionFreeAssetsIndex(options?: {
   repo?: string;
   ref?: string;
   githubToken?: string;
+  onListingFallback?: (message: string) => void;
 }): Promise<TernionFreeAssetIndexEntry[]> {
   const owner = options?.owner ?? TERNION_FREE_ASSETS_OWNER;
   const repo = options?.repo ?? TERNION_FREE_ASSETS_REPO;
   const ref = options?.ref ?? TERNION_FREE_ASSETS_REF;
   const token = options?.githubToken ?? process.env.GITHUB_TOKEN;
-  const blobs = await fetchAssetsTreeBlobs(owner, repo, ref, token);
-  return blobs.map((e) => {
-    const repoPath = e.path!;
-    const relativePath = repoPath.slice("assets/".length);
-    const size =
-      typeof e.size === "number" && Number.isFinite(e.size) ? e.size : null;
-    return {
-      repoPath,
-      relativePath,
-      sizeBytes: size,
-    };
-  });
+  try {
+    const blobs = await fetchAssetsTreeBlobs(owner, repo, ref, token);
+    return blobs.map((e) => {
+      const repoPath = e.path!;
+      const relativePath = repoPath.slice("assets/".length);
+      const size =
+        typeof e.size === "number" && Number.isFinite(e.size) ? e.size : null;
+      return {
+        repoPath,
+        relativePath,
+        sizeBytes: size,
+      };
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (!isGitHubApiRateLimitError(msg)) {
+      throw e;
+    }
+    options?.onListingFallback?.(
+      "GitHub API rate limit — listing via public raw manifests instead (no token required).",
+    );
+    return getTernionFreeAssetsIndexViaRawManifests({ owner, repo, ref });
+  }
 }
 
 function rawUrl(
@@ -300,7 +331,13 @@ export async function syncTernionFreeAssets(
 
   let blobPaths: string[];
   try {
-    blobPaths = await listAssetBlobPaths(owner, repo, ref, token);
+    blobPaths = await listAssetBlobPaths(
+      owner,
+      repo,
+      ref,
+      token,
+      options.onListingFallback,
+    );
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     onProgress?.({

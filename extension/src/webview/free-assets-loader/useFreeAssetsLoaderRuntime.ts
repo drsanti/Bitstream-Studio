@@ -13,6 +13,10 @@ function nextRequestId(): string {
   return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/** Extension postMessage round-trip (local disk scan can be slow on first antivirus pass). */
+const EXTENSION_LOCAL_LIST_TIMEOUT_MS = 120_000;
+const EXTENSION_PACK_LIST_TIMEOUT_MS = 120_000;
+
 export interface DefaultDownloadPaths {
   freeGithubRootFs: string;
   modelDownloadsRootFs: string;
@@ -96,9 +100,12 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
       {
         resolve: (v: unknown) => void;
         reject: (e: Error) => void;
+        timeoutId?: ReturnType<typeof setTimeout>;
       }
     >()
   );
+  const listLoadingGenRef = useRef(0);
+  const localListLoadingGenRef = useRef(0);
 
   useEffect(() => {
     if (!isExtension) return;
@@ -132,6 +139,9 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
         return;
       }
       if (d.type === "asset-free-pack-list-response") {
+        if (pending.timeoutId) {
+          clearTimeout(pending.timeoutId);
+        }
         const err = d.error;
         if (err) {
           pending.reject(new Error(err));
@@ -142,6 +152,9 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
         return;
       }
       if (d.type === "asset-free-local-list-response") {
+        if (pending.timeoutId) {
+          clearTimeout(pending.timeoutId);
+        }
         const err = d.error;
         if (err) {
           pending.reject(new Error(err));
@@ -224,6 +237,7 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
 
   const listIndex = useCallback(async (): Promise<FreeAssetIndexEntry[]> => {
     setError(null);
+    const gen = ++listLoadingGenRef.current;
     if (isExtension) {
       const vscodeApi = getVsCodeApi();
       if (!vscodeApi) throw new Error("VS Code API not available");
@@ -231,19 +245,32 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
       try {
         const requestId = nextRequestId();
         return await new Promise<FreeAssetIndexEntry[]>((resolve, reject) => {
-          pendingRef.current.set(requestId, { resolve: resolve as (v: unknown) => void, reject });
+          const timeoutId = setTimeout(() => {
+            pendingRef.current.delete(requestId);
+            reject(new Error("Catalog list timed out"));
+          }, EXTENSION_PACK_LIST_TIMEOUT_MS);
+          pendingRef.current.set(requestId, {
+            resolve: resolve as (v: unknown) => void,
+            reject,
+            timeoutId,
+          });
           vscodeApi.postMessage({ type: "asset-free-pack-list", requestId });
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
+        if (!msg.includes("Superseded by newer catalog request")) {
+          setError(msg);
+        }
         throw e;
       } finally {
-        setListLoading(false);
+        if (listLoadingGenRef.current === gen) {
+          setListLoading(false);
+        }
       }
     }
-    await wsConnect();
+    setListLoading(true);
     try {
+      await wsConnect();
       const { entries, defaultOutputRootDir } = await wsListFreeAssets();
       if (defaultOutputRootDir?.trim()) {
         setFreeGithubRootFs(defaultOutputRootDir.trim());
@@ -251,13 +278,20 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
       return entries;
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      if (!msg.includes("Superseded by newer catalog request")) {
+        setError(msg);
+      }
       throw e;
+    } finally {
+      if (listLoadingGenRef.current === gen) {
+        setListLoading(false);
+      }
     }
   }, [isExtension, wsConnect, wsListFreeAssets]);
 
   const listLocalFreeAssets = useCallback(async () => {
     setError(null);
+    const gen = ++localListLoadingGenRef.current;
     if (isExtension) {
       const vscodeApi = getVsCodeApi();
       if (!vscodeApi) throw new Error("VS Code API not available");
@@ -268,15 +302,27 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
           entries: FreeLocalAssetEntry[];
           rootFs?: string;
         }>((resolve, reject) => {
-          pendingRef.current.set(requestId, { resolve: resolve as (v: unknown) => void, reject });
+          const timeoutId = setTimeout(() => {
+            pendingRef.current.delete(requestId);
+            reject(new Error("Local scan timed out"));
+          }, EXTENSION_LOCAL_LIST_TIMEOUT_MS);
+          pendingRef.current.set(requestId, {
+            resolve: resolve as (v: unknown) => void,
+            reject,
+            timeoutId,
+          });
           vscodeApi.postMessage({ type: "asset-free-local-list", requestId });
         });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        setError(msg);
+        if (!msg.includes("Superseded by newer local scan request")) {
+          setError(msg);
+        }
         throw e;
       } finally {
-        setLocalListLoading(false);
+        if (localListLoadingGenRef.current === gen) {
+          setLocalListLoading(false);
+        }
       }
     }
     await wsConnect();
@@ -285,10 +331,14 @@ export function useFreeAssetsLoaderRuntime(active: boolean): UseFreeAssetsLoader
       return await wsListLocalFreeAssets();
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setError(msg);
+      if (!msg.includes("Superseded by newer local scan request")) {
+        setError(msg);
+      }
       throw e;
     } finally {
-      setLocalListLoading(false);
+      if (localListLoadingGenRef.current === gen) {
+        setLocalListLoading(false);
+      }
     }
   }, [isExtension, wsConnect, wsListLocalFreeAssets]);
 
