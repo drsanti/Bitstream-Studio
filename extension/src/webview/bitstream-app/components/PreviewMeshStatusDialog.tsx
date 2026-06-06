@@ -1,9 +1,8 @@
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
-import { Box, Monitor, X } from "lucide-react";
+import { Box, ChevronRight, Monitor, X } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { TRNButton } from "../../ui/TRN/TRNButton.js";
-import { TRNHintTooltip } from "../../ui/TRN/TRNHintTooltip.js";
 import { TrnLiveDataPulseIcon } from "../../ui/TRN/TrnLiveDataPulseIcon.js";
 import type { PreviewMeshDialogKind } from "../state/previewMeshMissingUi.store.js";
 
@@ -72,7 +71,7 @@ function StatusDialogIcon(props: { kind: PreviewMeshDialogKind; pulseKey: number
 
 /**
  * Operator-facing 3D / asset status dialog — glass card, subtle {@link TrnLiveDataPulseIcon},
- * plain summary, technical detail on “Details” hover.
+ * plain summary, technical detail in a collapsible block.
  */
 export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
   const {
@@ -90,9 +89,11 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
 
   const titleId = useId();
   const summaryId = useId();
+  const detailPanelId = useId();
   const chrome = variantChrome(kind);
   const [pulseKey, setPulseKey] = useState(0);
   const [visible, setVisible] = useState(open);
+  const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) {
@@ -101,6 +102,7 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
     }
     setVisible(true);
     setPulseKey((k) => k + 1);
+    setTechnicalDetailsOpen(false);
   }, [open]);
 
   if (!visible || typeof document === "undefined") {
@@ -143,28 +145,32 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
           <X className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
         </button>
 
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div
-            className={twMerge(
-              "flex h-14 w-14 items-center justify-center rounded-full border",
-              chrome.iconShell,
-            )}
-            aria-hidden
-          >
-            <StatusDialogIcon kind={kind} pulseKey={pulseKey} />
-          </div>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col items-center gap-3">
+            <div
+              className={twMerge(
+                "flex h-14 w-14 items-center justify-center rounded-full border",
+                chrome.iconShell,
+              )}
+              aria-hidden
+            >
+              <StatusDialogIcon kind={kind} pulseKey={pulseKey} />
+            </div>
 
-          <div className="space-y-2 px-1">
             <h2
               id={titleId}
-              className={twMerge("text-base font-semibold tracking-tight", chrome.titleClass)}
+              className={twMerge(
+                "px-1 text-center text-base font-semibold tracking-tight",
+                chrome.titleClass,
+              )}
             >
               {title}
             </h2>
-            <p id={summaryId} className="text-sm leading-relaxed text-zinc-300">
-              {summary}
-            </p>
           </div>
+
+          <p id={summaryId} className="px-1 text-left text-sm leading-relaxed text-zinc-300">
+            {summary}
+          </p>
 
           {bullets.length > 0 ? (
             <div className="w-full rounded-lg border border-zinc-700/55 bg-zinc-900/45 px-3 py-2.5 text-left">
@@ -183,28 +189,51 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
           ) : null}
 
           {showDetail ? (
-            <div className="text-[11px] text-zinc-500">
-              <TRNHintTooltip
-                trigger={<span className="text-zinc-400">Technical details</span>}
-                content={detail}
-                triggerAriaLabel="Technical details about this issue"
-                placement="top-start"
-                triggerWrapper="span"
-                wide
-              />
+            <div className="w-full text-left">
+              <button
+                type="button"
+                className="inline-flex items-center gap-1.5 rounded-sm px-0.5 py-0.5 text-[11px] text-zinc-500 transition-colors hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+                aria-expanded={technicalDetailsOpen}
+                aria-controls={detailPanelId}
+                onClick={() => setTechnicalDetailsOpen((open) => !open)}
+              >
+                <ChevronRight
+                  className={twMerge(
+                    "h-3 w-3 shrink-0 transition-transform duration-150",
+                    technicalDetailsOpen ? "rotate-90" : "rotate-0",
+                  )}
+                  strokeWidth={2.25}
+                  aria-hidden
+                />
+                Technical details
+              </button>
+              {technicalDetailsOpen ? (
+                <div
+                  id={detailPanelId}
+                  className="mt-2 rounded-lg border border-zinc-700/55 bg-zinc-900/45 px-3 py-2 text-xs leading-relaxed text-zinc-400"
+                >
+                  {detail}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
-          <div className="flex w-full flex-row flex-wrap justify-end gap-2 pt-1">
-            <TRNButton size="compact" onClick={onDismiss}>
+          <div className="flex w-full flex-wrap items-center justify-between gap-2 border-t border-zinc-700/55 pt-3">
+            <div className="flex flex-wrap gap-2">
+              <TRNButton size="compact" selected onClick={onOpenFreeLoader}>
+                Free Loader
+              </TRNButton>
+              <TRNButton size="compact" onClick={onOpenSetup}>
+                Setup
+              </TRNButton>
+            </div>
+            <button
+              type="button"
+              className="rounded-sm px-1.5 py-1 text-xs text-zinc-500 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
+              onClick={onDismiss}
+            >
               Dismiss
-            </TRNButton>
-            <TRNButton size="compact" onClick={onOpenSetup}>
-              Setup
-            </TRNButton>
-            <TRNButton size="compact" selected onClick={onOpenFreeLoader}>
-              Free Loader
-            </TRNButton>
+            </button>
           </div>
         </div>
       </div>

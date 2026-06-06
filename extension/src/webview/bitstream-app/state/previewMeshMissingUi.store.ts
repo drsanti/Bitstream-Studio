@@ -77,7 +77,7 @@ export type NotifyMissingAssetPayload = {
   kind?: PreviewMeshDialogKind;
   /** Plain-language body (shown on the card). */
   summary?: string;
-  /** Technical copy — hover “Technical details”. */
+  /** Technical copy — expandable “Technical details” block on the dialog. */
   detail?: string;
   bullets?: readonly string[];
   /** @deprecated Use `summary` + `detail`. */
