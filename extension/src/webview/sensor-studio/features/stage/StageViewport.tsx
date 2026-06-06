@@ -4,6 +4,8 @@ import { MonitorPlay } from "lucide-react";
 import { TRNButton } from "../../../ui/TRN/TRNButton";
 import type { RotationPreviewSceneProps } from "../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 import { buildStagePreviewSceneProps } from "../../core/stage/evaluate-stage-scene-snapshot";
+import { buildStageFlowMediaSceneProps } from "../../core/stage/build-stage-flow-media-scene-props";
+import { graphHasVisionHudNodes } from "../../core/camera/collect-vision-hud-chips";
 import { useStageSceneStore } from "../../state/stage-scene.store";
 import {
   StudioSceneViewport,
@@ -52,6 +54,9 @@ export function StageViewport() {
   const hasSceneOutput = snapshot.sceneOutputNodeId != null;
   const hasModel = snapshot.models.some((m) => m.modelUrl.length > 0);
 
+  const flowNodes = useFlowEditorStore((s) => s.nodes);
+  const flowEdges = useFlowEditorStore((s) => s.edges);
+
   const modelSelectOptions = useMemo(
     () =>
       snapshot.models.map((m, i) => ({
@@ -66,10 +71,18 @@ export function StageViewport() {
       return null;
     }
     const built = buildStagePreviewSceneProps(snapshot, primaryModelIndex);
+    const focusedModel = snapshot.models[primaryModelIndex] ?? snapshot.models[0];
+    const stageMedia = buildStageFlowMediaSceneProps({
+      nodes: flowNodes,
+      edges: flowEdges,
+      sceneOutputNodeId: snapshot.sceneOutputNodeId,
+      primaryModelSourceNodeId: focusedModel?.sourceNodeId ?? null,
+    });
     const orientation = rotationPreviewOrientationFromTransformWire(snapshot.transformWire);
     return {
       ...orientation,
       ...built.glbAnimationSceneExtras,
+      ...stageMedia,
       meshOrientationFromEulerFallback: false,
       fusionEulerHundredths: null,
       showGrid: built.showGrid,
@@ -83,7 +96,12 @@ export function StageViewport() {
       stagePhysicsWire: built.stagePhysicsWire,
       stagePhysicsColliders: built.stagePhysicsColliders,
     };
-  }, [hasModel, snapshot, primaryModelIndex]);
+  }, [flowEdges, flowNodes, hasModel, primaryModelIndex, snapshot]);
+
+  const visionHudNodes = useMemo(
+    () => (graphHasVisionHudNodes(flowNodes) ? flowNodes : []),
+    [flowNodes],
+  );
 
   const dispatchStagePick = useFlowEditorStore((s) => s.dispatchStagePickEvent);
   const onFlowSelectionChange = useFlowEditorStore((s) => s.onSelectionChange);
@@ -94,8 +112,6 @@ export function StageViewport() {
     onFlowSelectionChange([]);
   }, [onFlowSelectionChange, setActiveEditorType]);
 
-  const flowNodes = useFlowEditorStore((s) => s.nodes);
-  const flowEdges = useFlowEditorStore((s) => s.edges);
   const environmentWire = useMemo(
     () => getStageEnvironmentWireContext(),
     [flowNodes, flowEdges],
@@ -290,6 +306,8 @@ export function StageViewport() {
         sceneProps={sceneProps!}
         presentation="stage-fullbleed"
         previewScopeId="sensor-studio-stage"
+        visionHudNodes={visionHudNodes}
+        visionHudEdges={flowEdges}
         onStagePick={onStagePick}
       />
     </div>

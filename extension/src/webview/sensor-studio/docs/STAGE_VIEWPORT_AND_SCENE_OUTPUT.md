@@ -111,6 +111,17 @@ Stage toolbar shows **`Env · {label}`** when `env` is wired; TRN hints note tha
 | **B2** | Multi-model instances, selection, orbit toolbar, appearance/grid settings — **done** (2026-06-02) |
 | **B3** | Rapier physics scene wire (`physicsScene` → snapshot) — **done** (`@dimforge/rapier3d-compat`, ground + graph colliders) |
 | **B4** | Stage picking → Domain C events — **done** (`on-stage-pick`, hit point + object path on `liveStagePickWire`) |
+| **B5** | Camera / vision on Stage — CSS3D feeds + material-video from full graph; vision HUD overlay — **done** (2026-06-06) |
+
+## Camera / vision on Stage (B5)
+
+After each simulation tick, **Stage** merges **`buildStageFlowMediaSceneProps`** into viewport scene props:
+
+- **CSS3D camera feeds** (`css3d-camera-feed`) — screen + world overlays (same as Model Viewer)
+- **Material video** drives scoped to the **focused** Stage model (`sourceModelNodeId`)
+- **Vision HUD** — top-right chips from active vision nodes (`StudioVisionDetectionsHud`)
+
+Demo: Canvas **Run template** → **Stage camera + vision**.
 
 ## Related
 

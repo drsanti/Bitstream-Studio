@@ -1,6 +1,6 @@
 # Sensor Studio — camera nodes (video, texture, and vision)
 
-**Status:** v0.1 foundation shipped — **Camera Input** + **Video Texture** nodes; material consumer wiring is backlog.
+**Status:** v0.8 Phase H — MediaPipe free-pack distribution (Free Loader + slim VSIX); Phase G shipped (3D landmarks, workers, full local pack for maintainers).
 
 **Goal:** Add a camera mini-domain to Sensor Studio with two practical tracks:
 
@@ -254,9 +254,29 @@ All entries go into:
 
 ### Phase D — Vision expansion
 
-- additional nodes: hands/face/object detection.
-- worker/offscreen optimization as needed.
-- optional Stage output integration.
+- [x] additional nodes: **vision-hands**, **vision-face**, **vision-object**, **vision-landmarks-debug**
+- [x] Stage integration: CSS3D feeds + material-video on **Stage** viewport; vision status HUD overlay
+- [x] self-hosted model bundles: `localStorage` MediaPipe endpoint overrides (`vision-mediapipe-endpoints.ts`)
+- [x] worker/offscreen pose inference (`studio-vision-pose-inference.worker.ts` + per-node **Inference backend**)
+- [x] 2D skeleton overlay (`StudioVisionPoseSketchOverlay`) on Stage / Model Viewer / rotation preview
+- [x] bundled asset path: copy `src/assets/vision/**` to `/assets/vision/` (operator drops `.task` + WASM per README)
+
+### Phase G — shipped (2026-06-06)
+
+- [x] 3D landmark debug draw in scene graph (`studio-vision-landmarks-3d-overlay.ts`, `drawLandmarks3d` on pose / landmarks-debug)
+- [x] full offline MediaPipe model pack for local dev (`npm run vision:copy-mediapipe:all`)
+- [x] worker offload for **vision-hands**, **vision-face**, **vision-object** (+ landmarks-debug via pose worker)
+
+### Phase H — free pack (in progress)
+
+- [x] Plan + shared pack module (`visionMediapipeFreePack.ts`, `VISION_MEDIAPIPE_FREE_PACK.md`)
+- [x] Free Loader **Download vision models** + raw-manifest indexer
+- [x] Per-file URL resolver (local → free → online)
+- [x] VSIX slim: lite + WASM only on `prebuild:webview`
+- [x] Publish `assets/vision/mediapipe/` to **`ternion-3d-assets-free`** on GitHub — [`4061528`](https://github.com/drsanti/ternion-3d-assets-free/commit/4061528)
+- [ ] Vision inspector chip when optional models missing (backlog)
+
+See **`extension/docs/VISION_MEDIAPIPE_FREE_PACK.md`**.
 
 ---
 

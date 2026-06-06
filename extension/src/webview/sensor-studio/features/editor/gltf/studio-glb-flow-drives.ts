@@ -16,6 +16,15 @@ import {
   readGlbMaterialTextureUrl,
   type GlbMaterialTextureDriveRow,
 } from "./studio-glb-material-texture";
+import type { GlbMaterialVideoDriveRow } from "./studio-glb-material-video";
+import {
+  mergeGlbMaterialVideoDriveRow,
+  readMaterialVideoBlend,
+  readMaterialVideoMapSlot,
+  readMaterialVideoToneMapped,
+} from "./studio-glb-material-video";
+import type { FlowWireVideoTextureV1 } from "../../../core/camera/flow-wire-video";
+import { isFlowWireVideoTextureV1 } from "../../../core/camera/flow-wire-video";
 import {
   flowVec3ToGlbMaterialColorRgb,
   mergeGlbMaterialColorDriveRow,
@@ -38,6 +47,8 @@ type FlowNodeLike = {
     defaultConfig: Record<string, unknown>;
     liveValue?: unknown;
     liveVector3Wire?: { x: number; y: number; z: number };
+    liveVideoTextureWire?: FlowWireVideoTextureV1;
+    liveInputNumberByHandle?: Record<string, number>;
   };
 };
 
@@ -215,6 +226,50 @@ export function collectGlbMaterialTextureDrivesForModel(
     textures[tag.ref] = mergeGlbMaterialTextureDriveRow(textures[tag.ref], slot, url);
   }
   return textures;
+}
+
+/**
+ * Live camera **VideoTexture** drives from **`material-video`** nodes linked to the same Model.
+ */
+export function collectGlbMaterialVideoDrivesForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): Record<string, GlbMaterialVideoDriveRow> {
+  const videos: Record<string, GlbMaterialVideoDriveRow> = {};
+  if (sourceModelNodeId.trim().length === 0) {
+    return videos;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "material-video") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const tag = readGlbExtractTag(n.data.defaultConfig);
+    if (tag == null || tag.kind !== "material") {
+      continue;
+    }
+    const wire = n.data.liveVideoTextureWire;
+    if (!isFlowWireVideoTextureV1(wire)) {
+      continue;
+    }
+    const slot = readMaterialVideoMapSlot(n.data.defaultConfig);
+    const gain = readMaterialVideoBlend(
+      n.data.defaultConfig,
+      n.data.liveInputNumberByHandle?.gain,
+    );
+    if (gain <= 0) {
+      continue;
+    }
+    videos[tag.ref] = mergeGlbMaterialVideoDriveRow(videos[tag.ref], slot, {
+      textureNodeId: wire.sourceNodeId,
+      gain,
+      toneMapped: readMaterialVideoToneMapped(n.data.defaultConfig),
+    });
+  }
+  return videos;
 }
 
 function readGlbMaterialColorDriveRgb(n: FlowNodeLike): { r: number; g: number; b: number } {

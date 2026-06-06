@@ -72,6 +72,15 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-06** — **Sensor Studio — Vision MediaPipe free pack (Phase H H0–H2):** `VISION_MEDIAPIPE_FREE_PACK.md`, shared **`visionMediapipeFreePack.ts`**, per-file URL resolver (local → free → online), Free Loader **Download vision models**, raw-manifest indexer, manifest gen + stage scripts; **slim VSIX** (`prebuild:webview` lite + WASM only) — **`vision-mediapipe-free-pack.test.ts`**.
+- **2026-06-06** — **Sensor Studio — Camera / vision Phase G:** 3D BlazePose debug overlay in Three.js scene (`studio-vision-landmarks-3d-overlay.ts`, **`drawLandmarks3d`**); full offline MediaPipe pack on webview build (`vision:copy-mediapipe:all`); worker inference for **vision-hands/face/object** + landmarks-debug — **`vision-phase-g.test.ts`**, **`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`** v0.7.
+- **2026-06-06** — **Sensor Studio — Vision Pose VSIX asset URLs:** bundled MediaPipe resolves via **`window.LOCAL_ASSETS_BASE_URI`** + `vision/mediapipe/` (not absolute `/assets/...` — avoids webview 401); **`resolveBundledMediapipeRoot`**, **`vision-phase-f.test.ts`** VSIX case; **`.vscodeignore`** documents shipped `out/webview/assets/vision/mediapipe/`.
+- **2026-06-06** — **Sensor Studio — Vision Pose fast load defaults:** `npm run vision:copy-mediapipe` (postinstall + `prebuild:webview`); **Prefer bundled models** ON by default; CDN session fallback when local assets missing — **`copy-vision-mediapipe.mjs`**, **`vision-mediapipe-endpoints.ts`**.
+- **2026-06-06** — **Sensor Studio — Camera / vision Phase F:** worker pose inference (`studio-vision-pose-inference.worker.ts`, per-node **Inference backend**); **2D skeleton overlay** (`StudioVisionPoseSketchOverlay`, landmark cache); **Prefer bundled models** + `/assets/vision/mediapipe/` Vite copy — **`vision-phase-f.test.ts`**, **`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`** v0.6.
+- **2026-06-06** — **Sensor Studio — Camera / vision Phase E:** Stage viewport consumes graph **CSS3D camera feeds** + **material-video** drives; **vision HUD** overlay on Stage / Model Viewer; MediaPipe CDN overrides via **`vision-mediapipe-endpoints.ts`**; demo **Stage camera + vision** — **`build-stage-flow-media-scene-props.ts`**, **`StudioVisionDetectionsHud.tsx`**.
+- **2026-06-06** — **Sensor Studio — Camera nodes Phase D:** **`vision-hands`**, **`vision-face`**, **`vision-object`**, **`vision-landmarks-debug`** — shared **`studio-vision-mediapipe.ts`** loader, unified **`evaluateVisionFlowNode`**, inspector + card UI — **`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`**.
+- **2026-06-06** — **Sensor Studio — Camera nodes Phase C:** **`vision-pose`** — MediaPipe Pose Landmarker (`@mediapipe/tasks-vision`), throttled inference, nose/wrist **vector3** outputs, **Trigger** events on detection enter/exit — **`studio-vision-pose-runtime.ts`**, **`vision-pose-config.ts`**.
+- **2026-06-06** — **Sensor Studio — Camera nodes Phase B:** **`material-video`** (live VideoTexture on GLB material maps + baseline restore) and **`css3d-camera-feed`** (screen HUD + world CSS3D overlay in **`StudioSceneViewport`**) — extends Phase A **`camera-input`** / **`video-texture`** chain — **`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`**.
 - **2026-06-06** — **Sensor Studio — Camera nodes v0.1 foundation:** **`camera-input`** + **`video-texture`** — `videoBus` / `videoTexture` port types, **`studio-camera-runtime.ts`**, frame tick, card + inspector UI, demo **Camera video texture** — **`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`**.
 - **2026-06-06** — **Sensor Studio — Audio Machine v0.3 (preset I/O):** inspector **Preset I/O** — copy/import portable JSON (`audio-machine-preset-export.ts`) — built-in preset hints — demo **Audio machine fault lab** (Threshold → Machine.Trigger + SFX beep).
 - **2026-06-06** — **Sensor Studio — Audio Machine v0.2c (Industrial):** **Industrial** family (Conveyor, Lathe, Press) — cycle + friction layers, **Trigger** pin clanks — demo **Audio machine (Map Range)** (Sine → Map Range → Machine.Speed) — **`triggerMachineClank`**, **`INDUSTRIAL_MACHINE_PRESETS`**.
@@ -523,6 +532,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
+- **Sensor Studio — Vision MediaPipe free pack (Phase H)** — publish `assets/vision/mediapipe/` to **`ternion-3d-assets-free`**, Free Loader subset + URL resolver — **[`VISION_MEDIAPIPE_FREE_PACK.md`](./VISION_MEDIAPIPE_FREE_PACK.md)**.
 - **Sensor Studio — Stage viewport B2+** — multi-model, orbit toolbar, Rapier on Stage; see **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**.
 - **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
 
@@ -530,7 +540,6 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Sensor Studio — camera nodes + vision domain (Phase B+):** Phase A shipped — **`camera-input`** + **`video-texture`** (`videoBus` / `videoTexture`, **`studio-camera-runtime.ts`**). Next: **`material-video`**, **`css3d-camera-feed`**, then **`vision-pose`** (MediaPipe-style) with scalar/vector/event outputs. Plan: **[`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`](../src/webview/sensor-studio/docs/CAMERA_NODES_REQUIREMENTS_AND_PLAN.md)**.
 - **Sensor Studio — Audio Machine v0.4** — Optional hybrid sample layers + filter-cutoff modulation. Design: **[`AUDIO_MACHINE_SOUND_DESIGN.md`](../src/webview/sensor-studio/docs/AUDIO_MACHINE_SOUND_DESIGN.md)**.
 - **Sensor Studio — Flow edge UX** — **Backlog**: true step overlap SVG bridges, minimap edge tint (if RF adds API). Plan: **[`FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md)**.
 - **Sensor Studio — GLB animation flow (Phase 4+)** — **Backlog** (requirements **2026-06-02**). Per-clip **Animation Clip** nodes (speed, direction, loop, weight, trim), **Merge** / **Blend**, model catalog → Animations spawn path, Blender/glTF use-case coverage. Canonical plan: **[`src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md)**; **`FLOW_DOMAINS.md`** Phase 4+ checklist.

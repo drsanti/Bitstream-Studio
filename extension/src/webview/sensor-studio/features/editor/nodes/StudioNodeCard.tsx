@@ -122,8 +122,24 @@ import {
   CameraInputNodePanel,
   VideoTextureNodePanel,
 } from "./camera/CameraNodePanels";
+import { MaterialVideoNodePanel } from "./camera/MaterialVideoNodePanel";
+import { Css3dCameraFeedNodePanel } from "./camera/Css3dCameraFeedNodePanel";
 import { CameraInputHeaderBadge } from "./camera/CameraInputHeaderBadge";
 import { VideoTextureHeaderBadge } from "./camera/VideoTextureHeaderBadge";
+import { MaterialVideoHeaderBadge } from "./camera/MaterialVideoHeaderBadge";
+import { Css3dCameraFeedHeaderBadge } from "./camera/Css3dCameraFeedHeaderBadge";
+import { VisionPoseHeaderBadge } from "./camera/VisionPoseHeaderBadge";
+import { VisionPoseNodePanel } from "./camera/VisionPoseNodePanel";
+import {
+  VisionFaceHeaderBadge,
+  VisionFaceNodePanel,
+  VisionHandsHeaderBadge,
+  VisionHandsNodePanel,
+  VisionLandmarksDebugHeaderBadge,
+  VisionLandmarksDebugNodePanel,
+  VisionObjectHeaderBadge,
+  VisionObjectNodePanel,
+} from "./camera/VisionExpansionNodePanels";
 import { isStudioFlexPlotCanvasNodeId } from "./flow-node/studio-flex-plot-canvas";
 import {
   coercePlotterConfig,
@@ -142,6 +158,7 @@ import { mergeFlowWireTransformIntoScene3d } from "./transform/flow-wire-transfo
 import { mergeFlowSceneWiresIntoScene3d } from "./scene-fx/merge-flow-scene-wires";
 import { buildGlbAnimationPreviewSceneProps } from "../gltf/build-glb-animation-preview-scene-props";
 import { buildGlbScalarPreviewSceneProps } from "../gltf/build-glb-scalar-preview-scene-props";
+import { graphHasVisionHudNodes } from "../../../core/camera/collect-vision-hud-chips";
 import {
   EventSetBooleanNodePanel,
   EventSetGlbPartNodePanel,
@@ -207,6 +224,11 @@ function StudioNodeCard(props: NodeProps) {
           (n as any)?.data?.defaultConfig != null,
       ),
     [flowNodes],
+  );
+
+  const visionHudNodes = useMemo(
+    () => (graphHasVisionHudNodes(flowNodesWithCatalogData) ? flowNodesWithCatalogData : []),
+    [flowNodesWithCatalogData],
   );
 
   const onNodesChangeAny = useCallback(
@@ -670,6 +692,22 @@ function StudioNodeCard(props: NodeProps) {
     ) : null;
   const videoTextureHeaderBadge =
     data.nodeId === "video-texture" ? <VideoTextureHeaderBadge nodeId={id} /> : null;
+  const materialVideoHeaderBadge =
+    data.nodeId === "material-video" ? <MaterialVideoHeaderBadge nodeId={id} /> : null;
+  const css3dFeedHeaderBadge =
+    data.nodeId === "css3d-camera-feed" ? <Css3dCameraFeedHeaderBadge nodeId={id} /> : null;
+  const visionPoseHeaderBadge =
+    data.nodeId === "vision-pose" ? <VisionPoseHeaderBadge nodeId={id} /> : null;
+  const visionHandsHeaderBadge =
+    data.nodeId === "vision-hands" ? <VisionHandsHeaderBadge nodeId={id} /> : null;
+  const visionFaceHeaderBadge =
+    data.nodeId === "vision-face" ? <VisionFaceHeaderBadge nodeId={id} /> : null;
+  const visionObjectHeaderBadge =
+    data.nodeId === "vision-object" ? <VisionObjectHeaderBadge nodeId={id} /> : null;
+  const visionLandmarksDebugHeaderBadge =
+    data.nodeId === "vision-landmarks-debug" ? (
+      <VisionLandmarksDebugHeaderBadge nodeId={id} />
+    ) : null;
   const oscHeaderBadge =
     data.nodeId === "audio-oscillator" ? (
       <AudioOscillatorHeaderBadge nodeId={id} defaultConfig={data.defaultConfig} />
@@ -696,6 +734,13 @@ function StudioNodeCard(props: NodeProps) {
     micHeaderBadge != null ||
     cameraHeaderBadge != null ||
     videoTextureHeaderBadge != null ||
+    materialVideoHeaderBadge != null ||
+    css3dFeedHeaderBadge != null ||
+    visionPoseHeaderBadge != null ||
+    visionHandsHeaderBadge != null ||
+    visionFaceHeaderBadge != null ||
+    visionObjectHeaderBadge != null ||
+    visionLandmarksDebugHeaderBadge != null ||
     oscHeaderBadge != null ||
     filePlayerHeaderBadge != null ||
     audioOutputHeaderBadge != null ||
@@ -708,6 +753,13 @@ function StudioNodeCard(props: NodeProps) {
         {micHeaderBadge}
         {cameraHeaderBadge}
         {videoTextureHeaderBadge}
+        {materialVideoHeaderBadge}
+        {css3dFeedHeaderBadge}
+        {visionPoseHeaderBadge}
+        {visionHandsHeaderBadge}
+        {visionFaceHeaderBadge}
+        {visionObjectHeaderBadge}
+        {visionLandmarksDebugHeaderBadge}
         {oscHeaderBadge}
         {filePlayerHeaderBadge}
         {audioOutputHeaderBadge}
@@ -1417,6 +1469,8 @@ function StudioNodeCard(props: NodeProps) {
                 <StudioSceneViewport
                   title="3D Scene (Euler)"
                   previewScopeId={`flow-node:${id}`}
+                  visionHudNodes={visionHudNodes}
+                  visionHudEdges={flowEdges}
                   sceneProps={
                     eulerScene ?? {
                       qw: 1,
@@ -1441,6 +1495,8 @@ function StudioNodeCard(props: NodeProps) {
                 <StudioSceneViewport
                   title="3D Scene (Quaternion)"
                   previewScopeId={`flow-node:${id}`}
+                  visionHudNodes={visionHudNodes}
+                  visionHudEdges={flowEdges}
                   sceneProps={
                     quaternionScene ?? {
                       qw: 1,
@@ -1476,6 +1532,27 @@ function StudioNodeCard(props: NodeProps) {
               ) : null}
               {data.nodeId === "video-texture" ? (
                 <VideoTextureNodePanel nodeId={id} />
+              ) : null}
+              {data.nodeId === "material-video" ? (
+                <MaterialVideoNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+              ) : null}
+              {data.nodeId === "css3d-camera-feed" ? (
+                <Css3dCameraFeedNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
+              ) : null}
+              {data.nodeId === "vision-pose" ? (
+                <VisionPoseNodePanel nodeId={id} />
+              ) : null}
+              {data.nodeId === "vision-hands" ? (
+                <VisionHandsNodePanel nodeId={id} />
+              ) : null}
+              {data.nodeId === "vision-face" ? (
+                <VisionFaceNodePanel nodeId={id} />
+              ) : null}
+              {data.nodeId === "vision-object" ? (
+                <VisionObjectNodePanel nodeId={id} />
+              ) : null}
+              {data.nodeId === "vision-landmarks-debug" ? (
+                <VisionLandmarksDebugNodePanel nodeId={id} />
               ) : null}
               {data.nodeId === "audio-output" ? (
                 <AudioOutputNodePanel

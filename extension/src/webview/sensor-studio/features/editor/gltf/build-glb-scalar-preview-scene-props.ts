@@ -15,6 +15,9 @@ import {
   collectGlbScalarDrivesForModel,
 } from "./studio-glb-flow-drives";
 import type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
+import { collectCss3dCameraFeeds } from "../../../core/camera/studio-camera-css3d-feed";
+import type { FlowWireVideoBusV1 } from "../../../core/camera/flow-wire-video";
+import type { FlowWireVideoTextureV1 } from "../../../core/camera/flow-wire-video";
 
 type FlowNodeLike = {
   id: string;
@@ -23,6 +26,10 @@ type FlowNodeLike = {
     defaultConfig: Record<string, unknown>;
     liveValue?: unknown;
     liveVector3Wire?: { x: number; y: number; z: number };
+    liveVideoBusWire?: FlowWireVideoBusV1;
+    liveVideoTextureWire?: FlowWireVideoTextureV1;
+    liveInputBooleanByHandle?: Record<string, boolean>;
+    liveInputNumberByHandle?: Record<string, number>;
   };
 };
 
@@ -33,7 +40,9 @@ export type GlbScalarPreviewSceneProps = Pick<
   | "glbPartVisibilityByPath"
   | "glbMaterialPbrByName"
   | "glbMaterialTexturesByName"
+  | "glbMaterialVideosByName"
   | "glbMaterialColorsByName"
+  | "cameraCss3dFeeds"
   | "glbCameraDriveByName"
   | "glbCameraSwitchIndex"
   | "glbCameraSwitchRig"
@@ -79,7 +88,12 @@ export function buildGlbScalarPreviewSceneProps(args: {
     glbPartVisibilityByPath: partKeys.length > 0 ? glbDrives.parts : undefined,
     glbMaterialPbrByName: materialCompact.glbMaterialPbrByName,
     glbMaterialTexturesByName: materialCompact.glbMaterialTexturesByName,
+    glbMaterialVideosByName: materialCompact.glbMaterialVideosByName,
     glbMaterialColorsByName: materialCompact.glbMaterialColorsByName,
+    cameraCss3dFeeds: (() => {
+      const feeds = collectCss3dCameraFeeds(args.nodes);
+      return feeds.length > 0 ? feeds : undefined;
+    })(),
     glbCameraDriveByName: cameraKeys.length > 0 ? glbDrives.cameras : undefined,
     glbCameraSwitchIndex: cameraSwitchIndex ?? undefined,
     glbCameraSwitchRig: cameraSwitchRig ?? undefined,

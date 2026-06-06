@@ -21,6 +21,8 @@ import type { StudioGlbAnimationPlaybackModeV1 } from "../../../../sensor-studio
 import type { GlbMaterialPbrDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-param";
 import type { GlbMaterialTextureDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-texture";
 import type { GlbMaterialColorDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-color";
+import type { GlbMaterialVideoDriveRow } from "../../../../sensor-studio/features/editor/gltf/studio-glb-material-video";
+import type { Css3dCameraFeedSpec } from "../../../../sensor-studio/core/camera/studio-camera-css3d-feed";
 
 export type RotationPreviewSceneProps = {
   qw: number;
@@ -87,8 +89,12 @@ export type RotationPreviewSceneProps = {
   glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
   /** Optional material texture URLs by material **name** and map slot. */
   glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
-  /** Optional material base / emissive RGB drives by material **name** (0–1 channels). */
+  /** Optional live camera **VideoTexture** drives by material **name** and map slot. */
+  glbMaterialVideosByName?: Record<string, GlbMaterialVideoDriveRow>;
+  /** Optional base / emissive RGB drives by material **name** (0–1 channels). */
   glbMaterialColorsByName?: Record<string, GlbMaterialColorDriveRow>;
+  /** Screen / world CSS3D camera feed panels for this viewport. */
+  cameraCss3dFeeds?: Css3dCameraFeedSpec[];
   /** @deprecated Prefer {@link glbMaterialPbrByName}. Emissive-only legacy map. */
   glbMaterialEmissiveByName?: Record<string, number>;
   /**

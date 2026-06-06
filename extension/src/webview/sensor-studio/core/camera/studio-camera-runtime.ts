@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { releaseCameraInferenceCanvas } from "./studio-camera-inference-surface";
 
 export type CameraCaptureStatus = "idle" | "requesting" | "active" | "denied" | "error";
 
@@ -26,6 +27,21 @@ type VideoTextureState = {
   ready: boolean;
 };
 
+type CameraActivationArgs = {
+  deviceId: string;
+  facingMode: "user" | "environment";
+  width: number;
+  height: number;
+  targetFps: number;
+  mirrorPreview: boolean;
+};
+
+/** Off-screen but non-zero so browsers keep decoding frames reliably. */
+const HIDDEN_VIDEO_HOST_STYLE =
+  "position:fixed;left:-10000px;top:0;width:640px;height:480px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1;";
+const HIDDEN_VIDEO_ELEMENT_STYLE =
+  "width:640px;height:480px;object-fit:contain;opacity:0;pointer-events:none;";
+
 function clampDimension(value: number, fallback: number): number {
   if (!Number.isFinite(value)) {
     return fallback;
@@ -40,10 +56,22 @@ function clampTargetFps(value: number): number {
   return Math.min(60, Math.max(1, Math.round(value)));
 }
 
+function activationConstraintKey(args: CameraActivationArgs): string {
+  return JSON.stringify({
+    deviceId: args.deviceId.trim(),
+    facingMode: args.facingMode,
+    width: clampDimension(args.width, 1280),
+    height: clampDimension(args.height, 720),
+    targetFps: clampTargetFps(args.targetFps),
+  });
+}
+
 class StudioCameraRuntime {
   private cameraByNodeId = new Map<string, CameraState>();
   private textureByNodeId = new Map<string, VideoTextureState>();
   private hiddenVideoHost: HTMLDivElement | null = null;
+  private activationPromiseByNodeId = new Map<string, Promise<void>>();
+  private activationConstraintKeyByNodeId = new Map<string, string>();
 
   private ensureHiddenHost(): HTMLDivElement | null {
     if (typeof document === "undefined") {
@@ -52,12 +80,29 @@ class StudioCameraRuntime {
     if (this.hiddenVideoHost == null) {
       const host = document.createElement("div");
       host.setAttribute("aria-hidden", "true");
-      host.style.cssText =
-        "position:fixed;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;";
+      host.style.cssText = HIDDEN_VIDEO_HOST_STYLE;
       document.body.appendChild(host);
       this.hiddenVideoHost = host;
     }
     return this.hiddenVideoHost;
+  }
+
+  private ensureState(nodeId: string): CameraState {
+    let st = this.cameraByNodeId.get(nodeId);
+    if (st == null) {
+      st = {
+        enabled: false,
+        status: "idle",
+        deviceId: "default",
+        facingMode: "user",
+        width: 1280,
+        height: 720,
+        targetFps: 30,
+        mirrorPreview: true,
+      };
+      this.cameraByNodeId.set(nodeId, st);
+    }
+    return st;
   }
 
   getCameraUiState(nodeId: string): Pick<CameraState, "enabled" | "status" | "errorMessage"> {
@@ -76,66 +121,65 @@ class StudioCameraRuntime {
     return this.cameraByNodeId.get(nodeId)?.videoEl ?? null;
   }
 
-  enableCamera(nodeId: string, enabled: boolean): void {
-    const prev = this.cameraByNodeId.get(nodeId);
-    const next: CameraState = prev ?? {
-      enabled: false,
-      status: "idle",
-      deviceId: "default",
-      facingMode: "user",
-      width: 1280,
-      height: 720,
-      targetFps: 30,
-      mirrorPreview: true,
-    };
-    next.enabled = enabled;
-    if (!enabled && next.status === "active") {
-      this.stopCamera(nodeId);
-      next.status = "idle";
-    }
-    this.cameraByNodeId.set(nodeId, next);
+  getCameraStream(nodeId: string): MediaStream | null {
+    return this.cameraByNodeId.get(nodeId)?.stream ?? null;
   }
 
-  async ensureCameraActive(
-    nodeId: string,
-    args: {
-      deviceId: string;
-      facingMode: "user" | "environment";
-      width: number;
-      height: number;
-      targetFps: number;
-      mirrorPreview: boolean;
-    },
-  ): Promise<void> {
-    const st = this.cameraByNodeId.get(nodeId) ?? {
-      enabled: false,
-      status: "idle" as const,
-      deviceId: "default",
-      facingMode: "user" as const,
-      width: 1280,
-      height: 720,
-      targetFps: 30,
-      mirrorPreview: true,
-    };
+  enableCamera(nodeId: string, enabled: boolean): void {
+    const st = this.ensureState(nodeId);
+    st.enabled = enabled;
+    if (!enabled && st.status === "active") {
+      this.stopCamera(nodeId);
+      st.status = "idle";
+    }
+  }
+
+  async ensureCameraActive(nodeId: string, args: CameraActivationArgs): Promise<void> {
+    const st = this.ensureState(nodeId);
     st.deviceId = args.deviceId;
     st.facingMode = args.facingMode;
     st.width = clampDimension(args.width, 1280);
     st.height = clampDimension(args.height, 720);
     st.targetFps = clampTargetFps(args.targetFps);
     st.mirrorPreview = args.mirrorPreview;
-    this.cameraByNodeId.set(nodeId, st);
 
     if (!st.enabled) {
       return;
     }
 
+    const nextKey = activationConstraintKey(args);
+    const prevKey = this.activationConstraintKeyByNodeId.get(nodeId);
+
     if (st.status === "active" && st.videoEl != null && st.stream != null) {
-      return;
+      if (prevKey === nextKey) {
+        this.keepCameraPlaybackAlive(nodeId);
+        return;
+      }
+      this.stopCamera(nodeId);
+      st.status = "idle";
     }
 
+    const inflight = this.activationPromiseByNodeId.get(nodeId);
+    if (inflight != null) {
+      return inflight;
+    }
+
+    const promise = this.activateCameraInternal(nodeId, st, nextKey);
+    this.activationPromiseByNodeId.set(nodeId, promise);
+    try {
+      await promise;
+    } finally {
+      this.activationPromiseByNodeId.delete(nodeId);
+    }
+  }
+
+  private async activateCameraInternal(
+    nodeId: string,
+    st: CameraState,
+    constraintKey: string,
+  ): Promise<void> {
     st.status = "requesting";
     st.errorMessage = undefined;
-    this.cameraByNodeId.set(nodeId, st);
 
     try {
       const deviceId = st.deviceId.trim();
@@ -166,6 +210,8 @@ class StudioCameraRuntime {
       videoEl.muted = true;
       videoEl.playsInline = true;
       videoEl.autoplay = true;
+      videoEl.setAttribute("playsinline", "true");
+      videoEl.style.cssText = HIDDEN_VIDEO_ELEMENT_STYLE;
       videoEl.srcObject = stream;
       host.appendChild(videoEl);
 
@@ -178,10 +224,21 @@ class StudioCameraRuntime {
       st.fpsWindowStartMs = performance.now();
       st.fpsFrameCount = 0;
       st.measuredFps = 0;
+      this.activationConstraintKeyByNodeId.set(nodeId, constraintKey);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       st.status = message.toLowerCase().includes("denied") ? "denied" : "error";
       st.errorMessage = message;
+    }
+  }
+
+  keepCameraPlaybackAlive(nodeId: string): void {
+    const video = this.cameraByNodeId.get(nodeId)?.videoEl;
+    if (video == null) {
+      return;
+    }
+    if (video.paused || video.ended) {
+      void video.play().catch(() => undefined);
     }
   }
 
@@ -191,6 +248,9 @@ class StudioCameraRuntime {
       return;
     }
 
+    this.activationPromiseByNodeId.delete(nodeId);
+    this.activationConstraintKeyByNodeId.delete(nodeId);
+
     try {
       st.stream?.getTracks().forEach((t) => t.stop());
     } catch {}
@@ -198,6 +258,10 @@ class StudioCameraRuntime {
     try {
       st.videoEl?.remove();
     } catch {}
+
+    if (st.videoEl != null) {
+      releaseCameraInferenceCanvas(st.videoEl);
+    }
 
     for (const [textureNodeId, texState] of this.textureByNodeId.entries()) {
       if (texState.cameraNodeId === nodeId) {
@@ -217,6 +281,7 @@ class StudioCameraRuntime {
     if (st == null || st.status !== "active") {
       return 0;
     }
+    this.keepCameraPlaybackAlive(nodeId);
     const start = st.fpsWindowStartMs ?? nowMs;
     const count = (st.fpsFrameCount ?? 0) + 1;
     st.fpsFrameCount = count;
@@ -282,6 +347,10 @@ class StudioCameraRuntime {
 
   isVideoTextureReady(textureNodeId: string): boolean {
     return this.textureByNodeId.get(textureNodeId)?.ready === true;
+  }
+
+  getVideoTexture(textureNodeId: string): THREE.VideoTexture | null {
+    return this.textureByNodeId.get(textureNodeId)?.texture ?? null;
   }
 
   releaseVideoTexture(textureNodeId: string): void {

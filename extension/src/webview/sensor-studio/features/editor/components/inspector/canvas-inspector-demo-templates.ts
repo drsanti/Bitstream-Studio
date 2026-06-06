@@ -42,12 +42,17 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
     {
       value: "camera-video-texture",
       label: "Camera video texture",
-      hint: "Camera Input → Video Texture (wired Video bus). Enable the camera node and allow browser permission; Ready goes true when the stream is live.",
+      hint: "Camera Input → Video Texture + Vision Pose (wired Video bus). Enable the camera node and allow browser permission; pose outputs update when MediaPipe model loads.",
     },
     {
       value: "stage-scene-output",
       label: "Stage + Scene Output",
       hint: "Model Source (PSoC E84 pack model) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",
+    },
+    {
+      value: "stage-camera-vision",
+      label: "Stage camera + vision",
+      hint: "Stage + Scene Output with **Camera Input**, screen **CSS3D Camera Feed**, and **Vision Pose**. Open **Stage** for the 3D view; vision status chips appear top-right when inference runs.",
     },
     {
       value: "material-glb-drives",

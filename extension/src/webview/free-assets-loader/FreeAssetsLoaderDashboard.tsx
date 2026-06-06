@@ -22,6 +22,7 @@ import {
 import { TRNButton } from "../ui/TRN/TRNButton.js";
 import { TRNHintText } from "../ui/TRN/TRNHintText.js";
 import { TRNWindow, type TRNWindowRect } from "../ui/TRN/TRNWindow.js";
+import { visionMediapipeFreePackRepoPaths } from "../../asset-sync/visionMediapipeFreePack";
 import { FreeAssetKindBadge } from "./FreeAssetKindBadge.js";
 import { FreeAssetsLoaderHeaderActions } from "./FreeAssetsLoaderHeader.js";
 import { FreeAssetsLoaderSaveFolderFooter } from "./FreeAssetsLoaderSaveFolderFooter.js";
@@ -637,6 +638,15 @@ export function FreeAssetsLoaderDashboard({
                     disabled={rt.busy || entries.length === 0}
                   >
                     Download all
+                  </TRNButton>
+                  <TRNButton
+                    size="compact"
+                    prefixIcon={<Download className="h-3.5 w-3.5 shrink-0" aria-hidden />}
+                    onClick={() => void runDownload(visionMediapipeFreePackRepoPaths())}
+                    disabled={rt.busy}
+                    hint="MediaPipe WASM + vision models for Sensor Studio (assets/vision/mediapipe/). Included in Download all once published on the free pack."
+                  >
+                    Download vision models
                   </TRNButton>
                   <TRNButton
                     size="compact"

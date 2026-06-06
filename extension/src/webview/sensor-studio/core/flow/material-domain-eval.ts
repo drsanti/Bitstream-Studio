@@ -1,5 +1,8 @@
 import type { StudioFlowEdgeLike } from "../../features/editor/model/model-generated-bindings";
+import type { GlbMaterialVideoDriveRow } from "../../features/editor/gltf/studio-glb-material-video";
+import { glbMaterialVideoRowHasValues } from "../../features/editor/gltf/studio-glb-material-video";
 import {
+  collectGlbMaterialVideoDrivesForModel,
   collectGlbMaterialColorDrivesForModel,
   collectGlbMaterialTextureDrivesForModel,
   collectGlbScalarDrivesForModel,
@@ -17,6 +20,7 @@ export const MATERIAL_DOMAIN_NODE_IDS: ReadonlySet<string> = new Set([
   "glb-material-texture",
   "glb-material-color",
   "material-mix",
+  "material-video",
 ]);
 
 type FlowNodeLike = {
@@ -32,6 +36,7 @@ type FlowNodeLike = {
 export type MaterialGraphEvaluation = {
   materialPbr: Record<string, GlbMaterialPbrDriveRow>;
   materialTextures: Record<string, GlbMaterialTextureDriveRow>;
+  materialVideos: Record<string, GlbMaterialVideoDriveRow>;
   materialColors: Record<string, GlbMaterialColorDriveRow>;
 };
 
@@ -80,6 +85,11 @@ export function evaluateMaterialGraphForModel(
     sourceModelNodeId,
     edges,
   );
+  const materialVideos = collectGlbMaterialVideoDrivesForModel(
+    nodes,
+    sourceModelNodeId,
+    edges,
+  );
   const materialColors = collectGlbMaterialColorDrivesForModel(
     nodes,
     sourceModelNodeId,
@@ -88,6 +98,7 @@ export function evaluateMaterialGraphForModel(
   return {
     materialPbr: scalars.materialPbr,
     materialTextures,
+    materialVideos,
     materialColors,
   };
 }
@@ -97,6 +108,7 @@ export function compactMaterialGraphEvaluation(
 ): {
   glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
   glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
+  glbMaterialVideosByName?: Record<string, GlbMaterialVideoDriveRow>;
   glbMaterialColorsByName?: Record<string, GlbMaterialColorDriveRow>;
 } {
   const materialPbrKeys = Object.keys(evalResult.materialPbr).filter((k) =>
@@ -104,6 +116,9 @@ export function compactMaterialGraphEvaluation(
   );
   const materialTextureKeys = Object.keys(evalResult.materialTextures).filter((k) =>
     glbMaterialTextureRowHasValues(evalResult.materialTextures[k]),
+  );
+  const materialVideoKeys = Object.keys(evalResult.materialVideos).filter((k) =>
+    glbMaterialVideoRowHasValues(evalResult.materialVideos[k]),
   );
   const materialColorKeys = Object.keys(evalResult.materialColors).filter((k) =>
     glbMaterialColorRowHasValues(evalResult.materialColors[k]),
@@ -113,6 +128,8 @@ export function compactMaterialGraphEvaluation(
       materialPbrKeys.length > 0 ? evalResult.materialPbr : undefined,
     glbMaterialTexturesByName:
       materialTextureKeys.length > 0 ? evalResult.materialTextures : undefined,
+    glbMaterialVideosByName:
+      materialVideoKeys.length > 0 ? evalResult.materialVideos : undefined,
     glbMaterialColorsByName:
       materialColorKeys.length > 0 ? evalResult.materialColors : undefined,
   };

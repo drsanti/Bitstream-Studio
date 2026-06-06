@@ -1,2 +1,9 @@
 *.blend1
 
+# MediaPipe vision assets — populated by `npm run vision:copy-mediapipe` (postinstall)
+vision/mediapipe/wasm/
+vision/mediapipe/*.task
+vision/mediapipe/*.tflite
+!vision/mediapipe/README.md
+!vision/mediapipe/manifest.v1.json
+!vision/mediapipe/NOTICE.md

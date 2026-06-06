@@ -45,7 +45,14 @@ ternion-3d-assets-free/
         └── node-graph/                        ← Node Animator graph presets
             ├── index.json
             └── *.trn-node-asset.json
+    └── vision/
+        └── mediapipe/                         ← Sensor Studio MediaPipe pack (Free Loader)
+            ├── manifest.v1.json
+            ├── wasm/
+            └── *.task / *.tflite
 ```
+
+**Vision pack:** see [`VISION_MEDIAPIPE_FREE_PACK.md`](./VISION_MEDIAPIPE_FREE_PACK.md). Relative paths: `vision/mediapipe/...`. Sync via **Free Loader** (same as models/textures); VSIX ships **lite + WASM** only.
 
 ### Deprecated / do not use (repo root)
 

@@ -199,13 +199,15 @@ export function runFlowEventDispatch(args: {
   nodes: readonly StudioNode[];
   edges: readonly FlowEventEdgeLike[];
   sourceNodeIds: readonly string[];
+  sourceHandle?: string;
   nowMs?: number;
 }): StudioNode[] {
   const nowMs = args.nowMs ?? Date.now();
+  const sourceHandle = args.sourceHandle ?? STUDIO_HANDLE_OUT;
   let nextNodes = [...args.nodes];
   const allTargets: string[] = [];
   for (const sourceId of args.sourceNodeIds) {
-    allTargets.push(...collectFlowEventTargetNodeIds(args.edges, sourceId));
+    allTargets.push(...collectFlowEventTargetNodeIds(args.edges, sourceId, sourceHandle));
   }
   nextNodes = applyFlowEventActionsToNodes(nextNodes, allTargets);
   return pulseFlowEventSourceNodes(nextNodes, args.sourceNodeIds, nowMs);

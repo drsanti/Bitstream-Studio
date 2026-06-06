@@ -32,6 +32,7 @@ import type { FlowWireContactShadowsV1 } from "../scene-fx/flow-wire-contact-sha
 import type { FlowWireParticleEmitterV1 } from "../scene-fx/flow-wire-particle-emitter";
 import { rotationPreviewOrientationFromTransformWire } from "../transform/flow-wire-transform-preview-orientation";
 import { resolveStudioModelScopeNodeId, resolveStudioSourceModelGlbUrl } from "../../model/model-generated-bindings";
+import { graphHasVisionHudNodes } from "../../../../core/camera/collect-vision-hud-chips";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 export type ModelViewerNodePanelProps = {
@@ -243,11 +244,18 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
     stagePhysicsColliders,
   ]);
 
+  const visionHudNodes = useMemo(
+    () => (graphHasVisionHudNodes(nodes) ? nodes : []),
+    [nodes],
+  );
+
   return (
     <StudioSceneViewport
       title="3D Model"
       sceneProps={sceneProps}
       previewScopeId={`flow-node:${nodeId}`}
+      visionHudNodes={visionHudNodes}
+      visionHudEdges={edges}
       emptyHint={logicalModelUrl.length === 0 ? MODEL_VIEWER_EMPTY_HINT : undefined}
     />
   );

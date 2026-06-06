@@ -159,9 +159,16 @@ import {
 import { studioAudioRuntime } from "../../../core/audio/studio-audio-runtime";
 import { studioCameraRuntime } from "../../../core/camera/studio-camera-runtime";
 import {
+  evaluateVisionFlowNode,
+  isVisionInferenceNodeId,
+} from "../../../core/camera/evaluate-vision-flow-nodes";
+import {
   isFlowWireVideoBusV1,
+  isFlowWireVideoTextureV1,
   makeFlowWireVideoBusV1,
   makeFlowWireVideoTextureV1,
+  type FlowWireVideoBusV1,
+  type FlowWireVideoTextureV1,
 } from "../../../core/camera/flow-wire-video";
 import type { FlowWireFogV1 } from "../nodes/scene-fx/flow-wire-fog";
 import {
@@ -708,6 +715,10 @@ export type StudioNodeData = {
   liveEnvironmentWire?: FlowWireEnvironmentV1;
   /** Incoming `cam` pin snapshot for 3D canvas nodes (camera + orbit limits). */
   liveCameraWire?: FlowWireCameraV1;
+  /** Wired **`videoTexture`** on **`material-video`**. */
+  liveVideoTextureWire?: FlowWireVideoTextureV1;
+  /** Wired **`videoBus`** on **`css3d-camera-feed`**. */
+  liveVideoBusWire?: FlowWireVideoBusV1;
   /** Incoming **`anim`** pin snapshot on **`model-viewer`** (structured clip times + speed). */
   liveAnimationWire?: FlowWireAnimationV1;
   /** Incoming **`xf`** pin snapshot for 3D canvas nodes (model transform). */
@@ -768,6 +779,7 @@ export type StudioDemoTemplateId =
   | "audio-machine-map-range"
   | "audio-machine-fault-lab"
   | "camera-video-texture"
+  | "stage-camera-vision"
   | "stage-scene-output";
 
 export type FlowSnapshot = {
@@ -2294,6 +2306,10 @@ function flowValueAsVideoBus(v: unknown): ReturnType<typeof makeFlowWireVideoBus
   return isFlowWireVideoBusV1(v) ? v : null;
 }
 
+function flowValueAsVideoTexture(v: unknown): FlowWireVideoTextureV1 | null {
+  return isFlowWireVideoTextureV1(v) ? v : null;
+}
+
 function flowValueAsAnimation(v: unknown): FlowWireAnimationV1 | null {
   if (!isFlowWireAnimationV1(v)) {
     return null;
@@ -2747,6 +2763,34 @@ function dispatchFlowEventSourcesWithGlbAnimAutoBind(
     nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, state.edges),
   }));
   get().tickSimulation();
+  scheduleGlbAnimClipAutoBindForNodes(get, set, targetIds);
+}
+
+function dispatchFlowEventSourcesFromHandle(
+  get: () => FlowEditorState,
+  set: (
+    partial:
+      | Partial<FlowEditorState>
+      | ((state: FlowEditorState) => Partial<FlowEditorState>),
+  ) => void,
+  sourceNodeIds: readonly string[],
+  sourceHandle: string,
+): void {
+  if (sourceNodeIds.length === 0) {
+    return;
+  }
+  const { nodes, edges } = get();
+  const targetIds: string[] = [];
+  for (const sourceId of sourceNodeIds) {
+    targetIds.push(...collectFlowEventTargetNodeIds(edges, sourceId, sourceHandle));
+  }
+  if (targetIds.length === 0) {
+    return;
+  }
+  const nextNodes = runFlowEventDispatch({ nodes, edges, sourceNodeIds, sourceHandle });
+  set((state) => ({
+    nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, state.edges),
+  }));
   scheduleGlbAnimClipAutoBindForNodes(get, set, targetIds);
 }
 
@@ -5001,6 +5045,131 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
 
+    if (templateId === "stage-camera-vision") {
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const outputEntry = catalog.find((entry) => entry.id === "scene-output");
+      const envEntry = catalog.find((entry) => entry.id === "environment");
+      const cameraEntry = catalog.find((entry) => entry.id === "camera-input");
+      const css3dEntry = catalog.find((entry) => entry.id === "css3d-camera-feed");
+      const poseEntry = catalog.find((entry) => entry.id === "vision-pose");
+      if (modelEntry == null || outputEntry == null || cameraEntry == null) {
+        return;
+      }
+
+      const modelFlowId = "demo-stage-cam-model";
+      const modelNode = makeNode(modelEntry, modelFlowId, 80, 420);
+      modelNode.data.label = "Model Source (PSoC E84)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
+        selectedModelUrl: DEFAULT_STUDIO_PACK_MODEL_RELATIVE_PATH,
+      };
+
+      const outputNode = makeNode(outputEntry, "demo-stage-cam-out", 460, 320);
+      outputNode.data.label = "Scene Output";
+      outputNode.data.defaultConfig = {
+        ...outputNode.data.defaultConfig,
+        showGrid: STAGE_DEFAULT_SHOW_GRID,
+        scene3d: stageSceneOutputDefaultScene3d(),
+      };
+
+      const cameraNode = makeNode(cameraEntry, "demo-stage-cam-in", 80, 80);
+      cameraNode.data.label = "Webcam";
+      cameraNode.data.defaultConfig = {
+        ...cameraNode.data.defaultConfig,
+        enabled: true,
+        width: 1280,
+        height: 720,
+        targetFps: 30,
+        facingMode: "user",
+        mirrorPreview: true,
+      };
+
+      const templateNodes: StudioNode[] = [modelNode, outputNode, cameraNode];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-stage-cam-e1",
+          source: modelNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MODELS,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      if (envEntry != null) {
+        const envNode = makeNode(envEntry, "demo-stage-cam-env", 80, 240);
+        envNode.data.label = "Environment (Park)";
+        envNode.data.defaultConfig = {
+          ...envNode.data.defaultConfig,
+          ...stageEnvironmentNodeDefaultConfig(),
+        };
+        templateNodes.push(envNode);
+        templateEdges.push({
+          id: "demo-stage-cam-e3",
+          source: envNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_ENV,
+          animated: true,
+          label: getSourcePortType(envNode, STUDIO_HANDLE_OUT) ?? "environment",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      if (css3dEntry != null) {
+        const css3dNode = makeNode(css3dEntry, "demo-stage-cam-hud", 380, 80);
+        css3dNode.data.label = "Camera HUD";
+        css3dNode.data.defaultConfig = {
+          ...css3dNode.data.defaultConfig,
+          anchorMode: "screen",
+          anchor: { x: 0.12, y: 0.14, z: 0 },
+          sizePx: { w: 240, h: 135 },
+        };
+        templateNodes.push(css3dNode);
+        templateEdges.push({
+          id: "demo-stage-cam-e4",
+          source: cameraNode.id,
+          target: css3dNode.id,
+          sourceHandle: "video",
+          targetHandle: "in",
+          animated: true,
+          label: getSourcePortType(cameraNode, "video", {}) ?? "videoBus",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      if (poseEntry != null) {
+        const poseNode = makeNode(poseEntry, "demo-stage-cam-pose", 380, 240);
+        poseNode.data.label = "Vision Pose";
+        templateNodes.push(poseNode);
+        templateEdges.push({
+          id: "demo-stage-cam-e5",
+          source: cameraNode.id,
+          target: poseNode.id,
+          sourceHandle: "video",
+          targetHandle: "in",
+          animated: true,
+          label: getSourcePortType(cameraNode, "video", {}) ?? "videoBus",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      get().pushUndoSnapshot();
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(templateNodes, [outputNode.id]),
+          templateEdges,
+        ),
+        edges: templateEdges,
+        ...selectionFromIds([outputNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      return;
+    }
+
     if (templateId === "material-glb-drives") {
       const modelEntry = catalog.find((entry) => entry.id === "model-select");
       const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
@@ -5829,6 +5998,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (templateId === "camera-video-texture") {
       const cameraEntry = catalog.find((entry) => entry.id === "camera-input");
       const textureEntry = catalog.find((entry) => entry.id === "video-texture");
+      const poseEntry = catalog.find((entry) => entry.id === "vision-pose");
       if (cameraEntry == null || textureEntry == null) {
         return;
       }
@@ -5848,7 +6018,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const textureNode = makeNode(textureEntry, "demo-cam-tex", 380, 200);
       textureNode.data.label = "Video Texture";
 
-      get().pushUndoSnapshot();
+      const demoNodes: StudioNode[] = [cameraNode, textureNode];
       const demoEdges: Edge[] = [
         {
           id: "demo-cam-e1",
@@ -5861,9 +6031,27 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           style: { strokeWidth: 2 },
         },
       ];
+
+      if (poseEntry != null) {
+        const poseNode = makeNode(poseEntry, "demo-cam-pose", 380, 380);
+        poseNode.data.label = "Vision Pose";
+        demoNodes.push(poseNode);
+        demoEdges.push({
+          id: "demo-cam-e2",
+          source: cameraNode.id,
+          target: poseNode.id,
+          sourceHandle: "video",
+          targetHandle: "in",
+          animated: true,
+          label: getSourcePortType(cameraNode, "video", {}) ?? "videoBus",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      get().pushUndoSnapshot();
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection([cameraNode, textureNode], [cameraNode.id]),
+          applyStudioFlowSelection(demoNodes, [cameraNode.id]),
           demoEdges,
         ),
         edges: demoEdges,
@@ -7043,6 +7231,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ),
     };
     const sensorHardwareLiveNodeIds = new Set<string>();
+    const visionTriggerSourceIds: string[] = [];
 
     const readIncoming = (
       targetId: string,
@@ -7287,6 +7476,73 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             );
           }
           pinValues.set(studioFlowPinKey(node.id, "ready"), ready);
+          continue;
+        }
+
+        if (node.data.nodeId === "material-video") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const texIncoming = readIncoming(node.id, "tex");
+          const wire = flowValueAsVideoTexture(texIncoming);
+          const gainIncoming = readIncoming(node.id, "gain");
+          const blendRaw = typeof cfg.blend === "number" ? cfg.blend : 1;
+          const gain =
+            typeof gainIncoming === "number" && Number.isFinite(gainIncoming)
+              ? Math.max(0, gainIncoming)
+              : Math.max(0, blendRaw);
+          const ready =
+            wire != null && studioCameraRuntime.isVideoTextureReady(wire.sourceNodeId);
+          pinValues.set(studioFlowPinKey(node.id, "active"), ready && gain > 0);
+          continue;
+        }
+
+        if (node.data.nodeId === "css3d-camera-feed") {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const busIncoming = readIncoming(node.id, "in");
+          const bus = flowValueAsVideoBus(busIncoming);
+          const visibleIncoming = readIncoming(node.id, "visible");
+          const visible =
+            typeof visibleIncoming === "boolean"
+              ? visibleIncoming
+              : cfg.visible !== false;
+          const opacityIncoming = readIncoming(node.id, "opacity");
+          const opacityRaw =
+            typeof opacityIncoming === "number" && Number.isFinite(opacityIncoming)
+              ? opacityIncoming
+              : typeof cfg.opacity === "number"
+                ? cfg.opacity
+                : 1;
+          const opacity = Math.max(0, Math.min(1, opacityRaw));
+          const streamActive =
+            bus != null &&
+            studioCameraRuntime.getCameraUiState(bus.sourceNodeId).status === "active";
+          pinValues.set(
+            studioFlowPinKey(node.id, "visible"),
+            visible && streamActive && opacity > 0,
+          );
+          continue;
+        }
+
+        if (isVisionInferenceNodeId(node.data.nodeId)) {
+          const cfg = node.data.defaultConfig as Record<string, unknown>;
+          const busIncoming = readIncoming(node.id, "in");
+          const bus = flowValueAsVideoBus(busIncoming);
+          const enabledIncoming = readIncoming(node.id, "enabled");
+          const evalResult = evaluateVisionFlowNode({
+            catalogNodeId: node.data.nodeId,
+            nodeInstanceId: node.id,
+            config: cfg,
+            cameraNodeId: bus?.sourceNodeId ?? null,
+            enabledIncoming,
+            nowMs,
+          });
+          if (evalResult != null) {
+            for (const [handle, value] of Object.entries(evalResult.pinValues)) {
+              pinValues.set(studioFlowPinKey(node.id, handle), value);
+            }
+            if (evalResult.triggerEdge) {
+              visionTriggerSourceIds.push(node.id);
+            }
+          }
           continue;
         }
 
@@ -9051,6 +9307,70 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           base.liveHistory = [];
         }
 
+        if (node.data.nodeId === "material-video") {
+          const wiredTex = readIncoming(node.id, "tex");
+          const wiredGain = readIncoming(node.id, "gain");
+          const texWire = flowValueAsVideoTexture(wiredTex);
+          if (texWire != null) {
+            base.liveVideoTextureWire = texWire;
+          } else {
+            delete base.liveVideoTextureWire;
+          }
+          if (typeof wiredGain === "number" && Number.isFinite(wiredGain)) {
+            base.liveInputNumberByHandle = {
+              ...(node.data.liveInputNumberByHandle ?? {}),
+              gain: wiredGain,
+            };
+          }
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "css3d-camera-feed") {
+          const wiredBus = readIncoming(node.id, "in");
+          const wiredVisible = readIncoming(node.id, "visible");
+          const wiredOpacity = readIncoming(node.id, "opacity");
+          const busWire = flowValueAsVideoBus(wiredBus);
+          if (busWire != null) {
+            base.liveVideoBusWire = busWire;
+          } else {
+            delete base.liveVideoBusWire;
+          }
+          if (typeof wiredVisible === "boolean") {
+            base.liveInputBooleanByHandle = {
+              ...(node.data.liveInputBooleanByHandle ?? {}),
+              visible: wiredVisible,
+            };
+          }
+          if (typeof wiredOpacity === "number" && Number.isFinite(wiredOpacity)) {
+            base.liveInputNumberByHandle = {
+              ...(node.data.liveInputNumberByHandle ?? {}),
+              opacity: wiredOpacity,
+            };
+          }
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (isVisionInferenceNodeId(node.data.nodeId)) {
+          const wiredBus = readIncoming(node.id, "in");
+          const wiredEnabled = readIncoming(node.id, "enabled");
+          const busWire = flowValueAsVideoBus(wiredBus);
+          if (busWire != null) {
+            base.liveVideoBusWire = busWire;
+          } else {
+            delete base.liveVideoBusWire;
+          }
+          if (typeof wiredEnabled === "boolean") {
+            base.liveInputBooleanByHandle = {
+              ...(node.data.liveInputBooleanByHandle ?? {}),
+              enabled: wiredEnabled,
+            };
+          }
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
         if (ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)) {
           if (node.data.nodeId === "bmm350-tap-magnetic") {
             const vecOut = pinValues.get(
@@ -9636,6 +9956,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         };
       }),
     }));
+    if (visionTriggerSourceIds.length > 0) {
+      dispatchFlowEventSourcesFromHandle(
+        get,
+        set,
+        visionTriggerSourceIds,
+        "trigger",
+      );
+    }
     const latest = get();
     useStageSceneStore
       .getState()

@@ -1,0 +1,67 @@
+{
+  "revision": "2026-06-06T13:08:43Z",
+  "mediapipeTasksVisionVersion": "0.10.17",
+  "files": [
+    {
+      "path": "wasm/vision_wasm_internal.js",
+      "bytes": 203819
+    },
+    {
+      "path": "wasm/vision_wasm_internal.wasm",
+      "bytes": 9514390
+    },
+    {
+      "path": "wasm/vision_wasm_nosimd_internal.js",
+      "bytes": 203672
+    },
+    {
+      "path": "wasm/vision_wasm_nosimd_internal.wasm",
+      "bytes": 9379090
+    },
+    {
+      "path": "pose_landmarker_lite.task",
+      "bytes": 5777746
+    },
+    {
+      "path": "pose_landmarker_full.task",
+      "bytes": 9398198
+    },
+    {
+      "path": "pose_landmarker_heavy.task",
+      "bytes": 30664242
+    },
+    {
+      "path": "hand_landmarker.task",
+      "bytes": 7819105
+    },
+    {
+      "path": "face_landmarker.task",
+      "bytes": 3758596
+    },
+    {
+      "path": "efficientdet_lite0.tflite",
+      "bytes": 7254339
+    }
+  ],
+  "packs": {
+    "lite": [
+      "wasm/vision_wasm_internal.js",
+      "wasm/vision_wasm_internal.wasm",
+      "wasm/vision_wasm_nosimd_internal.js",
+      "wasm/vision_wasm_nosimd_internal.wasm",
+      "pose_landmarker_lite.task"
+    ],
+    "full": [
+      "wasm/vision_wasm_internal.js",
+      "wasm/vision_wasm_internal.wasm",
+      "wasm/vision_wasm_nosimd_internal.js",
+      "wasm/vision_wasm_nosimd_internal.wasm",
+      "pose_landmarker_lite.task",
+      "pose_landmarker_full.task",
+      "pose_landmarker_heavy.task",
+      "hand_landmarker.task",
+      "face_landmarker.task",
+      "efficientdet_lite0.tflite"
+    ]
+  }
+}

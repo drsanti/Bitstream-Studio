@@ -45,6 +45,13 @@ export const SCENE_FRAME_AUDIO_NODE_IDS: ReadonlySet<string> = new Set([
 export const SCENE_FRAME_CAMERA_NODE_IDS: ReadonlySet<string> = new Set([
   "camera-input",
   "video-texture",
+  "material-video",
+  "css3d-camera-feed",
+  "vision-pose",
+  "vision-hands",
+  "vision-face",
+  "vision-object",
+  "vision-landmarks-debug",
 ]);
 
 export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {

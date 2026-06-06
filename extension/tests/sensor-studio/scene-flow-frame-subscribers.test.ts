@@ -55,4 +55,8 @@ test("graphNeedsCameraFrameTick is true when camera nodes are on the canvas", ()
   assert.equal(graphNeedsCameraFrameTick([canvasNode("plotter")]), false);
   assert.equal(graphNeedsCameraFrameTick([canvasNode("camera-input")]), true);
   assert.equal(graphNeedsCameraFrameTick([canvasNode("video-texture")]), true);
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("material-video")]), true);
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("css3d-camera-feed")]), true);
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("vision-pose")]), true);
+  assert.equal(graphNeedsCameraFrameTick([canvasNode("vision-hands")]), true);
 });

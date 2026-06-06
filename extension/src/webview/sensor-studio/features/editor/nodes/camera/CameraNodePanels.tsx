@@ -1,7 +1,9 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { studioCameraRuntime } from "../../../../core/camera/studio-camera-runtime";
+import { collectVisionPoseSketchSpecsForCamera } from "../../../../core/camera/collect-vision-pose-sketches";
+import { VisionPoseSketchSvgLayer } from "../../../../core/viewport/VisionPoseSketchSvgLayer";
 import { TRNToggleSwitch } from "../../../../../ui/TRN";
 import { FlowNodeIntrinsicWidthMarker } from "../flow-node/FlowNodeIntrinsicWidthMarker";
 import { ReadingPanel } from "../flow-node/readings/ReadingPanel";
@@ -25,50 +27,86 @@ function CameraPreviewVideo(props: {
 }) {
   const { nodeId, enabled, mirrorPreview } = props;
   const videoRef = useRef<HTMLVideoElement>(null);
+  const boundStreamRef = useRef<MediaStream | null>(null);
+  const flowNodes = useFlowEditorStore((s) => s.nodes);
+  const flowEdges = useFlowEditorStore((s) => s.edges);
+  const sketchSpecs = useMemo(() => {
+    const flowCatalogNodes = flowNodes.filter(
+      (n): n is typeof n & { data: { nodeId: string; defaultConfig: Record<string, unknown> } } =>
+        typeof n.data?.nodeId === "string" && n.data.defaultConfig != null,
+    );
+    return collectVisionPoseSketchSpecsForCamera(flowCatalogNodes, nodeId, flowEdges);
+  }, [flowNodes, flowEdges, nodeId]);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (el == null || !enabled) {
-      if (el != null) {
-        el.srcObject = null;
-      }
+    if (el == null) {
       return;
     }
 
-    const sync = () => {
+    if (!enabled) {
+      boundStreamRef.current = null;
+      el.srcObject = null;
+      return;
+    }
+
+    const attachStream = (stream: MediaStream) => {
       const target = videoRef.current;
-      const source = studioCameraRuntime.getVideoElement(nodeId);
       if (target == null) {
         return;
       }
-      if (source == null) {
-        target.srcObject = null;
+      if (boundStreamRef.current === stream && target.srcObject === stream) {
+        if (target.paused) {
+          void target.play().catch(() => undefined);
+        }
         return;
       }
-      if (target.srcObject !== source.srcObject) {
-        target.srcObject = source.srcObject;
-      }
+      boundStreamRef.current = stream;
+      target.srcObject = stream;
       void target.play().catch(() => undefined);
     };
 
+    const sync = () => {
+      const stream = studioCameraRuntime.getCameraStream(nodeId);
+      if (stream != null) {
+        attachStream(stream);
+      }
+    };
+
     sync();
-    const t = window.setInterval(sync, 250);
-    return () => window.clearInterval(t);
+    const t = window.setInterval(sync, 400);
+    return () => {
+      window.clearInterval(t);
+      boundStreamRef.current = null;
+    };
   }, [nodeId, enabled]);
 
   if (!enabled) {
-    return null;
+    return (
+      <div className="flex max-h-28 min-h-[4.5rem] w-full items-center justify-center rounded border border-zinc-700/70 bg-black/90 text-[10px] text-zinc-500">
+        Capture off
+      </div>
+    );
   }
 
   return (
-    <video
-      ref={videoRef}
-      className="max-h-28 w-full rounded border border-zinc-700/70 bg-black object-contain"
-      style={mirrorPreview ? { transform: "scaleX(-1)" } : undefined}
-      muted
-      playsInline
-      autoPlay
-    />
+    <div className="relative max-h-28 min-h-18 w-full overflow-hidden rounded border border-zinc-700/70 bg-black">
+      <video
+        ref={videoRef}
+        className="max-h-28 min-h-18 w-full object-contain"
+        style={mirrorPreview ? { transform: "scaleX(-1)" } : undefined}
+        muted
+        playsInline
+        autoPlay
+      />
+      {sketchSpecs.length > 0 ? (
+        <VisionPoseSketchSvgLayer
+          specs={sketchSpecs}
+          videoRef={videoRef}
+          className="pointer-events-none absolute inset-0 z-[2] overflow-hidden"
+        />
+      ) : null}
+    </div>
   );
 }
 

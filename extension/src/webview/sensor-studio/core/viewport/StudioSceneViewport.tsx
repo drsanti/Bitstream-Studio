@@ -69,13 +69,28 @@ import {
   tickPreviewParticleEmitter,
 } from "./studio-viewport-particle-runtime";
 import type { GlbMaterialPbrDriveRow } from "../../features/editor/gltf/studio-glb-material-param";
-import type { GlbMaterialTextureDriveRow } from "../../features/editor/gltf/studio-glb-material-texture";
+import {
+  createStudioViewportCss3dWorldRuntime,
+  type StudioViewportCss3dWorldRuntime,
+} from "./studio-viewport-css3d-world";
+import { StudioCameraCss3dFeedsOverlay } from "./StudioCameraCss3dFeedsOverlay";
+import { StudioVisionDetectionsHud } from "./StudioVisionDetectionsHud";
+import { StudioVisionPoseSketchOverlay } from "./StudioVisionPoseSketchOverlay";
+import { graphHasVisionPoseSketch } from "../../core/camera/collect-vision-pose-sketches";
+import { collectVisionLandmarks3dSpecs } from "../../core/camera/collect-vision-landmarks-3d-specs";
+import { studioVisionLandmarks3dOverlay } from "../../core/camera/studio-vision-landmarks-3d-overlay";
+import type { FlowGraphNode } from "../../features/editor/store/flow-graph-types";
+import type { Css3dCameraFeedSpec } from "../camera/studio-camera-css3d-feed";
 import type { GlbMaterialColorDriveRow } from "../../features/editor/gltf/studio-glb-material-color";
 import {
   applyGlbLightIntensityOverrides,
   applyGlbMaterialColorByName,
   applyGlbMaterialPbrByName,
   applyGlbMaterialTexturesByName,
+  applyGlbMaterialVideoTexturesByName,
+  resetGlbMaterialVideoDriveState,
+  type GlbMaterialVideoDriveRow,
+  type GlbMaterialVideoDriveState,
   applyGlbMorphWeightsToModelRoot,
   applyGlbPartVisibilityByPathMap,
   applyStudioCameraFromBlendedGlbCameras,
@@ -234,6 +249,15 @@ export type StudioSceneViewportProps = {
   previewScopeId?: string;
   /** Stage only — model pick → Domain C via {@link dispatchStagePickEvent}. */
   onStagePick?: (detail: StageViewportPickDetail) => void;
+  /** Live vision inference status chips (pose / hands / face / object). */
+  visionHudNodes?: readonly FlowGraphNode[];
+  /** Flow edges for vision skeleton overlay bus resolution. */
+  visionHudEdges?: readonly {
+    source: string;
+    target: string;
+    targetHandle?: string | null;
+    sourceHandle?: string | null;
+  }[];
 };
 
 /** Stable identity — avoids reload loops when `model.url` toggles relative path vs resolved fetch URL. */
@@ -523,12 +547,16 @@ export const StudioSceneViewport = forwardRef<
   const glbMaterialTexturesRef = useRef<
     Record<string, GlbMaterialTextureDriveRow>
   >({});
+  const glbMaterialVideosRef = useRef<Record<string, GlbMaterialVideoDriveRow>>(
+    {},
+  );
   const glbMaterialColorsRef = useRef<Record<string, GlbMaterialColorDriveRow>>(
     {},
   );
   const glbCamerasRef = useRef<Record<string, number>>({});
   const glbCameraSwitchIndexRef = useRef<number | undefined>(undefined);
   const glbCameraSwitchRigRef = useRef<string[] | undefined>(undefined);
+  const cameraCss3dFeedsRef = useRef<Css3dCameraFeedSpec[]>([]);
   const scenePropsGlb = props.sceneProps as RotationPreviewSceneProps & {
     glbMorphWeights?: Record<string, number>;
     glbLightIntensityByName?: Record<string, number>;
@@ -543,7 +571,9 @@ export const StudioSceneViewport = forwardRef<
     glbPartVisibilityByPath?: Record<string, number>;
     glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
     glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
+    glbMaterialVideosByName?: Record<string, GlbMaterialVideoDriveRow>;
     glbMaterialColorsByName?: Record<string, GlbMaterialColorDriveRow>;
+    cameraCss3dFeeds?: import("../../core/camera/studio-camera-css3d-feed").Css3dCameraFeedSpec[];
     glbCameraDriveByName?: Record<string, number>;
     glbCameraSwitchIndex?: number;
     glbCameraSwitchRig?: string[];
@@ -569,10 +599,12 @@ export const StudioSceneViewport = forwardRef<
   glbMaterialPbrRef.current = scenePropsGlb.glbMaterialPbrByName ?? {};
   glbMaterialTexturesRef.current =
     scenePropsGlb.glbMaterialTexturesByName ?? {};
+  glbMaterialVideosRef.current = scenePropsGlb.glbMaterialVideosByName ?? {};
   glbMaterialColorsRef.current = scenePropsGlb.glbMaterialColorsByName ?? {};
   glbCamerasRef.current = scenePropsGlb.glbCameraDriveByName ?? {};
   glbCameraSwitchIndexRef.current = scenePropsGlb.glbCameraSwitchIndex;
   glbCameraSwitchRigRef.current = scenePropsGlb.glbCameraSwitchRig;
+  cameraCss3dFeedsRef.current = scenePropsGlb.cameraCss3dFeeds ?? [];
 
   const flowOwnsPlayback = useMemo(
     () =>
@@ -672,6 +704,11 @@ export const StudioSceneViewport = forwardRef<
 
   const onStagePickRef = useRef(props.onStagePick);
   onStagePickRef.current = props.onStagePick;
+
+  const visionHudNodesRef = useRef(props.visionHudNodes);
+  visionHudNodesRef.current = props.visionHudNodes;
+  const visionHudEdgesRef = useRef(props.visionHudEdges);
+  visionHudEdgesRef.current = props.visionHudEdges;
 
   useEffect(() => {
     displayScaleRef.current = displayScale;
@@ -922,6 +959,11 @@ export const StudioSceneViewport = forwardRef<
         0.01,
         200,
       );
+      const css3dWorldRuntime: StudioViewportCss3dWorldRuntime =
+        createStudioViewportCss3dWorldRuntime({
+          host,
+          getCamera: () => camera,
+        });
       camera.position.set(
         scene3dRef.current.camera.transform.position.x,
         scene3dRef.current.camera.transform.position.y,
@@ -1228,6 +1270,10 @@ export const StudioSceneViewport = forwardRef<
         baseline: new Map(),
         lastMaterialNames: new Set(),
       };
+      const materialVideoDriveState: GlbMaterialVideoDriveState = {
+        baseline: new Map(),
+        lastMaterialNames: new Set(),
+      };
       const materialColorDriveState: GlbMaterialColorDriveState = {
         baseline: new Map(),
         lastMaterialNames: new Set(),
@@ -1270,6 +1316,7 @@ export const StudioSceneViewport = forwardRef<
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbMaterialVideoDriveState(materialVideoDriveState);
         resetGlbMaterialColorDriveState(materialColorDriveState);
         resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
@@ -1449,6 +1496,7 @@ export const StudioSceneViewport = forwardRef<
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbMaterialVideoDriveState(materialVideoDriveState);
         resetGlbMaterialColorDriveState(materialColorDriveState);
         resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
@@ -1737,6 +1785,7 @@ export const StudioSceneViewport = forwardRef<
           );
           renderer.setSize(w, h, false);
         }
+        css3dWorldRuntime.resize(w, h);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
       };
@@ -1882,6 +1931,11 @@ export const StudioSceneViewport = forwardRef<
           driveRoot,
           glbMaterialTexturesRef.current,
           materialTextureDriveState,
+        );
+        applyGlbMaterialVideoTexturesByName(
+          driveRoot,
+          glbMaterialVideosRef.current,
+          materialVideoDriveState,
         );
         applyGlbMaterialColorByName(
           driveRoot,
@@ -2090,7 +2144,19 @@ export const StudioSceneViewport = forwardRef<
           resize();
         }
 
+        const hudNodes = visionHudNodesRef.current;
+        if (hudNodes != null && hudNodes.length > 0) {
+          studioVisionLandmarks3dOverlay.sync(
+            camera,
+            collectVisionLandmarks3dSpecs(hudNodes, visionHudEdgesRef.current),
+          );
+        } else {
+          studioVisionLandmarks3dOverlay.sync(camera, []);
+        }
+
         renderer?.render(scene, camera);
+        css3dWorldRuntime.syncFeeds(cameraCss3dFeedsRef.current);
+        css3dWorldRuntime.render();
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -2123,12 +2189,15 @@ export const StudioSceneViewport = forwardRef<
         unbindStagePick = null;
         cancelAnimationFrame(raf);
         ro.disconnect();
+        studioVisionLandmarks3dOverlay.dispose(camera);
+        css3dWorldRuntime.dispose();
         controls.dispose();
         disposePreviewPhysicsRuntime(scene, physicsRuntime);
         resetAnimationMixer();
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);
         resetGlbMaterialTextureDriveState(materialTextureDriveState);
+        resetGlbMaterialVideoDriveState(materialVideoDriveState);
         resetGlbMaterialColorDriveState(materialColorDriveState);
         resetGlbAnimationSequencePlaybackState(glbAnimSequenceStateRef.current);
         glbPathIndex = null;
@@ -2286,6 +2355,17 @@ export const StudioSceneViewport = forwardRef<
             onStop={onPreviewStop}
           />
         </div>
+      ) : null}
+      <StudioCameraCss3dFeedsOverlay
+        feeds={scenePropsGlb.cameraCss3dFeeds}
+        sketchFlowNodes={props.visionHudNodes}
+        sketchFlowEdges={props.visionHudEdges}
+      />
+      {props.visionHudNodes != null && props.visionHudNodes.length > 0 ? (
+        <StudioVisionDetectionsHud nodes={props.visionHudNodes} />
+      ) : null}
+      {props.visionHudNodes != null && graphHasVisionPoseSketch(props.visionHudNodes) ? (
+        <StudioVisionPoseSketchOverlay nodes={props.visionHudNodes} edges={props.visionHudEdges} />
       ) : null}
       <Suspense fallback={null}>
         <canvas

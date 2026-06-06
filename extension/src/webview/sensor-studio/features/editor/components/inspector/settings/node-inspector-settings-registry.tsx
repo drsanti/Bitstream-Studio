@@ -47,8 +47,17 @@ import {
 } from "./sections/AudioSettingsSections";
 import {
   CameraInputSettingsSection,
+  Css3dCameraFeedSettingsSection,
+  MaterialVideoSettingsSection,
   VideoTextureSettingsSection,
+  VisionPoseSettingsSection,
 } from "./sections/CameraSettingsSections";
+import {
+  VisionFaceSettingsSection,
+  VisionHandsSettingsSection,
+  VisionLandmarksDebugSettingsSection,
+  VisionObjectSettingsSection,
+} from "./sections/VisionExpansionSettingsSections";
 import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
 import { StudioModelSettingsSection } from "./sections/StudioModelSettingsSection";
 
@@ -106,6 +115,13 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "mic-input": MicInputSettingsSection,
   "camera-input": CameraInputSettingsSection,
   "video-texture": VideoTextureSettingsSection,
+  "material-video": MaterialVideoSettingsSection,
+  "css3d-camera-feed": Css3dCameraFeedSettingsSection,
+  "vision-pose": VisionPoseSettingsSection,
+  "vision-hands": VisionHandsSettingsSection,
+  "vision-face": VisionFaceSettingsSection,
+  "vision-object": VisionObjectSettingsSection,
+  "vision-landmarks-debug": VisionLandmarksDebugSettingsSection,
   "audio-output": AudioOutputSettingsSection,
   "audio-scope": AudioScopeSettingsSection,
   "audio-file-player": AudioFilePlayerSettingsSection,

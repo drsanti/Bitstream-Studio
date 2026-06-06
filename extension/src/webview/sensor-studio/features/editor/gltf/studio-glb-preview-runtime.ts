@@ -144,6 +144,10 @@ import type {
   StudioGlbMaterialTextureSlotV1,
 } from "./studio-glb-material-texture";
 import { STUDIO_GLB_MATERIAL_TEXTURE_SLOTS } from "./studio-glb-material-texture";
+import type {
+  GlbMaterialVideoDriveRow,
+} from "./studio-glb-material-video";
+import { studioCameraRuntime } from "../../../core/camera/studio-camera-runtime";
 import type { GlbMaterialColorDriveRow } from "./studio-glb-material-color";
 
 export type GlbMaterialPbrBaseline = {
@@ -581,6 +585,114 @@ export function applyGlbMaterialTexturesByName(
         continue;
       }
       applyMaterialTextureRowToMat(mat, row, st);
+    }
+  });
+}
+
+export type GlbMaterialVideoDriveState = {
+  baseline: Map<string, GlbMaterialTextureBaseline>;
+  lastMaterialNames: Set<string>;
+};
+
+export function resetGlbMaterialVideoDriveState(st: GlbMaterialVideoDriveState): void {
+  st.baseline.clear();
+  st.lastMaterialNames.clear();
+}
+
+function applyMaterialVideoRowToMat(
+  mat: MatWithTextureMaps,
+  row: GlbMaterialVideoDriveRow,
+  st: GlbMaterialVideoDriveState,
+): void {
+  if (!st.baseline.has(mat.uuid)) {
+    st.baseline.set(mat.uuid, captureMaterialTextureBaseline(mat));
+  }
+  for (const slot of STUDIO_GLB_MATERIAL_TEXTURE_SLOTS) {
+    const entry = row[slot];
+    if (entry == null) {
+      continue;
+    }
+    const tex = studioCameraRuntime.getVideoTexture(entry.textureNodeId);
+    if (tex == null) {
+      continue;
+    }
+    tex.needsUpdate = true;
+    mat[slot] = tex;
+    mat.toneMapped = entry.toneMapped;
+    if (entry.gain < 1) {
+      mat.transparent = true;
+      mat.opacity = Math.max(0, Math.min(1, entry.gain));
+    }
+    mat.needsUpdate = true;
+  }
+}
+
+/**
+ * Apply live **VideoTexture** drives by material **name**. Restores baselines when drives clear.
+ */
+export function applyGlbMaterialVideoTexturesByName(
+  root: THREE.Object3D | null,
+  drives: Record<string, GlbMaterialVideoDriveRow> | undefined,
+  st: GlbMaterialVideoDriveState,
+): void {
+  if (root == null) {
+    return;
+  }
+  const nextNames = new Set(Object.keys(drives ?? {}));
+  for (const name of st.lastMaterialNames) {
+    if (!nextNames.has(name)) {
+      root.traverse((obj) => {
+        if (!(obj instanceof THREE.Mesh)) {
+          return;
+        }
+        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+        for (const mat of mats) {
+          if (
+            !(mat instanceof THREE.MeshStandardMaterial) &&
+            !(mat instanceof THREE.MeshPhysicalMaterial)
+          ) {
+            continue;
+          }
+          const nm = typeof mat.name === "string" ? mat.name.trim() : "";
+          if (nm !== name) {
+            continue;
+          }
+          const base = st.baseline.get(mat.uuid);
+          if (base != null) {
+            restoreMaterialTextureBaseline(mat, base);
+            mat.toneMapped = true;
+            mat.transparent = false;
+            mat.opacity = 1;
+          }
+        }
+      });
+    }
+  }
+  st.lastMaterialNames = nextNames;
+  if (drives == null || Object.keys(drives).length === 0) {
+    return;
+  }
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) {
+      return;
+    }
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+    for (const mat of mats) {
+      if (
+        !(mat instanceof THREE.MeshStandardMaterial) &&
+        !(mat instanceof THREE.MeshPhysicalMaterial)
+      ) {
+        continue;
+      }
+      const nm = typeof mat.name === "string" ? mat.name.trim() : "";
+      if (nm.length === 0) {
+        continue;
+      }
+      const row = drives[nm];
+      if (row == null) {
+        continue;
+      }
+      applyMaterialVideoRowToMat(mat, row, st);
     }
   });
 }

@@ -28,6 +28,7 @@ const tesaiotModelsPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiot
 const tesaiotTexturesPath = resolve(localAssetsPath, ...DEV_SRC_ASSET_DIRS.tesaiotTextures);
 const localSoundsPath = resolve(localAssetsPath, "sounds");
 const localJoltPath = resolve(localAssetsPath, "jolt");
+const localVisionMediapipePath = resolve(localAssetsPath, "vision/mediapipe");
 const vehiclePhysicsRoot = resolve(
   __dirname,
   "src/webview/simulations/vehicle-physics",
@@ -115,7 +116,11 @@ function sendViteDevStaticFile(
       ? "model/gltf-binary"
       : ext === ".gltf"
         ? "model/gltf+json"
-        : ext === ".webp"
+        : ext === ".js"
+          ? "application/javascript; charset=utf-8"
+          : ext === ".wasm"
+            ? "application/wasm"
+            : ext === ".webp"
           ? "image/webp"
           : ext === ".png"
             ? "image/png"
@@ -214,6 +219,74 @@ const serveJoltAssetsPlugin = () => {
 };
 
 /**
+ * Serve MediaPipe vision assets from `src/assets/vision/mediapipe` during Vite dev
+ * at `/assets/vision/mediapipe/*` (matches production `viteStaticCopy` layout).
+ */
+const serveVisionMediapipeAssetsPlugin = () => {
+  return {
+    name: "serve-vision-mediapipe-assets",
+    configureServer(server) {
+      if (!existsSync(localVisionMediapipePath)) {
+        console.warn(
+          "[serveVisionMediapipeAssetsPlugin] vision/mediapipe not found — run npm run vision:copy-mediapipe",
+        );
+        return;
+      }
+
+      const serveVisionFile = (req, res, prefix: string): boolean => {
+        const method = req.method ?? "GET";
+        if (method !== "GET" && method !== "HEAD") {
+          return false;
+        }
+        const pathname = (req.url ?? "").split("?")[0] || "";
+        if (!pathname.startsWith(prefix)) {
+          return false;
+        }
+        let relativePath = "";
+        try {
+          relativePath = decodeURIComponent(pathname.slice(prefix.length)) || "";
+        } catch {
+          return false;
+        }
+        if (!relativePath || relativePath.includes("\0")) {
+          return false;
+        }
+        const filePath = resolve(localVisionMediapipePath, relativePath);
+        if (
+          relative(localVisionMediapipePath, filePath).startsWith("..") ||
+          relative(localVisionMediapipePath, filePath) === ""
+        ) {
+          return false;
+        }
+        if (!existsSync(filePath)) {
+          return false;
+        }
+        try {
+          sendViteDevStaticFile(req, res, filePath);
+          return true;
+        } catch (error) {
+          console.warn(
+            `[serveVisionMediapipeAssetsPlugin] Error serving ${filePath}:`,
+            error,
+          );
+          return false;
+        }
+      };
+
+      server.middlewares.use((req, res, next) => {
+        if (
+          serveVisionFile(req, res, "/assets/vision/mediapipe/") ||
+          serveVisionFile(req, res, "/__extension_src_assets/vision/mediapipe/")
+        ) {
+          return;
+        }
+        next();
+      });
+    },
+  };
+};
+
+/**
  * Serve `extension/src/assets` during dev.
  * Vite root is `src/webview`, so `/assets/...` maps to `src/webview/assets`, not `src/assets`.
  * Model Catalog uses `/__extension_src_assets/...` for GLB under `src/assets/free/models`, `tesaiot/models`, etc.
@@ -271,10 +344,6 @@ const serveExtensionLocalAssetsPlugin = () => {
           tryUserMirror("/__ternion_user_tesaiot_textures/", "tesaiotTextures")
         ) {
           return;
-        }
-
-        if (method !== "GET") {
-          return next();
         }
 
         let root = null;
@@ -407,6 +476,7 @@ export default defineConfig({
     }),
     tailwindcss(),
     serveJoltAssetsPlugin(),
+    serveVisionMediapipeAssetsPlugin(),
     serveExtensionLocalAssetsPlugin(), // src/assets for Model Catalog (browser dev)
     suppressCSSWarningsPlugin(), // Suppress CSS warnings during build
     viteStaticCopy({
@@ -463,6 +533,10 @@ export default defineConfig({
               },
             ]
           : []),
+        {
+          src: "../assets/vision/**/*",
+          dest: "./assets/vision",
+        },
       ],
     }),
   ],

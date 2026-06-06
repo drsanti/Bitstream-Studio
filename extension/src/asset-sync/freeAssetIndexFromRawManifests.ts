@@ -12,6 +12,10 @@ import {
   type TernionFreeAssetIndexEntry,
 } from "./syncTernionFreeAssets";
 import { STUDIO_FREE_PACK_MODEL_FOLDER_IDS } from "./studioFreePackCatalog";
+import {
+  repoPathsFromVisionMediapipeManifest,
+  type VisionMediapipePackManifestV1,
+} from "./visionMediapipeFreePack";
 
 const CUBEMAP_FACE_NAMES = ["posx", "negx", "posy", "negy", "posz", "negz"] as const;
 
@@ -138,6 +142,17 @@ export async function listFreeAssetRepoPathsViaRawManifests(
     if (file) {
       pushUnique(paths, `libraries/node-graph/${file.replace(/^\/+/, "")}`);
     }
+  }
+
+  try {
+    const visionManifest = await rawFetchJson<VisionMediapipePackManifestV1>(
+      `${base}/vision/mediapipe/manifest.v1.json`,
+    );
+    for (const repoPath of repoPathsFromVisionMediapipeManifest(visionManifest)) {
+      paths.add(repoPath);
+    }
+  } catch {
+    // Vision pack not published yet — skip (full GitHub tree sync still picks up assets/vision/**).
   }
 
   return [...paths].sort((a, b) => a.localeCompare(b));
