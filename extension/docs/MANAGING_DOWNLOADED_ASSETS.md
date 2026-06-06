@@ -157,7 +157,7 @@ A **full welcome page on every launch** is optional; empty states inside each fe
 
 The free pack uses the **GitHub REST API** to list the full `assets/` tree, then downloads each file from **`raw.githubusercontent.com`**. Unauthenticated API calls are limited (~60/hour per IP). When the API returns **403 rate limit**, **`syncTernionFreeAssets`** and **`getTernionFreeAssetsIndex`** automatically fall back to **public raw manifest URLs** (`freeAssetIndexFromRawManifests.ts`) — no token required for normal end-user sync.
 
-**Studio-aligned models (default):** Full-pack sync and online catalog listing **skip upstream-only model folders** not in **`free-pack-model-ids.v1.json`** (nine studio models; excludes retired **`robot-4th-project`**). Textures, feeds, HDRI, and other non-model blobs are unchanged. Selective sync (**`onlyRepoPaths`**, Free Loader row selection) is not filtered. Opt out: **`studioAlignedModels: false`** on **`syncTernionFreeAssets`** (maintainer tooling only).
+**Studio-aligned models (default):** Full-pack sync and online catalog listing use **`free-pack-model-ids.v1.json`** (maintainer-refreshed when the GitHub pack changes — see **`FREE_PACK_CATALOG_MAINTENANCE.md`**). Upstream-only model folders are skipped until added via **`npm run sync:studio-manifest-models`**. Textures, feeds, HDRI, and other non-model blobs follow upstream manifests. Selective sync (**`onlyRepoPaths`**) is not filtered.
 
 | Audience | `GITHUB_TOKEN` |
 | -------- | -------------- |

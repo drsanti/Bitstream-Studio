@@ -1,7 +1,12 @@
 /**
- * Studio-aligned free-pack model folder ids (nine models).
- * Source of truth: bundled {@link ../webview/assets-manager/registry/free-pack-model-ids.v1.json}.
- * Excludes retired upstream-only folders (e.g. `robot-4th-project`).
+ * Studio-aligned free-pack model folder ids for sync and Asset Browser.
+ *
+ * **Not a frozen list in code** — loaded from bundled
+ * {@link ../webview/assets-manager/registry/free-pack-model-ids.v1.json}, refreshed by
+ * `npm run sync:studio-manifest-models` when artists change the GitHub free pack.
+ *
+ * Full-pack download (`syncTernionFreeAssets`) includes only model folders listed here.
+ * Textures, cubemaps, HDRI, feeds, and other non-model blobs follow upstream manifests.
  */
 import studioModelFolderIds from "../webview/assets-manager/registry/free-pack-model-ids.v1.json";
 

@@ -2,6 +2,7 @@
 /**
  * Refresh pack model rows in studio-asset-manifest.v1.json from
  * ternion-3d-assets-free assets/models/manifest.json.
+ * Applies free-pack-model-exclusions.v1.json (retired ids still on GitHub).
  *
  * Usage: npm run sync:studio-manifest-models
  * Env: STUDIO_ASSETS_RAW_BASE — override GitHub raw base (optional)
@@ -19,6 +20,10 @@ const MANIFEST_PATH = path.join(
 const LOCAL_IDS_PATH = path.join(
   EXT_ROOT,
   "src/webview/assets-manager/registry/free-pack-model-ids.v1.json",
+);
+const EXCLUSIONS_PATH = path.join(
+  EXT_ROOT,
+  "src/webview/assets-manager/registry/free-pack-model-exclusions.v1.json",
 );
 
 const DEFAULT_RAW_BASE =
@@ -73,14 +78,39 @@ async function fetchRemoteModelIds() {
   return json.filter((x) => typeof x === "string" && x.trim().length > 0);
 }
 
+function loadModelExclusions() {
+  if (!fs.existsSync(EXCLUSIONS_PATH)) {
+    return new Set();
+  }
+  const json = JSON.parse(fs.readFileSync(EXCLUSIONS_PATH, "utf8"));
+  if (!Array.isArray(json)) {
+    throw new Error(`${EXCLUSIONS_PATH} must be a string array`);
+  }
+  return new Set(
+    json
+      .filter((x) => typeof x === "string" && x.trim().length > 0)
+      .map((x) => x.trim()),
+  );
+}
+
+function applyModelExclusions(folderIds, exclusions) {
+  if (exclusions.size === 0) {
+    return folderIds;
+  }
+  return folderIds.filter((id) => !exclusions.has(id));
+}
+
 function main() {
   const dryRun = process.argv.includes("--dry-run");
   const forceLocal = process.argv.includes("--local-only");
 
   const run = async () => {
-    const folderIds = forceLocal
+    const exclusions = loadModelExclusions();
+    let folderIds = forceLocal
       ? JSON.parse(fs.readFileSync(LOCAL_IDS_PATH, "utf8"))
       : await fetchRemoteModelIds();
+    const remoteCount = folderIds.length;
+    folderIds = applyModelExclusions(folderIds, exclusions);
 
     const doc = JSON.parse(fs.readFileSync(MANIFEST_PATH, "utf8"));
     const nonModels = (doc.assets ?? []).filter((a) => a.category !== "model");
@@ -107,8 +137,12 @@ function main() {
       return;
     }
     fs.writeFileSync(MANIFEST_PATH, out);
+    const excludedNote =
+      exclusions.size > 0 && remoteCount > folderIds.length
+        ? ` (${remoteCount - folderIds.length} excluded via free-pack-model-exclusions.v1.json)`
+        : "";
     console.log(
-      `Updated ${MANIFEST_PATH} with ${models.length} models from free pack manifest.`,
+      `Updated ${MANIFEST_PATH} with ${models.length} models from free pack manifest.${excludedNote}`,
     );
   };
 

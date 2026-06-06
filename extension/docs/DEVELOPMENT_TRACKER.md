@@ -557,7 +557,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 - **Free pack / assets UX (cleanup backlog)** — **2026-06-04** maintainer + VSIX sync tooling shipped; polish deferred:
   - [x] **VSIX one-click sync** — command **Sync Free Pack to Disk** (`bitstream-studio.syncFreePackStorage`; same engine as Free Loader).
   - [x] **Studio-aligned sync** — full pack listing/download skips upstream-only model folders (uses **`free-pack-model-ids.v1.json`** / **`studioFreePackCatalog.ts`**); partial **`onlyRepoPaths`** sync unchanged.
-  - [ ] **Upstream `ternion-3d-assets-free`** — remove **`robot-4th-project`** from remote `models/manifest.json` (Bitstream catalog already excludes it; legacy Sensor Studio saves migrate via **`migrate-legacy-pack-model.ts`**).
+  - [ ] **Upstream `ternion-3d-assets-free`** — optional hygiene when art pack is cleaned on GitHub (e.g. remove retired **`robot-4th-project`** from remote `models/manifest.json`). **Not required** for Bitstream if **`free-pack-model-exclusions.v1.json`** + studio catalog already omit it — see **`FREE_PACK_CATALOG_MAINTENANCE.md`**.
   - [ ] **Free Loader UX** — clearer rate-limit / empty-disk / “files on disk but UI 0” states; optional manifest file-count vs API tree parity note in UI.
   - [ ] **Docs + scripts** — single maintainer index; fold dev CLI into **`HOW_TO_RUN.md`** when stable.
   - **Maintainer today (dev repo only):** **`npm run check:free-pack-storage`**, **`sync:free-pack-storage`**; VSIX: **Diagnose Free Pack on Disk**. See **[`MANAGING_DOWNLOADED_ASSETS.md`](./MANAGING_DOWNLOADED_ASSETS.md)** § Maintainer tools.

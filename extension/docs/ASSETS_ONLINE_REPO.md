@@ -148,7 +148,16 @@ So **local `free/models/...`** mirrors **`assets/models/...`** on GitHub — not
 
 ### Studio catalog vs upstream `models/manifest.json`
 
-Bitstream Studio ships **nine** pack models in **`studio-asset-manifest.v1.json`** / **`free-pack-model-ids.v1.json`**. The upstream repo **`assets/models/manifest.json`** may still list extra folders (e.g. retired **`robot-4th-project`**) until maintainers clean GitHub. **Studio Asset Browser does not expose retired models.** Old flows that reference **`robot-4th-project`** migrate to the default PSoC E84 GLB via **`migrate-legacy-pack-model.ts`**. **Full-pack sync** (`syncTernionFreeAssets`, Free Loader, **Sync Free Pack to Disk**) filters model blobs to the studio nine via **`studioFreePackCatalog.ts`**; upstream manifest cleanup remains optional — see **`DEVELOPMENT_TRACKER.md`** (_Free pack / assets UX cleanup_).
+The GitHub free pack is **living** — artists add and remove assets over time. Bitstream does **not** mirror every upstream model folder automatically.
+
+| | Upstream GitHub | Studio (Bitstream) |
+| --- | --- | --- |
+| **Models** | `assets/models/manifest.json` (changes with art pack) | **`free-pack-model-ids.v1.json`** — refreshed via **`npm run sync:studio-manifest-models`**; minus **`free-pack-model-exclusions.v1.json`** |
+| **Textures / HDRI / cubemaps** | Upstream manifest JSON | Refreshed via **`sync:studio-manifest-textures`**; full sync lists from upstream at download time |
+
+**Maintainer workflow when the pack changes:** [`src/webview/assets-manager/registry/FREE_PACK_CATALOG_MAINTENANCE.md`](../src/webview/assets-manager/registry/FREE_PACK_CATALOG_MAINTENANCE.md).
+
+**Full-pack sync** filters model blobs to the studio id list (`studioFreePackCatalog.ts`). Legacy flows that referenced retired models (e.g. **`robot-4th-project`**) migrate via **`migrate-legacy-pack-model.ts`**. Cleaning upstream GitHub is optional when exclusions + studio catalog already omit the folder.
 
 ### Listing when GitHub API is rate-limited
 
