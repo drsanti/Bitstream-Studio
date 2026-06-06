@@ -118,6 +118,7 @@ import {
   isPhysicsDomainStubNodeId,
 } from "../../../core/flow/physics-domain-eval";
 import { flowWirePhysicsRigidBodyFromConfig } from "../nodes/physics/flow-wire-physics-body";
+import { isFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
 import { evaluateStageSceneSnapshot } from "../../../core/stage/evaluate-stage-scene-snapshot";
 import { useStageSceneStore } from "../../../state/stage-scene.store";
 import {
@@ -5662,6 +5663,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
   },
   tickSimulation: () => {
+    if (isFlowNodeDragActive()) {
+      return;
+    }
     const state = get();
     const { nodes, edges } = resolveEvaluationGraph(state);
     if (nodes.length === 0) {

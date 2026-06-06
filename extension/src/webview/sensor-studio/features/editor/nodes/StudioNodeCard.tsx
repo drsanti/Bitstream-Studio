@@ -7,6 +7,7 @@ import {
   type Edge,
 } from "@xyflow/react";
 import {
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -136,8 +137,8 @@ import type { RotationPreviewSceneProps } from "../../../../bitstream-app/compon
 const handleDotClass =
   "relative flex h-6 w-0 items-center justify-center overflow-visible";
 
-export function StudioNodeCard(props: NodeProps) {
-  const { id, selected: selectedFromRf } = props;
+function StudioNodeCard(props: NodeProps) {
+  const { id, selected: selectedFromRf, dragging: isDragging = false } = props;
   const data = props.data as StudioNodeData;
   /** RF does not always surface `selected` on custom nodes consistently; mirror `node.selected` from the store. */
   const selectedInDocument = useFlowEditorStore(
@@ -362,6 +363,9 @@ export function StudioNodeCard(props: NodeProps) {
     lastAutoFitChromeLayoutKeyRef.current = null;
   }, [socketValuesVisible, socketsExpanded, bodyControlsVisible, showNodeBody]);
 
+  const isDraggingRef = useRef(isDragging);
+  isDraggingRef.current = isDragging;
+
   const headerMeasureRef = useRef<HTMLDivElement | null>(null);
   const socketsMeasureRef = useRef<HTMLDivElement | null>(null);
   const bodyMeasureRef = useRef<HTMLDivElement | null>(null);
@@ -380,6 +384,9 @@ export function StudioNodeCard(props: NodeProps) {
     }
     const maxAutoWidthPx = resolveMaxAutoWidthPx(data.nodeId, minNodeWidth);
     const measure = () => {
+      if (isDraggingRef.current) {
+        return;
+      }
       const headerH = headerEl.offsetHeight;
       const socketsH = socketsEl?.offsetHeight ?? 0;
       const bodyEl = bodyMeasureRef.current;
@@ -1566,3 +1573,15 @@ export function StudioNodeCard(props: NodeProps) {
     </StudioFlowCanvasDisplayScaleProvider>
   );
 }
+
+function studioNodeCardPropsAreEqual(prev: NodeProps, next: NodeProps): boolean {
+  return (
+    prev.id === next.id &&
+    prev.selected === next.selected &&
+    prev.dragging === next.dragging &&
+    prev.data === next.data
+  );
+}
+
+const StudioNodeCardMemo = memo(StudioNodeCard, studioNodeCardPropsAreEqual);
+export { StudioNodeCardMemo as StudioNodeCard };

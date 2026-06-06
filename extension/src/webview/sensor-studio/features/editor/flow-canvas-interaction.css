@@ -14,3 +14,17 @@
 .studio-flow-canvas--pan .react-flow__pane.draggable.dragging {
   cursor: grabbing;
 }
+
+/** Cheaper compositing while nodes follow the pointer (no store round-trip). */
+.react-flow__node.dragging {
+  will-change: transform;
+}
+
+.react-flow__node.dragging [class*="backdrop-blur"] {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.react-flow__node.dragging [class*="shadow-["] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28) !important;
+}

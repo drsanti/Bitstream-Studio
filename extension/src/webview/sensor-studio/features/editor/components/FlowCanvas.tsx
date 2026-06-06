@@ -1,7 +1,9 @@
 import {
+  applyNodeChanges,
   Background,
   BackgroundVariant,
   MiniMap,
+  type NodeChange,
   type OnConnectStartParams,
   type ReactFlowInstance,
   ReactFlow,
@@ -34,6 +36,7 @@ import "../flow-canvas-edges.css";
 import "../layout-nodes/layout-flow-nodes.css";
 import "../layout-nodes/subgraph-flow-nodes.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
+import { setFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
 import { RerouteLayoutNode } from "../layout-nodes/RerouteLayoutNode";
 import { FrameLayoutNode } from "../layout-nodes/FrameLayoutNode";
 import { NoteLayoutNode } from "../layout-nodes/NoteLayoutNode";
@@ -231,6 +234,48 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
 
     const interactionMode = flowCanvasPreferences.interactionMode ?? "select";
     const isPanMode = interactionMode === "pan";
+
+    const nodeDragActiveRef = useRef(false);
+    const [renderNodes, setRenderNodes] = useState(nodes);
+
+    useEffect(() => {
+      if (!nodeDragActiveRef.current) {
+        setRenderNodes(nodes);
+      }
+    }, [nodes]);
+
+    const handleNodesChange = useCallback<OnNodesChange<FlowGraphNode>>(
+      (changes) => {
+        const dragActive = changes.some(
+          (ch): ch is NodeChange & { type: "position"; dragging: true } =>
+            ch.type === "position" && ch.dragging === true,
+        );
+        const dragEnd = changes.some(
+          (ch): ch is NodeChange & { type: "position"; dragging: false } =>
+            ch.type === "position" && ch.dragging === false,
+        );
+
+        if (dragActive || nodeDragActiveRef.current) {
+          nodeDragActiveRef.current = !dragEnd;
+          setFlowNodeDragActive(nodeDragActiveRef.current);
+          setRenderNodes(
+            (current) =>
+              applyNodeChanges(changes, current) as FlowGraphNode[],
+          );
+          if (dragEnd) {
+            onNodesChange(changes);
+          }
+          return;
+        }
+
+        setRenderNodes(
+          (current) =>
+            applyNodeChanges(changes, current) as FlowGraphNode[],
+        );
+        onNodesChange(changes);
+      },
+      [onNodesChange],
+    );
 
     const reactFlowRef = useRef<ReactFlowInstance<FlowGraphNode> | null>(null);
     const graphWrapperRef = useRef<HTMLDivElement>(null);
@@ -574,7 +619,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     const nodesForRender = useMemo(
       () =>
         sortFlowNodesParentFirst(
-          nodes.map((node) => {
+          renderNodes.map((node) => {
             if (isStudioFrameNode(node)) {
               return node.dragHandle === ".studio-frame-node__header"
                 ? node
@@ -587,7 +632,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             return node;
           }),
         ),
-      [nodes],
+      [renderNodes],
     );
 
     const onPickLayoutEntry = useCallback(
@@ -1145,7 +1190,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               style: { strokeWidth: flowCanvasPreferences.edgeStrokeWidth },
             }}
             deleteKeyCode={["Backspace", "Delete"]}
-            onNodesChange={onNodesChange}
+            onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStop={handleNodeDragStop}
             onNodeDoubleClick={(_event, node) => {
