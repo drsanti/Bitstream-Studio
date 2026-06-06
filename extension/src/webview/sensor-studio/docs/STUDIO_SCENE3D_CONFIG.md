@@ -9,7 +9,7 @@ This note describes the **JSON-shaped scene rig** used by Sensor Studio **3D vie
 | [`scene3d-config.ts`](../core/scene3d/scene3d-config.ts) | Type definition, defaults (`DEFAULT_SCENE3D_CONFIG_V1`), coercion (`coerceScene3DConfigV1`), presets (`studioLightsFromPreset`), persistence helper (`persistScene3DConfig`). |
 | [`StudioSceneViewport.tsx`](../core/viewport/StudioSceneViewport.tsx) | Applies coerced config to renderer, orbit controls, lights, GLB root, environment, and framing. |
 | [`studio-viewport-shadow-runtime.ts`](../core/viewport/studio-viewport-shadow-runtime.ts) | Shadow pipeline helpers: resolved params, cache key, directional shadow camera, mesh cast/receive, subtree exclusion for helpers. |
-| [`Rotation3DInspectorCards.tsx`](../features/editor/components/rotation/Rotation3DInspectorCards.tsx) | Inspector UI: Basic vs Advanced blocks, presets, JSON accordion, shadow and light tuning. |
+| [`Scene3dInspectorCards.tsx`](../features/editor/components/inspector/scene3d/Scene3dInspectorCards.tsx) | Inspector UI for `scene3d` panels (model, environment, renderer, camera, orbit, lights, helpers). |
 
 ## Default model URL (VS Code webview and VSIX)
 
@@ -81,7 +81,7 @@ Grid, body axes, camera frustum helper, and directional helper plane — each bl
 
 ## Inspector layout (high level)
 
-The rotation inspector groups **Basic** (model, environment essentials, framing) vs **Advanced** (full transforms, shadow numeric fields, controls JSON-adjacent sections). Scene JSON is editable via an accordion; **`persistScene3DConfig`** should run when saving node config so legacy keys do not linger.
+The Scene3D inspector groups **Basic** (model, environment essentials, framing) vs **Advanced** (full transforms, shadow numeric fields, controls JSON-adjacent sections). Scene JSON is editable via an accordion; **`persistScene3DConfig`** should run when saving node config so legacy keys do not linger.
 
 ## Data flow (coercion and preview)
 

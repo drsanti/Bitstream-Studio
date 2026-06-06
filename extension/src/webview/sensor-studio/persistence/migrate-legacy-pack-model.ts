@@ -58,9 +58,13 @@ function migrateScene3dModelBlock(model: Record<string, unknown>): Record<string
 
 /** Patch `defaultConfig` on flow nodes that store pack model paths or scene3d URLs. */
 export function migrateLegacyPackModelInDefaultConfig(
-  dc: Record<string, unknown>,
+  dc: Record<string, unknown> | null | undefined,
   catalogNodeId: string,
 ): Record<string, unknown> {
+  if (dc == null || typeof dc !== "object" || Array.isArray(dc)) {
+    return {};
+  }
+
   let next = dc;
   let changed = false;
 

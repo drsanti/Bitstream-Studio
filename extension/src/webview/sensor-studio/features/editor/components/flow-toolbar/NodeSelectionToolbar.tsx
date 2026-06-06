@@ -15,7 +15,10 @@ import { isStudioFrameNode } from "../../layout/frame-flow-nodes";
 import { isStudioNodeGroupNode } from "../../subgraphs/studio-subgraph.types";
 import {
   getBodyControlsVisibleUIState,
+  getSocketValuesVisibleUIState,
+  getSocketsExpandedUIState,
   selectionAllowsBodyCollapse,
+  selectionSupportsSocketCollapse,
 } from "../../nodes/flow-node/socket-display";
 import {
   FLOW_TOOLBAR_DIVIDER_CLASS,
@@ -23,7 +26,11 @@ import {
   flowToolbarBtnClass,
   flowToolbarDangerBtnClass,
 } from "./flow-toolbar-tokens";
-import { BodyControlsToggle } from "./FlowToolbarToggles";
+import {
+  BodyControlsToggle,
+  SocketDisplayToggle,
+  SocketValuesToggle,
+} from "./FlowToolbarToggles";
 
 const TOOLBAR_GAP_PX = 10;
 const DRAG_FLIP_THRESHOLD_PX = 2;
@@ -82,8 +89,13 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   const ungroupSelection = useFlowEditorStore((s) => s.ungroupSelection);
   const duplicateGroupLinked = useFlowEditorStore((s) => s.duplicateGroupLinked);
   const duplicateGroupDeepCopy = useFlowEditorStore((s) => s.duplicateGroupDeepCopy);
+  const edges = useFlowEditorStore((s) => s.edges);
   const toggleBodyControlsVisibleForNodes = useFlowEditorStore(
     (s) => s.toggleBodyControlsVisibleForNodes,
+  );
+  const toggleSocketsExpandedForNodes = useFlowEditorStore((s) => s.toggleSocketsExpandedForNodes);
+  const toggleSocketValuesVisibleForNodes = useFlowEditorStore(
+    (s) => s.toggleSocketValuesVisibleForNodes,
   );
 
   const selectedIds = useMemo(() => {
@@ -154,7 +166,24 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       }),
     [selectedIds, nodes],
   );
+  const showSocketControls = studioSelectedIds.length > 0;
   const showBodyControls = studioSelectedIds.length > 0;
+
+  const socketValuesVisible = useMemo(
+    () => getSocketValuesVisibleUIState(nodes, studioSelectedIds),
+    [nodes, studioSelectedIds],
+  );
+  const socketsExpanded = useMemo(
+    () => getSocketsExpandedUIState(nodes, studioSelectedIds),
+    [nodes, studioSelectedIds],
+  );
+  const socketDisplayToggleDisabled = useMemo(() => {
+    if (studioSelectedIds.length === 0) {
+      return true;
+    }
+    return !selectionSupportsSocketCollapse(nodes, edges, studioSelectedIds);
+  }, [nodes, edges, studioSelectedIds]);
+
   const bodyControlsToggleDisabled = useMemo(() => {
     if (studioSelectedIds.length === 0) {
       return true;
@@ -302,6 +331,42 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       {countLabel != null ? (
         <>
           <span className="px-2 text-[10px] font-semibold text-zinc-400">{countLabel}</span>
+          <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+        </>
+      ) : null}
+      {showSocketControls ? (
+        <>
+          <SocketValuesToggle
+            pressed={socketValuesVisible}
+            onToggle={() => toggleSocketValuesVisibleForNodes(studioSelectedIds)}
+            title={
+              socketValuesVisible
+                ? "Hide socket live values on selection (Shift+V)"
+                : "Show socket live values on selection (Shift+V)"
+            }
+            ariaLabel={
+              socketValuesVisible
+                ? "Hide socket live values on selection"
+                : "Show socket live values on selection"
+            }
+          />
+          <SocketDisplayToggle
+            pressed={socketsExpanded}
+            onToggle={() => toggleSocketsExpandedForNodes(studioSelectedIds)}
+            disabled={socketDisplayToggleDisabled}
+            title={
+              socketDisplayToggleDisabled
+                ? "No unused sockets to collapse on selection"
+                : socketsExpanded
+                  ? "Hide unwired sockets on selection (Shift+H)"
+                  : "Show unwired sockets on selection (Shift+H)"
+            }
+            ariaLabel={
+              socketsExpanded
+                ? "Hide unwired sockets on selection"
+                : "Show unwired sockets on selection"
+            }
+          />
           <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}

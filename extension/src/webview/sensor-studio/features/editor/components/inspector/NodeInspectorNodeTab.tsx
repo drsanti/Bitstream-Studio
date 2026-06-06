@@ -8,21 +8,17 @@ import {
   TRNHighlightedJsonTextarea,
 } from "../../../../../ui/TRN";
 import { NodeInspectorCanvasLayoutSection } from "./NodeInspectorCanvasLayoutSection";
+import { NodeInspectorScene3dSection } from "./NodeInspectorScene3dSection";
 import { InspectorLinkedStudioModelSection } from "./InspectorLinkedStudioModelSection";
 import { InspectorSection } from "./InspectorSection";
 import { InspectorTextField } from "./InspectorNumericScrubRow";
-import { Rotation3DInspectorCards } from "../rotation/Rotation3DInspectorCards";
-import {
-  defaultScene3DConfig,
-  persistScene3DConfig,
-  type Scene3DConfigV1,
-} from "../../../../core/scene3d/scene3d-config";
 import type { StudioNode } from "../../store/flow-editor.store";
 import { NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID } from "./settings/node-inspector-settings-registry";
 import type { NodeInspectorSettingsSectionProps } from "./settings/node-inspector-settings-types";
 import {
+  resolveVisibleNodeScene3dCardIds,
   shouldShowJsonConfigSection,
-  shouldShowRotation3dSettings,
+  shouldShowScene3dInspectorSettings,
   shouldShowTypedSettingsSection,
 } from "./settings/node-inspector-settings-search";
 import {
@@ -32,6 +28,7 @@ import {
   readNodeTabSectionOrder,
   writeNodeTabSectionOrder,
   type NodeInspectorSectionId,
+  type Scene3dInspectorPanelId,
   writeSettingsJsonAccordionValue,
 } from "./node-inspector-ui-persistence";
 
@@ -39,7 +36,7 @@ export type NodeInspectorNodeTabProps = {
   selectedNode: StudioNode;
   /** Catalog definition title for search + context (may be empty). */
   catalogDefinitionTitle: string;
-  isRotation3DNode: boolean;
+  hasScene3dInspector: boolean;
   /** When true (multi-select, same `nodeId`), hide JSON — store rejects multi JSON apply. */
   suppressDefaultConfigJson?: boolean;
   onUpdateLabel: (nextLabel: string) => void;
@@ -62,7 +59,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
   const {
     selectedNode,
     catalogDefinitionTitle,
-    isRotation3DNode,
+    hasScene3dInspector,
     suppressDefaultConfigJson = false,
     onUpdateLabel,
     onUpdateNodeUiAllowBodyCollapse,
@@ -118,8 +115,23 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
       settingsSearch,
     );
 
-  const showRotationBlock =
-    isRotation3DNode && shouldShowRotation3dSettings(settingsSearch);
+  const visibleScene3dCardIds = useMemo((): Scene3dInspectorPanelId[] | undefined => {
+    const resolved = resolveVisibleNodeScene3dCardIds(settingsSearch);
+    if (resolved == null) {
+      return undefined;
+    }
+    return resolved as Scene3dInspectorPanelId[];
+  }, [settingsSearch]);
+
+  const showScene3dBlock = useMemo(() => {
+    if (!hasScene3dInspector || !shouldShowScene3dInspectorSettings(settingsSearch)) {
+      return false;
+    }
+    if (visibleScene3dCardIds != null && visibleScene3dCardIds.length === 0) {
+      return false;
+    }
+    return true;
+  }, [hasScene3dInspector, settingsSearch, visibleScene3dCardIds]);
 
   const showJsonSection = shouldShowJsonConfigSection(settingsSearch);
 
@@ -128,8 +140,8 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
     if (showTypedSection && CatalogSection != null) {
       out.push("typed");
     }
-    if (showRotationBlock) {
-      out.push("rotation");
+    if (showScene3dBlock) {
+      out.push("scene3d");
     }
     if (showJsonSection && !suppressDefaultConfigJson) {
       out.push("advanced");
@@ -138,7 +150,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
   }, [
     CatalogSection,
     showJsonSection,
-    showRotationBlock,
+    showScene3dBlock,
     showTypedSection,
     suppressDefaultConfigJson,
   ]);
@@ -223,22 +235,13 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
               showTypedSection && CatalogSection != null ? (
                 <CatalogSection {...sectionProps} />
               ) : null
-            ) : id === "rotation" ? (
-              showRotationBlock ? (
-                <div className="space-y-2">
-                  <div className="sticky top-0 z-1 border-b border-emerald-900/30 bg-zinc-950/92 py-1 text-[10px] font-semibold tracking-wide text-emerald-100/85 backdrop-blur-sm supports-backdrop-filter:bg-zinc-950/75">
-                    3D Scene Settings
-                  </div>
-                  <Rotation3DInspectorCards
-                    scene3dRaw={selectedNode.data.defaultConfig.scene3d}
-                    inspectorRailResetKey={selectedNode.id}
-                    onChangeScene3d={(next: Scene3DConfigV1) => {
-                      const snap =
-                        next != null ? persistScene3DConfig(next) : defaultScene3DConfig();
-                      onUpdateConfigField("scene3d", snap);
-                    }}
-                  />
-                </div>
+            ) : id === "scene3d" ? (
+              showScene3dBlock ? (
+                <NodeInspectorScene3dSection
+                  selectedNode={selectedNode}
+                  onUpdateConfigField={onUpdateConfigField}
+                  visibleCardIds={visibleScene3dCardIds}
+                />
               ) : null
             ) : id === "advanced" ? (
               showJsonSection && !suppressDefaultConfigJson ? (

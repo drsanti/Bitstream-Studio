@@ -1,5 +1,5 @@
 import { isPlotterNodeId } from "../plotter/plotter-config";
-import { isRotation3DCatalogNodeId } from "../rotation/rotation-3d-node-ids";
+import { isScene3dInspectorNodeId } from "../scene3d/scene3d-inspector-node-ids";
 import type { StudioNodeData } from "../../store/flow-editor.store";
 
 export type StudioNodeMinDimensions = {
@@ -53,7 +53,7 @@ export function resolveStudioNodeMinDimensionFloor(nodeId: string): StudioNodeMi
   if (isPlotterNodeId(nodeId)) {
     return MIN_BY_NODE_ID.plotter ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS;
   }
-  if (isRotation3DCatalogNodeId(nodeId)) {
+  if (isScene3dInspectorNodeId(nodeId)) {
     return (
       MIN_BY_NODE_ID["rotation-3d-euler"] ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS
     );

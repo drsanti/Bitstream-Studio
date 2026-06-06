@@ -112,7 +112,7 @@ import {
   isPlotterNodeId,
   PLOTTER_INPUT_IDS,
 } from "./plotter/plotter-config";
-import { isRotation3DCatalogNodeId } from "./rotation/rotation-3d-node-ids";
+import { isScene3dInspectorNodeId } from "./scene3d/scene3d-inspector-node-ids";
 import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
@@ -229,7 +229,7 @@ function StudioNodeCard(props: NodeProps) {
     },
     [canvasPrefs.handleDimWhenUnwired, edges, id],
   );
-  const isRotationNode = isRotation3DCatalogNodeId(data.nodeId);
+  const isRotationNode = isScene3dInspectorNodeId(data.nodeId);
   const flowBodyFlexCol =
     isRotationNode ||
     isPlotterNodeId(data.nodeId) ||
@@ -971,7 +971,7 @@ function StudioNodeCard(props: NodeProps) {
       ? data.defaultConfig.showGrid
       : true;
 
-  const isRotation3dNode = isRotation3DCatalogNodeId(data.nodeId);
+  const isRotation3dNode = isScene3dInspectorNodeId(data.nodeId);
 
   type RotationPreviewScenePropsV4 = RotationPreviewSceneProps & {
     scene3d?: unknown;

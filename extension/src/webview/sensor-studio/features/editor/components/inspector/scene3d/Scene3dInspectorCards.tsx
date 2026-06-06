@@ -33,27 +33,27 @@ import {
   type TRNInspectorIconRailItem,
   type TRNSelectOption,
   type TRNVector3,
-} from "../../../../../ui/TRN";
-import { studioAssetSourceBadgeClasses } from "../../../asset-browser/studio-asset-source-badge";
-import { useStudioAssetDescriptors } from "../../../asset-browser/useStudioAssetDescriptors";
+} from "../../../../../../ui/TRN";
+import { studioAssetSourceBadgeClasses } from "../../../../asset-browser/studio-asset-source-badge";
+import { useStudioAssetDescriptors } from "../../../../asset-browser/useStudioAssetDescriptors";
 import {
   findT3DCubemapPresetIndexForStudioEnvironment,
   getStudioEnvironmentDescriptorById,
   listStudioEnvironmentDescriptors,
   parseT3dPresetEnvironmentSelectValue,
   resolveStudioEnvironmentDescriptorForUI,
-  rotationInspectorEnvironmentCatalogSelectValue,
+  scene3dInspectorEnvironmentCatalogSelectValue,
   STUDIO_ENVIRONMENT_T3D_PRESET_VALUE_PREFIX,
-} from "../../../asset-browser/studio-environment-scene-bindings";
+} from "../../../../asset-browser/studio-environment-scene-bindings";
 import {
   getStudioModelDescriptorById,
   persistedModelUrlFromStudioDescriptor,
   resolveStudioModelDescriptorForPersistedModel,
-  rotationInspectorModelCatalogSelectValue,
+  scene3dInspectorModelCatalogSelectValue,
   STUDIO_MODEL_SELECT_CUSTOM,
-} from "../../../asset-browser/studio-model-scene-bindings";
-import { buildRotationInspectorModelCatalogSelectOptions } from "../../nodes/model-nodes/studio-model-catalog-select-ui";
-import { assetSourceLabel } from "../../../../../assets-manager/browse/asset-source-label";
+} from "../../../../asset-browser/studio-model-scene-bindings";
+import { buildScene3dInspectorModelCatalogSelectOptions } from "../../../nodes/model-nodes/studio-model-catalog-select-ui";
+import { assetSourceLabel } from "../../../../../../assets-manager/browse/asset-source-label";
 import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
@@ -63,12 +63,12 @@ import {
   type EmbeddedRigPolicy,
   type Scene3DConfigV1,
   type StudioLightsPresetId,
-} from "../../../../core/scene3d/scene3d-config";
-import type { RotationInspectorRailPanelId } from "../inspector/node-inspector-ui-persistence";
+} from "../../../../../core/scene3d/scene3d-config";
+import type { Scene3dInspectorPanelId } from "../node-inspector-ui-persistence";
 import {
-  readRotationRailsMap,
-  writeRotationRailsMap,
-} from "../inspector/node-inspector-ui-persistence";
+  readScene3dInspectorPanelByNodeId,
+  writeScene3dInspectorPanelByNodeId,
+} from "../node-inspector-ui-persistence";
 
 const ORBIT_MOUSE_OPTIONS: TRNSelectOption[] = [
   { value: "ROTATE", label: "Rotate" },
@@ -93,15 +93,20 @@ const SHADOW_MAP_SIZE_OPTIONS: TRNSelectOption[] = [
   { value: "4096", label: "4096 (sharp)" },
 ];
 
+function directionalLightDisplayLabel(index: number): string {
+  return `Light ${index + 1}`;
+}
+
+const DIRECTIONAL_LIGHT_TOOL_BTN_CLASS =
+  "inline-flex size-6 items-center justify-center rounded border border-zinc-700/70 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-35";
+
 const EMBEDDED_RIG_POLICY_OPTIONS: TRNSelectOption[] = [
   { value: "keep", label: "Keep embedded (lights & cameras)" },
   { value: "hybrid", label: "Hybrid — strip embedded cameras only" },
   { value: "strip", label: "Strip embedded — studio rig only" },
 ];
 
-export type Rotation3DInspectorRailPanel = RotationInspectorRailPanelId;
-
-const RAIL_ENTRIES: readonly TRNInspectorIconRailItem<Rotation3DInspectorRailPanel>[] = [
+const RAIL_ENTRIES: readonly TRNInspectorIconRailItem<Scene3dInspectorPanelId>[] = [
   { id: "model", label: "Model", Icon: Box },
   { id: "environment", label: "Environment", Icon: Globe2 },
   { id: "renderer", label: "Renderer", Icon: MonitorPlay },
@@ -111,7 +116,7 @@ const RAIL_ENTRIES: readonly TRNInspectorIconRailItem<Rotation3DInspectorRailPan
   { id: "helpers", label: "Helpers", Icon: Grid3x3 },
 ];
 
-type Rotation3DInspectorCardsProps = {
+type Scene3dInspectorCardsProps = {
   scene3dRaw: unknown;
   onChangeScene3d: (next: Scene3DConfigV1) => void;
   /**
@@ -124,12 +129,12 @@ type Rotation3DInspectorCardsProps = {
   /** Stable id for the inspected entity (e.g. flow node id); restores last rail tab per id in-session. */
   inspectorRailResetKey?: string | null;
   /** When set, only this panel body is rendered (for Stage inspector draggable cards). */
-  singlePanel?: Rotation3DInspectorRailPanel;
+  singlePanel?: Scene3dInspectorPanelId;
   /** Omit emerald chrome when nested inside {@link CanvasInspectorCard}. */
   chromeless?: boolean;
 };
 
-export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
+export function Scene3dInspectorCards(props: Scene3dInspectorCardsProps) {
   const { singlePanel, chromeless = false } = props;
   const { descriptors } = useStudioAssetDescriptors();
 
@@ -139,7 +144,7 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
   );
 
   const modelSelectOptions = useMemo(
-    () => buildRotationInspectorModelCatalogSelectOptions(descriptors),
+    () => buildScene3dInspectorModelCatalogSelectOptions(descriptors),
     [descriptors],
   );
 
@@ -170,18 +175,18 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
   );
 
   const modelCatalogSelectValue = useMemo(
-    () => rotationInspectorModelCatalogSelectValue(scene3d.model, descriptors),
+    () => scene3dInspectorModelCatalogSelectValue(scene3d.model, descriptors),
     [scene3d.model, descriptors],
   );
 
   const showModelUrlField = modelCatalogSelectValue === STUDIO_MODEL_SELECT_CUSTOM;
 
-  const railByNodeIdRef = useRef<Map<string, Rotation3DInspectorRailPanel>>(
-    readRotationRailsMap(),
+  const railByNodeIdRef = useRef<Map<string, Scene3dInspectorPanelId>>(
+    readScene3dInspectorPanelByNodeId(),
   );
 
   const [activeRailPanel, setActiveRailPanel] =
-    useState<Rotation3DInspectorRailPanel>("model");
+    useState<Scene3dInspectorPanelId>("model");
 
   useEffect(() => {
     const key = props.inspectorRailResetKey;
@@ -193,11 +198,11 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
   }, [props.inspectorRailResetKey]);
 
   const onRailPanelChange = useCallback(
-    (panel: Rotation3DInspectorRailPanel) => {
+    (panel: Scene3dInspectorPanelId) => {
       setActiveRailPanel(panel);
       if (props.inspectorRailResetKey != null) {
         railByNodeIdRef.current.set(props.inspectorRailResetKey, panel);
-        writeRotationRailsMap(railByNodeIdRef.current);
+        writeScene3dInspectorPanelByNodeId(railByNodeIdRef.current);
       }
     },
     [props.inspectorRailResetKey],
@@ -228,10 +233,10 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
   };
 
   const directionalAttachOptions = useMemo<TRNSelectOption[]>(() => {
-    const opts: TRNSelectOption[] = [{ value: "", label: "Auto (first light)" }];
-    for (const dl of scene3d.lights.directionals) {
-      opts.push({ value: dl.id, label: dl.id });
-    }
+    const opts: TRNSelectOption[] = [{ value: "", label: "Auto (Light 1)" }];
+    scene3d.lights.directionals.forEach((dl, index) => {
+      opts.push({ value: dl.id, label: directionalLightDisplayLabel(index) });
+    });
     return opts;
   }, [scene3d.lights.directionals]);
 
@@ -261,7 +266,7 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
 
   const environmentCatalogSelectValue = useMemo(
     () =>
-      rotationInspectorEnvironmentCatalogSelectValue(
+      scene3dInspectorEnvironmentCatalogSelectValue(
         scene3d.environment,
         descriptors,
         getEngineEnvironmentCubeMaps(),
@@ -269,7 +274,7 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
     [scene3d.environment, descriptors],
   );
 
-  const panelActive = (id: Rotation3DInspectorRailPanel): boolean =>
+  const panelActive = (id: Scene3dInspectorPanelId): boolean =>
     singlePanel != null ? singlePanel === id : activeRailPanel === id;
 
   const showPanelHeading = !chromeless;
@@ -1469,7 +1474,7 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
 
               <TRNFormField
                 label="Lighting presets"
-                hint="Replaces ambient + all studio directionals. Helper attach clears if its id is not in the new list."
+                hint="Replaces ambient and all directional lights. Helper attach may reset when the list changes."
               >
                 <div className="flex flex-wrap gap-1">
                   {(
@@ -1494,7 +1499,7 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
               <div className="space-y-2 border-t border-emerald-900/20 pt-2">
                 <div className="flex items-center justify-between gap-2">
                   <TRNMenuSectionTitle spacing="labelOnly" className="text-zinc-400">
-                    Studio directionals
+                    Directional lights
                   </TRNMenuSectionTitle>
                   <button
                     type="button"
@@ -1536,27 +1541,29 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                   </button>
                 </div>
                 <p className="text-[10px] leading-snug text-zinc-500">
-                  Separate from embedded GLB lights. Up to {MAX_STUDIO_DIRECTIONALS} entries; order is the
-                  authoring order (first is the Auto helper target). Use arrows to reorder; duplicate clones
-                  settings with a new id.
+                  Up to {MAX_STUDIO_DIRECTIONALS} lights · list order sets helper priority (Light 1 is
+                  the default attach target).
                 </p>
 
                 {scene3d.lights.directionals.map((dl, index) => (
                   <div
-                    key={`dir-row-${index}`}
+                    key={`dir-row-${dl.id}-${index}`}
                     className="space-y-2 rounded border border-zinc-700/65 bg-zinc-950/35 p-2"
                   >
-                    <div className="flex items-start gap-2">
+                    <div className="flex items-center justify-between gap-2 border-b border-zinc-800/60 pb-1.5">
+                      <span className="text-[11px] font-semibold text-zinc-200">
+                        {directionalLightDisplayLabel(index)}
+                      </span>
                       <div
-                        className="flex shrink-0 flex-col gap-0.5 pt-5"
+                        className="flex shrink-0 items-center gap-0.5"
                         role="group"
-                        aria-label="Reorder or duplicate this directional"
+                        aria-label={`${directionalLightDisplayLabel(index)} actions`}
                       >
                         <button
                           type="button"
-                          title="Move up"
+                          aria-label="Move light up"
                           disabled={index <= 0}
-                          className="inline-flex size-7 items-center justify-center rounded border border-zinc-700/70 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-35"
+                          className={DIRECTIONAL_LIGHT_TOOL_BTN_CLASS}
                           onClick={() =>
                             set((prev) => {
                               if (index <= 0 || index >= prev.lights.directionals.length) {
@@ -1581,9 +1588,9 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                         </button>
                         <button
                           type="button"
-                          title="Move down"
+                          aria-label="Move light down"
                           disabled={index >= scene3d.lights.directionals.length - 1}
-                          className="inline-flex size-7 items-center justify-center rounded border border-zinc-700/70 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-35"
+                          className={DIRECTIONAL_LIGHT_TOOL_BTN_CLASS}
                           onClick={() =>
                             set((prev) => {
                               if (
@@ -1611,9 +1618,9 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                         </button>
                         <button
                           type="button"
-                          title="Duplicate row"
+                          aria-label="Duplicate light"
                           disabled={scene3d.lights.directionals.length >= MAX_STUDIO_DIRECTIONALS}
-                          className="inline-flex size-7 items-center justify-center rounded border border-zinc-700/70 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-35"
+                          className={DIRECTIONAL_LIGHT_TOOL_BTN_CLASS}
                           onClick={() =>
                             set((prev) => {
                               if (prev.lights.directionals.length >= MAX_STUDIO_DIRECTIONALS) {
@@ -1649,35 +1656,24 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                         >
                           <Copy className="size-3.5" aria-hidden />
                         </button>
-                      </div>
-                      <TRNFormField label="Id" className="min-w-0 flex-1">
-                        <TRNInlineEdit
-                          value={dl.id}
-                          onCommit={(next) =>
+                        <button
+                          type="button"
+                          aria-label="Remove light"
+                          disabled={scene3d.lights.directionals.length <= 1}
+                          className={DIRECTIONAL_LIGHT_TOOL_BTN_CLASS}
+                          onClick={() =>
                             set((prev) => {
-                              const trimmed = next.trim();
-                              const oldId = prev.lights.directionals[index]?.id;
-                              if (oldId == null) {
+                              if (prev.lights.directionals.length <= 1) {
                                 return prev;
                               }
-                              let candidate =
-                                trimmed.length > 0 ? trimmed : `studio-dir-${index}`;
-                              const others = new Set(
-                                prev.lights.directionals
-                                  .filter((_, j) => j !== index)
-                                  .map((d) => d.id),
-                              );
-                              let suf = 0;
-                              while (others.has(candidate)) {
-                                candidate = `${trimmed.length > 0 ? trimmed : `studio-dir-${index}`}-${suf}`;
-                                suf++;
+                              const removed = prev.lights.directionals[index];
+                              if (removed == null) {
+                                return prev;
                               }
-                              const directionals = prev.lights.directionals.map((d, j) =>
-                                j === index ? { ...d, id: candidate } : d,
-                              );
+                              const directionals = prev.lights.directionals.filter((_, j) => j !== index);
                               let attach = prev.helpers.directionalLight.attachToDirectionalId;
-                              if (attach === oldId) {
-                                attach = candidate;
+                              if (attach === removed.id) {
+                                attach = null;
                               }
                               return {
                                 ...prev,
@@ -1692,45 +1688,10 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                               };
                             })
                           }
-                          inputClassName="font-mono text-[11px]"
-                          placeholder="studio-main"
-                        />
-                      </TRNFormField>
-                      <button
-                        type="button"
-                        disabled={scene3d.lights.directionals.length <= 1}
-                        title="Remove directional"
-                        className="mt-5 inline-flex size-7 shrink-0 items-center justify-center rounded border border-zinc-700/70 text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-35"
-                        onClick={() =>
-                          set((prev) => {
-                            if (prev.lights.directionals.length <= 1) {
-                              return prev;
-                            }
-                            const removed = prev.lights.directionals[index];
-                            if (removed == null) {
-                              return prev;
-                            }
-                            const directionals = prev.lights.directionals.filter((_, j) => j !== index);
-                            let attach = prev.helpers.directionalLight.attachToDirectionalId;
-                            if (attach === removed.id) {
-                              attach = null;
-                            }
-                            return {
-                              ...prev,
-                              lights: { ...prev.lights, directionals },
-                              helpers: {
-                                ...prev.helpers,
-                                directionalLight: {
-                                  ...prev.helpers.directionalLight,
-                                  attachToDirectionalId: attach,
-                                },
-                              },
-                            };
-                          })
-                        }
-                      >
-                        <Trash2 className="size-3.5" aria-hidden />
-                      </button>
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </button>
+                      </div>
                     </div>
 
                     <TRNParameterSlider valueScrubEnabled
@@ -1755,7 +1716,7 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                     />
                     <TRNFormField label="Color">
                       <TRNColorRingPicker
-                        ariaLabel={`Directional ${dl.id} color`}
+                        ariaLabel={`${directionalLightDisplayLabel(index)} color`}
                         valueHex={dl.colorHex}
                         onValueHexChange={(nextHex) =>
                           set((prev) => ({
@@ -2055,11 +2016,11 @@ export function Rotation3DInspectorCards(props: Rotation3DInspectorCardsProps) {
                     innerClassName="space-y-2"
                   >
                     <p className="text-[10px] leading-snug text-zinc-500">
-                      Follows the studio directional list in the Lights panel (intensity and ids).
+                      Follows the directional light list in the Lights panel (order and intensity).
                     </p>
                     <TRNFormField
                       label="Attach helper to"
-                      hint="Auto picks the first directional in the list."
+                      hint="Auto uses Light 1. Reorder lights in the Lights panel to change priority."
                     >
                       <TRNSelect
                         ariaLabel="Directional helper attach target"

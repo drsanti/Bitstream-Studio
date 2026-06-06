@@ -7,7 +7,7 @@ import {
   patchCommittedScene3d,
   patchStageSceneModelCatalogSelect,
 } from "../../../stage/stage-viewport-helpers";
-import { Rotation3DInspectorCards } from "../rotation/Rotation3DInspectorCards";
+import { Scene3dInspectorCards } from "./scene3d/Scene3dInspectorCards";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import {
   DEFAULT_STAGE_SCENE3D_CARD_ORDER,
@@ -120,7 +120,7 @@ export function StageInspectorScene3dTab() {
             collapsed={collapsedById[id]}
             onCollapsedChange={(next) => setCardCollapsed(id, next)}
           >
-            <Rotation3DInspectorCards
+            <Scene3dInspectorCards
               chromeless
               singlePanel={id}
               scene3dRaw={scene3dRaw}

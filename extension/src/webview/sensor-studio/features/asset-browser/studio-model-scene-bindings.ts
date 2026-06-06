@@ -243,10 +243,10 @@ export function resolveStudioModelGltfFetchUrl(
   return resolveWebviewModelAssetUrl(trimmed);
 }
 
-/** Select value for rotation inspector: catalog id or sentinel for free-form URL. */
+/** Select value for Scene3D inspector: catalog id or sentinel for free-form URL. */
 export const STUDIO_MODEL_SELECT_CUSTOM = "__custom__";
 
-export function rotationInspectorModelCatalogSelectValue(
+export function scene3dInspectorModelCatalogSelectValue(
   model: { url: string; studioAssetId?: string },
   catalog: readonly StudioAssetDescriptor[],
 ): string {
@@ -264,3 +264,6 @@ export function rotationInspectorModelCatalogSelectValue(
   const inferred = resolveStudioModelDescriptorForPersistedModel(trimmed, null, catalog);
   return inferred?.id ?? STUDIO_MODEL_SELECT_CUSTOM;
 }
+
+/** @deprecated Use {@link scene3dInspectorModelCatalogSelectValue}. */
+export const rotationInspectorModelCatalogSelectValue = scene3dInspectorModelCatalogSelectValue;

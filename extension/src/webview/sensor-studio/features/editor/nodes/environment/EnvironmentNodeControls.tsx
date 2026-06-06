@@ -9,7 +9,7 @@ import {
 } from "../../../../../ui/TRN";
 import { useStudioAssetDescriptors } from "../../../asset-browser/useStudioAssetDescriptors";
 import {
-  rotationInspectorEnvironmentCatalogSelectValue,
+  scene3dInspectorEnvironmentCatalogSelectValue,
   STUDIO_ENVIRONMENT_T3D_PRESET_VALUE_PREFIX,
 } from "../../../asset-browser/studio-environment-scene-bindings";
 import {
@@ -100,7 +100,7 @@ export function EnvironmentNodeControls(props: EnvironmentNodeControlsProps) {
 
   const selectValue = useMemo(
     () =>
-      rotationInspectorEnvironmentCatalogSelectValue(
+      scene3dInspectorEnvironmentCatalogSelectValue(
         { presetIndex: wire.presetIndex, studioAssetId: wire.studioAssetId },
         descriptors,
         getEngineEnvironmentCubeMaps(),

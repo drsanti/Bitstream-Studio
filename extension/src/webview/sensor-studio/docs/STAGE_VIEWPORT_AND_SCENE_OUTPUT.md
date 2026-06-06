@@ -89,7 +89,7 @@ The workbench **3D Scene** (Stage toolbar) is an operator-facing editor for the 
 
 ### Model catalog picker (Stage inspector + flow)
 
-- **Options:** `buildStudioModelCatalogSelectOptions` / `buildRotationInspectorModelCatalogSelectOptions` in `studio-model-catalog-select-ui.tsx` — leading **source icon** + trailing badge (**Free pack**, **Included**, **On this device**, **From web**) per `AssetDescriptor.source`.
+- **Options:** `buildStudioModelCatalogSelectOptions` / `buildScene3dInspectorModelCatalogSelectOptions` in `studio-model-catalog-select-ui.tsx` — leading **source icon** + trailing badge (**Free pack**, **Included**, **On this device**, **From web**) per `AssetDescriptor.source`.
 - **Snapshot sync:** `evaluateStageSceneSnapshot` copies **`studioAssetId`** from each wired **model-select** into `snapshot.models[]` and `scene3d.model` so `resolveStudioModelGltfFetchUrl` does not load a stale baked id while the URL points at another GLB.
 - **Inspector pick:** `StageInspectorScene3dTab` → `patchStageSceneModelCatalogSelect` uses **focused** model index (`primaryModelIndex`), not only the first Models edge.
 - **Reload UX:** `StudioSceneViewport` keeps the previous mesh until a new URL load finishes; **embedded rig policy** changes on the same URL re-clone from an in-memory pristine GLB template (no multi-second blank scene).

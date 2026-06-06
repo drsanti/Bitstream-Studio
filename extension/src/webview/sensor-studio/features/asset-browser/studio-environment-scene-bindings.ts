@@ -99,7 +99,7 @@ export function parseT3dPresetEnvironmentSelectValue(value: string): number | nu
   return Number.isFinite(n) ? n : null;
 }
 
-export function rotationInspectorEnvironmentCatalogSelectValue(
+export function scene3dInspectorEnvironmentCatalogSelectValue(
   env: { studioAssetId?: string; presetIndex: number },
   catalog: readonly StudioAssetDescriptor[],
   cubeMapPresets: readonly { path: string }[],
@@ -115,6 +115,10 @@ export function rotationInspectorEnvironmentCatalogSelectValue(
   const idx = Math.min(Math.max(0, Math.round(env.presetIndex)), max);
   return t3dPresetEnvironmentSelectValue(idx);
 }
+
+/** @deprecated Use {@link scene3dInspectorEnvironmentCatalogSelectValue}. */
+export const rotationInspectorEnvironmentCatalogSelectValue =
+  scene3dInspectorEnvironmentCatalogSelectValue;
 
 export function syncEnvironmentPresetIndexWithStudioAsset(
   presetIndex: number,

@@ -71,8 +71,8 @@ export function buildStudioModelCatalogSelectOptions(
   ];
 }
 
-/** Rotation / Stage Scene3D inspector — **Custom URL…** instead of None. */
-export function buildRotationInspectorModelCatalogSelectOptions(
+/** Scene3D inspector (node + Stage) — **Custom URL…** instead of None. */
+export function buildScene3dInspectorModelCatalogSelectOptions(
   descriptors: readonly StudioAssetDescriptor[],
 ): TRNSelectOption[] {
   return [
@@ -84,3 +84,7 @@ export function buildRotationInspectorModelCatalogSelectOptions(
     ...mapCatalogModelOptions(descriptors),
   ];
 }
+
+/** @deprecated Use {@link buildScene3dInspectorModelCatalogSelectOptions}. */
+export const buildRotationInspectorModelCatalogSelectOptions =
+  buildScene3dInspectorModelCatalogSelectOptions;

@@ -38,14 +38,14 @@ sensor-studio/
 │  └─ schema/config/
 ├─ features/
 │  └─ editor/
-│     ├─ components/rotation/Rotation3DInspectorCards.tsx
+│     ├─ components/inspector/scene3d/Scene3dInspectorCards.tsx
 ├─ core/
 │  ├─ scene3d/scene3d-config.ts
 │  └─ viewport/
 │     ├─ StudioSceneViewport.tsx
 │     └─ studio-viewport-shadow-runtime.ts
-│  └─ editor/nodes/rotation/
-│     └─ rotation-3d-node-ids.ts
+│  └─ editor/nodes/scene3d/
+│     └─ scene3d-inspector-node-ids.ts
 └─ persistence/
 ```
 
@@ -91,7 +91,7 @@ sensor-studio/
 - [`core/scene3d/scene3d-config.ts`](./core/scene3d/scene3d-config.ts) — `Scene3DConfigV1`, defaults, `coerceScene3DConfigV1`, `persistScene3DConfig`
 - [`core/viewport/StudioSceneViewport.tsx`](./core/viewport/StudioSceneViewport.tsx) — shared Three.js viewport (Stage, Model Viewer, 3D Rotation)
 - [`core/viewport/studio-viewport-shadow-runtime.ts`](./core/viewport/studio-viewport-shadow-runtime.ts) — shadow helpers
-- [`features/editor/components/rotation/Rotation3DInspectorCards.tsx`](./features/editor/components/rotation/Rotation3DInspectorCards.tsx) — rotation inspector UI
+- [`features/editor/components/inspector/scene3d/Scene3dInspectorCards.tsx`](./features/editor/components/inspector/scene3d/Scene3dInspectorCards.tsx) — Scene3D inspector panels (node + Stage)
 - Design note: [`docs/STUDIO_SCENE3D_CONFIG.md`](./docs/STUDIO_SCENE3D_CONFIG.md)
 
 ## Development Rules (Applied in This Folder)

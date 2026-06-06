@@ -375,7 +375,7 @@ export const DEFAULT_SCENE3D_CONFIG_V1: Scene3DConfigV1 = {
   },
   helpers: {
     grid: {
-      enabled: true,
+      enabled: false,
       size: 24,
       divisions: 96,
       colorCenterHex: "#71717a",

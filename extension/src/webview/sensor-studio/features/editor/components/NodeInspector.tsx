@@ -19,7 +19,7 @@ import {
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
   TRN_INSPECTOR_TAB_ACTIVE_CLASS,
 } from "../../../../ui/TRN";
-import { isRotation3DCatalogNodeId } from "../nodes/rotation/rotation-3d-node-ids";
+import { isScene3dInspectorNodeId } from "../nodes/scene3d/scene3d-inspector-node-ids";
 import type { FlowGraphNode, StudioNode } from "../store/flow-editor.store";
 import { isStudioFlowNode } from "../layout/layout-port-resolution";
 import { LayoutNodeInspectorPanel } from "./inspector/LayoutNodeInspectorPanel";
@@ -208,8 +208,8 @@ export function NodeInspector(props: NodeInspectorProps) {
     selectedNode != null
       ? (categoryColors[selectedNode.data.category] ?? "#a1a1aa")
       : "#a1a1aa";
-  const isRotation3DNode =
-    selectedNode != null && isRotation3DCatalogNodeId(selectedNode.data.nodeId);
+  const hasScene3dInspector =
+    selectedNode != null && isScene3dInspectorNodeId(selectedNode.data.nodeId);
 
   const visibleTabs = useMemo(() => {
     if (isGlbAnimationBundle) {
@@ -385,7 +385,7 @@ export function NodeInspector(props: NodeInspectorProps) {
                   <NodeInspectorNodeTab
                     selectedNode={selectedNode}
                     catalogDefinitionTitle={catalogEntry?.title ?? ""}
-                    isRotation3DNode={isRotation3DNode}
+                    hasScene3dInspector={hasScene3dInspector}
                     suppressDefaultConfigJson={homogeneousMultiEdit}
                     onUpdateLabel={onUpdateLabel}
                     onUpdateNodeUiAllowBodyCollapse={

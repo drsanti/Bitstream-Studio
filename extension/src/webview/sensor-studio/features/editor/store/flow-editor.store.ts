@@ -23,7 +23,10 @@ import {
 import { bitstreamSensorHintToSourceId } from "../../../core/device/bitstream-hint-to-source-id";
 import { sensorHealthAgeThresholdsMs } from "../../../core/device/sensor-health-thresholds";
 import { computeBmi270PinBundle } from "../../../core/live/bmi270-pin-bundle";
-import type { FlowWireQuaternion, FlowWireVec3 } from "../../../core/live/flow-wire-types";
+import type {
+  FlowWireQuaternion,
+  FlowWireVec3,
+} from "../../../core/live/flow-wire-types";
 import { useBitstreamLiveStore } from "../../../../bitstream-app/state/bitstreamLive.store";
 import {
   useBitstreamDeviceSensorConfigStore,
@@ -118,8 +121,8 @@ import {
   isPhysicsDomainStubNodeId,
 } from "../../../core/flow/physics-domain-eval";
 import { flowWirePhysicsRigidBodyFromConfig } from "../nodes/physics/flow-wire-physics-body";
-import { isFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
 import { evaluateStageSceneSnapshot } from "../../../core/stage/evaluate-stage-scene-snapshot";
+import { isFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
 import { useStageSceneStore } from "../../../state/stage-scene.store";
 import {
   evaluateFrameDelta,
@@ -231,11 +234,17 @@ import {
   rekeyStudioNodeAssetMeta,
   type StudioNodeAssetFile,
 } from "../subgraphs/node-library/studio-node-asset-file";
-import { readPersistedNodeGroupLibrary, writePersistedNodeGroupLibrary } from "../../../persistence/node-group-library.repository";
+import {
+  readPersistedNodeGroupLibrary,
+  writePersistedNodeGroupLibrary,
+} from "../../../persistence/node-group-library.repository";
 import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
 import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
-import { readClipboardText, writeClipboardText } from "../../../../ui/utils/clipboard";
+import {
+  readClipboardText,
+  writeClipboardText,
+} from "../../../../ui/utils/clipboard";
 import { validateStudioNodeConfig } from "../../../core/validation/node-config.validation";
 import {
   type StudioPersistedViewport,
@@ -329,8 +338,15 @@ import {
   readGlbExtractTag,
   resolveWiredStudioModelSelectNodeId,
 } from "../model/model-generated-bindings";
-import { buildLayoutFlowNode, buildRerouteFlowNode } from "../layout/layout-flow-node-builders";
-import { splitEdgeWithReroute, applyRerouteBridgeOnEdgeRemoves, removeFlowNodesFromGraph } from "../layout/reroute-graph-ops";
+import {
+  buildLayoutFlowNode,
+  buildRerouteFlowNode,
+} from "../layout/layout-flow-node-builders";
+import {
+  splitEdgeWithReroute,
+  applyRerouteBridgeOnEdgeRemoves,
+  removeFlowNodesFromGraph,
+} from "../layout/reroute-graph-ops";
 import {
   connectWithPolicy,
   mergeReconnectConnection,
@@ -376,15 +392,24 @@ import {
   applyStudioNodeMinDimensionsToUi,
   resolveStudioNodeMinDimensionFloor,
 } from "../nodes/flow-node/studio-node-resize-defaults";
-import type { LayoutFlowNode, LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
-import { isLayoutFlowNode, splitOutputHandleIds } from "../layout/layout-flow-nodes.types";
+import type {
+  LayoutFlowNode,
+  LayoutMenuEntryId,
+} from "../layout/layout-flow-nodes.types";
+import {
+  isLayoutFlowNode,
+  splitOutputHandleIds,
+} from "../layout/layout-flow-nodes.types";
 import {
   isStudioFlowNode,
   patchLayoutNodesAfterConnect,
   resolveFlowSourcePortType,
 } from "../layout/layout-port-resolution";
 
-export type { FlowWireQuaternion, FlowWireVec3 } from "../../../core/live/flow-wire-types";
+export type {
+  FlowWireQuaternion,
+  FlowWireVec3,
+} from "../../../core/live/flow-wire-types";
 export type { FlowWireEnvironmentV1 } from "../nodes/environment/flow-wire-environment";
 export type { FlowWireCameraV1 } from "../nodes/camera-view/flow-wire-camera";
 export type { FlowWireAnimationV1 } from "../nodes/animation/flow-wire-animation";
@@ -467,11 +492,16 @@ export const ENVIRONMENT_SENSOR_TAP_NODE_IDS = [
   "bmm350-tap-samples",
 ] as const;
 
-export const ENVIRONMENT_SENSOR_TAP_NODE_ID_SET = new Set<string>(ENVIRONMENT_SENSOR_TAP_NODE_IDS);
+export const ENVIRONMENT_SENSOR_TAP_NODE_ID_SET = new Set<string>(
+  ENVIRONMENT_SENSOR_TAP_NODE_IDS,
+);
 
 /** True for any BMI270 or environment sensor *tap* node (single `out` handle). */
 export function isStudioSensorTapNodeId(nodeId: string): boolean {
-  return BMI270_TAP_NODE_ID_SET.has(nodeId) || ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(nodeId);
+  return (
+    BMI270_TAP_NODE_ID_SET.has(nodeId) ||
+    ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(nodeId)
+  );
 }
 
 /** Multi-pin live sensor sources with aligned inspector Live readings matrix. */
@@ -505,7 +535,9 @@ const STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_ID_SET = new Set<string>(
   STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_IDS,
 );
 
-export function isStudioAlignedOutputSocketColumnsNodeId(nodeId: string): boolean {
+export function isStudioAlignedOutputSocketColumnsNodeId(
+  nodeId: string,
+): boolean {
   return STUDIO_ALIGNED_OUTPUT_SOCKET_NODE_ID_SET.has(nodeId);
 }
 
@@ -523,27 +555,28 @@ export function isStudioLiveInspectorReadingsNodeId(nodeId: string): boolean {
 }
 
 /** Header chip label for sensor source nodes (BMI270 family + environment sensors). */
-export const STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID: Record<string, string> = {
-  "bmi270-input": "BMI270",
-  "bmi270-tap-quaternion": "BMI270",
-  "bmi270-tap-euler": "BMI270",
-  "bmi270-tap-accel": "BMI270",
-  "bmi270-tap-gyro": "BMI270",
-  "bmi270-tap-temp": "BMI270",
-  "bmi270-tap-samples": "BMI270",
-  "dps368-input": "DPS368",
-  "dps368-tap-pressure": "DPS368",
-  "dps368-tap-temp": "DPS368",
-  "dps368-tap-samples": "DPS368",
-  "sht40-input": "SHT40",
-  "sht40-tap-humidity": "SHT40",
-  "sht40-tap-temp": "SHT40",
-  "sht40-tap-samples": "SHT40",
-  "bmm350-input": "BMM350",
-  "bmm350-tap-magnetic": "BMM350",
-  "bmm350-tap-temp": "BMM350",
-  "bmm350-tap-samples": "BMM350",
-};
+export const STUDIO_FLOW_SENSOR_HEADER_TAG_BY_NODE_ID: Record<string, string> =
+  {
+    "bmi270-input": "BMI270",
+    "bmi270-tap-quaternion": "BMI270",
+    "bmi270-tap-euler": "BMI270",
+    "bmi270-tap-accel": "BMI270",
+    "bmi270-tap-gyro": "BMI270",
+    "bmi270-tap-temp": "BMI270",
+    "bmi270-tap-samples": "BMI270",
+    "dps368-input": "DPS368",
+    "dps368-tap-pressure": "DPS368",
+    "dps368-tap-temp": "DPS368",
+    "dps368-tap-samples": "DPS368",
+    "sht40-input": "SHT40",
+    "sht40-tap-humidity": "SHT40",
+    "sht40-tap-temp": "SHT40",
+    "sht40-tap-samples": "SHT40",
+    "bmm350-input": "BMM350",
+    "bmm350-tap-magnetic": "BMM350",
+    "bmm350-tap-temp": "BMM350",
+    "bmm350-tap-samples": "BMM350",
+  };
 
 /** Stable key for multi-pin flow values: `nodeId::handleId`. */
 export function studioFlowPinKey(nodeId: string, handleId: string): string {
@@ -595,7 +628,10 @@ export type StudioNodeData = {
   liveInputNumberByHandle?: Record<string, number>;
   liveInputBooleanByHandle?: Record<string, boolean>;
   liveInputStringByHandle?: Record<string, string>;
-  liveInputVector3ByHandle?: Record<string, { x: number; y: number; z: number }>;
+  liveInputVector3ByHandle?: Record<
+    string,
+    { x: number; y: number; z: number }
+  >;
   /** Upstream semantic tint hints for wired scalar inputs (temp / humidity / pressure). */
   liveInputScalarHintsByHandle?: Record<
     string,
@@ -765,7 +801,9 @@ function nodeChangesAreLayoutOnly(
   if (changes.length === 0) {
     return false;
   }
-  return changes.every((ch) => ch.type === "position" || ch.type === "dimensions");
+  return changes.every(
+    (ch) => ch.type === "position" || ch.type === "dimensions",
+  );
 }
 
 /** Keep RF wrapper style in sync when edge-resize sets explicit width/height. */
@@ -813,7 +851,9 @@ function syncStudioNodeLayoutStyleFromDimensionChanges(
 }
 
 /** Re-run the pin solver so config-driven sources (e.g. `model-select`) refresh downstream `liveValue` without waiting for UART ticks. */
-function flushFlowSimulationPins(get: () => { tickSimulation: () => void }): void {
+function flushFlowSimulationPins(
+  get: () => { tickSimulation: () => void },
+): void {
   get().tickSimulation();
 }
 
@@ -831,12 +871,20 @@ function resolveRootGraphBuffer(state: StudioSubgraphStoreSlice): {
 }
 
 function applyGroupHostDuplicateToStore(
-  set: (partial: Partial<FlowEditorState> | ((state: FlowEditorState) => Partial<FlowEditorState>)) => void,
+  set: (
+    partial:
+      | Partial<FlowEditorState>
+      | ((state: FlowEditorState) => Partial<FlowEditorState>),
+  ) => void,
   state: StudioSubgraphStoreSlice,
   result: DuplicateGroupInstanceResult,
 ): void {
   const { rootNodes, rootEdges } = resolveRootGraphBuffer(state);
-  const appended = appendGroupHostToRootGraph(rootNodes, rootEdges, result.hostNode);
+  const appended = appendGroupHostToRootGraph(
+    rootNodes,
+    rootEdges,
+    result.hostNode,
+  );
   const attached = attachConfigErrorsWithModelChildRegistry(
     appended.rootNodes as FlowGraphNode[],
     appended.rootEdges,
@@ -887,9 +935,7 @@ type FlowEditorState = {
     canvasPreferences?: FlowCanvasPreferences;
     workbenchLayout?: WorkbenchFlowAttachmentV1;
   }) => string;
-  importFlowGraphJson: (
-    json: string,
-  ) =>
+  importFlowGraphJson: (json: string) =>
     | {
         ok: true;
         viewport?: StudioPersistedViewport;
@@ -905,35 +951,53 @@ type FlowEditorState = {
   enterGroup: (groupId: string) => void;
   exitGroup: () => void;
   jumpToGraph: (graphId: StudioGraphId) => void;
-  updateNodeGroupInterface: (hostNodeId: string, nextInterface: StudioGroupInterface) => void;
+  updateNodeGroupInterface: (
+    hostNodeId: string,
+    nextInterface: StudioGroupInterface,
+  ) => void;
   updateNodeGroupTitle: (hostNodeId: string, title: string) => void;
   ungroupNodeGroup: (hostNodeId: string) => void;
   duplicateGroupLinked: (hostNodeId: string) => void;
   duplicateGroupDeepCopy: (hostNodeId: string) => void;
   /** Synced from {@link useStudioAssetDescriptors} for GLB fetch resolution in store-side helpers. */
   studioAssetDescriptors: readonly StudioAssetDescriptor[];
-  setStudioAssetDescriptors: (descriptors: readonly StudioAssetDescriptor[]) => void;
+  setStudioAssetDescriptors: (
+    descriptors: readonly StudioAssetDescriptor[],
+  ) => void;
   nodeGroupLibrary: StudioNodeAssetFile[];
   remoteNodeGraphAssets: Record<string, StudioNodeAssetFile>;
   registerRemoteNodeGraphAsset: (asset: StudioNodeAssetFile) => void;
   clearRemoteNodeGraphAssets: () => void;
   resolveNodeGroupAsset: (assetId: string) => StudioNodeAssetFile | undefined;
-  saveGroupToNodeLibrary: (hostNodeId: string, name?: string) => StudioLibrarySaveResult | null;
+  saveGroupToNodeLibrary: (
+    hostNodeId: string,
+    name?: string,
+  ) => StudioLibrarySaveResult | null;
   removeNodeAssetFromLibrary: (assetId: string) => void;
   importNodeAssetToLibrary: (asset: StudioNodeAssetFile) => string;
   exportNodeAssetById: (assetId: string) => boolean;
   exportGroupAsNodeAssetFile: (hostNodeId: string) => boolean;
-  importNodeAssetIntoGroup: (hostNodeId: string, asset: StudioNodeAssetFile) => boolean;
+  importNodeAssetIntoGroup: (
+    hostNodeId: string,
+    asset: StudioNodeAssetFile,
+  ) => boolean;
   updateGroupFromLibrary: (hostNodeId: string) => boolean;
   breakGroupLibraryLink: (hostNodeId: string) => void;
-  instantiateNodeAssetAt: (asset: StudioNodeAssetFile, position: { x: number; y: number }) => boolean;
+  instantiateNodeAssetAt: (
+    asset: StudioNodeAssetFile,
+    position: { x: number; y: number },
+  ) => boolean;
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
   /** Programmatic selection (e.g. jump from Model card to a linked node). Does not push undo. */
   selectStudioNodesByIds: (nodeIds: string[]) => void;
-  onNodesChange: (changes: Parameters<typeof applyNodeChanges<StudioNode>>[0]) => void;
-  onEdgesChange: (changes: Parameters<typeof applyEdgeChanges<Edge>>[0]) => void;
+  onNodesChange: (
+    changes: Parameters<typeof applyNodeChanges<StudioNode>>[0],
+  ) => void;
+  onEdgesChange: (
+    changes: Parameters<typeof applyEdgeChanges<Edge>>[0],
+  ) => void;
   onConnect: (
     connection: Connection,
     options?: { skipUndoSnapshot?: boolean; excludeEdgeId?: string },
@@ -968,7 +1032,10 @@ type FlowEditorState = {
     position: { x: number; y: number },
   ) => string;
   spawnRerouteAt: (position: { x: number; y: number }) => string;
-  insertRerouteOnEdge: (edgeId: string, flowPosition: { x: number; y: number }) => string | null;
+  insertRerouteOnEdge: (
+    edgeId: string,
+    flowPosition: { x: number; y: number },
+  ) => string | null;
   applyFlowFrameDragStop: (dragged: FlowGraphNode) => void;
   fitSelectedFramesToContents: (frameIds?: string[]) => boolean;
   dissolveSelectedFrames: (frameIds?: string[]) => boolean;
@@ -995,14 +1062,23 @@ type FlowEditorState = {
     nodeId: string,
     measuredWidthPx: number,
   ) => void;
-  persistStudioNodeCanvasWidthForActiveChrome: (nodeId: string, widthPx: number) => void;
+  persistStudioNodeCanvasWidthForActiveChrome: (
+    nodeId: string,
+    widthPx: number,
+  ) => void;
   toggleBodyControlsVisibleForNodes: (nodeIds: string[]) => void;
   /** Restore factory display (live values, all sockets) + auto content-fit size. Undoable. */
   resetStudioNodesToDefaults: (nodeIds: string[]) => void;
   applyFlowAutoLayout: (direction: "LR" | "TB") => void;
-  updateLayoutNodeData: (flowNodeId: string, patch: Record<string, unknown>) => void;
+  updateLayoutNodeData: (
+    flowNodeId: string,
+    patch: Record<string, unknown>,
+  ) => void;
   /** Update layout-node top-level props (style/zIndex/draggable/...). Undo is NOT pushed. */
-  updateLayoutFlowNode: (flowNodeId: string, patch: Partial<FlowGraphNode>) => void;
+  updateLayoutFlowNode: (
+    flowNodeId: string,
+    patch: Partial<FlowGraphNode>,
+  ) => void;
   /** Raise/lower a layout node within the canvas stacking order. */
   raiseLayoutNode: (flowNodeId: string) => void;
   lowerLayoutNode: (flowNodeId: string) => void;
@@ -1021,7 +1097,11 @@ type FlowEditorState = {
       mergeDefaultConfig?: Record<string, unknown>;
     },
   ) => void;
-  updateNodeConfigFieldByNodeId: (nodeId: string, key: string, value: unknown) => void;
+  updateNodeConfigFieldByNodeId: (
+    nodeId: string,
+    key: string,
+    value: unknown,
+  ) => void;
   /** Collapse/expand utility node bodies and sync React Flow height (header-only when collapsed). */
   setStudioUtilityNodeBodyExpanded: (
     flowNodeId: string,
@@ -1031,7 +1111,10 @@ type FlowEditorState = {
   resetCanvas: () => void;
   /** Turn off all audio gates and silence monitor paths (undoable). */
   muteAllAudio: () => void;
-  runDemoTemplate: (templateId: StudioDemoTemplateId, catalog: NodeCatalogEntry[]) => void;
+  runDemoTemplate: (
+    templateId: StudioDemoTemplateId,
+    catalog: NodeCatalogEntry[],
+  ) => void;
   updateSelectedNodeLabel: (nextLabel: string) => void;
   updateSelectedNodeConfigField: (key: string, value: unknown) => boolean;
   /** Patch multiple config keys on the selected node in one undo step. */
@@ -1059,7 +1142,9 @@ type FlowEditorState = {
     nodeId: string,
     fields: Record<string, unknown>,
   ) => boolean;
-  updateSelectedNodeConfigFromJson: (nextJson: string) => { ok: true } | { ok: false; message: string };
+  updateSelectedNodeConfigFromJson: (
+    nextJson: string,
+  ) => { ok: true } | { ok: false; message: string };
   /** Replace plotter `defaultConfig` in one undo step (coerced + persisted). */
   updateSelectedNodePlotterConfig: (next: PlotterConfig) => void;
   tickSimulation: () => void;
@@ -1088,7 +1173,11 @@ function inferPortTypes(entry: NodeCatalogEntry): {
   outputHandles?: StudioOutputHandleDef[];
   inputHandles?: StudioOutputHandleDef[];
 } {
-  if (entry.id === "environment" && entry.outputPorts != null && entry.outputPorts.length > 0) {
+  if (
+    entry.id === "environment" &&
+    entry.outputPorts != null &&
+    entry.outputPorts.length > 0
+  ) {
     return {
       outputHandles: entry.outputPorts.map((p) => ({
         id: p.id,
@@ -1172,19 +1261,26 @@ function inferPortTypes(entry: NodeCatalogEntry): {
 function migrateStudioEdgesFusionQuat(edges: Edge[]): Edge[] {
   return edges.map((e) => ({
     ...e,
-    sourceHandle: e.sourceHandle === "fusionQuat" ? "quaternion" : e.sourceHandle,
-    targetHandle: e.targetHandle === "fusionQuat" ? "quaternion" : e.targetHandle,
+    sourceHandle:
+      e.sourceHandle === "fusionQuat" ? "quaternion" : e.sourceHandle,
+    targetHandle:
+      e.targetHandle === "fusionQuat" ? "quaternion" : e.targetHandle,
   }));
 }
 
-function migrateStudioEdgesMapRange(nodes: StudioNode[], edges: Edge[]): Edge[] {
+function migrateStudioEdgesMapRange(
+  nodes: StudioNode[],
+  edges: Edge[],
+): Edge[] {
   const mapRangeIds = new Set(
     nodes
       .filter((n) => n.type === "studio" && n.data.nodeId === "map-range")
       .map((n) => n.id),
   );
   const clampIds = new Set(
-    nodes.filter((n) => n.type === "studio" && n.data.nodeId === "clamp").map((n) => n.id),
+    nodes
+      .filter((n) => n.type === "studio" && n.data.nodeId === "clamp")
+      .map((n) => n.id),
   );
   if (mapRangeIds.size === 0 && clampIds.size === 0) {
     return edges;
@@ -1210,15 +1306,25 @@ function migrateStudioEdgesMapRange(nodes: StudioNode[], edges: Edge[]): Edge[] 
 function migrateFlowNodeFromLegacy(node: StudioNode): StudioNode {
   let data = migrateLegacyPlotterNodeData(node.data) as StudioNodeData;
   data = migrateLegacyGaugeNodeData(data) as StudioNodeData;
-  let dc = migrateLegacyPackModelInDefaultConfig(
-    data.defaultConfig as Record<string, unknown>,
-    data.nodeId,
-  );
-  if (dc !== data.defaultConfig) {
-    data = { ...data, defaultConfig: dc };
+  const rawDefaultConfig = data.defaultConfig;
+  if (
+    rawDefaultConfig != null &&
+    typeof rawDefaultConfig === "object" &&
+    !Array.isArray(rawDefaultConfig)
+  ) {
+    const dc = migrateLegacyPackModelInDefaultConfig(
+      rawDefaultConfig as Record<string, unknown>,
+      data.nodeId,
+    );
+    if (dc !== rawDefaultConfig) {
+      data = { ...data, defaultConfig: dc };
+    }
   }
   const stageMigrated = migrateStageSceneFlowNode({
-    data: { nodeId: data.nodeId, defaultConfig: data.defaultConfig as Record<string, unknown> },
+    data: {
+      nodeId: data.nodeId,
+      defaultConfig: (data.defaultConfig ?? {}) as Record<string, unknown>,
+    },
   });
   if (stageMigrated != null) {
     data = { ...data, defaultConfig: stageMigrated.data.defaultConfig };
@@ -1228,7 +1334,9 @@ function migrateFlowNodeFromLegacy(node: StudioNode): StudioNode {
 
 /** Refresh input/output pin definitions from the bundled catalog (catalog updates, import). */
 function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
-  const entry = NODE_CATALOG_DEFAULTS.payload.nodes.find((n) => n.id === node.data.nodeId);
+  const entry = NODE_CATALOG_DEFAULTS.payload.nodes.find(
+    (n) => n.id === node.data.nodeId,
+  );
   if (entry == null) {
     return node;
   }
@@ -1248,7 +1356,12 @@ function getSourcePortType(
   sourceHandle: string,
   subgraphs: Record<string, StudioSubgraphDocument>,
 ): StudioPortType | null {
-  const groupType = resolveStudioGroupNodePortType(node, sourceHandle, "output", subgraphs);
+  const groupType = resolveStudioGroupNodePortType(
+    node,
+    sourceHandle,
+    "output",
+    subgraphs,
+  );
   if (groupType != null) {
     return groupType;
   }
@@ -1260,7 +1373,12 @@ function getTargetPortType(
   targetHandle: string,
   subgraphs: Record<string, StudioSubgraphDocument>,
 ): StudioPortType | null {
-  const groupType = resolveStudioGroupNodePortType(node, targetHandle, "input", subgraphs);
+  const groupType = resolveStudioGroupNodePortType(
+    node,
+    targetHandle,
+    "input",
+    subgraphs,
+  );
   if (groupType != null) {
     return groupType;
   }
@@ -1285,7 +1403,6 @@ function edgeLabelForSource(
   const t = getSourcePortType(sourceNode, sourceHandle, subgraphs);
   return t ?? "";
 }
-
 
 function asFiniteNumber(value: unknown, fallback: number): number {
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -1328,11 +1445,19 @@ function cloneFlowSnapshot(state: {
     edges: JSON.parse(JSON.stringify(state.edges)) as Edge[],
     selectedNodeId: sel.selectedNodeId,
     selectedNodeIds: sel.selectedNodeIds,
-    ...(state.subgraphs != null ? { subgraphs: JSON.parse(JSON.stringify(state.subgraphs)) } : {}),
-    ...(state.activeGraphId != null ? { activeGraphId: state.activeGraphId } : {}),
+    ...(state.subgraphs != null
+      ? { subgraphs: JSON.parse(JSON.stringify(state.subgraphs)) }
+      : {}),
+    ...(state.activeGraphId != null
+      ? { activeGraphId: state.activeGraphId }
+      : {}),
     ...(state.graphStack != null ? { graphStack: [...state.graphStack] } : {}),
     ...(state.rootNodes != null
-      ? { rootNodes: JSON.parse(JSON.stringify(state.rootNodes)) as FlowGraphNode[] }
+      ? {
+          rootNodes: JSON.parse(
+            JSON.stringify(state.rootNodes),
+          ) as FlowGraphNode[],
+        }
       : {}),
     ...(state.rootEdges != null
       ? { rootEdges: JSON.parse(JSON.stringify(state.rootEdges)) as Edge[] }
@@ -1347,15 +1472,21 @@ function dragHandleSelectorForNodeId(_nodeId: string): string {
 
 /** Drop legacy persisted non-live markers (e.g. old `"demo"`); only `"live"` may be stored. */
 function coercePersistedSensorStreamMode(data: StudioNodeData): StudioNodeData {
-  const marker = (data as StudioNodeData & { sensorStreamMode?: unknown }).sensorStreamMode;
+  const marker = (data as StudioNodeData & { sensorStreamMode?: unknown })
+    .sensorStreamMode;
   if (marker === undefined || marker === "live") {
     return data;
   }
-  const { sensorStreamMode: _, ...rest } = data as StudioNodeData & { sensorStreamMode?: unknown };
+  const { sensorStreamMode: _, ...rest } = data as StudioNodeData & {
+    sensorStreamMode?: unknown;
+  };
   return rest as StudioNodeData;
 }
 
-function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNode[] {
+function attachConfigErrors(
+  nodes: FlowGraphNode[],
+  edges?: Edge[],
+): FlowGraphNode[] {
   return nodes.map((node) => {
     if (!isStudioFlowNode(node)) {
       return node;
@@ -1368,7 +1499,9 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
         ? (() => {
             const dc = coercedData.defaultConfig as Record<string, unknown>;
             const showGrid =
-              typeof dc.showGrid === "boolean" ? dc.showGrid : STAGE_DEFAULT_SHOW_GRID;
+              typeof dc.showGrid === "boolean"
+                ? dc.showGrid
+                : STAGE_DEFAULT_SHOW_GRID;
             const base =
               dc.scene3d != null
                 ? coerceScene3DConfigV1(dc.scene3d)
@@ -1388,44 +1521,50 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
             coercedData.nodeId === "rotation-3d-quaternion" ||
             coercedData.nodeId === "model-viewer"
           ? (() => {
-            const dc = coercedData.defaultConfig as Record<string, unknown>;
-            if (dc.scene3d != null) {
-              const normalized = coerceScene3DConfigV1(dc.scene3d);
-              return {
+              const dc = coercedData.defaultConfig as Record<string, unknown>;
+              if (dc.scene3d != null) {
+                const normalized = coerceScene3DConfigV1(dc.scene3d);
+                return {
+                  ...coercedData,
+                  defaultConfig: {
+                    ...dc,
+                    scene3d: normalized,
+                  },
+                };
+              }
+              const next = defaultScene3DConfig();
+              const legacyShowGrid = dc.showGrid;
+              if (typeof legacyShowGrid === "boolean") {
+                next.helpers.grid.enabled = legacyShowGrid;
+              }
+              const legacyEnvIdx = dc.environmentPresetIndex;
+              if (
+                typeof legacyEnvIdx === "number" &&
+                Number.isFinite(legacyEnvIdx)
+              ) {
+                next.environment.presetIndex = Math.max(
+                  0,
+                  Math.round(legacyEnvIdx),
+                );
+              }
+              const legacyBg = dc.showBackgroundTexture;
+              if (typeof legacyBg === "boolean") {
+                next.environment.showBackgroundTexture = legacyBg;
+              }
+              const legacyIbl = dc.useCubemapIbl;
+              if (typeof legacyIbl === "boolean") {
+                next.environment.useCubemapIbl = legacyIbl;
+              }
+              const migrated: StudioNodeData = {
                 ...coercedData,
                 defaultConfig: {
                   ...dc,
-                  scene3d: normalized,
+                  scene3d: persistScene3DConfig(next),
                 },
               };
-            }
-            const next = defaultScene3DConfig();
-            const legacyShowGrid = dc.showGrid;
-            if (typeof legacyShowGrid === "boolean") {
-              next.helpers.grid.enabled = legacyShowGrid;
-            }
-            const legacyEnvIdx = dc.environmentPresetIndex;
-            if (typeof legacyEnvIdx === "number" && Number.isFinite(legacyEnvIdx)) {
-              next.environment.presetIndex = Math.max(0, Math.round(legacyEnvIdx));
-            }
-            const legacyBg = dc.showBackgroundTexture;
-            if (typeof legacyBg === "boolean") {
-              next.environment.showBackgroundTexture = legacyBg;
-            }
-            const legacyIbl = dc.useCubemapIbl;
-            if (typeof legacyIbl === "boolean") {
-              next.environment.useCubemapIbl = legacyIbl;
-            }
-            const migrated: StudioNodeData = {
-              ...coercedData,
-              defaultConfig: {
-                ...dc,
-                scene3d: persistScene3DConfig(next),
-              },
-            };
-            return migrated;
-          })()
-        : coercedData;
+              return migrated;
+            })()
+          : coercedData;
     let piped: StudioNodeData = withScene3d;
     // Default: auto content-fit sizing; edge resize is opt-in per node (Inspector → Canvas).
     const uiWithFloors = applyStudioNodeMinDimensionsToUi(piped.nodeId, {
@@ -1439,13 +1578,19 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
       typeof node.width === "number" && node.width > 0 ? node.width : undefined;
     piped = {
       ...piped,
-      ui: migrateStudioNodeChromeLayoutWidth(piped.nodeId, uiWithFloors, rfWidth),
+      ui: migrateStudioNodeChromeLayoutWidth(
+        piped.nodeId,
+        uiWithFloors,
+        rfWidth,
+      ),
     };
     if (piped.nodeId === "plotter") {
       const plotterCfg = persistPlotterConfig(piped.defaultConfig);
       piped = {
         ...piped,
-        defaultConfig: { ...(plotterCfg as unknown as Record<string, unknown>) },
+        defaultConfig: {
+          ...(plotterCfg as unknown as Record<string, unknown>),
+        },
       };
     }
     if (piped.nodeId === "environment") {
@@ -1456,7 +1601,9 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
           ? vis0
           : mergeEnvironmentVisibilityWithIncomingEdges(node.id, vis0, edges);
       const expanded =
-        typeof dc0.environmentControlsExpanded === "boolean" ? dc0.environmentControlsExpanded : true;
+        typeof dc0.environmentControlsExpanded === "boolean"
+          ? dc0.environmentControlsExpanded
+          : true;
       const w = flowWireEnvironmentFromNodeDefaultConfig({
         ...dc0,
         inputSocketVisibility: vis,
@@ -1471,7 +1618,13 @@ function attachConfigErrors(nodes: FlowGraphNode[], edges?: Edge[]): FlowGraphNo
         ...piped,
         defaultConfig: dcNext,
         inputHandles: computeEnvironmentInputHandles(vis),
-        outputHandles: [{ id: STUDIO_HANDLE_OUT, portType: "environment", label: "Environment" }],
+        outputHandles: [
+          {
+            id: STUDIO_HANDLE_OUT,
+            portType: "environment",
+            label: "Environment",
+          },
+        ],
         inputType: undefined,
         outputType: undefined,
       };
@@ -1540,7 +1693,10 @@ function attachConfigErrorsWithModelChildRegistry(
   nodes: FlowGraphNode[],
   edges?: Edge[],
 ): FlowGraphNode[] {
-  return attachConfigErrors(reconcileStudioModelGeneratedChildIds(nodes as StudioNode[]), edges);
+  return attachConfigErrors(
+    reconcileStudioModelGeneratedChildIds(nodes as StudioNode[]),
+    edges,
+  );
 }
 
 /** When **Studio Model** wires into **model-viewer** or GLB event nodes, persist `sourceModelNodeId`. */
@@ -1591,7 +1747,10 @@ function patchStudioModelScopeOnConnect(
     });
   }
 
-  if (target.data.nodeId !== "model-viewer" || targetHandle !== STUDIO_HANDLE_IN) {
+  if (
+    target.data.nodeId !== "model-viewer" ||
+    targetHandle !== STUDIO_HANDLE_IN
+  ) {
     return nodes;
   }
 
@@ -1638,7 +1797,10 @@ function patchStudioModelScopeOnConnect(
 }
 
 /** Keep GLB event nodes aligned with a wired **Model** input (scope + stale clip cleanup). */
-function reconcileGlbEventModelScopeFromEdges(nodes: StudioNode[], edges: Edge[]): StudioNode[] {
+function reconcileGlbEventModelScopeFromEdges(
+  nodes: StudioNode[],
+  edges: Edge[],
+): StudioNode[] {
   let changed = false;
   const next = nodes.map((node) => {
     if (!STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(node.data.nodeId)) {
@@ -1682,34 +1844,41 @@ const STUDIO_UTILITY_BODY_EXPANDED_KEYS = {
   environmentControlsExpanded: "environmentLayoutHeight",
 } as const;
 
-export type StudioUtilityBodyExpandedField = keyof typeof STUDIO_UTILITY_BODY_EXPANDED_KEYS;
+export type StudioUtilityBodyExpandedField =
+  keyof typeof STUDIO_UTILITY_BODY_EXPANDED_KEYS;
 
 /** Read explicit flow-node height (resize handle, style, or last measured). */
 function readStudioNodeLayoutHeightPx(node: StudioNode): number | undefined {
-  if (typeof node.height === "number" && Number.isFinite(node.height) && node.height > 0)
-  {
+  if (
+    typeof node.height === "number" &&
+    Number.isFinite(node.height) &&
+    node.height > 0
+  ) {
     return Math.round(node.height);
   }
   const styleHeight = node.style?.height;
-  if (typeof styleHeight === "number" && Number.isFinite(styleHeight) && styleHeight > 0)
-  {
+  if (
+    typeof styleHeight === "number" &&
+    Number.isFinite(styleHeight) &&
+    styleHeight > 0
+  ) {
     return Math.round(styleHeight);
   }
-  if (typeof styleHeight === "string")
-  {
+  if (typeof styleHeight === "string") {
     const match = /^([\d.]+)\s*px$/i.exec(styleHeight.trim());
-    if (match != null)
-    {
+    if (match != null) {
       const parsed = Number(match[1]);
-      if (Number.isFinite(parsed) && parsed > 0)
-      {
+      if (Number.isFinite(parsed) && parsed > 0) {
         return Math.round(parsed);
       }
     }
   }
   const measuredHeight = node.measured?.height;
-  if (typeof measuredHeight === "number" && Number.isFinite(measuredHeight) && measuredHeight > 0)
-  {
+  if (
+    typeof measuredHeight === "number" &&
+    Number.isFinite(measuredHeight) &&
+    measuredHeight > 0
+  ) {
     return Math.round(measuredHeight);
   }
   return undefined;
@@ -1719,16 +1888,15 @@ function readStudioNodeLayoutHeightPx(node: StudioNode): number | undefined {
 function stripStudioNodeFixedHeight(node: StudioNode): StudioNode {
   const { height: _height, measured, style, ...rest } = node;
   let nextStyle: StudioNode["style"];
-  if (style != null)
-  {
+  if (style != null) {
     const { height: _styleHeight, ...styleRest } = style;
     nextStyle = Object.keys(styleRest).length > 0 ? styleRest : undefined;
   }
   let nextMeasured: StudioNode["measured"];
-  if (measured != null)
-  {
+  if (measured != null) {
     const { height: _measuredHeight, ...measuredRest } = measured;
-    nextMeasured = Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
+    nextMeasured =
+      Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
   }
   return {
     ...rest,
@@ -1748,7 +1916,8 @@ function stripStudioNodeFixedLayout(node: StudioNode): StudioNode {
   let nextMeasured: StudioNode["measured"];
   if (measured != null) {
     const { width: _mw, height: _mh, ...measuredRest } = measured;
-    nextMeasured = Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
+    nextMeasured =
+      Object.keys(measuredRest).length > 0 ? measuredRest : undefined;
   }
   return {
     ...rest,
@@ -1769,7 +1938,10 @@ function prepareStudioNodeShellRemeasure(node: StudioNode): StudioNode {
   return stripStudioNodeFixedLayout(node);
 }
 
-function applyStudioNodeLayoutHeight(node: StudioNode, heightPx: number): StudioNode {
+function applyStudioNodeLayoutHeight(
+  node: StudioNode,
+  heightPx: number,
+): StudioNode {
   const rounded = Math.max(1, Math.round(heightPx));
   return {
     ...node,
@@ -1795,7 +1967,10 @@ function clearStudioNodeMeasuredBox(node: StudioNode): StudioNode {
   return { ...node, measured: nextMeasured };
 }
 
-function applyStudioNodeLayoutWidth(node: StudioNode, widthPx: number): StudioNode {
+function applyStudioNodeLayoutWidth(
+  node: StudioNode,
+  widthPx: number,
+): StudioNode {
   const rounded = Math.max(1, Math.round(widthPx));
   const cleared = clearStudioNodeMeasuredBox(node);
   return {
@@ -1821,38 +1996,32 @@ function syncStudioUtilityNodeLayoutFromConfig(
   layoutNode: StudioNode,
   piped: StudioNodeData,
 ): StudioNode {
-  if (piped.nodeId === "camera-view")
-  {
+  if (piped.nodeId === "camera-view") {
     const dc = piped.defaultConfig as Record<string, unknown>;
     const expanded =
       typeof dc.cameraViewControlsExpanded === "boolean"
         ? dc.cameraViewControlsExpanded
         : true;
-    if (!expanded)
-    {
+    if (!expanded) {
       return stripStudioNodeFixedHeight(layoutNode);
     }
     const saved = dc.cameraViewLayoutHeight;
-    if (typeof saved === "number" && Number.isFinite(saved) && saved > 0)
-    {
+    if (typeof saved === "number" && Number.isFinite(saved) && saved > 0) {
       return applyStudioNodeLayoutHeight(layoutNode, saved);
     }
     return layoutNode;
   }
-  if (piped.nodeId === "environment")
-  {
+  if (piped.nodeId === "environment") {
     const dc = piped.defaultConfig as Record<string, unknown>;
     const expanded =
       typeof dc.environmentControlsExpanded === "boolean"
         ? dc.environmentControlsExpanded
         : true;
-    if (!expanded)
-    {
+    if (!expanded) {
       return stripStudioNodeFixedHeight(layoutNode);
     }
     const saved = dc.environmentLayoutHeight;
-    if (typeof saved === "number" && Number.isFinite(saved) && saved > 0)
-    {
+    if (typeof saved === "number" && Number.isFinite(saved) && saved > 0) {
       return applyStudioNodeLayoutHeight(layoutNode, saved);
     }
     return layoutNode;
@@ -1867,8 +2036,7 @@ function patchStudioUtilityNodeBodyExpanded(
 ): StudioNode {
   const layoutHeightKey = STUDIO_UTILITY_BODY_EXPANDED_KEYS[field];
   const dc = { ...node.data.defaultConfig, [field]: nextExpanded };
-  if (nextExpanded)
-  {
+  if (nextExpanded) {
     const saved = dc[layoutHeightKey];
     const savedPx =
       typeof saved === "number" && Number.isFinite(saved) && saved > 0
@@ -1885,8 +2053,7 @@ function patchStudioUtilityNodeBodyExpanded(
     };
   }
   const currentHeight = readStudioNodeLayoutHeightPx(node);
-  if (currentHeight != null)
-  {
+  if (currentHeight != null) {
     dc[layoutHeightKey] = currentHeight;
   }
   const nextNode = stripStudioNodeFixedHeight(node);
@@ -1933,7 +2100,9 @@ function createStudioNodeFromCatalogEntry(
       nodeId: entry.id,
       defaultConfig:
         entry.id === "glb-animation-bundle"
-          ? mergeLabDefaultsIntoGlbAnimationBundleConfig({ ...entry.defaultConfig })
+          ? mergeLabDefaultsIntoGlbAnimationBundleConfig({
+              ...entry.defaultConfig,
+            })
           : { ...entry.defaultConfig },
       ui,
       inputType: inferred.inputType,
@@ -2049,21 +2218,27 @@ function flowValueAsStudioLight(v: unknown): FlowWireStudioLightV1 | null {
   return coerceFlowWireStudioLightV1(v);
 }
 
-function flowValueAsPostProcessing(v: unknown): FlowWirePostProcessingV1 | null {
+function flowValueAsPostProcessing(
+  v: unknown,
+): FlowWirePostProcessingV1 | null {
   if (!isFlowWirePostProcessingV1(v)) {
     return null;
   }
   return coerceFlowWirePostProcessingV1(v);
 }
 
-function flowValueAsContactShadows(v: unknown): FlowWireContactShadowsV1 | null {
+function flowValueAsContactShadows(
+  v: unknown,
+): FlowWireContactShadowsV1 | null {
   if (!isFlowWireContactShadowsV1(v)) {
     return null;
   }
   return coerceFlowWireContactShadowsV1(v);
 }
 
-function flowValueAsParticleEmitter(v: unknown): FlowWireParticleEmitterV1 | null {
+function flowValueAsParticleEmitter(
+  v: unknown,
+): FlowWireParticleEmitterV1 | null {
   if (!isFlowWireParticleEmitterV1(v)) {
     return null;
   }
@@ -2094,25 +2269,33 @@ function applyIncomingSceneFxWires(
   } else {
     delete base.liveFogWire;
   }
-  const liteWire = flowValueAsStudioLight(readIncomingForNode(STUDIO_HANDLE_LITE));
+  const liteWire = flowValueAsStudioLight(
+    readIncomingForNode(STUDIO_HANDLE_LITE),
+  );
   if (liteWire != null) {
     base.liveStudioLightWire = liteWire;
   } else {
     delete base.liveStudioLightWire;
   }
-  const postWire = flowValueAsPostProcessing(readIncomingForNode(STUDIO_HANDLE_POST));
+  const postWire = flowValueAsPostProcessing(
+    readIncomingForNode(STUDIO_HANDLE_POST),
+  );
   if (postWire != null) {
     base.livePostProcessingWire = postWire;
   } else {
     delete base.livePostProcessingWire;
   }
-  const cshadowWire = flowValueAsContactShadows(readIncomingForNode(STUDIO_HANDLE_CSHADOW));
+  const cshadowWire = flowValueAsContactShadows(
+    readIncomingForNode(STUDIO_HANDLE_CSHADOW),
+  );
   if (cshadowWire != null) {
     base.liveContactShadowsWire = cshadowWire;
   } else {
     delete base.liveContactShadowsWire;
   }
-  const emitterWire = flowValueAsParticleEmitter(readIncomingForNode(STUDIO_HANDLE_EMITTER));
+  const emitterWire = flowValueAsParticleEmitter(
+    readIncomingForNode(STUDIO_HANDLE_EMITTER),
+  );
   if (emitterWire != null) {
     base.liveParticleEmitterWire = emitterWire;
   } else {
@@ -2150,7 +2333,9 @@ function readPinForEdgeTarget(
   return pinValues.get(studioFlowPinKey(edge.source, sh)) ?? null;
 }
 
-function hasLiveBmi270QuaternionFields(sample: BitstreamSensorSampleV2 | null): boolean {
+function hasLiveBmi270QuaternionFields(
+  sample: BitstreamSensorSampleV2 | null,
+): boolean {
   if (sample == null) {
     return false;
   }
@@ -2162,7 +2347,9 @@ function hasLiveBmi270QuaternionFields(sample: BitstreamSensorSampleV2 | null): 
   );
 }
 
-function hasLiveBmi270EulerFields(sample: BitstreamSensorSampleV2 | null): boolean {
+function hasLiveBmi270EulerFields(
+  sample: BitstreamSensorSampleV2 | null,
+): boolean {
   if (sample == null) {
     return false;
   }
@@ -2173,7 +2360,9 @@ function hasLiveBmi270EulerFields(sample: BitstreamSensorSampleV2 | null): boole
   );
 }
 
-function hasLiveBmi270AccelFields(sample: BitstreamSensorSampleV2 | null): boolean {
+function hasLiveBmi270AccelFields(
+  sample: BitstreamSensorSampleV2 | null,
+): boolean {
   if (sample == null) {
     return false;
   }
@@ -2184,7 +2373,9 @@ function hasLiveBmi270AccelFields(sample: BitstreamSensorSampleV2 | null): boole
   );
 }
 
-function hasLiveBmi270GyroFields(sample: BitstreamSensorSampleV2 | null): boolean {
+function hasLiveBmi270GyroFields(
+  sample: BitstreamSensorSampleV2 | null,
+): boolean {
   if (sample == null) {
     return false;
   }
@@ -2195,14 +2386,21 @@ function hasLiveBmi270GyroFields(sample: BitstreamSensorSampleV2 | null): boolea
   );
 }
 
-function hasLiveBmi270TempFields(sample: BitstreamSensorSampleV2 | null): boolean {
+function hasLiveBmi270TempFields(
+  sample: BitstreamSensorSampleV2 | null,
+): boolean {
   if (sample == null) {
     return false;
   }
-  return typeof sample.temperatureCx100 === "number" && Number.isFinite(sample.temperatureCx100);
+  return (
+    typeof sample.temperatureCx100 === "number" &&
+    Number.isFinite(sample.temperatureCx100)
+  );
 }
 
-function inferSensorHintFromNode(node: StudioNode): BitstreamSensorSourceHint | null {
+function inferSensorHintFromNode(
+  node: StudioNode,
+): BitstreamSensorSourceHint | null {
   switch (node.data.nodeId) {
     case "bmi270-input":
     case "bmi270-tap-quaternion":
@@ -2229,7 +2427,9 @@ function inferSensorHintFromNode(node: StudioNode): BitstreamSensorSourceHint | 
       return "bmm350";
     case "sensor-input": {
       const sk = node.data.defaultConfig.sourceKey;
-      return typeof sk === "string" ? inferSensorTelemetryHintFromSourceKey(sk) : null;
+      return typeof sk === "string"
+        ? inferSensorTelemetryHintFromSourceKey(sk)
+        : null;
     }
     default:
       return null;
@@ -2251,7 +2451,8 @@ function computeSensorHealthStatus(
     return "offline";
   }
   const sourceId = bitstreamSensorHintToSourceId(hint);
-  const row = sourceId != null ? deviceSensorCfgBySourceId[sourceId] ?? null : null;
+  const row =
+    sourceId != null ? (deviceSensorCfgBySourceId[sourceId] ?? null) : null;
   const { liveMaxAgeMs, staleMaxAgeMs } = sensorHealthAgeThresholdsMs(row);
   const ageMs = Date.now() - lastAt;
   if (ageMs <= liveMaxAgeMs) {
@@ -2263,7 +2464,11 @@ function computeSensorHealthStatus(
   return "offline";
 }
 
-function keepLastFiniteNumber(next: unknown, previous: number | undefined, fallback: number): number {
+function keepLastFiniteNumber(
+  next: unknown,
+  previous: number | undefined,
+  fallback: number,
+): number {
   if (typeof next === "number" && Number.isFinite(next)) {
     return next;
   }
@@ -2289,12 +2494,19 @@ function invalidReasonForRequiredNumber(
 
 function computeNodeInvalidReason(
   node: StudioNode,
-  latestByHint: Record<BitstreamSensorSourceHint, BitstreamSensorSampleV2 | null>,
+  latestByHint: Record<
+    BitstreamSensorSourceHint,
+    BitstreamSensorSampleV2 | null
+  >,
 ): string | undefined {
   switch (node.data.nodeId) {
     case "dps368-input":
     case "dps368-tap-pressure":
-      return invalidReasonForRequiredNumber(latestByHint.dps368, latestByHint.dps368?.secondaryX100, "Pressure");
+      return invalidReasonForRequiredNumber(
+        latestByHint.dps368,
+        latestByHint.dps368?.secondaryX100,
+        "Pressure",
+      );
     case "dps368-tap-temp":
       return invalidReasonForRequiredNumber(
         latestByHint.dps368,
@@ -2361,7 +2573,9 @@ function mergeValidHandleTimestamp(
 function dispatchFlowEventSourcesWithGlbAnimAutoBind(
   get: () => FlowEditorState,
   set: (
-    partial: Partial<FlowEditorState> | ((state: FlowEditorState) => Partial<FlowEditorState>),
+    partial:
+      | Partial<FlowEditorState>
+      | ((state: FlowEditorState) => Partial<FlowEditorState>),
   ) => void,
   sourceNodeIds: readonly string[],
 ): void {
@@ -2565,7 +2779,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       st.activeGraphId === STUDIO_ROOT_GRAPH_ID ? st.edges : st.rootEdges;
     const viewportArg = options?.viewport;
     const viewportPayload =
-      viewportArg != null && isValidStudioPersistedViewport(viewportArg) ? viewportArg : undefined;
+      viewportArg != null && isValidStudioPersistedViewport(viewportArg)
+        ? viewportArg
+        : undefined;
     const canvasPreferences = options?.canvasPreferences;
     const workbenchLayout = options?.workbenchLayout;
     return JSON.stringify(
@@ -2576,10 +2792,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         edges: exportEdges,
         selectedNodeId: st.selectedNodeId,
         selectedNodeIds: st.selectedNodeIds,
-        ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
-        ...(st.activeGraphId !== STUDIO_ROOT_GRAPH_ID ? { activeGraphId: st.activeGraphId } : {}),
+        ...(Object.keys(st.subgraphs).length > 0
+          ? { subgraphs: st.subgraphs }
+          : {}),
+        ...(st.activeGraphId !== STUDIO_ROOT_GRAPH_ID
+          ? { activeGraphId: st.activeGraphId }
+          : {}),
         ...(st.graphStack.length > 0 ? { graphStack: st.graphStack } : {}),
-        ...(st.rootNodes.length > 0 ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
+        ...(st.rootNodes.length > 0
+          ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges }
+          : {}),
         ...(viewportPayload != null ? { viewport: viewportPayload } : {}),
         ...(canvasPreferences != null ? { canvasPreferences } : {}),
         ...(workbenchLayout != null ? { workbenchLayout } : {}),
@@ -2603,14 +2825,23 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return { ok: false, message: "Flow document version must be 1." };
     }
     if (!Array.isArray(o.nodes) || !Array.isArray(o.edges)) {
-      return { ok: false, message: "Flow document must include nodes and edges arrays." };
+      return {
+        ok: false,
+        message: "Flow document must include nodes and edges arrays.",
+      };
     }
     const sel = o.selectedNodeId;
     const selectedNodeId =
-      typeof sel === "string" ? sel : sel === null || sel === undefined ? null : null;
+      typeof sel === "string"
+        ? sel
+        : sel === null || sel === undefined
+          ? null
+          : null;
     const rawMulti = o.selectedNodeIds;
     const selectedNodeIdsFromFile = Array.isArray(rawMulti)
-      ? rawMulti.filter((x): x is string => typeof x === "string" && x.length > 0)
+      ? rawMulti.filter(
+          (x): x is string => typeof x === "string" && x.length > 0,
+        )
       : undefined;
     const selection = normalizeFlowSnapshotSelection({
       selectedNodeId,
@@ -2636,11 +2867,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const workbenchLayout = coerceWorkbenchFlowAttachment(o.workbenchLayout);
     const subgraphsRaw = o.subgraphs;
     const subgraphs =
-      subgraphsRaw != null && typeof subgraphsRaw === "object" && !Array.isArray(subgraphsRaw)
+      subgraphsRaw != null &&
+      typeof subgraphsRaw === "object" &&
+      !Array.isArray(subgraphsRaw)
         ? (subgraphsRaw as Record<string, StudioSubgraphDocument>)
         : {};
     const activeGraphId =
-      typeof o.activeGraphId === "string" ? (o.activeGraphId as StudioGraphId) : STUDIO_ROOT_GRAPH_ID;
+      typeof o.activeGraphId === "string"
+        ? (o.activeGraphId as StudioGraphId)
+        : STUDIO_ROOT_GRAPH_ID;
     const graphStack = Array.isArray(o.graphStack)
       ? o.graphStack.filter((x): x is StudioGraphId => typeof x === "string")
       : [];
@@ -2663,11 +2898,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       rootNodes: Array.isArray(rootNodesRaw)
         ? (rootNodesRaw as FlowGraphNode[])
         : (migratedNodes as FlowGraphNode[]),
-      rootEdges: Array.isArray(rootEdgesRaw) ? (rootEdgesRaw as Edge[]) : migratedEdges,
+      rootEdges: Array.isArray(rootEdgesRaw)
+        ? (rootEdgesRaw as Edge[])
+        : migratedEdges,
       redoStack: [],
     });
     flushFlowSimulationPins(get);
-    if (viewport != null || canvasPreferences != null || workbenchLayout != null) {
+    if (
+      viewport != null ||
+      canvasPreferences != null ||
+      workbenchLayout != null
+    ) {
       return {
         ok: true,
         ...(viewport != null ? { viewport } : {}),
@@ -2710,13 +2951,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         data: { ...n.data },
       };
     });
-    const newNodes = remapSourceModelNodeIdAfterDuplicate(newNodesRaw as StudioNode[], idMap);
-    const { nodes: dupNodesWithSubs, subgraphs: dupSubgraphs } = attachSubgraphsForPastedNodeGroups(
-      newNodes as FlowGraphNode[],
-      st.subgraphs,
-      undefined,
+    const newNodes = remapSourceModelNodeIdAfterDuplicate(
+      newNodesRaw as StudioNode[],
       idMap,
     );
+    const { nodes: dupNodesWithSubs, subgraphs: dupSubgraphs } =
+      attachSubgraphsForPastedNodeGroups(
+        newNodes as FlowGraphNode[],
+        st.subgraphs,
+        undefined,
+        idMap,
+      );
     for (const nn of dupNodesWithSubs) {
       nn.selected = true;
     }
@@ -2735,7 +2980,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         dupNodesWithSubs.find((n) => n.id === srcNew) ??
         st.nodes.find((n) => n.id === e.source);
       const label =
-        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, dupSubgraphs) : "";
+        sourceStub != null
+          ? edgeLabelForSource(sourceStub, srcHandle, dupSubgraphs)
+          : "";
       dupEdges.push({
         ...e,
         id: `studio-edge-${studioDupNodeId()}`,
@@ -2755,7 +3002,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     ];
     const dupIds = dupNodesWithSubs.map((n) => n.id);
     const mergedEdges = [...st.edges, ...dupEdges];
-    const attachedNodes = attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges);
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      mergedNodes,
+      mergedEdges,
+    );
     const committed = commitActiveGraphMutation(
       { ...st, subgraphs: dupSubgraphs },
       attachedNodes,
@@ -2787,14 +3037,23 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const payload = parseFlowClipboard(text);
     if (payload == null || payload.nodes.length === 0) {
-      return { ok: false, message: "Clipboard does not contain a Sensor Studio flow selection." };
+      return {
+        ok: false,
+        message: "Clipboard does not contain a Sensor Studio flow selection.",
+      };
     }
     const st = get();
     get().pushUndoSnapshot();
-    const { nodes: pastedRaw, edges: pastedEdgesRaw, idMap } = remapFlowPaste(payload);
+    const {
+      nodes: pastedRaw,
+      edges: pastedEdgesRaw,
+      idMap,
+    } = remapFlowPaste(payload);
     const pastedNodesRaw: FlowGraphNode[] = pastedRaw.map((n) => {
       if (isStudioFlowNode(n)) {
-        const migrated = refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n as StudioNode));
+        const migrated = refreshCatalogOutputHandles(
+          migrateFlowNodeFromLegacy(n as StudioNode),
+        );
         return {
           ...migrated,
           selected: true,
@@ -2808,12 +3067,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       pastedNodesRaw as StudioNode[],
       idMap,
     ) as FlowGraphNode[];
-    const { nodes: pastedWithGroups, subgraphs: mergedSubgraphs } = attachSubgraphsForPastedNodeGroups(
-      pastedNodes,
-      st.subgraphs,
-      payload.subgraphs,
-      idMap,
-    );
+    const { nodes: pastedWithGroups, subgraphs: mergedSubgraphs } =
+      attachSubgraphsForPastedNodeGroups(
+        pastedNodes,
+        st.subgraphs,
+        payload.subgraphs,
+        idMap,
+      );
     for (const nn of pastedWithGroups) {
       nn.selected = true;
     }
@@ -2821,7 +3081,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
       const sourceStub = pastedWithGroups.find((n) => n.id === e.source);
       const label =
-        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs) : "";
+        sourceStub != null
+          ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs)
+          : "";
       return {
         ...e,
         animated: true,
@@ -2835,7 +3097,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     ];
     const pastedIds = pastedWithGroups.map((n) => n.id);
     const mergedEdges = [...st.edges, ...pastedEdges];
-    const attachedNodes = attachConfigErrorsWithModelChildRegistry(mergedNodes, mergedEdges);
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      mergedNodes,
+      mergedEdges,
+    );
     const committed = commitActiveGraphMutation(
       { ...st, subgraphs: mergedSubgraphs },
       attachedNodes,
@@ -2852,7 +3117,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   createGroupFromSelection: () => {
     const s = get();
-    const selected = s.nodes.filter((n) => n.selected && !isExcludedFromNodeGroup(n));
+    const selected = s.nodes.filter(
+      (n) => n.selected && !isExcludedFromNodeGroup(n),
+    );
     if (selected.length < 1) {
       return;
     }
@@ -2866,14 +3133,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       s.subgraphs,
     );
     const selectedIds = new Set(selected.map((n) => n.id));
-    const { nodes: parentNodes, edges: parentEdges } = rewireParentGraphForStudioGroup(
-      s.nodes,
-      s.edges,
-      groupNode,
-      selectedIds,
-      subgraph.interface,
-      s.subgraphs,
-    );
+    const { nodes: parentNodes, edges: parentEdges } =
+      rewireParentGraphForStudioGroup(
+        s.nodes,
+        s.edges,
+        groupNode,
+        selectedIds,
+        subgraph.interface,
+        s.subgraphs,
+      );
     const nextSubgraphs = { ...s.subgraphs, [groupId]: subgraph };
     const attachedNodes = attachConfigErrorsWithModelChildRegistry(
       parentNodes as FlowGraphNode[],
@@ -2910,7 +3178,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   ungroupSelection: () => {
     const s = get();
-    const selectedGroups = s.nodes.filter((n) => n.selected && isStudioNodeGroupNode(n));
+    const selectedGroups = s.nodes.filter(
+      (n) => n.selected && isStudioNodeGroupNode(n),
+    );
     if (selectedGroups.length !== 1) {
       return;
     }
@@ -2962,7 +3232,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ...persisted,
       activeGraphId: groupId,
       graphStack: nextStack,
-      nodes: attachConfigErrorsWithModelChildRegistry(sub.nodes as FlowGraphNode[], sub.edges),
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        sub.nodes as FlowGraphNode[],
+        sub.edges,
+      ),
       edges: sub.edges,
       selectedNodeId: null,
       selectedNodeIds: [],
@@ -3001,8 +3274,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   updateNodeGroupInterface: (hostNodeId, nextInterface) => {
     const s = get();
     const host =
-      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
-      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+      s.rootNodes.find(
+        (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+      ) ?? s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
     if (host == null) {
       return;
     }
@@ -3046,7 +3320,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       );
       set({ ...committed, rootEdges: filteredRootEdges });
     } else if (s.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
-      const filteredEdges = filterParentEdgesForGroupInterface(s.edges, hostNodeId, ensured);
+      const filteredEdges = filterParentEdgesForGroupInterface(
+        s.edges,
+        hostNodeId,
+        ensured,
+      );
       set({
         subgraphs: newSubgraphs,
         edges: filteredEdges,
@@ -3063,8 +3341,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   updateNodeGroupTitle: (hostNodeId, title) => {
     const s = get();
     const host =
-      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
-      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+      s.rootNodes.find(
+        (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+      ) ?? s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
     if (host == null) {
       return;
     }
@@ -3099,8 +3378,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   ungroupNodeGroup: (hostNodeId) => {
     const initial = persistActiveGraphBuffer(get());
     const host =
-      initial.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
-      initial.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+      initial.rootNodes.find(
+        (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+      ) ??
+      initial.nodes.find(
+        (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+      );
     if (host == null) {
       return;
     }
@@ -3118,7 +3401,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       };
     }
 
-    const groupNode = s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+    const groupNode = s.nodes.find(
+      (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+    );
     if (groupNode == null) {
       return;
     }
@@ -3160,8 +3445,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   duplicateGroupLinked: (hostNodeId) => {
     const s = persistActiveGraphBuffer(get());
     const source =
-      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
-      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+      s.rootNodes.find(
+        (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+      ) ?? s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
     if (source == null) {
       return;
     }
@@ -3175,8 +3461,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   duplicateGroupDeepCopy: (hostNodeId) => {
     const s = persistActiveGraphBuffer(get());
     const source =
-      s.rootNodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n)) ??
-      s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+      s.rootNodes.find(
+        (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+      ) ?? s.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
     if (source == null) {
       return;
     }
@@ -3203,10 +3490,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (asset == null) {
       return null;
     }
-    const { library, result } = upsertStudioLibraryPreset(get().nodeGroupLibrary, asset, {
-      sourceNodeId: hostNodeId,
-      presetKind: "nodeGraph",
-    });
+    const { library, result } = upsertStudioLibraryPreset(
+      get().nodeGroupLibrary,
+      asset,
+      {
+        sourceNodeId: hostNodeId,
+        presetKind: "nodeGraph",
+      },
+    );
     writePersistedNodeGroupLibrary(library);
 
     const patchHost = (nodes: FlowGraphNode[]) =>
@@ -3225,7 +3516,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     set({
       nodeGroupLibrary: library,
       rootNodes: patchHost(s.rootNodes),
-      nodes: s.activeGraphId === STUDIO_ROOT_GRAPH_ID ? patchHost(s.nodes) : s.nodes,
+      nodes:
+        s.activeGraphId === STUDIO_ROOT_GRAPH_ID ? patchHost(s.nodes) : s.nodes,
     });
     return result;
   },
@@ -3261,8 +3553,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const data = hostCtx.host.data;
     const asset =
       (typeof data.libraryAssetId === "string"
-        ? get().nodeGroupLibrary.find((a) => a.meta.id === data.libraryAssetId) ??
-          get().remoteNodeGraphAssets[data.libraryAssetId]
+        ? (get().nodeGroupLibrary.find(
+            (a) => a.meta.id === data.libraryAssetId,
+          ) ?? get().remoteNodeGraphAssets[data.libraryAssetId])
         : undefined) ??
       findLinkedStudioLibraryPreset(get().nodeGroupLibrary, {
         sourceNodeId: hostNodeId,
@@ -3333,7 +3626,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const data = hostCtx.host.data;
     const subgraphKey = data.subgraphId ?? hostNodeId;
-    const nextSubgraphs = replaceStudioNodeGroupFromAsset(subgraphKey, asset, s.subgraphs);
+    const nextSubgraphs = replaceStudioNodeGroupFromAsset(
+      subgraphKey,
+      asset,
+      s.subgraphs,
+    );
     if (nextSubgraphs == null) {
       return false;
     }
@@ -3342,7 +3639,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const graphTitle = asset.meta.name.trim() || "Node Group";
     const patchHost = (n: FlowGraphNode) =>
       n.id === hostNodeId && isStudioNodeGroupNode(n)
-        ? { ...n, data: { ...n.data, graphTitle, libraryAssetId: asset.meta.id } }
+        ? {
+            ...n,
+            data: { ...n.data, graphTitle, libraryAssetId: asset.meta.id },
+          }
         : n;
 
     const rootNodes = s.rootNodes.map(patchHost);
@@ -3372,15 +3672,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   instantiateNodeAssetAt: (asset, position) => {
     const st = persistActiveGraphBuffer(get());
     get().pushUndoSnapshot();
-    const { nodes: pastedRaw, edges: pastedEdgesRaw, subgraphs: mergedSubgraphs } =
-      instantiateStudioNodeAsset(asset, position, st.subgraphs);
+    const {
+      nodes: pastedRaw,
+      edges: pastedEdgesRaw,
+      subgraphs: mergedSubgraphs,
+    } = instantiateStudioNodeAsset(asset, position, st.subgraphs);
     if (pastedRaw.length === 0) {
       return false;
     }
 
     const pastedNodesRaw: FlowGraphNode[] = pastedRaw.map((n) => {
       if (isStudioFlowNode(n)) {
-        const migrated = refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n as StudioNode));
+        const migrated = refreshCatalogOutputHandles(
+          migrateFlowNodeFromLegacy(n as StudioNode),
+        );
         return {
           ...migrated,
           selected: true,
@@ -3396,7 +3701,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
       const sourceStub = pastedNodes.find((n) => n.id === e.source);
       const label =
-        sourceStub != null ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs) : "";
+        sourceStub != null
+          ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs)
+          : "";
       return {
         ...e,
         animated: true,
@@ -3410,7 +3717,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ...pastedNodes,
     ];
     const rootEdges = [...st.rootEdges, ...pastedEdges];
-    const attachedRoot = attachConfigErrorsWithModelChildRegistry(rootNodes, rootEdges);
+    const attachedRoot = attachConfigErrorsWithModelChildRegistry(
+      rootNodes,
+      rootEdges,
+    );
     const pastedIds = pastedNodes.map((n) => n.id);
     const committed = commitActiveGraphMutation(
       { ...st, subgraphs: mergedSubgraphs },
@@ -3505,7 +3815,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     let nextSubgraphs = { ...st.subgraphs };
     for (const groupId of removedGroupIds) {
       const node = st.nodes.find((n) => n.id === groupId);
-      const subKey = isStudioNodeGroupNode(node) ? (node.data.subgraphId ?? groupId) : groupId;
+      const subKey = isStudioNodeGroupNode(node)
+        ? (node.data.subgraphId ?? groupId)
+        : groupId;
       delete nextSubgraphs[subKey];
     }
     const priorSelection =
@@ -3517,7 +3829,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const survivingSelectedIds = priorSelection.filter((id) =>
       nextNodes.some((n) => n.id === id),
     );
-    const attachedNodes = attachConfigErrorsWithModelChildRegistry(nextNodes, nextEdges);
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      nextNodes,
+      nextEdges,
+    );
     const committed = commitActiveGraphMutation(
       { ...st, subgraphs: nextSubgraphs },
       attachedNodes,
@@ -3588,13 +3903,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     set((state) => {
       let nextNodes = applyNodeChanges(changes, state.nodes);
       if (layoutOnly) {
-        nextNodes = syncStudioNodeLayoutStyleFromDimensionChanges(nextNodes, changes);
+        nextNodes = syncStudioNodeLayoutStyleFromDimensionChanges(
+          nextNodes,
+          changes,
+        );
       }
       const reconciled = layoutOnly
         ? nextNodes
         : reconcileStudioModelGeneratedChildIds(nextNodes);
       return {
-        nodes: layoutOnly ? reconciled : attachConfigErrors(reconciled, state.edges),
+        nodes: layoutOnly
+          ? reconciled
+          : attachConfigErrors(reconciled, state.edges),
       };
     });
     if (!layoutOnly) {
@@ -3610,7 +3930,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       get().pushUndoSnapshot();
     }
     set((state) => {
-      const bridged = applyRerouteBridgeOnEdgeRemoves(changes, state.nodes, state.edges);
+      const bridged = applyRerouteBridgeOnEdgeRemoves(
+        changes,
+        state.nodes,
+        state.edges,
+      );
       const nextEdges =
         bridged.changes.length > 0
           ? applyEdgeChanges(bridged.changes, bridged.edges)
@@ -3662,7 +3986,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const sourceNode = st.nodes.find((n) => n.id === connection.source);
     const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
     const label =
-      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs) : "";
+      sourceNode != null
+        ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs)
+        : "";
     const priorEdgeIds = new Set(st.edges.map((e) => e.id));
     if (options?.skipUndoSnapshot !== true) {
       get().pushUndoSnapshot();
@@ -3714,7 +4040,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const sourceNode = st.nodes.find((n) => n.id === connection.source);
     const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
     const label =
-      sourceNode != null ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs) : "";
+      sourceNode != null
+        ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs)
+        : "";
     if (options?.skipUndoSnapshot !== true) {
       get().pushUndoSnapshot();
     }
@@ -3823,7 +4151,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   insertRerouteOnEdge: (edgeId, flowPosition) => {
     const st = get();
-    const split = splitEdgeWithReroute(edgeId, flowPosition, st.nodes, st.edges);
+    const split = splitEdgeWithReroute(
+      edgeId,
+      flowPosition,
+      st.nodes,
+      st.edges,
+    );
     if (split == null) {
       return null;
     }
@@ -3848,13 +4181,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     get().pushUndoSnapshot();
     set((state) => {
       let nextNodes = split.nodes.map((n) =>
-        n.id === split.rerouteId ? { ...n, selected: true } : { ...n, selected: false },
+        n.id === split.rerouteId
+          ? { ...n, selected: true }
+          : { ...n, selected: false },
       );
       nextNodes = patchLayoutNodesAfterConnect(nextNodes, upstreamConnection);
       nextNodes = patchLayoutNodesAfterConnect(nextNodes, downstreamConnection);
       nextNodes = patchStudioModelScopeOnConnect(nextNodes, upstreamConnection);
-      nextNodes = patchStudioModelScopeOnConnect(nextNodes, downstreamConnection);
-      const nextEdges = reconcileGlbEventModelScopeFromEdges(nextNodes, split.edges);
+      nextNodes = patchStudioModelScopeOnConnect(
+        nextNodes,
+        downstreamConnection,
+      );
+      const nextEdges = reconcileGlbEventModelScopeFromEdges(
+        nextNodes,
+        split.edges,
+      );
       return {
         nodes: attachConfigErrorsWithModelChildRegistry(
           applyStudioFlowSelection(nextNodes, [split.rerouteId]),
@@ -3875,7 +4216,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     get().pushUndoSnapshot();
     set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        result.nodes,
+        state.edges,
+      ),
     }));
     flushFlowSimulationPins(get);
   },
@@ -3883,10 +4227,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const st = get();
     const ids =
       frameIds ??
-      (st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id).length > 0
-        ? st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id)
+      (st.nodes
+        .filter((n) => n.selected && n.type === "studio-frame")
+        .map((n) => n.id).length > 0
+        ? st.nodes
+            .filter((n) => n.selected && n.type === "studio-frame")
+            .map((n) => n.id)
         : st.selectedNodeId != null &&
-            st.nodes.find((n) => n.id === st.selectedNodeId)?.type === "studio-frame"
+            st.nodes.find((n) => n.id === st.selectedNodeId)?.type ===
+              "studio-frame"
           ? [st.selectedNodeId]
           : []);
     if (ids.length === 0) {
@@ -3898,7 +4247,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     get().pushUndoSnapshot();
     set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        result.nodes,
+        state.edges,
+      ),
     }));
     flushFlowSimulationPins(get);
     return true;
@@ -3907,10 +4259,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const st = get();
     const ids =
       frameIds ??
-      (st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id).length > 0
-        ? st.nodes.filter((n) => n.selected && n.type === "studio-frame").map((n) => n.id)
+      (st.nodes
+        .filter((n) => n.selected && n.type === "studio-frame")
+        .map((n) => n.id).length > 0
+        ? st.nodes
+            .filter((n) => n.selected && n.type === "studio-frame")
+            .map((n) => n.id)
         : st.selectedNodeId != null &&
-            st.nodes.find((n) => n.id === st.selectedNodeId)?.type === "studio-frame"
+            st.nodes.find((n) => n.id === st.selectedNodeId)?.type ===
+              "studio-frame"
           ? [st.selectedNodeId]
           : []);
     if (ids.length === 0) {
@@ -3921,9 +4278,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return false;
     }
     get().pushUndoSnapshot();
-    const survivingSelectedIds = st.selectedNodeIds.filter((id) => !ids.includes(id));
+    const survivingSelectedIds = st.selectedNodeIds.filter(
+      (id) => !ids.includes(id),
+    );
     set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(dissolved.nodes, state.edges),
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        dissolved.nodes,
+        state.edges,
+      ),
       ...selectionFromIds(survivingSelectedIds),
     }));
     flushFlowSimulationPins(get);
@@ -3977,7 +4339,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     get().pushUndoSnapshot();
     set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(result.nodes, state.edges),
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        result.nodes,
+        state.edges,
+      ),
     }));
     flushFlowSimulationPins(get);
     return true;
@@ -4013,7 +4378,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const data = n.data as StudioNodeData;
           const nextData: StudioNodeData = {
             ...data,
-            ui: patchStudioNodeUiSocketDisplay(data.ui, { socketsExpanded: expanded }),
+            ui: patchStudioNodeUiSocketDisplay(data.ui, {
+              socketsExpanded: expanded,
+            }),
           };
           return applyStudioNodeChromeLayoutSwitch(n as StudioNode, nextData);
         }),
@@ -4036,7 +4403,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const data = n.data as StudioNodeData;
           const nextData: StudioNodeData = {
             ...data,
-            ui: patchStudioNodeUiSocketDisplay(data.ui, { socketValuesVisible: visible }),
+            ui: patchStudioNodeUiSocketDisplay(data.ui, {
+              socketValuesVisible: visible,
+            }),
           };
           return applyStudioNodeChromeLayoutSwitch(n as StudioNode, nextData);
         }),
@@ -4187,7 +4556,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const clearedUi = clearStudioNodeChromeLayoutWidths(
             studioNodeUiWithoutDisplayOverrides(data.ui),
           );
-          const fitW = resolveFitWidthFromContentMeasure(data.nodeId, clearedUi);
+          const fitW = resolveFitWidthFromContentMeasure(
+            data.nodeId,
+            clearedUi,
+          );
           return applyStudioNodeLayoutWidth(
             {
               ...stripped,
@@ -4229,7 +4601,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         }
         const next = { ...node, ...patch } as typeof node;
         if (patch.style != null) {
-          next.style = { ...(node.style ?? {}), ...(patch.style as any) } as any;
+          next.style = {
+            ...(node.style ?? {}),
+            ...(patch.style as any),
+          } as any;
         }
         return next;
       }),
@@ -4250,7 +4625,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
     const parent = get().nodes.find((n) => n.id === parentId);
-    if (parent == null || !isStudioFlowNode(parent) || parent.data.nodeId !== "model-select") {
+    if (
+      parent == null ||
+      !isStudioFlowNode(parent) ||
+      parent.data.nodeId !== "model-select"
+    ) {
       return;
     }
     get().pushUndoSnapshot();
@@ -4304,7 +4683,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     set((state) => ({
       nodes: attachConfigErrorsWithModelChildRegistry(
         state.nodes.map((node) =>
-          node.id === flowNodeId ? patchStudioUtilityNodeBodyExpanded(node, field, expanded) : node,
+          node.id === flowNodeId
+            ? patchStudioUtilityNodeBodyExpanded(node, field, expanded)
+            : node,
         ),
         state.edges,
       ),
@@ -4463,9 +4844,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (templateId === "material-glb-drives") {
       const modelEntry = catalog.find((entry) => entry.id === "model-select");
       const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
-      const paramEntry = catalog.find((entry) => entry.id === "glb-material-param");
-      const texEntry = catalog.find((entry) => entry.id === "glb-material-texture");
-      if (modelEntry == null || viewerEntry == null || paramEntry == null || texEntry == null) {
+      const paramEntry = catalog.find(
+        (entry) => entry.id === "glb-material-param",
+      );
+      const texEntry = catalog.find(
+        (entry) => entry.id === "glb-material-texture",
+      );
+      if (
+        modelEntry == null ||
+        viewerEntry == null ||
+        paramEntry == null ||
+        texEntry == null
+      ) {
         return;
       }
 
@@ -4528,7 +4918,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ];
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection([modelNode, viewerNode, paramNode, texNode], [viewerNode.id]),
+          applyStudioFlowSelection(
+            [modelNode, viewerNode, paramNode, texNode],
+            [viewerNode.id],
+          ),
           demoEdges,
         ),
         edges: demoEdges,
@@ -4542,8 +4935,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
       const outEntry = catalog.find((entry) => entry.id === "audio-output");
       const plotterEntry = catalog.find((entry) => entry.id === "plotter");
-      const fileEntry = catalog.find((entry) => entry.id === "audio-file-player");
-      if (micEntry == null || scopeEntry == null || outEntry == null || plotterEntry == null) {
+      const fileEntry = catalog.find(
+        (entry) => entry.id === "audio-file-player",
+      );
+      if (
+        micEntry == null ||
+        scopeEntry == null ||
+        outEntry == null ||
+        plotterEntry == null
+      ) {
         return;
       }
 
@@ -4582,11 +4982,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         sourceNodeId: "",
       };
 
-      const plotterNode = makeNode(plotterEntry, "demo-audio-plotter", 420, 420);
+      const plotterNode = makeNode(
+        plotterEntry,
+        "demo-audio-plotter",
+        420,
+        420,
+      );
       plotterNode.data.label = "Audio Features (Plotter)";
 
       const fileNode =
-        fileEntry != null ? makeNode(fileEntry, "demo-audio-file", 72, 360) : null;
+        fileEntry != null
+          ? makeNode(fileEntry, "demo-audio-file", 72, 360)
+          : null;
       if (fileNode != null) {
         fileNode.data.label = "Audio File Player";
         fileNode.data.defaultConfig = {
@@ -4633,7 +5040,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         },
       ];
 
-      const allNodes = fileNode != null ? [micNode, fileNode, scopeNode, outNode, plotterNode] : [micNode, scopeNode, outNode, plotterNode];
+      const allNodes =
+        fileNode != null
+          ? [micNode, fileNode, scopeNode, outNode, plotterNode]
+          : [micNode, scopeNode, outNode, plotterNode];
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
           applyStudioFlowSelection(allNodes, [outNode.id]),
@@ -4646,11 +5056,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
 
     if (templateId === "audio-file-playback") {
-      const fileEntry = catalog.find((entry) => entry.id === "audio-file-player");
+      const fileEntry = catalog.find(
+        (entry) => entry.id === "audio-file-player",
+      );
       const scopeEntry = catalog.find((entry) => entry.id === "audio-scope");
       const outEntry = catalog.find((entry) => entry.id === "audio-output");
       const plotterEntry = catalog.find((entry) => entry.id === "plotter");
-      if (fileEntry == null || scopeEntry == null || outEntry == null || plotterEntry == null) {
+      if (
+        fileEntry == null ||
+        scopeEntry == null ||
+        outEntry == null ||
+        plotterEntry == null
+      ) {
         return;
       }
 
@@ -4717,7 +5134,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection([fileNode, scopeNode, outNode, plotterNode], [fileNode.id]),
+          applyStudioFlowSelection(
+            [fileNode, scopeNode, outNode, plotterNode],
+            [fileNode.id],
+          ),
           demoEdges,
         ),
         edges: demoEdges,
@@ -4785,12 +5205,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
 
     if (templateId === "rotation-glb-anim") {
-      const eulerTapEntry = catalog.find((entry) => entry.id === "bmi270-tap-euler");
-      const rotEulerEntry = catalog.find((entry) => entry.id === "rotation-3d-euler");
+      const eulerTapEntry = catalog.find(
+        (entry) => entry.id === "bmi270-tap-euler",
+      );
+      const rotEulerEntry = catalog.find(
+        (entry) => entry.id === "rotation-3d-euler",
+      );
       const modelEntry = catalog.find((entry) => entry.id === "model-select");
-      const bundleEntry = catalog.find((entry) => entry.id === "glb-animation-bundle");
+      const bundleEntry = catalog.find(
+        (entry) => entry.id === "glb-animation-bundle",
+      );
       const onClickEntry = catalog.find((entry) => entry.id === "on-click");
-      const triggerEntry = catalog.find((entry) => entry.id === "event-trigger-glb-anim");
+      const triggerEntry = catalog.find(
+        (entry) => entry.id === "event-trigger-glb-anim",
+      );
       if (
         eulerTapEntry == null ||
         rotEulerEntry == null ||
@@ -4837,7 +5265,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       };
 
       const onClickNode = makeNode(onClickEntry, "demo-on-click", 72, 600);
-      const triggerNode = makeNode(triggerEntry, "demo-glb-anim-trigger", 260, 600);
+      const triggerNode = makeNode(
+        triggerEntry,
+        "demo-glb-anim-trigger",
+        260,
+        600,
+      );
       triggerNode.data.defaultConfig = {
         ...triggerNode.data.defaultConfig,
         [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
@@ -4853,7 +5286,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           sourceHandle: STUDIO_HANDLE_OUT,
           targetHandle: STUDIO_HANDLE_IN,
           animated: true,
-          label: getSourcePortType(eulerTapNode, STUDIO_HANDLE_OUT) ?? "vector3",
+          label:
+            getSourcePortType(eulerTapNode, STUDIO_HANDLE_OUT) ?? "vector3",
           style: { strokeWidth: 2 },
         },
         {
@@ -4863,7 +5297,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           sourceHandle: STUDIO_HANDLE_OUT,
           targetHandle: STUDIO_HANDLE_ANIM,
           animated: true,
-          label: getSourcePortType(bundleNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          label:
+            getSourcePortType(bundleNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
           style: { strokeWidth: 2 },
         },
         {
@@ -4890,7 +5325,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
           applyStudioFlowSelection(
-            [eulerTapNode, rotNode, modelNode, bundleNode, onClickNode, triggerNode],
+            [
+              eulerTapNode,
+              rotNode,
+              modelNode,
+              bundleNode,
+              onClickNode,
+              triggerNode,
+            ],
             [rotNode.id],
           ),
           demoEdges,
@@ -4902,7 +5344,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
 
     if (templateId === "vector-magnitude") {
-      const vectorEntry = catalog.find((entry) => entry.id === "vector-constant");
+      const vectorEntry = catalog.find(
+        (entry) => entry.id === "vector-constant",
+      );
       const lengthEntry = catalog.find((entry) => entry.id === "vector-length");
       const barMeterEntry = catalog.find((entry) => entry.id === "bar-meter");
       if (vectorEntry == null || lengthEntry == null || barMeterEntry == null) {
@@ -4917,7 +5361,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         z: 0,
       };
       const lenNode = makeNode(lengthEntry, "demo-vector-length", 360, 156);
-      const gaugeNode = makeNode(barMeterEntry, "demo-vector-length-gauge", 660, 156);
+      const gaugeNode = makeNode(
+        barMeterEntry,
+        "demo-vector-length-gauge",
+        660,
+        156,
+      );
       gaugeNode.data.label = "Bar meter (|v|)";
       gaugeNode.data.defaultConfig = {
         ...gaugeNode.data.defaultConfig,
@@ -4952,7 +5401,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ];
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection([vecNode, lenNode, gaugeNode], [gaugeNode.id]),
+          applyStudioFlowSelection(
+            [vecNode, lenNode, gaugeNode],
+            [gaugeNode.id],
+          ),
           vecDemoEdges,
         ),
         edges: vecDemoEdges,
@@ -4963,13 +5415,24 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
     if (templateId === "bmi270-gauge-z") {
       const bmi270Entry = catalog.find((entry) => entry.id === "bmi270-input");
-      const vectorSplitterEntry = catalog.find((entry) => entry.id === "vector-splitter");
+      const vectorSplitterEntry = catalog.find(
+        (entry) => entry.id === "vector-splitter",
+      );
       const barMeterEntry = catalog.find((entry) => entry.id === "bar-meter");
-      if (bmi270Entry == null || vectorSplitterEntry == null || barMeterEntry == null) {
+      if (
+        bmi270Entry == null ||
+        vectorSplitterEntry == null ||
+        barMeterEntry == null
+      ) {
         return;
       }
       const bmiNode = makeNode(bmi270Entry, "demo-bmi270", 72, 156);
-      const splitNode = makeNode(vectorSplitterEntry, "demo-vec-split", 360, 156);
+      const splitNode = makeNode(
+        vectorSplitterEntry,
+        "demo-vec-split",
+        360,
+        156,
+      );
       const gaugeNode = makeNode(barMeterEntry, "demo-bar-meter-bmi", 660, 156);
       gaugeNode.data.label = "Bar meter (accel Z)";
       gaugeNode.data.defaultConfig = {
@@ -5005,7 +5468,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ];
       set({
         nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection([bmiNode, splitNode, gaugeNode], [gaugeNode.id]),
+          applyStudioFlowSelection(
+            [bmiNode, splitNode, gaugeNode],
+            [gaugeNode.id],
+          ),
           bmiDemoEdges,
         ),
         edges: bmiDemoEdges,
@@ -5313,7 +5779,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                   ...node,
                   data: {
                     ...node.data,
-                    defaultConfig: applyConfigFieldPatch(node.data.defaultConfig, fields),
+                    defaultConfig: applyConfigFieldPatch(
+                      node.data.defaultConfig,
+                      fields,
+                    ),
                   },
                 }
               : node,
@@ -5337,7 +5806,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                 ...node,
                 data: {
                   ...node.data,
-                  defaultConfig: applyConfigFieldPatch(node.data.defaultConfig, fields),
+                  defaultConfig: applyConfigFieldPatch(
+                    node.data.defaultConfig,
+                    fields,
+                  ),
                 },
               }
             : node,
@@ -5417,7 +5889,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ),
     }));
   },
-  syncStudioNodeContentMinDimensions: (nodeId, contentMinWidth, contentMinHeight) => {
+  syncStudioNodeContentMinDimensions: (
+    nodeId,
+    contentMinWidth,
+    contentMinHeight,
+  ) => {
     const w = Math.max(0, Math.round(contentMinWidth));
     const h = Math.max(0, Math.round(contentMinHeight));
     set((state) => ({
@@ -5570,7 +6046,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                   ...node,
                   data: {
                     ...node.data,
-                    defaultConfig: { ...(persisted as unknown as Record<string, unknown>) },
+                    defaultConfig: {
+                      ...(persisted as unknown as Record<string, unknown>),
+                    },
                   },
                 }
               : node,
@@ -5599,7 +6077,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                 ...node,
                 data: {
                   ...node.data,
-                  defaultConfig: { ...(persisted as unknown as Record<string, unknown>) },
+                  defaultConfig: {
+                    ...(persisted as unknown as Record<string, unknown>),
+                  },
                 },
               }
             : node,
@@ -5705,7 +6185,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
     const pinValues = new Map<string, FlowValue>();
     const liveStore = useBitstreamLiveStore.getState();
-    const deviceSensorCfgBySourceId = useBitstreamDeviceSensorConfigStore.getState().bySourceId;
+    const deviceSensorCfgBySourceId =
+      useBitstreamDeviceSensorConfigStore.getState().bySourceId;
     const quatOrient = useBmi270FusionQuatOrientationStore.getState();
     const eulerWireTap = useBmi270FusionEulerWireTapStore.getState();
     const hasQuatWireTap = quatOrient.seq > 0;
@@ -5733,19 +6214,27 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     };
     const sensorHardwareLiveNodeIds = new Set<string>();
 
-    const readIncoming = (targetId: string, targetHandle?: string): FlowValue | null => {
+    const readIncoming = (
+      targetId: string,
+      targetHandle?: string,
+    ): FlowValue | null => {
       const list = incomingByTarget.get(targetId);
       if (list == null || list.length === 0) {
         return null;
       }
       const targetNode = nodes.find((n) => n.id === targetId);
-      if (isStudioFlowNode(targetNode) && targetNode.data.nodeId === "number-average") {
+      if (
+        isStudioFlowNode(targetNode) &&
+        targetNode.data.nodeId === "number-average"
+      ) {
         const nums: number[] = [];
         for (const inc of list) {
           if (inc.targetHandle !== STUDIO_HANDLE_IN) {
             continue;
           }
-          const v = pinValues.get(studioFlowPinKey(inc.source, inc.sourceHandle));
+          const v = pinValues.get(
+            studioFlowPinKey(inc.source, inc.sourceHandle),
+          );
           if (typeof v === "number" && Number.isFinite(v)) {
             nums.push(v);
           }
@@ -5760,11 +6249,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           ? list.find((e) => e.targetHandle === targetHandle)
           : list.length === 1
             ? list[0]
-            : list.find((e) => e.targetHandle === STUDIO_HANDLE_IN) ?? list[0];
+            : (list.find((e) => e.targetHandle === STUDIO_HANDLE_IN) ??
+              list[0]);
       if (chosen == null) {
         return null;
       }
-      return pinValues.get(studioFlowPinKey(chosen.source, chosen.sourceHandle)) ?? null;
+      return (
+        pinValues.get(studioFlowPinKey(chosen.source, chosen.sourceHandle)) ??
+        null
+      );
     };
 
     const narrowNumber = (v: FlowValue | null): number =>
@@ -5791,7 +6284,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       // Auto: prefer selected mic/osc, then nearest by canvas distance.
       const selectedId = get().selectedNodeId;
       const selected =
-        typeof selectedId === "string" ? nodes.find((n) => n.id === selectedId) : undefined;
+        typeof selectedId === "string"
+          ? nodes.find((n) => n.id === selectedId)
+          : undefined;
       if (isStudioFlowNode(selected)) {
         if (
           selected.data.nodeId === "mic-input" ||
@@ -5847,7 +6342,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.type === "studio-split") {
           const v = readIncoming(node.id, STUDIO_HANDLE_IN);
           if (v != null) {
-            for (const handleId of splitOutputHandleIds(node.data.outputCount)) {
+            for (const handleId of splitOutputHandleIds(
+              node.data.outputCount,
+            )) {
               pinValues.set(studioFlowPinKey(node.id, handleId), v);
             }
           }
@@ -5860,20 +6357,35 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "mic-input") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
           const enabled = cfg.enabled === true;
-          const deviceId = typeof cfg.deviceId === "string" ? cfg.deviceId : "default";
-          const fftSizeRaw = typeof cfg.fftSize === "number" ? cfg.fftSize : 2048;
-          const fftSize = Number.isFinite(fftSizeRaw) ? Math.max(32, Math.min(32768, Math.round(fftSizeRaw))) : 2048;
-          const smoothingRaw = typeof cfg.smoothing === "number" ? cfg.smoothing : 0.8;
+          const deviceId =
+            typeof cfg.deviceId === "string" ? cfg.deviceId : "default";
+          const fftSizeRaw =
+            typeof cfg.fftSize === "number" ? cfg.fftSize : 2048;
+          const fftSize = Number.isFinite(fftSizeRaw)
+            ? Math.max(32, Math.min(32768, Math.round(fftSizeRaw)))
+            : 2048;
+          const smoothingRaw =
+            typeof cfg.smoothing === "number" ? cfg.smoothing : 0.8;
           const smoothing = Number.isFinite(smoothingRaw) ? smoothingRaw : 0.8;
           const gateEnabled = cfg.gateEnabled === true;
-          const gateThresholdRaw = typeof cfg.gateThreshold === "number" ? cfg.gateThreshold : 0.02;
-          const gateThreshold = Number.isFinite(gateThresholdRaw) ? Math.max(0, gateThresholdRaw) : 0.02;
-          const peakHoldMsRaw = typeof cfg.peakHoldMs === "number" ? cfg.peakHoldMs : 150;
-          const peakHoldMs = Number.isFinite(peakHoldMsRaw) ? Math.max(0, peakHoldMsRaw) : 150;
+          const gateThresholdRaw =
+            typeof cfg.gateThreshold === "number" ? cfg.gateThreshold : 0.02;
+          const gateThreshold = Number.isFinite(gateThresholdRaw)
+            ? Math.max(0, gateThresholdRaw)
+            : 0.02;
+          const peakHoldMsRaw =
+            typeof cfg.peakHoldMs === "number" ? cfg.peakHoldMs : 150;
+          const peakHoldMs = Number.isFinite(peakHoldMsRaw)
+            ? Math.max(0, peakHoldMsRaw)
+            : 150;
 
           studioAudioRuntime.enableMic(node.id, enabled);
           if (enabled) {
-            void studioAudioRuntime.ensureMicActive(node.id, { deviceId, fftSize, smoothing });
+            void studioAudioRuntime.ensureMicActive(node.id, {
+              deviceId,
+              fftSize,
+              smoothing,
+            });
           }
 
           const buffers = studioAudioRuntime.readMicBuffers(node.id);
@@ -5917,7 +6429,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
           const nyquist = (buffers.analyser.context.sampleRate ?? 48000) / 2;
           const centroidHz =
-            total > 0 ? (weighted / total) * (nyquist / Math.max(1, freq.length - 1)) : 0;
+            total > 0
+              ? (weighted / total) * (nyquist / Math.max(1, freq.length - 1))
+              : 0;
 
           const gatedRms = gateEnabled && rms < gateThreshold ? 0 : rms;
           const gatedPeak = gateEnabled && peak < gateThreshold ? 0 : peak;
@@ -5937,17 +6451,28 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "audio-oscillator") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
-          const waveform = typeof cfg.waveform === "string" ? cfg.waveform : "sine";
-          const detune = typeof cfg.detuneCents === "number" ? cfg.detuneCents : 0;
+          const waveform =
+            typeof cfg.waveform === "string" ? cfg.waveform : "sine";
+          const detune =
+            typeof cfg.detuneCents === "number" ? cfg.detuneCents : 0;
           const freqIncoming = readIncoming(node.id, "freqHz");
           const sweepEnabled = cfg.sweepEnabled === true;
           const baseFreqHz = readSimInput(null, cfg.freqHz, 440);
-          const sweepStartHzRaw = typeof cfg.sweepStartHz === "number" ? cfg.sweepStartHz : 220;
-          const sweepEndHzRaw = typeof cfg.sweepEndHz === "number" ? cfg.sweepEndHz : 880;
-          const sweepPeriodSRaw = typeof cfg.sweepPeriodS === "number" ? cfg.sweepPeriodS : 4;
-          const sweepStartHz = Number.isFinite(sweepStartHzRaw) ? Math.max(0, sweepStartHzRaw) : 220;
-          const sweepEndHz = Number.isFinite(sweepEndHzRaw) ? Math.max(0, sweepEndHzRaw) : 880;
-          const sweepPeriodS = Number.isFinite(sweepPeriodSRaw) ? Math.max(0.25, sweepPeriodSRaw) : 4;
+          const sweepStartHzRaw =
+            typeof cfg.sweepStartHz === "number" ? cfg.sweepStartHz : 220;
+          const sweepEndHzRaw =
+            typeof cfg.sweepEndHz === "number" ? cfg.sweepEndHz : 880;
+          const sweepPeriodSRaw =
+            typeof cfg.sweepPeriodS === "number" ? cfg.sweepPeriodS : 4;
+          const sweepStartHz = Number.isFinite(sweepStartHzRaw)
+            ? Math.max(0, sweepStartHzRaw)
+            : 220;
+          const sweepEndHz = Number.isFinite(sweepEndHzRaw)
+            ? Math.max(0, sweepEndHzRaw)
+            : 880;
+          const sweepPeriodS = Number.isFinite(sweepPeriodSRaw)
+            ? Math.max(0.25, sweepPeriodSRaw)
+            : 4;
 
           const freqHz =
             typeof freqIncoming === "number" && Number.isFinite(freqIncoming)
@@ -5964,7 +6489,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                 : baseFreqHz;
           const gain = readSimInput(readIncoming(node.id, "gain"), cfg.gain, 0);
           const gateIncoming = readIncoming(node.id, "gate");
-          const gate = typeof gateIncoming === "boolean" ? gateIncoming : cfg.gate === true;
+          const gate =
+            typeof gateIncoming === "boolean"
+              ? gateIncoming
+              : cfg.gate === true;
 
           studioAudioRuntime.setOscillator(node.id, {
             waveform,
@@ -5989,7 +6517,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               if (isStudioFlowNode(n) && n.data.nodeId === "audio-oscillator") {
                 studioAudioRuntime.setOscillatorMonitorGain(n.id, 0);
               }
-              if (isStudioFlowNode(n) && n.data.nodeId === "audio-file-player") {
+              if (
+                isStudioFlowNode(n) &&
+                n.data.nodeId === "audio-file-player"
+              ) {
                 studioAudioRuntime.setFilePlayerMonitorGain(n.id, 0);
               }
             }
@@ -6003,7 +6534,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
           const gain = readSimInput(readIncoming(node.id, "gain"), cfg.gain, 0);
           const gateIncoming = readIncoming(node.id, "gate");
-          const gate = typeof gateIncoming === "boolean" ? gateIncoming : cfg.gate === true;
+          const gate =
+            typeof gateIncoming === "boolean"
+              ? gateIncoming
+              : cfg.gate === true;
           studioAudioRuntime.setMasterControls({
             gate,
             gain,
@@ -6025,17 +6559,30 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             }
           }
 
-          const srcId = resolveAudioSourceNodeId(node.id, cfg.sourceMode, cfg.sourceNodeId);
+          const srcId = resolveAudioSourceNodeId(
+            node.id,
+            cfg.sourceMode,
+            cfg.sourceNodeId,
+          );
           if (srcId != null) {
             const srcNode = nodes.find((n) => n.id === srcId);
-            if (isStudioFlowNode(srcNode) && srcNode.data.nodeId === "mic-input") {
+            if (
+              isStudioFlowNode(srcNode) &&
+              srcNode.data.nodeId === "mic-input"
+            ) {
               // When gate is on, pass selected source into master (master gain handles volume).
               studioAudioRuntime.setMicMonitorGain(srcId, gate ? 1 : 0);
             }
-            if (isStudioFlowNode(srcNode) && srcNode.data.nodeId === "audio-oscillator") {
+            if (
+              isStudioFlowNode(srcNode) &&
+              srcNode.data.nodeId === "audio-oscillator"
+            ) {
               studioAudioRuntime.setOscillatorMonitorGain(srcId, gate ? 1 : 0);
             }
-            if (isStudioFlowNode(srcNode) && srcNode.data.nodeId === "audio-file-player") {
+            if (
+              isStudioFlowNode(srcNode) &&
+              srcNode.data.nodeId === "audio-file-player"
+            ) {
               studioAudioRuntime.setFilePlayerMonitorGain(srcId, gate ? 1 : 0);
             }
           }
@@ -6052,9 +6599,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const enabled = cfg.enabled === true;
           const url = typeof cfg.url === "string" ? cfg.url : "";
           const loop = cfg.loop === true;
-          const gain = readSimInput(readIncoming(node.id, "gain"), cfg.gain, 0.5);
+          const gain = readSimInput(
+            readIncoming(node.id, "gain"),
+            cfg.gain,
+            0.5,
+          );
           const gateIncoming = readIncoming(node.id, "gate");
-          const gate = typeof gateIncoming === "boolean" ? gateIncoming : cfg.gate === true;
+          const gate =
+            typeof gateIncoming === "boolean"
+              ? gateIncoming
+              : cfg.gate === true;
 
           studioAudioRuntime.setFilePlayer(node.id, {
             enabled,
@@ -6077,8 +6631,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateSineWave(
               t,
-              readSimInput(readIncoming(node.id, "amplitude"), cfg.amplitude, 1),
-              readSimInput(readIncoming(node.id, "frequency"), cfg.frequency, 1),
+              readSimInput(
+                readIncoming(node.id, "amplitude"),
+                cfg.amplitude,
+                1,
+              ),
+              readSimInput(
+                readIncoming(node.id, "frequency"),
+                cfg.frequency,
+                1,
+              ),
               readSimInput(readIncoming(node.id, "phase"), cfg.phase, 0),
               readSimInput(readIncoming(node.id, "offset"), cfg.offset, 0),
             ),
@@ -6122,13 +6684,19 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const t = Date.now() / 1000;
           const smoothRaw = cfg.smooth;
           const smooth =
-            typeof smoothRaw === "number" && Number.isFinite(smoothRaw) ? smoothRaw : 0.25;
+            typeof smoothRaw === "number" && Number.isFinite(smoothRaw)
+              ? smoothRaw
+              : 0.25;
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateNoiseSim(
               t,
               readSimInput(readIncoming(node.id, "seed"), cfg.seed, 1),
-              readSimInput(readIncoming(node.id, "amplitude"), cfg.amplitude, 1),
+              readSimInput(
+                readIncoming(node.id, "amplitude"),
+                cfg.amplitude,
+                1,
+              ),
               readSimInput(readIncoming(node.id, "offset"), cfg.offset, 0),
               smooth,
             ),
@@ -6141,9 +6709,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateVectorConstant(
-              readVectorAxisInput(readIncoming(node.id, "x"), cfg.x, VECTOR_CONSTANT_DEFAULTS.x),
-              readVectorAxisInput(readIncoming(node.id, "y"), cfg.y, VECTOR_CONSTANT_DEFAULTS.y),
-              readVectorAxisInput(readIncoming(node.id, "z"), cfg.z, VECTOR_CONSTANT_DEFAULTS.z),
+              readVectorAxisInput(
+                readIncoming(node.id, "x"),
+                cfg.x,
+                VECTOR_CONSTANT_DEFAULTS.x,
+              ),
+              readVectorAxisInput(
+                readIncoming(node.id, "y"),
+                cfg.y,
+                VECTOR_CONSTANT_DEFAULTS.y,
+              ),
+              readVectorAxisInput(
+                readIncoming(node.id, "z"),
+                cfg.z,
+                VECTOR_CONSTANT_DEFAULTS.z,
+              ),
             ),
           );
           continue;
@@ -6248,7 +6828,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const cfg = node.data.defaultConfig;
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            evaluateSceneSettingsExposure(readIncoming(node.id, "exposure"), cfg.exposure, 1),
+            evaluateSceneSettingsExposure(
+              readIncoming(node.id, "exposure"),
+              cfg.exposure,
+              1,
+            ),
           );
           continue;
         }
@@ -6300,7 +6884,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             readIncoming(node.id, "z"),
             cfg.z,
           );
-          pinValues.set(studioFlowPinKey(node.id, "intensity"), light.intensity);
+          pinValues.set(
+            studioFlowPinKey(node.id, "intensity"),
+            light.intensity,
+          );
           pinValues.set(studioFlowPinKey(node.id, "r"), light.r);
           pinValues.set(studioFlowPinKey(node.id, "g"), light.g);
           pinValues.set(studioFlowPinKey(node.id, "b"), light.b);
@@ -6318,7 +6905,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const cfg = node.data.defaultConfig;
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            evaluateCameraSwitchIndex(readIncoming(node.id, "index"), cfg.index),
+            evaluateCameraSwitchIndex(
+              readIncoming(node.id, "index"),
+              cfg.index,
+            ),
           );
           continue;
         }
@@ -6331,8 +6921,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             readIncoming(node.id, "bloomThreshold"),
             cfg.bloomThreshold,
           );
-          pinValues.set(studioFlowPinKey(node.id, "bloomIntensity"), pp.bloomIntensity);
-          pinValues.set(studioFlowPinKey(node.id, "bloomThreshold"), pp.bloomThreshold);
+          pinValues.set(
+            studioFlowPinKey(node.id, "bloomIntensity"),
+            pp.bloomIntensity,
+          );
+          pinValues.set(
+            studioFlowPinKey(node.id, "bloomThreshold"),
+            pp.bloomThreshold,
+          );
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             flowWirePostProcessingFromEval(pp, cfg as Record<string, unknown>),
@@ -6373,7 +6969,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "rigid-body") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
           const label =
-            typeof node.data.label === "string" && node.data.label.trim().length > 0
+            typeof node.data.label === "string" &&
+            node.data.label.trim().length > 0
               ? node.data.label.trim()
               : "rigid-body";
           pinValues.set(
@@ -6404,7 +7001,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId != null && isPhysicsDomainStubNodeId(node.data.nodeId)) {
+        if (
+          node.data.nodeId != null &&
+          isPhysicsDomainStubNodeId(node.data.nodeId)
+        ) {
           continue;
         }
 
@@ -6427,7 +7027,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "uv-transform") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
-          const uv = evaluateUvTransformOutputs(cfg, (key) => readIncoming(node.id, key));
+          const uv = evaluateUvTransformOutputs(cfg, (key) =>
+            readIncoming(node.id, key),
+          );
           for (const key of UV_TRANSFORM_KEYS) {
             pinValues.set(studioFlowPinKey(node.id, key), uv[key]);
           }
@@ -6438,7 +7040,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const cfg = node.data.defaultConfig;
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            evaluateMaterialVariantName(readIncoming(node.id, "variant"), cfg.variant),
+            evaluateMaterialVariantName(
+              readIncoming(node.id, "variant"),
+              cfg.variant,
+            ),
           );
           continue;
         }
@@ -6461,7 +7066,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "event-toggle-boolean") {
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            readEventBooleanValue(node.data.defaultConfig as Record<string, unknown>),
+            readEventBooleanValue(
+              node.data.defaultConfig as Record<string, unknown>,
+            ),
           );
           continue;
         }
@@ -6469,7 +7076,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "event-set-boolean") {
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            readEventBooleanValue(node.data.defaultConfig as Record<string, unknown>),
+            readEventBooleanValue(
+              node.data.defaultConfig as Record<string, unknown>,
+            ),
           );
           continue;
         }
@@ -6499,7 +7108,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "material-mix") {
           const a = narrowNumber(readIncoming(node.id, "a"));
           const b = narrowNumber(readIncoming(node.id, "b"));
-          const factor = clampNumber(asFiniteNumber(node.data.defaultConfig.factor, 0.5), 0, 1);
+          const factor = clampNumber(
+            asFiniteNumber(node.data.defaultConfig.factor, 0.5),
+            0,
+            1,
+          );
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             a * (1 - factor) + b * factor,
@@ -6536,9 +7149,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         }
 
         if (node.data.nodeId === "lerp") {
-          const a = readLerpInputValue(readIncoming(node.id, "a"), LERP_INPUT_DEFAULTS.a);
-          const b = readLerpInputValue(readIncoming(node.id, "b"), LERP_INPUT_DEFAULTS.b);
-          const t = readLerpInputValue(readIncoming(node.id, "t"), LERP_INPUT_DEFAULTS.t);
+          const a = readLerpInputValue(
+            readIncoming(node.id, "a"),
+            LERP_INPUT_DEFAULTS.a,
+          );
+          const b = readLerpInputValue(
+            readIncoming(node.id, "b"),
+            LERP_INPUT_DEFAULTS.b,
+          );
+          const t = readLerpInputValue(
+            readIncoming(node.id, "t"),
+            LERP_INPUT_DEFAULTS.t,
+          );
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateLerp(a, b, t),
@@ -6613,7 +7235,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "multiplexer") {
           const paths = readMultiplexerPaths(node.data.defaultConfig);
-          const results = evaluateMultiplexer(readIncoming(node.id, "payload"), paths);
+          const results = evaluateMultiplexer(
+            readIncoming(node.id, "payload"),
+            paths,
+          );
           for (const [handleId, value] of Object.entries(results)) {
             pinValues.set(studioFlowPinKey(node.id, handleId), value);
           }
@@ -6625,11 +7250,31 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateValueNormalizer(
-              readValueNormalizerInput(readIncoming(node.id, "value"), cfg.value, 0),
-              readValueNormalizerInput(readIncoming(node.id, "inMin"), cfg.inMin, 0),
-              readValueNormalizerInput(readIncoming(node.id, "inMax"), cfg.inMax, 1),
-              readValueNormalizerInput(readIncoming(node.id, "outMin"), cfg.outMin, 0),
-              readValueNormalizerInput(readIncoming(node.id, "outMax"), cfg.outMax, 1),
+              readValueNormalizerInput(
+                readIncoming(node.id, "value"),
+                cfg.value,
+                0,
+              ),
+              readValueNormalizerInput(
+                readIncoming(node.id, "inMin"),
+                cfg.inMin,
+                0,
+              ),
+              readValueNormalizerInput(
+                readIncoming(node.id, "inMax"),
+                cfg.inMax,
+                1,
+              ),
+              readValueNormalizerInput(
+                readIncoming(node.id, "outMin"),
+                cfg.outMin,
+                0,
+              ),
+              readValueNormalizerInput(
+                readIncoming(node.id, "outMax"),
+                cfg.outMax,
+                1,
+              ),
             ),
           );
           continue;
@@ -6638,15 +7283,36 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "map-range") {
           const cfg = node.data.defaultConfig;
           const wiredValue =
-            readIncoming(node.id, "value") ?? readIncoming(node.id, STUDIO_HANDLE_IN);
+            readIncoming(node.id, "value") ??
+            readIncoming(node.id, STUDIO_HANDLE_IN);
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateMapRange(
-              readMapRangeInput(wiredValue, cfg.value, MAP_RANGE_INPUT_DEFAULTS.value),
-              readMapRangeInput(readIncoming(node.id, "inMin"), cfg.inMin, MAP_RANGE_INPUT_DEFAULTS.inMin),
-              readMapRangeInput(readIncoming(node.id, "inMax"), cfg.inMax, MAP_RANGE_INPUT_DEFAULTS.inMax),
-              readMapRangeInput(readIncoming(node.id, "outMin"), cfg.outMin, MAP_RANGE_INPUT_DEFAULTS.outMin),
-              readMapRangeInput(readIncoming(node.id, "outMax"), cfg.outMax, MAP_RANGE_INPUT_DEFAULTS.outMax),
+              readMapRangeInput(
+                wiredValue,
+                cfg.value,
+                MAP_RANGE_INPUT_DEFAULTS.value,
+              ),
+              readMapRangeInput(
+                readIncoming(node.id, "inMin"),
+                cfg.inMin,
+                MAP_RANGE_INPUT_DEFAULTS.inMin,
+              ),
+              readMapRangeInput(
+                readIncoming(node.id, "inMax"),
+                cfg.inMax,
+                MAP_RANGE_INPUT_DEFAULTS.inMax,
+              ),
+              readMapRangeInput(
+                readIncoming(node.id, "outMin"),
+                cfg.outMin,
+                MAP_RANGE_INPUT_DEFAULTS.outMin,
+              ),
+              readMapRangeInput(
+                readIncoming(node.id, "outMax"),
+                cfg.outMax,
+                MAP_RANGE_INPUT_DEFAULTS.outMax,
+              ),
               cfg.clamp !== false,
             ),
           );
@@ -6656,13 +7322,22 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "clamp") {
           const cfg = node.data.defaultConfig;
           const wiredValue =
-            readIncoming(node.id, "value") ?? readIncoming(node.id, STUDIO_HANDLE_IN);
+            readIncoming(node.id, "value") ??
+            readIncoming(node.id, STUDIO_HANDLE_IN);
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             evaluateClamp(
               readClampInput(wiredValue, cfg.value, CLAMP_INPUT_DEFAULTS.value),
-              readClampInput(readIncoming(node.id, "min"), cfg.min, CLAMP_INPUT_DEFAULTS.min),
-              readClampInput(readIncoming(node.id, "max"), cfg.max, CLAMP_INPUT_DEFAULTS.max),
+              readClampInput(
+                readIncoming(node.id, "min"),
+                cfg.min,
+                CLAMP_INPUT_DEFAULTS.min,
+              ),
+              readClampInput(
+                readIncoming(node.id, "max"),
+                cfg.max,
+                CLAMP_INPUT_DEFAULTS.max,
+              ),
             ),
           );
           continue;
@@ -6678,8 +7353,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "sensor-input") {
           const rawKey = node.data.defaultConfig.sourceKey;
           const sourceKey =
-            typeof rawKey === "string" && rawKey.trim().length > 0 ? rawKey.trim() : "bmi270.accel.x";
-          const live = resolveLiveNumericFromLatestByHint(latestByHint, sourceKey);
+            typeof rawKey === "string" && rawKey.trim().length > 0
+              ? rawKey.trim()
+              : "bmi270.accel.x";
+          const live = resolveLiveNumericFromLatestByHint(
+            latestByHint,
+            sourceKey,
+          );
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             live != null && Number.isFinite(live) ? Number(live.toFixed(6)) : 0,
@@ -6692,7 +7372,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "dps368-input") {
           const bundle = computeDps368PinBundle(latestByHint);
-          pinValues.set(studioFlowPinKey(node.id, "pressure"), bundle.pressureHpa);
+          pinValues.set(
+            studioFlowPinKey(node.id, "pressure"),
+            bundle.pressureHpa,
+          );
           pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
           pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
@@ -6703,7 +7386,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "sht40-input") {
           const bundle = computeSht40PinBundle(latestByHint);
-          pinValues.set(studioFlowPinKey(node.id, "humidity"), bundle.humidityPct);
+          pinValues.set(
+            studioFlowPinKey(node.id, "humidity"),
+            bundle.humidityPct,
+          );
           pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
           pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
@@ -6714,7 +7400,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (node.data.nodeId === "bmm350-input") {
           const bundle = computeBmm350PinBundle(latestByHint);
-          pinValues.set(studioFlowPinKey(node.id, "magnetic"), bundle.magneticUt);
+          pinValues.set(
+            studioFlowPinKey(node.id, "magnetic"),
+            bundle.magneticUt,
+          );
           pinValues.set(studioFlowPinKey(node.id, "temp"), bundle.tempC);
           pinValues.set(studioFlowPinKey(node.id, "samples"), bundle.counter);
           if (bundle.streamLive) {
@@ -6726,10 +7415,27 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "bmi270-input") {
           const bundle = computeBmi270PinBundle(latestByHint);
           const bmiSample = latestByHint.bmi270;
-          const prevQuat = node.data.liveQuaternionWire ?? { x: 0, y: 0, z: 0, w: 1 };
-          const prevEuler = node.data.liveVector3ByHandle?.euler ?? { x: 0, y: 0, z: 0 };
-          const prevAccel = node.data.liveVector3ByHandle?.accel ?? { x: 0, y: 0, z: 0 };
-          const prevGyro = node.data.liveVector3ByHandle?.gyro ?? { x: 0, y: 0, z: 0 };
+          const prevQuat = node.data.liveQuaternionWire ?? {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1,
+          };
+          const prevEuler = node.data.liveVector3ByHandle?.euler ?? {
+            x: 0,
+            y: 0,
+            z: 0,
+          };
+          const prevAccel = node.data.liveVector3ByHandle?.accel ?? {
+            x: 0,
+            y: 0,
+            z: 0,
+          };
+          const prevGyro = node.data.liveVector3ByHandle?.gyro ?? {
+            x: 0,
+            y: 0,
+            z: 0,
+          };
           pinValues.set(
             studioFlowPinKey(node.id, "accel"),
             hasLiveBmi270AccelFields(bmiSample) ? bundle.accel : prevAccel,
@@ -6765,31 +7471,44 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (BMI270_TAP_NODE_ID_SET.has(node.data.nodeId)) {
           const bundle = computeBmi270PinBundle(latestByHint);
           const bmiSample = latestByHint.bmi270;
-          const prevQuat = node.data.liveQuaternionWire ?? { x: 0, y: 0, z: 0, w: 1 };
+          const prevQuat = node.data.liveQuaternionWire ?? {
+            x: 0,
+            y: 0,
+            z: 0,
+            w: 1,
+          };
           const prevEuler = node.data.liveVector3Wire ?? { x: 0, y: 0, z: 0 };
           const prevVec = node.data.liveVector3Wire ?? { x: 0, y: 0, z: 0 };
           let out: FlowValue;
           switch (node.data.nodeId) {
             case "bmi270-tap-accel":
-              out = hasLiveBmi270AccelFields(bmiSample) ? bundle.accel : prevVec;
+              out = hasLiveBmi270AccelFields(bmiSample)
+                ? bundle.accel
+                : prevVec;
               break;
             case "bmi270-tap-gyro":
               out = hasLiveBmi270GyroFields(bmiSample) ? bundle.gyro : prevVec;
               break;
             case "bmi270-tap-temp": {
               const prevScalar =
-                typeof node.data.liveValue === "number" && Number.isFinite(node.data.liveValue)
+                typeof node.data.liveValue === "number" &&
+                Number.isFinite(node.data.liveValue)
                   ? node.data.liveValue
                   : 0;
-              out = hasLiveBmi270TempFields(bmiSample) ? bundle.temp : prevScalar;
+              out = hasLiveBmi270TempFields(bmiSample)
+                ? bundle.temp
+                : prevScalar;
               break;
             }
             case "bmi270-tap-samples": {
               const prevScalar =
-                typeof node.data.liveValue === "number" && Number.isFinite(node.data.liveValue)
+                typeof node.data.liveValue === "number" &&
+                Number.isFinite(node.data.liveValue)
                   ? node.data.liveValue
                   : 0;
-              out = hasLiveBmi270TempFields(bmiSample) ? bundle.counter : prevScalar;
+              out = hasLiveBmi270TempFields(bmiSample)
+                ? bundle.counter
+                : prevScalar;
               break;
             }
             case "bmi270-tap-euler":
@@ -6907,49 +7626,70 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        if (node.data.nodeId === "model-viewer" || node.data.nodeId === "scene-output") {
+        if (
+          node.data.nodeId === "model-viewer" ||
+          node.data.nodeId === "scene-output"
+        ) {
           continue;
         }
 
         if (node.data.nodeId === "model-select") {
           const dc = node.data.defaultConfig as Record<string, unknown>;
-          const url = typeof dc.selectedModelUrl === "string" ? dc.selectedModelUrl : "";
+          const url =
+            typeof dc.selectedModelUrl === "string" ? dc.selectedModelUrl : "";
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), url);
           continue;
         }
 
         if (node.data.nodeId === "environment") {
           const dc = node.data.defaultConfig as Record<string, unknown>;
-          const wire = computeAggregatedEnvironmentWire(node.id, dc, edges, (tid, th) =>
-            readIncoming(tid, th),
+          const wire = computeAggregatedEnvironmentWire(
+            node.id,
+            dc,
+            edges,
+            (tid, th) => readIncoming(tid, th),
           );
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
           continue;
         }
 
         if (node.data.nodeId === "camera-view") {
-          const wire = flowWireCameraFromNodeDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
+          const wire = flowWireCameraFromNodeDefaultConfig(
+            node.data.defaultConfig as Record<string, unknown>,
+          );
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
           continue;
         }
 
         if (node.data.nodeId === "object-transform") {
-          const wire = flowWireTransformFromNodeDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
+          const wire = flowWireTransformFromNodeDefaultConfig(
+            node.data.defaultConfig as Record<string, unknown>,
+          );
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
           continue;
         }
 
         if (node.data.nodeId === "transform-from-euler") {
-          const euler = flowValueAsVec3(readIncoming(node.id, STUDIO_HANDLE_IN));
+          const euler = flowValueAsVec3(
+            readIncoming(node.id, STUDIO_HANDLE_IN),
+          );
           const dc = node.data.defaultConfig as Record<string, unknown>;
-          const eulerMapping = readFlowWireTransformEulerMapping(dc.eulerMapping);
-          const wire = flowWireTransformFromEulerRad(euler, undefined, eulerMapping);
+          const eulerMapping = readFlowWireTransformEulerMapping(
+            dc.eulerMapping,
+          );
+          const wire = flowWireTransformFromEulerRad(
+            euler,
+            undefined,
+            eulerMapping,
+          );
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
           continue;
         }
 
         if (node.data.nodeId === "glb-animation-bundle") {
-          const wire = flowAnimationWireFromBundleDefaultConfig(node.data.defaultConfig as Record<string, unknown>);
+          const wire = flowAnimationWireFromBundleDefaultConfig(
+            node.data.defaultConfig as Record<string, unknown>,
+          );
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
           continue;
         }
@@ -6967,19 +7707,29 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "threshold") {
           const rawThreshold = node.data.defaultConfig.value;
           const threshold =
-            typeof rawThreshold === "number" ? rawThreshold : Number(rawThreshold ?? 0.5);
+            typeof rawThreshold === "number"
+              ? rawThreshold
+              : Number(rawThreshold ?? 0.5);
           const operator = node.data.defaultConfig.operator === "<" ? "<" : ">";
           const numericIncoming = narrowNumber(incomingValue);
           const result =
-            operator === ">" ? numericIncoming > threshold : numericIncoming < threshold;
+            operator === ">"
+              ? numericIncoming > threshold
+              : numericIncoming < threshold;
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), result);
           continue;
         }
 
         if (node.data.nodeId === "low-pass") {
-          const alpha = clampNumber(asFiniteNumber(node.data.defaultConfig.alpha, 0.2), 0, 1);
+          const alpha = clampNumber(
+            asFiniteNumber(node.data.defaultConfig.alpha, 0.2),
+            0,
+            1,
+          );
           const numericIncoming = narrowNumber(incomingValue);
-          const prev = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          const prev = pinValues.get(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+          );
           const prevNumber = typeof prev === "number" ? prev : numericIncoming;
           const smoothed = prevNumber + alpha * (numericIncoming - prevNumber);
           pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), smoothed);
@@ -6994,7 +7744,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
-        pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), incomingValue);
+        pinValues.set(
+          studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+          incomingValue,
+        );
       }
     }
 
@@ -7011,7 +7764,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       for (const h of handles) {
         const pinVal = readPinForEdgeTarget(edges, node.id, h.id, pinValues);
         const sample =
-          typeof pinVal === "number" && Number.isFinite(pinVal) ? pinVal : Number.NaN;
+          typeof pinVal === "number" && Number.isFinite(pinVal)
+            ? pinVal
+            : Number.NaN;
         const series = [...(prev[h.id] ?? [])];
         series.push(sample);
         nextCh[h.id] = series.slice(-cap);
@@ -7102,7 +7857,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           delete dataWithoutSensorMode.livePlotHistory;
         }
 
-        const outPin = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+        const outPin = pinValues.get(
+          studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+        );
         let nextLive: number | boolean | string | null = null;
         if (
           node.data.nodeId === "bmi270-input" ||
@@ -7134,29 +7891,37 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)
         ) {
           nextLive = null;
-        } else if (typeof outPin === "number" || typeof outPin === "boolean" || typeof outPin === "string") {
+        } else if (
+          typeof outPin === "number" ||
+          typeof outPin === "boolean" ||
+          typeof outPin === "string"
+        ) {
           nextLive = outPin;
         }
 
-        const nextHistory =
-          isPlotterNodeId(node.data.nodeId)
-            ? []
-            : typeof nextLive === "number"
-              ? [
-                  ...((node.data.liveHistory ?? []).slice(
-                    -Math.max(
-                      1,
-                      node.data.nodeId === "sparkline"
-                        ? Math.min(
-                            512,
-                            Math.round(asFiniteNumber(node.data.defaultConfig.historySize, 64)),
-                          )
-                        : 64,
-                    ) + 1,
-                  )),
-                  nextLive,
-                ]
-              : (node.data.liveHistory ?? []).slice(-64);
+        const nextHistory = isPlotterNodeId(node.data.nodeId)
+          ? []
+          : typeof nextLive === "number"
+            ? [
+                ...(node.data.liveHistory ?? []).slice(
+                  -Math.max(
+                    1,
+                    node.data.nodeId === "sparkline"
+                      ? Math.min(
+                          512,
+                          Math.round(
+                            asFiniteNumber(
+                              node.data.defaultConfig.historySize,
+                              64,
+                            ),
+                          ),
+                        )
+                      : 64,
+                  ) + 1,
+                ),
+                nextLive,
+              ]
+            : (node.data.liveHistory ?? []).slice(-64);
 
         const base: StudioNodeData = {
           ...dataWithoutSensorMode,
@@ -7182,7 +7947,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         }
 
         if (node.data.nodeId === "event-trigger-glb-anim") {
-          base.liveValue = readGlbAnimTriggerNonce(node.data.defaultConfig as Record<string, unknown>);
+          base.liveValue = readGlbAnimTriggerNonce(
+            node.data.defaultConfig as Record<string, unknown>,
+          );
           base.liveHistory = [];
         }
 
@@ -7203,8 +7970,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
 
         if (ENVIRONMENT_SENSOR_TAP_NODE_ID_SET.has(node.data.nodeId)) {
           if (node.data.nodeId === "bmm350-tap-magnetic") {
-            const vecOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
-            const isValidVec = vecOut != null && typeof vecOut === "object" && "x" in vecOut;
+            const vecOut = pinValues.get(
+              studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            );
+            const isValidVec =
+              vecOut != null && typeof vecOut === "object" && "x" in vecOut;
             const prev = node.data.liveVector3Wire;
             if (isValidVec) {
               base.liveVector3Wire = flowValueAsVec3(vecOut);
@@ -7220,15 +7990,28 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               nowIso,
             );
             if (!isValidVec && latestByHint.bmm350 != null) {
-              base.sensorInvalidByHandle = { out: "Magnetic vector missing in live payload" };
+              base.sensorInvalidByHandle = {
+                out: "Magnetic vector missing in live payload",
+              };
             }
           } else {
-            const scalarOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
-            const prevLive = typeof node.data.liveValue === "number" ? node.data.liveValue : undefined;
+            const scalarOut = pinValues.get(
+              studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            );
+            const prevLive =
+              typeof node.data.liveValue === "number"
+                ? node.data.liveValue
+                : undefined;
             const reason = computeNodeInvalidReason(node, latestByHint);
             const isValidScalar =
-              reason == null && typeof scalarOut === "number" && Number.isFinite(scalarOut);
-            base.liveValue = keepLastFiniteNumber(isValidScalar ? scalarOut : undefined, prevLive, 0);
+              reason == null &&
+              typeof scalarOut === "number" &&
+              Number.isFinite(scalarOut);
+            base.liveValue = keepLastFiniteNumber(
+              isValidScalar ? scalarOut : undefined,
+              prevLive,
+              0,
+            );
             base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
               node.data.sensorLastValidAtByHandle,
               "out",
@@ -7243,13 +8026,27 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
         }
 
-        if (node.data.nodeId === "bmi270-tap-temp" || node.data.nodeId === "bmi270-tap-samples") {
-          const scalarOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
-          const prevLive = typeof node.data.liveValue === "number" ? node.data.liveValue : undefined;
+        if (
+          node.data.nodeId === "bmi270-tap-temp" ||
+          node.data.nodeId === "bmi270-tap-samples"
+        ) {
+          const scalarOut = pinValues.get(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+          );
+          const prevLive =
+            typeof node.data.liveValue === "number"
+              ? node.data.liveValue
+              : undefined;
           const reason = computeNodeInvalidReason(node, latestByHint);
           const isValidScalar =
-            reason == null && typeof scalarOut === "number" && Number.isFinite(scalarOut);
-          base.liveValue = keepLastFiniteNumber(isValidScalar ? scalarOut : undefined, prevLive, 0);
+            reason == null &&
+            typeof scalarOut === "number" &&
+            Number.isFinite(scalarOut);
+          base.liveValue = keepLastFiniteNumber(
+            isValidScalar ? scalarOut : undefined,
+            prevLive,
+            0,
+          );
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
             node.data.sensorLastValidAtByHandle,
             "out",
@@ -7269,20 +8066,40 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const dpsSample = latestByHint.dps368;
           const pressureValid =
             dpsSample == null ||
-            (typeof dpsSample.secondaryX100 === "number" && Number.isFinite(dpsSample.secondaryX100));
+            (typeof dpsSample.secondaryX100 === "number" &&
+              Number.isFinite(dpsSample.secondaryX100));
           const tempValid =
             dpsSample == null ||
             (typeof dpsSample.temperatureCx100 === "number" &&
               Number.isFinite(dpsSample.temperatureCx100));
           const samplesValid =
-            dpsSample != null && typeof dpsSample.counter === "number" && Number.isFinite(dpsSample.counter);
+            dpsSample != null &&
+            typeof dpsSample.counter === "number" &&
+            Number.isFinite(dpsSample.counter);
           base.liveNumberByHandle = {
-            pressure: keepLastFiniteNumber(pressureValid ? pressure : undefined, prev?.pressure, 0),
-            temp: keepLastFiniteNumber(tempValid ? temp : undefined, prev?.temp, 0),
-            samples: keepLastFiniteNumber(samplesValid ? samples : undefined, prev?.samples, 0),
+            pressure: keepLastFiniteNumber(
+              pressureValid ? pressure : undefined,
+              prev?.pressure,
+              0,
+            ),
+            temp: keepLastFiniteNumber(
+              tempValid ? temp : undefined,
+              prev?.temp,
+              0,
+            ),
+            samples: keepLastFiniteNumber(
+              samplesValid ? samples : undefined,
+              prev?.samples,
+              0,
+            ),
           };
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
-            mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "pressure", pressureValid, nowIso),
+            mergeValidHandleTimestamp(
+              node.data.sensorLastValidAtByHandle,
+              "pressure",
+              pressureValid,
+              nowIso,
+            ),
             "temp",
             tempValid,
             nowIso,
@@ -7309,20 +8126,40 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const shtSample = latestByHint.sht40;
           const humidityValid =
             shtSample == null ||
-            (typeof shtSample.secondaryX100 === "number" && Number.isFinite(shtSample.secondaryX100));
+            (typeof shtSample.secondaryX100 === "number" &&
+              Number.isFinite(shtSample.secondaryX100));
           const tempValid =
             shtSample == null ||
             (typeof shtSample.temperatureCx100 === "number" &&
               Number.isFinite(shtSample.temperatureCx100));
           const samplesValid =
-            shtSample != null && typeof shtSample.counter === "number" && Number.isFinite(shtSample.counter);
+            shtSample != null &&
+            typeof shtSample.counter === "number" &&
+            Number.isFinite(shtSample.counter);
           base.liveNumberByHandle = {
-            humidity: keepLastFiniteNumber(humidityValid ? humidity : undefined, prev?.humidity, 0),
-            temp: keepLastFiniteNumber(tempValid ? temp : undefined, prev?.temp, 0),
-            samples: keepLastFiniteNumber(samplesValid ? samples : undefined, prev?.samples, 0),
+            humidity: keepLastFiniteNumber(
+              humidityValid ? humidity : undefined,
+              prev?.humidity,
+              0,
+            ),
+            temp: keepLastFiniteNumber(
+              tempValid ? temp : undefined,
+              prev?.temp,
+              0,
+            ),
+            samples: keepLastFiniteNumber(
+              samplesValid ? samples : undefined,
+              prev?.samples,
+              0,
+            ),
           };
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
-            mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "humidity", humidityValid, nowIso),
+            mergeValidHandleTimestamp(
+              node.data.sensorLastValidAtByHandle,
+              "humidity",
+              humidityValid,
+              nowIso,
+            ),
             "temp",
             tempValid,
             nowIso,
@@ -7357,20 +8194,34 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             (typeof bmmSample.temperatureCx100 === "number" &&
               Number.isFinite(bmmSample.temperatureCx100));
           const samplesValid =
-            bmmSample != null && typeof bmmSample.counter === "number" && Number.isFinite(bmmSample.counter);
-          const nextMag =
-            magValid
-              ? flowValueAsVec3(mag)
-              : (prevVec ?? { x: 0, y: 0, z: 0 });
+            bmmSample != null &&
+            typeof bmmSample.counter === "number" &&
+            Number.isFinite(bmmSample.counter);
+          const nextMag = magValid
+            ? flowValueAsVec3(mag)
+            : (prevVec ?? { x: 0, y: 0, z: 0 });
           base.liveVector3ByHandle = {
             magnetic: nextMag,
           };
           base.liveNumberByHandle = {
-            temp: keepLastFiniteNumber(tempValid ? temp : undefined, node.data.liveNumberByHandle?.temp, 0),
-            samples: keepLastFiniteNumber(samplesValid ? samples : undefined, node.data.liveNumberByHandle?.samples, 0),
+            temp: keepLastFiniteNumber(
+              tempValid ? temp : undefined,
+              node.data.liveNumberByHandle?.temp,
+              0,
+            ),
+            samples: keepLastFiniteNumber(
+              samplesValid ? samples : undefined,
+              node.data.liveNumberByHandle?.samples,
+              0,
+            ),
           };
           base.sensorLastValidAtByHandle = mergeValidHandleTimestamp(
-            mergeValidHandleTimestamp(node.data.sensorLastValidAtByHandle, "magnetic", magValid, nowIso),
+            mergeValidHandleTimestamp(
+              node.data.sensorLastValidAtByHandle,
+              "magnetic",
+              magValid,
+              nowIso,
+            ),
             "temp",
             tempValid,
             nowIso,
@@ -7378,7 +8229,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           if (latestByHint.bmm350 != null) {
             const invalidByHandle: Record<string, string> = {};
             if (!magValid) {
-              invalidByHandle.magnetic = "Magnetic vector missing in live payload";
+              invalidByHandle.magnetic =
+                "Magnetic vector missing in live payload";
             }
             if (!tempValid) {
               invalidByHandle.temp = "Temperature missing in live payload";
@@ -7397,23 +8249,37 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           const samples = pinValues.get(studioFlowPinKey(node.id, "samples"));
           base.liveVector3ByHandle = {
             accel:
-              accel != null && typeof accel === "object" && accel !== null && "x" in accel
+              accel != null &&
+              typeof accel === "object" &&
+              accel !== null &&
+              "x" in accel
                 ? (accel as { x: number; y: number; z: number })
                 : { x: 0, y: 0, z: 0 },
             gyro:
-              gyro != null && typeof gyro === "object" && gyro !== null && "x" in gyro
+              gyro != null &&
+              typeof gyro === "object" &&
+              gyro !== null &&
+              "x" in gyro
                 ? (gyro as { x: number; y: number; z: number })
                 : { x: 0, y: 0, z: 0 },
             euler:
-              euler != null && typeof euler === "object" && euler !== null && "x" in euler
+              euler != null &&
+              typeof euler === "object" &&
+              euler !== null &&
+              "x" in euler
                 ? (euler as { x: number; y: number; z: number })
                 : { x: 0, y: 0, z: 0 },
           };
           base.liveNumberByHandle = {
             temp: typeof temp === "number" && Number.isFinite(temp) ? temp : 0,
-            samples: typeof samples === "number" && Number.isFinite(samples) ? samples : 0,
+            samples:
+              typeof samples === "number" && Number.isFinite(samples)
+                ? samples
+                : 0,
           };
-          const quatWire = pinValues.get(studioFlowPinKey(node.id, "quaternion"));
+          const quatWire = pinValues.get(
+            studioFlowPinKey(node.id, "quaternion"),
+          );
           base.liveQuaternionWire = flowValueAsQuaternion(quatWire);
         }
 
@@ -7433,8 +8299,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
         }
 
-        if (node.data.nodeId === "quat-input" || node.data.nodeId === "quaternion-constant") {
-          const qOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+        if (
+          node.data.nodeId === "quat-input" ||
+          node.data.nodeId === "quaternion-constant"
+        ) {
+          const qOut = pinValues.get(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+          );
           base.liveQuaternionWire = flowValueAsQuaternion(qOut);
         }
 
@@ -7455,12 +8326,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           node.data.nodeId === "bmi270-tap-accel" ||
           node.data.nodeId === "bmi270-tap-gyro"
         ) {
-          const vecOut = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          const vecOut = pinValues.get(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+          );
           base.liveVector3Wire = flowValueAsVec3(vecOut);
         }
 
         if (node.data.nodeId === "bmi270-tap-quaternion") {
-          const qTap = pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT));
+          const qTap = pinValues.get(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+          );
           base.liveQuaternionWire = flowValueAsQuaternion(qTap);
         }
 
@@ -7495,7 +8370,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveAnimationWire;
           }
-          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
+          applyIncomingSceneFxWires(base, node.id, (handle) =>
+            readIncoming(node.id, handle),
+          );
         }
 
         if (node.data.nodeId === "rotation-3d-quaternion") {
@@ -7529,7 +8406,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveAnimationWire;
           }
-          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
+          applyIncomingSceneFxWires(base, node.id, (handle) =>
+            readIncoming(node.id, handle),
+          );
         }
 
         if (node.data.nodeId === "scene-output") {
@@ -7568,7 +8447,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.livePhysicsWire;
           }
-          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
+          applyIncomingSceneFxWires(base, node.id, (handle) =>
+            readIncoming(node.id, handle),
+          );
         }
 
         if (node.data.nodeId === "model-viewer") {
@@ -7617,7 +8498,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             delete base.liveTransformWire;
           }
-          applyIncomingSceneFxWires(base, node.id, (handle) => readIncoming(node.id, handle));
+          applyIncomingSceneFxWires(base, node.id, (handle) =>
+            readIncoming(node.id, handle),
+          );
           const physVal = readIncoming(node.id, STUDIO_HANDLE_PHYS);
           const physWire = flowValueAsPhysicsScene(physVal);
           if (physWire != null) {
@@ -7657,7 +8540,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             deviceSensorCfgBySourceId,
           );
           if (hardwareLive && sensorTelemetryHint != null) {
-            base.sensorInvalidReason = computeNodeInvalidReason(node, latestByHint);
+            base.sensorInvalidReason = computeNodeInvalidReason(
+              node,
+              latestByHint,
+            );
           }
         }
 
@@ -7668,16 +8554,24 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       }),
     }));
     const latest = get();
-    useStageSceneStore.getState().setSnapshot(
-      evaluateStageSceneSnapshot({ nodes: latest.nodes, edges: latest.edges }),
-    );
+    useStageSceneStore
+      .getState()
+      .setSnapshot(
+        evaluateStageSceneSnapshot({
+          nodes: latest.nodes,
+          edges: latest.edges,
+        }),
+      );
   },
   dispatchFlowKeyboardEvent: (event) => {
     const { nodes } = get();
     const matchingSources = nodes.filter(
       (n) =>
         n.data.nodeId === "on-key" &&
-        keyboardEventMatchesOnKeyConfig(event, n.data.defaultConfig as Record<string, unknown>),
+        keyboardEventMatchesOnKeyConfig(
+          event,
+          n.data.defaultConfig as Record<string, unknown>,
+        ),
     );
     if (matchingSources.length === 0) {
       return false;
@@ -7694,7 +8588,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const matchingSources = nodes.filter(
       (n) =>
         n.data.nodeId === "on-click" &&
-        pointerEventMatchesOnClickConfig(event, n.data.defaultConfig as Record<string, unknown>),
+        pointerEventMatchesOnClickConfig(
+          event,
+          n.data.defaultConfig as Record<string, unknown>,
+        ),
     );
     if (matchingSources.length === 0) {
       return false;
@@ -7711,7 +8608,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const matchingSources = nodes.filter(
       (n) =>
         n.data.nodeId === "on-stage-pick" &&
-        pointerEventMatchesOnClickConfig(event, n.data.defaultConfig as Record<string, unknown>),
+        pointerEventMatchesOnClickConfig(
+          event,
+          n.data.defaultConfig as Record<string, unknown>,
+        ),
     );
     if (matchingSources.length === 0) {
       return false;

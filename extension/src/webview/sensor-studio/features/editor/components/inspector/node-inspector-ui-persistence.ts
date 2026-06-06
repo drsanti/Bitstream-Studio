@@ -1,5 +1,5 @@
 /**
- * Persists NodeInspector UI preferences (tab, accordions, rotation rail) in localStorage.
+ * Persists NodeInspector UI preferences (tab, accordions, Scene3D inspector panels) in localStorage.
  */
 
 const PREFIX = "ternion.sensor-studio.nodeInspector.";
@@ -14,6 +14,8 @@ const KEYS = {
   detailsSectionCollapsed: `${PREFIX}detailsSectionCollapsed.v1`,
   nodeTabSectionOrder: `${PREFIX}nodeTabSectionOrder.v1`,
   rotationRailByNodeId: `${PREFIX}rotationRailByNodeId.v1`,
+  nodeTabScene3dCardOrder: `${PREFIX}nodeTabScene3dCardOrder.v1`,
+  nodeTabScene3dCardCollapsed: `${PREFIX}nodeTabScene3dCardCollapsed.v1`,
 } as const;
 
 export type DetailsInspectorSectionId = "specs" | "ports";
@@ -28,7 +30,7 @@ export type NodeInspectorSectionId =
   | "identity"
   | "canvas"
   | "typed"
-  | "rotation"
+  | "scene3d"
   | "advanced";
 
 export const DEFAULT_NODE_TAB_SECTION_ORDER: readonly NodeInspectorSectionId[] = [
@@ -36,24 +38,14 @@ export const DEFAULT_NODE_TAB_SECTION_ORDER: readonly NodeInspectorSectionId[] =
   "identity",
   "canvas",
   "typed",
-  "rotation",
+  "scene3d",
   "advanced",
 ];
 
 const DETAILS_SECTION_IDS = new Set<string>(DEFAULT_DETAILS_SECTION_ORDER);
 const NODE_TAB_SECTION_IDS = new Set<string>(DEFAULT_NODE_TAB_SECTION_ORDER);
 
-const ROTATION_RAIL_IDS = new Set<string>([
-  "model",
-  "environment",
-  "renderer",
-  "camera",
-  "orbit",
-  "lights",
-  "helpers",
-]);
-
-const MAX_ROTATION_RAIL_ENTRIES = 64;
+const MAX_SCENE3D_INSPECTOR_PANEL_MAP_ENTRIES = 64;
 
 function safeLocalStorageGet(key: string): string | null {
   try {
@@ -181,6 +173,11 @@ function isDetailsSectionId(value: string): value is DetailsInspectorSectionId {
   return DETAILS_SECTION_IDS.has(value) || value === "about" || value === "shared-device";
 }
 
+function normalizeNodeTabSectionId(value: string): NodeInspectorSectionId | null {
+  const id = value === "rotation" ? "scene3d" : value;
+  return isNodeTabSectionId(id) ? id : null;
+}
+
 function isNodeTabSectionId(value: string): value is NodeInspectorSectionId {
   return NODE_TAB_SECTION_IDS.has(value);
 }
@@ -271,8 +268,11 @@ export function readNodeTabSectionOrder(): NodeInspectorSectionId[] {
     }
     const out: NodeInspectorSectionId[] = [];
     for (const item of parsed) {
-      if (typeof item === "string" && isNodeTabSectionId(item) && !out.includes(item)) {
-        out.push(item);
+      if (typeof item === "string") {
+        const id = normalizeNodeTabSectionId(item);
+        if (id != null && !out.includes(id)) {
+          out.push(id);
+        }
       }
     }
     for (const id of DEFAULT_NODE_TAB_SECTION_ORDER) {
@@ -342,7 +342,7 @@ export function writeDetailsSectionCollapsed(
   safeLocalStorageSet(KEYS.detailsSectionCollapsed, JSON.stringify(next));
 }
 
-export type RotationInspectorRailPanelId =
+export type Scene3dInspectorPanelId =
   | "model"
   | "environment"
   | "renderer"
@@ -351,11 +351,24 @@ export type RotationInspectorRailPanelId =
   | "lights"
   | "helpers";
 
-function isRotationRailId(s: string): s is RotationInspectorRailPanelId {
-  return ROTATION_RAIL_IDS.has(s);
+/** @deprecated Use {@link Scene3dInspectorPanelId}. */
+export type RotationInspectorRailPanelId = Scene3dInspectorPanelId;
+
+const SCENE3D_INSPECTOR_PANEL_IDS = new Set<string>([
+  "model",
+  "environment",
+  "renderer",
+  "camera",
+  "orbit",
+  "lights",
+  "helpers",
+]);
+
+function isScene3dInspectorPanelId(s: string): s is Scene3dInspectorPanelId {
+  return SCENE3D_INSPECTOR_PANEL_IDS.has(s);
 }
 
-export function readRotationRailsMap(): Map<string, RotationInspectorRailPanelId> {
+export function readScene3dInspectorPanelByNodeId(): Map<string, Scene3dInspectorPanelId> {
   const raw = safeLocalStorageGet(KEYS.rotationRailByNodeId);
   if (raw == null || raw.length === 0) {
     return new Map();
@@ -365,12 +378,12 @@ export function readRotationRailsMap(): Map<string, RotationInspectorRailPanelId
     if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
       return new Map();
     }
-    const out = new Map<string, RotationInspectorRailPanelId>();
+    const out = new Map<string, Scene3dInspectorPanelId>();
     for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
       if (typeof k !== "string" || k.length === 0) {
         continue;
       }
-      if (typeof v !== "string" || !isRotationRailId(v)) {
+      if (typeof v !== "string" || !isScene3dInspectorPanelId(v)) {
         continue;
       }
       out.set(k, v);
@@ -381,17 +394,129 @@ export function readRotationRailsMap(): Map<string, RotationInspectorRailPanelId
   }
 }
 
-export function writeRotationRailsMap(
-  map: Map<string, RotationInspectorRailPanelId>,
+export function writeScene3dInspectorPanelByNodeId(
+  map: Map<string, Scene3dInspectorPanelId>,
 ): void {
   const entries = Array.from(map.entries());
   const trimmed =
-    entries.length > MAX_ROTATION_RAIL_ENTRIES
-      ? entries.slice(entries.length - MAX_ROTATION_RAIL_ENTRIES)
+    entries.length > MAX_SCENE3D_INSPECTOR_PANEL_MAP_ENTRIES
+      ? entries.slice(entries.length - MAX_SCENE3D_INSPECTOR_PANEL_MAP_ENTRIES)
       : entries;
   const obj: Record<string, string> = {};
   for (const [k, v] of trimmed) {
     obj[k] = v;
   }
   safeLocalStorageSet(KEYS.rotationRailByNodeId, JSON.stringify(obj));
+}
+
+/** @deprecated Use {@link readScene3dInspectorPanelByNodeId}. */
+export const readRotationRailsMap = readScene3dInspectorPanelByNodeId;
+
+/** @deprecated Use {@link writeScene3dInspectorPanelByNodeId}. */
+export const writeRotationRailsMap = writeScene3dInspectorPanelByNodeId;
+
+export const DEFAULT_NODE_SCENE3D_CARD_ORDER: readonly Scene3dInspectorPanelId[] = [
+  "model",
+  "environment",
+  "renderer",
+  "camera",
+  "orbit",
+  "lights",
+  "helpers",
+];
+
+/** Node preview inspector: keep Model + Environment open; collapse heavy panels by default. */
+export function defaultNodeScene3dCardCollapsed(): Record<
+  Scene3dInspectorPanelId,
+  boolean
+> {
+  return {
+    model: false,
+    environment: false,
+    renderer: true,
+    camera: true,
+    orbit: true,
+    lights: true,
+    helpers: true,
+  };
+}
+
+export function readNodeScene3dCardOrder(): Scene3dInspectorPanelId[] {
+  const raw = safeLocalStorageGet(KEYS.nodeTabScene3dCardOrder);
+  if (raw == null || raw.length === 0) {
+    return [...DEFAULT_NODE_SCENE3D_CARD_ORDER];
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [...DEFAULT_NODE_SCENE3D_CARD_ORDER];
+    }
+    const out: Scene3dInspectorPanelId[] = [];
+    for (const item of parsed) {
+      if (typeof item === "string" && isScene3dInspectorPanelId(item) && !out.includes(item)) {
+        out.push(item);
+      }
+    }
+    for (const id of DEFAULT_NODE_SCENE3D_CARD_ORDER) {
+      if (!out.includes(id)) {
+        out.push(id);
+      }
+    }
+    return out;
+  } catch {
+    return [...DEFAULT_NODE_SCENE3D_CARD_ORDER];
+  }
+}
+
+export function writeNodeScene3dCardOrder(order: readonly Scene3dInspectorPanelId[]): void {
+  safeLocalStorageSet(KEYS.nodeTabScene3dCardOrder, JSON.stringify([...order]));
+}
+
+export function mergeNodeScene3dCardOrder(
+  stored: readonly Scene3dInspectorPanelId[],
+  visible: readonly Scene3dInspectorPanelId[] = DEFAULT_NODE_SCENE3D_CARD_ORDER,
+): Scene3dInspectorPanelId[] {
+  const visibleSet = new Set(visible);
+  const ordered = stored.filter((id) => visibleSet.has(id));
+  for (const id of visible) {
+    if (!ordered.includes(id)) {
+      ordered.push(id);
+    }
+  }
+  return ordered;
+}
+
+export function readNodeScene3dCardCollapsed(): Record<
+  Scene3dInspectorPanelId,
+  boolean
+> {
+  const defaults = defaultNodeScene3dCardCollapsed();
+  const raw = safeLocalStorageGet(KEYS.nodeTabScene3dCardCollapsed);
+  if (raw == null || raw.length === 0) {
+    return defaults;
+  }
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed == null || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return defaults;
+    }
+    const obj = parsed as Record<string, unknown>;
+    const out = { ...defaults };
+    for (const id of DEFAULT_NODE_SCENE3D_CARD_ORDER) {
+      if (obj[id] === true) {
+        out[id] = true;
+      } else if (obj[id] === false) {
+        out[id] = false;
+      }
+    }
+    return out;
+  } catch {
+    return defaults;
+  }
+}
+
+export function writeNodeScene3dCardCollapsed(
+  next: Record<Scene3dInspectorPanelId, boolean>,
+): void {
+  safeLocalStorageSet(KEYS.nodeTabScene3dCardCollapsed, JSON.stringify(next));
 }

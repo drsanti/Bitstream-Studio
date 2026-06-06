@@ -1,19 +1,11 @@
-/**
- * Canonical Sensor Studio catalog ids for 3D rotation preview nodes.
- */
-export const ROTATION_3D_NODE_CATALOG_IDS = [
-  "rotation-3d-euler",
-  "rotation-3d-quaternion",
-  /** Same drag + resize affordances as rotation previews (GLTF viewport). */
-  "model-viewer",
-] as const;
-
-export type Rotation3DCatalogNodeId = (typeof ROTATION_3D_NODE_CATALOG_IDS)[number];
-
-export const ROTATION_3D_NODE_CATALOG_ID_SET: ReadonlySet<string> = new Set(
+/** @deprecated Import from `../scene3d/scene3d-inspector-node-ids` instead. */
+export {
+  isRotation3DCatalogNodeId,
+  isScene3dInspectorNodeId,
+  ROTATION_3D_NODE_CATALOG_ID_SET,
   ROTATION_3D_NODE_CATALOG_IDS,
-);
-
-export function isRotation3DCatalogNodeId(nodeId: string): boolean {
-  return ROTATION_3D_NODE_CATALOG_ID_SET.has(nodeId);
-}
+  Rotation3DCatalogNodeId,
+  SCENE3D_INSPECTOR_NODE_CATALOG_ID_SET,
+  SCENE3D_INSPECTOR_NODE_CATALOG_IDS,
+  Scene3dInspectorNodeCatalogId,
+} from "../scene3d/scene3d-inspector-node-ids";

@@ -13,7 +13,7 @@ import { rotationPreviewOrientationFromTransformWire } from "../editor/nodes/tra
 import { StageViewportToolbar } from "./StageViewportToolbar";
 import { useFlowEditorStore } from "../editor/store/flow-editor.store";
 import { useStudioWorkbenchFocusStore } from "../../state/studio-workbench-focus.store";
-import { rotationInspectorEnvironmentCatalogSelectValue } from "../asset-browser/studio-environment-scene-bindings";
+import { scene3dInspectorEnvironmentCatalogSelectValue } from "../asset-browser/studio-environment-scene-bindings";
 import { useStudioAssetDescriptors } from "../asset-browser/useStudioAssetDescriptors";
 import { buildEnvironmentCubemapSelectOptions } from "../editor/nodes/environment/environment-cubemap-select";
 import {
@@ -116,7 +116,7 @@ export function StageViewport() {
   );
   const environmentSelectValue = useMemo(
     () =>
-      rotationInspectorEnvironmentCatalogSelectValue(
+      scene3dInspectorEnvironmentCatalogSelectValue(
         {
           presetIndex: snapshot.scene3d.environment.presetIndex,
           studioAssetId: snapshot.scene3d.environment.studioAssetId,

@@ -111,6 +111,28 @@ const ROTATION_SEARCH = [
   "mesh",
 ];
 
+const SCENE3D_CARD_SEARCH: Record<string, readonly string[]> = {
+  model: ["model", "glb", "catalog", "mesh", "transform", "rig", "url", "embedded"],
+  environment: ["environment", "ibl", "cubemap", "backdrop", "hdri", "yaw", "background"],
+  renderer: ["renderer", "render", "shadow", "exposure", "antialias", "dpr", "tone", "clear"],
+  camera: ["camera", "fov", "look", "target", "frame", "margin"],
+  orbit: [
+    "orbit",
+    "control",
+    "damping",
+    "rotate",
+    "zoom",
+    "pan",
+    "mouse",
+    "touch",
+    "azimuth",
+    "polar",
+    "distance",
+  ],
+  lights: ["lights", "light", "ambient", "directional", "preset", "hemisphere"],
+  helpers: ["helpers", "helper", "grid", "axes", "frustum"],
+};
+
 const SHARED_DEVICE_SEARCH = [
   "shared",
   "device",
@@ -172,13 +194,40 @@ export function shouldShowTypedSettingsSection(
   return haystackIncludesAll(kwHay, toks);
 }
 
-export function shouldShowRotation3dSettings(query: string): boolean {
+export function shouldShowScene3dInspectorSettings(query: string): boolean {
   const toks = tokens(query);
   if (toks.length === 0) {
     return true;
   }
-  const hay = ROTATION_SEARCH.join(" ");
+  const hay = [...ROTATION_SEARCH, ...Object.values(SCENE3D_CARD_SEARCH).flat()].join(" ");
   return toks.some((t) => hay.includes(t) || ROTATION_SEARCH.some((k) => k.includes(t)));
+}
+
+/** @deprecated Use {@link shouldShowScene3dInspectorSettings}. */
+export const shouldShowRotation3dSettings = shouldShowScene3dInspectorSettings;
+
+/** When filtering, returns matching card ids; `undefined` = show all Scene3D cards. */
+export function resolveVisibleNodeScene3dCardIds(
+  query: string,
+): readonly string[] | undefined {
+  const toks = tokens(query);
+  if (toks.length === 0) {
+    return undefined;
+  }
+  if (!shouldShowScene3dInspectorSettings(query)) {
+    return [];
+  }
+  const matched: string[] = [];
+  for (const [id, keys] of Object.entries(SCENE3D_CARD_SEARCH)) {
+    const hay = keys.join(" ");
+    if (toks.some((t) => hay.includes(t) || keys.some((k) => k.includes(t)))) {
+      matched.push(id);
+    }
+  }
+  if (matched.length === 0) {
+    return undefined;
+  }
+  return matched;
 }
 
 export function shouldShowSharedDeviceSettings(query: string): boolean {

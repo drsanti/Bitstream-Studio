@@ -47,4 +47,9 @@ describe("migrate-legacy-pack-model", () => {
     expect(scene3d.model.url).toBe("models/psoc-e84-ai/psoc-e84-ai.glb");
     expect(scene3d.model.studioAssetId).toBe("model.psoc-e84.default");
   });
+
+  test("returns empty object when defaultConfig is missing", () => {
+    expect(migrateLegacyPackModelInDefaultConfig(undefined, "model-viewer")).toEqual({});
+    expect(migrateLegacyPackModelInDefaultConfig(null, "model-select")).toEqual({});
+  });
 });

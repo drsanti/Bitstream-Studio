@@ -1,6 +1,6 @@
 /** Persists Stage inspector tab and draggable card order per tab. */
 
-import type { RotationInspectorRailPanelId } from "./node-inspector-ui-persistence";
+import type { Scene3dInspectorPanelId } from "./node-inspector-ui-persistence";
 
 const PREFIX = "ternion.sensor-studio.stageInspector.";
 
@@ -34,7 +34,7 @@ export const DEFAULT_STAGE_OVERVIEW_CARD_ORDER: readonly StageInspectorOverviewC
   "committed-scene",
 ];
 
-export type StageInspectorScene3dCardId = RotationInspectorRailPanelId;
+export type StageInspectorScene3dCardId = Scene3dInspectorPanelId;
 
 export const DEFAULT_STAGE_SCENE3D_CARD_ORDER: readonly StageInspectorScene3dCardId[] = [
   "model",

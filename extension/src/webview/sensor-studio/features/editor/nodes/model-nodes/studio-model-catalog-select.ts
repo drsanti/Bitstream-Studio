@@ -6,6 +6,8 @@ import {
 } from "../../../asset-browser/studio-model-scene-bindings";
 
 export { buildStudioModelCatalogSelectOptions } from "./studio-model-catalog-select-ui.js";
+export { buildScene3dInspectorModelCatalogSelectOptions } from "./studio-model-catalog-select-ui.js";
+/** @deprecated Use {@link buildScene3dInspectorModelCatalogSelectOptions}. */
 export { buildRotationInspectorModelCatalogSelectOptions } from "./studio-model-catalog-select-ui.js";
 
 export function readStudioModelCatalogSelectValue(
