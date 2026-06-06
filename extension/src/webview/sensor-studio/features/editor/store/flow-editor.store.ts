@@ -391,6 +391,7 @@ import {
 import {
   applyStudioNodeMinDimensionsToUi,
   resolveStudioNodeMinDimensionFloor,
+  studioNodeDefaultResizable,
 } from "../nodes/flow-node/studio-node-resize-defaults";
 import type {
   LayoutFlowNode,
@@ -1569,7 +1570,7 @@ function attachConfigErrors(
     // Default: auto content-fit sizing; edge resize is opt-in per node (Inspector → Canvas).
     const uiWithFloors = applyStudioNodeMinDimensionsToUi(piped.nodeId, {
       ...piped.ui,
-      resizable: piped.ui?.resizable ?? false,
+      resizable: piped.ui?.resizable ?? studioNodeDefaultResizable(piped.nodeId),
       allowBodyCollapse:
         piped.ui?.allowBodyCollapse ??
         studioNodeDefaultAllowBodyCollapse(piped.nodeId),
@@ -5836,23 +5837,43 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const idSet = new Set(targetIds);
     set((state) => ({
       nodes: attachConfigErrorsWithModelChildRegistry(
-        state.nodes.map((node) =>
-          idSet.has(node.id)
-            ? {
-                ...node,
-                data: {
-                  ...node.data,
-                  ui: {
-                    ...node.data.ui,
-                    resizable,
-                  },
-                },
-              }
-            : node,
-        ),
+        state.nodes.map((node) => {
+          if (!idSet.has(node.id) || node.type !== "studio") {
+            return node;
+          }
+          const data = node.data as StudioNodeData;
+          if (!resizable) {
+            const stripped = stripStudioNodeFixedLayout(node as StudioNode);
+            const clearedUi = clearStudioNodeChromeLayoutWidths(
+              studioNodeUiWithoutDisplayOverrides({
+                ...data.ui,
+                resizable: false,
+              }),
+            );
+            const fitW = resolveFitWidthFromContentMeasure(data.nodeId, clearedUi);
+            return applyStudioNodeLayoutWidth(
+              {
+                ...stripped,
+                data: { ...data, ui: clearedUi },
+              } as StudioNode,
+              fitW,
+            );
+          }
+          return {
+            ...node,
+            data: {
+              ...data,
+              ui: {
+                ...data.ui,
+                resizable: true,
+              },
+            },
+          };
+        }),
         state.edges,
       ),
     }));
+    flushFlowSimulationPins(get);
   },
   updateSelectedNodeUiAllowBodyCollapse: (allow) => {
     const st = get();

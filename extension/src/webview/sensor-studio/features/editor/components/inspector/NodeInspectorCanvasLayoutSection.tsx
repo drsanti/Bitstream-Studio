@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
+import { InspectorCanvasSubsection } from "./InspectorCanvasSubsection";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
+import { InspectorNodeLayoutSizeFields } from "./InspectorNodeLayoutSizeFields";
 import { InspectorSection } from "./InspectorSection";
 import type { StudioNode } from "../../store/flow-editor.store";
 import {
@@ -9,6 +11,7 @@ import {
   studioNodeHasHideableBody,
   studioNodeSupportsSocketCollapse,
 } from "../../nodes/flow-node/socket-display";
+import { readStudioFlowNodeLayoutSize } from "../../nodes/flow-node/studio-node-layout-size";
 import { studioNodeAllowsBodyCollapse } from "../../nodes/flow-node/studio-body-collapse";
 
 export type NodeInspectorCanvasLayoutSectionProps = {
@@ -22,6 +25,7 @@ export function NodeInspectorCanvasLayoutSection(
   const { selectedNode, onAllowBodyCollapseChange } = props;
   const hasBodyPanel = studioNodeHasHideableBody(selectedNode.data);
   const allowBodyCollapse = studioNodeAllowsBodyCollapse(selectedNode.data);
+  const nodeResizable = selectedNode.data.ui?.resizable === true;
 
   const edges = useFlowEditorStore((s) => s.edges);
   const setSocketValuesVisibleForNodes = useFlowEditorStore(
@@ -29,6 +33,12 @@ export function NodeInspectorCanvasLayoutSection(
   );
   const setSocketsExpandedForNodes = useFlowEditorStore(
     (s) => s.setSocketsExpandedForNodes,
+  );
+  const updateSelectedNodeUiResizable = useFlowEditorStore(
+    (s) => s.updateSelectedNodeUiResizable,
+  );
+  const updateSelectedStudioNodeLayoutDimensions = useFlowEditorStore(
+    (s) => s.updateSelectedStudioNodeLayoutDimensions,
   );
 
   const socketValuesVisible = isSocketValuesVisible(selectedNode.data.ui);
@@ -39,18 +49,19 @@ export function NodeInspectorCanvasLayoutSection(
   );
 
   const nodeIds = useMemo(() => [selectedNode.id], [selectedNode.id]);
+  const layoutSize = useMemo(
+    () => readStudioFlowNodeLayoutSize(selectedNode),
+    [selectedNode],
+  );
 
   return (
     <InspectorSection
       title="Canvas"
       variant="compact"
       contentClassName="space-y-2 px-2 py-1.5"
-      hint="Width and height auto-fit when socket display or body visibility changes."
+      hint="Socket display auto-fits width. Enable manual resize for viewport and output nodes."
     >
-      <div className="space-y-2">
-        <div className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-          Socket display
-        </div>
+      <InspectorCanvasSubsection title="Socket display">
         <InspectorCompactToggleRow
           label="Show socket live values"
           hint="Live readouts beside each port (Shift+V on canvas selection)."
@@ -72,10 +83,10 @@ export function NodeInspectorCanvasLayoutSection(
           onCheckedChange={(next) => setSocketsExpandedForNodes(nodeIds, next)}
           ariaLabel="Show unwired sockets"
         />
-      </div>
+      </InspectorCanvasSubsection>
 
       {hasBodyPanel ? (
-        <div className="space-y-2 border-t border-zinc-800/60 pt-2">
+        <InspectorCanvasSubsection title="Node body" separated>
           <InspectorCompactToggleRow
             label="Allow collapsing node body"
             hint="When enabled, hide the body with the selection toolbar Panel button or Shift+B."
@@ -83,8 +94,28 @@ export function NodeInspectorCanvasLayoutSection(
             onCheckedChange={onAllowBodyCollapseChange}
             ariaLabel="Allow collapsing node body"
           />
-        </div>
+        </InspectorCanvasSubsection>
       ) : null}
+
+      <InspectorCanvasSubsection title="Canvas size" separated>
+        <InspectorCompactToggleRow
+          label="Allow manual resize on canvas"
+          hint="When on, drag edges or corners while the node is selected. Shift+R reset size · Shift+W re-measure width."
+          checked={nodeResizable}
+          onCheckedChange={(next) => updateSelectedNodeUiResizable(next)}
+          ariaLabel="Allow manual resize on canvas"
+        />
+        {nodeResizable ? (
+          <InspectorNodeLayoutSizeFields
+            nodeId={selectedNode.id}
+            width={layoutSize.width}
+            height={layoutSize.height}
+            onCommit={(patch) =>
+              updateSelectedStudioNodeLayoutDimensions(patch)
+            }
+          />
+        ) : null}
+      </InspectorCanvasSubsection>
     </InspectorSection>
   );
 }

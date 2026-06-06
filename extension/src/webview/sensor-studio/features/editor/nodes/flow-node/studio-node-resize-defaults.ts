@@ -49,6 +49,38 @@ const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   "sht40-input": { minWidth: 220, minHeight: 120 },
 };
 
+/** Output / viewport nodes default to manual canvas resize (Inspector → Canvas size). */
+const DEFAULT_RESIZABLE_NODE_IDS = new Set<string>([
+  "model-viewer",
+  "model-select",
+  "scene-output",
+  "plotter",
+  "sparkline",
+  "gauge",
+  "radial-gauge",
+  "bar-meter",
+  "knob",
+  "environment",
+  "camera-view",
+  "glb-animation-bundle",
+  "audio-scope",
+  "mic-input",
+  "audio-output",
+  "audio-file-player",
+  "audio-oscillator",
+]);
+
+/** Default `ui.resizable` when unset on hydrate / new node (operator can toggle in Inspector). */
+export function studioNodeDefaultResizable(nodeId: string): boolean {
+  if (isPlotterNodeId(nodeId)) {
+    return true;
+  }
+  if (isScene3dInspectorNodeId(nodeId)) {
+    return true;
+  }
+  return DEFAULT_RESIZABLE_NODE_IDS.has(nodeId);
+}
+
 export function resolveStudioNodeMinDimensionFloor(nodeId: string): StudioNodeMinDimensions {
   if (isPlotterNodeId(nodeId)) {
     return MIN_BY_NODE_ID.plotter ?? STUDIO_NODE_DEFAULT_MIN_DIMENSIONS;
