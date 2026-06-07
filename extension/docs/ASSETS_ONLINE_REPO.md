@@ -42,9 +42,12 @@ ternion-3d-assets-free/
     │       ├── manifest.json
     │       └── <cubemap-id>/                  ← six faces (posx.jpg, …)
     └── libraries/
-        └── node-graph/                        ← Node Animator graph presets
+        ├── node-graph/                        ← Node Animator graph presets
+        │   ├── index.json
+        │   └── *.trn-node-asset.json
+        └── flow-preset/                       ← Sensor Studio official flow presets
             ├── index.json
-            └── *.trn-node-asset.json
+            └── *.trn-flow-preset.json
     └── vision/
         └── mediapipe/                         ← Sensor Studio MediaPipe pack (Free Loader)
             ├── manifest.v1.json

@@ -7,6 +7,7 @@ import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { CANVAS_DEMO_TEMPLATE_OPTIONS } from "./canvas-inspector-demo-templates";
 import { CanvasInspectorStatCell } from "./CanvasInspectorStatCell";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
+import { FlowLibraryOpenLink } from "../flow-library/FlowLibraryOpenLink";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import {
   DEFAULT_DOCUMENT_TAB_CARD_ORDER,
@@ -152,7 +153,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
             onValueChange={(next) => onTemplateIdChange(next as StudioDemoTemplateId)}
           />
         </InspectorPropertyRow>
-        <div className="mt-2">
+        <div className="mt-2 space-y-1.5">
           <TRNButton
             size="compact"
             className="w-full"
@@ -161,6 +162,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
           >
             Run template
           </TRNButton>
+          <FlowLibraryOpenLink templateId={templateId} className="w-full" />
         </div>
       </CanvasInspectorCard>
     ),

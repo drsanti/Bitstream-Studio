@@ -1,6 +1,7 @@
 import { BookOpen, Boxes, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../../core/config/config-types";
+import { useFlowLibraryNavigationStore } from "../flow-library/flow-library-navigation";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { StudioSavedLibraryPanel } from "./node-palette/StudioSavedLibraryPanel";
 import { filterPaletteEntries } from "./node-palette/filter-palette-entries";
@@ -119,6 +120,18 @@ export function NodePalette(props: NodePaletteProps) {
   } = props;
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<NodePaletteTabId>("nodes");
+  const flowLibraryNavSeq = useFlowLibraryNavigationStore((s) => s.seq);
+  const flowLibraryNavPayload = useFlowLibraryNavigationStore((s) => s.payload);
+
+  useEffect(() => {
+    if (flowLibraryNavPayload == null) {
+      return;
+    }
+    setTab("saved");
+    if (flowLibraryNavPayload.highlightPresetId != null) {
+      setQuery("");
+    }
+  }, [flowLibraryNavSeq, flowLibraryNavPayload]);
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sensorFamilyFilter, setSensorFamilyFilter] = useState<SensorFamilyFilter>("all");
   // Locked modes (for now): keep the palette in Dense + Compact tree + Sectioned layout.

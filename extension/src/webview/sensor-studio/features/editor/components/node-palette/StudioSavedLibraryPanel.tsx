@@ -1,5 +1,6 @@
 import { Boxes, GitBranch } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useFlowLibraryNavigationStore } from "../../flow-library/flow-library-navigation";
 import { FlowLibraryTabPanel } from "./FlowLibraryTabPanel";
 import { GroupLibraryTabPanel } from "./GroupLibraryTabPanel";
 
@@ -15,6 +16,15 @@ type StudioSavedLibraryPanelProps = {
 export function StudioSavedLibraryPanel(props: StudioSavedLibraryPanelProps) {
   const { dense = false, query, borderColor, remoteGroupsEnabled = false } = props;
   const [tab, setTab] = useState<SavedLibraryTab>("flows");
+  const flowLibraryNavSeq = useFlowLibraryNavigationStore((s) => s.seq);
+  const flowLibraryNavPayload = useFlowLibraryNavigationStore((s) => s.payload);
+
+  useEffect(() => {
+    const savedTab = flowLibraryNavPayload?.savedTab;
+    if (savedTab != null) {
+      setTab(savedTab);
+    }
+  }, [flowLibraryNavSeq, flowLibraryNavPayload?.savedTab]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

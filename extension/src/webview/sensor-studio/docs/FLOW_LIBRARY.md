@@ -1,6 +1,6 @@
 # Flow & group library
 
-**Status:** Phase 1 shipped (2026-06-07); Phase 2 planned  
+**Status:** Phase 1–2 shipped (2026-06-07); Phase 3 planned  
 **Related:** [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md), [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md), `persistence/flow-preset-library.repository.ts`, `persistence/node-group-library.repository.ts`
 
 ## Goals
@@ -50,7 +50,7 @@ Fixed enum on save/edit:
 
 `telemetry` · `audio` · `animation` · `stage` · `vision` · `scene` · `utility` · `custom`
 
-Free-text **tags** for search. Built-in demo templates remain under Canvas Inspector → Starter graph until migrated to an Official flows index (backlog).
+Free-text **tags** for search. Built-in demo templates also appear under **Saved → Flows → Official** (bundled + online pack). Canvas Inspector → **Browse in Library** focuses that pane and highlights the matching official preset.
 
 ## File formats
 
@@ -117,6 +117,8 @@ List missing `modelUrls` / catalog node ids in a post-import hint (Phase 2 polis
 | `components/flow-library/FlowLoadModeDialog.tsx` | Replace / Merge |
 | `flow-library/remote-flow-preset-index.ts` | Online official flows index |
 | `flow-library/use-remote-flow-presets.ts` | Official flows sync hook |
+| `flow-library/flow-library-navigation.ts` | Document tab → Library focus + official row highlight |
+| `components/flow-library/FlowLibraryOpenLink.tsx` | Inspector link to Saved → Flows → Official |
 | `components/flow-library/SaveToLibraryDialogHost.tsx` | Global save dialog |
 | `flow-library/build-flow-import-dependency-hint.ts` | Post-import asset hint |
 | `store/flow-editor.store.ts` | `flowPresetLibrary`, save/load, remote presets |
@@ -126,6 +128,5 @@ List missing `modelUrls` / catalog node ids in a post-import hint (Phase 2 polis
 | Phase | Scope |
 |-------|--------|
 | **1 (shipped)** | Flow preset CRUD, Saved tab, save routing, load dialog, clipboard router, **Ctrl+Shift+S**, category filter, import dependency hint |
-| **2 (shipped core)** | Bundled official demo exports (`npm run flow-preset:gen`), `libraries/flow-preset/` index + bundled fallback, edit preset metadata |
-| **2 (backlog)** | Publish bundled presets to online free-pack mirror; link Document tab → focus Library |
+| **2 (shipped)** | Bundled official demo exports (`npm run flow-preset:gen`), `libraries/flow-preset/` index + bundled fallback, edit preset metadata, Document tab **Browse in Library**, maintainer **`flow-preset:stage-free-pack`** / **`flow-preset:publish-free-pack`** |
 | **3** | Workspace folder sync; linked preset update from canvas |

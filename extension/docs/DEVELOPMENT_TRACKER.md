@@ -72,6 +72,7 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-07** — **Sensor Studio — Flow library (Phase 2 complete):** Document tab **Browse in Library** → Saved → Flows → Official row highlight; maintainer **`flow-preset:stage-free-pack`** / **`flow-preset:publish-free-pack`** — `flow-library-navigation.ts`, `FlowLibraryOpenLink.tsx`.
 - **2026-06-07** — **Sensor Studio — Flow library (Phase 2 official demos):** Export all 19 Canvas Inspector starter graphs to bundled `src/assets/libraries/flow-preset/` (`npm run flow-preset:gen`), online+bundled index fetch, free-pack sync paths — `build-demo-template-flow-preset.ts`, `flow-preset-bundled-endpoints.ts`.
 - **2026-06-07** — **Sensor Studio — Flow library (Phase 2 partial):** Edit project preset metadata (pencil row action), official remote flows index hook (`libraries/flow-preset/`), Live/Cached/Offline badges on Flows tab — `remote-flow-preset-index.ts`, `use-remote-flow-presets.ts`, `patchFlowPresetMeta`.
 - **2026-06-07** — **Sensor Studio — Flow & group library (Phase 1 polish):** Global **Save to library** (overflow menu, Document tab, **Ctrl+Shift+S**), category filter chips on Flows tab, post-import dependency hint banner, TRN import fix — `SaveToLibraryDialogHost.tsx`, `build-flow-import-dependency-hint.ts`.

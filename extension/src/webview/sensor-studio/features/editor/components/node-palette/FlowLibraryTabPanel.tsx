@@ -1,5 +1,5 @@
 import { Cloud, Download, FolderInput, Pencil, RefreshCw, Save, Trash2 } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { TRNButton, TRNHintText } from "../../../../../ui/TRN";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { formatRemoteCacheAge } from "../../flow-library/flow-preset-remote-cache";
@@ -16,6 +16,7 @@ import {
   resolveSaveToLibraryTarget,
   saveToLibraryTargetLabel,
 } from "../../flow-library/resolve-save-to-library-target";
+import { useFlowLibraryNavigationStore } from "../../flow-library/flow-library-navigation";
 import { STUDIO_ROOT_GRAPH_ID } from "../../subgraphs/studio-subgraph.types";
 
 type FlowLibraryTabPanelProps = {
@@ -78,16 +79,22 @@ function FlowPresetRow(props: {
   borderColor?: string;
   dense?: boolean;
   badge?: string;
+  highlighted?: boolean;
   onLoad: () => void;
   onEdit?: () => void;
   onExport?: () => void;
   onRemove?: () => void;
 }) {
-  const { preset, borderColor, dense, badge, onLoad, onEdit, onExport, onRemove } = props;
+  const { preset, borderColor, dense, badge, highlighted = false, onLoad, onEdit, onExport, onRemove } =
+    props;
   return (
-    <li>
+    <li id={`flow-preset-row-${preset.meta.id}`}>
       <div
-        className="group flex items-start gap-2 rounded border border-zinc-800/80 bg-zinc-950/40 px-2 py-2 transition-colors hover:border-cyan-500/35 hover:bg-cyan-950/15"
+        className={`group flex items-start gap-2 rounded border px-2 py-2 transition-colors hover:border-cyan-500/35 hover:bg-cyan-950/15 ${
+          highlighted
+            ? "border-cyan-400/70 bg-cyan-950/30 ring-1 ring-cyan-400/40"
+            : "border-zinc-800/80 bg-zinc-950/40"
+        }`}
         style={borderColor != null ? { borderColor } : undefined}
       >
         <button type="button" className="min-w-0 flex-1 text-left" onClick={onLoad}>
@@ -162,9 +169,42 @@ export function FlowLibraryTabPanel(props: FlowLibraryTabPanelProps) {
   const updateFlowPresetInLibrary = useFlowEditorStore((s) => s.updateFlowPresetInLibrary);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const officialSectionRef = useRef<HTMLElement>(null);
   const [loadPresetId, setLoadPresetId] = useState<string | null>(null);
   const [editPresetId, setEditPresetId] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<StudioFlowPresetCategory | "all">("all");
+  const [highlightPresetId, setHighlightPresetId] = useState<string | null>(null);
+  const flowLibraryNavSeq = useFlowLibraryNavigationStore((s) => s.seq);
+  const flowLibraryNavPayload = useFlowLibraryNavigationStore((s) => s.payload);
+
+  useEffect(() => {
+    if (flowLibraryNavPayload == null) {
+      return;
+    }
+    if (flowLibraryNavPayload.highlightPresetId != null) {
+      setCategoryFilter("all");
+      setHighlightPresetId(flowLibraryNavPayload.highlightPresetId);
+    }
+    if (flowLibraryNavPayload.scrollToOfficial) {
+      requestAnimationFrame(() => {
+        officialSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    if (flowLibraryNavPayload.highlightPresetId != null) {
+      const presetId = flowLibraryNavPayload.highlightPresetId;
+      requestAnimationFrame(() => {
+        document.getElementById(`flow-preset-row-${presetId}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      });
+      const clearHighlight = window.setTimeout(() => setHighlightPresetId(null), 2500);
+      useFlowLibraryNavigationStore.getState().clearNavigate();
+      return () => window.clearTimeout(clearHighlight);
+    }
+    useFlowLibraryNavigationStore.getState().clearNavigate();
+    return undefined;
+  }, [flowLibraryNavSeq, flowLibraryNavPayload]);
 
   const {
     state: remoteState,
@@ -301,7 +341,7 @@ export function FlowLibraryTabPanel(props: FlowLibraryTabPanelProps) {
       </div>
 
       {remoteEnabled ? (
-        <section className="space-y-2">
+        <section ref={officialSectionRef} className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
               <Cloud className="h-3.5 w-3.5 opacity-80" aria-hidden />
@@ -368,6 +408,7 @@ export function FlowLibraryTabPanel(props: FlowLibraryTabPanelProps) {
                   borderColor={borderColor}
                   dense={dense}
                   badge={officialRowBadge}
+                  highlighted={highlightPresetId === preset.meta.id}
                   onLoad={() => setLoadPresetId(preset.meta.id)}
                 />
               ))}
