@@ -1,0 +1,1266 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-stage-camera-vision",
+    "name": "Stage camera + vision",
+    "description": "Stage + Scene Output with **Camera Input**, screen **CSS3D Camera Feed**, and **Vision Pose**. Open **Stage** for the 3D view; vision status chips appear top-right when inference runs.",
+    "tags": [
+      "official",
+      "demo-template",
+      "stage-camera-vision"
+    ],
+    "category": "stage",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:stage-camera-vision",
+    "createdAt": "2026-06-07T05:03:59.512Z",
+    "updatedAt": "2026-06-07T05:03:59.512Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-stage-cam-model",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 420
+        },
+        "data": {
+          "label": "Model Source (PSoC E84)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.psoc-e84.default",
+            "selectedModelUrl": "models/psoc-e84-ai/psoc-e84-ai.glb",
+            "generatedChildNodeIds": []
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-out",
+        "type": "studio",
+        "position": {
+          "x": 460,
+          "y": 320
+        },
+        "data": {
+          "label": "Scene Output",
+          "category": "scene",
+          "nodeId": "scene-output",
+          "defaultConfig": {
+            "showGrid": false,
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "studioAssetId": "env.cubemap.park",
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            }
+          },
+          "inputHandles": [
+            {
+              "id": "models",
+              "portType": "string",
+              "label": "Models"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": true,
+            "minWidth": 185,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-in",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 80
+        },
+        "data": {
+          "label": "Webcam",
+          "category": "scene",
+          "nodeId": "camera-input",
+          "defaultConfig": {
+            "enabled": true,
+            "deviceId": "default",
+            "width": 1280,
+            "height": 720,
+            "targetFps": 30,
+            "facingMode": "user",
+            "mirrorPreview": true
+          },
+          "outputHandles": [
+            {
+              "id": "video",
+              "portType": "videoBus",
+              "label": "Video"
+            },
+            {
+              "id": "active",
+              "portType": "boolean",
+              "label": "Active"
+            },
+            {
+              "id": "fps",
+              "portType": "number",
+              "label": "FPS"
+            },
+            {
+              "id": "width",
+              "portType": "number",
+              "label": "Width"
+            },
+            {
+              "id": "height",
+              "portType": "number",
+              "label": "Height"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-env",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 240
+        },
+        "data": {
+          "label": "Environment (Park)",
+          "category": "scene",
+          "nodeId": "environment",
+          "defaultConfig": {
+            "version": 1,
+            "presetIndex": 0,
+            "studioAssetId": "env.cubemap.park",
+            "showBackgroundTexture": true,
+            "useCubemapIbl": true,
+            "iblStrength": 1,
+            "iblOffStrengthFrac": 0.45,
+            "yawDeg": 0,
+            "backgroundColorHex": "#09090b",
+            "inputSocketVisibility": {},
+            "environmentControlsExpanded": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "environment",
+              "label": "Environment"
+            }
+          ],
+          "inputHandles": [],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": true,
+            "minWidth": 240,
+            "minHeight": 220
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-hud",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 80
+        },
+        "data": {
+          "label": "Camera HUD",
+          "category": "scene",
+          "nodeId": "css3d-camera-feed",
+          "defaultConfig": {
+            "visible": true,
+            "opacity": 1,
+            "anchorMode": "screen",
+            "anchor": {
+              "x": 0.12,
+              "y": 0.14,
+              "z": 0
+            },
+            "sizePx": {
+              "w": 240,
+              "h": 135
+            },
+            "borderRadiusPx": 8
+          },
+          "outputHandles": [
+            {
+              "id": "visible",
+              "portType": "boolean",
+              "label": "Visible"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            },
+            {
+              "id": "visible",
+              "portType": "boolean",
+              "label": "Visible"
+            },
+            {
+              "id": "opacity",
+              "portType": "number",
+              "label": "Opacity"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-pose",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 240
+        },
+        "data": {
+          "label": "Vision Pose",
+          "category": "logic",
+          "nodeId": "vision-pose",
+          "defaultConfig": {
+            "enabled": true,
+            "modelVariant": "lite",
+            "qualityPreset": "med",
+            "targetFps": 15,
+            "minDetectionConfidence": 0.5,
+            "minTrackingConfidence": 0.5,
+            "triggerOnEnter": true,
+            "triggerOnExit": false,
+            "drawSketchOverlay": true,
+            "minSketchVisibility": 0.35,
+            "inferenceBackend": "main"
+          },
+          "outputHandles": [
+            {
+              "id": "detected",
+              "portType": "boolean",
+              "label": "Detected"
+            },
+            {
+              "id": "score",
+              "portType": "number",
+              "label": "Score"
+            },
+            {
+              "id": "nose",
+              "portType": "vector3",
+              "label": "Nose"
+            },
+            {
+              "id": "leftWrist",
+              "portType": "vector3",
+              "label": "Left wrist"
+            },
+            {
+              "id": "rightWrist",
+              "portType": "vector3",
+              "label": "Right wrist"
+            },
+            {
+              "id": "trigger",
+              "portType": "event",
+              "label": "Trigger"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-stage-cam-e1",
+        "source": "demo-stage-cam-model",
+        "target": "demo-stage-cam-out",
+        "sourceHandle": "out",
+        "targetHandle": "models",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-e3",
+        "source": "demo-stage-cam-env",
+        "target": "demo-stage-cam-out",
+        "sourceHandle": "out",
+        "targetHandle": "env",
+        "animated": true,
+        "label": "environment",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-e4",
+        "source": "demo-stage-cam-in",
+        "target": "demo-stage-cam-hud",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-e5",
+        "source": "demo-stage-cam-in",
+        "target": "demo-stage-cam-pose",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-stage-cam-model",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 420
+        },
+        "data": {
+          "label": "Model Source (PSoC E84)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.psoc-e84.default",
+            "selectedModelUrl": "models/psoc-e84-ai/psoc-e84-ai.glb",
+            "generatedChildNodeIds": []
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-out",
+        "type": "studio",
+        "position": {
+          "x": 460,
+          "y": 320
+        },
+        "data": {
+          "label": "Scene Output",
+          "category": "scene",
+          "nodeId": "scene-output",
+          "defaultConfig": {
+            "showGrid": false,
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "studioAssetId": "env.cubemap.park",
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            }
+          },
+          "inputHandles": [
+            {
+              "id": "models",
+              "portType": "string",
+              "label": "Models"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": true,
+            "minWidth": 185,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-in",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 80
+        },
+        "data": {
+          "label": "Webcam",
+          "category": "scene",
+          "nodeId": "camera-input",
+          "defaultConfig": {
+            "enabled": true,
+            "deviceId": "default",
+            "width": 1280,
+            "height": 720,
+            "targetFps": 30,
+            "facingMode": "user",
+            "mirrorPreview": true
+          },
+          "outputHandles": [
+            {
+              "id": "video",
+              "portType": "videoBus",
+              "label": "Video"
+            },
+            {
+              "id": "active",
+              "portType": "boolean",
+              "label": "Active"
+            },
+            {
+              "id": "fps",
+              "portType": "number",
+              "label": "FPS"
+            },
+            {
+              "id": "width",
+              "portType": "number",
+              "label": "Width"
+            },
+            {
+              "id": "height",
+              "portType": "number",
+              "label": "Height"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-env",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 240
+        },
+        "data": {
+          "label": "Environment (Park)",
+          "category": "scene",
+          "nodeId": "environment",
+          "defaultConfig": {
+            "version": 1,
+            "presetIndex": 0,
+            "studioAssetId": "env.cubemap.park",
+            "showBackgroundTexture": true,
+            "useCubemapIbl": true,
+            "iblStrength": 1,
+            "iblOffStrengthFrac": 0.45,
+            "yawDeg": 0,
+            "backgroundColorHex": "#09090b",
+            "inputSocketVisibility": {},
+            "environmentControlsExpanded": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "environment",
+              "label": "Environment"
+            }
+          ],
+          "inputHandles": [],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": true,
+            "minWidth": 240,
+            "minHeight": 220
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-hud",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 80
+        },
+        "data": {
+          "label": "Camera HUD",
+          "category": "scene",
+          "nodeId": "css3d-camera-feed",
+          "defaultConfig": {
+            "visible": true,
+            "opacity": 1,
+            "anchorMode": "screen",
+            "anchor": {
+              "x": 0.12,
+              "y": 0.14,
+              "z": 0
+            },
+            "sizePx": {
+              "w": 240,
+              "h": 135
+            },
+            "borderRadiusPx": 8
+          },
+          "outputHandles": [
+            {
+              "id": "visible",
+              "portType": "boolean",
+              "label": "Visible"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            },
+            {
+              "id": "visible",
+              "portType": "boolean",
+              "label": "Visible"
+            },
+            {
+              "id": "opacity",
+              "portType": "number",
+              "label": "Opacity"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-pose",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 240
+        },
+        "data": {
+          "label": "Vision Pose",
+          "category": "logic",
+          "nodeId": "vision-pose",
+          "defaultConfig": {
+            "enabled": true,
+            "modelVariant": "lite",
+            "qualityPreset": "med",
+            "targetFps": 15,
+            "minDetectionConfidence": 0.5,
+            "minTrackingConfidence": 0.5,
+            "triggerOnEnter": true,
+            "triggerOnExit": false,
+            "drawSketchOverlay": true,
+            "minSketchVisibility": 0.35,
+            "inferenceBackend": "main"
+          },
+          "outputHandles": [
+            {
+              "id": "detected",
+              "portType": "boolean",
+              "label": "Detected"
+            },
+            {
+              "id": "score",
+              "portType": "number",
+              "label": "Score"
+            },
+            {
+              "id": "nose",
+              "portType": "vector3",
+              "label": "Nose"
+            },
+            {
+              "id": "leftWrist",
+              "portType": "vector3",
+              "label": "Left wrist"
+            },
+            {
+              "id": "rightWrist",
+              "portType": "vector3",
+              "label": "Right wrist"
+            },
+            {
+              "id": "trigger",
+              "portType": "event",
+              "label": "Trigger"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-stage-cam-e1",
+        "source": "demo-stage-cam-model",
+        "target": "demo-stage-cam-out",
+        "sourceHandle": "out",
+        "targetHandle": "models",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-e3",
+        "source": "demo-stage-cam-env",
+        "target": "demo-stage-cam-out",
+        "sourceHandle": "out",
+        "targetHandle": "env",
+        "animated": true,
+        "label": "environment",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-e4",
+        "source": "demo-stage-cam-in",
+        "target": "demo-stage-cam-hud",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-stage-cam-e5",
+        "source": "demo-stage-cam-in",
+        "target": "demo-stage-cam-pose",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [
+      "models/psoc-e84-ai/psoc-e84-ai.glb"
+    ],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

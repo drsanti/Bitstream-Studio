@@ -1,0 +1,1718 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-animation-mix-demo",
+    "name": "Animation mix demo",
+    "description": "Model Source (**TESA drone**) → three **Animation Clip** nodes → **Animation Mix** → **Model Viewer**. Sine → Map Range drives the first mix weight socket (**wa**); clips auto-bind when the GLB loads.",
+    "tags": [
+      "official",
+      "demo-template",
+      "animation-mix-demo"
+    ],
+    "category": "animation",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:animation-mix-demo",
+    "createdAt": "2026-06-07T05:03:59.551Z",
+    "updatedAt": "2026-06-07T05:03:59.551Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-model-select",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 520
+        },
+        "data": {
+          "label": "Model Source (TESA drone)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.tesa-drone",
+            "selectedModelUrl": "models/tesa-drone/tesa-drone.glb",
+            "generatedChildNodeIds": [
+              "demo-model-viewer",
+              "demo-mix-clip-a",
+              "demo-mix-clip-b",
+              "demo-mix-clip-c"
+            ]
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-model-viewer",
+        "type": "studio",
+        "position": {
+          "x": 760,
+          "y": 240
+        },
+        "data": {
+          "label": "Model Viewer (animation mix)",
+          "category": "scene",
+          "nodeId": "model-viewer",
+          "defaultConfig": {
+            "showGrid": true,
+            "fallbackModelUrl": "",
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            },
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 200
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-clip-a",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 200
+        },
+        "data": {
+          "label": "Animation Clip A",
+          "category": "scene",
+          "nodeId": "animation-clip",
+          "defaultConfig": {
+            "clipName": "",
+            "timeS": 0,
+            "speed": 1,
+            "weight": 1,
+            "loopMode": "loop",
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "model",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "weight",
+              "portType": "number",
+              "label": "Weight"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-clip-b",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 310
+        },
+        "data": {
+          "label": "Animation Clip B",
+          "category": "scene",
+          "nodeId": "animation-clip",
+          "defaultConfig": {
+            "clipName": "",
+            "timeS": 0,
+            "speed": 1,
+            "weight": 1,
+            "loopMode": "loop",
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "model",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "weight",
+              "portType": "number",
+              "label": "Weight"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-clip-c",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 420
+        },
+        "data": {
+          "label": "Animation Clip C",
+          "category": "scene",
+          "nodeId": "animation-clip",
+          "defaultConfig": {
+            "clipName": "",
+            "timeS": 0,
+            "speed": 1,
+            "weight": 1,
+            "loopMode": "loop",
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "model",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "weight",
+              "portType": "number",
+              "label": "Weight"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-anim-mix",
+        "type": "studio",
+        "position": {
+          "x": 500,
+          "y": 300
+        },
+        "data": {
+          "label": "Animation Mix",
+          "category": "scene",
+          "nodeId": "animation-mix",
+          "defaultConfig": {
+            "animationInputCount": 3,
+            "mixWeights": [
+              0.3333333333333333,
+              0.3333333333333333,
+              0.3333333333333333
+            ],
+            "normalizeWeights": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "a",
+              "portType": "glbAnimation",
+              "label": "1"
+            },
+            {
+              "id": "wa",
+              "portType": "number",
+              "label": "W1"
+            },
+            {
+              "id": "b",
+              "portType": "glbAnimation",
+              "label": "2"
+            },
+            {
+              "id": "wb",
+              "portType": "number",
+              "label": "W2"
+            },
+            {
+              "id": "c",
+              "portType": "glbAnimation",
+              "label": "3"
+            },
+            {
+              "id": "wc",
+              "portType": "number",
+              "label": "W3"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-sine",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 80
+        },
+        "data": {
+          "label": "Mix weight driver (sine)",
+          "category": "generator",
+          "nodeId": "sine-wave",
+          "defaultConfig": {
+            "frequency": 0.04,
+            "amplitude": 1,
+            "offset": 0,
+            "phase": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "amplitude",
+              "portType": "number",
+              "label": "Amplitude"
+            },
+            {
+              "id": "frequency",
+              "portType": "number",
+              "label": "Frequency"
+            },
+            {
+              "id": "phase",
+              "portType": "number",
+              "label": "Phase"
+            },
+            {
+              "id": "offset",
+              "portType": "number",
+              "label": "Offset"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-map",
+        "type": "studio",
+        "position": {
+          "x": 280,
+          "y": 80
+        },
+        "data": {
+          "label": "Map to 0..1",
+          "category": "transform",
+          "nodeId": "map-range",
+          "defaultConfig": {
+            "value": 0,
+            "inMin": -1,
+            "inMax": 1,
+            "outMin": 0,
+            "outMax": 1,
+            "clamp": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "value",
+              "portType": "number",
+              "label": "Value"
+            },
+            {
+              "id": "inMin",
+              "portType": "number",
+              "label": "From min"
+            },
+            {
+              "id": "inMax",
+              "portType": "number",
+              "label": "From max"
+            },
+            {
+              "id": "outMin",
+              "portType": "number",
+              "label": "To min"
+            },
+            {
+              "id": "outMax",
+              "portType": "number",
+              "label": "To max"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-mix-e-model-viewer",
+        "source": "demo-model-select",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-model-clip-0",
+        "source": "demo-model-select",
+        "target": "demo-mix-clip-a",
+        "sourceHandle": "out",
+        "targetHandle": "model",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-model-clip-1",
+        "source": "demo-model-select",
+        "target": "demo-mix-clip-b",
+        "sourceHandle": "out",
+        "targetHandle": "model",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-model-clip-2",
+        "source": "demo-model-select",
+        "target": "demo-mix-clip-c",
+        "sourceHandle": "out",
+        "targetHandle": "model",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-clip-0",
+        "source": "demo-mix-clip-a",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "a",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-clip-1",
+        "source": "demo-mix-clip-b",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "b",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-clip-2",
+        "source": "demo-mix-clip-c",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "c",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-mix-viewer",
+        "source": "demo-anim-mix",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "anim",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-sine-map",
+        "source": "demo-mix-sine",
+        "target": "demo-mix-map",
+        "sourceHandle": "out",
+        "targetHandle": "value",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-map-weight",
+        "source": "demo-mix-map",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "wa",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-model-select",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 520
+        },
+        "data": {
+          "label": "Model Source (TESA drone)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.tesa-drone",
+            "selectedModelUrl": "models/tesa-drone/tesa-drone.glb",
+            "generatedChildNodeIds": [
+              "demo-model-viewer",
+              "demo-mix-clip-a",
+              "demo-mix-clip-b",
+              "demo-mix-clip-c"
+            ]
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-model-viewer",
+        "type": "studio",
+        "position": {
+          "x": 760,
+          "y": 240
+        },
+        "data": {
+          "label": "Model Viewer (animation mix)",
+          "category": "scene",
+          "nodeId": "model-viewer",
+          "defaultConfig": {
+            "showGrid": true,
+            "fallbackModelUrl": "",
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            },
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 200
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-clip-a",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 200
+        },
+        "data": {
+          "label": "Animation Clip A",
+          "category": "scene",
+          "nodeId": "animation-clip",
+          "defaultConfig": {
+            "clipName": "",
+            "timeS": 0,
+            "speed": 1,
+            "weight": 1,
+            "loopMode": "loop",
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "model",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "weight",
+              "portType": "number",
+              "label": "Weight"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-clip-b",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 310
+        },
+        "data": {
+          "label": "Animation Clip B",
+          "category": "scene",
+          "nodeId": "animation-clip",
+          "defaultConfig": {
+            "clipName": "",
+            "timeS": 0,
+            "speed": 1,
+            "weight": 1,
+            "loopMode": "loop",
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "model",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "weight",
+              "portType": "number",
+              "label": "Weight"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-clip-c",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 420
+        },
+        "data": {
+          "label": "Animation Clip C",
+          "category": "scene",
+          "nodeId": "animation-clip",
+          "defaultConfig": {
+            "clipName": "",
+            "timeS": 0,
+            "speed": 1,
+            "weight": 1,
+            "loopMode": "loop",
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "model",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "weight",
+              "portType": "number",
+              "label": "Weight"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-anim-mix",
+        "type": "studio",
+        "position": {
+          "x": 500,
+          "y": 300
+        },
+        "data": {
+          "label": "Animation Mix",
+          "category": "scene",
+          "nodeId": "animation-mix",
+          "defaultConfig": {
+            "animationInputCount": 3,
+            "mixWeights": [
+              0.3333333333333333,
+              0.3333333333333333,
+              0.3333333333333333
+            ],
+            "normalizeWeights": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "glbAnimation",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "a",
+              "portType": "glbAnimation",
+              "label": "1"
+            },
+            {
+              "id": "wa",
+              "portType": "number",
+              "label": "W1"
+            },
+            {
+              "id": "b",
+              "portType": "glbAnimation",
+              "label": "2"
+            },
+            {
+              "id": "wb",
+              "portType": "number",
+              "label": "W2"
+            },
+            {
+              "id": "c",
+              "portType": "glbAnimation",
+              "label": "3"
+            },
+            {
+              "id": "wc",
+              "portType": "number",
+              "label": "W3"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-sine",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 80
+        },
+        "data": {
+          "label": "Mix weight driver (sine)",
+          "category": "generator",
+          "nodeId": "sine-wave",
+          "defaultConfig": {
+            "frequency": 0.04,
+            "amplitude": 1,
+            "offset": 0,
+            "phase": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "amplitude",
+              "portType": "number",
+              "label": "Amplitude"
+            },
+            {
+              "id": "frequency",
+              "portType": "number",
+              "label": "Frequency"
+            },
+            {
+              "id": "phase",
+              "portType": "number",
+              "label": "Phase"
+            },
+            {
+              "id": "offset",
+              "portType": "number",
+              "label": "Offset"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mix-map",
+        "type": "studio",
+        "position": {
+          "x": 280,
+          "y": 80
+        },
+        "data": {
+          "label": "Map to 0..1",
+          "category": "transform",
+          "nodeId": "map-range",
+          "defaultConfig": {
+            "value": 0,
+            "inMin": -1,
+            "inMax": 1,
+            "outMin": 0,
+            "outMax": 1,
+            "clamp": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "value",
+              "portType": "number",
+              "label": "Value"
+            },
+            {
+              "id": "inMin",
+              "portType": "number",
+              "label": "From min"
+            },
+            {
+              "id": "inMax",
+              "portType": "number",
+              "label": "From max"
+            },
+            {
+              "id": "outMin",
+              "portType": "number",
+              "label": "To min"
+            },
+            {
+              "id": "outMax",
+              "portType": "number",
+              "label": "To max"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-mix-e-model-viewer",
+        "source": "demo-model-select",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-model-clip-0",
+        "source": "demo-model-select",
+        "target": "demo-mix-clip-a",
+        "sourceHandle": "out",
+        "targetHandle": "model",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-model-clip-1",
+        "source": "demo-model-select",
+        "target": "demo-mix-clip-b",
+        "sourceHandle": "out",
+        "targetHandle": "model",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-model-clip-2",
+        "source": "demo-model-select",
+        "target": "demo-mix-clip-c",
+        "sourceHandle": "out",
+        "targetHandle": "model",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-clip-0",
+        "source": "demo-mix-clip-a",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "a",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-clip-1",
+        "source": "demo-mix-clip-b",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "b",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-clip-2",
+        "source": "demo-mix-clip-c",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "c",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-mix-viewer",
+        "source": "demo-anim-mix",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "anim",
+        "animated": true,
+        "label": "glbAnimation",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-sine-map",
+        "source": "demo-mix-sine",
+        "target": "demo-mix-map",
+        "sourceHandle": "out",
+        "targetHandle": "value",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-mix-e-map-weight",
+        "source": "demo-mix-map",
+        "target": "demo-anim-mix",
+        "sourceHandle": "out",
+        "targetHandle": "wa",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [
+      "models/tesa-drone/tesa-drone.glb"
+    ],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

@@ -126,5 +126,6 @@ List missing `modelUrls` / catalog node ids in a post-import hint (Phase 2 polis
 | Phase | Scope |
 |-------|--------|
 | **1 (shipped)** | Flow preset CRUD, Saved tab, save routing, load dialog, clipboard router, **Ctrl+Shift+S**, category filter, import dependency hint |
-| **2 (in progress)** | Official remote flows index (`libraries/flow-preset/`), edit preset metadata in library |
+| **2 (shipped core)** | Bundled official demo exports (`npm run flow-preset:gen`), `libraries/flow-preset/` index + bundled fallback, edit preset metadata |
+| **2 (backlog)** | Publish bundled presets to online free-pack mirror; link Document tab → focus Library |
 | **3** | Workspace folder sync; linked preset update from canvas |

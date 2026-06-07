@@ -1,4 +1,8 @@
 import { resolveWebviewPackAssetOnlineUrl } from "../../../../asset-resolution/global-directory-online-fallback";
+import {
+  resolveBundledFlowPresetAssetUrl,
+  resolveBundledFlowPresetIndexUrl,
+} from "./flow-preset-bundled-endpoints";
 
 export const STUDIO_FLOW_PRESET_INDEX_REL_PATH = "libraries/flow-preset/index.json";
 
@@ -50,11 +54,7 @@ export function parseRemoteFlowPresetIndex(raw: unknown): RemoteFlowPresetIndex 
   return entries.length > 0 ? { entries } : null;
 }
 
-export async function fetchRemoteFlowPresetIndex(): Promise<RemoteFlowPresetIndex | null> {
-  const url = resolveRemoteFlowPresetIndexUrl();
-  if (url == null) {
-    return null;
-  }
+async function fetchJsonIndex(url: string): Promise<RemoteFlowPresetIndex | null> {
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
@@ -66,11 +66,7 @@ export async function fetchRemoteFlowPresetIndex(): Promise<RemoteFlowPresetInde
   }
 }
 
-export async function fetchRemoteFlowPresetAssetText(fileName: string): Promise<string | null> {
-  const url = resolveRemoteFlowPresetAssetUrl(fileName);
-  if (url == null) {
-    return null;
-  }
+async function fetchTextAsset(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
@@ -80,4 +76,26 @@ export async function fetchRemoteFlowPresetAssetText(fileName: string): Promise<
   } catch {
     return null;
   }
+}
+
+export async function fetchRemoteFlowPresetIndex(): Promise<RemoteFlowPresetIndex | null> {
+  const online = resolveRemoteFlowPresetIndexUrl();
+  if (online != null) {
+    const parsed = await fetchJsonIndex(online);
+    if (parsed != null) {
+      return parsed;
+    }
+  }
+  return fetchJsonIndex(resolveBundledFlowPresetIndexUrl());
+}
+
+export async function fetchRemoteFlowPresetAssetText(fileName: string): Promise<string | null> {
+  const online = resolveRemoteFlowPresetAssetUrl(fileName);
+  if (online != null) {
+    const text = await fetchTextAsset(online);
+    if (text != null) {
+      return text;
+    }
+  }
+  return fetchTextAsset(resolveBundledFlowPresetAssetUrl(fileName));
 }

@@ -1,0 +1,330 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-gauge-monitor",
+    "name": "Gauge monitor",
+    "description": "Gauge + numeric display for a single sensor channel.",
+    "tags": [
+      "official",
+      "demo-template",
+      "gauge-monitor"
+    ],
+    "category": "telemetry",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:gauge-monitor",
+    "createdAt": "2026-06-07T05:03:59.576Z",
+    "updatedAt": "2026-06-07T05:03:59.576Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-sensor",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 140
+        },
+        "data": {
+          "label": "Sensor (numeric)",
+          "category": "input",
+          "nodeId": "sensor-input",
+          "defaultConfig": {
+            "sourceKey": "bmi270.accel.x"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-bar-meter",
+        "type": "studio",
+        "position": {
+          "x": 840,
+          "y": 220
+        },
+        "data": {
+          "label": "Bar Meter",
+          "category": "output",
+          "nodeId": "bar-meter",
+          "defaultConfig": {
+            "min": 0,
+            "max": 100,
+            "unit": "",
+            "decimals": 1,
+            "orientation": "horizontal",
+            "showPeakHold": true,
+            "zones": [
+              {
+                "from": 0,
+                "to": 60,
+                "color": "#22d3ee"
+              },
+              {
+                "from": 60,
+                "to": 80,
+                "color": "#fbbf24"
+              },
+              {
+                "from": 80,
+                "to": 100,
+                "color": "#f87171"
+              }
+            ]
+          },
+          "inputType": "number",
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 180
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-sparkline",
+        "type": "studio",
+        "position": {
+          "x": 580,
+          "y": 300
+        },
+        "data": {
+          "label": "Sparkline",
+          "category": "output",
+          "nodeId": "sparkline",
+          "defaultConfig": {
+            "historySize": 24,
+            "strokeColor": "#22d3ee",
+            "strokeWidth": 3
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-e1",
+        "source": "demo-sensor",
+        "target": "demo-bar-meter",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-e2",
+        "source": "demo-sensor",
+        "target": "demo-sparkline",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-sensor",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 140
+        },
+        "data": {
+          "label": "Sensor (numeric)",
+          "category": "input",
+          "nodeId": "sensor-input",
+          "defaultConfig": {
+            "sourceKey": "bmi270.accel.x"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-bar-meter",
+        "type": "studio",
+        "position": {
+          "x": 840,
+          "y": 220
+        },
+        "data": {
+          "label": "Bar Meter",
+          "category": "output",
+          "nodeId": "bar-meter",
+          "defaultConfig": {
+            "min": 0,
+            "max": 100,
+            "unit": "",
+            "decimals": 1,
+            "orientation": "horizontal",
+            "showPeakHold": true,
+            "zones": [
+              {
+                "from": 0,
+                "to": 60,
+                "color": "#22d3ee"
+              },
+              {
+                "from": 60,
+                "to": 80,
+                "color": "#fbbf24"
+              },
+              {
+                "from": 80,
+                "to": 100,
+                "color": "#f87171"
+              }
+            ]
+          },
+          "inputType": "number",
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 180
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-sparkline",
+        "type": "studio",
+        "position": {
+          "x": 580,
+          "y": 300
+        },
+        "data": {
+          "label": "Sparkline",
+          "category": "output",
+          "nodeId": "sparkline",
+          "defaultConfig": {
+            "historySize": 24,
+            "strokeColor": "#22d3ee",
+            "strokeWidth": 3
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-e1",
+        "source": "demo-sensor",
+        "target": "demo-bar-meter",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-e2",
+        "source": "demo-sensor",
+        "target": "demo-sparkline",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [
+      "bmi270.accel.x"
+    ],
+    "hdriPresets": []
+  }
+}

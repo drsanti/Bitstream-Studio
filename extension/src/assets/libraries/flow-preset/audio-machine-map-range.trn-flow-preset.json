@@ -1,0 +1,766 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-audio-machine-map-range",
+    "name": "Audio machine (Map Range)",
+    "description": "Sine (−1..1) → Map Range (0..1) → Industrial Audio Machine.Speed → Scope + Output. Wire Threshold → Trigger for press clanks.",
+    "tags": [
+      "official",
+      "demo-template",
+      "audio-machine-map-range"
+    ],
+    "category": "audio",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:audio-machine-map-range",
+    "createdAt": "2026-06-07T05:03:59.486Z",
+    "updatedAt": "2026-06-07T05:03:59.486Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-map-sine",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 200
+        },
+        "data": {
+          "label": "Speed proxy (sine)",
+          "category": "generator",
+          "nodeId": "sine-wave",
+          "defaultConfig": {
+            "frequency": 0.07,
+            "amplitude": 1,
+            "offset": 0,
+            "phase": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "amplitude",
+              "portType": "number",
+              "label": "Amplitude"
+            },
+            {
+              "id": "frequency",
+              "portType": "number",
+              "label": "Frequency"
+            },
+            {
+              "id": "phase",
+              "portType": "number",
+              "label": "Phase"
+            },
+            {
+              "id": "offset",
+              "portType": "number",
+              "label": "Offset"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-range",
+        "type": "studio",
+        "position": {
+          "x": 280,
+          "y": 200
+        },
+        "data": {
+          "label": "Map to 0..1",
+          "category": "transform",
+          "nodeId": "map-range",
+          "defaultConfig": {
+            "value": 0,
+            "inMin": -1,
+            "inMax": 1,
+            "outMin": 0,
+            "outMax": 1,
+            "clamp": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "value",
+              "portType": "number",
+              "label": "Value"
+            },
+            {
+              "id": "inMin",
+              "portType": "number",
+              "label": "From min"
+            },
+            {
+              "id": "inMax",
+              "portType": "number",
+              "label": "From max"
+            },
+            {
+              "id": "outMin",
+              "portType": "number",
+              "label": "To min"
+            },
+            {
+              "id": "outMax",
+              "portType": "number",
+              "label": "To max"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-machine",
+        "type": "studio",
+        "position": {
+          "x": 500,
+          "y": 200
+        },
+        "data": {
+          "label": "Audio Machine (conveyor)",
+          "category": "audio",
+          "nodeId": "audio-machine",
+          "defaultConfig": {
+            "enabled": true,
+            "family": "machine",
+            "preset": "conveyor",
+            "speed": 0.35,
+            "load": 0.4,
+            "whineBaseHz": 80,
+            "whineSpanHz": 1200,
+            "harmonicMix": 0.15,
+            "rippleMix": 0.22,
+            "noiseMix": 0.05,
+            "gain": 0.1
+          },
+          "outputHandles": [
+            {
+              "id": "active",
+              "portType": "boolean",
+              "label": "Active"
+            },
+            {
+              "id": "level",
+              "portType": "number",
+              "label": "Level"
+            },
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "load",
+              "portType": "number",
+              "label": "Load"
+            },
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "trigger",
+              "portType": "boolean",
+              "label": "Trigger"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 96
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-scope",
+        "type": "studio",
+        "position": {
+          "x": 760,
+          "y": 80
+        },
+        "data": {
+          "label": "Audio Scope",
+          "category": "audio",
+          "nodeId": "audio-scope",
+          "defaultConfig": {
+            "monitorModeEnabled": false,
+            "sourceMode": "none",
+            "sourceNodeId": "",
+            "mode": "spectrum",
+            "fps": 30,
+            "fftSize": 2048,
+            "smoothing": 0.8,
+            "enabled": true,
+            "themePreset": "studio-cyan",
+            "plotBackgroundHex": "#09090b",
+            "waveformColorHex": "#22d3ee",
+            "spectrumColorHex": "#22d3ee",
+            "waveformLineWidthPx": 1.5,
+            "waveformStrokeOpacity": 0.85,
+            "spectrumFillOpacity": 0.45,
+            "waveformGain": 1,
+            "spectrumGain": 1,
+            "showGrid": true,
+            "showCenterLine": true,
+            "showFrame": true,
+            "timeDivisions": 8,
+            "freqBarCount": 64
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-out",
+        "type": "studio",
+        "position": {
+          "x": 760,
+          "y": 250
+        },
+        "data": {
+          "label": "Audio Output",
+          "category": "audio",
+          "nodeId": "audio-output",
+          "defaultConfig": {
+            "enabled": false,
+            "monitorModeEnabled": false,
+            "sourceMode": "none",
+            "sourceNodeId": "",
+            "limiterEnabled": true,
+            "maxGain": 0.25,
+            "requiresUserGesture": true,
+            "gain": 0.18,
+            "gate": false
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "gate",
+              "portType": "boolean",
+              "label": "Gate"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-map-e1",
+        "source": "demo-map-sine",
+        "target": "demo-map-range",
+        "sourceHandle": "out",
+        "targetHandle": "value",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-map-e2",
+        "source": "demo-map-range",
+        "target": "demo-map-machine",
+        "sourceHandle": "out",
+        "targetHandle": "speed",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-map-e3",
+        "source": "demo-map-machine",
+        "target": "demo-map-scope",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-map-e4",
+        "source": "demo-map-machine",
+        "target": "demo-map-out",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-map-sine",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 200
+        },
+        "data": {
+          "label": "Speed proxy (sine)",
+          "category": "generator",
+          "nodeId": "sine-wave",
+          "defaultConfig": {
+            "frequency": 0.07,
+            "amplitude": 1,
+            "offset": 0,
+            "phase": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "amplitude",
+              "portType": "number",
+              "label": "Amplitude"
+            },
+            {
+              "id": "frequency",
+              "portType": "number",
+              "label": "Frequency"
+            },
+            {
+              "id": "phase",
+              "portType": "number",
+              "label": "Phase"
+            },
+            {
+              "id": "offset",
+              "portType": "number",
+              "label": "Offset"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-range",
+        "type": "studio",
+        "position": {
+          "x": 280,
+          "y": 200
+        },
+        "data": {
+          "label": "Map to 0..1",
+          "category": "transform",
+          "nodeId": "map-range",
+          "defaultConfig": {
+            "value": 0,
+            "inMin": -1,
+            "inMax": 1,
+            "outMin": 0,
+            "outMax": 1,
+            "clamp": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "value",
+              "portType": "number",
+              "label": "Value"
+            },
+            {
+              "id": "inMin",
+              "portType": "number",
+              "label": "From min"
+            },
+            {
+              "id": "inMax",
+              "portType": "number",
+              "label": "From max"
+            },
+            {
+              "id": "outMin",
+              "portType": "number",
+              "label": "To min"
+            },
+            {
+              "id": "outMax",
+              "portType": "number",
+              "label": "To max"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-machine",
+        "type": "studio",
+        "position": {
+          "x": 500,
+          "y": 200
+        },
+        "data": {
+          "label": "Audio Machine (conveyor)",
+          "category": "audio",
+          "nodeId": "audio-machine",
+          "defaultConfig": {
+            "enabled": true,
+            "family": "machine",
+            "preset": "conveyor",
+            "speed": 0.35,
+            "load": 0.4,
+            "whineBaseHz": 80,
+            "whineSpanHz": 1200,
+            "harmonicMix": 0.15,
+            "rippleMix": 0.22,
+            "noiseMix": 0.05,
+            "gain": 0.1
+          },
+          "outputHandles": [
+            {
+              "id": "active",
+              "portType": "boolean",
+              "label": "Active"
+            },
+            {
+              "id": "level",
+              "portType": "number",
+              "label": "Level"
+            },
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed"
+            },
+            {
+              "id": "load",
+              "portType": "number",
+              "label": "Load"
+            },
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "trigger",
+              "portType": "boolean",
+              "label": "Trigger"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 96
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-scope",
+        "type": "studio",
+        "position": {
+          "x": 760,
+          "y": 80
+        },
+        "data": {
+          "label": "Audio Scope",
+          "category": "audio",
+          "nodeId": "audio-scope",
+          "defaultConfig": {
+            "monitorModeEnabled": false,
+            "sourceMode": "none",
+            "sourceNodeId": "",
+            "mode": "spectrum",
+            "fps": 30,
+            "fftSize": 2048,
+            "smoothing": 0.8,
+            "enabled": true,
+            "themePreset": "studio-cyan",
+            "plotBackgroundHex": "#09090b",
+            "waveformColorHex": "#22d3ee",
+            "spectrumColorHex": "#22d3ee",
+            "waveformLineWidthPx": 1.5,
+            "waveformStrokeOpacity": 0.85,
+            "spectrumFillOpacity": 0.45,
+            "waveformGain": 1,
+            "spectrumGain": 1,
+            "showGrid": true,
+            "showCenterLine": true,
+            "showFrame": true,
+            "timeDivisions": 8,
+            "freqBarCount": 64
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-map-out",
+        "type": "studio",
+        "position": {
+          "x": 760,
+          "y": 250
+        },
+        "data": {
+          "label": "Audio Output",
+          "category": "audio",
+          "nodeId": "audio-output",
+          "defaultConfig": {
+            "enabled": false,
+            "monitorModeEnabled": false,
+            "sourceMode": "none",
+            "sourceNodeId": "",
+            "limiterEnabled": true,
+            "maxGain": 0.25,
+            "requiresUserGesture": true,
+            "gain": 0.18,
+            "gate": false
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "gate",
+              "portType": "boolean",
+              "label": "Gate"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-map-e1",
+        "source": "demo-map-sine",
+        "target": "demo-map-range",
+        "sourceHandle": "out",
+        "targetHandle": "value",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-map-e2",
+        "source": "demo-map-range",
+        "target": "demo-map-machine",
+        "sourceHandle": "out",
+        "targetHandle": "speed",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-map-e3",
+        "source": "demo-map-machine",
+        "target": "demo-map-scope",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-map-e4",
+        "source": "demo-map-machine",
+        "target": "demo-map-out",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

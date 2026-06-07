@@ -1,0 +1,400 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-bmi270-gauge-z",
+    "name": "BMI270 gauge (Z)",
+    "description": "Accelerometer Z axis into a gauge node.",
+    "tags": [
+      "official",
+      "demo-template",
+      "bmi270-gauge-z"
+    ],
+    "category": "telemetry",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:bmi270-gauge-z",
+    "createdAt": "2026-06-07T05:03:59.582Z",
+    "updatedAt": "2026-06-07T05:03:59.582Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-bmi270",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 156
+        },
+        "data": {
+          "label": "BMI270",
+          "category": "sensor",
+          "nodeId": "bmi270-input",
+          "defaultConfig": {},
+          "outputHandles": [
+            {
+              "id": "accel",
+              "portType": "vector3",
+              "label": "Accel (m/s²)"
+            },
+            {
+              "id": "gyro",
+              "portType": "vector3",
+              "label": "Gyro (rad/s)"
+            },
+            {
+              "id": "euler",
+              "portType": "vector3",
+              "label": "Euler (rad)"
+            },
+            {
+              "id": "quaternion",
+              "portType": "quaternion",
+              "label": "Quaternion"
+            },
+            {
+              "id": "temp",
+              "portType": "number",
+              "label": "Temp (°C)"
+            },
+            {
+              "id": "samples",
+              "portType": "number",
+              "label": "Samples"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 248,
+            "minHeight": 148
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-vec-split",
+        "type": "studio",
+        "position": {
+          "x": 360,
+          "y": 156
+        },
+        "data": {
+          "label": "Split Vector",
+          "category": "utility",
+          "nodeId": "vector-splitter",
+          "defaultConfig": {},
+          "outputHandles": [
+            {
+              "id": "x",
+              "portType": "number",
+              "label": "X"
+            },
+            {
+              "id": "y",
+              "portType": "number",
+              "label": "Y"
+            },
+            {
+              "id": "z",
+              "portType": "number",
+              "label": "Z"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "vector3",
+              "label": "Vector"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-bar-meter-bmi",
+        "type": "studio",
+        "position": {
+          "x": 660,
+          "y": 156
+        },
+        "data": {
+          "label": "Bar meter (accel Z)",
+          "category": "output",
+          "nodeId": "bar-meter",
+          "defaultConfig": {
+            "min": -5,
+            "max": 5,
+            "unit": " m/s²",
+            "decimals": 3,
+            "orientation": "horizontal",
+            "showPeakHold": true,
+            "zones": [
+              {
+                "from": 0,
+                "to": 60,
+                "color": "#22d3ee"
+              },
+              {
+                "from": 60,
+                "to": 80,
+                "color": "#fbbf24"
+              },
+              {
+                "from": 80,
+                "to": 100,
+                "color": "#f87171"
+              }
+            ]
+          },
+          "inputType": "number",
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 180
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-bmi-e1",
+        "source": "demo-bmi270",
+        "target": "demo-vec-split",
+        "sourceHandle": "accel",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "vector3",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-bmi-e2",
+        "source": "demo-vec-split",
+        "target": "demo-bar-meter-bmi",
+        "sourceHandle": "z",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-bmi270",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 156
+        },
+        "data": {
+          "label": "BMI270",
+          "category": "sensor",
+          "nodeId": "bmi270-input",
+          "defaultConfig": {},
+          "outputHandles": [
+            {
+              "id": "accel",
+              "portType": "vector3",
+              "label": "Accel (m/s²)"
+            },
+            {
+              "id": "gyro",
+              "portType": "vector3",
+              "label": "Gyro (rad/s)"
+            },
+            {
+              "id": "euler",
+              "portType": "vector3",
+              "label": "Euler (rad)"
+            },
+            {
+              "id": "quaternion",
+              "portType": "quaternion",
+              "label": "Quaternion"
+            },
+            {
+              "id": "temp",
+              "portType": "number",
+              "label": "Temp (°C)"
+            },
+            {
+              "id": "samples",
+              "portType": "number",
+              "label": "Samples"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 248,
+            "minHeight": 148
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-vec-split",
+        "type": "studio",
+        "position": {
+          "x": 360,
+          "y": 156
+        },
+        "data": {
+          "label": "Split Vector",
+          "category": "utility",
+          "nodeId": "vector-splitter",
+          "defaultConfig": {},
+          "outputHandles": [
+            {
+              "id": "x",
+              "portType": "number",
+              "label": "X"
+            },
+            {
+              "id": "y",
+              "portType": "number",
+              "label": "Y"
+            },
+            {
+              "id": "z",
+              "portType": "number",
+              "label": "Z"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "vector3",
+              "label": "Vector"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-bar-meter-bmi",
+        "type": "studio",
+        "position": {
+          "x": 660,
+          "y": 156
+        },
+        "data": {
+          "label": "Bar meter (accel Z)",
+          "category": "output",
+          "nodeId": "bar-meter",
+          "defaultConfig": {
+            "min": -5,
+            "max": 5,
+            "unit": " m/s²",
+            "decimals": 3,
+            "orientation": "horizontal",
+            "showPeakHold": true,
+            "zones": [
+              {
+                "from": 0,
+                "to": 60,
+                "color": "#22d3ee"
+              },
+              {
+                "from": 60,
+                "to": 80,
+                "color": "#fbbf24"
+              },
+              {
+                "from": 80,
+                "to": 100,
+                "color": "#f87171"
+              }
+            ]
+          },
+          "inputType": "number",
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 180
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-bmi-e1",
+        "source": "demo-bmi270",
+        "target": "demo-vec-split",
+        "sourceHandle": "accel",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "vector3",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-bmi-e2",
+        "source": "demo-vec-split",
+        "target": "demo-bar-meter-bmi",
+        "sourceHandle": "z",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

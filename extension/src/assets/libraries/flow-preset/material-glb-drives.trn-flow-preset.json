@@ -1,0 +1,856 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-material-glb-drives",
+    "name": "Material drives",
+    "description": "Model Source (PSoC E84 pack model) → **Model Viewer** + linked **Material Property** (roughness slider) and **Material Texture** (sample bridge face on **map**). Re-bind material names via Library **Model → Materials** if your model uses different refs.",
+    "tags": [
+      "official",
+      "demo-template",
+      "material-glb-drives"
+    ],
+    "category": "scene",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:material-glb-drives",
+    "createdAt": "2026-06-07T05:03:59.520Z",
+    "updatedAt": "2026-06-07T05:03:59.520Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-model-select",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 280
+        },
+        "data": {
+          "label": "Model Source (PSoC E84)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.psoc-e84.default",
+            "selectedModelUrl": "models/psoc-e84-ai/psoc-e84-ai.glb",
+            "generatedChildNodeIds": [
+              "demo-model-viewer",
+              "demo-mat-param",
+              "demo-mat-tex"
+            ]
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-model-viewer",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 120
+        },
+        "data": {
+          "label": "Model Viewer (material drives)",
+          "category": "scene",
+          "nodeId": "model-viewer",
+          "defaultConfig": {
+            "showGrid": true,
+            "fallbackModelUrl": "",
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            },
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 200
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mat-param",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 320
+        },
+        "data": {
+          "label": "Roughness drive",
+          "category": "scene",
+          "nodeId": "glb-material-param",
+          "defaultConfig": {
+            "value": 0.5,
+            "numberMode": "float",
+            "glbMaterialParam": "roughness",
+            "sourceModelNodeId": "demo-model-select",
+            "glbExtractKind": "material",
+            "glbExtractRef": "Material"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mat-tex",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 480
+        },
+        "data": {
+          "label": "Base color texture",
+          "category": "scene",
+          "nodeId": "glb-material-texture",
+          "defaultConfig": {
+            "glbMaterialTextureSlot": "map",
+            "textureUrl": "textures/cubemap/bridge/posx.jpg",
+            "selectedStudioTextureAssetId": "texture.cubemap.bridge.posx",
+            "sourceModelNodeId": "demo-model-select",
+            "glbExtractKind": "material",
+            "glbExtractRef": "Material"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Texture URL"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-mat-e1",
+        "source": "demo-model-select",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-model-select",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 280
+        },
+        "data": {
+          "label": "Model Source (PSoC E84)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.psoc-e84.default",
+            "selectedModelUrl": "models/psoc-e84-ai/psoc-e84-ai.glb",
+            "generatedChildNodeIds": [
+              "demo-model-viewer",
+              "demo-mat-param",
+              "demo-mat-tex"
+            ]
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-model-viewer",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 120
+        },
+        "data": {
+          "label": "Model Viewer (material drives)",
+          "category": "scene",
+          "nodeId": "model-viewer",
+          "defaultConfig": {
+            "showGrid": true,
+            "fallbackModelUrl": "",
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            },
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 200
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mat-param",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 320
+        },
+        "data": {
+          "label": "Roughness drive",
+          "category": "scene",
+          "nodeId": "glb-material-param",
+          "defaultConfig": {
+            "value": 0.5,
+            "numberMode": "float",
+            "glbMaterialParam": "roughness",
+            "sourceModelNodeId": "demo-model-select",
+            "glbExtractKind": "material",
+            "glbExtractRef": "Material"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-mat-tex",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 480
+        },
+        "data": {
+          "label": "Base color texture",
+          "category": "scene",
+          "nodeId": "glb-material-texture",
+          "defaultConfig": {
+            "glbMaterialTextureSlot": "map",
+            "textureUrl": "textures/cubemap/bridge/posx.jpg",
+            "selectedStudioTextureAssetId": "texture.cubemap.bridge.posx",
+            "sourceModelNodeId": "demo-model-select",
+            "glbExtractKind": "material",
+            "glbExtractRef": "Material"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Texture URL"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-mat-e1",
+        "source": "demo-model-select",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [
+      "models/psoc-e84-ai/psoc-e84-ai.glb"
+    ],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

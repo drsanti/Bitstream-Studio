@@ -144,6 +144,17 @@ export async function listFreeAssetRepoPathsViaRawManifests(
     }
   }
 
+  const flowPresetIndex = await rawFetchJson<{ entries?: Array<{ file?: string }> }>(
+    `${base}/libraries/flow-preset/index.json`,
+  );
+  pushUnique(paths, "libraries/flow-preset/index.json");
+  for (const entry of flowPresetIndex.entries ?? []) {
+    const file = entry.file?.trim();
+    if (file) {
+      pushUnique(paths, `libraries/flow-preset/${file.replace(/^\/+/, "")}`);
+    }
+  }
+
   try {
     const visionManifest = await rawFetchJson<VisionMediapipePackManifestV1>(
       `${base}/vision/mediapipe/manifest.v1.json`,

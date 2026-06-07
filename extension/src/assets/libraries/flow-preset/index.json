@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "id": "official-audio-oscillator-tone",
+      "name": "Audio oscillator tone",
+      "category": "audio",
+      "file": "audio-oscillator-tone.trn-flow-preset.json",
+      "description": "Oscillator → Audio Scope + Audio Output (wired Audio bus). Sweep 220–880 Hz is on by default. Enable the output engine, then toggle Gate for a safe test tone."
+    },
+    {
+      "id": "official-audio-lab",
+      "name": "Audio lab",
+      "category": "audio",
+      "file": "audio-lab.trn-flow-preset.json",
+      "description": "Microphone → Plotter (RMS/Peak/Centroid) + Audio Scope + Audio Output (wired Audio bus). Enable mic and the output engine, then use Gate/Gain to listen safely."
+    },
+    {
+      "id": "official-audio-file-playback",
+      "name": "Audio file playback",
+      "category": "audio",
+      "file": "audio-file-playback.trn-flow-preset.json",
+      "description": "Audio File Player → Audio Scope + Audio Output (wired Audio bus) + Plotter (time/duration). Paste a URL, enable the output engine, then Play."
+    },
+    {
+      "id": "official-audio-machine-rpm",
+      "name": "Audio machine RPM",
+      "category": "audio",
+      "file": "audio-machine-rpm.trn-flow-preset.json",
+      "description": "Ramp (0→1) → Audio Machine.Speed → Audio Scope + Audio Output (wired Audio bus). Enable the output engine to hear EV motor whine rise with the ramp."
+    },
+    {
+      "id": "official-audio-machine-map-range",
+      "name": "Audio machine (Map Range)",
+      "category": "audio",
+      "file": "audio-machine-map-range.trn-flow-preset.json",
+      "description": "Sine (−1..1) → Map Range (0..1) → Industrial Audio Machine.Speed → Scope + Output. Wire Threshold → Trigger for press clanks."
+    },
+    {
+      "id": "official-audio-machine-fault-lab",
+      "name": "Audio machine fault lab",
+      "category": "audio",
+      "file": "audio-machine-fault-lab.trn-flow-preset.json",
+      "description": "Sine → Map Range → Machine.Speed; Threshold (>0.88) → Machine.Trigger + SFX beep. Press preset clanks on peaks; enable Audio Output to listen."
+    },
+    {
+      "id": "official-camera-video-texture",
+      "name": "Camera video texture",
+      "category": "vision",
+      "file": "camera-video-texture.trn-flow-preset.json",
+      "description": "Camera Input → Video Texture + Vision Pose (wired Video bus). Enable the camera node and allow browser permission; pose outputs update when MediaPipe model loads."
+    },
+    {
+      "id": "official-stage-scene-output",
+      "name": "Stage + Scene Output",
+      "category": "stage",
+      "file": "stage-scene-output.trn-flow-preset.json",
+      "description": "Model Source (PSoC E84 pack model) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring."
+    },
+    {
+      "id": "official-stage-camera-vision",
+      "name": "Stage camera + vision",
+      "category": "stage",
+      "file": "stage-camera-vision.trn-flow-preset.json",
+      "description": "Stage + Scene Output with **Camera Input**, screen **CSS3D Camera Feed**, and **Vision Pose**. Open **Stage** for the 3D view; vision status chips appear top-right when inference runs."
+    },
+    {
+      "id": "official-material-glb-drives",
+      "name": "Material drives",
+      "category": "scene",
+      "file": "material-glb-drives.trn-flow-preset.json",
+      "description": "Model Source (PSoC E84 pack model) → **Model Viewer** + linked **Material Property** (roughness slider) and **Material Texture** (sample bridge face on **map**). Re-bind material names via Library **Model → Materials** if your model uses different refs."
+    },
+    {
+      "id": "official-rotation-glb-anim",
+      "name": "Rotation + animation",
+      "category": "animation",
+      "file": "rotation-glb-anim.trn-flow-preset.json",
+      "description": "BMI270 Euler → 3D Rotation with **Animation Clips** + **On Click → Play Animation** (pack default model). Bind a clip on the trigger/bundle, then click empty canvas to fire."
+    },
+    {
+      "id": "official-animation-clip-blend",
+      "name": "Animation clip blend",
+      "category": "animation",
+      "file": "animation-clip-blend.trn-flow-preset.json",
+      "description": "Model Source → **Model Viewer** with two **Animation Clip** nodes → **Animation Blend** (Sine → Map Range drives **Factor**). Clips auto-bind from the pack GLB when it exposes animations."
+    },
+    {
+      "id": "official-animation-mix-demo",
+      "name": "Animation mix demo",
+      "category": "animation",
+      "file": "animation-mix-demo.trn-flow-preset.json",
+      "description": "Model Source (**TESA drone**) → three **Animation Clip** nodes → **Animation Mix** → **Model Viewer**. Sine → Map Range drives the first mix weight socket (**wa**); clips auto-bind when the GLB loads."
+    },
+    {
+      "id": "official-part-spin-demo",
+      "name": "Part spin demo",
+      "category": "animation",
+      "file": "part-spin-demo.trn-flow-preset.json",
+      "description": "Model Source (**TESA drone**) → **Model Viewer** with two **Part Spin** nodes (auto-bind first rotor parts). Sine → Map Range → spin A speed."
+    },
+    {
+      "id": "official-signal-chain",
+      "name": "Signal chain",
+      "category": "telemetry",
+      "file": "signal-chain.trn-flow-preset.json",
+      "description": "Sensor Input → Low pass → Threshold → Indicator + Bar meter + Sparkline — good default for live telemetry demos."
+    },
+    {
+      "id": "official-basic-indicator",
+      "name": "Basic indicator",
+      "category": "telemetry",
+      "file": "basic-indicator.trn-flow-preset.json",
+      "description": "Minimal LED indicator wired to a scalar tap."
+    },
+    {
+      "id": "official-gauge-monitor",
+      "name": "Gauge monitor",
+      "category": "telemetry",
+      "file": "gauge-monitor.trn-flow-preset.json",
+      "description": "Gauge + numeric display for a single sensor channel."
+    },
+    {
+      "id": "official-vector-magnitude",
+      "name": "Vector magnitude",
+      "category": "utility",
+      "file": "vector-magnitude.trn-flow-preset.json",
+      "description": "Vector (3, 4, 0) → Vector Length → bar meter (expects 5). No hardware required."
+    },
+    {
+      "id": "official-bmi270-gauge-z",
+      "name": "BMI270 gauge (Z)",
+      "category": "telemetry",
+      "file": "bmi270-gauge-z.trn-flow-preset.json",
+      "description": "Accelerometer Z axis into a gauge node."
+    }
+  ]
+}

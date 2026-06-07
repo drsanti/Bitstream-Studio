@@ -1,0 +1,696 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-audio-file-playback",
+    "name": "Audio file playback",
+    "description": "Audio File Player → Audio Scope + Audio Output (wired Audio bus) + Plotter (time/duration). Paste a URL, enable the output engine, then Play.",
+    "tags": [
+      "official",
+      "demo-template",
+      "audio-file-playback"
+    ],
+    "category": "audio",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:audio-file-playback",
+    "createdAt": "2026-06-07T05:03:59.465Z",
+    "updatedAt": "2026-06-07T05:03:59.465Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-file-player",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 200
+        },
+        "data": {
+          "label": "Audio File Player",
+          "category": "audio",
+          "nodeId": "audio-file-player",
+          "defaultConfig": {
+            "enabled": false,
+            "url": "",
+            "loop": false,
+            "gain": 0.5,
+            "gate": false
+          },
+          "outputHandles": [
+            {
+              "id": "playing",
+              "portType": "boolean",
+              "label": "Playing"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "duration",
+              "portType": "number",
+              "label": "Duration (s)"
+            },
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "gate",
+              "portType": "boolean",
+              "label": "Gate"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-file-scope",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 80
+        },
+        "data": {
+          "label": "Audio Scope",
+          "category": "audio",
+          "nodeId": "audio-scope",
+          "defaultConfig": {
+            "monitorModeEnabled": false,
+            "sourceMode": "node",
+            "sourceNodeId": "demo-file-player",
+            "mode": "waveform",
+            "fps": 30,
+            "fftSize": 2048,
+            "smoothing": 0.8,
+            "enabled": true,
+            "themePreset": "studio-cyan",
+            "plotBackgroundHex": "#09090b",
+            "waveformColorHex": "#22d3ee",
+            "spectrumColorHex": "#22d3ee",
+            "waveformLineWidthPx": 1.5,
+            "waveformStrokeOpacity": 0.85,
+            "spectrumFillOpacity": 0.45,
+            "waveformGain": 1,
+            "spectrumGain": 1,
+            "showGrid": true,
+            "showCenterLine": true,
+            "showFrame": true,
+            "timeDivisions": 8,
+            "freqBarCount": 64
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-file-out",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 250
+        },
+        "data": {
+          "label": "Audio Output",
+          "category": "audio",
+          "nodeId": "audio-output",
+          "defaultConfig": {
+            "enabled": false,
+            "monitorModeEnabled": false,
+            "sourceMode": "node",
+            "sourceNodeId": "demo-file-player",
+            "limiterEnabled": true,
+            "maxGain": 0.25,
+            "requiresUserGesture": true,
+            "gain": 0.15,
+            "gate": false
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "gate",
+              "portType": "boolean",
+              "label": "Gate"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-file-plotter",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 420
+        },
+        "data": {
+          "label": "File Transport (Plotter)",
+          "category": "output",
+          "nodeId": "plotter",
+          "defaultConfig": {
+            "historyLength": 256,
+            "verticalGain": 1,
+            "verticalOffset": 0,
+            "autoScale": true,
+            "yMin": -1,
+            "yMax": 1,
+            "showGrid": true,
+            "timeDivisions": 8,
+            "ampDivisions": 6,
+            "showLegend": true,
+            "pauseAcquisition": false,
+            "channels": {
+              "ch1": {
+                "label": "Ch 1",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#22d3ee",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              },
+              "ch2": {
+                "label": "Ch 2",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#fbbf24",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              },
+              "ch3": {
+                "label": "Ch 3",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#34d399",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              },
+              "ch4": {
+                "label": "Ch 4",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#fb7185",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              }
+            }
+          },
+          "inputHandles": [
+            {
+              "id": "ch1",
+              "portType": "number",
+              "label": "Ch 1"
+            },
+            {
+              "id": "ch2",
+              "portType": "number",
+              "label": "Ch 2"
+            },
+            {
+              "id": "ch3",
+              "portType": "number",
+              "label": "Ch 3"
+            },
+            {
+              "id": "ch4",
+              "portType": "number",
+              "label": "Ch 4"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-file-e-audio-scope",
+        "source": "demo-file-player",
+        "target": "demo-file-scope",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-file-e-audio-out",
+        "source": "demo-file-player",
+        "target": "demo-file-out",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-file-e1",
+        "source": "demo-file-player",
+        "target": "demo-file-plotter",
+        "sourceHandle": "time",
+        "targetHandle": "ch1",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-file-e2",
+        "source": "demo-file-player",
+        "target": "demo-file-plotter",
+        "sourceHandle": "duration",
+        "targetHandle": "ch2",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-file-player",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 200
+        },
+        "data": {
+          "label": "Audio File Player",
+          "category": "audio",
+          "nodeId": "audio-file-player",
+          "defaultConfig": {
+            "enabled": false,
+            "url": "",
+            "loop": false,
+            "gain": 0.5,
+            "gate": false
+          },
+          "outputHandles": [
+            {
+              "id": "playing",
+              "portType": "boolean",
+              "label": "Playing"
+            },
+            {
+              "id": "time",
+              "portType": "number",
+              "label": "Time (s)"
+            },
+            {
+              "id": "duration",
+              "portType": "number",
+              "label": "Duration (s)"
+            },
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "gate",
+              "portType": "boolean",
+              "label": "Gate"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-file-scope",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 80
+        },
+        "data": {
+          "label": "Audio Scope",
+          "category": "audio",
+          "nodeId": "audio-scope",
+          "defaultConfig": {
+            "monitorModeEnabled": false,
+            "sourceMode": "node",
+            "sourceNodeId": "demo-file-player",
+            "mode": "waveform",
+            "fps": 30,
+            "fftSize": 2048,
+            "smoothing": 0.8,
+            "enabled": true,
+            "themePreset": "studio-cyan",
+            "plotBackgroundHex": "#09090b",
+            "waveformColorHex": "#22d3ee",
+            "spectrumColorHex": "#22d3ee",
+            "waveformLineWidthPx": 1.5,
+            "waveformStrokeOpacity": 0.85,
+            "spectrumFillOpacity": 0.45,
+            "waveformGain": 1,
+            "spectrumGain": 1,
+            "showGrid": true,
+            "showCenterLine": true,
+            "showFrame": true,
+            "timeDivisions": 8,
+            "freqBarCount": 64
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-file-out",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 250
+        },
+        "data": {
+          "label": "Audio Output",
+          "category": "audio",
+          "nodeId": "audio-output",
+          "defaultConfig": {
+            "enabled": false,
+            "monitorModeEnabled": false,
+            "sourceMode": "node",
+            "sourceNodeId": "demo-file-player",
+            "limiterEnabled": true,
+            "maxGain": 0.25,
+            "requiresUserGesture": true,
+            "gain": 0.15,
+            "gate": false
+          },
+          "inputHandles": [
+            {
+              "id": "audio",
+              "portType": "audioBus",
+              "label": "Audio"
+            },
+            {
+              "id": "gain",
+              "portType": "number",
+              "label": "Gain"
+            },
+            {
+              "id": "gate",
+              "portType": "boolean",
+              "label": "Gate"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 72
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-file-plotter",
+        "type": "studio",
+        "position": {
+          "x": 420,
+          "y": 420
+        },
+        "data": {
+          "label": "File Transport (Plotter)",
+          "category": "output",
+          "nodeId": "plotter",
+          "defaultConfig": {
+            "historyLength": 256,
+            "verticalGain": 1,
+            "verticalOffset": 0,
+            "autoScale": true,
+            "yMin": -1,
+            "yMax": 1,
+            "showGrid": true,
+            "timeDivisions": 8,
+            "ampDivisions": 6,
+            "showLegend": true,
+            "pauseAcquisition": false,
+            "channels": {
+              "ch1": {
+                "label": "Ch 1",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#22d3ee",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              },
+              "ch2": {
+                "label": "Ch 2",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#fbbf24",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              },
+              "ch3": {
+                "label": "Ch 3",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#34d399",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              },
+              "ch4": {
+                "label": "Ch 4",
+                "visible": true,
+                "colorMode": "followWire",
+                "colorHex": "#fb7185",
+                "lineStyle": "solid",
+                "lineWidthPx": 1.75,
+                "marker": "none",
+                "markerEvery": 8
+              }
+            }
+          },
+          "inputHandles": [
+            {
+              "id": "ch1",
+              "portType": "number",
+              "label": "Ch 1"
+            },
+            {
+              "id": "ch2",
+              "portType": "number",
+              "label": "Ch 2"
+            },
+            {
+              "id": "ch3",
+              "portType": "number",
+              "label": "Ch 3"
+            },
+            {
+              "id": "ch4",
+              "portType": "number",
+              "label": "Ch 4"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 168
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-file-e-audio-scope",
+        "source": "demo-file-player",
+        "target": "demo-file-scope",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-file-e-audio-out",
+        "source": "demo-file-player",
+        "target": "demo-file-out",
+        "sourceHandle": "audio",
+        "targetHandle": "audio",
+        "animated": true,
+        "label": "audioBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-file-e1",
+        "source": "demo-file-player",
+        "target": "demo-file-plotter",
+        "sourceHandle": "time",
+        "targetHandle": "ch1",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-file-e2",
+        "source": "demo-file-player",
+        "target": "demo-file-plotter",
+        "sourceHandle": "duration",
+        "targetHandle": "ch2",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

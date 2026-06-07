@@ -1,0 +1,476 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-camera-video-texture",
+    "name": "Camera video texture",
+    "description": "Camera Input → Video Texture + Vision Pose (wired Video bus). Enable the camera node and allow browser permission; pose outputs update when MediaPipe model loads.",
+    "tags": [
+      "official",
+      "demo-template",
+      "camera-video-texture"
+    ],
+    "category": "vision",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:camera-video-texture",
+    "createdAt": "2026-06-07T05:03:59.495Z",
+    "updatedAt": "2026-06-07T05:03:59.495Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-cam-in",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 200
+        },
+        "data": {
+          "label": "Webcam",
+          "category": "scene",
+          "nodeId": "camera-input",
+          "defaultConfig": {
+            "enabled": true,
+            "deviceId": "default",
+            "width": 1280,
+            "height": 720,
+            "targetFps": 30,
+            "facingMode": "user",
+            "mirrorPreview": true
+          },
+          "outputHandles": [
+            {
+              "id": "video",
+              "portType": "videoBus",
+              "label": "Video"
+            },
+            {
+              "id": "active",
+              "portType": "boolean",
+              "label": "Active"
+            },
+            {
+              "id": "fps",
+              "portType": "number",
+              "label": "FPS"
+            },
+            {
+              "id": "width",
+              "portType": "number",
+              "label": "Width"
+            },
+            {
+              "id": "height",
+              "portType": "number",
+              "label": "Height"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-cam-tex",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 200
+        },
+        "data": {
+          "label": "Video Texture",
+          "category": "scene",
+          "nodeId": "video-texture",
+          "defaultConfig": {
+            "flipY": false
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "videoTexture",
+              "label": "Texture"
+            },
+            {
+              "id": "ready",
+              "portType": "boolean",
+              "label": "Ready"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-cam-pose",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 380
+        },
+        "data": {
+          "label": "Vision Pose",
+          "category": "logic",
+          "nodeId": "vision-pose",
+          "defaultConfig": {
+            "enabled": true,
+            "modelVariant": "lite",
+            "qualityPreset": "med",
+            "targetFps": 15,
+            "minDetectionConfidence": 0.5,
+            "minTrackingConfidence": 0.5,
+            "triggerOnEnter": true,
+            "triggerOnExit": false,
+            "drawSketchOverlay": true,
+            "minSketchVisibility": 0.35,
+            "inferenceBackend": "main"
+          },
+          "outputHandles": [
+            {
+              "id": "detected",
+              "portType": "boolean",
+              "label": "Detected"
+            },
+            {
+              "id": "score",
+              "portType": "number",
+              "label": "Score"
+            },
+            {
+              "id": "nose",
+              "portType": "vector3",
+              "label": "Nose"
+            },
+            {
+              "id": "leftWrist",
+              "portType": "vector3",
+              "label": "Left wrist"
+            },
+            {
+              "id": "rightWrist",
+              "portType": "vector3",
+              "label": "Right wrist"
+            },
+            {
+              "id": "trigger",
+              "portType": "event",
+              "label": "Trigger"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-cam-e1",
+        "source": "demo-cam-in",
+        "target": "demo-cam-tex",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-cam-e2",
+        "source": "demo-cam-in",
+        "target": "demo-cam-pose",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-cam-in",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 200
+        },
+        "data": {
+          "label": "Webcam",
+          "category": "scene",
+          "nodeId": "camera-input",
+          "defaultConfig": {
+            "enabled": true,
+            "deviceId": "default",
+            "width": 1280,
+            "height": 720,
+            "targetFps": 30,
+            "facingMode": "user",
+            "mirrorPreview": true
+          },
+          "outputHandles": [
+            {
+              "id": "video",
+              "portType": "videoBus",
+              "label": "Video"
+            },
+            {
+              "id": "active",
+              "portType": "boolean",
+              "label": "Active"
+            },
+            {
+              "id": "fps",
+              "portType": "number",
+              "label": "FPS"
+            },
+            {
+              "id": "width",
+              "portType": "number",
+              "label": "Width"
+            },
+            {
+              "id": "height",
+              "portType": "number",
+              "label": "Height"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-cam-tex",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 200
+        },
+        "data": {
+          "label": "Video Texture",
+          "category": "scene",
+          "nodeId": "video-texture",
+          "defaultConfig": {
+            "flipY": false
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "videoTexture",
+              "label": "Texture"
+            },
+            {
+              "id": "ready",
+              "portType": "boolean",
+              "label": "Ready"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-cam-pose",
+        "type": "studio",
+        "position": {
+          "x": 380,
+          "y": 380
+        },
+        "data": {
+          "label": "Vision Pose",
+          "category": "logic",
+          "nodeId": "vision-pose",
+          "defaultConfig": {
+            "enabled": true,
+            "modelVariant": "lite",
+            "qualityPreset": "med",
+            "targetFps": 15,
+            "minDetectionConfidence": 0.5,
+            "minTrackingConfidence": 0.5,
+            "triggerOnEnter": true,
+            "triggerOnExit": false,
+            "drawSketchOverlay": true,
+            "minSketchVisibility": 0.35,
+            "inferenceBackend": "main"
+          },
+          "outputHandles": [
+            {
+              "id": "detected",
+              "portType": "boolean",
+              "label": "Detected"
+            },
+            {
+              "id": "score",
+              "portType": "number",
+              "label": "Score"
+            },
+            {
+              "id": "nose",
+              "portType": "vector3",
+              "label": "Nose"
+            },
+            {
+              "id": "leftWrist",
+              "portType": "vector3",
+              "label": "Left wrist"
+            },
+            {
+              "id": "rightWrist",
+              "portType": "vector3",
+              "label": "Right wrist"
+            },
+            {
+              "id": "trigger",
+              "portType": "event",
+              "label": "Trigger"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "videoBus",
+              "label": "In"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 220,
+            "minHeight": 100
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-cam-e1",
+        "source": "demo-cam-in",
+        "target": "demo-cam-tex",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-cam-e2",
+        "source": "demo-cam-in",
+        "target": "demo-cam-pose",
+        "sourceHandle": "video",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "videoBus",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

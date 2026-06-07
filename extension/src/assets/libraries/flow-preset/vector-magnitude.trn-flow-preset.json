@@ -1,0 +1,372 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-vector-magnitude",
+    "name": "Vector magnitude",
+    "description": "Vector (3, 4, 0) → Vector Length → bar meter (expects 5). No hardware required.",
+    "tags": [
+      "official",
+      "demo-template",
+      "vector-magnitude"
+    ],
+    "category": "utility",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:vector-magnitude",
+    "createdAt": "2026-06-07T05:03:59.578Z",
+    "updatedAt": "2026-06-07T05:03:59.578Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-vector-const",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 156
+        },
+        "data": {
+          "label": "Vector (3, 4, 0)",
+          "category": "generator",
+          "nodeId": "vector-constant",
+          "defaultConfig": {
+            "x": 3,
+            "y": 4,
+            "z": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "vector3",
+              "label": "Vector"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "x",
+              "portType": "number",
+              "label": "X"
+            },
+            {
+              "id": "y",
+              "portType": "number",
+              "label": "Y"
+            },
+            {
+              "id": "z",
+              "portType": "number",
+              "label": "Z"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-vector-length",
+        "type": "studio",
+        "position": {
+          "x": 360,
+          "y": 156
+        },
+        "data": {
+          "label": "Vector Length",
+          "category": "utility",
+          "nodeId": "vector-length",
+          "defaultConfig": {},
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Length"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "vector3",
+              "label": "Vector"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-vector-length-gauge",
+        "type": "studio",
+        "position": {
+          "x": 660,
+          "y": 156
+        },
+        "data": {
+          "label": "Bar meter (|v|)",
+          "category": "output",
+          "nodeId": "bar-meter",
+          "defaultConfig": {
+            "min": 0,
+            "max": 10,
+            "unit": "",
+            "decimals": 2,
+            "orientation": "horizontal",
+            "showPeakHold": true,
+            "zones": [
+              {
+                "from": 0,
+                "to": 60,
+                "color": "#22d3ee"
+              },
+              {
+                "from": 60,
+                "to": 80,
+                "color": "#fbbf24"
+              },
+              {
+                "from": 80,
+                "to": 100,
+                "color": "#f87171"
+              }
+            ]
+          },
+          "inputType": "number",
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 180
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-vec-len-e1",
+        "source": "demo-vector-const",
+        "target": "demo-vector-length",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "vector3",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-vec-len-e2",
+        "source": "demo-vector-length",
+        "target": "demo-vector-length-gauge",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-vector-const",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 156
+        },
+        "data": {
+          "label": "Vector (3, 4, 0)",
+          "category": "generator",
+          "nodeId": "vector-constant",
+          "defaultConfig": {
+            "x": 3,
+            "y": 4,
+            "z": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "vector3",
+              "label": "Vector"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "x",
+              "portType": "number",
+              "label": "X"
+            },
+            {
+              "id": "y",
+              "portType": "number",
+              "label": "Y"
+            },
+            {
+              "id": "z",
+              "portType": "number",
+              "label": "Z"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-vector-length",
+        "type": "studio",
+        "position": {
+          "x": 360,
+          "y": 156
+        },
+        "data": {
+          "label": "Vector Length",
+          "category": "utility",
+          "nodeId": "vector-length",
+          "defaultConfig": {},
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Length"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "vector3",
+              "label": "Vector"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-vector-length-gauge",
+        "type": "studio",
+        "position": {
+          "x": 660,
+          "y": 156
+        },
+        "data": {
+          "label": "Bar meter (|v|)",
+          "category": "output",
+          "nodeId": "bar-meter",
+          "defaultConfig": {
+            "min": 0,
+            "max": 10,
+            "unit": "",
+            "decimals": 2,
+            "orientation": "horizontal",
+            "showPeakHold": true,
+            "zones": [
+              {
+                "from": 0,
+                "to": 60,
+                "color": "#22d3ee"
+              },
+              {
+                "from": 60,
+                "to": 80,
+                "color": "#fbbf24"
+              },
+              {
+                "from": 80,
+                "to": 100,
+                "color": "#f87171"
+              }
+            ]
+          },
+          "inputType": "number",
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 180
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-vec-len-e1",
+        "source": "demo-vector-const",
+        "target": "demo-vector-length",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "vector3",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-vec-len-e2",
+        "source": "demo-vector-length",
+        "target": "demo-vector-length-gauge",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

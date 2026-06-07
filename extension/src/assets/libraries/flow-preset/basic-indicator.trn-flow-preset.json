@@ -1,0 +1,310 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-basic-indicator",
+    "name": "Basic indicator",
+    "description": "Minimal LED indicator wired to a scalar tap.",
+    "tags": [
+      "official",
+      "demo-template",
+      "basic-indicator"
+    ],
+    "category": "telemetry",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:basic-indicator",
+    "createdAt": "2026-06-07T05:03:59.571Z",
+    "updatedAt": "2026-06-07T05:03:59.571Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-sensor",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 140
+        },
+        "data": {
+          "label": "Sensor (numeric)",
+          "category": "input",
+          "nodeId": "sensor-input",
+          "defaultConfig": {
+            "sourceKey": "bmi270.accel.x"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-threshold",
+        "type": "studio",
+        "position": {
+          "x": 580,
+          "y": 140
+        },
+        "data": {
+          "label": "Threshold",
+          "category": "transform",
+          "nodeId": "threshold",
+          "defaultConfig": {
+            "operator": ">",
+            "value": 0.5
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "boolean",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-indicator",
+        "type": "studio",
+        "position": {
+          "x": 840,
+          "y": 120
+        },
+        "data": {
+          "label": "Indicator",
+          "category": "output",
+          "nodeId": "indicator",
+          "defaultConfig": {
+            "label": "Indicator"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "boolean",
+              "label": "On"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-e1",
+        "source": "demo-sensor",
+        "target": "demo-threshold",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-e2",
+        "source": "demo-threshold",
+        "target": "demo-indicator",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-sensor",
+        "type": "studio",
+        "position": {
+          "x": 80,
+          "y": 140
+        },
+        "data": {
+          "label": "Sensor (numeric)",
+          "category": "input",
+          "nodeId": "sensor-input",
+          "defaultConfig": {
+            "sourceKey": "bmi270.accel.x"
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-threshold",
+        "type": "studio",
+        "position": {
+          "x": 580,
+          "y": 140
+        },
+        "data": {
+          "label": "Threshold",
+          "category": "transform",
+          "nodeId": "threshold",
+          "defaultConfig": {
+            "operator": ">",
+            "value": 0.5
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "boolean",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "number",
+              "label": "Value"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-indicator",
+        "type": "studio",
+        "position": {
+          "x": 840,
+          "y": 120
+        },
+        "data": {
+          "label": "Indicator",
+          "category": "output",
+          "nodeId": "indicator",
+          "defaultConfig": {
+            "label": "Indicator"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "boolean",
+              "label": "On"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": false,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-e1",
+        "source": "demo-sensor",
+        "target": "demo-threshold",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-e2",
+        "source": "demo-threshold",
+        "target": "demo-indicator",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [],
+    "dataChannels": [
+      "bmi270.accel.x"
+    ],
+    "hdriPresets": []
+  }
+}

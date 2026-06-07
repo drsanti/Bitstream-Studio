@@ -1,0 +1,1160 @@
+{
+  "marker": "trn-flow-preset",
+  "version": 1,
+  "meta": {
+    "id": "official-part-spin-demo",
+    "name": "Part spin demo",
+    "description": "Model Source (**TESA drone**) → **Model Viewer** with two **Part Spin** nodes (auto-bind first rotor parts). Sine → Map Range → spin A speed.",
+    "tags": [
+      "official",
+      "demo-template",
+      "part-spin-demo"
+    ],
+    "category": "animation",
+    "presetKind": "flowFull",
+    "activeGraphId": "__root__",
+    "sourceScopeId": "official:part-spin-demo",
+    "createdAt": "2026-06-07T05:03:59.559Z",
+    "updatedAt": "2026-06-07T05:03:59.559Z"
+  },
+  "document": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "demo-model-select",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 480
+        },
+        "data": {
+          "label": "Model Source (TESA drone)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.tesa-drone",
+            "selectedModelUrl": "models/tesa-drone/tesa-drone.glb",
+            "generatedChildNodeIds": [
+              "demo-model-viewer",
+              "demo-part-spin-a",
+              "demo-part-spin-b"
+            ]
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-model-viewer",
+        "type": "studio",
+        "position": {
+          "x": 720,
+          "y": 280
+        },
+        "data": {
+          "label": "Model Viewer (part spin)",
+          "category": "scene",
+          "nodeId": "model-viewer",
+          "defaultConfig": {
+            "showGrid": true,
+            "fallbackModelUrl": "",
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            },
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 200
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-a",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 280
+        },
+        "data": {
+          "label": "Part Spin A",
+          "category": "scene",
+          "nodeId": "part-spin",
+          "defaultConfig": {
+            "spinAxis": "y",
+            "speedRadS": 12.566370614359172,
+            "reverse": false,
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed (rad/s)"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-b",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 400
+        },
+        "data": {
+          "label": "Part Spin B",
+          "category": "scene",
+          "nodeId": "part-spin",
+          "defaultConfig": {
+            "spinAxis": "y",
+            "speedRadS": 6.283185307179586,
+            "reverse": true,
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed (rad/s)"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-spin-sine",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 120
+        },
+        "data": {
+          "label": "Speed driver (sine)",
+          "category": "generator",
+          "nodeId": "sine-wave",
+          "defaultConfig": {
+            "frequency": 0.08,
+            "amplitude": 3,
+            "offset": 4,
+            "phase": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "amplitude",
+              "portType": "number",
+              "label": "Amplitude"
+            },
+            {
+              "id": "frequency",
+              "portType": "number",
+              "label": "Frequency"
+            },
+            {
+              "id": "phase",
+              "portType": "number",
+              "label": "Phase"
+            },
+            {
+              "id": "offset",
+              "portType": "number",
+              "label": "Offset"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-spin-map",
+        "type": "studio",
+        "position": {
+          "x": 280,
+          "y": 120
+        },
+        "data": {
+          "label": "Map to rad/s",
+          "category": "transform",
+          "nodeId": "map-range",
+          "defaultConfig": {
+            "value": 0,
+            "inMin": 1,
+            "inMax": 7,
+            "outMin": 0.5,
+            "outMax": 12,
+            "clamp": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "value",
+              "portType": "number",
+              "label": "Value"
+            },
+            {
+              "id": "inMin",
+              "portType": "number",
+              "label": "From min"
+            },
+            {
+              "id": "inMax",
+              "portType": "number",
+              "label": "From max"
+            },
+            {
+              "id": "outMin",
+              "portType": "number",
+              "label": "To min"
+            },
+            {
+              "id": "outMax",
+              "portType": "number",
+              "label": "To max"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "edges": [
+      {
+        "id": "demo-part-spin-e1",
+        "source": "demo-model-select",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-e2",
+        "source": "demo-spin-sine",
+        "target": "demo-spin-map",
+        "sourceHandle": "out",
+        "targetHandle": "value",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-e3",
+        "source": "demo-spin-map",
+        "target": "demo-part-spin-a",
+        "sourceHandle": "out",
+        "targetHandle": "speed",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ],
+    "rootNodes": [
+      {
+        "id": "demo-model-select",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 480
+        },
+        "data": {
+          "label": "Model Source (TESA drone)",
+          "category": "scene",
+          "nodeId": "model-select",
+          "defaultConfig": {
+            "selectedStudioAssetId": "model.tesa-drone",
+            "selectedModelUrl": "models/tesa-drone/tesa-drone.glb",
+            "generatedChildNodeIds": [
+              "demo-model-viewer",
+              "demo-part-spin-a",
+              "demo-part-spin-b"
+            ]
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "string",
+              "label": "Model"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 208,
+            "minHeight": 88
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-model-viewer",
+        "type": "studio",
+        "position": {
+          "x": 720,
+          "y": 280
+        },
+        "data": {
+          "label": "Model Viewer (part spin)",
+          "category": "scene",
+          "nodeId": "model-viewer",
+          "defaultConfig": {
+            "showGrid": true,
+            "fallbackModelUrl": "",
+            "scene3d": {
+              "version": 1,
+              "model": {
+                "url": "models/psoc-e84-ai/psoc-e84-ai.glb",
+                "embeddedRigPolicy": "keep",
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "rotationDeg": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  },
+                  "scale": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 1
+                  }
+                }
+              },
+              "environment": {
+                "presetIndex": 0,
+                "showBackgroundTexture": true,
+                "useCubemapIbl": true,
+                "iblStrength": 1,
+                "iblOffStrengthFrac": 0.45,
+                "yawDeg": 0,
+                "backgroundColorHex": "#09090b"
+              },
+              "renderer": {
+                "dprMin": 1,
+                "dprMax": 2,
+                "antialias": true,
+                "clearColorHex": "#09090b",
+                "toneMapping": "aces",
+                "toneMappingExposure": 0.55,
+                "outputColorSpace": "srgb",
+                "shadowsEnabled": false,
+                "shadowMapSize": 2048,
+                "shadowOrthoExtent": 32,
+                "shadowBias": -0.00018,
+                "shadowNormalBias": 0.04
+              },
+              "camera": {
+                "fovDeg": 55,
+                "frameMargin": 1.06,
+                "frameDirection": {
+                  "x": 1,
+                  "y": 0.7,
+                  "z": 1
+                },
+                "nearDivisor": 200,
+                "farMultiplier": 200,
+                "transform": {
+                  "position": {
+                    "x": 0,
+                    "y": 15,
+                    "z": 15
+                  },
+                  "target": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                  }
+                }
+              },
+              "controls": {
+                "enableDamping": true,
+                "dampingFactor": 0.08,
+                "enablePan": true,
+                "enableRotate": true,
+                "enableZoom": true,
+                "screenSpacePanning": true,
+                "zoomToCursor": false,
+                "rotateSpeed": 1,
+                "zoomSpeed": 1,
+                "panSpeed": 1,
+                "keyRotateSpeed": 1,
+                "keyPanSpeed": 7,
+                "autoRotate": false,
+                "autoRotateSpeed": 2,
+                "minDistance": 0,
+                "maxDistance": null,
+                "minPolarAngleDeg": 0,
+                "maxPolarAngleDeg": 180,
+                "minAzimuthDeg": null,
+                "maxAzimuthDeg": null,
+                "minTargetRadius": 0,
+                "maxTargetRadius": null,
+                "mouseButtons": {
+                  "left": "ROTATE",
+                  "middle": "DOLLY",
+                  "right": "PAN"
+                },
+                "touches": {
+                  "one": "ROTATE",
+                  "two": "DOLLY_PAN"
+                }
+              },
+              "lights": {
+                "ambient": {
+                  "colorHex": "#ffffff",
+                  "intensity": 0.22
+                },
+                "directionals": [
+                  {
+                    "id": "studio-main",
+                    "colorHex": "#ffffff",
+                    "intensity": 0,
+                    "position": {
+                      "x": 2.5,
+                      "y": 3.5,
+                      "z": 2
+                    }
+                  }
+                ]
+              },
+              "helpers": {
+                "grid": {
+                  "enabled": false,
+                  "size": 24,
+                  "divisions": 96,
+                  "colorCenterHex": "#71717a",
+                  "colorGridHex": "#3f3f46",
+                  "opacity": 0.85,
+                  "y": -0.35
+                },
+                "axes": {
+                  "enabled": false,
+                  "length": 3,
+                  "opacity": 0.9
+                },
+                "camera": {
+                  "enabled": false
+                },
+                "directionalLight": {
+                  "enabled": false,
+                  "planeSize": 1,
+                  "attachToDirectionalId": null
+                }
+              },
+              "fog": {
+                "enabled": false,
+                "mode": "linear",
+                "near": 1,
+                "far": 50,
+                "density": 0.05,
+                "colorHex": "#1a1a2e"
+              },
+              "postProcessing": {
+                "enabled": false,
+                "enableBloom": true,
+                "bloomIntensity": 1.5,
+                "bloomThreshold": 1
+              },
+              "contactShadows": {
+                "enabled": false,
+                "opacity": 0.5,
+                "blur": 2,
+                "far": 10,
+                "scale": 10,
+                "colorHex": "#000000"
+              },
+              "particleEmitter": {
+                "enabled": false,
+                "preset": "sparks",
+                "trigger": 0,
+                "rate": 0,
+                "life": 1,
+                "colorHex": "#ffaa00",
+                "target": ""
+              },
+              "physics": {
+                "enabled": false,
+                "gravityY": -9.81
+              }
+            },
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "in",
+              "portType": "string",
+              "label": "Model"
+            },
+            {
+              "id": "env",
+              "portType": "environment",
+              "label": "Environment"
+            },
+            {
+              "id": "cam",
+              "portType": "camera",
+              "label": "Camera"
+            },
+            {
+              "id": "anim",
+              "portType": "glbAnimation",
+              "label": "Animation"
+            },
+            {
+              "id": "xf",
+              "portType": "transform",
+              "label": "Transform"
+            },
+            {
+              "id": "settings",
+              "portType": "number",
+              "label": "Exposure"
+            },
+            {
+              "id": "fog",
+              "portType": "fog",
+              "label": "Fog"
+            },
+            {
+              "id": "lite",
+              "portType": "studioLight",
+              "label": "Studio Light"
+            },
+            {
+              "id": "post",
+              "portType": "postProcessing",
+              "label": "Post-FX"
+            },
+            {
+              "id": "cshadow",
+              "portType": "contactShadows",
+              "label": "Contact Shadows"
+            },
+            {
+              "id": "emitter",
+              "portType": "particleEmitter",
+              "label": "Particles"
+            },
+            {
+              "id": "phys",
+              "portType": "physicsScene",
+              "label": "Physics"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": true,
+            "allowBodyCollapse": false,
+            "minWidth": 280,
+            "minHeight": 200
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-a",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 280
+        },
+        "data": {
+          "label": "Part Spin A",
+          "category": "scene",
+          "nodeId": "part-spin",
+          "defaultConfig": {
+            "spinAxis": "y",
+            "speedRadS": 12.566370614359172,
+            "reverse": false,
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed (rad/s)"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-b",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 400
+        },
+        "data": {
+          "label": "Part Spin B",
+          "category": "scene",
+          "nodeId": "part-spin",
+          "defaultConfig": {
+            "spinAxis": "y",
+            "speedRadS": 6.283185307179586,
+            "reverse": true,
+            "enabled": true,
+            "sourceModelNodeId": "demo-model-select"
+          },
+          "inputHandles": [
+            {
+              "id": "speed",
+              "portType": "number",
+              "label": "Speed (rad/s)"
+            },
+            {
+              "id": "enabled",
+              "portType": "boolean",
+              "label": "Enabled"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 200,
+            "minHeight": 120
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-spin-sine",
+        "type": "studio",
+        "position": {
+          "x": 72,
+          "y": 120
+        },
+        "data": {
+          "label": "Speed driver (sine)",
+          "category": "generator",
+          "nodeId": "sine-wave",
+          "defaultConfig": {
+            "frequency": 0.08,
+            "amplitude": 3,
+            "offset": 4,
+            "phase": 0
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "amplitude",
+              "portType": "number",
+              "label": "Amplitude"
+            },
+            {
+              "id": "frequency",
+              "portType": "number",
+              "label": "Frequency"
+            },
+            {
+              "id": "phase",
+              "portType": "number",
+              "label": "Phase"
+            },
+            {
+              "id": "offset",
+              "portType": "number",
+              "label": "Offset"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      },
+      {
+        "id": "demo-spin-map",
+        "type": "studio",
+        "position": {
+          "x": 280,
+          "y": 120
+        },
+        "data": {
+          "label": "Map to rad/s",
+          "category": "transform",
+          "nodeId": "map-range",
+          "defaultConfig": {
+            "value": 0,
+            "inMin": 1,
+            "inMax": 7,
+            "outMin": 0.5,
+            "outMax": 12,
+            "clamp": true
+          },
+          "outputHandles": [
+            {
+              "id": "out",
+              "portType": "number",
+              "label": "Out"
+            }
+          ],
+          "inputHandles": [
+            {
+              "id": "value",
+              "portType": "number",
+              "label": "Value"
+            },
+            {
+              "id": "inMin",
+              "portType": "number",
+              "label": "From min"
+            },
+            {
+              "id": "inMax",
+              "portType": "number",
+              "label": "From max"
+            },
+            {
+              "id": "outMin",
+              "portType": "number",
+              "label": "To min"
+            },
+            {
+              "id": "outMax",
+              "portType": "number",
+              "label": "To max"
+            }
+          ],
+          "liveValue": null,
+          "liveHistory": [],
+          "livePlotHistory": {},
+          "ui": {
+            "resizable": false,
+            "allowBodyCollapse": true,
+            "minWidth": 170,
+            "minHeight": 64
+          }
+        },
+        "dragHandle": ".studio-node-drag-handle",
+        "selected": false
+      }
+    ],
+    "rootEdges": [
+      {
+        "id": "demo-part-spin-e1",
+        "source": "demo-model-select",
+        "target": "demo-model-viewer",
+        "sourceHandle": "out",
+        "targetHandle": "in",
+        "animated": true,
+        "label": "string",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-e2",
+        "source": "demo-spin-sine",
+        "target": "demo-spin-map",
+        "sourceHandle": "out",
+        "targetHandle": "value",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      },
+      {
+        "id": "demo-part-spin-e3",
+        "source": "demo-spin-map",
+        "target": "demo-part-spin-a",
+        "sourceHandle": "out",
+        "targetHandle": "speed",
+        "animated": true,
+        "label": "number",
+        "style": {
+          "strokeWidth": 2
+        },
+        "selected": false
+      }
+    ]
+  },
+  "dependencies": {
+    "modelUrls": [
+      "models/tesa-drone/tesa-drone.glb"
+    ],
+    "dataChannels": [],
+    "hdriPresets": []
+  }
+}

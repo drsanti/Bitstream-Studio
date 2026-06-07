@@ -537,6 +537,10 @@ export default defineConfig({
           src: "../assets/vision/**/*",
           dest: "./assets/vision",
         },
+        {
+          src: "../assets/libraries/flow-preset/**/*",
+          dest: "./assets/libraries/flow-preset",
+        },
       ],
     }),
   ],

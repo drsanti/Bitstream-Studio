@@ -135,7 +135,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
       <CanvasInspectorCard
         id="canvas-inspector-starter-graph"
         title="Starter graph"
-        hint="Replace the canvas with a built-in demo template."
+        hint="Replace the canvas with a built-in demo template. The same graphs are also listed under Library → Saved → Flows → Official."
         collapsible
         collapsed={collapsedById["starter-graph"]}
         onCollapsedChange={(next) => setCardCollapsed("starter-graph", next)}
