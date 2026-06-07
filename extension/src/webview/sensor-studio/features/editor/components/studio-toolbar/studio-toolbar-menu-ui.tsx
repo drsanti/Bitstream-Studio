@@ -4,6 +4,7 @@ import {
   FileJson,
   MousePointerClick,
   Pencil,
+  Save,
   Trash2,
   Upload,
   XCircle,
@@ -19,4 +20,5 @@ export const STUDIO_TOOLBAR_MENU_ICONS = {
   clearSelection: XCircle,
   exportFlow: Download,
   importFlow: Upload,
+  saveToLibrary: Save,
 } as const satisfies Record<string, LucideIcon>;

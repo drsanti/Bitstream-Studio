@@ -173,6 +173,11 @@ export function handleFlowKeyboardShortcut(
     return true;
   }
 
+  if (mod && event.shiftKey && (key === "s" || key === "S")) {
+    useFlowEditorStore.getState().openSaveToLibraryDialog();
+    return true;
+  }
+
   if (mod && !event.altKey && !event.shiftKey && key.toLowerCase() === "z") {
     ctx.undo();
     return true;

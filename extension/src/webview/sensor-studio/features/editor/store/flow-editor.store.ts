@@ -307,6 +307,7 @@ import {
   readPersistedFlowPresetLibrary,
   writePersistedFlowPresetLibrary,
 } from "../../../persistence/flow-preset-library.repository";
+import { buildFlowImportDependencyHint } from "../flow-library/build-flow-import-dependency-hint";
 import { buildFlowPresetFromCanvas } from "../flow-library/build-flow-preset-from-canvas";
 import {
   downloadStudioFlowPresetFile,
@@ -322,6 +323,7 @@ import {
 } from "../flow-library/resolve-save-to-library-target";
 import {
   findLinkedFlowPreset,
+  patchFlowPresetMeta,
   upsertFlowPreset,
   type FlowPresetSaveResult,
 } from "../flow-library/flow-preset-upsert";
@@ -1166,6 +1168,14 @@ type FlowEditorState = {
   ) => void;
   nodeGroupLibrary: StudioNodeAssetFile[];
   flowPresetLibrary: StudioFlowPresetFile[];
+  saveToLibraryDialogOpen: boolean;
+  openSaveToLibraryDialog: () => void;
+  closeSaveToLibraryDialog: () => void;
+  flowImportDependencyHint: string | null;
+  reportFlowImportDependencies: (
+    dependencies: StudioFlowPresetFile["dependencies"],
+  ) => void;
+  clearFlowImportDependencyHint: () => void;
   remoteNodeGraphAssets: Record<string, StudioNodeAssetFile>;
   registerRemoteNodeGraphAsset: (asset: StudioNodeAssetFile) => void;
   clearRemoteNodeGraphAssets: () => void;
@@ -1189,8 +1199,20 @@ type FlowEditorState = {
     mode: "replace" | "merge",
   ) => boolean;
   removeFlowPresetFromLibrary: (presetId: string) => void;
+  updateFlowPresetInLibrary: (
+    presetId: string,
+    args: {
+      name: string;
+      category: StudioFlowPresetCategory;
+      description?: string;
+    },
+  ) => boolean;
   importFlowPresetToLibrary: (preset: StudioFlowPresetFile) => string;
   exportFlowPresetById: (presetId: string) => boolean;
+  remoteFlowPresets: Record<string, StudioFlowPresetFile>;
+  registerRemoteFlowPreset: (preset: StudioFlowPresetFile) => void;
+  clearRemoteFlowPresets: () => void;
+  resolveFlowPreset: (presetId: string) => StudioFlowPresetFile | undefined;
   mergeFlowPresetDocument: (document: StudioFlowPresetFile["document"]) => boolean;
   importNodeAssetIntoGroup: (
     hostNodeId: string,
@@ -3136,6 +3158,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   nodeGroupLibrary: readPersistedNodeGroupLibrary(),
   flowPresetLibrary: readPersistedFlowPresetLibrary(),
+  saveToLibraryDialogOpen: false,
+  openSaveToLibraryDialog: () => set({ saveToLibraryDialogOpen: true }),
+  closeSaveToLibraryDialog: () => set({ saveToLibraryDialogOpen: false }),
+  flowImportDependencyHint: null,
+  reportFlowImportDependencies: (dependencies) => {
+    const hint = buildFlowImportDependencyHint(dependencies, get().studioAssetDescriptors);
+    set({ flowImportDependencyHint: hint });
+  },
+  clearFlowImportDependencyHint: () => set({ flowImportDependencyHint: null }),
   remoteNodeGraphAssets: {},
   pushUndoSnapshot: () => {
     const st = get();
@@ -4051,6 +4082,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   clearRemoteNodeGraphAssets: () => {
     set({ remoteNodeGraphAssets: {} });
   },
+  remoteFlowPresets: {},
   resolveNodeGroupAsset: (assetId) => {
     const st = get();
     return (
@@ -4263,7 +4295,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     return true;
   },
   loadFlowPresetFromLibrary: (presetId, mode) => {
-    const preset = get().flowPresetLibrary.find((p) => p.meta.id === presetId);
+    const preset = get().resolveFlowPreset(presetId);
     if (preset == null) {
       return false;
     }
@@ -4289,6 +4321,33 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const next = get().flowPresetLibrary.filter((p) => p.meta.id !== presetId);
     writePersistedFlowPresetLibrary(next);
     set({ flowPresetLibrary: next });
+  },
+  updateFlowPresetInLibrary: (presetId, args) => {
+    const next = patchFlowPresetMeta(get().flowPresetLibrary, presetId, args);
+    if (next == null) {
+      return false;
+    }
+    writePersistedFlowPresetLibrary(next);
+    set({ flowPresetLibrary: next });
+    return true;
+  },
+  registerRemoteFlowPreset: (preset) => {
+    set((state) => ({
+      remoteFlowPresets: {
+        ...state.remoteFlowPresets,
+        [preset.meta.id]: preset,
+      },
+    }));
+  },
+  clearRemoteFlowPresets: () => {
+    set({ remoteFlowPresets: {} });
+  },
+  resolveFlowPreset: (presetId) => {
+    const st = get();
+    return (
+      st.flowPresetLibrary.find((p) => p.meta.id === presetId) ??
+      st.remoteFlowPresets[presetId]
+    );
   },
   importFlowPresetToLibrary: (preset) => {
     const keyed = rekeyStudioFlowPresetMeta(preset);

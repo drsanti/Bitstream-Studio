@@ -61,7 +61,12 @@ export function StudioSavedLibraryPanel(props: StudioSavedLibraryPanelProps) {
         aria-labelledby={tab === "flows" ? "saved-tab-flows" : "saved-tab-groups"}
       >
         {tab === "flows" ? (
-          <FlowLibraryTabPanel dense={dense} query={query} borderColor={borderColor} />
+          <FlowLibraryTabPanel
+            dense={dense}
+            query={query}
+            borderColor={borderColor}
+            remoteEnabled={remoteGroupsEnabled}
+          />
         ) : (
           <GroupLibraryTabPanel
             dense={dense}

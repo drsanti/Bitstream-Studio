@@ -17,6 +17,7 @@ import {
   type WorkbenchLayoutMenuProps,
 } from "../../../../ui/workbench/WorkbenchLayoutMenu";
 import { STUDIO_TOOLBAR_MENU_ICONS } from "./studio-toolbar/studio-toolbar-menu-ui";
+import { useFlowEditorStore } from "../store/flow-editor.store";
 
 export type StudioOverflowMenuProps = {
   /** Menu trigger styling (default: shell toolbar chip). */
@@ -45,6 +46,7 @@ export function StudioOverflowMenu(props: StudioOverflowMenuProps) {
     layoutMenuProps,
   } = props;
   const { openAssetManager } = useOpenAssetManager();
+  const openSaveToLibraryDialog = useFlowEditorStore((s) => s.openSaveToLibraryDialog);
 
   return (
     <div className="relative shrink-0">
@@ -129,6 +131,14 @@ export function StudioOverflowMenu(props: StudioOverflowMenuProps) {
             />
 
             <TRNMenuSectionTitle spacing="menuNext">Flow file</TRNMenuSectionTitle>
+            <TRNMenuItemButton
+              role="menuitem"
+              tone="glass-dropdown"
+              className={TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS}
+              icon={toolbarHeaderDropdownMenuIcon(STUDIO_TOOLBAR_MENU_ICONS.saveToLibrary)}
+              label="Save to library"
+              onClick={() => openSaveToLibraryDialog()}
+            />
             <TRNMenuItemButton
               role="menuitem"
               tone="glass-dropdown"

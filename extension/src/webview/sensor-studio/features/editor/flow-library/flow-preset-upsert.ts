@@ -1,4 +1,8 @@
-import type { StudioFlowPresetFile } from "./studio-flow-preset-file";
+import {
+  isStudioFlowPresetCategory,
+  type StudioFlowPresetCategory,
+  type StudioFlowPresetFile,
+} from "./studio-flow-preset-file";
 
 export type FlowPresetUpsertSource = {
   sourceScopeId: string;
@@ -62,4 +66,33 @@ export function upsertFlowPreset(
     library: [...library, withSource],
     result: { id: withSource.meta.id, updated: false },
   };
+}
+
+export function patchFlowPresetMeta(
+  library: StudioFlowPresetFile[],
+  presetId: string,
+  patch: {
+    name: string;
+    category: StudioFlowPresetCategory;
+    description?: string;
+  },
+): StudioFlowPresetFile[] | null {
+  const idx = library.findIndex((entry) => entry.meta.id === presetId);
+  if (idx < 0) {
+    return null;
+  }
+  const existing = library[idx]!;
+  const category = isStudioFlowPresetCategory(patch.category) ? patch.category : "custom";
+  const next = [...library];
+  next[idx] = {
+    ...existing,
+    meta: {
+      ...existing.meta,
+      name: patch.name.trim(),
+      category,
+      description: patch.description,
+      updatedAt: new Date().toISOString(),
+    },
+  };
+  return next;
 }

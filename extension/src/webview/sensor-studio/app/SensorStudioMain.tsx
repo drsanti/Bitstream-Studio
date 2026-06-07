@@ -73,9 +73,12 @@ import {
   FlowLoadModeDialog,
   type FlowLoadMode,
 } from "../features/editor/components/flow-library/FlowLoadModeDialog";
+import { SaveToLibraryDialogHost } from "../features/editor/components/flow-library/SaveToLibraryDialogHost";
 import { parseFlowImportPayload } from "../features/editor/flow-library/parse-flow-import-payload";
 import type { StudioFlowPresetFile } from "../features/editor/flow-library/studio-flow-preset-file";
+import { scanStudioGraphDependencies } from "../features/editor/subgraphs/node-library/build-node-asset-from-group";
 import { STUDIO_ROOT_GRAPH_ID } from "../features/editor/subgraphs/studio-subgraph.types";
+import { TRNButton, TRNHintText } from "../../ui/TRN";
 
 function flowStructureFingerprint(
   nodes: StudioNode[],
@@ -191,6 +194,9 @@ export function SensorStudioMain() {
   const copyFlowSelectionToClipboard = useFlowEditorStore((s) => s.copyFlowSelectionToClipboard);
   const pasteFlowFromClipboard = useFlowEditorStore((s) => s.pasteFlowFromClipboard);
   const mergeFlowPresetDocument = useFlowEditorStore((s) => s.mergeFlowPresetDocument);
+  const reportFlowImportDependencies = useFlowEditorStore((s) => s.reportFlowImportDependencies);
+  const flowImportDependencyHint = useFlowEditorStore((s) => s.flowImportDependencyHint);
+  const clearFlowImportDependencyHint = useFlowEditorStore((s) => s.clearFlowImportDependencyHint);
 
   type ClipboardFlowLoadPending =
     | { kind: "preset"; preset: StudioFlowPresetFile }
@@ -992,9 +998,21 @@ export function SensorStudioMain() {
       } else {
         applyFlowReplaceFromJson(clipboardFlowLoad.text);
       }
+      if (clipboardFlowLoad.kind === "preset") {
+        reportFlowImportDependencies(clipboardFlowLoad.preset.dependencies);
+      } else {
+        reportFlowImportDependencies(
+          scanStudioGraphDependencies(useFlowEditorStore.getState().nodes),
+        );
+      }
       setClipboardFlowLoad(null);
     },
-    [applyFlowReplaceFromJson, clipboardFlowLoad, mergeFlowPresetDocument],
+    [
+      applyFlowReplaceFromJson,
+      clipboardFlowLoad,
+      mergeFlowPresetDocument,
+      reportFlowImportDependencies,
+    ],
   );
 
   const clipboardFlowLoadName =
@@ -1248,12 +1266,25 @@ export function SensorStudioMain() {
         defaultPaletteLayout={runtimeDefaults.nodePaletteLayout}
         workbenchRef={workbenchRef}
       />
+      <SaveToLibraryDialogHost />
       <FlowLoadModeDialog
         open={clipboardFlowLoad != null}
         presetName={clipboardFlowLoadName}
         onCancel={() => setClipboardFlowLoad(null)}
         onChoose={onClipboardFlowLoadChoose}
       />
+      {flowImportDependencyHint != null ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[85] flex justify-center px-4">
+          <div className="pointer-events-auto flex max-w-lg items-start gap-3 rounded-lg border border-amber-500/35 bg-zinc-950/95 px-3 py-2.5 shadow-lg backdrop-blur-sm">
+            <TRNHintText tone="warn" className="min-w-0 flex-1 text-[11px] leading-relaxed">
+              {flowImportDependencyHint}
+            </TRNHintText>
+            <TRNButton size="compact" onClick={() => clearFlowImportDependencyHint()}>
+              Dismiss
+            </TRNButton>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

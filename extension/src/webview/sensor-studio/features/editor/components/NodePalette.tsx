@@ -844,8 +844,8 @@ export function NodePalette(props: NodePaletteProps) {
           <input
             type="search"
             placeholder={
-              tab === "groups"
-                ? "Search saved node groups…"
+              tab === "saved"
+                ? "Search saved flows and groups…"
                 : "Search by name, sensor, or description…"
             }
             value={query}
@@ -860,7 +860,7 @@ export function NodePalette(props: NodePaletteProps) {
               dense ? "py-1.5 text-[11px]" : "py-2 text-[12px]"
             } ${query.trim().length > 0 ? "pr-9" : "pr-2"}`}
             style={{ borderColor }}
-            aria-label={tab === "groups" ? "Search saved node groups" : "Search library"}
+            aria-label={tab === "saved" ? "Search saved flows and groups" : "Search library"}
           />
           {query.trim().length > 0 ? (
             <button

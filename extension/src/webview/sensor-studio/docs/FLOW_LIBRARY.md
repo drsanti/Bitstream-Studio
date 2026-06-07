@@ -1,6 +1,6 @@
 # Flow & group library
 
-**Status:** Phase 1 in progress (2026-06-07)  
+**Status:** Phase 1 shipped (2026-06-07); Phase 2 planned  
 **Related:** [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md), [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md), `persistence/flow-preset-library.repository.ts`, `persistence/node-group-library.repository.ts`
 
 ## Goals
@@ -115,12 +115,16 @@ List missing `modelUrls` / catalog node ids in a post-import hint (Phase 2 polis
 | `components/node-palette/StudioSavedLibraryPanel.tsx` | Flows \| Groups inner tabs |
 | `components/flow-library/SaveToLibraryDialog.tsx` | Name / category save |
 | `components/flow-library/FlowLoadModeDialog.tsx` | Replace / Merge |
-| `store/flow-editor.store.ts` | `flowPresetLibrary`, save/load actions |
+| `flow-library/remote-flow-preset-index.ts` | Online official flows index |
+| `flow-library/use-remote-flow-presets.ts` | Official flows sync hook |
+| `components/flow-library/SaveToLibraryDialogHost.tsx` | Global save dialog |
+| `flow-library/build-flow-import-dependency-hint.ts` | Post-import asset hint |
+| `store/flow-editor.store.ts` | `flowPresetLibrary`, save/load, remote presets |
 
 ## Phases
 
 | Phase | Scope |
 |-------|--------|
-| **1 (current)** | Flow preset CRUD, Saved tab, save routing, load dialog, clipboard router |
-| **2** | Official remote flows index; migrate built-in demos; dependency warnings |
+| **1 (shipped)** | Flow preset CRUD, Saved tab, save routing, load dialog, clipboard router, **Ctrl+Shift+S**, category filter, import dependency hint |
+| **2 (in progress)** | Official remote flows index (`libraries/flow-preset/`), edit preset metadata in library |
 | **3** | Workspace folder sync; linked preset update from canvas |

@@ -1,5 +1,5 @@
 import type { Edge } from "@xyflow/react";
-import { Import, Trash2, VolumeX } from "lucide-react";
+import { Import, Save, Trash2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { TRNButton, TRNSelect } from "../../../../../ui/TRN";
 import type { StudioDemoTemplateId, StudioNode } from "../../store/flow-editor.store";
@@ -45,6 +45,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
 
   const undoDepth = useFlowEditorStore((s) => s.undoStack.length);
   const muteAllAudio = useFlowEditorStore((s) => s.muteAllAudio);
+  const openSaveToLibraryDialog = useFlowEditorStore((s) => s.openSaveToLibraryDialog);
 
   const templateOptions = useMemo(
     () =>
@@ -192,7 +193,16 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
         collapsed={collapsedById["import-export"]}
         onCollapsedChange={(next) => setCardCollapsed("import-export", next)}
       >
-        <div className="flex flex-wrap gap-1.5">
+        <TRNButton
+          size="compact"
+          className="w-full"
+          prefixIcon={<Save className="h-3 w-3" aria-hidden />}
+          hint="Save the full canvas or current selection to the Saved library (Flows or Groups)."
+          onClick={() => openSaveToLibraryDialog()}
+        >
+          Save to library
+        </TRNButton>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           <TRNButton
             size="compact"
             className="min-w-0 flex-1"

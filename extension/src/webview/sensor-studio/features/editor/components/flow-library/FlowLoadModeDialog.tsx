@@ -1,6 +1,6 @@
 import { GitMerge, Replace } from "lucide-react";
 import { createPortal } from "react-dom";
-import { TRNButton } from "../../../../../ui/TRN/TRNButton";
+import { TRNButton } from "../../../../../ui/TRN";
 
 export type FlowLoadMode = "replace" | "merge";
 

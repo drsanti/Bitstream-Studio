@@ -1,8 +1,6 @@
 import { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
-import { TRNButton } from "../../../../../ui/TRN/TRNButton";
-import { TRNFormField } from "../../../../../ui/TRN/TRNFormField";
-import { TRNSelect } from "../../../../../ui/TRN/TRNSelect";
+import { TRNButton, TRNFormField, TRNSelect } from "../../../../../ui/TRN";
 import {
   STUDIO_FLOW_PRESET_CATEGORIES,
   type StudioFlowPresetCategory,
@@ -18,7 +16,10 @@ const CATEGORY_OPTIONS = STUDIO_FLOW_PRESET_CATEGORIES.map((value) => ({
 export type SaveToLibraryDialogProps = {
   open: boolean;
   target: SaveToLibraryTarget;
+  mode?: "save" | "edit";
   defaultName?: string;
+  defaultCategory?: StudioFlowPresetCategory;
+  defaultDescription?: string;
   scopeHint?: string;
   onConfirm: (args: {
     name: string;
@@ -29,19 +30,29 @@ export type SaveToLibraryDialogProps = {
 };
 
 export function SaveToLibraryDialog(props: SaveToLibraryDialogProps) {
-  const { open, target, defaultName = "", scopeHint, onConfirm, onCancel } = props;
+  const {
+    open,
+    target,
+    mode = "save",
+    defaultName = "",
+    defaultCategory = "custom",
+    defaultDescription = "",
+    scopeHint,
+    onConfirm,
+    onCancel,
+  } = props;
   const titleId = useId();
   const [name, setName] = useState(defaultName);
-  const [category, setCategory] = useState<StudioFlowPresetCategory>("custom");
-  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<StudioFlowPresetCategory>(defaultCategory);
+  const [description, setDescription] = useState(defaultDescription);
 
   useEffect(() => {
     if (open) {
       setName(defaultName);
-      setCategory("custom");
-      setDescription("");
+      setCategory(defaultCategory);
+      setDescription(defaultDescription);
     }
-  }, [open, defaultName]);
+  }, [open, defaultCategory, defaultDescription, defaultName]);
 
   if (!open || typeof document === "undefined") {
     return null;
@@ -60,14 +71,16 @@ export function SaveToLibraryDialog(props: SaveToLibraryDialogProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id={titleId} className="text-sm font-semibold text-zinc-100">
-          Save to library
+          {mode === "edit" ? "Edit flow preset" : "Save to library"}
         </h2>
-        <p className="mt-1 text-[11px] text-zinc-500">
-          Target: <span className="text-zinc-300">{saveToLibraryTargetLabel(target)}</span>
-          {scopeHint != null && scopeHint.length > 0 ? (
-            <span className="text-zinc-500"> · {scopeHint}</span>
-          ) : null}
-        </p>
+        {mode === "save" ? (
+          <p className="mt-1 text-[11px] text-zinc-500">
+            Target: <span className="text-zinc-300">{saveToLibraryTargetLabel(target)}</span>
+            {scopeHint != null && scopeHint.length > 0 ? (
+              <span className="text-zinc-500"> · {scopeHint}</span>
+            ) : null}
+          </p>
+        ) : null}
 
         <div className="mt-3 space-y-2.5">
           <TRNFormField label="Name">
@@ -78,7 +91,7 @@ export function SaveToLibraryDialog(props: SaveToLibraryDialogProps) {
               aria-label="Preset name"
             />
           </TRNFormField>
-          {target !== "group" ? (
+          {target !== "group" || mode === "edit" ? (
             <TRNFormField label="Category">
               <TRNSelect
                 ariaLabel="Flow preset category"
@@ -89,7 +102,7 @@ export function SaveToLibraryDialog(props: SaveToLibraryDialogProps) {
               />
             </TRNFormField>
           ) : null}
-          <TRNFormField label="Description" optional>
+          <TRNFormField label="Description">
             <textarea
               className="min-h-[56px] w-full resize-y rounded-md border border-zinc-700/70 bg-zinc-900/60 px-2 py-1.5 text-sm text-zinc-100 outline-none focus-visible:ring-1 focus-visible:ring-cyan-500/40"
               value={description}
@@ -118,7 +131,7 @@ export function SaveToLibraryDialog(props: SaveToLibraryDialogProps) {
               });
             }}
           >
-            Save
+            {mode === "edit" ? "Update" : "Save"}
           </TRNButton>
         </div>
       </div>
