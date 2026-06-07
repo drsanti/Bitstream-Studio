@@ -1,15 +1,25 @@
 import type { RefObject } from "react";
 import { dispatchFlowKeyboardEventFromDom } from "../../../app/flow-event-dispatch";
 import type { FlowCanvasGraphHandle } from "../components/flow-canvas-graph-handle";
-import type { StudioDemoTemplateId } from "../store/flow-editor.store";
+import { resolveSelectedNodeGroupSubgraphId } from "../subgraphs/resolve-selected-node-group";
+import {
+  useFlowEditorStore,
+  type StudioDemoTemplateId,
+} from "../store/flow-editor.store";
 import { isFlowKeyboardTarget } from "./is-flow-keyboard-target";
 
 export type FlowKeyboardShortcutActions = {
   clearNodeSelection: () => void;
   selectAllNodes: () => void;
+  toggleSelectAllNodes: () => void;
   duplicateSelection: () => void;
   copyFlowSelectionToClipboard: () => Promise<boolean>;
-  pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
+  pasteFlowFromClipboard: () => Promise<{
+    ok: boolean;
+    message?: string;
+    pendingFlowPreset?: unknown;
+    pendingRawFlowDocument?: string;
+  }>;
   createGroupFromSelection: () => void;
   ungroupSelection: () => void;
   enterGroup: (groupId: string) => void;
@@ -50,6 +60,11 @@ export function handleFlowKeyboardShortcut(
       return true;
     }
     ctx.clearNodeSelection();
+    return true;
+  }
+
+  if (!mod && !event.shiftKey && !event.altKey && (key === "a" || key === "A")) {
+    ctx.toggleSelectAllNodes();
     return true;
   }
 
@@ -108,7 +123,15 @@ export function handleFlowKeyboardShortcut(
       ctx.exitGroup();
       return true;
     }
-    const selectedGroupId = ctx.flowCanvasGraphRef.current?.getSelectedNodeGroupId?.();
+    const flowState = useFlowEditorStore.getState();
+    const selectedGroupId =
+      ctx.flowCanvasGraphRef.current?.getSelectedNodeGroupId?.() ??
+      resolveSelectedNodeGroupSubgraphId({
+        renderNodes: [],
+        storeNodes: flowState.nodes,
+        selectedNodeIds: flowState.selectedNodeIds,
+        selectedNodeId: flowState.selectedNodeId,
+      });
     if (selectedGroupId != null) {
       ctx.enterGroup(selectedGroupId);
       return true;

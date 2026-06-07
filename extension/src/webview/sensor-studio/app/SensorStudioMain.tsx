@@ -47,6 +47,7 @@ import {
   STUDIO_TEXTURE_ASSET_ID_KEY,
   STUDIO_TEXTURE_URL_KEY,
 } from "../features/editor/gltf/studio-glb-material-texture";
+import { ANIMATION_CLIP_NAME_KEY } from "../features/editor/nodes/animation/animation-clip-config";
 import {
   catalogEntrySpawnsLinkedToModel,
   resolveSingleModelSelectParentId,
@@ -54,7 +55,13 @@ import {
   STUDIO_GLB_EXTRACT_REF_KEY,
 } from "../features/editor/model/model-generated-bindings";
 import type { StudioGltfExtractRow } from "../features/editor/gltf/studio-gltf-extract";
-import type { StudioGlbExtractDragPayloadV1 } from "../features/editor/components/node-palette/glb-extract-drag";
+import type { StudioGlbExtractDragPayload } from "../features/editor/components/node-palette/glb-extract-drag";
+import {
+  buildGlbExtractSpawnMergeConfig,
+  buildInlineCatalogSpawnConfig,
+  catalogNodeIdForGlbExtractRow,
+  findCatalogEntry,
+} from "../features/editor/model-outliner/model-outliner-spawn";
 import {
   type StudioPersistedViewport,
   isValidStudioPersistedViewport,
@@ -62,6 +69,13 @@ import {
   writePersistedFlowDocument,
 } from "../persistence/flow-graph.repository";
 import { useSensorStudioTelemetryFlowRefresh } from "./useSensorStudioTelemetryFlowRefresh";
+import {
+  FlowLoadModeDialog,
+  type FlowLoadMode,
+} from "../features/editor/components/flow-library/FlowLoadModeDialog";
+import { parseFlowImportPayload } from "../features/editor/flow-library/parse-flow-import-payload";
+import type { StudioFlowPresetFile } from "../features/editor/flow-library/studio-flow-preset-file";
+import { STUDIO_ROOT_GRAPH_ID } from "../features/editor/subgraphs/studio-subgraph.types";
 
 function flowStructureFingerprint(
   nodes: StudioNode[],
@@ -176,6 +190,15 @@ export function SensorStudioMain() {
   const duplicateSelection = useFlowEditorStore((s) => s.duplicateSelection);
   const copyFlowSelectionToClipboard = useFlowEditorStore((s) => s.copyFlowSelectionToClipboard);
   const pasteFlowFromClipboard = useFlowEditorStore((s) => s.pasteFlowFromClipboard);
+  const mergeFlowPresetDocument = useFlowEditorStore((s) => s.mergeFlowPresetDocument);
+
+  type ClipboardFlowLoadPending =
+    | { kind: "preset"; preset: StudioFlowPresetFile }
+    | { kind: "raw"; text: string };
+
+  const [clipboardFlowLoad, setClipboardFlowLoad] = useState<ClipboardFlowLoadPending | null>(
+    null,
+  );
   const createGroupFromSelection = useFlowEditorStore((s) => s.createGroupFromSelection);
   const ungroupSelection = useFlowEditorStore((s) => s.ungroupSelection);
   const enterGroup = useFlowEditorStore((s) => s.enterGroup);
@@ -183,6 +206,7 @@ export function SensorStudioMain() {
   const deleteSelection = useFlowEditorStore((s) => s.deleteSelection);
   const selectAllNodes = useFlowEditorStore((s) => s.selectAllNodes);
   const clearNodeSelection = useFlowEditorStore((s) => s.clearNodeSelection);
+  const toggleSelectAllNodes = useFlowEditorStore((s) => s.toggleSelectAllNodes);
   const toggleSocketsExpandedForNodes = useFlowEditorStore((s) => s.toggleSocketsExpandedForNodes);
   const toggleSocketValuesVisibleForNodes = useFlowEditorStore(
     (s) => s.toggleSocketValuesVisibleForNodes,
@@ -302,8 +326,6 @@ export function SensorStudioMain() {
         selectedNodeIds:
           st.selectedNodeIds.length > 0 ? st.selectedNodeIds : undefined,
         ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
-        ...(st.activeGraphId !== "__root__" ? { activeGraphId: st.activeGraphId } : {}),
-        ...(st.graphStack.length > 0 ? { graphStack: st.graphStack } : {}),
         ...(st.rootNodes.length > 0 ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
         viewport: viewportPersistRef.current ?? undefined,
         canvasPreferences: flowCanvasPrefsRef.current,
@@ -392,7 +414,9 @@ export function SensorStudioMain() {
         | "glb-material-color"
         | "event-toggle-glb-part"
         | "event-set-glb-part"
-        | "event-trigger-glb-anim",
+        | "event-trigger-glb-anim"
+        | "animation-clip"
+        | "part-spin",
       parentModelFlowNodeId: string,
       row: StudioGltfExtractRow,
       position: { x: number; y: number },
@@ -427,6 +451,18 @@ export function SensorStudioMain() {
       } else if (catalogNodeId === "event-set-glb-part") {
         mergeDefaultConfig.value = 0;
         mergeDefaultConfig.setTo = 1;
+      } else if (catalogNodeId === "animation-clip") {
+        mergeDefaultConfig[ANIMATION_CLIP_NAME_KEY] = row.ref;
+        mergeDefaultConfig.timeS = 0;
+        mergeDefaultConfig.speed = 1;
+        mergeDefaultConfig.weight = 1;
+        mergeDefaultConfig.loopMode = "loop";
+        mergeDefaultConfig.enabled = true;
+      } else if (catalogNodeId === "part-spin") {
+        mergeDefaultConfig.spinAxis = "y";
+        mergeDefaultConfig.speedRadS = Math.PI * 2;
+        mergeDefaultConfig.reverse = false;
+        mergeDefaultConfig.enabled = true;
       } else {
         mergeDefaultConfig.triggerNonce = 0;
         mergeDefaultConfig.speed = 1;
@@ -505,6 +541,56 @@ export function SensorStudioMain() {
     [spawnGlbLinkedCatalogNode],
   );
 
+  const onSpawnGlbAnimationClipExtract = useCallback(
+    (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
+      if (args.row.kind !== "animation") {
+        return;
+      }
+      const st = useFlowEditorStore.getState();
+      const parent = st.nodes.find((n) => n.id === args.parentModelFlowNodeId);
+      const position =
+        parent != null
+          ? { x: parent.position.x + 300, y: parent.position.y + 36 }
+          : { x: 120, y: 156 };
+      spawnGlbLinkedCatalogNode("animation-clip", args.parentModelFlowNodeId, args.row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
+  );
+
+  const onSpawnGlbPartSpinExtract = useCallback(
+    (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
+      if (args.row.kind !== "part") {
+        return;
+      }
+      const st = useFlowEditorStore.getState();
+      const parent = st.nodes.find((n) => n.id === args.parentModelFlowNodeId);
+      const position =
+        parent != null
+          ? { x: parent.position.x + 300, y: parent.position.y + 108 }
+          : { x: 120, y: 228 };
+      spawnGlbLinkedCatalogNode("part-spin", args.parentModelFlowNodeId, args.row, position);
+    },
+    [spawnGlbLinkedCatalogNode],
+  );
+
+  const onBuildGlbAnimationSetup = useCallback(
+    (args: {
+      parentModelFlowNodeId: string;
+      clipRefs: string[];
+      combinerMode: "merge" | "mix";
+    }) => {
+      useFlowEditorStore
+        .getState()
+        .spawnGlbAnimationSetupGraph(
+          args.parentModelFlowNodeId,
+          args.clipRefs,
+          catalog,
+          args.combinerMode,
+        );
+    },
+    [catalog],
+  );
+
   const onSpawnGlbMaterialTextureExtract = useCallback(
     (args: { parentModelFlowNodeId: string; row: StudioGltfExtractRow }) => {
       if (args.row.kind !== "material") {
@@ -537,19 +623,55 @@ export function SensorStudioMain() {
     [spawnGlbLinkedCatalogNode],
   );
 
+  const addNodeFromCatalogWithInlineGlbModel = useFlowEditorStore(
+    (s) => s.addNodeFromCatalogWithInlineGlbModel,
+  );
+
   const onDropGlbExtract = useCallback(
-    (payload: StudioGlbExtractDragPayloadV1, flowPosition: { x: number; y: number }) => {
-      spawnGlbLinkedNumberConstant(
-        payload.parentModelFlowNodeId,
-        {
-          kind: payload.kind,
-          ref: payload.glbRef,
-          label: payload.label,
-        },
-        snapDropPosition(flowPosition),
-      );
+    (payload: StudioGlbExtractDragPayload, flowPosition: { x: number; y: number }) => {
+      const row = {
+        kind: payload.kind,
+        ref: payload.glbRef,
+        label: payload.label,
+      };
+      const dropPosition = snapDropPosition(flowPosition);
+      if (payload.v === 2 && payload.inlineCatalogAssetId != null) {
+        const catalogNodeId = catalogNodeIdForGlbExtractRow(row);
+        const entry = findCatalogEntry(catalog, catalogNodeId);
+        if (entry == null) {
+          return;
+        }
+        const merge = buildGlbExtractSpawnMergeConfig(catalogNodeId, row);
+        const inlineConfig = buildInlineCatalogSpawnConfig(
+          payload.inlineCatalogAssetId,
+          descriptors,
+          merge,
+        );
+        if (inlineConfig == null) {
+          return;
+        }
+        addNodeFromCatalogWithInlineGlbModel(entry, dropPosition, {
+          flowNodeLabel: row.label,
+          mergeDefaultConfig: inlineConfig,
+        });
+        return;
+      }
+      const parentId =
+        payload.v === 1
+          ? payload.parentModelFlowNodeId
+          : payload.parentModelFlowNodeId ?? null;
+      if (parentId == null) {
+        return;
+      }
+      spawnGlbLinkedNumberConstant(parentId, row, dropPosition);
     },
-    [spawnGlbLinkedNumberConstant, snapDropPosition],
+    [
+      addNodeFromCatalogWithInlineGlbModel,
+      catalog,
+      descriptors,
+      snapDropPosition,
+      spawnGlbLinkedNumberConstant,
+    ],
   );
 
   const onDropStudioAsset = useCallback(
@@ -788,6 +910,100 @@ export function SensorStudioMain() {
     importFileInputRef.current?.click();
   }, []);
 
+  const applyFlowReplaceFromJson = useCallback(
+    (text: string) => {
+      const r = useFlowEditorStore.getState().importFlowGraphJson(text);
+      if (!r.ok) {
+        return;
+      }
+      if (r.workbenchLayout != null) {
+        workbenchRef.current?.applyImportedLayoutSnapshot(r.workbenchLayout.snapshot);
+      }
+      if (r.canvasPreferences != null) {
+        patchFlowCanvasPreferences(r.canvasPreferences);
+      }
+      if (r.viewport != null) {
+        viewportPersistRef.current = r.viewport;
+        setFlowViewport({
+          x: r.viewport.x,
+          y: r.viewport.y,
+          zoom: r.viewport.zoom,
+        });
+        setFlowViewportApply({
+          nonce: Date.now(),
+          viewport: {
+            x: r.viewport.x,
+            y: r.viewport.y,
+            zoom: r.viewport.zoom,
+          },
+        });
+        schedulePersistToStorage();
+      } else {
+        requestFitViewIfEnabled();
+      }
+    },
+    [patchFlowCanvasPreferences, requestFitViewIfEnabled, schedulePersistToStorage],
+  );
+
+  const pasteFlowFromClipboardWrapped = useCallback(async () => {
+    const result = await pasteFlowFromClipboard();
+    if (result.pendingFlowPreset != null) {
+      setClipboardFlowLoad({ kind: "preset", preset: result.pendingFlowPreset });
+    } else if (result.pendingRawFlowDocument != null) {
+      setClipboardFlowLoad({ kind: "raw", text: result.pendingRawFlowDocument });
+    }
+    return result;
+  }, [pasteFlowFromClipboard]);
+
+  const onClipboardFlowLoadChoose = useCallback(
+    (mode: FlowLoadMode) => {
+      if (clipboardFlowLoad == null) {
+        return;
+      }
+      if (mode === "merge") {
+        if (clipboardFlowLoad.kind === "preset") {
+          mergeFlowPresetDocument(clipboardFlowLoad.preset.document);
+        } else {
+          try {
+            const doc = JSON.parse(clipboardFlowLoad.text) as Parameters<
+              typeof mergeFlowPresetDocument
+            >[0];
+            mergeFlowPresetDocument(doc);
+          } catch {
+            // ignore malformed clipboard payload
+          }
+        }
+      } else if (clipboardFlowLoad.kind === "preset") {
+        const doc = clipboardFlowLoad.preset.document;
+        applyFlowReplaceFromJson(
+          JSON.stringify({
+            version: 1,
+            nodes: doc.nodes,
+            edges: doc.edges,
+            selectedNodeId: null,
+            ...(doc.subgraphs != null ? { subgraphs: doc.subgraphs } : {}),
+            ...(doc.rootNodes != null
+              ? { rootNodes: doc.rootNodes, rootEdges: doc.rootEdges }
+              : {}),
+            activeGraphId: STUDIO_ROOT_GRAPH_ID,
+            graphStack: [],
+          }),
+        );
+      } else {
+        applyFlowReplaceFromJson(clipboardFlowLoad.text);
+      }
+      setClipboardFlowLoad(null);
+    },
+    [applyFlowReplaceFromJson, clipboardFlowLoad, mergeFlowPresetDocument],
+  );
+
+  const clipboardFlowLoadName =
+    clipboardFlowLoad?.kind === "preset"
+      ? clipboardFlowLoad.preset.meta.name
+      : clipboardFlowLoad?.kind === "raw"
+        ? "Imported flow"
+        : "Flow preset";
+
   const onImportFlowFile = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
@@ -798,39 +1014,28 @@ export function SensorStudioMain() {
       const reader = new FileReader();
       reader.onload = () => {
         const text = String(reader.result ?? "");
-        const r = useFlowEditorStore.getState().importFlowGraphJson(text);
-        if (r.ok) {
-          if (r.workbenchLayout != null) {
-            workbenchRef.current?.applyImportedLayoutSnapshot(r.workbenchLayout.snapshot);
-          }
-          if (r.canvasPreferences != null) {
-            patchFlowCanvasPreferences(r.canvasPreferences);
-          }
-          if (r.viewport != null) {
-            viewportPersistRef.current = r.viewport;
-            setFlowViewport({
-              x: r.viewport.x,
-              y: r.viewport.y,
-              zoom: r.viewport.zoom,
-            });
-            setFlowViewportApply({
-              nonce: Date.now(),
-              viewport: {
-                x: r.viewport.x,
-                y: r.viewport.y,
-                zoom: r.viewport.zoom,
-              },
-            });
-            schedulePersistToStorage();
-          } else {
-            requestFitViewIfEnabled();
-          }
+        const importPayload = parseFlowImportPayload(text);
+        if (importPayload?.kind === "node-asset") {
+          useFlowEditorStore.getState().instantiateNodeAssetAt(importPayload.asset, {
+            x: 96,
+            y: 96,
+          });
+          return;
         }
+        if (importPayload?.kind === "flow-preset") {
+          setClipboardFlowLoad({ kind: "preset", preset: importPayload.preset });
+          return;
+        }
+        if (importPayload?.kind === "raw-flow-document") {
+          setClipboardFlowLoad({ kind: "raw", text: importPayload.text });
+          return;
+        }
+        applyFlowReplaceFromJson(text);
       };
       reader.onerror = () => {};
       reader.readAsText(file);
     },
-    [patchFlowCanvasPreferences, requestFitViewIfEnabled, schedulePersistToStorage],
+    [applyFlowReplaceFromJson],
   );
 
   useEffect(() => {
@@ -842,9 +1047,10 @@ export function SensorStudioMain() {
       flowCanvasGraphRef,
       clearNodeSelection,
       selectAllNodes,
+      toggleSelectAllNodes,
       duplicateSelection,
       copyFlowSelectionToClipboard,
-      pasteFlowFromClipboard,
+      pasteFlowFromClipboard: pasteFlowFromClipboardWrapped,
       createGroupFromSelection,
       ungroupSelection,
       enterGroup,
@@ -869,9 +1075,10 @@ export function SensorStudioMain() {
     [
       clearNodeSelection,
       selectAllNodes,
+      toggleSelectAllNodes,
       duplicateSelection,
       copyFlowSelectionToClipboard,
-      pasteFlowFromClipboard,
+      pasteFlowFromClipboardWrapped,
       createGroupFromSelection,
       ungroupSelection,
       enterGroup,
@@ -906,8 +1113,6 @@ export function SensorStudioMain() {
         selectedNodeId: raw.selectedNodeId,
         selectedNodeIds: raw.selectedNodeIds,
         ...(raw.subgraphs != null ? { subgraphs: raw.subgraphs } : {}),
-        ...(raw.activeGraphId != null ? { activeGraphId: raw.activeGraphId } : {}),
-        ...(raw.graphStack != null ? { graphStack: raw.graphStack } : {}),
         ...(raw.rootNodes != null ? { rootNodes: raw.rootNodes as FlowGraphNode[] } : {}),
         ...(raw.rootEdges != null ? { rootEdges: raw.rootEdges as Edge[] } : {}),
       });
@@ -952,7 +1157,7 @@ export function SensorStudioMain() {
       <input
         ref={importFileInputRef}
         type="file"
-        accept="application/json,.json"
+        accept="application/json,.json,.trn-flow-preset.json"
         className="sr-only"
         aria-hidden="true"
         onChange={onImportFlowFile}
@@ -1032,6 +1237,9 @@ export function SensorStudioMain() {
         onSpawnGlbMaterialColorExtract={onSpawnGlbMaterialColorExtract}
         onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
         onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
+        onSpawnGlbAnimationClipExtract={onSpawnGlbAnimationClipExtract}
+        onSpawnGlbPartSpinExtract={onSpawnGlbPartSpinExtract}
+        onBuildGlbAnimationSetup={onBuildGlbAnimationSetup}
         onDropGlbExtract={onDropGlbExtract}
         onDropStudioAsset={onDropStudioAsset}
         onDropNodeGroupAsset={onDropNodeGroupAsset}
@@ -1039,6 +1247,12 @@ export function SensorStudioMain() {
         onAddCatalogEntryAtFlowPosition={onAddCatalogEntryAtFlowPosition}
         defaultPaletteLayout={runtimeDefaults.nodePaletteLayout}
         workbenchRef={workbenchRef}
+      />
+      <FlowLoadModeDialog
+        open={clipboardFlowLoad != null}
+        presetName={clipboardFlowLoadName}
+        onCancel={() => setClipboardFlowLoad(null)}
+        onChoose={onClipboardFlowLoadChoose}
       />
     </>
   );

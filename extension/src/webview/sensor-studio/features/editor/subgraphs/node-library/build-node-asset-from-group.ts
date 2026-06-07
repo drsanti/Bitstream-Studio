@@ -23,7 +23,7 @@ function cloneNodeForAsset(node: Node): Node {
   };
 }
 
-function scanStudioGraphDependencies(nodes: readonly Node[]): StudioNodeAssetFile["dependencies"] {
+export function scanStudioGraphDependencies(nodes: readonly Node[]): StudioNodeAssetFile["dependencies"] {
   const modelUrls = new Set<string>();
   const dataChannels = new Set<string>();
 

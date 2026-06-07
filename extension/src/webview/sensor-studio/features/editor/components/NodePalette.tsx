@@ -1,14 +1,8 @@
-import { BookOpen, Boxes, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X, Box } from "lucide-react";
+import { BookOpen, Boxes, ChevronDown, ChevronRight, LayoutGrid, Search, Sparkles, Waves, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../../core/config/config-types";
-import { resolveStudioModelGltfFetchUrl } from "../../asset-browser/studio-model-scene-bindings";
-import { useStudioAssetDescriptors } from "../../asset-browser/useStudioAssetDescriptors";
 import { useFlowEditorStore } from "../store/flow-editor.store";
-import { resolveSingleModelSelectParentId, readGlbExtractTag, readSourceModelNodeId } from "../model/model-generated-bindings";
-import { studioGlbExtractRowKey } from "../gltf/studio-gltf-extract";
-import { useStudioGltfExtraction } from "../gltf/useStudioGltfExtraction";
-import { GlbExtractionTabPanel } from "./node-palette/GlbExtractionTabPanel";
-import { GroupLibraryTabPanel } from "./node-palette/GroupLibraryTabPanel";
+import { StudioSavedLibraryPanel } from "./node-palette/StudioSavedLibraryPanel";
 import { filterPaletteEntries } from "./node-palette/filter-palette-entries";
 import { LibraryEntryRow } from "./node-palette/LibraryEntryRow";
 import {
@@ -48,7 +42,7 @@ import { NodePaletteSectioned } from "./node-palette/NodePaletteSectioned";
 import { NodePaletteTwoLine } from "./node-palette/NodePaletteTwoLine";
 import { NodePaletteAccordion } from "./node-palette/NodePaletteAccordion";
 
-type NodePaletteTabId = "nodes" | "simulation" | "glb" | "groups";
+type NodePaletteTabId = "nodes" | "simulation" | "saved";
 
 type CategoryFilter = "all" | NodeCatalogEntry["category"];
 
@@ -106,31 +100,6 @@ type NodePaletteProps = {
   entries: NodeCatalogEntry[];
   onAddNode: (entry: NodeCatalogEntry) => void;
   defaultPaletteLayout?: NodePaletteLayoutMode;
-  /** Spawn a number-constant linked to the Model, tagged with GLB extraction metadata. */
-  onSpawnGlbExtract?: (args: {
-    parentModelFlowNodeId: string;
-    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
-  }) => void;
-  /** Spawn **Toggle GLB Part** for a part row (Library GLB tab). */
-  onSpawnGlbEventPartExtract?: (args: {
-    parentModelFlowNodeId: string;
-    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
-  }) => void;
-  /** Spawn **Trigger GLB Anim** for an animation row (Library GLB tab). */
-  onSpawnGlbEventAnimExtract?: (args: {
-    parentModelFlowNodeId: string;
-    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
-  }) => void;
-  /** Spawn **GLB Material Texture** for a material row (Library GLB tab). */
-  onSpawnGlbMaterialTextureExtract?: (args: {
-    parentModelFlowNodeId: string;
-    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
-  }) => void;
-  /** Spawn **GLB Material Color** for a material row (Library GLB tab). */
-  onSpawnGlbMaterialColorExtract?: (args: {
-    parentModelFlowNodeId: string;
-    row: import("../gltf/studio-gltf-extract").StudioGltfExtractRow;
-  }) => void;
   /** When set, section headers, filter chips, and rows pick up the same hues as the flow minimap. */
   categoryColors?: Record<NodeCatalogEntry["category"], string>;
   /** Secondary text from the workbench theme (helper / meta lines). */
@@ -145,11 +114,6 @@ export function NodePalette(props: NodePaletteProps) {
     entries,
     onAddNode,
     defaultPaletteLayout = "sectioned",
-    onSpawnGlbExtract,
-    onSpawnGlbEventPartExtract,
-    onSpawnGlbEventAnimExtract,
-    onSpawnGlbMaterialTextureExtract,
-    onSpawnGlbMaterialColorExtract,
     categoryColors,
     mutedTextColor,
   } = props;
@@ -166,81 +130,25 @@ export function NodePalette(props: NodePaletteProps) {
   const paletteLayout: NodePaletteLayoutMode = "sectioned";
 
   const nodeGroupLibrary = useFlowEditorStore((s) => s.nodeGroupLibrary);
-  const { descriptors } = useStudioAssetDescriptors();
-  const parentModelFlowNodeId = useFlowEditorStore((s) => resolveSingleModelSelectParentId(s));
-  const modelNodes = useFlowEditorStore((s) => s.nodes);
-  const glbFetchUrl = useMemo(() => {
-    if (parentModelFlowNodeId == null) {
-      return null;
-    }
-    const n = modelNodes.find((x) => x.id === parentModelFlowNodeId);
-    if (n?.data.nodeId !== "model-select") {
-      return null;
-    }
-    const dc = n.data.defaultConfig as Record<string, unknown>;
-    const logical =
-      typeof dc.selectedModelUrl === "string" ? dc.selectedModelUrl.trim() : "";
-    if (logical.length === 0) {
-      return null;
-    }
-    const studioAssetId =
-      typeof dc.selectedStudioAssetId === "string"
-        ? dc.selectedStudioAssetId.trim()
-        : undefined;
-    const fetchUrl = resolveStudioModelGltfFetchUrl(
-      { url: logical, studioAssetId },
-      descriptors,
-      "",
-    );
-    return fetchUrl.length > 0 ? fetchUrl : null;
-  }, [parentModelFlowNodeId, modelNodes, descriptors]);
+  const flowPresetLibrary = useFlowEditorStore((s) => s.flowPresetLibrary);
 
-  const filteredGroupLibraryCount = useMemo(() => {
+  const filteredSavedLibraryCount = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (q.length === 0) {
-      return nodeGroupLibrary.length;
-    }
-    return nodeGroupLibrary.filter((asset) =>
-      [asset.meta.name, asset.meta.description ?? "", ...(asset.meta.tags ?? [])]
-        .join(" ")
-        .toLowerCase()
-        .includes(q),
+    const match = (name: string, extra: string) => {
+      const hay = `${name} ${extra}`.toLowerCase();
+      return q.length === 0 || hay.includes(q);
+    };
+    const groups = nodeGroupLibrary.filter((asset) =>
+      match(asset.meta.name, [asset.meta.description ?? "", ...(asset.meta.tags ?? [])].join(" ")),
     ).length;
-  }, [nodeGroupLibrary, query]);
-
-  const glbExtraction = useStudioGltfExtraction(tab === "glb" ? glbFetchUrl : null);
-
-  const glbRows = useMemo(
-    () =>
-      glbExtraction.result ?? {
-        animations: [],
-        parts: [],
-        materials: [],
-        morphs: [],
-        lights: [],
-        cameras: [],
-      },
-    [glbExtraction.result],
-  );
-
-  const glbPlacedRowKeys = useMemo(() => {
-    if (parentModelFlowNodeId == null) {
-      return new Set<string>();
-    }
-    const set = new Set<string>();
-    for (const n of modelNodes) {
-      const pid = readSourceModelNodeId(n.data.defaultConfig);
-      if (pid !== parentModelFlowNodeId) {
-        continue;
-      }
-      const tag = readGlbExtractTag(n.data.defaultConfig);
-      if (tag == null) {
-        continue;
-      }
-      set.add(studioGlbExtractRowKey(tag));
-    }
-    return set;
-  }, [modelNodes, parentModelFlowNodeId]);
+    const flows = flowPresetLibrary.filter((preset) =>
+      match(
+        preset.meta.name,
+        [preset.meta.description ?? "", preset.meta.category, ...(preset.meta.tags ?? [])].join(" "),
+      ),
+    ).length;
+    return groups + flows;
+  }, [flowPresetLibrary, nodeGroupLibrary, query]);
 
   const secondaryTextColor = mutedTextColor ?? "#a1a1aa";
 
@@ -304,12 +212,7 @@ export function NodePalette(props: NodePaletteProps) {
 
   const activeList = tab === "simulation" ? simulationNodes : standardNodes;
 
-  const headerListCount =
-    tab === "glb"
-      ? glbExtraction.totalRows
-      : tab === "groups"
-        ? filteredGroupLibraryCount
-        : activeList.length;
+  const headerListCount = tab === "saved" ? filteredSavedLibraryCount : activeList.length;
 
   const categoryCounts = useMemo(() => {
     const m = new Map<NodeCatalogEntry["category"], number>();
@@ -807,14 +710,10 @@ export function NodePalette(props: NodePaletteProps) {
             <span
               className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
               title={
-                tab === "glb"
+                tab === "saved"
                   ? paletteFilterActive
-                    ? "Model entries matching search"
-                    : "Extracted model parts for the selected Model Source"
-                  : tab === "groups"
-                    ? paletteFilterActive
-                      ? "Saved groups matching search"
-                      : "Saved node group presets"
+                    ? "Saved flows and groups matching search"
+                    : "Saved flow and group presets"
                   : paletteFilterActive
                     ? "Count of blocks matching the current list"
                     : "Blocks in this list"
@@ -877,42 +776,23 @@ export function NodePalette(props: NodePaletteProps) {
             Simulation
           </button>
           <button
-            id="palette-tab-glb"
+            id="palette-tab-saved"
             type="button"
             role="tab"
-            aria-selected={tab === "glb"}
+            aria-selected={tab === "saved"}
             onClick={() => {
-              setTab("glb");
+              setTab("saved");
               setCategoryFilter("all");
               setSensorFamilyFilter("all");
             }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
               dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
             } ${
-              tab === "glb" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            <Box className={`shrink-0 opacity-80 ${dense ? "size-3" : "size-3.5"}`} aria-hidden />
-            Model
-          </button>
-          <button
-            id="palette-tab-groups"
-            type="button"
-            role="tab"
-            aria-selected={tab === "groups"}
-            onClick={() => {
-              setTab("groups");
-              setCategoryFilter("all");
-              setSensorFamilyFilter("all");
-            }}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
-              dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
-            } ${
-              tab === "groups" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+              tab === "saved" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             <Boxes className={`shrink-0 opacity-80 ${dense ? "size-3" : "size-3.5"}`} aria-hidden />
-            Groups
+            Saved
           </button>
         </div>
 
@@ -964,11 +844,9 @@ export function NodePalette(props: NodePaletteProps) {
           <input
             type="search"
             placeholder={
-              tab === "glb"
-                ? "Search clips, parts, materials, lights…"
-                : tab === "groups"
-                  ? "Search saved node groups…"
-                  : "Search by name, sensor, or description…"
+              tab === "groups"
+                ? "Search saved node groups…"
+                : "Search by name, sensor, or description…"
             }
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -982,13 +860,7 @@ export function NodePalette(props: NodePaletteProps) {
               dense ? "py-1.5 text-[11px]" : "py-2 text-[12px]"
             } ${query.trim().length > 0 ? "pr-9" : "pr-2"}`}
             style={{ borderColor }}
-            aria-label={
-              tab === "glb"
-                ? "Search model extraction list"
-                : tab === "groups"
-                  ? "Search saved node groups"
-                  : "Search library"
-            }
+            aria-label={tab === "groups" ? "Search saved node groups" : "Search library"}
           />
           {query.trim().length > 0 ? (
             <button
@@ -1123,32 +995,11 @@ export function NodePalette(props: NodePaletteProps) {
                 ? "palette-tab-nodes"
                 : tab === "simulation"
                   ? "palette-tab-simulation"
-                  : tab === "groups"
-                    ? "palette-tab-groups"
-                    : "palette-tab-glb"
+                  : "palette-tab-saved"
             }
           >
-          {tab === "glb" ? (
-            <GlbExtractionTabPanel
-              borderColor={borderColor}
-              panelColor={panelColor}
-              mutedTextColor={mutedTextColor}
-              dense={dense}
-              parentModelFlowNodeId={parentModelFlowNodeId}
-              searchQuery={query}
-              state={glbExtraction.state}
-              totalRows={glbExtraction.totalRows}
-              errorMessage={glbExtraction.errorMessage}
-              rows={glbRows}
-              placedRowKeys={glbPlacedRowKeys}
-              onSpawnGlbExtract={onSpawnGlbExtract}
-              onSpawnGlbEventPartExtract={onSpawnGlbEventPartExtract}
-              onSpawnGlbEventAnimExtract={onSpawnGlbEventAnimExtract}
-              onSpawnGlbMaterialTextureExtract={onSpawnGlbMaterialTextureExtract}
-              onSpawnGlbMaterialColorExtract={onSpawnGlbMaterialColorExtract}
-            />
-          ) : tab === "groups" ? (
-            <GroupLibraryTabPanel dense={dense} query={query} borderColor={borderColor} remoteEnabled />
+          {tab === "saved" ? (
+            <StudioSavedLibraryPanel dense={dense} query={query} borderColor={borderColor} remoteGroupsEnabled />
           ) : activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
               <Waves className="size-8 text-zinc-600" aria-hidden />

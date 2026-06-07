@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { createFlowUndoCoalescer } from "./flow-undo-coalesce";
 import type { Connection, Edge, Node } from "@xyflow/react";
 import { addEdge, applyEdgeChanges, applyNodeChanges } from "@xyflow/react";
 import {
@@ -123,6 +124,7 @@ import {
 import { flowWirePhysicsRigidBodyFromConfig } from "../nodes/physics/flow-wire-physics-body";
 import { evaluateStageSceneSnapshot } from "../../../core/stage/evaluate-stage-scene-snapshot";
 import { isFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
+import { filterNodeChangesForStore } from "../flow-react-flow-node-sync";
 import { useStageSceneStore } from "../../../state/stage-scene.store";
 import {
   evaluateFrameDelta,
@@ -224,13 +226,17 @@ import {
 } from "../../../core/flow/math-node-inputs";
 import type { StudioAssetDescriptor } from "../../asset-browser/studio-asset.types";
 import { resolveSingleClipAutoBindPatchesForGlbAnimNodes } from "../gltf/glb-anim-clip-auto-bind";
+import { resolvePartSpinAutoBindPatches } from "../gltf/glb-part-spin-auto-bind";
 import {
   buildFlowClipboardPayload,
+  FLOW_CLIPBOARD_MARKER,
+  FLOW_CLIPBOARD_VERSION,
   parseFlowClipboard,
   remapFlowPaste,
   serializeFlowClipboard,
 } from "../clipboard/flow-clipboard";
 import { createStudioNodeGroupFromSelection } from "../subgraphs/create-studio-node-group";
+import { repairOrphanedNodeGroupSubgraphs } from "../subgraphs/repair-orphaned-node-group-subgraphs";
 import { dissolveStudioNodeGroupInParent } from "../subgraphs/dissolve-studio-node-group";
 import {
   appendGroupHostToRootGraph,
@@ -245,14 +251,32 @@ import {
   initialSubgraphStoreSlice,
   persistActiveGraphBuffer,
   resolveEvaluationGraph,
+  type StudioSubgraphStoreSlice,
 } from "../subgraphs/studio-subgraph-store-sync";
 import {
+  buildStudioGroupBoundaryLiveFields,
+  buildStudioNodeGroupHostLiveFields,
+} from "../subgraphs/studio-group-boundary-live";
+import {
+  resolveRootCanvasViewOnHydrate,
+  resolveSubgraphCanvasViewOnRestore,
+} from "../subgraphs/resolve-subgraph-canvas-view";
+import { applyStudioGroupBoundaryNodeChrome } from "../layout-nodes/studio-group-boundary-node-chrome";
+import {
+  promoteGroupConnection,
+  syncGroupInterfaceFromHostWires,
+} from "../subgraphs/studio-group-connect-promote";
+import { applyUnwiredGroupInputDefaults } from "../subgraphs/studio-group-input-defaults";
+import {
   isExcludedFromNodeGroup,
+  isStudioGroupBoundaryNode,
   isStudioNodeGroupNode,
   STUDIO_ROOT_GRAPH_ID,
   ensureDefaultGroupSockets,
   type StudioGraphId,
+  type StudioGroupBoundaryData,
   type StudioGroupInterface,
+  type StudioNodeGroupData,
   type StudioSubgraphDocument,
   type SubgraphFlowNode,
 } from "../subgraphs/studio-subgraph.types";
@@ -279,6 +303,28 @@ import {
   readPersistedNodeGroupLibrary,
   writePersistedNodeGroupLibrary,
 } from "../../../persistence/node-group-library.repository";
+import {
+  readPersistedFlowPresetLibrary,
+  writePersistedFlowPresetLibrary,
+} from "../../../persistence/flow-preset-library.repository";
+import { buildFlowPresetFromCanvas } from "../flow-library/build-flow-preset-from-canvas";
+import {
+  downloadStudioFlowPresetFile,
+  rekeyStudioFlowPresetMeta,
+  type StudioFlowPresetCategory,
+  type StudioFlowPresetFile,
+} from "../flow-library/studio-flow-preset-file";
+import { remapFlowDocumentForMerge } from "../flow-library/merge-flow-document-into-canvas";
+import { parseFlowImportPayload } from "../flow-library/parse-flow-import-payload";
+import {
+  resolveSaveToLibraryTarget,
+  type SaveToLibraryTarget,
+} from "../flow-library/resolve-save-to-library-target";
+import {
+  findLinkedFlowPreset,
+  upsertFlowPreset,
+  type FlowPresetSaveResult,
+} from "../flow-library/flow-preset-upsert";
 import { resolveStudioGroupNodePortType } from "../subgraphs/resolve-studio-group-port";
 import { pointerEventMatchesOnClickConfig } from "../nodes/events/on-click-config";
 import { readGlbAnimTriggerNonce } from "../nodes/events/glb-anim-event-config";
@@ -332,6 +378,36 @@ import {
   flowAnimationWireFromBundleDefaultConfig,
   isFlowWireAnimationV1,
 } from "../nodes/animation/flow-wire-animation";
+import {
+  ANIMATION_CLIP_NAME_KEY,
+  flowAnimationWireFromAnimationClipEval,
+} from "../nodes/animation/animation-clip-config";
+import {
+  blendFlowWireAnimationsV1,
+  mergeFlowWireAnimationsV1,
+  mixFlowWireAnimationsV1,
+} from "../nodes/animation/animation-wire-merge";
+import {
+  ANIMATION_MERGE_INPUT_COUNT_KEY,
+  ANIMATION_MERGE_OUTPUT_HANDLE,
+  animationMergeInputHandleId,
+  computeAnimationMergeInputHandles,
+  pruneAnimationMergeEdges,
+  readAnimationMergeInputCount,
+} from "../nodes/animation/animation-merge-inputs";
+import {
+  ANIMATION_MIX_NORMALIZE_WEIGHTS_KEY,
+  ANIMATION_MIX_OUTPUT_HANDLE,
+  ANIMATION_MIX_WEIGHTS_KEY,
+  animationMixWeightHandleId,
+  computeAnimationMixInputHandles,
+  defaultEqualMixWeights,
+  ensureMixWeightsForCount,
+  pruneAnimationMixEdges,
+  readAnimationMixInputCount,
+  readMixWeights,
+  readNormalizeMixWeights,
+} from "../nodes/animation/animation-mix-inputs";
 import type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
 import {
   coerceFlowWireTransformV1,
@@ -377,6 +453,7 @@ import {
   STUDIO_GLB_EXTRACT_REF_KEY,
   STUDIO_HANDLE_MODEL,
   STUDIO_SOURCE_MODEL_NODE_ID_KEY,
+  catalogNodeHasStudioModelInput,
   readGlbExtractTag,
   resolveWiredStudioModelSelectNodeId,
 } from "../model/model-generated-bindings";
@@ -771,6 +848,9 @@ export type StudioDemoTemplateId =
   | "vector-magnitude"
   | "bmi270-gauge-z"
   | "rotation-glb-anim"
+  | "animation-clip-blend"
+  | "animation-mix-demo"
+  | "part-spin-demo"
   | "material-glb-drives"
   | "audio-lab"
   | "audio-file-playback"
@@ -812,6 +892,33 @@ function selectionFromIds(ids: readonly string[]): {
     selectedNodeIds,
     selectedNodeId: selectedNodeIds[0] ?? null,
   };
+}
+
+function selectionIdsEqual(a: readonly string[], b: readonly string[]): boolean {
+  if (a.length !== b.length) {
+    return false;
+  }
+  const seen = new Set(a);
+  if (seen.size !== a.length) {
+    return false;
+  }
+  return b.every((id) => seen.has(id));
+}
+
+function nodesSelectionMatches(
+  nodes: readonly FlowGraphNode[],
+  selectedIds: readonly string[],
+): boolean {
+  const selected = new Set(selectedIds);
+  if (selected.size !== selectedIds.length) {
+    return false;
+  }
+  for (const node of nodes) {
+    if (Boolean(node.selected) !== selected.has(node.id)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function normalizeFlowSnapshotSelection(snapshot: {
@@ -867,6 +974,17 @@ const MAX_UNDO = 40;
 /** Coalesce rapid layout-only changes (drag/resize) into one undo step. */
 let layoutUndoPrimed = false;
 let layoutUndoIdleTimer: ReturnType<typeof setTimeout> | undefined;
+
+let structuralUndoCoalescer: ReturnType<typeof createFlowUndoCoalescer> | null = null;
+
+function structuralUndoCoalescerFor(get: () => { pushUndoSnapshot: () => void }) {
+  if (structuralUndoCoalescer == null) {
+    structuralUndoCoalescer = createFlowUndoCoalescer(() => {
+      get().pushUndoSnapshot();
+    });
+  }
+  return structuralUndoCoalescer;
+}
 const oscillatorSweepOnceAnchorMsByNodeId = new Map<string, number>();
 const sfxTriggerWasHighByNodeId = new Map<string, boolean>();
 const machineTriggerWasHighByNodeId = new Map<string, boolean>();
@@ -1021,7 +1139,12 @@ type FlowEditorState = {
     | { ok: false; message: string };
   duplicateSelection: () => void;
   copyFlowSelectionToClipboard: () => Promise<boolean>;
-  pasteFlowFromClipboard: () => Promise<{ ok: boolean; message?: string }>;
+  pasteFlowFromClipboard: () => Promise<{
+    ok: boolean;
+    message?: string;
+    pendingFlowPreset?: StudioFlowPresetFile;
+    pendingRawFlowDocument?: string;
+  }>;
   createGroupFromSelection: () => void;
   ungroupSelection: () => void;
   enterGroup: (groupId: string) => void;
@@ -1031,6 +1154,7 @@ type FlowEditorState = {
     hostNodeId: string,
     nextInterface: StudioGroupInterface,
   ) => void;
+  syncGroupInterfaceFromWires: (hostNodeId: string) => void;
   updateNodeGroupTitle: (hostNodeId: string, title: string) => void;
   ungroupNodeGroup: (hostNodeId: string) => void;
   duplicateGroupLinked: (hostNodeId: string) => void;
@@ -1041,6 +1165,7 @@ type FlowEditorState = {
     descriptors: readonly StudioAssetDescriptor[],
   ) => void;
   nodeGroupLibrary: StudioNodeAssetFile[];
+  flowPresetLibrary: StudioFlowPresetFile[];
   remoteNodeGraphAssets: Record<string, StudioNodeAssetFile>;
   registerRemoteNodeGraphAsset: (asset: StudioNodeAssetFile) => void;
   clearRemoteNodeGraphAssets: () => void;
@@ -1053,6 +1178,20 @@ type FlowEditorState = {
   importNodeAssetToLibrary: (asset: StudioNodeAssetFile) => string;
   exportNodeAssetById: (assetId: string) => boolean;
   exportGroupAsNodeAssetFile: (hostNodeId: string) => boolean;
+  saveToLibrary: (args: {
+    name: string;
+    category?: StudioFlowPresetCategory;
+    description?: string;
+    tags?: string[];
+  }) => { target: SaveToLibraryTarget } & (FlowPresetSaveResult | StudioLibrarySaveResult) | null;
+  loadFlowPresetFromLibrary: (
+    presetId: string,
+    mode: "replace" | "merge",
+  ) => boolean;
+  removeFlowPresetFromLibrary: (presetId: string) => void;
+  importFlowPresetToLibrary: (preset: StudioFlowPresetFile) => string;
+  exportFlowPresetById: (presetId: string) => boolean;
+  mergeFlowPresetDocument: (document: StudioFlowPresetFile["document"]) => boolean;
   importNodeAssetIntoGroup: (
     hostNodeId: string,
     asset: StudioNodeAssetFile,
@@ -1066,6 +1205,8 @@ type FlowEditorState = {
   deleteSelection: () => void;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
+  /** Blender-style **A** — select all when not fully selected; deselect all when every node is selected. */
+  toggleSelectAllNodes: () => void;
   /** Programmatic selection (e.g. jump from Model card to a linked node). Does not push undo. */
   selectStudioNodesByIds: (nodeIds: string[]) => void;
   onNodesChange: (
@@ -1173,6 +1314,19 @@ type FlowEditorState = {
       mergeDefaultConfig?: Record<string, unknown>;
     },
   ) => void;
+  /**
+   * Create a GLB-scoped catalog node with inline catalog model binding (no `model-select` wire).
+   * Caller supplies `selectedStudioAssetId` / `selectedModelUrl` inside `mergeDefaultConfig`.
+   */
+  addNodeFromCatalogWithInlineGlbModel: (
+    entry: NodeCatalogEntry,
+    position: { x: number; y: number },
+    options: {
+      ui?: StudioNodeData["ui"];
+      flowNodeLabel?: string;
+      mergeDefaultConfig: Record<string, unknown>;
+    },
+  ) => void;
   updateNodeConfigFieldByNodeId: (
     nodeId: string,
     key: string,
@@ -1191,6 +1345,13 @@ type FlowEditorState = {
   runDemoTemplate: (
     templateId: StudioDemoTemplateId,
     catalog: NodeCatalogEntry[],
+  ) => void;
+  /** Library wizard: spawn Model-linked clip(s) + Merge/Mix/Blend + Model Viewer. */
+  spawnGlbAnimationSetupGraph: (
+    parentModelFlowNodeId: string,
+    clipRefs: readonly string[],
+    catalog: NodeCatalogEntry[],
+    combinerMode?: import("../components/node-palette/glb-animation-setup-combiner").GlbAnimationSetupCombinerMode,
   ) => void;
   updateSelectedNodeLabel: (nextLabel: string) => void;
   updateSelectedNodeConfigField: (key: string, value: unknown) => boolean;
@@ -1286,6 +1447,18 @@ function inferPortTypes(entry: NodeCatalogEntry): {
     return {
       inputHandles: computeLogicGateInputHandles(entry.defaultConfig),
       outputHandles: [LOGIC_GATE_OUTPUT_HANDLE],
+    };
+  }
+  if (entry.id === "animation-merge") {
+    return {
+      inputHandles: computeAnimationMergeInputHandles(entry.defaultConfig),
+      outputHandles: [ANIMATION_MERGE_OUTPUT_HANDLE],
+    };
+  }
+  if (entry.id === "animation-mix") {
+    return {
+      inputHandles: computeAnimationMixInputHandles(entry.defaultConfig),
+      outputHandles: [ANIMATION_MIX_OUTPUT_HANDLE],
     };
   }
   if (entry.inputPorts != null && entry.inputPorts.length > 0) {
@@ -1428,6 +1601,38 @@ function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
   );
   if (entry == null) {
     return node;
+  }
+  if (entry.id === "animation-merge") {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        inputHandles: computeAnimationMergeInputHandles(node.data.defaultConfig),
+        outputHandles: [ANIMATION_MERGE_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
+        category: entry.category,
+      },
+    };
+  }
+  if (entry.id === "animation-mix") {
+    const mixWeights = ensureMixWeightsForCount(
+      node.data.defaultConfig,
+      readAnimationMixInputCount(node.data.defaultConfig),
+    );
+    const defaultConfig = { ...node.data.defaultConfig, mixWeights };
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        defaultConfig,
+        inputHandles: computeAnimationMixInputHandles(defaultConfig),
+        outputHandles: [ANIMATION_MIX_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
+        category: entry.category,
+      },
+    };
   }
   const inferred = inferPortTypes(entry);
   return {
@@ -1766,6 +1971,32 @@ function attachConfigErrors(
         outputType: undefined,
       };
     }
+    if (piped.nodeId === "animation-merge") {
+      piped = {
+        ...piped,
+        inputHandles: computeAnimationMergeInputHandles(piped.defaultConfig),
+        outputHandles: [ANIMATION_MERGE_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
+      };
+    }
+    if (piped.nodeId === "animation-mix") {
+      const mixCount = readAnimationMixInputCount(piped.defaultConfig);
+      const mixWeights = ensureMixWeightsForCount(piped.defaultConfig, mixCount);
+      const defaultConfig = {
+        ...piped.defaultConfig,
+        mixWeights,
+        normalizeWeights: readNormalizeMixWeights(piped.defaultConfig),
+      };
+      piped = {
+        ...piped,
+        defaultConfig,
+        inputHandles: computeAnimationMixInputHandles(defaultConfig),
+        outputHandles: [ANIMATION_MIX_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
+      };
+    }
     const errors = validateStudioNodeConfig(piped.nodeId, piped.defaultConfig);
     const dragHandle = dragHandleSelectorForNodeId(piped.nodeId);
     let layoutNode: StudioNode = {
@@ -1791,6 +2022,74 @@ function attachConfigErrorsWithModelChildRegistry(
   );
 }
 
+function applyNodeGroupInterfaceToState(
+  state: StudioSubgraphStoreSlice,
+  hostNodeId: string,
+  nextInterface: StudioGroupInterface,
+): Partial<FlowEditorState> | null {
+  const host =
+    state.rootNodes.find(
+      (n) => n.id === hostNodeId && isStudioNodeGroupNode(n),
+    ) ?? state.nodes.find((n) => n.id === hostNodeId && isStudioNodeGroupNode(n));
+  if (host == null) {
+    return null;
+  }
+  const subgraphId = host.data.subgraphId ?? hostNodeId;
+  const subgraph = state.subgraphs[subgraphId];
+  if (subgraph == null) {
+    return null;
+  }
+
+  const base = subgraphForInterfaceEdit(
+    subgraphId,
+    subgraph,
+    state.activeGraphId,
+    state.nodes,
+    state.edges,
+  );
+  if (base == null) {
+    return null;
+  }
+
+  const ensured = ensureDefaultGroupSockets(nextInterface);
+  const updatedSub = applyGroupInterfaceToSubgraph(base, ensured);
+  const filteredRootEdges = filterParentEdgesForGroupInterface(
+    state.rootEdges,
+    hostNodeId,
+    ensured,
+  );
+  const newSubgraphs = { ...state.subgraphs, [subgraphId]: updatedSub };
+
+  if (state.activeGraphId === subgraphId) {
+    const attached = attachConfigErrorsWithModelChildRegistry(
+      updatedSub.nodes as FlowGraphNode[],
+      updatedSub.edges,
+    );
+    const committed = commitActiveGraphMutation(
+      { ...state, subgraphs: newSubgraphs, rootEdges: filteredRootEdges },
+      attached,
+      updatedSub.edges,
+    );
+    return { ...committed, rootEdges: filteredRootEdges };
+  }
+  if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+    const filteredEdges = filterParentEdgesForGroupInterface(
+      state.edges,
+      hostNodeId,
+      ensured,
+    );
+    return {
+      subgraphs: newSubgraphs,
+      edges: filteredEdges,
+      rootEdges: filteredEdges,
+    };
+  }
+  return {
+    subgraphs: newSubgraphs,
+    rootEdges: filteredRootEdges,
+  };
+}
+
 /** When **Studio Model** wires into **model-viewer** or GLB event nodes, persist `sourceModelNodeId`. */
 function patchStudioModelScopeOnConnect(
   nodes: FlowGraphNode[],
@@ -1810,7 +2109,7 @@ function patchStudioModelScopeOnConnect(
   const parentId = source.id;
 
   if (
-    STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(target.data.nodeId) &&
+    catalogNodeHasStudioModelInput(target.data.nodeId) &&
     targetHandle === STUDIO_HANDLE_MODEL
   ) {
     const prevId = readSourceModelNodeId(target.data.defaultConfig);
@@ -1828,6 +2127,9 @@ function patchStudioModelScopeOnConnect(
       if (readGlbExtractTag(n.data.defaultConfig) != null) {
         delete nextConfig[STUDIO_GLB_EXTRACT_KIND_KEY];
         delete nextConfig[STUDIO_GLB_EXTRACT_REF_KEY];
+      }
+      if (n.data.nodeId === "animation-clip") {
+        delete nextConfig[ANIMATION_CLIP_NAME_KEY];
       }
       return {
         ...n,
@@ -1888,14 +2190,14 @@ function patchStudioModelScopeOnConnect(
   return changed ? next : nodes;
 }
 
-/** Keep GLB event nodes aligned with a wired **Model** input (scope + stale clip cleanup). */
+/** Keep GLB model-input nodes aligned with a wired **Model** socket (scope + stale binding cleanup). */
 function reconcileGlbEventModelScopeFromEdges(
   nodes: StudioNode[],
   edges: Edge[],
 ): StudioNode[] {
   let changed = false;
   const next = nodes.map((node) => {
-    if (!STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(node.data.nodeId)) {
+    if (!catalogNodeHasStudioModelInput(node.data.nodeId)) {
       return node;
     }
     const wiredModelId = resolveWiredStudioModelSelectNodeId({
@@ -1918,6 +2220,9 @@ function reconcileGlbEventModelScopeFromEdges(
     if (readGlbExtractTag(node.data.defaultConfig) != null) {
       delete nextConfig[STUDIO_GLB_EXTRACT_KIND_KEY];
       delete nextConfig[STUDIO_GLB_EXTRACT_REF_KEY];
+    }
+    if (node.data.nodeId === "animation-clip") {
+      delete nextConfig[ANIMATION_CLIP_NAME_KEY];
     }
     changed = true;
     return {
@@ -2697,7 +3002,7 @@ function mergeValidHandleTimestamp(
   };
 }
 
-function scheduleGlbAnimClipAutoBindForNodes(
+function scheduleGlbExtractAutoBindForNodes(
   get: () => FlowEditorState,
   set: (
     partial:
@@ -2710,19 +3015,27 @@ function scheduleGlbAnimClipAutoBindForNodes(
     return;
   }
   const catalog = get().studioAssetDescriptors;
-  void resolveSingleClipAutoBindPatchesForGlbAnimNodes({
-    nodes: get().nodes,
-    edges: get().edges,
-    targetFlowNodeIds,
-    catalog,
-  }).then((patches) => {
-    if (patches.size === 0) {
+  void Promise.all([
+    resolveSingleClipAutoBindPatchesForGlbAnimNodes({
+      nodes: get().nodes,
+      edges: get().edges,
+      targetFlowNodeIds,
+      catalog,
+    }),
+    resolvePartSpinAutoBindPatches({
+      nodes: get().nodes,
+      edges: get().edges,
+      targetFlowNodeIds,
+      catalog,
+    }),
+  ]).then(([animPatches, spinPatches]) => {
+    if (animPatches.size === 0 && spinPatches.size === 0) {
       return;
     }
     set((state) => ({
       nodes: attachConfigErrorsWithModelChildRegistry(
         state.nodes.map((node) => {
-          const patch = patches.get(node.id);
+          const patch = animPatches.get(node.id) ?? spinPatches.get(node.id);
           if (patch == null) {
             return node;
           }
@@ -2763,7 +3076,7 @@ function dispatchFlowEventSourcesWithGlbAnimAutoBind(
     nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, state.edges),
   }));
   get().tickSimulation();
-  scheduleGlbAnimClipAutoBindForNodes(get, set, targetIds);
+  scheduleGlbExtractAutoBindForNodes(get, set, targetIds);
 }
 
 function dispatchFlowEventSourcesFromHandle(
@@ -2791,7 +3104,7 @@ function dispatchFlowEventSourcesFromHandle(
   set((state) => ({
     nodes: attachConfigErrorsWithModelChildRegistry(nextNodes, state.edges),
   }));
-  scheduleGlbAnimClipAutoBindForNodes(get, set, targetIds);
+  scheduleGlbExtractAutoBindForNodes(get, set, targetIds);
 }
 
 function applyConfigFieldPatch(
@@ -2822,6 +3135,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     set({ studioAssetDescriptors: descriptors });
   },
   nodeGroupLibrary: readPersistedNodeGroupLibrary(),
+  flowPresetLibrary: readPersistedFlowPresetLibrary(),
   remoteNodeGraphAssets: {},
   pushUndoSnapshot: () => {
     const st = get();
@@ -2914,25 +3228,34 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
   },
   hydrateFlowDocument: (snapshot) => {
-    const nodesRaw = (snapshot.nodes as StudioNode[]).map((n) =>
-      refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n)),
-    );
+    const migrateStudioFlowNode = (n: StudioNode) =>
+      refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n));
+    const nodesRaw = (snapshot.nodes as StudioNode[]).map(migrateStudioFlowNode);
     const sel = normalizeFlowSnapshotSelection(snapshot);
-    const subgraphs = snapshot.subgraphs ?? {};
-    const activeGraphId = snapshot.activeGraphId ?? STUDIO_ROOT_GRAPH_ID;
+    const rootNodes = (
+      snapshot.rootNodes != null
+        ? (snapshot.rootNodes as StudioNode[])
+        : (snapshot.nodes as StudioNode[])
+    ).map(migrateStudioFlowNode) as FlowGraphNode[];
+    const subgraphs = repairOrphanedNodeGroupSubgraphs(
+      snapshot.subgraphs ?? {},
+      rootNodes,
+    );
+    const rootEdges = snapshot.rootEdges ?? snapshot.edges;
+    const canvasView = resolveRootCanvasViewOnHydrate({ rootNodes, rootEdges });
     set({
       nodes: attachConfigErrorsWithModelChildRegistry(
-        applyStudioFlowSelection(nodesRaw, sel.selectedNodeIds),
-        snapshot.edges,
+        applyStudioFlowSelection(canvasView.nodes, sel.selectedNodeIds),
+        canvasView.edges,
       ),
-      edges: snapshot.edges,
+      edges: canvasView.edges,
       selectedNodeId: sel.selectedNodeId,
       selectedNodeIds: sel.selectedNodeIds,
       subgraphs,
-      activeGraphId,
-      graphStack: snapshot.graphStack ?? [],
-      rootNodes: snapshot.rootNodes ?? nodesRaw,
-      rootEdges: snapshot.rootEdges ?? snapshot.edges,
+      activeGraphId: canvasView.activeGraphId,
+      graphStack: canvasView.graphStack,
+      rootNodes,
+      rootEdges,
       undoStack: [],
       redoStack: [],
     });
@@ -3033,12 +3356,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         : undefined;
     const workbenchLayout = coerceWorkbenchFlowAttachment(o.workbenchLayout);
     const subgraphsRaw = o.subgraphs;
-    const subgraphs =
+    const subgraphsParsed =
       subgraphsRaw != null &&
       typeof subgraphsRaw === "object" &&
       !Array.isArray(subgraphsRaw)
         ? (subgraphsRaw as Record<string, StudioSubgraphDocument>)
         : {};
+    const rootNodesRaw = o.rootNodes;
+    const rootNodesForImport = Array.isArray(rootNodesRaw)
+      ? (rootNodesRaw as FlowGraphNode[])
+      : (migratedNodes as FlowGraphNode[]);
+    const subgraphs = repairOrphanedNodeGroupSubgraphs(
+      subgraphsParsed,
+      rootNodesForImport,
+    );
     const activeGraphId =
       typeof o.activeGraphId === "string"
         ? (o.activeGraphId as StudioGraphId)
@@ -3046,28 +3377,40 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const graphStack = Array.isArray(o.graphStack)
       ? o.graphStack.filter((x): x is StudioGraphId => typeof x === "string")
       : [];
-    const rootNodesRaw = o.rootNodes;
     const rootEdgesRaw = o.rootEdges;
-    set({
-      nodes: attachConfigErrorsWithModelChildRegistry(
-        applyStudioFlowSelection(
-          migratedNodes.map((n) => ({ ...n, selected: false })),
-          selection.selectedNodeIds,
-        ),
-        migratedEdges,
-      ),
-      edges: migratedEdges,
-      selectedNodeId: selection.selectedNodeId,
-      selectedNodeIds: selection.selectedNodeIds,
+    const rootNodes = (
+      Array.isArray(rootNodesRaw)
+        ? (rootNodesRaw as StudioNode[]).map((n) =>
+            refreshCatalogOutputHandles(migrateFlowNodeFromLegacy(n)),
+          )
+        : migratedNodes
+    ) as FlowGraphNode[];
+    const rootEdges = Array.isArray(rootEdgesRaw)
+      ? (rootEdgesRaw as Edge[])
+      : migratedEdges;
+    const canvasView = resolveSubgraphCanvasViewOnRestore({
+      rootNodes,
+      rootEdges,
       subgraphs,
       activeGraphId,
       graphStack,
-      rootNodes: Array.isArray(rootNodesRaw)
-        ? (rootNodesRaw as FlowGraphNode[])
-        : (migratedNodes as FlowGraphNode[]),
-      rootEdges: Array.isArray(rootEdgesRaw)
-        ? (rootEdgesRaw as Edge[])
-        : migratedEdges,
+    });
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(
+          canvasView.nodes.map((n) => ({ ...n, selected: false })),
+          selection.selectedNodeIds,
+        ),
+        canvasView.edges,
+      ),
+      edges: canvasView.edges,
+      selectedNodeId: selection.selectedNodeId,
+      selectedNodeIds: selection.selectedNodeIds,
+      subgraphs,
+      activeGraphId: canvasView.activeGraphId,
+      graphStack: canvasView.graphStack,
+      rootNodes,
+      rootEdges,
       redoStack: [],
     });
     flushFlowSimulationPins(get);
@@ -3202,7 +3545,23 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (text == null) {
       return { ok: false, message: "Clipboard is empty or unavailable." };
     }
-    const payload = parseFlowClipboard(text);
+
+    const importPayload = parseFlowImportPayload(text);
+    if (importPayload?.kind === "node-asset") {
+      get().instantiateNodeAssetAt(importPayload.asset, { x: 96, y: 96 });
+      return { ok: true };
+    }
+    if (importPayload?.kind === "flow-preset") {
+      return { ok: false, pendingFlowPreset: importPayload.preset };
+    }
+    if (importPayload?.kind === "raw-flow-document") {
+      return { ok: false, pendingRawFlowDocument: importPayload.text };
+    }
+
+    const payload =
+      importPayload?.kind === "flow-clipboard"
+        ? parseFlowClipboard(text)
+        : parseFlowClipboard(text);
     if (payload == null || payload.nodes.length === 0) {
       return {
         ok: false,
@@ -3384,9 +3743,22 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     flushFlowSimulationPins(get);
   },
   enterGroup: (groupId: string) => {
-    const s = get();
+    let s = get();
+    const rootNodesForRepair =
+      s.rootNodes.length > 0 ? s.rootNodes : s.nodes;
+    const repairedSubgraphs = repairOrphanedNodeGroupSubgraphs(
+      s.subgraphs,
+      rootNodesForRepair,
+    );
+    if (repairedSubgraphs !== s.subgraphs) {
+      set({ subgraphs: repairedSubgraphs });
+      s = get();
+    }
     const sub = s.subgraphs[groupId];
     if (sub == null) {
+      return;
+    }
+    if (s.activeGraphId === groupId) {
       return;
     }
     get().pushUndoSnapshot();
@@ -3394,13 +3766,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const nextStack =
       persisted.activeGraphId === STUDIO_ROOT_GRAPH_ID
         ? [STUDIO_ROOT_GRAPH_ID, groupId]
-        : [...persisted.graphStack, groupId];
+        : persisted.graphStack[persisted.graphStack.length - 1] === groupId
+          ? persisted.graphStack
+          : [...persisted.graphStack, groupId];
     set({
       ...persisted,
       activeGraphId: groupId,
       graphStack: nextStack,
       nodes: attachConfigErrorsWithModelChildRegistry(
-        sub.nodes as FlowGraphNode[],
+        (sub.nodes as FlowGraphNode[]).map((node) =>
+          applyStudioGroupBoundaryNodeChrome(node),
+        ),
         sub.edges,
       ),
       edges: sub.edges,
@@ -3439,6 +3815,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     });
   },
   updateNodeGroupInterface: (hostNodeId, nextInterface) => {
+    get().pushUndoSnapshot();
+    const patch = applyNodeGroupInterfaceToState(get(), hostNodeId, nextInterface);
+    if (patch == null) {
+      return;
+    }
+    set(patch);
+    flushFlowSimulationPins(get);
+  },
+  syncGroupInterfaceFromWires: (hostNodeId) => {
     const s = get();
     const host =
       s.rootNodes.find(
@@ -3452,57 +3837,19 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (subgraph == null) {
       return;
     }
-
-    get().pushUndoSnapshot();
-
-    const base = subgraphForInterfaceEdit(
-      subgraphId,
+    const nextInterface = syncGroupInterfaceFromHostWires({
+      hostNodeId,
+      rootNodes: s.rootNodes,
+      rootEdges: s.rootEdges,
       subgraph,
-      s.activeGraphId,
-      s.nodes,
-      s.edges,
-    );
-    if (base == null) {
+      subgraphs: s.subgraphs,
+    });
+    get().pushUndoSnapshot();
+    const patch = applyNodeGroupInterfaceToState(s, hostNodeId, nextInterface);
+    if (patch == null) {
       return;
     }
-
-    const ensured = ensureDefaultGroupSockets(nextInterface);
-    const updatedSub = applyGroupInterfaceToSubgraph(base, ensured);
-    const filteredRootEdges = filterParentEdgesForGroupInterface(
-      s.rootEdges,
-      hostNodeId,
-      ensured,
-    );
-    const newSubgraphs = { ...s.subgraphs, [subgraphId]: updatedSub };
-
-    if (s.activeGraphId === subgraphId) {
-      const attached = attachConfigErrorsWithModelChildRegistry(
-        updatedSub.nodes as FlowGraphNode[],
-        updatedSub.edges,
-      );
-      const committed = commitActiveGraphMutation(
-        { ...s, subgraphs: newSubgraphs, rootEdges: filteredRootEdges },
-        attached,
-        updatedSub.edges,
-      );
-      set({ ...committed, rootEdges: filteredRootEdges });
-    } else if (s.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
-      const filteredEdges = filterParentEdgesForGroupInterface(
-        s.edges,
-        hostNodeId,
-        ensured,
-      );
-      set({
-        subgraphs: newSubgraphs,
-        edges: filteredEdges,
-        rootEdges: filteredEdges,
-      });
-    } else {
-      set({
-        subgraphs: newSubgraphs,
-        rootEdges: filteredRootEdges,
-      });
-    }
+    set(patch);
     flushFlowSimulationPins(get);
   },
   updateNodeGroupTitle: (hostNodeId, title) => {
@@ -3785,6 +4132,179 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     downloadStudioNodeAssetFile(asset);
     return true;
   },
+  saveToLibrary: (args) => {
+    const s = persistActiveGraphBuffer(get());
+    const target = resolveSaveToLibraryTarget(s.nodes);
+    if (target === "group") {
+      const host = s.nodes.find((n) => n.selected && isStudioNodeGroupNode(n));
+      if (host == null) {
+        return null;
+      }
+      const result = get().saveGroupToNodeLibrary(host.id, args.name);
+      if (result == null) {
+        return null;
+      }
+      return { target, ...result };
+    }
+
+    const presetKind = target === "flow-full" ? "flowFull" : "flowPartial";
+    const existing = findLinkedFlowPreset(get().flowPresetLibrary, {
+      sourceScopeId:
+        presetKind === "flowFull"
+          ? s.activeGraphId === STUDIO_ROOT_GRAPH_ID
+            ? "__root__"
+            : s.activeGraphId
+          : [...s.nodes.filter((n) => n.selected).map((n) => n.id)].sort().join("|"),
+      presetKind,
+    });
+
+    const preset = buildFlowPresetFromCanvas({
+      name: args.name,
+      presetKind,
+      nodes: s.nodes,
+      edges: s.edges,
+      subgraphs: s.subgraphs,
+      activeGraphId: s.activeGraphId,
+      rootNodes: s.rootNodes,
+      rootEdges: s.rootEdges,
+      category: args.category,
+      description: args.description,
+      tags: args.tags,
+      existingMeta: existing?.meta,
+    });
+
+    const { library, result } = upsertFlowPreset(get().flowPresetLibrary, preset, {
+      sourceScopeId: preset.meta.sourceScopeId ?? "__root__",
+      presetKind,
+    });
+    writePersistedFlowPresetLibrary(library);
+    set({ flowPresetLibrary: library });
+    return { target, ...result };
+  },
+  mergeFlowPresetDocument: (document) => {
+    const st = get();
+    get().pushUndoSnapshot();
+    const clipboardPayload = {
+      marker: FLOW_CLIPBOARD_MARKER,
+      version: FLOW_CLIPBOARD_VERSION,
+      nodes: document.nodes as FlowGraphNode[],
+      edges: document.edges as Edge[],
+      ...(document.subgraphs != null ? { subgraphs: document.subgraphs } : {}),
+    };
+    const {
+      nodes: pastedRaw,
+      edges: pastedEdgesRaw,
+      idMap,
+    } = remapFlowDocumentForMerge(document);
+    const pastedNodesRaw: FlowGraphNode[] = pastedRaw.map((n) => {
+      if (isStudioFlowNode(n)) {
+        const migrated = refreshCatalogOutputHandles(
+          migrateFlowNodeFromLegacy(n as StudioNode),
+        );
+        return {
+          ...migrated,
+          selected: true,
+          dragHandle: dragHandleSelectorForNodeId(migrated.data.nodeId),
+          data: stripTransientStudioNodeData(migrated.data),
+        };
+      }
+      return { ...n, selected: true };
+    });
+    const pastedNodes = remapSourceModelNodeIdAfterDuplicate(
+      pastedNodesRaw as StudioNode[],
+      idMap,
+    ) as FlowGraphNode[];
+    const { nodes: pastedWithGroups, subgraphs: mergedSubgraphs } =
+      attachSubgraphsForPastedNodeGroups(
+        pastedNodes,
+        st.subgraphs,
+        clipboardPayload.subgraphs,
+        idMap,
+      );
+    for (const nn of pastedWithGroups) {
+      nn.selected = true;
+    }
+    const pastedEdges: Edge[] = pastedEdgesRaw.map((e) => {
+      const srcHandle = e.sourceHandle ?? STUDIO_HANDLE_OUT;
+      const sourceStub = pastedWithGroups.find((n) => n.id === e.source);
+      const label =
+        sourceStub != null
+          ? edgeLabelForSource(sourceStub, srcHandle, mergedSubgraphs)
+          : "";
+      return {
+        ...e,
+        animated: true,
+        label,
+        style: { ...(e.style ?? {}), strokeWidth: 2 },
+      };
+    });
+    const mergedNodes = [
+      ...st.nodes.map((n) => ({ ...n, selected: false })),
+      ...pastedWithGroups,
+    ];
+    const pastedIds = pastedWithGroups.map((n) => n.id);
+    const mergedEdges = [...st.edges, ...pastedEdges];
+    const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+      mergedNodes,
+      mergedEdges,
+    );
+    const committed = commitActiveGraphMutation(
+      { ...st, subgraphs: mergedSubgraphs },
+      attachedNodes,
+      mergedEdges,
+    );
+    set({
+      ...committed,
+      nodes: attachedNodes,
+      edges: mergedEdges,
+      ...selectionFromIds(pastedIds),
+    });
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  loadFlowPresetFromLibrary: (presetId, mode) => {
+    const preset = get().flowPresetLibrary.find((p) => p.meta.id === presetId);
+    if (preset == null) {
+      return false;
+    }
+    if (mode === "merge") {
+      return get().mergeFlowPresetDocument(preset.document);
+    }
+    const json = JSON.stringify({
+      version: 1,
+      nodes: preset.document.nodes,
+      edges: preset.document.edges,
+      selectedNodeId: null,
+      ...(preset.document.subgraphs != null ? { subgraphs: preset.document.subgraphs } : {}),
+      ...(preset.document.rootNodes != null
+        ? { rootNodes: preset.document.rootNodes, rootEdges: preset.document.rootEdges }
+        : {}),
+      activeGraphId: STUDIO_ROOT_GRAPH_ID,
+      graphStack: [],
+    });
+    const result = get().importFlowGraphJson(json);
+    return result.ok;
+  },
+  removeFlowPresetFromLibrary: (presetId) => {
+    const next = get().flowPresetLibrary.filter((p) => p.meta.id !== presetId);
+    writePersistedFlowPresetLibrary(next);
+    set({ flowPresetLibrary: next });
+  },
+  importFlowPresetToLibrary: (preset) => {
+    const keyed = rekeyStudioFlowPresetMeta(preset);
+    const next = [...get().flowPresetLibrary, keyed];
+    writePersistedFlowPresetLibrary(next);
+    set({ flowPresetLibrary: next });
+    return keyed.meta.id;
+  },
+  exportFlowPresetById: (presetId) => {
+    const preset = get().flowPresetLibrary.find((p) => p.meta.id === presetId);
+    if (preset == null) {
+      return false;
+    }
+    downloadStudioFlowPresetFile(preset);
+    return true;
+  },
   importNodeAssetIntoGroup: (hostNodeId, asset) => {
     const s = persistActiveGraphBuffer(get());
     const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
@@ -3924,7 +4444,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       if (sub == null) {
         return;
       }
-      nodes = sub.nodes as FlowGraphNode[];
+      nodes = (sub.nodes as FlowGraphNode[]).map((node) =>
+        applyStudioGroupBoundaryNodeChrome(node),
+      );
       edges = sub.edges;
     }
     const stackIndex = persisted.graphStack.indexOf(graphId);
@@ -4037,6 +4559,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       selectedNodeIds: [],
     }));
   },
+  toggleSelectAllNodes: () => {
+    const { nodes } = get();
+    if (nodes.length === 0) {
+      return;
+    }
+    const allSelected = nodes.every((n) => n.selected);
+    if (allSelected) {
+      get().clearNodeSelection();
+    } else {
+      get().selectAllNodes();
+    }
+  },
   selectStudioNodesByIds: (nodeIds) => {
     const sel = selectionFromIds(nodeIds);
     set((state) => ({
@@ -4051,7 +4585,11 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (changes.length === 0) {
       return;
     }
-    const layoutOnly = nodeChangesAreLayoutOnly(changes);
+    const filteredChanges = filterNodeChangesForStore(changes, get().nodes);
+    if (filteredChanges.length === 0) {
+      return;
+    }
+    const layoutOnly = nodeChangesAreLayoutOnly(filteredChanges);
     if (layoutOnly) {
       if (!layoutUndoPrimed) {
         get().pushUndoSnapshot();
@@ -4065,14 +4603,14 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         layoutUndoIdleTimer = undefined;
       }, 450);
     } else {
-      get().pushUndoSnapshot();
+      structuralUndoCoalescerFor(get).pushCoalesced();
     }
     set((state) => {
-      let nextNodes = applyNodeChanges(changes, state.nodes);
+      let nextNodes = applyNodeChanges(filteredChanges, state.nodes);
       if (layoutOnly) {
         nextNodes = syncStudioNodeLayoutStyleFromDimensionChanges(
           nextNodes,
-          changes,
+          filteredChanges,
         );
       }
       const reconciled = layoutOnly
@@ -4094,7 +4632,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const structural = changes.some((ch) => ch.type === "remove");
     if (structural) {
-      get().pushUndoSnapshot();
+      structuralUndoCoalescerFor(get).pushCoalesced();
     }
     set((state) => {
       const bridged = applyRerouteBridgeOnEdgeRemoves(
@@ -4138,26 +4676,51 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   onConnect: (connection, options) => {
     const st = get();
-    const result = connectWithPolicy(
+    const promoted = promoteGroupConnection(
       connection,
       {
         nodes: st.nodes,
         edges: st.edges,
         subgraphs: st.subgraphs,
       },
+      st.rootNodes,
+    );
+    let connectionToUse = connection;
+    if (promoted != null) {
+      connectionToUse = promoted.connection;
+      if (options?.skipUndoSnapshot !== true) {
+        get().pushUndoSnapshot();
+      }
+      const ifacePatch = applyNodeGroupInterfaceToState(
+        get(),
+        promoted.hostNodeId,
+        promoted.nextInterface,
+      );
+      if (ifacePatch != null) {
+        set(ifacePatch);
+      }
+    }
+    const graphState = get();
+    const result = connectWithPolicy(
+      connectionToUse,
+      {
+        nodes: graphState.nodes,
+        edges: graphState.edges,
+        subgraphs: graphState.subgraphs,
+      },
       { excludeEdgeId: options?.excludeEdgeId },
     );
     if (!result.ok) {
       return;
     }
-    const sourceNode = st.nodes.find((n) => n.id === connection.source);
-    const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
+    const sourceNode = graphState.nodes.find((n) => n.id === connectionToUse.source);
+    const srcHandle = connectionToUse.sourceHandle ?? STUDIO_HANDLE_OUT;
     const label =
       sourceNode != null
-        ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs)
+        ? edgeLabelForSource(sourceNode, srcHandle, graphState.subgraphs)
         : "";
-    const priorEdgeIds = new Set(st.edges.map((e) => e.id));
-    if (options?.skipUndoSnapshot !== true) {
+    const priorEdgeIds = new Set(graphState.edges.map((e) => e.id));
+    if (promoted == null && options?.skipUndoSnapshot !== true) {
       get().pushUndoSnapshot();
     }
     set((state) => {
@@ -4167,7 +4730,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         }
         return {
           ...edge,
-          id: `${connection.source}-${connection.target}-${Date.now()}`,
+          id: `${connectionToUse.source}-${connectionToUse.target}-${Date.now()}`,
           animated: true,
           label,
           style: { strokeWidth: 2 },
@@ -4178,10 +4741,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         nodes: attachConfigErrorsWithModelChildRegistry(
           patchLayoutNodesAfterConnect(
             reconcileGlbEventModelScopeFromEdges(
-              patchStudioModelScopeOnConnect(state.nodes, connection),
+              patchStudioModelScopeOnConnect(state.nodes, connectionToUse),
               nextEdges,
             ),
-            connection,
+            connectionToUse,
           ),
           nextEdges,
         ),
@@ -4195,22 +4758,47 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     if (storeEdge == null) {
       return;
     }
-    const result = reconnectWithPolicy(storeEdge, newConnection, {
-      nodes: st.nodes,
-      edges: st.edges,
-      subgraphs: st.subgraphs,
+    let merged = mergeReconnectConnection(storeEdge, newConnection);
+    const promoted = promoteGroupConnection(
+      merged,
+      {
+        nodes: st.nodes,
+        edges: st.edges,
+        subgraphs: st.subgraphs,
+      },
+      st.rootNodes,
+    );
+    if (promoted != null) {
+      merged = promoted.connection;
+      if (options?.skipUndoSnapshot !== true) {
+        get().pushUndoSnapshot();
+      }
+      const ifacePatch = applyNodeGroupInterfaceToState(
+        get(),
+        promoted.hostNodeId,
+        promoted.nextInterface,
+      );
+      if (ifacePatch != null) {
+        set(ifacePatch);
+      }
+    }
+    const graphState = get();
+    const result = reconnectWithPolicy(storeEdge, merged, {
+      nodes: graphState.nodes,
+      edges: graphState.edges,
+      subgraphs: graphState.subgraphs,
     });
     if (!result.ok) {
       return;
     }
-    const connection = mergeReconnectConnection(storeEdge, newConnection);
+    const connection = merged;
     const sourceNode = st.nodes.find((n) => n.id === connection.source);
     const srcHandle = connection.sourceHandle ?? STUDIO_HANDLE_OUT;
     const label =
       sourceNode != null
         ? edgeLabelForSource(sourceNode, srcHandle, st.subgraphs)
         : "";
-    if (options?.skipUndoSnapshot !== true) {
+    if (promoted == null && options?.skipUndoSnapshot !== true) {
       get().pushUndoSnapshot();
     }
     set((state) => {
@@ -4242,6 +4830,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   },
   onSelectionChange: (selectedNodeIds) => {
     const sel = selectionFromIds(selectedNodeIds);
+    const current = get();
+    if (
+      selectionIdsEqual(current.selectedNodeIds, sel.selectedNodeIds) &&
+      nodesSelectionMatches(current.nodes, sel.selectedNodeIds)
+    ) {
+      return;
+    }
     set((state) => ({
       ...sel,
       nodes: attachConfigErrorsWithModelChildRegistry(
@@ -4820,10 +5415,33 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }));
     flushFlowSimulationPins(get);
   },
-  updateNodeConfigFieldByNodeId: (nodeId, key, value) => {
+  addNodeFromCatalogWithInlineGlbModel: (entry, position, options) => {
     get().pushUndoSnapshot();
+    const nextNode = createStudioNodeFromCatalogEntry(entry, position, {
+      ui: options.ui,
+    });
+    nextNode.selected = true;
+    const flowLabel = options.flowNodeLabel?.trim();
+    if (flowLabel != null && flowLabel.length > 0) {
+      nextNode.data.label = flowLabel;
+    }
+    nextNode.data.defaultConfig = {
+      ...nextNode.data.defaultConfig,
+      ...options.mergeDefaultConfig,
+    };
     set((state) => ({
       nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, nextNode], [nextNode.id]),
+        state.edges,
+      ),
+      ...selectionFromIds([nextNode.id]),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  updateNodeConfigFieldByNodeId: (nodeId, key, value) => {
+    get().pushUndoSnapshot();
+    set((state) => {
+      const nodes = attachConfigErrorsWithModelChildRegistry(
         state.nodes.map((node) =>
           node.id === nodeId
             ? {
@@ -4839,8 +5457,23 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             : node,
         ),
         state.edges,
-      ),
-    }));
+      );
+      const touched = nodes.find((n) => n.id === nodeId);
+      let edges = state.edges;
+      if (
+        key === ANIMATION_MERGE_INPUT_COUNT_KEY &&
+        touched != null &&
+        touched.type === "studio"
+      ) {
+        if (touched.data.nodeId === "animation-merge") {
+          edges = pruneAnimationMergeEdges(nodes, edges);
+        }
+        if (touched.data.nodeId === "animation-mix") {
+          edges = pruneAnimationMixEdges(nodes, edges);
+        }
+      }
+      return { nodes, edges };
+    });
     flushFlowSimulationPins(get);
   },
   setStudioUtilityNodeBodyExpanded: (flowNodeId, field, expanded) => {
@@ -6061,6 +6694,493 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
 
+    if (templateId === "animation-clip-blend") {
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
+      const clipEntry = catalog.find((entry) => entry.id === "animation-clip");
+      const blendEntry = catalog.find((entry) => entry.id === "animation-blend");
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const mapEntry = catalog.find((entry) => entry.id === "map-range");
+      if (
+        modelEntry == null ||
+        viewerEntry == null ||
+        clipEntry == null ||
+        blendEntry == null ||
+        sineEntry == null ||
+        mapEntry == null
+      ) {
+        return;
+      }
+
+      const modelFlowId = "demo-model-select";
+      const clipAId = "demo-clip-a";
+      const clipBId = "demo-clip-b";
+
+      const modelNode = makeNode(modelEntry, modelFlowId, 72, 480);
+      modelNode.data.label = "Model Source (PSoC E84)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
+        selectedModelUrl: DEFAULT_STUDIO_PACK_MODEL_RELATIVE_PATH,
+        generatedChildNodeIds: [clipAId, clipBId],
+      };
+
+      const viewerNode = makeNode(viewerEntry, "demo-model-viewer", 720, 200);
+      viewerNode.data.label = "Model Viewer (clip blend)";
+      viewerNode.data.defaultConfig = {
+        ...viewerNode.data.defaultConfig,
+        showGrid: true,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      };
+
+      const clipANode = makeNode(clipEntry, clipAId, 72, 280);
+      clipANode.data.label = "Animation Clip A";
+      clipANode.data.defaultConfig = {
+        ...clipANode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        loopMode: "loop",
+        weight: 1,
+        enabled: true,
+      };
+
+      const clipBNode = makeNode(clipEntry, clipBId, 72, 400);
+      clipBNode.data.label = "Animation Clip B";
+      clipBNode.data.defaultConfig = {
+        ...clipBNode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        loopMode: "loop",
+        weight: 1,
+        enabled: true,
+      };
+
+      const blendNode = makeNode(blendEntry, "demo-anim-blend", 480, 320);
+      blendNode.data.label = "Animation Blend";
+      blendNode.data.defaultConfig = {
+        ...blendNode.data.defaultConfig,
+        factor: 0.5,
+        crossfadeS: 0.35,
+      };
+
+      const sineNode = makeNode(sineEntry, "demo-blend-sine", 72, 120);
+      sineNode.data.label = "Blend driver (sine)";
+      sineNode.data.defaultConfig = {
+        ...sineNode.data.defaultConfig,
+        frequency: 0.05,
+        amplitude: 1,
+        offset: 0,
+        phase: 0,
+      };
+
+      const mapNode = makeNode(mapEntry, "demo-blend-map", 280, 120);
+      mapNode.data.label = "Map to 0..1";
+      mapNode.data.defaultConfig = {
+        ...mapNode.data.defaultConfig,
+        inMin: -1,
+        inMax: 1,
+        outMin: 0,
+        outMax: 1,
+        clamp: true,
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-clip-blend-e1",
+          source: modelNode.id,
+          target: viewerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e1a",
+          source: modelNode.id,
+          target: clipANode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MODEL,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e1b",
+          source: modelNode.id,
+          target: clipBNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MODEL,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e2",
+          source: clipANode.id,
+          target: blendNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "a",
+          animated: true,
+          label: getSourcePortType(clipANode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e3",
+          source: clipBNode.id,
+          target: blendNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "b",
+          animated: true,
+          label: getSourcePortType(clipBNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e4",
+          source: blendNode.id,
+          target: viewerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_ANIM,
+          animated: true,
+          label: getSourcePortType(blendNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e5",
+          source: sineNode.id,
+          target: mapNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "value",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-clip-blend-e6",
+          source: mapNode.id,
+          target: blendNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "factor",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [modelNode, viewerNode, clipANode, clipBNode, blendNode, sineNode, mapNode],
+            [viewerNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([viewerNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      scheduleGlbExtractAutoBindForNodes(get, set, [clipAId, clipBId]);
+      return;
+    }
+
+    if (templateId === "part-spin-demo") {
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
+      const spinEntry = catalog.find((entry) => entry.id === "part-spin");
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const mapEntry = catalog.find((entry) => entry.id === "map-range");
+      if (
+        modelEntry == null ||
+        viewerEntry == null ||
+        spinEntry == null ||
+        sineEntry == null ||
+        mapEntry == null
+      ) {
+        return;
+      }
+
+      const modelFlowId = "demo-model-select";
+      const spinAId = "demo-part-spin-a";
+      const spinBId = "demo-part-spin-b";
+      const partSpinDemoAssetId = "model.tesa-drone";
+      const partSpinDemoModelPath = "models/tesa-drone/tesa-drone.glb";
+
+      const modelNode = makeNode(modelEntry, modelFlowId, 72, 480);
+      modelNode.data.label = "Model Source (TESA drone)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: partSpinDemoAssetId,
+        selectedModelUrl: partSpinDemoModelPath,
+        generatedChildNodeIds: [spinAId, spinBId],
+      };
+
+      const viewerNode = makeNode(viewerEntry, "demo-model-viewer", 720, 280);
+      viewerNode.data.label = "Model Viewer (part spin)";
+      viewerNode.data.defaultConfig = {
+        ...viewerNode.data.defaultConfig,
+        showGrid: true,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      };
+
+      const spinANode = makeNode(spinEntry, spinAId, 72, 280);
+      spinANode.data.label = "Part Spin A";
+      spinANode.data.defaultConfig = {
+        ...spinANode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        spinAxis: "y",
+        speedRadS: Math.PI * 4,
+        enabled: true,
+      };
+
+      const spinBNode = makeNode(spinEntry, spinBId, 72, 400);
+      spinBNode.data.label = "Part Spin B";
+      spinBNode.data.defaultConfig = {
+        ...spinBNode.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+        spinAxis: "y",
+        speedRadS: Math.PI * 2,
+        reverse: true,
+        enabled: true,
+      };
+
+      const sineNode = makeNode(sineEntry, "demo-spin-sine", 72, 120);
+      sineNode.data.label = "Speed driver (sine)";
+      sineNode.data.defaultConfig = {
+        ...sineNode.data.defaultConfig,
+        frequency: 0.08,
+        amplitude: 3,
+        offset: 4,
+        phase: 0,
+      };
+
+      const mapNode = makeNode(mapEntry, "demo-spin-map", 280, 120);
+      mapNode.data.label = "Map to rad/s";
+      mapNode.data.defaultConfig = {
+        ...mapNode.data.defaultConfig,
+        inMin: 1,
+        inMax: 7,
+        outMin: 0.5,
+        outMax: 12,
+        clamp: true,
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-part-spin-e1",
+          source: modelNode.id,
+          target: viewerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-part-spin-e2",
+          source: sineNode.id,
+          target: mapNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "value",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-part-spin-e3",
+          source: mapNode.id,
+          target: spinANode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "speed",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [modelNode, viewerNode, spinANode, spinBNode, sineNode, mapNode],
+            [viewerNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([viewerNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      scheduleGlbExtractAutoBindForNodes(get, set, [spinAId, spinBId]);
+      return;
+    }
+
+    if (templateId === "animation-mix-demo") {
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
+      const clipEntry = catalog.find((entry) => entry.id === "animation-clip");
+      const mixEntry = catalog.find((entry) => entry.id === "animation-mix");
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const mapEntry = catalog.find((entry) => entry.id === "map-range");
+      if (
+        modelEntry == null ||
+        viewerEntry == null ||
+        clipEntry == null ||
+        mixEntry == null ||
+        sineEntry == null ||
+        mapEntry == null
+      ) {
+        return;
+      }
+
+      const modelFlowId = "demo-model-select";
+      const clipAId = "demo-mix-clip-a";
+      const clipBId = "demo-mix-clip-b";
+      const clipCId = "demo-mix-clip-c";
+      const mixDemoAssetId = "model.tesa-drone";
+      const mixDemoModelPath = "models/tesa-drone/tesa-drone.glb";
+      const mixInputCount = 3;
+
+      const modelNode = makeNode(modelEntry, modelFlowId, 72, 520);
+      modelNode.data.label = "Model Source (TESA drone)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: mixDemoAssetId,
+        selectedModelUrl: mixDemoModelPath,
+        generatedChildNodeIds: [clipAId, clipBId, clipCId],
+      };
+
+      const viewerNode = makeNode(viewerEntry, "demo-model-viewer", 760, 240);
+      viewerNode.data.label = "Model Viewer (animation mix)";
+      viewerNode.data.defaultConfig = {
+        ...viewerNode.data.defaultConfig,
+        showGrid: true,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      };
+
+      const clipNodes = [clipAId, clipBId, clipCId].map((id, index) => {
+        const clipNode = makeNode(clipEntry, id, 72, 200 + index * 110);
+        clipNode.data.label = `Animation Clip ${String.fromCharCode(65 + index)}`;
+        clipNode.data.defaultConfig = {
+          ...clipNode.data.defaultConfig,
+          [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+          loopMode: "loop",
+          weight: 1,
+          enabled: true,
+        };
+        return clipNode;
+      });
+
+      const mixNode = makeNode(mixEntry, "demo-anim-mix", 500, 300);
+      mixNode.data.label = "Animation Mix";
+      mixNode.data.defaultConfig = {
+        ...mixNode.data.defaultConfig,
+        [ANIMATION_MERGE_INPUT_COUNT_KEY]: mixInputCount,
+        [ANIMATION_MIX_WEIGHTS_KEY]: defaultEqualMixWeights(mixInputCount),
+        [ANIMATION_MIX_NORMALIZE_WEIGHTS_KEY]: true,
+      };
+      mixNode.data.inputHandles = computeAnimationMixInputHandles(mixNode.data.defaultConfig);
+      mixNode.data.outputHandles = [ANIMATION_MIX_OUTPUT_HANDLE];
+
+      const sineNode = makeNode(sineEntry, "demo-mix-sine", 72, 80);
+      sineNode.data.label = "Mix weight driver (sine)";
+      sineNode.data.defaultConfig = {
+        ...sineNode.data.defaultConfig,
+        frequency: 0.04,
+        amplitude: 1,
+        offset: 0,
+        phase: 0,
+      };
+
+      const mapNode = makeNode(mapEntry, "demo-mix-map", 280, 80);
+      mapNode.data.label = "Map to 0..1";
+      mapNode.data.defaultConfig = {
+        ...mapNode.data.defaultConfig,
+        inMin: -1,
+        inMax: 1,
+        outMin: 0,
+        outMax: 1,
+        clamp: true,
+      };
+
+      get().pushUndoSnapshot();
+      const demoEdges: Edge[] = [
+        {
+          id: "demo-mix-e-model-viewer",
+          source: modelNode.id,
+          target: viewerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+        ...clipNodes.map((clipNode, index) => ({
+          id: `demo-mix-e-model-clip-${index}`,
+          source: modelNode.id,
+          target: clipNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MODEL,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        })),
+        ...clipNodes.map((clipNode, index) => ({
+          id: `demo-mix-e-clip-${index}`,
+          source: clipNode.id,
+          target: mixNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: animationMergeInputHandleId(index),
+          animated: true,
+          label: getSourcePortType(clipNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        })),
+        {
+          id: "demo-mix-e-mix-viewer",
+          source: mixNode.id,
+          target: viewerNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_ANIM,
+          animated: true,
+          label: getSourcePortType(mixNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-mix-e-sine-map",
+          source: sineNode.id,
+          target: mapNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "value",
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-mix-e-map-weight",
+          source: mapNode.id,
+          target: mixNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: animationMixWeightHandleId(0),
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      set({
+        nodes: attachConfigErrorsWithModelChildRegistry(
+          applyStudioFlowSelection(
+            [modelNode, viewerNode, ...clipNodes, mixNode, sineNode, mapNode],
+            [viewerNode.id],
+          ),
+          demoEdges,
+        ),
+        edges: demoEdges,
+        ...selectionFromIds([viewerNode.id]),
+      });
+      flushFlowSimulationPins(get);
+      scheduleGlbExtractAutoBindForNodes(get, set, [clipAId, clipBId, clipCId]);
+      return;
+    }
+
     if (templateId === "rotation-glb-anim") {
       const eulerTapEntry = catalog.find(
         (entry) => entry.id === "bmi270-tap-euler",
@@ -6198,7 +7318,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ...selectionFromIds([rotNode.id]),
       });
       flushFlowSimulationPins(get);
-      scheduleGlbAnimClipAutoBindForNodes(get, set, [triggerNode.id]);
+      scheduleGlbExtractAutoBindForNodes(get, set, [triggerNode.id]);
       return;
     }
 
@@ -6498,6 +7618,210 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       edges: templateEdges,
       ...selectionFromIds([selectedNodeId]),
     });
+    flushFlowSimulationPins(get);
+  },
+  spawnGlbAnimationSetupGraph: (parentModelFlowNodeId, clipRefs, catalog, combinerMode = "merge") => {
+    const clips = clipRefs
+      .map((ref) => ref.trim())
+      .filter((ref) => ref.length > 0);
+    if (clips.length === 0 || clips.length > 8) {
+      return;
+    }
+
+    const st = get();
+    const parent = st.nodes.find((n) => n.id === parentModelFlowNodeId);
+    if (parent == null || parent.data.nodeId !== "model-select") {
+      return;
+    }
+
+    const clipEntry = catalog.find((entry) => entry.id === "animation-clip");
+    const mergeEntry = catalog.find((entry) => entry.id === "animation-merge");
+    const mixEntry = catalog.find((entry) => entry.id === "animation-mix");
+    const blendEntry = catalog.find((entry) => entry.id === "animation-blend");
+    const viewerEntry = catalog.find((entry) => entry.id === "model-viewer");
+    if (clipEntry == null || viewerEntry == null) {
+      return;
+    }
+    if (clips.length === 2 && blendEntry == null) {
+      return;
+    }
+    if (clips.length >= 3) {
+      if (combinerMode === "mix" && mixEntry == null) {
+        return;
+      }
+      if (combinerMode !== "mix" && mergeEntry == null) {
+        return;
+      }
+    }
+
+    const makeSetupNode = (
+      entry: NodeCatalogEntry,
+      id: string,
+      x: number,
+      y: number,
+    ): StudioNode => {
+      const inferred = inferPortTypes(entry);
+      return {
+        id,
+        type: "studio",
+        position: { x, y },
+        data: {
+          label: entry.title,
+          category: entry.category,
+          nodeId: entry.id,
+          defaultConfig: { ...entry.defaultConfig },
+          inputType: inferred.inputType,
+          outputType: inferred.outputType,
+          outputHandles: inferred.outputHandles,
+          inputHandles: inferred.inputHandles,
+          liveValue: null,
+          liveHistory: [],
+          livePlotHistory: {},
+        },
+      };
+    };
+
+    const stamp = Date.now();
+    const px = parent.position.x;
+    const py = parent.position.y;
+
+    const clipNodes = clips.map((ref, index) => {
+      const node = makeSetupNode(
+        clipEntry,
+        `setup-clip-${stamp}-${index}`,
+        px + 280,
+        py + index * 120,
+      );
+      node.data.label = `Clip: ${ref}`;
+      node.data.defaultConfig = {
+        ...node.data.defaultConfig,
+        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: parentModelFlowNodeId,
+        [STUDIO_GLB_EXTRACT_KIND_KEY]: "animation",
+        [STUDIO_GLB_EXTRACT_REF_KEY]: ref,
+        [ANIMATION_CLIP_NAME_KEY]: ref,
+        loopMode: "loop",
+        enabled: true,
+      };
+      return node;
+    });
+
+    const edges: Edge[] = [];
+    clipNodes.forEach((clipNode, index) => {
+      edges.push({
+        id: `setup-e-${stamp}-model-${index}`,
+        source: parentModelFlowNodeId,
+        target: clipNode.id,
+        sourceHandle: STUDIO_HANDLE_OUT,
+        targetHandle: STUDIO_HANDLE_MODEL,
+        animated: true,
+        label: getSourcePortType(parent, STUDIO_HANDLE_OUT) ?? "string",
+        style: { strokeWidth: 2 },
+      });
+    });
+    let animSourceNode = clipNodes[0]!;
+    let combinerNode: StudioNode | null = null;
+
+    if (clips.length === 2) {
+      combinerNode = makeSetupNode(blendEntry!, `setup-blend-${stamp}`, px + 560, py + 60);
+      combinerNode.data.label = "Animation Blend";
+      animSourceNode = combinerNode;
+      clipNodes.forEach((clipNode, index) => {
+        edges.push({
+          id: `setup-e-${stamp}-clip-${index}`,
+          source: clipNode.id,
+          target: combinerNode!.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: index === 0 ? "a" : "b",
+          animated: true,
+          label: getSourcePortType(clipNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        });
+      });
+    } else if (clips.length >= 3) {
+      if (combinerMode === "mix") {
+        combinerNode = makeSetupNode(mixEntry!, `setup-mix-${stamp}`, px + 560, py + 120);
+        combinerNode.data.label = "Animation Mix";
+        combinerNode.data.defaultConfig = {
+          ...combinerNode.data.defaultConfig,
+          [ANIMATION_MERGE_INPUT_COUNT_KEY]: clips.length,
+          [ANIMATION_MIX_WEIGHTS_KEY]: defaultEqualMixWeights(clips.length),
+          [ANIMATION_MIX_NORMALIZE_WEIGHTS_KEY]: true,
+        };
+        combinerNode.data.inputHandles = computeAnimationMixInputHandles(
+          combinerNode.data.defaultConfig,
+        );
+        combinerNode.data.outputHandles = [ANIMATION_MIX_OUTPUT_HANDLE];
+      } else {
+        combinerNode = makeSetupNode(mergeEntry!, `setup-merge-${stamp}`, px + 560, py + 120);
+        combinerNode.data.label = "Animation Merge";
+        combinerNode.data.defaultConfig = {
+          ...combinerNode.data.defaultConfig,
+          [ANIMATION_MERGE_INPUT_COUNT_KEY]: clips.length,
+        };
+        combinerNode.data.inputHandles = computeAnimationMergeInputHandles(
+          combinerNode.data.defaultConfig,
+        );
+        combinerNode.data.outputHandles = [ANIMATION_MERGE_OUTPUT_HANDLE];
+      }
+      animSourceNode = combinerNode;
+      clipNodes.forEach((clipNode, index) => {
+        edges.push({
+          id: `setup-e-${stamp}-clip-${index}`,
+          source: clipNode.id,
+          target: combinerNode!.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: animationMergeInputHandleId(index),
+          animated: true,
+          label: getSourcePortType(clipNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+          style: { strokeWidth: 2 },
+        });
+      });
+    }
+
+    const viewerNode = makeSetupNode(viewerEntry, `setup-viewer-${stamp}`, px + 840, py + 60);
+    viewerNode.data.label = "Model Viewer";
+    viewerNode.data.defaultConfig = {
+      ...viewerNode.data.defaultConfig,
+      showGrid: true,
+      [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: parentModelFlowNodeId,
+    };
+
+    edges.push({
+      id: `setup-e-${stamp}-model`,
+      source: parentModelFlowNodeId,
+      target: viewerNode.id,
+      sourceHandle: STUDIO_HANDLE_OUT,
+      targetHandle: STUDIO_HANDLE_IN,
+      animated: true,
+      label: getSourcePortType(parent, STUDIO_HANDLE_OUT) ?? "string",
+      style: { strokeWidth: 2 },
+    });
+    edges.push({
+      id: `setup-e-${stamp}-anim`,
+      source: animSourceNode.id,
+      target: viewerNode.id,
+      sourceHandle: STUDIO_HANDLE_OUT,
+      targetHandle: STUDIO_HANDLE_ANIM,
+      animated: true,
+      label: getSourcePortType(animSourceNode, STUDIO_HANDLE_OUT) ?? "glbAnimation",
+      style: { strokeWidth: 2 },
+    });
+
+    const newNodes = [
+      ...clipNodes,
+      ...(combinerNode != null ? [combinerNode] : []),
+      viewerNode,
+    ];
+
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection([...state.nodes, ...newNodes], [viewerNode.id]),
+        [...state.edges, ...edges],
+      ),
+      edges: [...state.edges, ...edges],
+      ...selectionFromIds([viewerNode.id]),
+    }));
     flushFlowSimulationPins(get);
   },
   updateSelectedNodeLabel: (nextLabel) => {
@@ -7202,6 +8526,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
 
     const pinValues = new Map<string, FlowValue>();
+    applyUnwiredGroupInputDefaults({
+      rootNodes: state.rootNodes.length > 0 ? state.rootNodes : state.nodes,
+      rootEdges:
+        state.activeGraphId === STUDIO_ROOT_GRAPH_ID ? state.edges : state.rootEdges,
+      subgraphs: state.subgraphs,
+      pinValues,
+    });
     const liveStore = useBitstreamLiveStore.getState();
     const deviceSensorCfgBySourceId =
       useBitstreamDeviceSensorConfigStore.getState().bySourceId;
@@ -9030,6 +10361,101 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (node.data.nodeId === "animation-clip") {
+          const wiredTime = readIncoming(node.id, "time");
+          const wiredSpeed = readIncoming(node.id, "speed");
+          const wiredWeight = readIncoming(node.id, "weight");
+          const wiredEnabled = readIncoming(node.id, "enabled");
+          const wire = flowAnimationWireFromAnimationClipEval({
+            defaultConfig: node.data.defaultConfig as Record<string, unknown>,
+            wired: {
+              timeS:
+                typeof wiredTime === "number" && Number.isFinite(wiredTime)
+                  ? wiredTime
+                  : undefined,
+              speed:
+                typeof wiredSpeed === "number" && Number.isFinite(wiredSpeed)
+                  ? wiredSpeed
+                  : undefined,
+              weight:
+                typeof wiredWeight === "number" && Number.isFinite(wiredWeight)
+                  ? wiredWeight
+                  : undefined,
+              enabled:
+                typeof wiredEnabled === "boolean" ? wiredEnabled : undefined,
+            },
+          });
+          if (wire != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "animation-merge") {
+          const mergeCount = readAnimationMergeInputCount(node.data.defaultConfig);
+          const mergeWires = [];
+          for (let i = 0; i < mergeCount; i += 1) {
+            mergeWires.push(
+              flowValueAsAnimation(readIncoming(node.id, animationMergeInputHandleId(i))),
+            );
+          }
+          const wire = mergeFlowWireAnimationsV1(mergeWires);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
+        if (node.data.nodeId === "animation-mix") {
+          const mixDc = node.data.defaultConfig as Record<string, unknown>;
+          const mixCount = readAnimationMixInputCount(mixDc);
+          const configWeights = readMixWeights(mixDc, mixCount);
+          const mixWires = [];
+          const mixWeights = [];
+          for (let i = 0; i < mixCount; i += 1) {
+            mixWires.push(
+              flowValueAsAnimation(readIncoming(node.id, animationMergeInputHandleId(i))),
+            );
+            const wiredWeight = readIncoming(node.id, animationMixWeightHandleId(i));
+            mixWeights.push(
+              typeof wiredWeight === "number" && Number.isFinite(wiredWeight)
+                ? wiredWeight
+                : configWeights[i] ?? 0,
+            );
+          }
+          const wire = mixFlowWireAnimationsV1({
+            wires: mixWires,
+            weights: mixWeights,
+            normalize: readNormalizeMixWeights(mixDc),
+          });
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
+        if (node.data.nodeId === "animation-blend") {
+          const wiredFactor = readIncoming(node.id, "factor");
+          const dcBlend = node.data.defaultConfig as Record<string, unknown>;
+          const factorRaw =
+            typeof wiredFactor === "number" && Number.isFinite(wiredFactor)
+              ? wiredFactor
+              : dcBlend.factor;
+          const factor =
+            typeof factorRaw === "number" && Number.isFinite(factorRaw)
+              ? Math.min(1, Math.max(0, factorRaw))
+              : 0.5;
+          const crossfadeRaw = dcBlend.crossfadeS;
+          const crossfadeS =
+            typeof crossfadeRaw === "number" && Number.isFinite(crossfadeRaw)
+              ? Math.max(0, crossfadeRaw)
+              : 0.3;
+          const wire = blendFlowWireAnimationsV1({
+            wireA: flowValueAsAnimation(readIncoming(node.id, "a")),
+            wireB: flowValueAsAnimation(readIncoming(node.id, "b")),
+            factor,
+            crossfadeS,
+          });
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          continue;
+        }
+
         const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
 
         if (node.data.nodeId === "number-average") {
@@ -9117,8 +10543,129 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       nodes.map((n) => [n.id, { id: n.id, type: n.type, data: n.data }]),
     );
 
-    set((state) => ({
-      nodes: state.nodes.map((node) => {
+    const patchSceneOutputLiveWires = (
+      base: StudioNodeData,
+      nodeId: string,
+    ): void => {
+      const envVal = readIncoming(nodeId, STUDIO_HANDLE_ENV);
+      const envWire = flowValueAsEnvironment(envVal);
+      if (envWire != null) {
+        base.liveEnvironmentWire = envWire;
+      } else {
+        delete base.liveEnvironmentWire;
+      }
+      const camVal = readIncoming(nodeId, STUDIO_HANDLE_CAM);
+      const camWire = flowValueAsCamera(camVal);
+      if (camWire != null) {
+        base.liveCameraWire = camWire;
+      } else {
+        delete base.liveCameraWire;
+      }
+      const animVal = readIncoming(nodeId, STUDIO_HANDLE_ANIM);
+      const animWire = flowValueAsAnimation(animVal);
+      if (animWire != null) {
+        base.liveAnimationWire = animWire;
+      } else {
+        delete base.liveAnimationWire;
+      }
+      const xfVal = readIncoming(nodeId, STUDIO_HANDLE_XF);
+      const xfWire = flowValueAsTransform(xfVal);
+      if (xfWire != null) {
+        base.liveTransformWire = xfWire;
+      } else {
+        delete base.liveTransformWire;
+      }
+      const physVal = readIncoming(nodeId, STUDIO_HANDLE_PHYS);
+      const physWire = flowValueAsPhysicsScene(physVal);
+      if (physWire != null) {
+        base.livePhysicsWire = physWire;
+      } else {
+        delete base.livePhysicsWire;
+      }
+      applyIncomingSceneFxWires(base, nodeId, (handle) =>
+        readIncoming(nodeId, handle),
+      );
+    };
+
+    const patchNodeGroupHostLive = (
+      node: FlowGraphNode,
+      parentEdges: Edge[],
+      subgraphs: Record<string, StudioSubgraphDocument>,
+    ): FlowGraphNode => {
+      if (!isStudioNodeGroupNode(node)) {
+        return node;
+      }
+      const groupData = node.data as StudioNodeGroupData;
+      const subKey = groupData.subgraphId ?? node.id;
+      const sub = subgraphs[subKey];
+      if (sub == null) {
+        return node;
+      }
+      const live = buildStudioNodeGroupHostLiveFields({
+        hostNodeId: node.id,
+        subgraphKey: subKey,
+        iface: sub.interface,
+        parentEdges,
+        subgraph: sub,
+        flattenedEdges: edges,
+        pinValues,
+      });
+      return {
+        ...node,
+        data: {
+          ...groupData,
+          liveNumberByHandle: live.liveNumberByHandle,
+          liveBooleanByHandle: live.liveBooleanByHandle,
+          liveStringByHandle: live.liveStringByHandle,
+          liveVector3ByHandle: live.liveVector3ByHandle,
+        },
+      };
+    };
+
+    set((state) => {
+      const nodes = state.nodes.map((node) => {
+        if (isStudioNodeGroupNode(node)) {
+          return patchNodeGroupHostLive(node, state.edges, state.subgraphs);
+        }
+        if (isStudioGroupBoundaryNode(node)) {
+          if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+            return node;
+          }
+          const host = state.rootNodes.find(
+            (n) =>
+              isStudioNodeGroupNode(n) &&
+              (n.data.subgraphId ?? n.id) === state.activeGraphId,
+          );
+          if (host == null) {
+            return node;
+          }
+          const boundaryData = node.data as StudioGroupBoundaryData;
+          const role = node.type === "studio-group-input" ? "input" : "output";
+          const live = buildStudioGroupBoundaryLiveFields({
+            role,
+            boundaryNodeId: node.id,
+            iface: boundaryData.interface,
+            subgraphEdges: state.edges,
+            flattenedEdges: edges,
+            hostNodeId: host.id,
+            pinValues,
+          });
+          return {
+            ...node,
+            data: {
+              ...boundaryData,
+              liveNumberByHandle: live.liveNumberByHandle,
+              liveBooleanByHandle: live.liveBooleanByHandle,
+              liveStringByHandle: live.liveStringByHandle,
+              liveVector3ByHandle: live.liveVector3ByHandle,
+            },
+          };
+        }
+
+        if (node.type !== "studio") {
+          return node;
+        }
+
         const dataWithoutSensorMode: StudioNodeData = { ...node.data };
         delete dataWithoutSensorMode.sensorStreamMode;
         delete dataWithoutSensorMode.sensorHealth;
@@ -9169,7 +10716,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (
           node.data.nodeId !== "rotation-3d-euler" &&
           node.data.nodeId !== "rotation-3d-quaternion" &&
-          node.data.nodeId !== "model-viewer"
+          node.data.nodeId !== "model-viewer" &&
+          node.data.nodeId !== "scene-output" &&
+          node.data.nodeId !== "animation-clip" &&
+          node.data.nodeId !== "glb-animation-bundle" &&
+          node.data.nodeId !== "animation-merge" &&
+          node.data.nodeId !== "animation-mix" &&
+          node.data.nodeId !== "animation-blend"
         ) {
           delete dataWithoutSensorMode.liveAnimationWire;
         }
@@ -9303,6 +10856,42 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                   );
                   return { x: rgb.r, y: rgb.g, z: rgb.b };
                 })();
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (
+          node.data.nodeId === "animation-clip" ||
+          node.data.nodeId === "glb-animation-bundle" ||
+          node.data.nodeId === "animation-merge" ||
+          node.data.nodeId === "animation-mix" ||
+          node.data.nodeId === "animation-blend"
+        ) {
+          const animOut = flowValueAsAnimation(
+            pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)),
+          );
+          if (animOut != null && Object.keys(animOut.clips).length > 0) {
+            base.liveAnimationWire = animOut;
+          } else {
+            delete base.liveAnimationWire;
+          }
+        }
+
+        if (node.data.nodeId === "part-spin") {
+          const wiredSpeed = readIncoming(node.id, "speed");
+          const wiredEnabled = readIncoming(node.id, "enabled");
+          if (typeof wiredSpeed === "number" && Number.isFinite(wiredSpeed)) {
+            base.liveInputNumberByHandle = {
+              ...(node.data.liveInputNumberByHandle ?? {}),
+              speed: wiredSpeed,
+            };
+          }
+          if (typeof wiredEnabled === "boolean") {
+            base.liveInputBooleanByHandle = {
+              ...(node.data.liveInputBooleanByHandle ?? {}),
+              enabled: wiredEnabled,
+            };
+          }
           base.liveValue = null;
           base.liveHistory = [];
         }
@@ -9815,44 +11404,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         }
 
         if (node.data.nodeId === "scene-output") {
-          const envVal = readIncoming(node.id, STUDIO_HANDLE_ENV);
-          const envWire = flowValueAsEnvironment(envVal);
-          if (envWire != null) {
-            base.liveEnvironmentWire = envWire;
-          } else {
-            delete base.liveEnvironmentWire;
-          }
-          const camVal = readIncoming(node.id, STUDIO_HANDLE_CAM);
-          const camWire = flowValueAsCamera(camVal);
-          if (camWire != null) {
-            base.liveCameraWire = camWire;
-          } else {
-            delete base.liveCameraWire;
-          }
-          const animVal = readIncoming(node.id, STUDIO_HANDLE_ANIM);
-          const animWire = flowValueAsAnimation(animVal);
-          if (animWire != null) {
-            base.liveAnimationWire = animWire;
-          } else {
-            delete base.liveAnimationWire;
-          }
-          const xfVal = readIncoming(node.id, STUDIO_HANDLE_XF);
-          const xfWire = flowValueAsTransform(xfVal);
-          if (xfWire != null) {
-            base.liveTransformWire = xfWire;
-          } else {
-            delete base.liveTransformWire;
-          }
-          const physVal = readIncoming(node.id, STUDIO_HANDLE_PHYS);
-          const physWire = flowValueAsPhysicsScene(physVal);
-          if (physWire != null) {
-            base.livePhysicsWire = physWire;
-          } else {
-            delete base.livePhysicsWire;
-          }
-          applyIncomingSceneFxWires(base, node.id, (handle) =>
-            readIncoming(node.id, handle),
-          );
+          patchSceneOutputLiveWires(base, node.id);
         }
 
         if (node.data.nodeId === "model-viewer") {
@@ -9954,8 +11506,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           ...node,
           data: base,
         };
-      }),
-    }));
+      });
+      const rootNodes =
+        state.activeGraphId === STUDIO_ROOT_GRAPH_ID
+          ? nodes
+          : state.rootNodes.map((node) =>
+              isStudioNodeGroupNode(node)
+                ? patchNodeGroupHostLive(node, state.rootEdges, state.subgraphs)
+                : node,
+            );
+      return { nodes, rootNodes };
+    });
     if (visionTriggerSourceIds.length > 0) {
       dispatchFlowEventSourcesFromHandle(
         get,
@@ -9964,13 +11525,20 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         "trigger",
       );
     }
-    const latest = get();
+    const stageNodes = nodes.map((node) => {
+      if (node.data.nodeId !== "scene-output") {
+        return node;
+      }
+      const base: StudioNodeData = { ...node.data };
+      patchSceneOutputLiveWires(base, node.id);
+      return { ...node, data: base };
+    });
     useStageSceneStore
       .getState()
       .setSnapshot(
         evaluateStageSceneSnapshot({
-          nodes: latest.nodes,
-          edges: latest.edges,
+          nodes: stageNodes,
+          edges,
         }),
       );
   },
