@@ -65,11 +65,12 @@ export function collectPhysicsCollidersForWorld(args: {
 }
 
 export function collectPhysicsRigidBodiesForWorld(args: {
+  nodes: readonly FlowGraphNode[];
   edges: readonly Edge[];
   physicsWorldNodeId: string;
   pinValues: Map<string, unknown>;
 }): FlowWirePhysicsRigidBodyV1[] {
-  const { edges, physicsWorldNodeId, pinValues } = args;
+  const { nodes, edges, physicsWorldNodeId, pinValues } = args;
   const bodies: FlowWirePhysicsRigidBodyV1[] = [];
   const seen = new Set<string>();
   for (const edge of edges) {

@@ -52,6 +52,8 @@ export interface StandaloneWorkbenchProps {
   onLayoutMenuPropsChange?: (props: WorkbenchLayoutMenuProps | null) => void;
   /** Fired when the user focuses a workbench pane (editor type from layout registry). */
   onActiveEditorTypeChange?: (editorType: string | null) => void;
+  /** Fired when docked layout changes (collapse, split, tab switch, preset). */
+  onWorkbenchLayoutChange?: (layout: LayoutNode) => void;
 }
 
 export type StandaloneWorkbenchHandle = {
@@ -86,6 +88,7 @@ export const StandaloneWorkbench = memo(
       togglePaneByEditorType,
       onLayoutMenuPropsChange,
       onActiveEditorTypeChange,
+      onWorkbenchLayoutChange,
     },
     ref,
   ) {
@@ -384,6 +387,10 @@ export const StandaloneWorkbench = memo(
         },
       };
     }, [managed.layout, managed.workbenchProps, onActiveEditorTypeChange]);
+
+    useEffect(() => {
+      onWorkbenchLayoutChange?.(managed.layout);
+    }, [managed.layout, onWorkbenchLayoutChange]);
 
     return (
       <>

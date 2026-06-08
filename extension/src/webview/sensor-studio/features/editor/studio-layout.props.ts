@@ -10,7 +10,7 @@ import type { RefObject } from "react";
 import type { NodeCatalogEntry, NodePaletteLayoutMode } from "../../core/config/config-types";
 import type { StudioGltfExtractRow } from "./gltf/studio-gltf-extract";
 import type { StudioAssetDragPayloadV1 } from "../asset-browser/studio-asset-drag";
-import type { StudioGlbExtractDragPayloadV1 } from "./components/node-palette/glb-extract-drag";
+import type { StudioGlbExtractDragPayload } from "./components/node-palette/glb-extract-drag";
 import type { FlowCanvasGraphHandle } from "./components/flow-canvas-graph-handle";
 import type { StudioDemoTemplateId, FlowGraphNode, StudioNode } from "./store/flow-editor.store";
 import type { FlowCanvasPreferences } from "./components/flow-canvas-ui-persistence";
@@ -45,6 +45,11 @@ export type StudioLayoutProps = {
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
+  dashboardWidgetColor: string;
+  dashboardThemeColor: string;
+  dashboardTabColor: string;
+  materialColor: string;
+  meshColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   entries: NodeCatalogEntry[];
   nodes: FlowGraphNode[];
@@ -85,6 +90,10 @@ export type StudioLayoutProps = {
   onRestoreFlowViewport?: () => void;
   /** Reset workbench pane split layout (provided by StudioLayout). */
   onResetWorkspaceLayout?: () => void;
+  /** Expand/focus a workbench pane by editor type (library, model-outliner, stage, …). */
+  onFocusWorkbenchPane?: (editorType: string) => void;
+  /** Apply a bundled workbench layout preset (`studio-workbench-presets.ts`). */
+  onApplyWorkbenchPreset?: (presetId: string) => boolean;
   workbenchRef?: RefObject<StandaloneWorkbenchHandle | null>;
   flowCanvasPreferences: FlowCanvasPreferences;
   onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
@@ -129,9 +138,25 @@ export type StudioLayoutProps = {
     parentModelFlowNodeId: string;
     row: StudioGltfExtractRow;
   }) => void;
+  /** GLB Library **Animations** tab: spawn **Animation Clip** for an animation row. */
+  onSpawnGlbAnimationClipExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
+  /** GLB Library **Parts** tab: spawn **Part Spin** for a part row. */
+  onSpawnGlbPartSpinExtract?: (args: {
+    parentModelFlowNodeId: string;
+    row: StudioGltfExtractRow;
+  }) => void;
+  /** GLB Library: build animation clip graph (wizard). */
+  onBuildGlbAnimationSetup?: (args: {
+    parentModelFlowNodeId: string;
+    clipRefs: string[];
+    combinerMode: import("./components/node-palette/glb-animation-setup-combiner").GlbAnimationSetupCombinerMode;
+  }) => void;
   /** Canvas drop for GLB extraction rows (custom MIME payload from the Library GLB tab). */
   onDropGlbExtract?: (
-    payload: StudioGlbExtractDragPayloadV1,
+    payload: StudioGlbExtractDragPayload,
     flowPosition: { x: number; y: number },
   ) => void;
   onDropStudioAsset?: (

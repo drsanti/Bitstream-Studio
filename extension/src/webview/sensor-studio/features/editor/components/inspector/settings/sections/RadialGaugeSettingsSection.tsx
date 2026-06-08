@@ -14,6 +14,7 @@ import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 import { GaugeScaleReadoutInspectorFields } from "../GaugeScaleReadoutInspectorFields";
 import { GaugeZonesEditor } from "../GaugeZonesEditor";
+import { DashboardPublishSettingsSection } from "./DashboardPublishSettingsSection";
 
 export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -215,6 +216,7 @@ export function RadialGaugeSettingsSection(props: NodeInspectorSettingsSectionPr
           }}
         />
       </InspectorCollapsibleSection>
+      <DashboardPublishSettingsSection {...props} />
     </>
   );
 }

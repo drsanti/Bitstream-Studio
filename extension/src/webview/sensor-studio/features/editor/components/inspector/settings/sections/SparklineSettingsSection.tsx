@@ -9,6 +9,7 @@ import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
 import { InspectorColorRow } from "../../InspectorDenseControls";
 import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
+import { DashboardPublishSettingsSection } from "./DashboardPublishSettingsSection";
 
 const PREVIEW_WAVE = [
   -0.6, -0.2, 0.1, 0.45, 0.8, 0.55, 0.2, -0.15, -0.4, -0.7, -0.35, 0.05,
@@ -86,6 +87,7 @@ export function SparklineSettingsSection(props: NodeInspectorSettingsSectionProp
           }}
         />
       </InspectorCollapsibleSection>
+      <DashboardPublishSettingsSection {...props} />
     </>
   );
 }

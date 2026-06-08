@@ -5,6 +5,8 @@ import type { Scene3dInspectorPanelId } from "./node-inspector-ui-persistence";
 const PREFIX = "ternion.sensor-studio.stageInspector.";
 
 const KEYS = {
+  workbenchInspectorTab: `${PREFIX}workbenchInspectorTab.v1`,
+  workbenchFlowSplitRatio: `${PREFIX}workbenchFlowSplitRatio.v1`,
   activeTab: `${PREFIX}activeTab.v1`,
   overviewCardOrder: `${PREFIX}overviewTab.cardOrder.v1`,
   overviewCardCollapsed: `${PREFIX}overviewTab.cardCollapsed.v1`,
@@ -15,6 +17,35 @@ const KEYS = {
 } as const;
 
 export type StageInspectorTab = "overview" | "scene3d" | "toolbar";
+
+export type StageWorkbenchInspectorTab = "selection" | "scene";
+
+export function readStoredStageWorkbenchInspectorTab(): StageWorkbenchInspectorTab {
+  const raw = safeGet(KEYS.workbenchInspectorTab);
+  if (raw === "selection" || raw === "scene") {
+    return raw;
+  }
+  return "scene";
+}
+
+export function writeStoredStageWorkbenchInspectorTab(tab: StageWorkbenchInspectorTab): void {
+  safeSet(KEYS.workbenchInspectorTab, tab);
+}
+
+const DEFAULT_WORKBENCH_FLOW_SPLIT_RATIO = 0.58;
+
+export function readStoredStageWorkbenchFlowSplitRatio(): number {
+  const raw = safeGet(KEYS.workbenchFlowSplitRatio);
+  if (raw == null || raw.length === 0) {
+    return DEFAULT_WORKBENCH_FLOW_SPLIT_RATIO;
+  }
+  const parsed = Number.parseFloat(raw);
+  return Number.isFinite(parsed) ? parsed : DEFAULT_WORKBENCH_FLOW_SPLIT_RATIO;
+}
+
+export function writeStoredStageWorkbenchFlowSplitRatio(ratio: number): void {
+  safeSet(KEYS.workbenchFlowSplitRatio, String(ratio));
+}
 
 export function readStoredStageInspectorTab(): StageInspectorTab {
   const raw = safeGet(KEYS.activeTab);

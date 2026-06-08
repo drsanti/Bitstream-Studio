@@ -31,6 +31,8 @@ export const SOCKET_PREVIEW_STRUCTURED_PORT_TYPES = new Set<StudioPortType>([
   "audioBus",
   "videoBus",
   "videoTexture",
+  "material",
+  "mesh",
   "event",
 ]);
 

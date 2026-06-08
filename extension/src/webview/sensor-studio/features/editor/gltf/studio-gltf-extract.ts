@@ -1,5 +1,9 @@
 import * as THREE from "three";
 import { fetchAndParseGltfFromUrl } from "./load-gltf-from-url.js";
+import {
+  STUDIO_GLB_MATERIAL_TEXTURE_SLOTS,
+  type StudioGlbMaterialTextureSlotV1,
+} from "./studio-glb-material-texture.js";
 
 /**
  * Heuristic keywords for “addressable” rig / mechanism parts (aligned with node-animator’s
@@ -41,6 +45,50 @@ export function studioGlbExtractRowKey(row: Pick<StudioGltfExtractRow, "kind" | 
   return `${row.kind}:${row.ref}`;
 }
 
+export type StudioGltfSceneTreeNodeType =
+  | "group"
+  | "mesh"
+  | "bone"
+  | "light"
+  | "camera"
+  | "other";
+
+export type StudioGltfSceneTreeNode = {
+  /** Stable object path (slash-separated names from root). */
+  path: string;
+  label: string;
+  nodeType: StudioGltfSceneTreeNodeType;
+  children: StudioGltfSceneTreeNode[];
+};
+
+export type StudioGltfVec3 = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+/** Local transform + mesh material slot names for Model Outliner detail strip. */
+export type StudioGltfObjectDetail = {
+  path: string;
+  nodeType: StudioGltfSceneTreeNodeType;
+  transform: {
+    position: StudioGltfVec3;
+    rotationDeg: StudioGltfVec3;
+    scale: StudioGltfVec3;
+  };
+  materialSlotNames: string[];
+  morphTargetNames: string[];
+};
+
+/** Aggregated GLB material info for Model Outliner detail strip. */
+export type StudioGltfMaterialDetail = {
+  name: string;
+  usedOnMeshPaths: string[];
+  occupiedTextureSlots: StudioGlbMaterialTextureSlotV1[];
+  metalness?: number;
+  roughness?: number;
+};
+
 export type StudioGltfExtractionResult = {
   animations: StudioGltfExtractRow[];
   parts: StudioGltfExtractRow[];
@@ -48,6 +96,10 @@ export type StudioGltfExtractionResult = {
   morphs: StudioGltfExtractRow[];
   lights: StudioGltfExtractRow[];
   cameras: StudioGltfExtractRow[];
+  /** Full scene object hierarchy (root-level children of the loaded scene). */
+  sceneTree: StudioGltfSceneTreeNode[];
+  objectDetailsByPath: Record<string, StudioGltfObjectDetail>;
+  materialDetailsByName: Record<string, StudioGltfMaterialDetail>;
 };
 
 function objectPath(obj: THREE.Object3D): string {
@@ -70,6 +122,109 @@ function disposeLoadedScene(root: THREE.Object3D): void {
       mesh.geometry?.dispose();
     }
   });
+}
+
+function sceneTreeNodeType(obj: THREE.Object3D): StudioGltfSceneTreeNodeType {
+  if (obj instanceof THREE.Light) {
+    return "light";
+  }
+  if (obj instanceof THREE.Camera) {
+    return "camera";
+  }
+  if (obj instanceof THREE.Bone) {
+    return "bone";
+  }
+  if (obj instanceof THREE.Mesh) {
+    return "mesh";
+  }
+  if (obj instanceof THREE.Group) {
+    return "group";
+  }
+  return "other";
+}
+
+function sceneTreeLabel(obj: THREE.Object3D, path: string): string {
+  if (typeof obj.name === "string" && obj.name.trim().length > 0) {
+    return obj.name.trim();
+  }
+  const tail = path.includes("/") ? path.split("/").pop() : path;
+  if (tail != null && tail.length > 0) {
+    return tail;
+  }
+  return sceneTreeNodeType(obj);
+}
+
+function buildStudioGltfSceneTreeNode(obj: THREE.Object3D): StudioGltfSceneTreeNode {
+  const path = objectPath(obj);
+  return {
+    path,
+    label: sceneTreeLabel(obj, path),
+    nodeType: sceneTreeNodeType(obj),
+    children: obj.children.map((child) => buildStudioGltfSceneTreeNode(child)),
+  };
+}
+
+const RAD_TO_DEG = 180 / Math.PI;
+
+function vec3FromThree(v: THREE.Vector3): StudioGltfVec3 {
+  return { x: v.x, y: v.y, z: v.z };
+}
+
+function readObjectLocalTransform(obj: THREE.Object3D): StudioGltfObjectDetail["transform"] {
+  const euler = new THREE.Euler().setFromQuaternion(obj.quaternion, "XYZ");
+  return {
+    position: vec3FromThree(obj.position),
+    rotationDeg: {
+      x: euler.x * RAD_TO_DEG,
+      y: euler.y * RAD_TO_DEG,
+      z: euler.z * RAD_TO_DEG,
+    },
+    scale: vec3FromThree(obj.scale),
+  };
+}
+
+function readOccupiedTextureSlots(mat: THREE.Material): StudioGlbMaterialTextureSlotV1[] {
+  const std = mat as THREE.MeshStandardMaterial;
+  const out: StudioGlbMaterialTextureSlotV1[] = [];
+  for (const slot of STUDIO_GLB_MATERIAL_TEXTURE_SLOTS) {
+    const tex = std[slot];
+    if (tex != null) {
+      out.push(slot);
+    }
+  }
+  return out;
+}
+
+function upsertMaterialDetail(
+  map: Record<string, StudioGltfMaterialDetail>,
+  mat: THREE.Material,
+  meshPath: string,
+): void {
+  const name = typeof mat.name === "string" ? mat.name.trim() : "";
+  if (name.length === 0) {
+    return;
+  }
+  const occupied = readOccupiedTextureSlots(mat);
+  const std = mat as THREE.MeshStandardMaterial;
+  const existing = map[name];
+  if (existing == null) {
+    map[name] = {
+      name,
+      usedOnMeshPaths: [meshPath],
+      occupiedTextureSlots: [...occupied],
+      metalness: typeof std.metalness === "number" ? std.metalness : undefined,
+      roughness: typeof std.roughness === "number" ? std.roughness : undefined,
+    };
+    return;
+  }
+  if (!existing.usedOnMeshPaths.includes(meshPath)) {
+    existing.usedOnMeshPaths.push(meshPath);
+  }
+  for (const slot of occupied) {
+    if (!existing.occupiedTextureSlots.includes(slot)) {
+      existing.occupiedTextureSlots.push(slot);
+    }
+  }
 }
 
 function isControllablePart(obj: THREE.Object3D): boolean {
@@ -99,6 +254,9 @@ export async function extractStudioGltfComponents(fetchUrl: string): Promise<Stu
       morphs: [],
       lights: [],
       cameras: [],
+      sceneTree: [],
+      objectDetailsByPath: {},
+      materialDetailsByName: {},
     };
   }
 
@@ -111,10 +269,43 @@ export async function extractStudioGltfComponents(fetchUrl: string): Promise<Stu
   const morphRefs = new Set<string>();
   const lightRefs = new Set<string>();
   const cameraRefs = new Set<string>();
+  const objectDetailsByPath: Record<string, StudioGltfObjectDetail> = {};
+  const materialDetailsByName: Record<string, StudioGltfMaterialDetail> = {};
 
   scene.updateMatrixWorld(true);
 
   scene.traverse((obj) => {
+    const path = objectPath(obj);
+    const morphTargetNames: string[] = [];
+    const materialSlotNames: string[] = [];
+    const mesh = obj instanceof THREE.Mesh ? obj : null;
+
+    if (mesh != null && mesh.morphTargetDictionary != null) {
+      morphTargetNames.push(...Object.keys(mesh.morphTargetDictionary));
+    }
+
+    if (mesh != null && mesh.material != null) {
+      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+      for (const mat of mats) {
+        if (mat == null) {
+          continue;
+        }
+        const matName = typeof mat.name === "string" ? mat.name.trim() : "";
+        if (matName.length > 0) {
+          materialSlotNames.push(matName);
+          upsertMaterialDetail(materialDetailsByName, mat, path);
+        }
+      }
+    }
+
+    objectDetailsByPath[path] = {
+      path,
+      nodeType: sceneTreeNodeType(obj),
+      transform: readObjectLocalTransform(obj),
+      materialSlotNames,
+      morphTargetNames,
+    };
+
     if (obj instanceof THREE.Light) {
       if (typeof obj.name === "string" && obj.name.trim().length > 0) {
         lightRefs.add(obj.name.trim());
@@ -128,7 +319,6 @@ export async function extractStudioGltfComponents(fetchUrl: string): Promise<Stu
       return;
     }
 
-    const mesh = obj instanceof THREE.Mesh ? obj : null;
     const isGroup = obj instanceof THREE.Group;
     const isBone = obj instanceof THREE.Bone;
 
@@ -136,23 +326,21 @@ export async function extractStudioGltfComponents(fetchUrl: string): Promise<Stu
       partRefs.add(objectPath(obj));
     }
 
-    if (mesh != null && mesh.material != null) {
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      for (const mat of mats) {
-        if (mat != null && typeof mat.name === "string" && mat.name.trim().length > 0) {
-          materialRefs.add(mat.name.trim());
+    if (mesh != null) {
+      for (const matName of materialSlotNames) {
+        materialRefs.add(matName);
+      }
+      if (mesh.morphTargetDictionary != null) {
+        const meshKey =
+          typeof mesh.name === "string" && mesh.name.trim().length > 0 ? mesh.name.trim() : mesh.uuid;
+        for (const morphName of morphTargetNames) {
+          morphRefs.add(`${meshKey}:${morphName}`);
         }
       }
     }
-
-    if (mesh != null && mesh.morphTargetDictionary != null) {
-      const meshKey =
-        typeof mesh.name === "string" && mesh.name.trim().length > 0 ? mesh.name.trim() : mesh.uuid;
-      for (const morphName of Object.keys(mesh.morphTargetDictionary)) {
-        morphRefs.add(`${meshKey}:${morphName}`);
-      }
-    }
   });
+
+  const sceneTree = scene.children.map((child) => buildStudioGltfSceneTreeNode(child));
 
   disposeLoadedScene(scene);
 
@@ -186,6 +374,9 @@ export async function extractStudioGltfComponents(fetchUrl: string): Promise<Stu
     morphs: toRows("morph", morphRefs),
     lights: toRows("light", lightRefs),
     cameras: toRows("camera", cameraRefs),
+    sceneTree,
+    objectDetailsByPath,
+    materialDetailsByName,
   };
 }
 

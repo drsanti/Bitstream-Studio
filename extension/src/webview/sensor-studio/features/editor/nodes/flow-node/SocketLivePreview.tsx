@@ -12,7 +12,11 @@ import {
 } from "./readings/live-reading-colors";
 import { resolveReadingAxisFromHandleOrLabel } from "./readings/param-axis-classes";
 import { SOCKET_LIVE_VALUE_TYPOGRAPHY } from "./readings/socket-live-value-cell";
-import { truncateSocketStringPreview } from "./truncate-socket-string";
+import {
+  isLikelyModelUrlString,
+  modelUrlSocketDisplayLabel,
+} from "../animation/model-select-emit-display-name";
+import { SocketStructuredWireBadge } from "./SocketStructuredWireBadge";
 import { twMerge } from "tailwind-merge";
 
 export type SocketLivePreviewProps = {
@@ -159,18 +163,22 @@ export function SocketLivePreview(props: SocketLivePreviewProps) {
   }
 
   if (portType === "string" && stringValue !== undefined) {
+    const trimmed = stringValue.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    const label = isLikelyModelUrlString(trimmed)
+      ? modelUrlSocketDisplayLabel(trimmed)
+      : trimmed;
+    if (label.length === 0) {
+      return null;
+    }
     return (
-      <span
-        data-flow-socket-live-preview
-        className={twMerge(
-          SOCKET_LIVE_VALUE_TYPOGRAPHY,
-          "inline-block w-fit max-w-36 truncate text-zinc-200",
-          textAlign === "left" ? "text-left" : "text-right",
-        )}
+      <SocketStructuredWireBadge
+        label={label}
         title={stringValue}
-      >
-        {truncateSocketStringPreview(stringValue)}
-      </span>
+        portType="string"
+      />
     );
   }
 

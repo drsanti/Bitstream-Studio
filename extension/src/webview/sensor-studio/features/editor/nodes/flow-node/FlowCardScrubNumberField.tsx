@@ -4,9 +4,10 @@ import {
   type TRNScrubNumberFieldInteraction,
 } from "../../../../../ui/TRN";
 import {
-  ensureInspectorScrubFieldSettings,
+  ensureFlowCardScrubFieldSettings,
+  FLOW_CARD_SCRUB_SETTINGS_KEY,
+  INSPECTOR_SCRUB_APPEARANCE,
   INSPECTOR_SCRUB_INTERACTION,
-  INSPECTOR_SCRUB_SETTINGS_KEY,
 } from "../../components/inspector/inspector-scrub-field-presets";
 
 export type FlowCardScrubNumberFieldProps = {
@@ -39,11 +40,11 @@ export function FlowCardScrubNumberField(props: FlowCardScrubNumberFieldProps) {
     pointerScrubEnabled = true,
     appearance,
     interaction,
-    settingsKey = INSPECTOR_SCRUB_SETTINGS_KEY,
+    settingsKey = FLOW_CARD_SCRUB_SETTINGS_KEY,
     onCommit,
   } = props;
 
-  ensureInspectorScrubFieldSettings();
+  ensureFlowCardScrubFieldSettings();
 
   return (
     <TRNScrubNumberField
@@ -58,7 +59,10 @@ export function FlowCardScrubNumberField(props: FlowCardScrubNumberFieldProps) {
       fractionDigits={fractionDigits}
       disabled={disabled}
       settingsKey={settingsKey}
-      appearance={appearance}
+      appearance={{
+        ...INSPECTOR_SCRUB_APPEARANCE,
+        ...appearance,
+      }}
       interaction={{
         ...INSPECTOR_SCRUB_INTERACTION,
         ...interaction,

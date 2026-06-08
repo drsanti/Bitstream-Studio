@@ -60,6 +60,8 @@ export interface WebviewMessage {
   | 'bitstream-dashboard-config-push'
   | 'workbench-layout-host-pull'
   | 'workbench-layout-host-push'
+  | 'studio-library-workspace-pull'
+  | 'studio-library-workspace-push'
   | 'ternion-quick-action-toggle'
   | 'bitstream-simulator-start'
   | 'bitstream-simulator-stop';
@@ -141,6 +143,7 @@ export interface ExtensionMessage {
   | 'asset-default-download-paths-response'
   | 'bitstream-dashboard-config-response'
   | 'workbench-layout-host-response'
+  | 'studio-library-workspace-response'
   | 'bitstream-simulator-start-response'
   | 'bitstream-simulator-stop-response';
   topic?: string;

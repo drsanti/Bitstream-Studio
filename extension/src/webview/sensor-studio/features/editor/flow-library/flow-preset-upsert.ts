@@ -68,6 +68,31 @@ export function upsertFlowPreset(
   };
 }
 
+export function replaceFlowPresetById(
+  library: StudioFlowPresetFile[],
+  presetId: string,
+  incoming: StudioFlowPresetFile,
+): { library: StudioFlowPresetFile[]; result: FlowPresetSaveResult } | null {
+  const idx = library.findIndex((entry) => entry.meta.id === presetId);
+  if (idx < 0) {
+    return null;
+  }
+  const existing = library[idx]!;
+  const now = new Date().toISOString();
+  const merged: StudioFlowPresetFile = {
+    ...incoming,
+    meta: {
+      ...incoming.meta,
+      id: existing.meta.id,
+      createdAt: existing.meta.createdAt,
+      updatedAt: now,
+    },
+  };
+  const next = [...library];
+  next[idx] = merged;
+  return { library: next, result: { id: presetId, updated: true } };
+}
+
 export function patchFlowPresetMeta(
   library: StudioFlowPresetFile[],
   presetId: string,

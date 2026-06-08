@@ -9,6 +9,7 @@ import {
   MonitorPlay,
   Clapperboard,
   RefreshCw,
+  ScanEye,
   Search,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -34,6 +35,7 @@ import {
 } from "./asset-browser-recent.js";
 import { setStudioAssetDragData } from "./asset-drag.js";
 import { ModelPreviewModal } from "../../model-catalog/ModelPreviewModal.js";
+import { AssetBrowseVisionPackPanel } from "./AssetBrowseVisionPackPanel.js";
 
 export type AssetBrowsePanelProps = {
   borderColor: string;
@@ -50,6 +52,7 @@ const CATEGORY_TABS: { id: AssetCategory; label: string; Icon: LucideIcon }[] = 
   { id: "model", label: "Models", Icon: Box },
   { id: "environment", label: "Environments", Icon: MapIcon },
   { id: "texture", label: "Textures", Icon: ImageIcon },
+  { id: "library", label: "Libraries", Icon: ScanEye },
 ];
 
 export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
@@ -274,7 +277,9 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
                   ? "No assets match your search."
                   : category === "model"
                     ? ternionFreeAssetPackCopy.assetBrowseEmptyModels
-                    : ternionFreeAssetPackCopy.assetBrowseEmptyOther}
+                    : category === "library"
+                      ? "No library entries in the manifest."
+                      : ternionFreeAssetPackCopy.assetBrowseEmptyOther}
               </p>
               <button
                 type="button"
@@ -340,6 +345,10 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
               primaryUrl={resolved.primaryUrl}
             />
           </div>
+        ) : null}
+
+        {selected != null && category === "library" ? (
+          <AssetBrowseVisionPackPanel borderColor={borderColor} />
         ) : null}
 
         {selected != null && category === "model" ? (

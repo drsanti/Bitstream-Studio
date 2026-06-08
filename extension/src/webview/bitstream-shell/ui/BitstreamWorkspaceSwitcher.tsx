@@ -1,4 +1,4 @@
-import { Activity, Workflow } from "lucide-react";
+import { Activity, Workflow, Presentation } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   useBitstreamWorkspaceModeStore,
@@ -29,6 +29,7 @@ type WorkspaceTab = {
 const WORKSPACE_HOVER_CLASS: Record<BitstreamWorkspaceId, string> = {
   "sensor-telemetry": SHELL_DECK_PILL_HOVER.workspaceTelemetry,
   "sensor-studio": SHELL_DECK_PILL_HOVER.workspaceStudio,
+  presentation: SHELL_DECK_PILL_HOVER.workspacePresentation,
 };
 
 const WORKSPACE_TABS: readonly WorkspaceTab[] = [
@@ -49,6 +50,15 @@ const WORKSPACE_TABS: readonly WorkspaceTab[] = [
     activeSurfaceClass:
       "border-violet-500/45 bg-violet-500/15 text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
     activeIconClass: "text-violet-300",
+  },
+  {
+    id: "presentation",
+    label: "Presentation",
+    hint: "Training slides — theory, demos, and labs using live Bitstream Studio data.",
+    Icon: Presentation,
+    activeSurfaceClass:
+      "border-sky-500/45 bg-sky-500/15 text-sky-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    activeIconClass: "text-sky-300",
   },
 ];
 

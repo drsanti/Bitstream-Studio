@@ -8,8 +8,10 @@ import {
   persistScene3DConfig,
 } from "../../../../../../core/scene3d/scene3d-config";
 import { useFlowEditorStore } from "../../../../store/flow-editor.store";
+import { useStagePresentationPreferences } from "../../../../../stage/stage-presentation-preferences";
 import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
 import { InspectorSettingsSectionFrame } from "../../InspectorSettingsSectionFrame";
+import { StageMeshesOnlyScenePreferencesSection } from "../../StageMeshesOnlyScenePreferencesSection";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 function formatStudioEnvironmentLabel(studioAssetId: unknown): string {
@@ -26,6 +28,8 @@ function formatStudioEnvironmentLabel(studioAssetId: unknown): string {
 
 export function SceneOutputSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
+  const { preferences: stagePreferences, patchPreferences: patchStagePreferences } =
+    useStagePresentationPreferences();
   const liveEnv = selectedNode.data.liveEnvironmentWire;
   const dc = selectedNode.data.defaultConfig as Record<string, unknown>;
   const showGrid =
@@ -48,10 +52,11 @@ export function SceneOutputSettingsSection(props: NodeInspectorSettingsSectionPr
         applyStageScene3dPresentation(baseScene, { showGrid: next }),
       ),
     );
-    useFlowEditorStore.getState().tickSimulation();
+    useFlowEditorStore.getState().tickSimulation({ forceStageSnapshot: true });
   };
 
   return (
+    <>
     <InspectorSettingsSectionFrame title="Scene Output">
       <p className="mb-3 text-[11px] leading-relaxed text-zinc-500">
         Commits wired models and scene wires to the{" "}
@@ -84,5 +89,18 @@ export function SceneOutputSettingsSection(props: NodeInspectorSettingsSectionPr
         </div>
       </div>
     </InspectorSettingsSectionFrame>
+    <InspectorSettingsSectionFrame title="Meshes-only scene">
+      <p className="mb-2.5 text-[11px] leading-relaxed text-zinc-500">
+        When <span className="text-zinc-400">Meshes</span> is wired and{" "}
+        <span className="text-zinc-400">Models</span> is empty, the Stage shows procedural content
+        only (no baked demo GLB).
+      </p>
+      <StageMeshesOnlyScenePreferencesSection
+        preferences={stagePreferences}
+        onPreferencesChange={patchStagePreferences}
+        showHeading={false}
+      />
+    </InspectorSettingsSectionFrame>
+    </>
   );
 }

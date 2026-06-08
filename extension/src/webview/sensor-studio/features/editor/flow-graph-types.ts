@@ -20,4 +20,9 @@ export type StudioPortType =
   | "videoTexture"
   | "physicsScene"
   | "physicsCollider"
-  | "physicsBody";
+  | "physicsBody"
+  | "dashboardWidget"
+  | "dashboardTheme"
+  | "dashboardTab"
+  | "material"
+  | "mesh";

@@ -40,6 +40,11 @@ export type FlowPortThemeColors = {
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
+  dashboardWidgetColor: string;
+  dashboardThemeColor: string;
+  dashboardTabColor: string;
+  materialColor: string;
+  meshColor: string;
 };
 
 export type FlowEdgeDecorPrefs = Pick<
@@ -104,6 +109,11 @@ export function buildFlowPortColorMap(colors: FlowPortThemeColors): Record<Studi
     physicsScene: colors.physicsSceneColor,
     physicsCollider: colors.physicsColliderColor,
     physicsBody: colors.physicsBodyColor,
+    dashboardWidget: colors.dashboardWidgetColor,
+    dashboardTheme: colors.dashboardThemeColor,
+    dashboardTab: colors.dashboardTabColor,
+    material: colors.materialColor,
+    mesh: colors.meshColor,
   };
 }
 

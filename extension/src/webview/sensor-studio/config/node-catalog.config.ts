@@ -20,6 +20,7 @@ import {
   type Scene3DConfigV1,
 } from "../core/scene3d/scene3d-config";
 import { VECTOR_QUATERNION_MATH_CATALOG_ENTRIES } from "./vector-quaternion-math-catalog.entries";
+import { MESH_BUNDLE_NODE_TITLE } from "../features/editor/nodes/mesh/mesh-group-inputs";
 
 /**
  * Catalog defaults must persist a **logical** GLB path (`resolveWebviewModelAssetUrl`), not
@@ -582,6 +583,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultVisible: true,
         defaultConfig: {
           operation: ">",
+          publishToDashboard: false,
+          onLabel: "Pass",
+          offLabel: "Fail",
+          onTone: "success",
+          offTone: "danger",
+          placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
         },
         inputPorts: [
           { id: "a", portType: "number", label: "A" },
@@ -905,6 +912,109 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
         inputPorts: [{ id: "in", portType: "vector3", label: "Euler" }],
         outputPorts: [{ id: "out", portType: "transform", label: "Transform" }],
+      },
+      {
+        id: "animation-clip",
+        category: "scene",
+        title: "Animation Clip",
+        description:
+          "Drive one GLB action clip on the graph. Wire **Model** from **Model Source**, pick a clip on the node or Node tab, then wire **Animation** out to **Model Viewer** (or Merge/Blend). Optional **Time**, **Speed**, **Weight**, **Enabled** inputs. Spawn from Library **Animations → Clip** with Model Source selected.",
+        icon: "clapperboard",
+        defaultVisible: true,
+        defaultConfig: {
+          clipName: "",
+          timeS: 0,
+          speed: 1,
+          weight: 1,
+          loopMode: "loop",
+          enabled: true,
+        },
+        inputPorts: [
+          { id: "model", portType: "string", label: "Model" },
+          { id: "time", portType: "number", label: "Time (s)" },
+          { id: "speed", portType: "number", label: "Speed" },
+          { id: "weight", portType: "number", label: "Weight" },
+          { id: "enabled", portType: "boolean", label: "Enabled" },
+        ],
+        outputPorts: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+      },
+      {
+        id: "animation-merge",
+        category: "scene",
+        title: "Animation Merge",
+        description:
+          "Combine 2–8 partial **Animation** wires into one. Merge order **1 → 2 → … → N** — later inputs override fields on the same clip name. Distinct clips play in parallel. Add or remove inputs on the Node tab.",
+        icon: "layers",
+        defaultVisible: true,
+        defaultConfig: {
+          animationInputCount: 3,
+        },
+        outputPorts: [{ id: "out", portType: "glbAnimation", label: "Out" }],
+      },
+      {
+        id: "animation-mix",
+        category: "scene",
+        title: "Animation Mix",
+        description:
+          "Weighted mix of **2–8 Animation** wires. Per-input weights (inspector or **W1…WN** sockets) scale clip weights, then clips play in parallel. Use for N-way blends; pair **Animation Blend** for simple A↔B crossfades.",
+        icon: "blend",
+        defaultVisible: true,
+        defaultConfig: {
+          animationInputCount: 3,
+          mixWeights: [0.34, 0.33, 0.33],
+          normalizeWeights: true,
+        },
+        outputPorts: [{ id: "out", portType: "glbAnimation", label: "Out" }],
+      },
+      {
+        id: "animation-blend",
+        category: "scene",
+        title: "Animation Blend",
+        description:
+          "Cross-fade two **Animation** wires. **Factor** 0 = A only, 1 = B only. Optional crossfade duration feeds mixer fade in/out. Wire **Factor** from logic for live blending.",
+        icon: "sliders-horizontal",
+        defaultVisible: true,
+        defaultConfig: {
+          factor: 0.5,
+          crossfadeS: 0.3,
+        },
+        inputPorts: [
+          { id: "a", portType: "glbAnimation", label: "A" },
+          { id: "b", portType: "glbAnimation", label: "B" },
+          { id: "factor", portType: "number", label: "Factor" },
+        ],
+        outputPorts: [{ id: "out", portType: "glbAnimation", label: "Out" }],
+      },
+      {
+        id: "part-spin",
+        category: "scene",
+        title: "Part Spin",
+        description:
+          "Continuous local-axis rotation on a GLB part path (propellers, belts, idle rotors). Wire **Speed** or **Enabled** from logic, or set defaults on the Node tab. Applies in the **Model Viewer** after baked animation clips. Spawn from Library **Model → Parts → Spin** with Model Source selected.",
+        icon: "rotate-cw",
+        defaultVisible: true,
+        defaultConfig: {
+          spinAxis: "y",
+          speedRadS: Math.PI * 2,
+          reverse: false,
+          enabled: true,
+        },
+        inputPorts: [
+          { id: "speed", portType: "number", label: "Speed (rad/s)" },
+          { id: "enabled", portType: "boolean", label: "Enabled" },
+        ],
+      },
+      {
+        id: "glb-part-transform",
+        category: "scene",
+        title: "Part Transform",
+        description:
+          "Author local position, rotation, and scale on a GLB part path. Scoped to a **Model Source** node. Applies in **Model Viewer** and **Stage** after animation clips. Drag the Stage gizmo on a GLB part to create this node automatically, or spawn from **Model Outliner → Parts**.",
+        icon: "box",
+        defaultVisible: true,
+        defaultConfig: {
+          ...(defaultFlowWireTransformV1() as unknown as Record<string, unknown>),
+        },
       },
       {
         id: "glb-animation-bundle",
@@ -1284,6 +1394,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultConfig: {
           operator: ">",
           value: 0.5,
+          publishToDashboard: false,
+          onLabel: "OK",
+          offLabel: "Alarm",
+          onTone: "success",
+          offTone: "danger",
+          placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
         },
         inputPorts: [{ id: "in", portType: "number", label: "Value" }],
         outputPorts: [{ id: "out", portType: "boolean", label: "Out" }],
@@ -1297,6 +1413,12 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         defaultVisible: true,
         defaultConfig: {
           label: "Indicator",
+          publishToDashboard: false,
+          onLabel: "ON",
+          offLabel: "OFF",
+          onTone: "success",
+          offTone: "neutral",
+          placement: { column: 1, row: 1, columnSpan: 2, rowSpan: 1 },
         },
         inputPorts: [{ id: "in", portType: "boolean", label: "On" }],
       },
@@ -1311,6 +1433,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           historySize: 24,
           strokeColor: "#22d3ee",
           strokeWidth: 3,
+          publishToDashboard: false,
+          placement: { column: 1, row: 3, columnSpan: 6, rowSpan: 2 },
+          flex: { order: 3, grow: 1, shrink: 1, basis: "auto" },
         },
         inputPorts: [{ id: "in", portType: "number", label: "Value" }],
       },
@@ -1377,6 +1502,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
               markerEvery: 8,
             },
           },
+          publishToDashboard: false,
+          placement: { column: 1, row: 1, columnSpan: 8, rowSpan: 4 },
+          flex: { order: 0, grow: 1, shrink: 1, basis: "320px" },
         },
       },
       {
@@ -1440,11 +1568,290 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         ],
       },
       {
+        id: "dashboard-output",
+        category: "dashboard",
+        title: "Dashboard Output",
+        description:
+          "Commits wired **Dashboard** widget nodes to the **Dashboard** workbench pane (2D operator HMI). Wire **Dashboard Button**, **LED**, **Text**, **Gauge**, or **Knob** widget outputs into **Widgets**.",
+        icon: "layout-grid",
+        defaultVisible: true,
+        defaultConfig: {
+          layout: {
+            version: 1,
+            mode: "grid",
+            grid: { columns: 12, gapPx: 8, paddingPx: 16, rowHeightPx: 48 },
+            flex: {
+              direction: "row",
+              wrap: true,
+              gapPx: 8,
+              paddingPx: 16,
+              alignItems: "stretch",
+              justifyContent: "start",
+            },
+          },
+          theme: {
+            version: 1,
+            preset: "studio-dark",
+            canvasBackground: "#09090b",
+            panelBackground: "#18181b",
+            accentColor: "#22d3ee",
+            textPrimary: "#e4e4e7",
+            textSecondary: "#a1a1aa",
+          },
+        },
+        inputPorts: [
+          { id: "widgets", portType: "dashboardWidget", label: "Widgets" },
+          { id: "tabs", portType: "dashboardTab", label: "Tabs" },
+          { id: "theme", portType: "dashboardTheme", label: "Theme" },
+        ],
+      },
+      {
+        id: "dashboard-tab",
+        category: "dashboard",
+        title: "Dashboard Tab",
+        description:
+          "Multi-page tab on the **Dashboard** pane. Wire child dashboard widgets into **Widgets**; wire **Tab** into **Dashboard Output** **Tabs**.",
+        icon: "panels-top-left",
+        defaultVisible: true,
+        defaultConfig: {
+          title: "Tab",
+          order: 0,
+          enabled: true,
+        },
+        inputPorts: [{ id: "widgets", portType: "dashboardWidget", label: "Widgets" }],
+        outputPorts: [{ id: "tab", portType: "dashboardTab", label: "Tab" }],
+      },
+      {
+        id: "dashboard-theme",
+        category: "dashboard",
+        title: "Dashboard Theme",
+        description:
+          "Theme preset for the **Dashboard** pane. Wire **Theme** into **Dashboard Output** to override canvas, panel, and accent colors.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          theme: {
+            version: 1,
+            preset: "studio-dark",
+            canvasBackground: "#09090b",
+            panelBackground: "#18181b",
+            accentColor: "#22d3ee",
+            textPrimary: "#e4e4e7",
+            textSecondary: "#a1a1aa",
+          },
+        },
+        outputPorts: [{ id: "out", portType: "dashboardTheme", label: "Theme" }],
+      },
+      {
+        id: "dashboard-group",
+        category: "dashboard",
+        title: "Dashboard Group",
+        description:
+          "Nested grid group on the **Dashboard** pane. Wire child dashboard widgets into **Widgets**; wire **Widget** into **Dashboard Output** or a parent group.",
+        icon: "layout-grid",
+        defaultVisible: true,
+        defaultConfig: {
+          title: "Group",
+          showTitle: true,
+          showBorder: true,
+          groupLayout: {
+            version: 1,
+            columns: 6,
+            gapPx: 6,
+            paddingPx: 8,
+            rowHeightPx: 48,
+          },
+          placement: { column: 1, row: 1, columnSpan: 6, rowSpan: 4 },
+          flex: { order: 0, grow: 1, shrink: 1, basis: "auto" },
+        },
+        inputPorts: [{ id: "widgets", portType: "dashboardWidget", label: "Widgets" }],
+        outputPorts: [{ id: "widget", portType: "dashboardWidget", label: "Widget" }],
+      },
+      {
+        id: "dashboard-button",
+        category: "dashboard",
+        title: "Dashboard Button",
+        description:
+          "Operator button on the **Dashboard** pane. Wire **Widget** into **Dashboard Output**; wire **Click** events into actions (Set Boolean, toggles, etc.). Set grid placement on the **Node** tab.",
+        icon: "square-mouse-pointer",
+        defaultVisible: true,
+        defaultConfig: {
+          label: "Button",
+          variant: "primary",
+          placement: { column: 1, row: 1, columnSpan: 2, rowSpan: 1 },
+        },
+        outputPorts: [
+          { id: "widget", portType: "dashboardWidget", label: "Widget" },
+          { id: "out", portType: "event", label: "Click" },
+        ],
+      },
+      {
+        id: "dashboard-led",
+        category: "dashboard",
+        title: "Dashboard LED",
+        description:
+          "LED indicator on the **Dashboard** pane. Wire a boolean or number into **On**; wire **Widget** into **Dashboard Output**.",
+        icon: "circle-dot",
+        defaultVisible: true,
+        defaultConfig: {
+          label: "LED",
+          onColor: "#22c55e",
+          offColor: "#18181b",
+          threshold: 0.5,
+          blink: false,
+          placement: { column: 3, row: 1, columnSpan: 2, rowSpan: 1 },
+        },
+        inputPorts: [{ id: "in", portType: "boolean", label: "On" }],
+        outputPorts: [{ id: "widget", portType: "dashboardWidget", label: "Widget" }],
+      },
+      {
+        id: "dashboard-text",
+        category: "dashboard",
+        title: "Dashboard Text",
+        description:
+          "Numeric readout on the **Dashboard** pane. Wire a number into **Value**; wire **Widget** into **Dashboard Output**.",
+        icon: "hash",
+        defaultVisible: true,
+        defaultConfig: {
+          label: "Value",
+          unit: "",
+          decimals: 2,
+          showStatusBar: true,
+          placement: { column: 1, row: 2, columnSpan: 4, rowSpan: 1 },
+          zones: [
+            { from: 0, to: 60, color: "rgba(228,228,231,0.95)" },
+            { from: 60, to: 80, color: "#fbbf24" },
+            { from: 80, to: 100, color: "#f87171" },
+          ],
+        },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
+        outputPorts: [{ id: "widget", portType: "dashboardWidget", label: "Widget" }],
+      },
+      {
+        id: "dashboard-gauge",
+        category: "dashboard",
+        title: "Dashboard Gauge",
+        description:
+          "Radial gauge on the **Dashboard** pane. Wire a number into **Value**; wire **Widget** into **Dashboard Output**.",
+        icon: "gauge",
+        defaultVisible: true,
+        defaultConfig: {
+          min: 0,
+          max: 100,
+          unit: "",
+          decimals: 1,
+          zones: [
+            { from: 0, to: 60, color: "#22d3ee" },
+            { from: 60, to: 80, color: "#fbbf24" },
+            { from: 80, to: 100, color: "#f87171" },
+          ],
+          placement: { column: 5, row: 1, columnSpan: 4, rowSpan: 3 },
+          flex: { order: 2, grow: 1, shrink: 1, basis: "200px" },
+        },
+        inputPorts: [{ id: "in", portType: "number", label: "Value" }],
+        outputPorts: [{ id: "widget", portType: "dashboardWidget", label: "Widget" }],
+      },
+      {
+        id: "dashboard-knob",
+        category: "dashboard",
+        title: "Dashboard Knob",
+        description:
+          "Interactive knob on the **Dashboard** pane. Drag to change value; wire **Value** into downstream nodes; wire **Widget** into **Dashboard Output**.",
+        icon: "circle-slash-2",
+        defaultVisible: true,
+        defaultConfig: {
+          min: 0,
+          max: 100,
+          value: 50,
+          step: 1,
+          unit: "",
+          decimals: 1,
+          zones: [
+            { from: 0, to: 60, color: "#22d3ee" },
+            { from: 60, to: 80, color: "#fbbf24" },
+            { from: 80, to: 100, color: "#f87171" },
+          ],
+          placement: { column: 9, row: 1, columnSpan: 4, rowSpan: 3 },
+          flex: { order: 3, grow: 0, shrink: 0, basis: "160px" },
+        },
+        outputPorts: [
+          { id: "widget", portType: "dashboardWidget", label: "Widget" },
+          { id: "out", portType: "number", label: "Value" },
+        ],
+      },
+      {
+        id: "dashboard-switch",
+        category: "dashboard",
+        title: "Dashboard Switch",
+        description:
+          "Boolean toggle on the **Dashboard** pane. Flip on/off; wire **Out** into boolean consumers (LED, compare, Set Boolean, etc.).",
+        icon: "toggle-left",
+        defaultVisible: true,
+        defaultConfig: {
+          label: "Switch",
+          value: false,
+          placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
+          flex: { order: 0, grow: 0, shrink: 0, basis: "auto" },
+        },
+        outputPorts: [
+          { id: "widget", portType: "dashboardWidget", label: "Widget" },
+          { id: "out", portType: "boolean", label: "Out" },
+        ],
+      },
+      {
+        id: "dashboard-slider",
+        category: "dashboard",
+        title: "Dashboard Slider",
+        description:
+          "Horizontal slider on the **Dashboard** pane. Drag to set a numeric **Value** output for downstream nodes.",
+        icon: "sliders-horizontal",
+        defaultVisible: true,
+        defaultConfig: {
+          label: "Slider",
+          min: 0,
+          max: 100,
+          value: 50,
+          step: 1,
+          unit: "",
+          decimals: 1,
+          zones: [
+            { from: 0, to: 60, color: "#22d3ee" },
+            { from: 60, to: 80, color: "#fbbf24" },
+            { from: 80, to: 100, color: "#f87171" },
+          ],
+          placement: { column: 4, row: 1, columnSpan: 6, rowSpan: 1 },
+          flex: { order: 1, grow: 1, shrink: 1, basis: "auto" },
+        },
+        outputPorts: [
+          { id: "widget", portType: "dashboardWidget", label: "Widget" },
+          { id: "out", portType: "number", label: "Value" },
+        ],
+      },
+      {
+        id: "dashboard-status",
+        category: "dashboard",
+        title: "Dashboard Status",
+        description:
+          "Boolean status pill on the **Dashboard** pane. Wire **On** for live state, or set labels/tones on the **Node** tab.",
+        icon: "activity",
+        defaultVisible: true,
+        defaultConfig: {
+          label: "Status",
+          onLabel: "OK",
+          offLabel: "Fault",
+          onTone: "success",
+          offTone: "danger",
+          placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
+        },
+        inputPorts: [{ id: "in", portType: "boolean", label: "On" }],
+        outputPorts: [{ id: "widget", portType: "dashboardWidget", label: "Widget" }],
+      },
+      {
         id: "scene-output",
         category: "scene",
         title: "Scene Output",
         description:
-          "Commits wired **Models** and optional **Environment**, **Camera**, **Transform**, **Animation**, scene FX, and **Physics** to the **Stage** workbench (full Three.js + Rapier). Use **Model Viewer** on the canvas for authoring previews.",
+          "Commits wired **Models**, optional **Meshes** (procedural box/sphere/plane), **Environment**, **Camera**, **Transform**, **Animation**, scene FX, and **Physics** to the **Stage** workbench (full Three.js + Rapier). Use **Model Viewer** on the canvas for authoring previews.",
         icon: "monitor-play",
         defaultVisible: true,
         defaultConfig: {
@@ -1453,6 +1860,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
         inputPorts: [
           { id: "models", portType: "string", label: "Models" },
+          { id: "meshes", portType: "mesh", label: "Meshes" },
           { id: "env", portType: "environment", label: "Environment" },
           { id: "cam", portType: "camera", label: "Camera" },
           { id: "anim", portType: "glbAnimation", label: "Animation" },
@@ -1475,7 +1883,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         category: "scene",
         title: "Model Viewer",
         description:
-          "3D model preview in a viewport. Wire a **Model Source** node (or Asset Browser drag) into **Model**; preview stays empty until a model is wired. Optional **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, **Studio Light**, **Post-FX**, and **Contact Shadows** inputs override saved scene settings while connected.",
+          "3D model preview in a viewport. Wire a **Model Source** node (or Asset Browser drag) into **Model**; preview stays empty until a model or **Meshes** wire is connected. Optional **Meshes** (procedural primitives), **Environment**, **Camera**, **Animation**, **Transform**, **Exposure**, **Fog**, **Studio Light**, **Post-FX**, and **Contact Shadows** inputs override saved scene settings while connected.",
         icon: "scan-line",
         defaultVisible: true,
         defaultConfig: {
@@ -1485,6 +1893,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         },
         inputPorts: [
           { id: "in", portType: "string", label: "Model" },
+          { id: "meshes", portType: "mesh", label: "Meshes" },
           { id: "env", portType: "environment", label: "Environment" },
           { id: "cam", portType: "camera", label: "Camera" },
           { id: "anim", portType: "glbAnimation", label: "Animation" },
@@ -1521,6 +1930,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
+          publishToDashboard: false,
+          placement: { column: 1, row: 1, columnSpan: 4, rowSpan: 3 },
+          flex: { order: 0, grow: 1, shrink: 1, basis: "200px" },
         },
       },
       {
@@ -1543,6 +1955,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
+          publishToDashboard: false,
+          placement: { column: 5, row: 1, columnSpan: 2, rowSpan: 4 },
+          flex: { order: 1, grow: 0, shrink: 0, basis: "120px" },
         },
       },
       {
@@ -1559,6 +1974,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           offColor: "#18181b",
           threshold: 0.5,
           blink: false,
+          publishToDashboard: false,
+          placement: { column: 1, row: 1, columnSpan: 2, rowSpan: 1 },
+          flex: { order: 0, grow: 0, shrink: 0, basis: "auto" },
         },
       },
       {
@@ -1581,6 +1999,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
+          publishToDashboard: false,
+          placement: { column: 5, row: 1, columnSpan: 4, rowSpan: 3 },
+          flex: { order: 1, grow: 0, shrink: 0, basis: "160px" },
         },
         outputPorts: [{ id: "out", portType: "number", label: "Value" }],
       },
@@ -1602,6 +2023,9 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
             { from: 60, to: 80, color: "#fbbf24" },
             { from: 80, to: 100, color: "#f87171" },
           ],
+          publishToDashboard: false,
+          placement: { column: 1, row: 4, columnSpan: 4, rowSpan: 1 },
+          flex: { order: 2, grow: 1, shrink: 1, basis: "auto" },
         },
       },
       // ─────────────────────────────────────────────────────────────────────
@@ -1937,7 +2361,8 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         id: "rigid-body",
         category: "utility",
         title: "Rigid Body",
-        description: "Dynamic rigid body — wire **Body** into Physics World **Bodies** for Rapier preview.",
+        description:
+          "Dynamic rigid body — wire **Body** into Physics World **Bodies** for Rapier preview. Optional **Mesh** input derives box half-extents and spawn position from a procedural mesh wire.",
         icon: "box",
         defaultVisible: false,
         defaultConfig: {
@@ -1949,6 +2374,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           positionZ: 0,
           halfExtents: 0.25,
         },
+        inputPorts: [{ id: "mesh", portType: "mesh", label: "Mesh" }],
         outputPorts: [{ id: "out", portType: "physicsBody", label: "Body" }],
       },
       {
@@ -2009,7 +2435,7 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
         title: "Fixed Joint",
         description: "Lock two rigid bodies together (Tier D1 stub).",
         icon: "link",
-        defaultVisible: false,
+        defaultVisible: true,
         defaultConfig: {},
         inputPorts: [
           { id: "bodyA", portType: "transform", label: "Body A" },
@@ -2253,6 +2679,272 @@ export const NODE_CATALOG_DEFAULTS: NodeCatalogConfig = {
           selectedStudioTextureAssetId: "",
         },
         outputPorts: [{ id: "out", portType: "string", label: "Texture URL" }],
+      },
+      {
+        id: "mesh-material-basic",
+        category: "scene",
+        title: "Basic Material",
+        description:
+          "Unlit mesh material for procedural shapes. Wire **Material** into primitive mesh nodes (Box, Sphere, …). Optional **Color** and **Opacity** inputs override card values.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          meshMaterialColorHex: "#ffffff",
+          meshMaterialOpacity: 1,
+          meshMaterialWireframe: false,
+        },
+        inputPorts: [
+          { id: "color", portType: "vector3", label: "Color" },
+          { id: "opacity", portType: "number", label: "Opacity" },
+        ],
+        outputPorts: [{ id: "out", portType: "material", label: "Material" }],
+      },
+      {
+        id: "mesh-material-standard",
+        category: "scene",
+        title: "Standard Material",
+        description:
+          "PBR mesh material (roughness, metalness) for procedural shapes. Wire **Material** into primitive mesh nodes. Optional wired inputs override card sliders.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          meshMaterialColorHex: "#ffffff",
+          meshMaterialOpacity: 1,
+          meshMaterialRoughness: 0.5,
+          meshMaterialMetalness: 0,
+        },
+        inputPorts: [
+          { id: "color", portType: "vector3", label: "Color" },
+          { id: "roughness", portType: "number", label: "Roughness" },
+          { id: "metalness", portType: "number", label: "Metalness" },
+          { id: "opacity", portType: "number", label: "Opacity" },
+        ],
+        outputPorts: [{ id: "out", portType: "material", label: "Material" }],
+      },
+      {
+        id: "mesh-material-physical",
+        category: "scene",
+        title: "Physical Material",
+        description:
+          "Advanced PBR mesh material (clearcoat, transmission) for procedural shapes. Wire **Material** into primitive mesh nodes.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          meshMaterialColorHex: "#ffffff",
+          meshMaterialOpacity: 1,
+          meshMaterialRoughness: 0.5,
+          meshMaterialMetalness: 0,
+          meshMaterialClearcoat: 0,
+          meshMaterialClearcoatRoughness: 0,
+          meshMaterialTransmission: 0,
+        },
+        inputPorts: [
+          { id: "color", portType: "vector3", label: "Color" },
+          { id: "roughness", portType: "number", label: "Roughness" },
+          { id: "metalness", portType: "number", label: "Metalness" },
+          { id: "opacity", portType: "number", label: "Opacity" },
+        ],
+        outputPorts: [{ id: "out", portType: "material", label: "Material" }],
+      },
+      {
+        id: "mesh-material-toon",
+        category: "scene",
+        title: "Toon Material",
+        description:
+          "Cel-shaded mesh material for procedural shapes. Wire **Material** into primitive mesh nodes.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          meshMaterialColorHex: "#ffffff",
+          meshMaterialOpacity: 1,
+          meshMaterialWireframe: false,
+        },
+        inputPorts: [
+          { id: "color", portType: "vector3", label: "Color" },
+          { id: "opacity", portType: "number", label: "Opacity" },
+        ],
+        outputPorts: [{ id: "out", portType: "material", label: "Material" }],
+      },
+      {
+        id: "mesh-material-normal",
+        category: "scene",
+        title: "Normal Material",
+        description:
+          "Normal-vector debug material for procedural shapes. Wire **Material** into primitive mesh nodes.",
+        icon: "palette",
+        defaultVisible: true,
+        defaultConfig: {
+          meshMaterialColorHex: "#ffffff",
+          meshMaterialOpacity: 1,
+          meshMaterialWireframe: false,
+        },
+        inputPorts: [
+          { id: "opacity", portType: "number", label: "Opacity" },
+        ],
+        outputPorts: [{ id: "out", portType: "material", label: "Material" }],
+      },
+      {
+        id: "mesh-box",
+        category: "scene",
+        title: "Mesh Box",
+        description:
+          "Procedural box geometry. Wire **Material** from a mesh material node and optional **Transform**. Connect **Mesh** output to Scene Output **Meshes** (Phase 3) or downstream combiners.",
+        icon: "box",
+        defaultVisible: true,
+        defaultConfig: {
+          meshBoxWidth: 1,
+          meshBoxHeight: 1,
+          meshBoxDepth: 1,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "width", portType: "number", label: "Width" },
+          { id: "height", portType: "number", label: "Height" },
+          { id: "depth", portType: "number", label: "Depth" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-sphere",
+        category: "scene",
+        title: "Mesh Sphere",
+        description:
+          "Procedural sphere geometry. Wire **Material** and optional **Transform**. Radius and segment counts are editable on the card.",
+        icon: "circle",
+        defaultVisible: true,
+        defaultConfig: {
+          meshSphereRadius: 0.5,
+          meshSphereWidthSegments: 32,
+          meshSphereHeightSegments: 16,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "radius", portType: "number", label: "Radius" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-plane",
+        category: "scene",
+        title: "Mesh Plane",
+        description:
+          "Procedural plane geometry — useful for floors and markers. Wire **Material** and optional **Transform**.",
+        icon: "square",
+        defaultVisible: true,
+        defaultConfig: {
+          meshPlaneWidth: 1,
+          meshPlaneHeight: 1,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "width", portType: "number", label: "Width" },
+          { id: "height", portType: "number", label: "Height" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-cylinder",
+        category: "scene",
+        title: "Mesh Cylinder",
+        description:
+          "Procedural cylinder geometry. Wire **Material** and optional **Transform**. Top/bottom radii and height are editable on the card.",
+        icon: "cylinder",
+        defaultVisible: true,
+        defaultConfig: {
+          meshCylinderRadiusTop: 0.5,
+          meshCylinderRadiusBottom: 0.5,
+          meshCylinderHeight: 1,
+          meshCylinderRadialSegments: 32,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "radiusTop", portType: "number", label: "Radius top" },
+          { id: "radiusBottom", portType: "number", label: "Radius bottom" },
+          { id: "height", portType: "number", label: "Height" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-cone",
+        category: "scene",
+        title: "Mesh Cone",
+        description:
+          "Procedural cone geometry. Wire **Material** and optional **Transform**.",
+        icon: "cone",
+        defaultVisible: true,
+        defaultConfig: {
+          meshConeRadius: 0.5,
+          meshConeHeight: 1,
+          meshConeRadialSegments: 32,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "radius", portType: "number", label: "Radius" },
+          { id: "height", portType: "number", label: "Height" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-torus",
+        category: "scene",
+        title: "Mesh Torus",
+        description:
+          "Procedural torus geometry. Wire **Material** and optional **Transform**.",
+        icon: "circle",
+        defaultVisible: true,
+        defaultConfig: {
+          meshTorusRadius: 0.5,
+          meshTorusTube: 0.2,
+          meshTorusRadialSegments: 16,
+          meshTorusTubularSegments: 48,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "radius", portType: "number", label: "Radius" },
+          { id: "tube", portType: "number", label: "Tube" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-capsule",
+        category: "scene",
+        title: "Mesh Capsule",
+        description:
+          "Procedural capsule geometry. Wire **Material** and optional **Transform**.",
+        icon: "pill",
+        defaultVisible: true,
+        defaultConfig: {
+          meshCapsuleRadius: 0.25,
+          meshCapsuleLength: 0.5,
+          meshCapsuleCapSegments: 8,
+          meshCapsuleRadialSegments: 16,
+        },
+        inputPorts: [
+          { id: "material", portType: "material", label: "Material" },
+          { id: "transform", portType: "transform", label: "Transform" },
+          { id: "radius", portType: "number", label: "Radius" },
+          { id: "length", portType: "number", label: "Length" },
+        ],
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
+      },
+      {
+        id: "mesh-group",
+        category: "scene",
+        title: MESH_BUNDLE_NODE_TITLE,
+        description:
+          "Combine 2–8 **Mesh** wires into one output for Scene Output **Meshes**. Stage still shows each primitive separately when committed.",
+        icon: "layers",
+        defaultVisible: true,
+        defaultConfig: {
+          meshInputCount: 2,
+        },
+        outputPorts: [{ id: "out", portType: "mesh", label: "Mesh" }],
       },
       {
         id: "glb-material-color",

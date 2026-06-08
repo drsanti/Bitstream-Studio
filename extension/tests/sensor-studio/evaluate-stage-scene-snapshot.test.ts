@@ -8,6 +8,7 @@ import {
   buildStagePreviewSceneProps,
   evaluateStageSceneSnapshot,
   graphHasSceneOutputNode,
+  graphHasSceneOutputNodeInDocument,
   SCENE_OUTPUT_NODE_ID,
 } from "../../src/webview/sensor-studio/core/stage/evaluate-stage-scene-snapshot";
 import type { FlowGraphNode } from "../../src/webview/sensor-studio/features/editor/store/flow-graph-types";
@@ -230,5 +231,27 @@ describe("evaluateStageSceneSnapshot", () => {
   test("graphHasSceneOutputNode", () => {
     expect(graphHasSceneOutputNode([makeNode("a", "plotter")])).toBe(false);
     expect(graphHasSceneOutputNode([makeNode("b", SCENE_OUTPUT_NODE_ID)])).toBe(true);
+  });
+
+  test("graphHasSceneOutputNodeInDocument finds Scene Output on root while editing subgraph", () => {
+    const sceneOutput = makeNode("root-out", SCENE_OUTPUT_NODE_ID);
+    expect(
+      graphHasSceneOutputNodeInDocument({
+        nodes: [makeNode("sub-a", "plotter")],
+        rootNodes: [sceneOutput],
+        subgraphs: {
+          "group-1": { nodes: [makeNode("sub-b", "sine-wave")] },
+        },
+      }),
+    ).toBe(true);
+    expect(
+      graphHasSceneOutputNodeInDocument({
+        nodes: [makeNode("sub-a", "plotter")],
+        rootNodes: [],
+        subgraphs: {
+          "group-1": { nodes: [makeNode("sub-b", "sine-wave")] },
+        },
+      }),
+    ).toBe(false);
   });
 });

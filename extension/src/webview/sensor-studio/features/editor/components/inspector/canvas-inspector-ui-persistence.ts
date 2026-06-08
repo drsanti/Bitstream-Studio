@@ -54,18 +54,22 @@ function safeRemove(key: string): void {
 
 export type CanvasInspectorCanvasTabCardId =
   | "viewport"
+  | "performance"
   | "grid"
   | "canvas-chrome"
   | "selection"
   | "numeric-scrub"
+  | "meshes-only-scene"
   | "workbench";
 
 export const DEFAULT_CANVAS_TAB_CARD_ORDER: readonly CanvasInspectorCanvasTabCardId[] = [
   "viewport",
+  "performance",
   "grid",
   "canvas-chrome",
   "selection",
   "numeric-scrub",
+  "meshes-only-scene",
   "workbench",
 ];
 

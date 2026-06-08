@@ -21,6 +21,11 @@ export const MATERIAL_DOMAIN_NODE_IDS: ReadonlySet<string> = new Set([
   "glb-material-color",
   "material-mix",
   "material-video",
+  "mesh-material-basic",
+  "mesh-material-standard",
+  "mesh-material-physical",
+  "mesh-material-toon",
+  "mesh-material-normal",
 ]);
 
 type FlowNodeLike = {

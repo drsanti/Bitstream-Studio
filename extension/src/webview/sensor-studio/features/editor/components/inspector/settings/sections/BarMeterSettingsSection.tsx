@@ -12,6 +12,7 @@ import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 import { GaugeScaleReadoutInspectorFields } from "../GaugeScaleReadoutInspectorFields";
 import { GaugeZonesEditor } from "../GaugeZonesEditor";
+import { DashboardPublishSettingsSection } from "./DashboardPublishSettingsSection";
 
 export function BarMeterSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -130,6 +131,7 @@ export function BarMeterSettingsSection(props: NodeInspectorSettingsSectionProps
           }}
         />
       </InspectorCollapsibleSection>
+      <DashboardPublishSettingsSection {...props} />
     </>
   );
 }

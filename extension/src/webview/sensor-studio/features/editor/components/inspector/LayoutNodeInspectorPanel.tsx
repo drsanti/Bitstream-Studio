@@ -7,21 +7,21 @@ import type {
 } from "../../layout/layout-flow-nodes.types";
 import { FrameLayoutInspectorSection } from "./FrameLayoutInspectorSection";
 import { NoteLayoutInspectorSection } from "./NoteLayoutInspectorSection";
-import {
-  nodeGroupInspectorTitle,
-  NodeGroupInspectorSection,
-  resolveNodeGroupHostId,
-} from "./NodeGroupInspectorSection";
+import { resolveNodeGroupHostId } from "../../subgraphs/resolve-node-group-host";
+import { NodeGroupInspectorSection } from "./NodeGroupInspectorSection";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 type LayoutNodeInspectorPanelProps = {
-  borderColor: string;
-  panelColor: string;
+  borderColor?: string;
+  panelColor?: string;
   selectedNode: FlowGraphNode;
 };
 
+const LAYOUT_INSPECTOR_PANEL_CLASS =
+  "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45";
+
 export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
-  const { borderColor, panelColor, selectedNode } = props;
+  const { selectedNode } = props;
   const rootNodes = useFlowEditorStore((s) => s.rootNodes);
   const activeGraphId = useFlowEditorStore((s) => s.activeGraphId);
   const subgraphs = useFlowEditorStore((s) => s.subgraphs);
@@ -30,7 +30,12 @@ export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
     return null;
   }
 
-  const groupHost = resolveNodeGroupHostId(selectedNode, rootNodes, activeGraphId);
+  const groupHost = resolveNodeGroupHostId(
+    selectedNode,
+    rootNodes,
+    activeGraphId,
+    subgraphs,
+  );
 
   const meta = LAYOUT_MENU_ENTRIES.find((entry) => {
     if (selectedNode.type === "studio-reroute") {
@@ -48,48 +53,46 @@ export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
     return false;
   });
 
-  return (
-    <section
-      className="flex h-full min-h-0 flex-col overflow-hidden p-4 text-zinc-200"
-      style={{ backgroundColor: panelColor, borderColor }}
-    >
-      <h2 className="text-sm font-semibold text-zinc-100">
-        {groupHost != null
-          ? nodeGroupInspectorTitle(
-              groupHost.data,
-              subgraphs[groupHost.data.subgraphId ?? groupHost.hostNodeId]?.graphTitle,
-            )
-          : (meta?.title ?? "Layout")}
-      </h2>
-      {groupHost != null ? (
+  if (groupHost != null) {
+    return (
+      <div className={LAYOUT_INSPECTOR_PANEL_CLASS}>
         <NodeGroupInspectorSection
           hostNodeId={groupHost.hostNodeId}
           data={groupHost.data}
           focusedBoundaryRole={groupHost.focusedBoundaryRole}
         />
-      ) : selectedNode.type === "studio-frame" ? (
-        <FrameLayoutInspectorSection
-          frameNodeId={selectedNode.id}
-          data={selectedNode.data as FrameLayoutNodeData}
-        />
-      ) : selectedNode.type === "studio-note" ? (
-        <NoteLayoutInspectorSection
-          noteNodeId={selectedNode.id}
-          data={selectedNode.data as NoteLayoutNodeData}
-        />
-      ) : (
-        <>
-          <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
-            {meta?.description ?? "Canvas layout node — edit inline on the flow pane."}
-          </p>
-          {selectedNode.type === "studio-reroute" ? (
-            <p className="mt-3 text-[11px] text-zinc-500">
-              Shortcut: press <kbd className="rounded bg-zinc-800 px-1 py-0.5">R</kbd> at the pointer
-              to spawn another reroute. Shift+click a wire to insert on an edge.
+      </div>
+    );
+  }
+
+  return (
+    <div className={LAYOUT_INSPECTOR_PANEL_CLASS}>
+      <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-2.5 pb-3 pt-2 text-zinc-200">
+        <h2 className="text-sm font-semibold text-zinc-100">{meta?.title ?? "Layout"}</h2>
+        {selectedNode.type === "studio-frame" ? (
+          <FrameLayoutInspectorSection
+            frameNodeId={selectedNode.id}
+            data={selectedNode.data as FrameLayoutNodeData}
+          />
+        ) : selectedNode.type === "studio-note" ? (
+          <NoteLayoutInspectorSection
+            noteNodeId={selectedNode.id}
+            data={selectedNode.data as NoteLayoutNodeData}
+          />
+        ) : (
+          <>
+            <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
+              {meta?.description ?? "Canvas layout node — edit inline on the flow pane."}
             </p>
-          ) : null}
-        </>
-      )}
-    </section>
+            {selectedNode.type === "studio-reroute" ? (
+              <p className="mt-3 text-[11px] text-zinc-500">
+                Shortcut: press <kbd className="rounded bg-zinc-800 px-1 py-0.5">R</kbd> at the
+                pointer to spawn another reroute. Shift+click a wire to insert on an edge.
+              </p>
+            ) : null}
+          </>
+        )}
+      </div>
+    </div>
   );
 }

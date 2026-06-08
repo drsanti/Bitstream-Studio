@@ -2,14 +2,26 @@ import { useEffect, useRef } from "react";
 import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.store";
 import { useBmi270FusionEulerWireTapStore } from "../../bitstream-app/state/bmi270FusionEulerWireTap.store";
 import { useBmi270FusionQuatWireTapStore } from "../../bitstream-app/state/bmi270FusionQuatWireTap.store";
+import { graphNeedsGeometryDomainEvalInGraph } from "../core/flow/geometry-domain-eval";
 import { graphNeedsMaterialDomainEvalInGraph } from "../core/flow/material-domain-eval";
 import {
   graphNeedsAudioFrameTick,
   graphNeedsCameraFrameTick,
-  graphNeedsSceneFrameTick,
+  graphNeedsSceneFrameTickInDocument,
 } from "../core/flow/scene-flow-frame-subscribers";
-import { graphHasSceneOutputNode } from "../core/stage/evaluate-stage-scene-snapshot";
+import { readFlowInteractionTickGate } from "../core/runtime/flow-interaction-tick-gate";
+import {
+  minFrameIntervalMs,
+  shouldRunCappedFrame,
+} from "../persistence/sensor-studio-performance-preferences";
+import { graphHasSceneOutputNodeInDocument } from "../core/stage/evaluate-stage-scene-snapshot";
 import { useFlowEditorStore } from "../features/editor/store/flow-editor.store";
+import {
+  recordFlowSimulationTick,
+  setFlowSceneLoopActive,
+} from "../core/runtime/sensor-studio-performance-telemetry";
+import { useSensorStudioPerformanceStore } from "../state/sensor-studio-performance.store";
+import { useStudioRuntimeVisibilityStore } from "../state/studio-runtime-visibility.store";
 
 /**
  * Domain A + B tick scheduler for Sensor Studio.
@@ -19,7 +31,7 @@ import { useFlowEditorStore } from "../features/editor/store/flow-editor.store";
  *
  * See `docs/FLOW_DOMAINS.md` (Phase 1).
  */
-export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): void {
+export function useSensorStudioFlowTickScheduler(tickSimulation: () => boolean): void {
   const tickRef = useRef(tickSimulation);
   tickRef.current = tickSimulation;
 
@@ -27,22 +39,42 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
     let coalescedRafId = 0;
     let sceneFrameLoopId = 0;
     let sceneLoopRunning = false;
+    let lastFlowTickMs = 0;
 
     let prevSampleCount = useBitstreamLiveStore.getState().sampleCount;
     let prevQuatSeq = useBmi270FusionQuatWireTapStore.getState().seq;
     let prevEulerSeq = useBmi270FusionEulerWireTapStore.getState().seq;
 
     const runTick = () => {
-      tickRef.current();
+      const t0 = performance.now();
+      const didMutate = tickRef.current();
+      if (!didMutate) {
+        return;
+      }
+      recordFlowSimulationTick(performance.now() - t0, t0);
     };
 
     const scheduleTick = () => {
       if (coalescedRafId !== 0) {
         return;
       }
+      if (typeof document !== "undefined" && document.hidden) {
+        return;
+      }
       coalescedRafId = window.requestAnimationFrame(() => {
         coalescedRafId = 0;
+        if (typeof document !== "undefined" && document.hidden) {
+          return;
+        }
+        const gate = readFlowInteractionTickGate();
+        const minIntervalMs = minFrameIntervalMs(gate.tickMaxFps);
+        const nowMs = performance.now();
+        if (!shouldRunCappedFrame(nowMs, lastFlowTickMs, minIntervalMs)) {
+          scheduleTick();
+          return;
+        }
         runTick();
+        lastFlowTickMs = performance.now();
       });
     };
 
@@ -52,16 +84,30 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
         sceneFrameLoopId = 0;
       }
       sceneLoopRunning = false;
+      setFlowSceneLoopActive(false);
     };
 
     const graphNeedsContinuousFlowTick = () => {
       const st = useFlowEditorStore.getState();
       return (
-        graphNeedsSceneFrameTick(st.nodes) ||
+        graphNeedsSceneFrameTickInDocument({
+          nodes: st.nodes,
+          rootNodes: st.rootNodes,
+          subgraphs: st.subgraphs,
+        }) ||
         graphNeedsAudioFrameTick(st.nodes) ||
         graphNeedsCameraFrameTick(st.nodes) ||
-        graphHasSceneOutputNode(st.nodes) ||
+        graphHasSceneOutputNodeInDocument({
+          nodes: st.nodes,
+          rootNodes: st.rootNodes,
+          subgraphs: st.subgraphs,
+        }) ||
         graphNeedsMaterialDomainEvalInGraph({
+          nodes: st.nodes,
+          rootNodes: st.rootNodes,
+          subgraphs: st.subgraphs,
+        }) ||
+        graphNeedsGeometryDomainEvalInGraph({
           nodes: st.nodes,
           rootNodes: st.rootNodes,
           subgraphs: st.subgraphs,
@@ -69,8 +115,21 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
       );
     };
 
+    const hasVisibleFlowTickConsumer = () => {
+      const visibility = useStudioRuntimeVisibilityStore.getState();
+      return (
+        visibility.flowPaneVisible ||
+        visibility.dashboardPaneVisible ||
+        visibility.stagePaneVisible
+      );
+    };
+
     const sceneFrameLoop = () => {
-      if (!graphNeedsContinuousFlowTick()) {
+      if (typeof document !== "undefined" && document.hidden) {
+        stopSceneLoop();
+        return;
+      }
+      if (!graphNeedsContinuousFlowTick() || !hasVisibleFlowTickConsumer()) {
         stopSceneLoop();
         return;
       }
@@ -86,6 +145,7 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
         return;
       }
       sceneLoopRunning = true;
+      setFlowSceneLoopActive(true);
       sceneFrameLoopId = window.requestAnimationFrame(sceneFrameLoop);
     };
 
@@ -110,15 +170,38 @@ export function useSensorStudioFlowTickScheduler(tickSimulation: () => void): vo
     const unsubscribeGraph = useFlowEditorStore.subscribe(() => {
       ensureSceneLoop();
     });
+    const unsubscribeVisibility = useStudioRuntimeVisibilityStore.subscribe(() => {
+      ensureSceneLoop();
+    });
+    const unsubscribePerformance = useSensorStudioPerformanceStore.subscribe(() => {
+      lastFlowTickMs = 0;
+    });
+
+    const onVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.hidden) {
+        stopSceneLoop();
+        if (coalescedRafId !== 0) {
+          window.cancelAnimationFrame(coalescedRafId);
+          coalescedRafId = 0;
+        }
+        return;
+      }
+      ensureSceneLoop();
+      scheduleTick();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
     ensureSceneLoop();
-    runTick();
+    scheduleTick();
 
     return () => {
       unsubscribeLive();
       unsubscribeQuatWire();
       unsubscribeEulerWire();
       unsubscribeGraph();
+      unsubscribeVisibility();
+      unsubscribePerformance();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       stopSceneLoop();
       if (coalescedRafId !== 0) {
         window.cancelAnimationFrame(coalescedRafId);

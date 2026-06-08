@@ -39,6 +39,11 @@ const STUDIO_PORT_TYPES: readonly StudioPortType[] = [
   "physicsScene",
   "physicsCollider",
   "physicsBody",
+  "dashboardWidget",
+  "dashboardTheme",
+  "dashboardTab",
+  "material",
+  "mesh",
 ];
 
 function portTypeFromEdgeLabel(label: unknown): StudioPortType | null {

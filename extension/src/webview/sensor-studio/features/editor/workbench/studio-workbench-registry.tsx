@@ -1,11 +1,21 @@
-import { BookOpen, GitBranch, Layers, MonitorPlay, SlidersHorizontal } from "lucide-react";
+import {
+  BookOpen,
+  GitBranch,
+  Layers,
+  LayoutGrid,
+  ListTree,
+  MonitorPlay,
+  SlidersHorizontal,
+} from "lucide-react";
 import type { WorkbenchRegistry } from "../../../../ui/workbench";
 import { AssetBrowsePanel } from "../../../../assets-manager/browse/AssetBrowsePanel.js";
 import { FlowCanvas } from "../components/FlowCanvas";
 import { NodeInspector } from "../components/NodeInspector";
 import { NodePalette } from "../components/NodePalette";
 import { useStudioWorkbenchShell } from "./studio-workbench-context";
+import { DashboardViewport } from "../../dashboard/DashboardViewport";
 import { StageViewport } from "../../stage/StageViewport";
+import { ModelOutlinerPanel } from "../model-outliner/ModelOutlinerPanel";
 
 export function WorkbenchLibraryPanel() {
   const p = useStudioWorkbenchShell();
@@ -18,13 +28,12 @@ export function WorkbenchLibraryPanel() {
       entries={p.entries}
       onAddNode={p.onAddNode}
       defaultPaletteLayout={p.defaultPaletteLayout}
-      onSpawnGlbExtract={p.onSpawnGlbExtract}
-      onSpawnGlbMaterialTextureExtract={p.onSpawnGlbMaterialTextureExtract}
-      onSpawnGlbMaterialColorExtract={p.onSpawnGlbMaterialColorExtract}
-      onSpawnGlbEventPartExtract={p.onSpawnGlbEventPartExtract}
-      onSpawnGlbEventAnimExtract={p.onSpawnGlbEventAnimExtract}
     />
   );
+}
+
+export function WorkbenchModelOutlinerPanel() {
+  return <ModelOutlinerPanel />;
 }
 
 export function WorkbenchFlowPanel() {
@@ -131,6 +140,11 @@ export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
     label: "Library",
     component: WorkbenchLibraryPanel,
   },
+  "model-outliner": {
+    icon: <ListTree className="size-3.5" aria-hidden />,
+    label: "Outliner",
+    component: WorkbenchModelOutlinerPanel,
+  },
   assets: {
     icon: <Layers className="size-3.5" aria-hidden />,
     label: "Assets",
@@ -140,6 +154,11 @@ export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
     icon: <MonitorPlay className="size-3.5" aria-hidden />,
     label: "Stage",
     component: StageViewport,
+  },
+  dashboard: {
+    icon: <LayoutGrid className="size-3.5" aria-hidden />,
+    label: "Dashboard",
+    component: DashboardViewport,
   },
   flow: {
     icon: <GitBranch className="size-3.5" aria-hidden />,

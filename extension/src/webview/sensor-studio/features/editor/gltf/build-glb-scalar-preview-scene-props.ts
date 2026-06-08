@@ -12,8 +12,12 @@ import {
   collectFlowCameraSwitchRigForModel,
   collectFlowMorphTargetDrivesForModel,
   collectFlowSceneLightGlbDrivesForModel,
+  collectGlbPartSpinDrivesForModel,
+  collectGlbPartTransformDrivesForModel,
   collectGlbScalarDrivesForModel,
 } from "./studio-glb-flow-drives";
+import type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
+import type { GlbPartSpinDriveRow } from "./studio-glb-preview-runtime";
 import type { FlowWireStudioLightV1 } from "../nodes/scene-fx/flow-wire-studio-light";
 import { collectCss3dCameraFeeds } from "../../../core/camera/studio-camera-css3d-feed";
 import type { FlowWireVideoBusV1 } from "../../../core/camera/flow-wire-video";
@@ -38,6 +42,8 @@ export type GlbScalarPreviewSceneProps = Pick<
   | "glbMorphWeights"
   | "glbLightIntensityByName"
   | "glbPartVisibilityByPath"
+  | "glbPartTransformByPath"
+  | "glbPartSpinByPath"
   | "glbMaterialPbrByName"
   | "glbMaterialTexturesByName"
   | "glbMaterialVideosByName"
@@ -80,12 +86,32 @@ export function buildGlbScalarPreviewSceneProps(args: {
   const morphKeys = Object.keys(morphs);
   const lightKeys = Object.keys(lights);
   const partKeys = Object.keys(glbDrives.parts);
+  const partTransforms = collectGlbPartTransformDrivesForModel(
+    args.nodes,
+    sourceModelNodeId,
+    args.edges,
+  );
+  const partTransformKeys = Object.keys(partTransforms);
+  const partSpins = collectGlbPartSpinDrivesForModel(
+    args.nodes,
+    sourceModelNodeId,
+    args.edges,
+  );
+  const partSpinKeys = Object.keys(partSpins);
   const cameraKeys = Object.keys(glbDrives.cameras);
 
   return {
     glbMorphWeights: morphKeys.length > 0 ? morphs : undefined,
     glbLightIntensityByName: lightKeys.length > 0 ? lights : undefined,
     glbPartVisibilityByPath: partKeys.length > 0 ? glbDrives.parts : undefined,
+    glbPartTransformByPath:
+      partTransformKeys.length > 0
+        ? (partTransforms as Record<string, FlowWireTransformV1>)
+        : undefined,
+    glbPartSpinByPath:
+      partSpinKeys.length > 0
+        ? (partSpins as Record<string, GlbPartSpinDriveRow>)
+        : undefined,
     glbMaterialPbrByName: materialCompact.glbMaterialPbrByName,
     glbMaterialTexturesByName: materialCompact.glbMaterialTexturesByName,
     glbMaterialVideosByName: materialCompact.glbMaterialVideosByName,

@@ -22,6 +22,15 @@ export type StagePresentationPreferences = {
   syncCubemap: boolean;
   syncBackdrop: boolean;
   syncIbl: boolean;
+  /**
+   * When true, hide Box/Sphere/Plane spawn toolbar until at least one mesh is wired
+   * (useful when placement requires an existing surface).
+   */
+  hideSpawnWhenNoMeshes: boolean;
+  /**
+   * When true, auto-remove Scene Output **Models** wires while the committed scene is meshes-only.
+   */
+  autoDisconnectOrphanModelSources: boolean;
 };
 
 export const DEFAULT_STAGE_PRESENTATION_PREFERENCES: StagePresentationPreferences = {
@@ -30,6 +39,8 @@ export const DEFAULT_STAGE_PRESENTATION_PREFERENCES: StagePresentationPreference
   syncCubemap: true,
   syncBackdrop: true,
   syncIbl: true,
+  hideSpawnWhenNoMeshes: false,
+  autoDisconnectOrphanModelSources: false,
 };
 
 function safeGet(): string | null {
@@ -67,6 +78,8 @@ export function coerceStagePresentationPreferences(raw: unknown): StagePresentat
     syncCubemap: o.syncCubemap !== false,
     syncBackdrop: o.syncBackdrop !== false,
     syncIbl: o.syncIbl !== false,
+    hideSpawnWhenNoMeshes: o.hideSpawnWhenNoMeshes === true,
+    autoDisconnectOrphanModelSources: o.autoDisconnectOrphanModelSources === true,
   };
 }
 
@@ -120,6 +133,25 @@ export function stageToolbarPresentationEnabled(
   prefs: StagePresentationPreferences = readStagePresentationPreferences(),
 ): boolean {
   return prefs.policy !== "toolbar-readonly";
+}
+
+export function stageSpawnToolbarEnabled(
+  args: { hasSceneOutput: boolean; hasMeshes: boolean },
+  prefs: StagePresentationPreferences = readStagePresentationPreferences(),
+): boolean {
+  if (!args.hasSceneOutput) {
+    return false;
+  }
+  if (prefs.hideSpawnWhenNoMeshes && !args.hasMeshes) {
+    return false;
+  }
+  return true;
+}
+
+export function stagePresentationAutoDisconnectOrphanModelSources(
+  prefs: StagePresentationPreferences = readStagePresentationPreferences(),
+): boolean {
+  return prefs.autoDisconnectOrphanModelSources;
 }
 
 export function useStagePresentationPreferences(

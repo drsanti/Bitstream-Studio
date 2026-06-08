@@ -5,6 +5,7 @@ import type {
 } from "../../../stage/stage-presentation-preferences";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
+import { StageMeshesOnlyScenePreferencesSection } from "./StageMeshesOnlyScenePreferencesSection";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import {
   InspectorSegmentButtonGroup,
@@ -108,6 +109,12 @@ export function CanvasInspectorStage3dCard(props: CanvasInspectorStage3dCardProp
           </p>
         </div>
       )}
+      <div className="mt-2.5 border-t border-zinc-800/60 pt-2.5">
+        <StageMeshesOnlyScenePreferencesSection
+          preferences={preferences}
+          onPreferencesChange={onPreferencesChange}
+        />
+      </div>
     </CanvasInspectorCard>
   );
 }

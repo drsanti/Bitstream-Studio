@@ -1,4 +1,8 @@
-export type BitstreamWorkspaceHostId = "sensor-telemetry" | "telemetry" | "sensor-studio";
+export type BitstreamWorkspaceHostId =
+  | "sensor-telemetry"
+  | "telemetry"
+  | "sensor-studio"
+  | "presentation";
 
 /** Host → webview: in-panel navigation (workspace switch while Bitstream is open). */
 export type TernionShellNavigateHostMessage = {

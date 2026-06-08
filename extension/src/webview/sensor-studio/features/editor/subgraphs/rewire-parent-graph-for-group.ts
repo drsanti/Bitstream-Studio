@@ -13,6 +13,7 @@ export function rewireParentGraphForStudioGroup(
 ): { nodes: Node[]; edges: Edge[] } {
   const parentNodes = nodes.filter((n) => !selectedIds.has(n.id)).concat(groupNode);
   const parentEdges: Edge[] = [];
+  const parentIncomingKeys = new Set<string>();
 
   for (const edge of edges) {
     const srcIn = selectedIds.has(edge.source);
@@ -24,10 +25,18 @@ export function rewireParentGraphForStudioGroup(
 
     if (!srcIn && tgtIn) {
       const target = nodes.find((n) => n.id === edge.target);
-      const sock = findGroupInputSocket(iface, target, edge.targetHandle, subgraphs);
+      const sock = findGroupInputSocket(iface, target, edge.targetHandle, subgraphs, {
+        externalSourceId: edge.source,
+        externalSourceHandle: edge.sourceHandle,
+      });
       if (sock == null) {
         continue;
       }
+      const incomingKey = `${edge.source}|${edge.sourceHandle ?? ""}|${groupNode.id}|${sock.id}`;
+      if (parentIncomingKeys.has(incomingKey)) {
+        continue;
+      }
+      parentIncomingKeys.add(incomingKey);
       parentEdges.push({
         ...edge,
         id: `grp_${edge.id}`,

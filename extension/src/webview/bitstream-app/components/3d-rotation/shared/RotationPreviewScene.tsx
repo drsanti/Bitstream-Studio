@@ -63,6 +63,12 @@ export type RotationPreviewSceneProps = {
   stagePhysicsWire?: unknown;
   /** Graph **box-collider** / **sphere-collider** nodes when physics is enabled. */
   stagePhysicsColliders?: unknown;
+  /** Stage workbench: procedural meshes from Scene Output **Meshes** wires. */
+  stageProceduralMeshes?: Array<{
+    sourceNodeId: string;
+    label: string;
+    wire: unknown;
+  }>;
   /** Optional morph weights keyed like GLB extraction (`meshKey:morphName`). */
   glbMorphWeights?: Record<string, number>;
   /** Optional light intensity overrides by embedded GLB light object name. */
@@ -85,6 +91,11 @@ export type RotationPreviewSceneProps = {
   glbAnimationInspectorTransportActive?: boolean;
   /** Optional part visibility by object path (`> 0.5` visible), matching GLB extraction part refs. */
   glbPartVisibilityByPath?: Record<string, number>;
+  /** Optional continuous local-axis spin by object path (rad/s), applied after animation mixer. */
+  glbPartSpinByPath?: Record<
+    string,
+    { axis: "x" | "y" | "z"; speedRadS: number; enabled: boolean }
+  >;
   /** Optional material PBR scalars by material **name** (emissive, roughness, metalness, opacity). */
   glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
   /** Optional material texture URLs by material **name** and map slot. */

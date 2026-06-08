@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useFlowLibraryNavigationStore } from "../../flow-library/flow-library-navigation";
 import { FlowLibraryTabPanel } from "./FlowLibraryTabPanel";
 import { GroupLibraryTabPanel } from "./GroupLibraryTabPanel";
+import { StudioLibraryWorkspaceBar } from "./StudioLibraryWorkspaceBar";
 
 type SavedLibraryTab = "flows" | "groups";
 
@@ -20,17 +21,20 @@ export function StudioSavedLibraryPanel(props: StudioSavedLibraryPanelProps) {
   const flowLibraryNavPayload = useFlowLibraryNavigationStore((s) => s.payload);
 
   useEffect(() => {
-    const savedTab = flowLibraryNavPayload?.savedTab;
-    if (savedTab != null) {
-      setTab(savedTab);
+    const presetsSubTab = flowLibraryNavPayload?.presetsSubTab;
+    if (presetsSubTab != null) {
+      setTab(presetsSubTab);
+    } else if (flowLibraryNavPayload?.highlightGroupAssetId != null) {
+      setTab("groups");
     }
-  }, [flowLibraryNavSeq, flowLibraryNavPayload?.savedTab]);
+  }, [flowLibraryNavSeq, flowLibraryNavPayload]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
+      <StudioLibraryWorkspaceBar dense={dense} />
       <div
         role="tablist"
-        aria-label="Saved library"
+        aria-label="Flow and group presets"
         className={`${dense ? "mb-2" : "mb-3"} flex rounded-lg bg-zinc-950/50 p-0.5 ring-1 ring-zinc-800/80`}
       >
         <button

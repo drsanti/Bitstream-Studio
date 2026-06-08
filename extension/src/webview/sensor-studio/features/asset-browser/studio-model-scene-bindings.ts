@@ -12,6 +12,7 @@ import {
   devViteModelUrlFromCanonicalDedupeKey,
   resolveCatalogModelUrlInExtensionWebview,
 } from "../../../model-catalog/modelCatalogMerge";
+import { resolveStudioSourceModelGlbUrl } from "../editor/model/model-generated-bindings";
 import { resolveStudioAsset } from "./resolveStudioAsset";
 import type { StudioAssetDescriptor } from "./studio-asset.types";
 
@@ -241,6 +242,37 @@ export function resolveStudioModelGltfFetchUrl(
     return trimmed;
   }
   return resolveWebviewModelAssetUrl(trimmed);
+}
+
+type StudioModelSelectNodeLike = {
+  id: string;
+  data: { nodeId: string; defaultConfig: Record<string, unknown> };
+};
+
+/**
+ * Fetch URL for a **`model-select`** flow node — logical `selectedModelUrl` + catalog resolution.
+ */
+export function resolveStudioModelSelectGltfFetchUrl(
+  nodes: readonly StudioModelSelectNodeLike[],
+  modelFlowId: string,
+  catalog: readonly StudioAssetDescriptor[],
+): string | null {
+  const logical = resolveStudioSourceModelGlbUrl(nodes, modelFlowId);
+  if (logical == null || logical.trim().length === 0) {
+    return null;
+  }
+  const n = nodes.find((x) => x.id === modelFlowId);
+  const dc = n?.data.defaultConfig;
+  const studioAssetId =
+    dc != null && typeof dc.selectedStudioAssetId === "string"
+      ? dc.selectedStudioAssetId.trim()
+      : undefined;
+  const fetchUrl = resolveStudioModelGltfFetchUrl(
+    { url: logical.trim(), studioAssetId },
+    catalog,
+    "",
+  );
+  return fetchUrl.length > 0 ? fetchUrl : null;
 }
 
 /** Select value for Scene3D inspector: catalog id or sentinel for free-form URL. */

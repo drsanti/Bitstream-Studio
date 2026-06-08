@@ -16,6 +16,9 @@ const CATEGORY_BY_TEMPLATE: Record<StudioDemoTemplateId, StudioFlowPresetCategor
   "camera-video-texture": "vision",
   "stage-camera-vision": "stage",
   "stage-scene-output": "stage",
+  "primitives-playground": "stage",
+  "dashboard-button-led": "custom",
+  "dashboard-controls-demo": "custom",
   "material-glb-drives": "scene",
   "rotation-glb-anim": "animation",
   "animation-clip-blend": "animation",
@@ -35,4 +38,20 @@ export function officialFlowPresetIdForTemplate(templateId: StudioDemoTemplateId
 
 export function officialFlowPresetFileName(templateId: StudioDemoTemplateId): string {
   return `${templateId}.trn-flow-preset.json`;
+}
+
+const OFFICIAL_FLOW_PRESET_ID_PREFIX = "official-";
+
+export function isOfficialFlowPresetId(presetId: string): boolean {
+  return presetId.startsWith(OFFICIAL_FLOW_PRESET_ID_PREFIX);
+}
+
+export function templateIdFromOfficialFlowPresetId(
+  presetId: string,
+): StudioDemoTemplateId | null {
+  if (!isOfficialFlowPresetId(presetId)) {
+    return null;
+  }
+  const templateId = presetId.slice(OFFICIAL_FLOW_PRESET_ID_PREFIX.length);
+  return templateId in CATEGORY_BY_TEMPLATE ? (templateId as StudioDemoTemplateId) : null;
 }

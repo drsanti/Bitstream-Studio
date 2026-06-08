@@ -1,6 +1,6 @@
 # Flow & group library
 
-**Status:** Phase 1–2 shipped (2026-06-07); Phase 3 planned  
+**Status:** **Complete** (2026-06-07) — Phases 1–2, 3a, 3b, Groups parity, workspace sync bar  
 **Related:** [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md), [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md), `persistence/flow-preset-library.repository.ts`, `persistence/node-group-library.repository.ts`
 
 ## Goals
@@ -9,7 +9,7 @@ Operators can **save**, **organize**, **load**, **export**, **import**, and **sh
 
 ## Library shell
 
-**One workbench pane (“Library”), Saved tab with two inner tabs:**
+**One workbench pane (“Library”), Presets tab with two inner tabs:**
 
 | Tab | Contents |
 |-----|----------|
@@ -19,7 +19,7 @@ Operators can **save**, **organize**, **load**, **export**, **import**, and **sh
 Catalog **Nodes** and **Simulation** tabs remain in the same pane for adding blocks from the node catalog.
 
 **Storage v1:** `localStorage` (`sensor-studio:flow-preset-library:v1`, `sensor-studio:node-group-library:v1`).  
-**Later:** workspace folder `.bitstream/library/` for team packs.
+**Phase 3a:** When a VS Code workspace folder is open, project presets also sync to `.bitstream/library/flows/` and `.bitstream/library/groups/` (merge by `updatedAt` on pull; debounced push on save).
 
 ## Save routing
 
@@ -44,13 +44,31 @@ Show a **Replace / Merge** dialog before applying:
 
 **Groups** dragged from library always **merge** (instantiate) — no replace dialog.
 
+## Linked project group update (Groups parity)
+
+After **Save to library** (or **Load preset into group** from project library):
+
+1. Session stores the linked group asset id/name.
+2. The Project row is highlighted; a violet **Update** icon appears on that row.
+3. **Update** overwrites the saved group preset from the linked **node group** on the canvas (metadata id/name/category preserved; `updatedAt` bumped).
+4. Inspector **Browse in Library** opens Presets → Groups → Project and highlights the row.
+
+## Linked project preset update (Phase 3b — Flows)
+
+After **Replace** load of a **Project** preset (not Official):
+
+1. Session stores the linked preset id/name.
+2. The Project row is highlighted; a cyan **Update** icon appears on that row.
+3. **Update** (or Document tab **Update linked preset**) overwrites the saved entry with the current canvas (metadata id/name/category preserved; `updatedAt` bumped).
+4. **Merge** load clears the link. Loading an **Official** preset clears the project link (maintainer **Override** uses a separate session).
+
 ## Categories
 
 Fixed enum on save/edit:
 
 `telemetry` · `audio` · `animation` · `stage` · `vision` · `scene` · `utility` · `custom`
 
-Free-text **tags** for search. Built-in demo templates also appear under **Saved → Flows → Official** (bundled + online pack). Canvas Inspector → **Browse in Library** focuses that pane and highlights the matching official preset.
+Free-text **tags** for search. Built-in demo templates also appear under **Presets → Flows → Official** (bundled + online pack). Canvas Inspector → **Browse in Library** focuses that pane and highlights the matching official preset.
 
 ## File formats
 
@@ -113,20 +131,41 @@ List missing `modelUrls` / catalog node ids in a post-import hint (Phase 2 polis
 | `persistence/flow-preset-library.repository.ts` | localStorage CRUD |
 | `components/node-palette/FlowLibraryTabPanel.tsx` | Flows tab UI |
 | `components/node-palette/StudioSavedLibraryPanel.tsx` | Flows \| Groups inner tabs |
-| `components/flow-library/SaveToLibraryDialog.tsx` | Name / category save |
+| `components/flow-library/SaveToLibraryDialog.tsx` | Name / category / description save (flows + groups) |
+| `flow-library/resolve-save-to-library-dialog-defaults.ts` | Dialog defaults + linked-preset banner |
 | `components/flow-library/FlowLoadModeDialog.tsx` | Replace / Merge |
 | `flow-library/remote-flow-preset-index.ts` | Online official flows index |
 | `flow-library/use-remote-flow-presets.ts` | Official flows sync hook |
 | `flow-library/flow-library-navigation.ts` | Document tab → Library focus + official row highlight |
-| `components/flow-library/FlowLibraryOpenLink.tsx` | Inspector link to Saved → Flows → Official |
+| `components/flow-library/FlowLibraryOpenLink.tsx` | Inspector link to Presets → Flows → Official |
+| `flow-library/flow-preset-maintainer-mode.ts` | Dev-only maintainer toggle (localStorage) |
+| `flow-library/export-official-flow-preset-override.ts` | Export canvas as `official-*` override JSON |
+| `components/flow-library/FlowPresetMaintainerTools.tsx` | Maintainer mode UI on Flows + Document tabs |
+| `src/assets/libraries/flow-preset/overrides/` | Hand-tuned presets applied by `flow-preset:gen` |
 | `components/flow-library/SaveToLibraryDialogHost.tsx` | Global save dialog |
 | `flow-library/build-flow-import-dependency-hint.ts` | Post-import asset hint |
-| `store/flow-editor.store.ts` | `flowPresetLibrary`, save/load, remote presets |
+| `flow-library/flow-preset-linked-session.ts` | Linked project preset after Replace load |
+| `flow-library/build-flow-preset-update-from-canvas.ts` | Rebuild preset document from canvas for update |
+| `flow-library/request-project-flow-preset-update.ts` | Update confirm + row hints |
+| `store/flow-editor.store.ts` | `flowPresetLibrary`, save/load, `updateFlowPresetFromCanvas` |
+| `persistence/studio-library-workspace-session.ts` | Workspace sync state + pull/push/sync-now |
+| `persistence/install-studio-library-workspace-sync.ts` | VS Code host wiring (debounced push) |
+| `components/node-palette/StudioLibraryWorkspaceBar.tsx` | Workspace badge + **Sync now** (Presets tab) |
+| `flow-library/group-preset-linked-session.ts` | Linked project group asset session |
+| `components/flow-library/GroupLibraryOpenLink.tsx` | Inspector → Groups library highlight |
 
 ## Phases
 
 | Phase | Scope |
 |-------|--------|
-| **1 (shipped)** | Flow preset CRUD, Saved tab, save routing, load dialog, clipboard router, **Ctrl+Shift+S**, category filter, import dependency hint |
-| **2 (shipped)** | Bundled official demo exports (`npm run flow-preset:gen`), `libraries/flow-preset/` index + bundled fallback, edit preset metadata, Document tab **Browse in Library**, maintainer **`flow-preset:stage-free-pack`** / **`flow-preset:publish-free-pack`** |
-| **3** | Workspace folder sync; linked preset update from canvas |
+| **1 (shipped)** | Flow preset CRUD, Presets tab, save routing, load dialog, clipboard router, **Ctrl+Shift+S**, category filter, import dependency hint |
+| **2 (shipped)** | Bundled official demo exports (`npm run flow-preset:gen`), `libraries/flow-preset/` index + bundled fallback, edit preset metadata, Document tab **Browse in Library**, maintainer UI (`overrides/`, one-click **Override** icon per Official row — save + regen + stage + optional GitHub upload in Vite dev), CLI publish scripts |
+| **3a (shipped)** | Workspace folder sync — `.bitstream/library/flows/` + `groups/` via extension host pull/push |
+| **3b (shipped)** | Linked project preset: load with Replace → **Update** overwrites library entry from canvas (Presets row + Document tab) |
+| **Groups parity (shipped)** | Toolbar **Save to library**, linked **Update** row, **Browse in Library**, category chips, tag chips |
+| **Workspace UX (shipped)** | **StudioLibraryWorkspaceBar** — folder badge, **Sync now**, browser-dev hint |
+
+## Backlog (post-v1)
+
+- Official **group** maintainer Override pipeline (mirror Flows `flow-preset:gen` for `libraries/node-graph/`)
+- Flows tab section-card UI parity with Groups (cosmetic)

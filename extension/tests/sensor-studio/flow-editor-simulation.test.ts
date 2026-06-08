@@ -313,6 +313,50 @@ test("runDemoTemplate material-glb-drives wires model viewer and material drives
   resetCanvas();
 });
 
+test("runDemoTemplate animation-clip-blend wires clips, blend, and viewer anim", () => {
+  const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
+
+  runDemoTemplate("animation-clip-blend", NODE_CATALOG_DEFAULTS.payload.nodes);
+  const built = useFlowEditorStore.getState();
+  assert.equal(built.nodes.length, 7);
+  assert.equal(built.edges.length, 8);
+  assert.ok(
+    built.edges.some(
+      (e) => e.target === "demo-model-viewer" && e.targetHandle === STUDIO_HANDLE_ANIM,
+    ),
+  );
+  assert.ok(
+    built.edges.some(
+      (e) => e.target === "demo-anim-blend" && e.targetHandle === "factor",
+    ),
+  );
+  assert.equal(built.selectedNodeId, "demo-model-viewer");
+
+  resetCanvas();
+});
+
+test("runDemoTemplate animation-mix-demo wires clips, mix, and viewer anim", () => {
+  const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
+
+  runDemoTemplate("animation-mix-demo", NODE_CATALOG_DEFAULTS.payload.nodes);
+  const built = useFlowEditorStore.getState();
+  assert.equal(built.nodes.length, 8);
+  assert.equal(built.edges.length, 10);
+  assert.ok(
+    built.edges.some(
+      (e) => e.target === "demo-model-viewer" && e.targetHandle === STUDIO_HANDLE_ANIM,
+    ),
+  );
+  assert.ok(
+    built.edges.some(
+      (e) => e.target === "demo-anim-mix" && e.targetHandle === "wa",
+    ),
+  );
+  assert.equal(built.selectedNodeId, "demo-model-viewer");
+
+  resetCanvas();
+});
+
 test("runDemoTemplate rotation-glb-anim wires euler, bundle anim, and click trigger", () => {
   const { runDemoTemplate, resetCanvas } = useFlowEditorStore.getState();
 
@@ -641,6 +685,153 @@ const ROTATION_3D_SCENE_INPUT_HANDLES: StudioNode["data"]["inputHandles"] = [
   { id: "anim", portType: "glbAnimation", label: "Animation" },
   { id: "xf", portType: "transform", label: "Transform" },
 ];
+
+test("animation-merge combines two clip nodes for viewer anim input", () => {
+  const clipA = node("a1", "animation-clip", "scene", {
+    defaultConfig: { clipName: "Walk", timeS: 0, speed: 1, weight: 1, enabled: true },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const clipB = node("b1", "animation-clip", "scene", {
+    defaultConfig: { clipName: "Run", timeS: 0.5, speed: 1, weight: 1, enabled: true },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const merge = node("m1", "animation-merge", "scene", {
+    inputHandles: [
+      { id: "a", portType: "glbAnimation", label: "A" },
+      { id: "b", portType: "glbAnimation", label: "B" },
+      { id: "c", portType: "glbAnimation", label: "C" },
+    ],
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Out" }],
+  });
+  const viewer = node("v1", "model-viewer", "output", {
+    inputHandles: ROTATION_3D_SCENE_INPUT_HANDLES,
+  });
+  useFlowEditorStore.setState({
+    nodes: [clipA, clipB, merge, viewer],
+    edges: [],
+    selectedNodeId: null,
+  });
+  const st = useFlowEditorStore.getState();
+  st.onConnect({ source: "a1", target: "m1", sourceHandle: "out", targetHandle: "a" });
+  st.onConnect({ source: "b1", target: "m1", sourceHandle: "out", targetHandle: "b" });
+  st.onConnect({ source: "m1", target: "v1", sourceHandle: "out", targetHandle: STUDIO_HANDLE_ANIM });
+  st.tickSimulation();
+  const v = useFlowEditorStore.getState().nodes.find((n) => n.id === "v1");
+  assert.ok(v?.data.liveAnimationWire != null);
+  assert.equal(v?.data.liveAnimationWire?.clips.Walk?.timeS, 0);
+  assert.equal(v?.data.liveAnimationWire?.clips.Run?.timeS, 0.5);
+  useFlowEditorStore.getState().resetCanvas();
+});
+
+test("animation-mix applies per-input weights on anim output", () => {
+  const clipA = node("a1", "animation-clip", "scene", {
+    defaultConfig: { clipName: "Walk", weight: 1, enabled: true },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const clipB = node("b1", "animation-clip", "scene", {
+    defaultConfig: { clipName: "Run", weight: 1, enabled: true },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const mix = node("mx1", "animation-mix", "scene", {
+    defaultConfig: {
+      animationInputCount: 2,
+      mixWeights: [1, 0],
+      normalizeWeights: true,
+    },
+    inputHandles: [
+      { id: "a", portType: "glbAnimation", label: "1" },
+      { id: "wa", portType: "number", label: "W1" },
+      { id: "b", portType: "glbAnimation", label: "2" },
+      { id: "wb", portType: "number", label: "W2" },
+    ],
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Out" }],
+  });
+  const viewer = node("v1", "model-viewer", "output", {
+    inputHandles: ROTATION_3D_SCENE_INPUT_HANDLES,
+  });
+  useFlowEditorStore.setState({
+    nodes: [clipA, clipB, mix, viewer],
+    edges: [],
+    selectedNodeId: null,
+  });
+  const st = useFlowEditorStore.getState();
+  st.onConnect({ source: "a1", target: "mx1", sourceHandle: "out", targetHandle: "a" });
+  st.onConnect({ source: "b1", target: "mx1", sourceHandle: "out", targetHandle: "b" });
+  st.onConnect({ source: "mx1", target: "v1", sourceHandle: "out", targetHandle: STUDIO_HANDLE_ANIM });
+  st.tickSimulation();
+  const v = useFlowEditorStore.getState().nodes.find((n) => n.id === "v1");
+  assert.ok(v?.data.liveAnimationWire != null);
+  assert.equal(v?.data.liveAnimationWire?.clips.Walk?.weight, 1);
+  assert.equal(v?.data.liveAnimationWire?.clips.Run?.weight, 0);
+  useFlowEditorStore.getState().resetCanvas();
+});
+
+test("animation-blend scales clip weights on anim output", () => {
+  const clipA = node("a1", "animation-clip", "scene", {
+    defaultConfig: { clipName: "Walk", weight: 1, enabled: true },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const clipB = node("b1", "animation-clip", "scene", {
+    defaultConfig: { clipName: "Run", weight: 1, enabled: true },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const blend = node("bl1", "animation-blend", "scene", {
+    defaultConfig: { factor: 0.25, crossfadeS: 0.2 },
+    inputHandles: [
+      { id: "a", portType: "glbAnimation", label: "A" },
+      { id: "b", portType: "glbAnimation", label: "B" },
+      { id: "factor", portType: "number", label: "Factor" },
+    ],
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Out" }],
+  });
+  const rot = node("r1", "rotation-3d-euler", "output", {
+    inputHandles: ROTATION_3D_SCENE_INPUT_HANDLES,
+  });
+  useFlowEditorStore.setState({
+    nodes: [clipA, clipB, blend, rot],
+    edges: [],
+    selectedNodeId: null,
+  });
+  const st = useFlowEditorStore.getState();
+  st.onConnect({ source: "a1", target: "bl1", sourceHandle: "out", targetHandle: "a" });
+  st.onConnect({ source: "b1", target: "bl1", sourceHandle: "out", targetHandle: "b" });
+  st.onConnect({ source: "bl1", target: "r1", sourceHandle: "out", targetHandle: STUDIO_HANDLE_ANIM });
+  st.tickSimulation();
+  const r = useFlowEditorStore.getState().nodes.find((n) => n.id === "r1");
+  assert.ok(r?.data.liveAnimationWire != null);
+  assert.equal(r?.data.liveAnimationWire?.clips.Walk?.weight, 0.75);
+  assert.equal(r?.data.liveAnimationWire?.clips.Run?.weight, 0.25);
+  useFlowEditorStore.getState().resetCanvas();
+});
+
+test("rotation-3d-euler accepts animation-clip on anim input", () => {
+  const clip = node("c1", "animation-clip", "scene", {
+    defaultConfig: {
+      clipName: "Walk",
+      timeS: 0.25,
+      speed: 1,
+      weight: 1,
+      enabled: true,
+      loopMode: "loop",
+    },
+    outputHandles: [{ id: "out", portType: "glbAnimation", label: "Animation" }],
+  });
+  const rot3dEuler = node("r1", "rotation-3d-euler", "output", {
+    inputHandles: ROTATION_3D_SCENE_INPUT_HANDLES,
+  });
+  useFlowEditorStore.setState({ nodes: [clip, rot3dEuler], edges: [], selectedNodeId: null });
+  useFlowEditorStore.getState().onConnect({
+    source: "c1",
+    target: "r1",
+    sourceHandle: "out",
+    targetHandle: STUDIO_HANDLE_ANIM,
+  });
+  useFlowEditorStore.getState().tickSimulation();
+  const rot = useFlowEditorStore.getState().nodes.find((n) => n.id === "r1");
+  assert.ok(rot?.data.liveAnimationWire != null);
+  assert.equal(rot?.data.liveAnimationWire?.clips.Walk?.timeS, 0.25);
+  useFlowEditorStore.getState().resetCanvas();
+});
 
 test("rotation-3d-euler accepts glbAnimation bundle on anim input", () => {
   const bundle = node("b1", "glb-animation-bundle", "utility", {

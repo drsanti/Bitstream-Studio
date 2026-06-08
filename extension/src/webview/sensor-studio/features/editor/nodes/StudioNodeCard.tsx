@@ -24,7 +24,14 @@ import {
   isStudioSensorSocketPreviewNodeId,
 } from "../store/flow-editor.store";
 import { useStudioAssetDescriptors } from "../../asset-browser/useStudioAssetDescriptors";
+import { useFlowNodeLiveStore } from "../store/flow-node-live.store";
+import {
+  mergeStudioNodeLiveIntoData,
+  readStudioNodeConfigRevision,
+} from "../store/studio-node-live.slice";
 import { useFlowEditorStore } from "../store/flow-editor.store";
+import { useSensorStudioPerformanceStore } from "../../../state/sensor-studio-performance.store";
+import { useStudioRuntimeVisibilityStore } from "../../../state/studio-runtime-visibility.store";
 import type { SocketPreviewContext } from "./flow-node/socket-live-preview-for-handle";
 import { studioPortAccent } from "./port-accent";
 import {
@@ -51,6 +58,7 @@ import {
   resolveFlowNodeSocketRegionLabelOnlyWidthPx,
   resolveMaxAutoWidthPx,
 } from "./flow-node/flow-node-intrinsic-size";
+import { resolveFlowNodeSocketPreviewLayoutKey } from "./flow-node/flow-node-socket-preview-chrome-key";
 import {
   socketLivePreviewForInputHandle,
   socketLivePreviewForOutputHandle,
@@ -79,6 +87,11 @@ import { STUDIO_VIEWPORT_PREVIEW_PANEL_CHROME_HEIGHT_PX } from "./flow-node/stud
 import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
 import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
 import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
+import { isMeshMaterialNodeId } from "./material/mesh-material-config";
+import { MeshMaterialNodePanel } from "./material/MeshMaterialNodePanel";
+import { MeshGroupNodePanel } from "./mesh/MeshGroupNodePanel";
+import { isMeshPrimitiveNodeId } from "./mesh/mesh-primitive-config";
+import { MeshPrimitiveNodePanel } from "./mesh/MeshPrimitiveNodePanel";
 import { MathNodePanel } from "./math/MathNodePanel";
 import {
   CompareNodePanel,
@@ -88,12 +101,15 @@ import { normalizeCompareOperation } from "../../../core/flow/compare-operations
 import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
 import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
 import { GlbAnimationBundleNodePanel } from "./animation/glb-animation-bundle-node-panel";
+import { AnimationClipNodePanel } from "./animation/animation-clip-node-panel";
+import { PartSpinNodePanel } from "./scene/part-spin-node-panel";
 import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import { StudioFlowCanvasDisplayScaleProvider } from "./display/studio-canvas-display-scale";
 import {
   BooleanConstantNodePanel,
   NumberConstantNodePanel,
 } from "./constants/ConstantGeneratorPanels";
+import { isNumericConstantNodeId } from "./constants/number-constant-helpers";
 import { EnvironmentNodePanel } from "./environment/EnvironmentNodePanel";
 import { CameraViewNodePanel } from "./camera-view/CameraViewNodePanel";
 import { StudioSceneViewport } from "../../../core/viewport/StudioSceneViewport";
@@ -149,6 +165,11 @@ import {
 import { resolvePlotterChannelColors } from "./plotter/plotter-channel-colors";
 import { isScene3dInspectorNodeId } from "./scene3d/scene3d-inspector-node-ids";
 import {
+  isStudioFlowNodeChromeHitFit,
+  resolveStudioFlowNodeChromeHitEffectiveMinHeight,
+  resolveStudioFlowNodeChromeHitLayoutHeightFloor,
+} from "./flow-node/studio-flow-node-chrome-hit";
+import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
 } from "../../../core/scene3d/scene3d-config";
@@ -175,7 +196,27 @@ const handleDotClass =
 
 function StudioNodeCard(props: NodeProps) {
   const { id, selected: selectedFromRf, dragging: isDragging = false } = props;
-  const data = props.data as StudioNodeData;
+  const flowPaneVisible = useStudioRuntimeVisibilityStore((s) => s.flowPaneVisible);
+  const stage3dMaxFps = useSensorStudioPerformanceStore((s) => s.preferences.stage3dMaxFps);
+  const nodeConfigRevision = useFlowEditorStore((s) => {
+    const node = s.nodes.find((entry) => entry.id === id);
+    if (node == null || node.type !== "studio") {
+      return "";
+    }
+    return readStudioNodeConfigRevision(node.data);
+  });
+  const baseData = useMemo((): StudioNodeData => {
+    const node = useFlowEditorStore.getState().nodes.find((entry) => entry.id === id);
+    if (node != null && node.type === "studio") {
+      return node.data;
+    }
+    return props.data as StudioNodeData;
+  }, [nodeConfigRevision, id, props.data]);
+  const liveSlice = useFlowNodeLiveStore((s) => s.byNodeId[id]);
+  const data = useMemo(
+    () => mergeStudioNodeLiveIntoData(baseData, liveSlice),
+    [baseData, liveSlice],
+  );
   /** RF does not always surface `selected` on custom nodes consistently; mirror `node.selected` from the store. */
   const selectedInDocument = useFlowEditorStore(
     (s) => s.nodes.find((n) => n.id === id)?.selected === true,
@@ -206,8 +247,23 @@ function StudioNodeCard(props: NodeProps) {
     selectedFromRf || selectedInDocument || primarySelectedId === id,
   );
   const { descriptors } = useStudioAssetDescriptors();
-  const flowNodes = useFlowEditorStore((s) => s.nodes);
-  const flowEdges = useFlowEditorStore((s) => s.edges);
+  const incidentEdgeSig = useFlowEditorStore((s) =>
+    s.edges
+      .filter((edge) => edge.source === id || edge.target === id)
+      .map(
+        (edge) =>
+          `${edge.id}:${edge.source}:${edge.sourceHandle ?? ""}:${edge.target}:${edge.targetHandle ?? ""}`,
+      )
+      .sort()
+      .join("|"),
+  );
+  const flowEdges = useMemo(
+    () =>
+      useFlowEditorStore
+        .getState()
+        .edges.filter((edge) => edge.source === id || edge.target === id),
+    [incidentEdgeSig, id],
+  );
   const canvasPrefs = useFlowCanvasPreferences();
   const handleBaseClass = studioHandleBaseClass(
     canvasPrefs.handleSizePx,
@@ -216,15 +272,14 @@ function StudioNodeCard(props: NodeProps) {
 
   // Some editor graphs contain layout/reroute nodes that do not have `data.nodeId/defaultConfig`.
   // Downstream preview helpers expect only "catalog-backed" studio nodes.
-  const flowNodesWithCatalogData = useMemo(
-    () =>
-      flowNodes.filter(
-        (n): n is typeof n & { data: { nodeId: string; defaultConfig: Record<string, unknown> } } =>
-          typeof (n as any)?.data?.nodeId === "string" &&
-          (n as any)?.data?.defaultConfig != null,
-      ),
-    [flowNodes],
-  );
+  const flowNodesWithCatalogData = useMemo(() => {
+    const flowNodes = useFlowEditorStore.getState().nodes;
+    return flowNodes.filter(
+      (n): n is typeof n & { data: { nodeId: string; defaultConfig: Record<string, unknown> } } =>
+        typeof (n as any)?.data?.nodeId === "string" &&
+        (n as any)?.data?.defaultConfig != null,
+    );
+  }, [incidentEdgeSig, data]);
 
   const visionHudNodes = useMemo(
     () => (graphHasVisionHudNodes(flowNodesWithCatalogData) ? flowNodesWithCatalogData : []),
@@ -246,6 +301,20 @@ function StudioNodeCard(props: NodeProps) {
     }),
     [id, descriptors, flowNodesWithCatalogData, flowEdges],
   );
+  const socketPreviewLayoutKey = useMemo(
+    () => resolveFlowNodeSocketPreviewLayoutKey(id, data, flowEdges, descriptors),
+    [
+      id,
+      flowEdges,
+      descriptors,
+      data.nodeId,
+      data.liveMaterialWire,
+      data.liveMeshWire,
+      data.liveAnimationWire,
+      data.liveEnvironmentWire,
+      data.liveCameraWire,
+    ],
+  );
   const plotterConfig = useMemo(
     () =>
       isPlotterNodeId(data.nodeId) ? coercePlotterConfig(data.defaultConfig) : null,
@@ -259,9 +328,9 @@ function StudioNodeCard(props: NodeProps) {
       plotterFlowNodeId: id,
       config: plotterConfig,
       edges: flowEdges,
-      nodes: flowNodes,
+      nodes: flowNodesWithCatalogData,
     });
-  }, [plotterConfig, flowEdges, flowNodes, id]);
+  }, [plotterConfig, flowEdges, flowNodesWithCatalogData, id]);
   const socketsExpanded = isSocketsExpanded(data.ui);
   const socketValuesVisible = isSocketValuesVisible(data.ui);
   const bodyControlsVisible = isBodyControlsVisible(data.ui);
@@ -359,6 +428,9 @@ function StudioNodeCard(props: NodeProps) {
     data.nodeId === "event-set-glb-part" ||
     data.nodeId === "event-trigger-glb-anim" ||
     data.nodeId === "glb-animation-bundle" ||
+    data.nodeId === "animation-clip" ||
+    data.nodeId === "part-spin" ||
+    isNumericConstantNodeId(data.nodeId) ||
     isStudioSensorSocketPreviewNodeId(data.nodeId);
 
   const canCollapseBody = studioNodeAllowsBodyCollapse(data);
@@ -371,11 +443,18 @@ function StudioNodeCard(props: NodeProps) {
     data.nodeId === "map-range" ||
     data.nodeId === "clamp" ||
     data.nodeId === "multiplexer" ||
+    data.nodeId === "animation-blend" ||
+    data.nodeId === "animation-mix" ||
+    data.nodeId === "animation-merge" ||
+    data.nodeId === "mesh-group" ||
     isStudioAudioCompactBodyNodeId(data.nodeId);
+  const isNumericConstantNode = isNumericConstantNodeId(data.nodeId);
+  const chromeHitFitsContent = isStudioFlowNodeChromeHitFit(data.nodeId);
   const shellFitsContent =
     utilityBodyFitsContent ||
     !showNodeBody ||
-    (showNodeBody && compactConfigBodyNode);
+    (showNodeBody && compactConfigBodyNode) ||
+    chromeHitFitsContent;
 
   const nodeResizable = data.ui?.resizable === true;
   /** Visual plot / gauge bodies flex to fill RF node height (resizable or plot canvas). */
@@ -452,9 +531,11 @@ function StudioNodeCard(props: NodeProps) {
   const chromeLayoutKeyRef = useRef(chromeLayoutKey);
   const socketValuesVisibleRef = useRef(socketValuesVisible);
   const flowNodeWidthRef = useRef(flowNodeWidth);
+  const flowNodeHeightRef = useRef(flowNodeHeight);
   chromeLayoutKeyRef.current = chromeLayoutKey;
   socketValuesVisibleRef.current = socketValuesVisible;
   flowNodeWidthRef.current = flowNodeWidth;
+  flowNodeHeightRef.current = flowNodeHeight;
 
   useLayoutEffect(() => {
     lastAutoFitChromeLayoutKeyRef.current = null;
@@ -541,6 +622,34 @@ function StudioNodeCard(props: NodeProps) {
         }
       };
 
+      const fitH = chromeHitFitsContent
+        ? resolveStudioFlowNodeChromeHitLayoutHeightFloor(next)
+        : Math.max(minNodeHeight, next);
+      const roundedCurrentH =
+        typeof flowNodeHeightRef.current === "number" &&
+        Number.isFinite(flowNodeHeightRef.current) &&
+        flowNodeHeightRef.current > 0
+          ? Math.round(flowNodeHeightRef.current)
+          : null;
+      const syncHeight = (nextFitH: number) => {
+        const currentW =
+          typeof flowNodeWidthRef.current === "number" &&
+          Number.isFinite(flowNodeWidthRef.current) &&
+          flowNodeWidthRef.current > 0
+            ? Math.round(flowNodeWidthRef.current)
+            : minNodeWidth;
+        syncFlowNodeHeightFit(
+          id,
+          nextFitH,
+          onNodesChangeAny,
+          currentW,
+          flowNodeHeightRef.current,
+        );
+        if (roundedCurrentH !== nextFitH) {
+          queueMicrotask(() => updateNodeInternals(id));
+        }
+      };
+
       if (nodeResizable) {
         const widthStripped = roundedCurrentW == null;
         const needsGrow =
@@ -551,12 +660,18 @@ function StudioNodeCard(props: NodeProps) {
           }
           syncWidth(fitW);
         }
+        if (chromeHitFitsContent && roundedCurrentH !== fitH) {
+          syncHeight(fitH);
+        }
       } else {
         if (modeChanged) {
           lastAutoFitChromeLayoutKeyRef.current = key;
         }
         if (roundedCurrentW !== fitW) {
           syncWidth(fitW);
+        }
+        if (modeChanged || roundedCurrentH !== fitH) {
+          syncHeight(fitH);
         }
       }
     };
@@ -569,9 +684,6 @@ function StudioNodeCard(props: NodeProps) {
     measureAndSyncAfterLayout();
     const ro = new ResizeObserver(measureAndSyncAfterLayout);
     ro.observe(headerEl);
-    if (socketsEl != null) {
-      ro.observe(socketsEl);
-    }
     if (bodyEl != null) {
       ro.observe(bodyEl);
     }
@@ -589,9 +701,20 @@ function StudioNodeCard(props: NodeProps) {
         characterData: true,
       });
     }
+    const socketsMo =
+      socketsEl != null
+        ? new MutationObserver(measureAndSyncAfterLayout)
+        : null;
+    if (socketsEl != null && socketsMo != null) {
+      socketsMo.observe(socketsEl, {
+        childList: true,
+        subtree: true,
+      });
+    }
     return () => {
       ro.disconnect();
       headerMo?.disconnect();
+      socketsMo?.disconnect();
       if (measureContentSizeRef.current === measure) {
         measureContentSizeRef.current = null;
       }
@@ -614,9 +737,11 @@ function StudioNodeCard(props: NodeProps) {
     data.outputType,
     data.defaultConfig,
     chromeLayoutKey,
+    socketPreviewLayoutKey,
     id,
     minNodeWidth,
     nodeResizable,
+    chromeHitFitsContent,
     headerChromeKey,
     syncStudioNodeWidthFromContentMeasure,
     updateNodeInternals,
@@ -637,7 +762,7 @@ function StudioNodeCard(props: NodeProps) {
       cancelAnimationFrame(outerFrame);
       cancelAnimationFrame(innerFrame);
     };
-  }, [headerChromeKey, id]);
+  }, [headerChromeKey, socketPreviewLayoutKey, id]);
 
   const mathOperation =
     data.nodeId === "math" && typeof data.defaultConfig.operation === "string"
@@ -780,10 +905,12 @@ function StudioNodeCard(props: NodeProps) {
     minNodeWidth,
     measuredHeaderSocketsMinWidth ?? 0,
   );
-  const effectiveMinNodeHeight = Math.max(
-    minNodeHeight,
-    measuredHeaderSocketsMinHeight ?? 0,
-  );
+  const effectiveMinNodeHeight = chromeHitFitsContent
+    ? resolveStudioFlowNodeChromeHitEffectiveMinHeight(
+        measuredHeaderSocketsMinHeight,
+        minDimensionFloor,
+      )
+    : Math.max(minNodeHeight, measuredHeaderSocketsMinHeight ?? 0);
 
   useEffect(() => {
     syncStudioNodeContentMinDimensions(
@@ -928,13 +1055,15 @@ function StudioNodeCard(props: NodeProps) {
   const outputSockets =
     visibleOutputHandles != null
       ? visibleOutputHandles.map((h) => {
-          const preview = socketLivePreviewForOutputHandle(
-            data,
-            h.id,
-            h.portType,
-            h.label,
-            socketPreviewCtx,
-          );
+          const preview = isNumericConstantNode
+            ? null
+            : socketLivePreviewForOutputHandle(
+                data,
+                h.id,
+                h.portType,
+                h.label,
+                socketPreviewCtx,
+              );
           return (
             <FlowNodeSocketRow
               key={h.id}
@@ -968,13 +1097,15 @@ function StudioNodeCard(props: NodeProps) {
               socketsExpanded ||
               shouldShowSocketRow(id, "out", edges, "output", socketsExpanded);
             if (!showRow) return [];
-            const preview = socketLivePreviewForOutputHandle(
-              data,
-              "out",
-              data.outputType,
-              undefined,
-              socketPreviewCtx,
-            );
+            const preview = isNumericConstantNode
+              ? null
+              : socketLivePreviewForOutputHandle(
+                  data,
+                  "out",
+                  data.outputType,
+                  undefined,
+                  socketPreviewCtx,
+                );
             return [
               <FlowNodeSocketRow
                 key="out"
@@ -1219,7 +1350,7 @@ function StudioNodeCard(props: NodeProps) {
         : {},
     [
       isRotation3dNode,
-      flowNodes,
+      flowNodesWithCatalogData,
       flowEdges,
       id,
       data.nodeId,
@@ -1290,33 +1421,42 @@ function StudioNodeCard(props: NodeProps) {
   const flowNodeShellRef = useRef<HTMLDivElement | null>(null);
   const resizeActive = isSelected && nodeResizable;
   useLayoutEffect(() => {
-    if (nodeResizable) {
+    if (nodeResizable && !chromeHitFitsContent) {
       return;
     }
     let frame = 0;
     frame = requestAnimationFrame(() => {
       const shellEl = shellRef.current;
       let targetH = effectiveMinNodeHeight;
-      if (shellEl != null && !shellFitsContent) {
+      if (shellEl != null) {
         targetH = Math.max(targetH, Math.round(shellEl.offsetHeight));
       }
       const currentW =
         typeof flowNodeWidth === "number" && flowNodeWidth > 0
           ? flowNodeWidth
           : effectiveMinNodeWidth;
+      const roundedTargetH = Math.max(1, Math.round(targetH));
+      const roundedCurrentH =
+        flowNodeHeight != null && Number.isFinite(flowNodeHeight)
+          ? Math.round(flowNodeHeight)
+          : undefined;
       syncFlowNodeHeightFit(
         id,
-        targetH,
+        roundedTargetH,
         onNodesChangeAny,
         currentW,
         flowNodeHeight,
       );
+      if (roundedCurrentH !== roundedTargetH) {
+        queueMicrotask(() => updateNodeInternals(id));
+      }
     });
     return () => {
       cancelAnimationFrame(frame);
     };
   }, [
     nodeResizable,
+    chromeHitFitsContent,
     showNodeBody,
     shellFitsContent,
     socketValuesVisible,
@@ -1324,9 +1464,11 @@ function StudioNodeCard(props: NodeProps) {
     bodyControlsVisible,
     id,
     effectiveMinNodeHeight,
+    effectiveMinNodeWidth,
     flowNodeWidth,
     flowNodeHeight,
     onNodesChange,
+    updateNodeInternals,
     visibleInputHandles?.length ?? 0,
     visibleOutputHandles?.length ?? 0,
     inputSockets.length,
@@ -1338,13 +1480,14 @@ function StudioNodeCard(props: NodeProps) {
     <StudioFlowCanvasDisplayScaleProvider value={flowZoom}>
       <div
         ref={shellRef}
-        className={`relative w-full min-w-0 max-w-full ${shellFitsContent ? "h-auto" : "h-full"}`}
+        className={`studio-flow-node-hit-target relative w-full min-w-0 max-w-full ${shellFitsContent ? "h-auto" : "h-full"}`}
       >
         <FlowNodeEdgeResize
           nodeId={id}
           active={resizeActive}
           minWidth={effectiveMinNodeWidth}
           minHeight={effectiveMinNodeHeight}
+          allowHeightResize={!chromeHitFitsContent}
           shellRef={shellRef}
         />
         <FlowNodeShell
@@ -1412,8 +1555,17 @@ function StudioNodeCard(props: NodeProps) {
                 >
                   {outputSockets}
                 </FlowNodeSocketRegion>
-              ) : null}
-            </div>
+            ) : null}
+          </div>
+          ) : null}
+
+          {isNumericConstantNode ? (
+            <FlowNodeBody ref={bodyMeasureRef}>
+              <NumberConstantNodePanel
+                nodeId={id}
+                defaultConfig={data.defaultConfig}
+              />
+            </FlowNodeBody>
           ) : null}
 
           {typeof data.sensorInvalidReason === "string" &&
@@ -1441,7 +1593,8 @@ function StudioNodeCard(props: NodeProps) {
                 showNodeBody &&
                 (nodeResizable ||
                   flexPlotCanvasNode ||
-                  isStudioAudioCompactBodyNodeId(data.nodeId))
+                  isStudioAudioCompactBodyNodeId(data.nodeId) ||
+                  utilityBodyFitsContent)
                   ? bodyMeasureRef
                   : undefined
               }
@@ -1469,6 +1622,8 @@ function StudioNodeCard(props: NodeProps) {
                 <StudioSceneViewport
                   title="3D Scene (Euler)"
                   previewScopeId={`flow-node:${id}`}
+                  renderLoopActive={flowPaneVisible}
+                  maxRenderFps={stage3dMaxFps}
                   visionHudNodes={visionHudNodes}
                   visionHudEdges={flowEdges}
                   sceneProps={
@@ -1495,6 +1650,8 @@ function StudioNodeCard(props: NodeProps) {
                 <StudioSceneViewport
                   title="3D Scene (Quaternion)"
                   previewScopeId={`flow-node:${id}`}
+                  renderLoopActive={flowPaneVisible}
+                  maxRenderFps={stage3dMaxFps}
                   visionHudNodes={visionHudNodes}
                   visionHudEdges={flowEdges}
                   sceneProps={
@@ -1631,10 +1788,7 @@ function StudioNodeCard(props: NodeProps) {
                   defaultConfig={data.defaultConfig}
                 />
               ) : null}
-              {data.nodeId === "number-constant" ||
-              data.nodeId === "float-constant" ||
-              data.nodeId === "integer-constant" ||
-              data.nodeId === "glb-material-param" ? (
+              {data.nodeId === "glb-material-param" ? (
                 <NumberConstantNodePanel
                   nodeId={id}
                   defaultConfig={data.defaultConfig}
@@ -1651,6 +1805,23 @@ function StudioNodeCard(props: NodeProps) {
                   nodeId={id}
                   defaultConfig={data.defaultConfig}
                 />
+              ) : null}
+              {isMeshMaterialNodeId(data.nodeId) ? (
+                <MeshMaterialNodePanel
+                  nodeId={id}
+                  catalogNodeId={data.nodeId}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {isMeshPrimitiveNodeId(data.nodeId) ? (
+                <MeshPrimitiveNodePanel
+                  nodeId={id}
+                  catalogNodeId={data.nodeId}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "mesh-group" ? (
+                <MeshGroupNodePanel defaultConfig={data.defaultConfig} />
               ) : null}
               {data.nodeId === "math" ? (
                 <MathNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
@@ -1680,6 +1851,15 @@ function StudioNodeCard(props: NodeProps) {
                   nodeId={id}
                   defaultConfig={data.defaultConfig}
                 />
+              ) : null}
+              {data.nodeId === "animation-clip" ? (
+                <AnimationClipNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              ) : null}
+              {data.nodeId === "part-spin" ? (
+                <PartSpinNodePanel nodeId={id} defaultConfig={data.defaultConfig} />
               ) : null}
               {data.nodeId === "model-viewer" ? (
                 <ModelViewerNodePanel

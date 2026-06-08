@@ -13,6 +13,7 @@ import type {
   FlowCanvasGridSize,
   FlowCanvasHandleBorderWidthPx,
   FlowCanvasHandleSizePx,
+  FlowCanvasNodeSelectionRingWidthPx,
 } from "../flow-canvas-ui-persistence";
 
 export const CANVAS_GRID_SIZE_OPTIONS: {
@@ -217,6 +218,16 @@ export function healthStatusLabel(health: SensorHealthStatus | undefined): strin
   }
   return "Idle";
 }
+
+export const CANVAS_NODE_SELECTION_RING_WIDTH_OPTIONS: {
+  value: FlowCanvasNodeSelectionRingWidthPx;
+  label: string;
+  hint: string;
+}[] = [
+  { value: 1, label: "1", hint: "Thin selection ring." },
+  { value: 2, label: "2", hint: "Default selection ring width." },
+  { value: 3, label: "3", hint: "Bold selection ring." },
+];
 
 export function healthStatusToneClass(health: SensorHealthStatus | undefined): string {
   if (health === "live") {

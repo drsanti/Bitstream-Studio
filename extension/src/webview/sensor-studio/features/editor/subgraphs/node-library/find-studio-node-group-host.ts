@@ -4,8 +4,41 @@ import {
   isStudioNodeGroupNode,
   STUDIO_ROOT_GRAPH_ID,
   type StudioGraphId,
+  type StudioNodeGroupData,
   type StudioSubgraphDocument,
 } from "../studio-subgraph.types";
+
+function hostSubgraphId(data: StudioNodeGroupData, nodeId: string): string {
+  return data.subgraphId ?? nodeId;
+}
+
+/** Find the group shell whose inner document key matches `subgraphId` (root or nested). */
+export function findStudioNodeGroupHostBySubgraphId(
+  subgraphId: string,
+  rootNodes: readonly FlowGraphNode[],
+  subgraphs: Record<string, StudioSubgraphDocument>,
+): FlowGraphNode | null {
+  for (const node of rootNodes) {
+    if (!isStudioNodeGroupNode(node)) {
+      continue;
+    }
+    if (hostSubgraphId(node.data, node.id) === subgraphId) {
+      return node;
+    }
+  }
+  for (const doc of Object.values(subgraphs)) {
+    for (const raw of doc.nodes) {
+      const node = raw as FlowGraphNode;
+      if (!isStudioNodeGroupNode(node)) {
+        continue;
+      }
+      if (hostSubgraphId(node.data, node.id) === subgraphId) {
+        return node;
+      }
+    }
+  }
+  return null;
+}
 
 export type StudioNodeGroupHostContext = {
   host: FlowGraphNode;

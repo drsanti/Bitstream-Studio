@@ -36,6 +36,10 @@ import type {
   BitstreamWorkspaceHostId,
   TernionShellHostToWebviewMessage,
 } from "../ternion-shell-host-message";
+import {
+  readStudioLibraryWorkspaceMirror,
+  writeStudioLibraryWorkspaceMirror,
+} from "../studio-library-workspace-host";
 
 export interface StatusBarItemsFor3DPanel {
   launchMenu?: vscode.StatusBarItem;
@@ -44,19 +48,27 @@ export interface StatusBarItemsFor3DPanel {
   reloadWindow?: vscode.StatusBarItem;
 }
 
+export type TernionWebviewPanelSlot = "main" | "presentation";
+
 export interface TernionDigitalTwinCreateOptions {
   statusBar?: StatusBarItemsFor3DPanel;
   /** When set, overrides webview localStorage for the first paint only. Omit to use last tab. */
   bitstreamWorkspace?: BitstreamWorkspaceHostId;
+  panelSlot?: TernionWebviewPanelSlot;
+  viewColumn?: vscode.ViewColumn;
+  panelTitle?: string;
+  panelViewType?: string;
 }
 
 export class TernionDigitalTwin {
   public static currentPanel: TernionDigitalTwin | undefined;
+  public static presentationPanel: TernionDigitalTwin | undefined;
   public readonly _panel: vscode.WebviewPanel;
   private readonly _extensionUri: vscode.Uri;
   private readonly _context: vscode.ExtensionContext;
   private readonly _statusBar?: StatusBarItemsFor3DPanel;
   private readonly _bitstreamWorkspace: BitstreamWorkspaceHostId | undefined;
+  private readonly _panelSlot: TernionWebviewPanelSlot;
   private _disposables: vscode.Disposable[] = [];
 
   public get webviewApp(): TernionWebviewEntry
@@ -102,30 +114,27 @@ export class TernionDigitalTwin {
     }
 
     const panelTitle =
-      requestedWorkspace === "sensor-studio"
+      options?.panelTitle ??
+      (requestedWorkspace === "sensor-studio"
         ? "Bitstream Studio — Sensor Studio"
         : requestedWorkspace === "telemetry" ||
             requestedWorkspace === "sensor-telemetry"
           ? "Bitstream Studio — Sensor Telemetry"
-          : "Bitstream Studio";
+          : "Bitstream Studio");
 
     const panel = vscode.window.createWebviewPanel(
-      "ternionDigitalTwinPanel",
+      options?.panelViewType ?? "ternionDigitalTwinPanel",
       panelTitle,
-      column || vscode.ViewColumn.One,
+      options?.viewColumn ?? column ?? vscode.ViewColumn.One,
       {
         enableScripts: true,
         retainContextWhenHidden: true,
-        // Configure local resource roots to allow webview access to local assets
-        // VSCode webviews can only access files within these directories
-        // Including extensionUri allows access to all subdirectories (out/webview/assets, etc.)
-        // We also explicitly include 'out' and 'out/webview' to ensure proper path resolution
         localResourceRoots: [
-          extensionUri, // Root directory - allows access to all subdirectories
-          vscode.Uri.joinPath(extensionUri, "out"), // Explicitly include out directory
-          vscode.Uri.joinPath(extensionUri, "out", "webview"), // Explicitly include webview directory
-          context.globalStorageUri, // Extension storage (parent of assets/)
-          getUserAssetsRootUri(context), // User downloads (globalStorage/.../assets)
+          extensionUri,
+          vscode.Uri.joinPath(extensionUri, "out"),
+          vscode.Uri.joinPath(extensionUri, "out", "webview"),
+          context.globalStorageUri,
+          getUserAssetsRootUri(context),
         ],
       },
     );
@@ -136,6 +145,49 @@ export class TernionDigitalTwin {
       context,
       options?.statusBar,
       requestedWorkspace,
+      options?.panelSlot ?? "main",
+    );
+  }
+
+  /** Separate editor column for instructor slides — same webview bundle as main shell. */
+  public static createPresentationPanelOrShow(
+    extensionUri: vscode.Uri,
+    context: vscode.ExtensionContext,
+  ): void
+  {
+    const column = vscode.ViewColumn.Beside;
+
+    if (TernionDigitalTwin.presentationPanel)
+    {
+      TernionDigitalTwin.presentationPanel.navigateBitstreamWorkspace("presentation");
+      TernionDigitalTwin.presentationPanel.reveal(column);
+      return;
+    }
+
+    const panel = vscode.window.createWebviewPanel(
+      "bitstreamPresentationPanel",
+      "Bitstream Presentation",
+      column,
+      {
+        enableScripts: true,
+        retainContextWhenHidden: true,
+        localResourceRoots: [
+          extensionUri,
+          vscode.Uri.joinPath(extensionUri, "out"),
+          vscode.Uri.joinPath(extensionUri, "out", "webview"),
+          context.globalStorageUri,
+          getUserAssetsRootUri(context),
+        ],
+      },
+    );
+
+    TernionDigitalTwin.presentationPanel = new TernionDigitalTwin(
+      panel,
+      extensionUri,
+      context,
+      undefined,
+      "presentation",
+      "presentation",
     );
   }
 
@@ -145,6 +197,7 @@ export class TernionDigitalTwin {
     context: vscode.ExtensionContext,
     statusBar: StatusBarItemsFor3DPanel | undefined,
     bitstreamWorkspace: BitstreamWorkspaceHostId | undefined,
+    panelSlot: TernionWebviewPanelSlot,
   )
   {
     this._panel = panel;
@@ -152,12 +205,15 @@ export class TernionDigitalTwin {
     this._context = context;
     this._statusBar = statusBar;
     this._bitstreamWorkspace = bitstreamWorkspace;
+    this._panelSlot = panelSlot;
 
-    // Hide launch menu and show reload buttons when panel opens
-    if (this._statusBar?.launchMenu) this._statusBar.launchMenu.hide();
-    if (this._statusBar?.openProject4Twin) this._statusBar.openProject4Twin.hide();
-    if (this._statusBar?.reloadWebview) this._statusBar.reloadWebview.show();
-    if (this._statusBar?.reloadWindow) this._statusBar.reloadWindow.show();
+    if (this._panelSlot === "main")
+    {
+      if (this._statusBar?.launchMenu) this._statusBar.launchMenu.hide();
+      if (this._statusBar?.openProject4Twin) this._statusBar.openProject4Twin.hide();
+      if (this._statusBar?.reloadWebview) this._statusBar.reloadWebview.show();
+      if (this._statusBar?.reloadWindow) this._statusBar.reloadWindow.show();
+    }
 
     this._panel.webview.html = this._getHtmlForWebview();
 
@@ -656,6 +712,55 @@ export class TernionDigitalTwin {
         break;
       }
 
+      case "studio-library-workspace-pull": {
+        void (async () => {
+          try {
+            const { mirror, workspacePath } = await readStudioLibraryWorkspaceMirror();
+            this._panel.webview.postMessage({
+              type: "studio-library-workspace-response",
+              configJson: mirror != null ? JSON.stringify(mirror) : null,
+              workspacePath,
+            });
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            this._panel.webview.postMessage({
+              type: "studio-library-workspace-response",
+              configJson: null,
+              error: errMsg,
+            });
+          }
+        })();
+        break;
+      }
+
+      case "studio-library-workspace-push": {
+        const raw = typeof message.configJson === "string" ? message.configJson : "";
+        void (async () => {
+          try {
+            const workspacePath = await writeStudioLibraryWorkspaceMirror(raw);
+            if (workspacePath == null) {
+              this._panel.webview.postMessage({
+                type: "studio-library-workspace-response",
+                configJson: null,
+                error: "No workspace folder open — cannot sync .bitstream/library/",
+              });
+            } else {
+              this._panel.webview.postMessage({
+                type: "studio-library-workspace-response",
+                configJson: raw,
+                workspacePath,
+              });
+            }
+          } catch (e) {
+            const errMsg = e instanceof Error ? e.message : String(e);
+            void vscode.window.showWarningMessage(
+              `Could not write studio library to workspace: ${errMsg}`,
+            );
+          }
+        })();
+        break;
+      }
+
       case "workbench-layout-host-push": {
         const appId =
           typeof message.appId === "string" && message.appId.trim().length > 0
@@ -729,13 +834,18 @@ export class TernionDigitalTwin {
   }
 
   public dispose(): void {
-    TernionDigitalTwin.currentPanel = undefined;
-
-    // Show launch menu and hide reload buttons when panel closes
-    if (this._statusBar?.launchMenu) this._statusBar.launchMenu.show();
-    if (this._statusBar?.openProject4Twin) this._statusBar.openProject4Twin.show();
-    if (this._statusBar?.reloadWebview) this._statusBar.reloadWebview.hide();
-    if (this._statusBar?.reloadWindow) this._statusBar.reloadWindow.hide();
+    if (this._panelSlot === "presentation")
+    {
+      TernionDigitalTwin.presentationPanel = undefined;
+    }
+    else
+    {
+      TernionDigitalTwin.currentPanel = undefined;
+      if (this._statusBar?.launchMenu) this._statusBar.launchMenu.show();
+      if (this._statusBar?.openProject4Twin) this._statusBar.openProject4Twin.show();
+      if (this._statusBar?.reloadWebview) this._statusBar.reloadWebview.hide();
+      if (this._statusBar?.reloadWindow) this._statusBar.reloadWindow.hide();
+    }
 
     this._panel.dispose();
 

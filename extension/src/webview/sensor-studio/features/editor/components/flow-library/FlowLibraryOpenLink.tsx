@@ -23,7 +23,7 @@ export function FlowLibraryOpenLink(props: FlowLibraryOpenLinkProps) {
       type="button"
       size="compact"
       className={className}
-      hint="Open Library → Saved → Flows → Official and highlight this starter graph."
+      hint="Open Library → Presets → Flows → Official and highlight this starter graph."
       onClick={() => {
         openFlowLibraryOfficial(onFocusWorkbenchPane, templateId);
       }}

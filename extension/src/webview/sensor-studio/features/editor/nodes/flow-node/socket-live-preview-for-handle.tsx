@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { StudioAssetDescriptor } from "../../../asset-browser/studio-asset.types";
 import type { StudioPortType } from "../port-accent";
 import type { StudioNodeData } from "../../store/flow-editor.store";
@@ -7,12 +8,19 @@ import {
   isStudioSensorTapNodeId,
 } from "../../store/flow-editor.store";
 import {
-  isGlbEventActionCatalogNodeId,
+  catalogNodeHasStudioModelInput,
   resolveWiredStudioModelSelectNodeId,
   STUDIO_HANDLE_MODEL,
   type StudioFlowEdgeLike,
 } from "../../model/model-generated-bindings";
-import { modelSelectEmitDisplayName } from "../animation/model-select-emit-display-name";
+import { flowAnimationWireFromAnimationClipEval } from "../animation/animation-clip-config";
+import {
+  isLikelyModelUrlString,
+  modelSelectEmitDisplayName,
+  modelUrlSocketDisplayLabel,
+} from "../animation/model-select-emit-display-name";
+import type { FlowWireAnimationV1 } from "../animation/flow-wire-animation";
+import { flowAnimationWireFromBundleDefaultConfig } from "../animation/flow-wire-animation";
 import {
   flowWireCameraFromNodeDefaultConfig,
 } from "../camera-view/flow-wire-camera";
@@ -25,10 +33,26 @@ import { isSocketValuesVisible } from "./socket-display";
 import { isStructuredSocketPreviewPortType } from "./sync-socket-live-preview-handles";
 import { SocketLivePreview } from "./SocketLivePreview";
 import { SocketStructuredWireBadge } from "./SocketStructuredWireBadge";
+import { resolveAnimationWireSocketBadgeText } from "./resolve-animation-wire-socket-label";
 import {
   resolveCameraWireSocketLabel,
   resolveEnvironmentWireSocketLabel,
 } from "./structured-socket-preview-label";
+import {
+  flowWireMaterialFromMeshMaterialEval,
+  isMeshMaterialNodeId,
+  meshMaterialKindForNodeId,
+  resolveMaterialWireSocketLabel,
+} from "../material/mesh-material-config";
+import type { FlowWireMaterialV1 } from "../material/flow-wire-material";
+import {
+  flowWireMeshFromMeshPrimitiveEval,
+  isMeshWireOutputNodeId,
+  meshPrimitiveKindForNodeId,
+  resolveMeshWireSocketLabel,
+} from "../mesh/mesh-primitive-config";
+import type { FlowWireMeshV1 } from "../mesh/flow-wire-mesh";
+import { STUDIO_HANDLE_ANIM, STUDIO_HANDLE_MESHES, STUDIO_HANDLE_OUT } from "../../studio-handle-ids";
 
 export type SocketPreviewContext = {
   flowNodeId?: string;
@@ -41,7 +65,7 @@ function isModelStringSocketPort(catalogNodeId: string, handleId: string): boole
   return (
     (catalogNodeId === "model-select" && handleId === "out") ||
     (catalogNodeId === "model-viewer" && handleId === "in") ||
-    (isGlbEventActionCatalogNodeId(catalogNodeId) && handleId === STUDIO_HANDLE_MODEL)
+    (catalogNodeHasStudioModelInput(catalogNodeId) && handleId === STUDIO_HANDLE_MODEL)
   );
 }
 
@@ -53,12 +77,43 @@ function modelStringSocketLivePreview(
   if (fullLabel.length === 0) {
     return null;
   }
+  const url =
+    typeof defaultConfig.selectedModelUrl === "string"
+      ? defaultConfig.selectedModelUrl.trim()
+      : "";
   return (
     <SocketStructuredWireBadge
       label={fullLabel}
-      title={fullLabel}
+      title={url.length > 0 ? url : fullLabel}
       portType="string"
     />
+  );
+}
+
+function genericStringSocketLivePreview(
+  value: string,
+  textAlign: "left" | "right",
+  descriptors?: readonly StudioAssetDescriptor[],
+) {
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (isLikelyModelUrlString(trimmed)) {
+    const label = modelUrlSocketDisplayLabel(trimmed, descriptors ?? []);
+    if (label.length === 0) {
+      return null;
+    }
+    return (
+      <SocketStructuredWireBadge
+        label={label}
+        title={trimmed}
+        portType="string"
+      />
+    );
+  }
+  return (
+    <SocketLivePreview portType="string" handleId="" stringValue={trimmed} textAlign={textAlign} />
   );
 }
 
@@ -88,6 +143,181 @@ function modelStringInputSocketLivePreview(
     config = { selectedModelUrl: url };
   }
   return modelStringSocketLivePreview(config, ctx.descriptors);
+}
+
+const ANIMATION_OUTPUT_CATALOG_NODE_IDS = new Set([
+  "animation-clip",
+  "glb-animation-bundle",
+  "animation-merge",
+  "animation-mix",
+  "animation-blend",
+]);
+
+function resolveOutputAnimationWire(data: StudioNodeData): FlowWireAnimationV1 | null {
+  if (data.liveAnimationWire != null) {
+    return data.liveAnimationWire;
+  }
+  if (data.nodeId === "animation-clip") {
+    return flowAnimationWireFromAnimationClipEval({
+      defaultConfig: data.defaultConfig,
+      wired: {
+        timeS: data.liveInputNumberByHandle?.time,
+        speed: data.liveInputNumberByHandle?.speed,
+        weight: data.liveInputNumberByHandle?.weight,
+        enabled: data.liveInputBooleanByHandle?.enabled,
+      },
+    });
+  }
+  if (data.nodeId === "glb-animation-bundle") {
+    return flowAnimationWireFromBundleDefaultConfig(data.defaultConfig);
+  }
+  return null;
+}
+
+function structuredAnimationSocketPreview(
+  data: StudioNodeData,
+  handleId: string,
+  portType: StudioPortType,
+  variant: "input" | "output",
+): ReactNode {
+  if (portType !== "glbAnimation") {
+    return null;
+  }
+
+  let wire: FlowWireAnimationV1 | null = null;
+  if (
+    variant === "output" &&
+    handleId === STUDIO_HANDLE_OUT &&
+    ANIMATION_OUTPUT_CATALOG_NODE_IDS.has(data.nodeId)
+  ) {
+    wire = resolveOutputAnimationWire(data);
+  } else if (variant === "input" && handleId === STUDIO_HANDLE_ANIM && data.liveAnimationWire != null) {
+    wire = data.liveAnimationWire;
+  }
+
+  const { label, title } = resolveAnimationWireSocketBadgeText({
+    wire,
+    catalogNodeId: data.nodeId,
+  });
+  if (label.length === 0) {
+    return null;
+  }
+  return (
+    <SocketStructuredWireBadge
+      label={label}
+      title={title}
+      portType="glbAnimation"
+    />
+  );
+}
+
+function resolveOutputMaterialWire(data: StudioNodeData): FlowWireMaterialV1 | null {
+  if (data.liveMaterialWire != null) {
+    return data.liveMaterialWire;
+  }
+  const kind = meshMaterialKindForNodeId(data.nodeId);
+  if (kind == null) {
+    return null;
+  }
+  return flowWireMaterialFromMeshMaterialEval({
+    kind,
+    defaultConfig: data.defaultConfig,
+    wired: {
+      color: data.liveInputVector3ByHandle?.color,
+      opacity: data.liveInputNumberByHandle?.opacity,
+      roughness: data.liveInputNumberByHandle?.roughness,
+      metalness: data.liveInputNumberByHandle?.metalness,
+    },
+  });
+}
+
+function structuredMaterialSocketPreview(
+  data: StudioNodeData,
+  handleId: string,
+  portType: StudioPortType,
+  variant: "input" | "output",
+): ReactNode {
+  if (portType !== "material") {
+    return null;
+  }
+
+  let wire: FlowWireMaterialV1 | null = null;
+  if (
+    variant === "output" &&
+    handleId === STUDIO_HANDLE_OUT &&
+    isMeshMaterialNodeId(data.nodeId)
+  ) {
+    wire = resolveOutputMaterialWire(data);
+  } else if (variant === "input" && handleId === "material" && data.liveMaterialWire != null) {
+    wire = data.liveMaterialWire;
+  }
+
+  const label = resolveMaterialWireSocketLabel(wire);
+  if (label.length === 0) {
+    return null;
+  }
+  return <SocketStructuredWireBadge label={label} title={label} portType="material" />;
+}
+
+function resolveOutputMeshWire(data: StudioNodeData): FlowWireMeshV1 | null {
+  if (data.liveMeshWire != null) {
+    return data.liveMeshWire;
+  }
+  if (data.nodeId === "mesh-group") {
+    return data.liveMeshWire ?? null;
+  }
+  const kind = meshPrimitiveKindForNodeId(data.nodeId);
+  if (kind == null) {
+    return null;
+  }
+  return flowWireMeshFromMeshPrimitiveEval({
+    kind,
+    defaultConfig: data.defaultConfig,
+    wired: {
+      width: data.liveInputNumberByHandle?.width,
+      height: data.liveInputNumberByHandle?.height,
+      depth: data.liveInputNumberByHandle?.depth,
+      radius: data.liveInputNumberByHandle?.radius,
+      radiusTop: data.liveInputNumberByHandle?.radiusTop,
+      radiusBottom: data.liveInputNumberByHandle?.radiusBottom,
+      tube: data.liveInputNumberByHandle?.tube,
+      length: data.liveInputNumberByHandle?.length,
+      material: data.liveMaterialWire,
+      transform: data.liveTransformWire,
+    },
+  });
+}
+
+function structuredMeshSocketPreview(
+  data: StudioNodeData,
+  handleId: string,
+  portType: StudioPortType,
+  variant: "input" | "output",
+): ReactNode {
+  if (portType !== "mesh") {
+    return null;
+  }
+
+  let wire: FlowWireMeshV1 | null = null;
+  if (
+    variant === "output" &&
+    handleId === STUDIO_HANDLE_OUT &&
+    isMeshWireOutputNodeId(data.nodeId)
+  ) {
+    wire = resolveOutputMeshWire(data);
+  } else if (
+    variant === "input" &&
+    (handleId === "mesh" || handleId === STUDIO_HANDLE_MESHES) &&
+    data.liveMeshWire != null
+  ) {
+    wire = data.liveMeshWire;
+  }
+
+  const label = resolveMeshWireSocketLabel(wire);
+  if (label.length === 0) {
+    return null;
+  }
+  return <SocketStructuredWireBadge label={label} title={label} portType="mesh" />;
 }
 
 function structuredEnvironmentCameraSocketPreview(
@@ -170,6 +400,7 @@ function genericSocketLivePreview(
   handleId: string,
   portType: StudioPortType,
   portLabel?: string,
+  descriptors?: readonly StudioAssetDescriptor[],
 ) {
   if (isStructuredSocketPreviewPortType(portType)) {
     return null;
@@ -228,14 +459,10 @@ function genericSocketLivePreview(
   if (portType === "string") {
     const fromHandle = data.liveStringByHandle?.[handleId];
     if (fromHandle !== undefined) {
-      return (
-        <SocketLivePreview portType="string" handleId={handleId} stringValue={fromHandle} />
-      );
+      return genericStringSocketLivePreview(fromHandle, "right", descriptors);
     }
     if (handleId === "out" && typeof data.liveValue === "string") {
-      return (
-        <SocketLivePreview portType="string" handleId={handleId} stringValue={data.liveValue} />
-      );
+      return genericStringSocketLivePreview(data.liveValue, "right", descriptors);
     }
     return null;
   }
@@ -248,6 +475,7 @@ function genericInputSocketLivePreview(
   handleId: string,
   portType: StudioPortType,
   portLabel?: string,
+  descriptors?: readonly StudioAssetDescriptor[],
 ) {
   if (isStructuredSocketPreviewPortType(portType)) {
     return null;
@@ -321,9 +549,7 @@ function genericInputSocketLivePreview(
     if (value === undefined) {
       return null;
     }
-    return (
-      <SocketLivePreview portType="string" handleId={handleId} stringValue={value} textAlign="left" />
-    );
+    return genericStringSocketLivePreview(value, "left", descriptors);
   }
 
   return null;
@@ -348,9 +574,21 @@ export function socketLivePreviewForInputHandle(
     return modelStringInputSocketLivePreview(data, handleId, ctx);
   }
   if (isStructuredSocketPreviewPortType(portType)) {
+    const animationPreview = structuredAnimationSocketPreview(data, handleId, portType, "input");
+    if (animationPreview != null) {
+      return animationPreview;
+    }
+    const materialPreview = structuredMaterialSocketPreview(data, handleId, portType, "input");
+    if (materialPreview != null) {
+      return materialPreview;
+    }
+    const meshPreview = structuredMeshSocketPreview(data, handleId, portType, "input");
+    if (meshPreview != null) {
+      return meshPreview;
+    }
     return structuredEnvironmentCameraSocketPreview(data, handleId, portType, "input", ctx);
   }
-  return genericInputSocketLivePreview(data, handleId, portType, portLabel);
+  return genericInputSocketLivePreview(data, handleId, portType, portLabel, ctx?.descriptors);
 }
 
 /** Live readout for an output handle on sensor source / tap nodes and all scalar dataflow outputs. */
@@ -374,6 +612,18 @@ export function socketLivePreviewForOutputHandle(
   }
 
   if (isStructuredSocketPreviewPortType(portType)) {
+    const animationPreview = structuredAnimationSocketPreview(data, handleId, portType, "output");
+    if (animationPreview != null) {
+      return animationPreview;
+    }
+    const materialPreview = structuredMaterialSocketPreview(data, handleId, portType, "output");
+    if (materialPreview != null) {
+      return materialPreview;
+    }
+    const meshPreview = structuredMeshSocketPreview(data, handleId, portType, "output");
+    if (meshPreview != null) {
+      return meshPreview;
+    }
     return structuredEnvironmentCameraSocketPreview(data, handleId, portType, "output", ctx);
   }
 
@@ -464,5 +714,5 @@ export function socketLivePreviewForOutputHandle(
     return null;
   }
 
-  return genericSocketLivePreview(data, handleId, portType, portLabel);
+  return genericSocketLivePreview(data, handleId, portType, portLabel, ctx?.descriptors);
 }

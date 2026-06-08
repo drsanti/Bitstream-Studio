@@ -49,7 +49,7 @@ function isAssetSource(s: unknown): s is AssetSource {
 }
 
 function isAssetCategory(s: unknown): s is AssetCategory {
-  return s === "model" || s === "environment" || s === "texture";
+  return s === "model" || s === "environment" || s === "texture" || s === "library";
 }
 
 function asOptionalString(v: unknown): string | undefined {

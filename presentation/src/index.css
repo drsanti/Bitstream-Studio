@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Base resets ──────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    background-color: var(--surface-bg, #0b0f1a);
+    color: var(--text-primary, #f1f5f9);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'cv11' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #root {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::selection {
+    background-color: var(--accent-cyan-bg);
+    color: var(--accent-cyan);
+  }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track, #1e293b);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb, #334155);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-cyan, #06B6D4);
+  }
+
+  /* Focus ring — keyboard nav */
+  :focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+/* ─── Utility layer ────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Axis text colors */
+  .text-axis-x { color: var(--axis-x); }
+  .text-axis-y { color: var(--axis-y); }
+  .text-axis-z { color: var(--axis-z); }
+
+  /* Axis background tints */
+  .bg-axis-x  { background-color: var(--axis-x-bg); }
+  .bg-axis-y  { background-color: var(--axis-y-bg); }
+  .bg-axis-z  { background-color: var(--axis-z-bg); }
+
+  /* Axis borders */
+  .border-axis-x { border-color: var(--axis-x-border); }
+  .border-axis-y { border-color: var(--axis-y-border); }
+  .border-axis-z { border-color: var(--axis-z-border); }
+
+  /* Glass morphism surface */
+  .glass {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  [data-theme="light"] .glass {
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+
+  /* Mono font shortcut */
+  .font-code { font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace; }
+
+  /* Slide container — fills viewport */
+  .slide-root {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+    will-change: transform, opacity;
+  }
+
+  /* Glow effects */
+  .glow-cyan   { box-shadow: 0 0 20px var(--accent-cyan-bg); }
+  .glow-x      { box-shadow: 0 0 16px var(--axis-x-glow); }
+  .glow-y      { box-shadow: 0 0 16px var(--axis-y-glow); }
+  .glow-z      { box-shadow: 0 0 16px var(--axis-z-glow); }
+
+  /* Pulse ring animation for LIVE badge */
+  .pulse-ring::after {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 2px solid var(--status-live);
+    animation: pulseRing 1.5s ease-out infinite;
+  }
+}
+
+/* ─── Shiki code block overrides ──────────────────────────────────────────── */
+.shiki {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  border: 1px solid var(--surface-border);
+}
+
+/* ─── Prose (speaker notes) ───────────────────────────────────────────────── */
+.prose-notes {
+  --tw-prose-body:        var(--text-secondary);
+  --tw-prose-headings:    var(--text-primary);
+  --tw-prose-lead:        var(--text-secondary);
+  --tw-prose-links:       var(--accent-cyan);
+  --tw-prose-bold:        var(--text-primary);
+  --tw-prose-counters:    var(--text-muted);
+  --tw-prose-bullets:     var(--accent-cyan);
+  --tw-prose-hr:          var(--surface-border);
+  --tw-prose-quotes:      var(--text-secondary);
+  --tw-prose-quote-borders: var(--accent-cyan);
+  --tw-prose-captions:    var(--text-muted);
+  --tw-prose-code:        var(--accent-cyan);
+  --tw-prose-pre-code:    var(--text-primary);
+  --tw-prose-pre-bg:      var(--surface-card);
+  --tw-prose-th-borders:  var(--surface-border);
+  --tw-prose-td-borders:  var(--surface-border);
+}

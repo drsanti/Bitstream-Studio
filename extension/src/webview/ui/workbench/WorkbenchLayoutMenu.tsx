@@ -6,6 +6,7 @@ import {
   TRNMenuSectionTitle,
 } from "../TRN/TRNMenu.js";
 import type { WorkbenchLayoutMenuProps } from "./workbench-layout-menu.types";
+import { TRN_GLASS_DROPDOWN_TEXT_CLASS } from "../components/toolbar-header-dropdown-menu-ui.js";
 import {
   WORKBENCH_LAYOUT_MENU_ICONS,
   WORKBENCH_LAYOUT_MENU_ITEM_CLASS,
@@ -119,7 +120,7 @@ export function WorkbenchLayoutMenu(props: WorkbenchLayoutMenuProps) {
         hint="Presets, saved layouts, export and import."
         align="right"
         prefixIcon={<LayoutTemplate className="size-3 shrink-0 opacity-90" aria-hidden />}
-        buttonClassName="inline-flex items-center gap-1 rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-[11px] text-sky-100/90 hover:bg-sky-900/25"
+        buttonClassName={`inline-flex items-center gap-1 rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-sky-100/90 hover:bg-sky-900/25 ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
       >
         <TRNMenuPanel
           tone="glass-dropdown"

@@ -1,4 +1,4 @@
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import {
   Copy,
   Expand,
@@ -9,6 +9,7 @@ import {
   Trash2,
   Unlink,
 } from "lucide-react";
+import { readFlowGraphStoreStructuralRevision } from "../../flow-graph-store-revisions";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import type { FlowGraphNode } from "../../store/flow-editor.store";
 import { isStudioFrameNode } from "../../layout/frame-flow-nodes";
@@ -21,11 +22,13 @@ import {
   selectionSupportsSocketCollapse,
 } from "../../nodes/flow-node/socket-display";
 import {
-  FLOW_TOOLBAR_DIVIDER_CLASS,
-  FLOW_TOOLBAR_PILL_CLASS,
-  flowToolbarBtnClass,
-  flowToolbarDangerBtnClass,
+  FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS,
+  FLOW_NODE_SELECTION_TOOLBAR_PILL_CLASS,
+  flowNodeSelectionToolbarBtnClass,
+  flowNodeSelectionToolbarDangerBtnClass,
 } from "./flow-toolbar-tokens";
+import { FLOW_CANVAS_DELETE_KEY_HINT } from "../../keyboard/flow-canvas-delete-keys";
+import { useFlowNodeDragActive } from "../../nodes/flow-node/flow-node-drag-state";
 import {
   BodyControlsToggle,
   SocketDisplayToggle,
@@ -42,6 +45,22 @@ type ToolbarAnchor = {
   top: number;
   placement: ToolbarPlacement;
 };
+
+function readNodeSelectionToolbarIdsKey(state: {
+  selectedNodeId: string | null;
+  selectedNodeIds: string[];
+}): string {
+  const ids =
+    state.selectedNodeIds.length > 0
+      ? state.selectedNodeIds
+      : state.selectedNodeId != null
+        ? [state.selectedNodeId]
+        : [];
+  if (ids.length === 0) {
+    return "";
+  }
+  return [...ids].sort().join("\0");
+}
 
 function toolbarAnchorsEqual(a: ToolbarAnchor | null, b: ToolbarAnchor | null): boolean {
   if (a === b) {
@@ -98,9 +117,14 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   onFitSelection: (nodeIds: string[]) => void;
 }) {
   const { wrapperRef, onFitSelection } = props;
-  const nodes = useFlowEditorStore((s) => s.nodes);
-  const selectedNodeId = useFlowEditorStore((s) => s.selectedNodeId);
-  const selectedNodeIdsFromStore = useFlowEditorStore((s) => s.selectedNodeIds);
+  const graphStructuralRevision = useFlowEditorStore((s) =>
+    readFlowGraphStoreStructuralRevision(s.nodes, s.edges),
+  );
+  const nodes = useMemo(
+    () => useFlowEditorStore.getState().nodes,
+    [graphStructuralRevision],
+  );
+  const selectedIdsKey = useFlowEditorStore(readNodeSelectionToolbarIdsKey);
   const duplicateSelection = useFlowEditorStore((s) => s.duplicateSelection);
   const deleteSelection = useFlowEditorStore((s) => s.deleteSelection);
   const createFrameAroundSelection = useFlowEditorStore((s) => s.createFrameAroundSelection);
@@ -109,7 +133,10 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   const ungroupSelection = useFlowEditorStore((s) => s.ungroupSelection);
   const duplicateGroupLinked = useFlowEditorStore((s) => s.duplicateGroupLinked);
   const duplicateGroupDeepCopy = useFlowEditorStore((s) => s.duplicateGroupDeepCopy);
-  const edges = useFlowEditorStore((s) => s.edges);
+  const edges = useMemo(
+    () => useFlowEditorStore.getState().edges,
+    [graphStructuralRevision],
+  );
   const toggleBodyControlsVisibleForNodes = useFlowEditorStore(
     (s) => s.toggleBodyControlsVisibleForNodes,
   );
@@ -117,19 +144,6 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
   const toggleSocketValuesVisibleForNodes = useFlowEditorStore(
     (s) => s.toggleSocketValuesVisibleForNodes,
   );
-
-  const selectedIdsKey = useMemo(() => {
-    if (selectedNodeIdsFromStore.length > 0) {
-      return selectedNodeIdsFromStore.join("\0");
-    }
-    if (selectedNodeId != null) {
-      return selectedNodeId;
-    }
-    return nodes
-      .filter((n) => n.selected)
-      .map((n) => n.id)
-      .join("\0");
-  }, [nodes, selectedNodeId, selectedNodeIdsFromStore]);
 
   const selectedIds = useMemo((): string[] => {
     if (selectedIdsKey.length === 0) {
@@ -229,34 +243,57 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     () => selectedNodes.some((n) => (n as FlowGraphNode & { dragging?: boolean }).dragging),
     [selectedNodes],
   );
+  const flowNodeDragActive = useFlowNodeDragActive();
+  const trackToolbarDuringDrag = flowNodeDragActive || isDraggingSelection;
 
-  const [anchor, setAnchor] = useState<ToolbarAnchor | null>(null);
-
+  const toolbarRef = useRef<HTMLDivElement>(null);
+  const anchorRef = useRef<ToolbarAnchor | null>(null);
   const lastBoundsTopRef = useRef<number | null>(null);
   const dragPlacementRef = useRef<ToolbarPlacement>("above");
-  const lastAnchorRef = useRef<ToolbarAnchor | null>(null);
   const selectedIdsRef = useRef(selectedIds);
-  const isDraggingSelectionRef = useRef(isDraggingSelection);
+  const trackToolbarDuringDragRef = useRef(trackToolbarDuringDrag);
   selectedIdsRef.current = selectedIds;
-  isDraggingSelectionRef.current = isDraggingSelection;
+  trackToolbarDuringDragRef.current = trackToolbarDuringDrag;
 
-  const setAnchorIfChanged = useCallback((next: ToolbarAnchor | null) => {
-    setAnchor((prev) => (toolbarAnchorsEqual(prev, next) ? prev : next));
+  const applyAnchorToDom = useCallback((next: ToolbarAnchor | null) => {
+    const el = toolbarRef.current;
+    if (el == null) {
+      return;
+    }
+    if (next == null) {
+      el.style.visibility = "hidden";
+      return;
+    }
+    el.style.visibility = "visible";
+    el.style.left = `${next.left}px`;
+    el.style.top = `${next.top}px`;
+    el.classList.toggle("-translate-y-full", next.placement === "above");
+    el.classList.toggle("translate-y-0", next.placement !== "above");
   }, []);
+
+  const commitAnchor = useCallback(
+    (next: ToolbarAnchor | null) => {
+      if (toolbarAnchorsEqual(anchorRef.current, next)) {
+        return;
+      }
+      anchorRef.current = next;
+      applyAnchorToDom(next);
+    },
+    [applyAnchorToDom],
+  );
 
   const updateAnchor = useCallback(() => {
     const wrapper = wrapperRef.current;
     const ids = selectedIdsRef.current;
-    const dragging = isDraggingSelectionRef.current;
+    const dragging = trackToolbarDuringDragRef.current;
     if (wrapper == null || ids.length === 0) {
-      setAnchorIfChanged(null);
+      commitAnchor(null);
       lastBoundsTopRef.current = null;
       return;
     }
 
     const bounds = unionNodeBounds(wrapper, ids);
     if (bounds == null) {
-      // Nodes may not be mounted on the first layout pass — keep the previous anchor.
       return;
     }
 
@@ -283,48 +320,63 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
         ? bounds.top + bounds.height + TOOLBAR_GAP_PX
         : bounds.top - TOOLBAR_GAP_PX;
 
-    setAnchorIfChanged({
+    commitAnchor({
       left: Math.round(bounds.left + bounds.width / 2),
       top: Math.round(top),
       placement,
     });
-  }, [wrapperRef, setAnchorIfChanged]);
+  }, [wrapperRef, commitAnchor]);
+
+  const updateAnchorRef = useRef(updateAnchor);
+  updateAnchorRef.current = updateAnchor;
+  const wasTrackingToolbarDuringDragRef = useRef(false);
 
   useLayoutEffect(() => {
     if (selectedIdsKey.length === 0) {
-      setAnchorIfChanged(null);
+      commitAnchor(null);
       lastBoundsTopRef.current = null;
       return;
     }
     lastBoundsTopRef.current = null;
-    updateAnchor();
-    // React Flow nodes may not be in the DOM on the first layout pass (hydrate / refresh).
+    updateAnchorRef.current();
     const retryFrame = requestAnimationFrame(() => {
-      updateAnchor();
+      updateAnchorRef.current();
     });
     return () => cancelAnimationFrame(retryFrame);
-  }, [selectedIdsKey, updateAnchor, setAnchorIfChanged]);
+  }, [selectedIdsKey, commitAnchor]);
 
   useLayoutEffect(() => {
     if (selectedIdsKey.length === 0) {
       return;
     }
-    window.addEventListener("resize", updateAnchor);
-    return () => window.removeEventListener("resize", updateAnchor);
-  }, [selectedIdsKey, updateAnchor]);
+    const onResize = () => {
+      updateAnchorRef.current();
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [selectedIdsKey]);
 
   useLayoutEffect(() => {
-    if (!isDraggingSelection || selectedIdsKey.length === 0) {
+    if (!trackToolbarDuringDrag || selectedIdsKey.length === 0) {
       return;
     }
     let frame = 0;
     const tick = () => {
-      updateAnchor();
+      updateAnchorRef.current();
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [isDraggingSelection, selectedIdsKey, updateAnchor]);
+  }, [trackToolbarDuringDrag, selectedIdsKey]);
+
+  useLayoutEffect(() => {
+    const wasTracking = wasTrackingToolbarDuringDragRef.current;
+    wasTrackingToolbarDuringDragRef.current = trackToolbarDuringDrag;
+    if (wasTracking && !trackToolbarDuringDrag && selectedIdsKey.length > 0) {
+      lastBoundsTopRef.current = null;
+      updateAnchorRef.current();
+    }
+  }, [trackToolbarDuringDrag, selectedIdsKey]);
 
   const handleFit = useCallback(
     (event: React.MouseEvent) => {
@@ -341,33 +393,28 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
     return null;
   }
 
-  if (anchor) {
-    lastAnchorRef.current = anchor;
-  }
-  const renderAnchor = anchor ?? lastAnchorRef.current;
-  if (renderAnchor == null) {
-    return null;
-  }
-
   const countLabel = selectedIds.length === 1 ? null : `${selectedIds.length} nodes`;
 
   return (
     <div
-      className={`${FLOW_TOOLBAR_PILL_CLASS} absolute z-30 max-w-[min(96vw,28rem)] -translate-x-1/2 ${
-        renderAnchor.placement === "above" ? "-translate-y-full" : "translate-y-0"
-      }`}
-      style={{ left: renderAnchor.left, top: renderAnchor.top }}
+      ref={toolbarRef}
+      className={`${FLOW_NODE_SELECTION_TOOLBAR_PILL_CLASS} absolute z-30 max-w-[min(96vw,28rem)] -translate-x-1/2 -translate-y-full`}
+      style={{ left: 0, top: 0, visibility: "hidden" }}
       onMouseDown={(e) => e.stopPropagation()}
     >
       {countLabel != null ? (
         <>
           <span className="px-2 text-[10px] font-semibold text-zinc-400">{countLabel}</span>
-          <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+          <div className={FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}
       {showSocketControls ? (
         <>
           <SocketValuesToggle
+            className={flowNodeSelectionToolbarBtnClass(
+              false,
+              socketValuesVisible,
+            )}
             pressed={socketValuesVisible}
             onToggle={() => toggleSocketValuesVisibleForNodes(studioSelectedIds)}
             title={
@@ -382,6 +429,10 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
             }
           />
           <SocketDisplayToggle
+            className={flowNodeSelectionToolbarBtnClass(
+              socketDisplayToggleDisabled,
+              socketsExpanded,
+            )}
             pressed={socketsExpanded}
             onToggle={() => toggleSocketsExpandedForNodes(studioSelectedIds)}
             disabled={socketDisplayToggleDisabled}
@@ -398,12 +449,16 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
                 : "Show unwired sockets on selection"
             }
           />
-          <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+          <div className={FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}
       {showBodyControls ? (
         <>
           <BodyControlsToggle
+            className={flowNodeSelectionToolbarBtnClass(
+              bodyControlsToggleDisabled,
+              bodyControlsVisible,
+            )}
             pressed={bodyControlsVisible}
             onToggle={() => toggleBodyControlsVisibleForNodes(studioSelectedIds)}
             disabled={bodyControlsToggleDisabled}
@@ -418,7 +473,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
               bodyControlsVisible ? "Hide node body on selection" : "Show node body on selection"
             }
           />
-          <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+          <div className={FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}
       {showFrameActions ? (
@@ -426,7 +481,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           {canFrameSelection ? (
             <button
               type="button"
-              className={flowToolbarBtnClass()}
+              className={flowNodeSelectionToolbarBtnClass()}
               title="Frame around selection"
               aria-label="Frame around selection"
               onClick={(e) => {
@@ -440,7 +495,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           {selectedFrameIds.length > 0 ? (
             <button
               type="button"
-              className={flowToolbarBtnClass(!canFitSelectedFrames)}
+              className={flowNodeSelectionToolbarBtnClass(!canFitSelectedFrames)}
               title="Fit frame to contents"
               aria-label="Fit frame to contents"
               disabled={!canFitSelectedFrames}
@@ -455,7 +510,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           {canDetachFromFrame ? (
             <button
               type="button"
-              className={flowToolbarBtnClass()}
+              className={flowNodeSelectionToolbarBtnClass()}
               title="Remove from frame"
               aria-label="Remove from frame"
               onClick={(e) => {
@@ -466,14 +521,14 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
               <Unlink size={14} />
             </button>
           ) : null}
-          <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+          <div className={FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS} />
         </>
       ) : null}
       {singleNodeGroup ? (
         <>
           <button
             type="button"
-            className={flowToolbarBtnClass()}
+            className={flowNodeSelectionToolbarBtnClass()}
             title="Ungroup (Ctrl+Shift+G)"
             aria-label="Ungroup"
             onClick={(e) => {
@@ -485,7 +540,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           </button>
           <button
             type="button"
-            className={flowToolbarBtnClass()}
+            className={flowNodeSelectionToolbarBtnClass()}
             title="Linked duplicate"
             aria-label="Linked duplicate"
             onClick={(e) => {
@@ -499,7 +554,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           </button>
           <button
             type="button"
-            className={flowToolbarBtnClass()}
+            className={flowNodeSelectionToolbarBtnClass()}
             title="Deep copy group"
             aria-label="Deep copy group"
             onClick={(e) => {
@@ -515,7 +570,7 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
       ) : (
         <button
           type="button"
-          className={flowToolbarBtnClass()}
+          className={flowNodeSelectionToolbarBtnClass()}
           title={multi ? "Duplicate selection (Ctrl+D)" : "Duplicate node (Ctrl+D)"}
           aria-label={multi ? "Duplicate selection" : "Duplicate node"}
           onClick={(e) => {
@@ -526,28 +581,28 @@ export const NodeSelectionToolbar = memo(function NodeSelectionToolbar(props: {
           <Copy size={14} />
         </button>
       )}
-      <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+      <div className={FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS} />
       <button
         type="button"
-        className={flowToolbarBtnClass()}
+        className={flowNodeSelectionToolbarBtnClass()}
         title={multi ? "Frame selection in view (F)" : "Frame node in view (F)"}
         aria-label={multi ? "Frame selection in view" : "Frame node in view"}
         onClick={handleFit}
       >
         <Target size={14} />
       </button>
-      <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+      <div className={FLOW_NODE_SELECTION_TOOLBAR_DIVIDER_CLASS} />
       <button
         type="button"
         className={
-          onlyFramesSelected ? flowToolbarBtnClass() : flowToolbarDangerBtnClass()
+          onlyFramesSelected ? flowNodeSelectionToolbarBtnClass() : flowNodeSelectionToolbarDangerBtnClass()
         }
         title={
           onlyFramesSelected
-            ? "Dissolve frame (Del)"
+            ? `Dissolve frame (${FLOW_CANVAS_DELETE_KEY_HINT})`
             : multi
-              ? "Delete selection (Del)"
-              : "Delete node (Del)"
+              ? `Delete selection (${FLOW_CANVAS_DELETE_KEY_HINT})`
+              : `Delete node (${FLOW_CANVAS_DELETE_KEY_HINT})`
         }
         aria-label={
           onlyFramesSelected ? "Dissolve frame" : multi ? "Delete selection" : "Delete node"

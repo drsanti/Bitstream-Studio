@@ -1,0 +1,647 @@
+/* Presentation workspace — scoped under .presentation-root */
+
+.presentation-root .slide-root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.presentation-root .font-code {
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", monospace;
+}
+
+.presentation-root .text-2xs {
+  font-size: 0.625rem;
+  line-height: 1rem;
+}
+
+.presentation-root .presentation-notes-panel {
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+
+.presentation-root .presentation-sidebar {
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+
+.presentation-root .presentation-topbar {
+  background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+  border-color: var(--surface-border);
+}
+
+/* ── Slide atmosphere ─────────────────────────────────────────────────────── */
+
+.presentation-slide-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--surface-bg);
+}
+
+.presentation-slide-backdrop__mesh {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  opacity: 0.55;
+  animation: presentation-mesh-drift 18s ease-in-out infinite alternate;
+}
+
+.presentation-slide-backdrop__mesh--a {
+  width: 42%;
+  height: 38%;
+  top: -8%;
+  right: -6%;
+  background: color-mix(in srgb, var(--backdrop-accent, var(--accent-cyan)) 22%, transparent);
+}
+
+.presentation-slide-backdrop__mesh--b {
+  width: 36%;
+  height: 34%;
+  bottom: -10%;
+  left: -8%;
+  background: color-mix(in srgb, var(--backdrop-accent-secondary, var(--accent-purple)) 16%, transparent);
+  animation-delay: -6s;
+}
+
+.presentation-slide-backdrop__grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--surface-border) 55%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--surface-border) 55%, transparent) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 85% 75% at 50% 45%, black 20%, transparent 78%);
+}
+
+.presentation-slide-backdrop__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 40%, color-mix(in srgb, var(--surface-bg) 65%, transparent) 100%);
+}
+
+@keyframes presentation-mesh-drift {
+  from {
+    transform: translate(0, 0) scale(1);
+  }
+  to {
+    transform: translate(2%, -1.5%) scale(1.04);
+  }
+}
+
+.presentation-slide-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 100%;
+}
+
+/* ── Visual panels (2D / 3D chrome) ─────────────────────────────────────── */
+
+.presentation-visual-panel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--panel-accent, var(--accent-cyan)) 28%, var(--surface-border));
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--panel-accent, var(--accent-cyan)) 6%, var(--surface-card)) 0%, var(--surface-card) 55%),
+    var(--surface-card);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--surface-border) 80%, transparent),
+    0 18px 40px -24px color-mix(in srgb, var(--panel-accent, var(--accent-cyan)) 35%, transparent);
+}
+
+.presentation-visual-panel__label {
+  position: absolute;
+  left: 0.75rem;
+  top: 0.75rem;
+  z-index: 2;
+  border-radius: 0.375rem;
+  border: 1px solid color-mix(in srgb, var(--panel-accent, var(--accent-cyan)) 35%, transparent);
+  background: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  padding: 0.2rem 0.5rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--panel-accent, var(--accent-cyan));
+}
+
+.presentation-visual-panel__body {
+  height: 100%;
+  width: 100%;
+}
+
+/* ── Split layouts ──────────────────────────────────────────────────────── */
+
+.presentation-slide-split {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+}
+
+.presentation-slide-split__copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2.5rem 3.5rem;
+}
+
+.presentation-slide-split__visual {
+  display: flex;
+  width: 42%;
+  max-width: 520px;
+  shrink: 0;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2rem 2rem 2rem 0;
+}
+
+.presentation-slide-split__visual .presentation-visual-panel {
+  min-height: 280px;
+  flex: 1;
+}
+
+/* ── Title hero ─────────────────────────────────────────────────────────── */
+
+.presentation-title-hero {
+  position: relative;
+  display: flex;
+  height: 100%;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  padding: 2.5rem 3rem;
+}
+
+.presentation-title-hero__copy {
+  z-index: 1;
+  display: flex;
+  max-width: 28rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  text-align: left;
+}
+
+.presentation-title-hero__visual {
+  z-index: 1;
+  height: min(420px, 72vh);
+  width: min(420px, 42vw);
+  flex-shrink: 0;
+}
+
+.presentation-title-hero--centered .presentation-title-hero__copy {
+  align-items: center;
+  max-width: 36rem;
+  text-align: center;
+}
+
+/* ── Demo chrome ────────────────────────────────────────────────────────── */
+
+.presentation-demo-rail {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+}
+
+.presentation-demo-rail__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.presentation-demo-rail__scene {
+  position: relative;
+  min-width: 0;
+  flex: 1;
+  border-left: 1px solid var(--surface-border);
+}
+
+.presentation-demo-rail__scene .presentation-visual-panel {
+  height: 100%;
+  border-radius: 0;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+}
+
+/* ── SVG diagram utilities ──────────────────────────────────────────────── */
+
+.presentation-diagram-svg {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.presentation-diagram-pulse {
+  animation: presentation-diagram-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes presentation-diagram-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ── Slide viewport (zoom / pan) ─────────────────────────────────────────── */
+
+.presentation-slide-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+.presentation-slide-viewport--laser {
+  cursor: crosshair;
+}
+
+/* Laser mode: pass pointer through R3F canvas so viewport tracks the dot */
+.presentation-slide-viewport--laser canvas {
+  pointer-events: none;
+}
+
+.presentation-slide-viewport__transform {
+  height: 100%;
+  width: 100%;
+  transform-origin: center center;
+  transition: transform 80ms ease-out;
+}
+
+.presentation-laser-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+.presentation-laser-dot {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  margin-top: -7px;
+  border-radius: 9999px;
+  background: var(--accent-red);
+  border: 2px solid color-mix(in srgb, white 70%, transparent);
+}
+
+.presentation-laser-ring {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  margin-left: -18px;
+  margin-top: -18px;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, var(--accent-red) 45%, transparent);
+  opacity: 0.7;
+}
+
+/* ── Present mode ─────────────────────────────────────────────────────────── */
+
+.presentation-root.presentation-root--present .presentation-sidebar {
+  display: none;
+}
+
+.presentation-root.presentation-root--present .presentation-topbar {
+  height: 2.25rem;
+}
+
+.presentation-root.presentation-root--present .presentation-slide-footer-hint {
+  display: none;
+}
+
+/* ── Slide page layouts (heading · body · footer) ─────────────────────────── */
+
+.presentation-slide-page {
+  display: grid;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  padding: 2rem 2.75rem;
+  gap: 1.25rem;
+}
+
+.presentation-slide-page__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.presentation-slide-page__body::-webkit-scrollbar {
+  display: none;
+}
+
+.presentation-slide-page--stack {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.presentation-slide-page--table-focus {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.presentation-slide-page--grid-2x2 {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.presentation-slide-page--grid-2x3 {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.presentation-slide-page--grid-2x2 .presentation-slide-page__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-content: stretch;
+}
+
+.presentation-slide-page--grid-2x3 .presentation-slide-page__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-content: stretch;
+}
+
+.presentation-slide-page--full-center {
+  place-items: center;
+}
+
+.presentation-slide-page__center {
+  display: flex;
+  max-width: 40rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  text-align: center;
+}
+
+.presentation-slide-page--split-50 {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.presentation-slide-page--split-40-60 {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.presentation-slide-page--split-60-40 {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.presentation-slide-page__split-copy {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.presentation-slide-page__split-visual {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.presentation-slide-page--hero-title {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2rem;
+}
+
+.presentation-slide-page--hero-title .presentation-slide-footer {
+  grid-column: 1 / -1;
+}
+
+.presentation-slide-page__hero-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.presentation-slide-page__hero-visual {
+  min-height: 280px;
+  height: 100%;
+}
+
+.presentation-slide-page--demo-rail {
+  /* Controls column capped; scene takes all remaining width */
+  grid-template-columns: clamp(260px, 34%, 400px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  padding: 0;
+  gap: 0;
+}
+
+.presentation-slide-page__rail-main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 2rem 2.25rem;
+  border-right: 1px solid var(--surface-border);
+  overflow: hidden;
+}
+
+.presentation-slide-page__rail-main .presentation-slide-page__body {
+  overflow-y: auto;
+}
+
+.presentation-slide-page__rail-scene {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.presentation-slide-page__rail-scene > * {
+  flex: 1 1 auto;
+  align-self: stretch;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.presentation-slide-page__rail-scene .presentation-visual-panel {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-left: none;
+  box-shadow: none;
+}
+
+.presentation-slide-page__rail-scene .presentation-visual-panel__body {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+/* ── 3D scene live-parameter overlay ─────────────────────────────────────── */
+
+.presentation-scene-overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.presentation-scene-live-overlay {
+  position: absolute;
+  max-width: min(240px, 46%);
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--accent-purple) 32%, var(--surface-border));
+  background: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 24px -12px color-mix(in srgb, black 45%, transparent);
+}
+
+.presentation-scene-live-overlay--top-left {
+  left: 0.65rem;
+  top: 2.5rem;
+}
+
+.presentation-scene-live-overlay--bottom-left {
+  left: 0.65rem;
+  bottom: 2.75rem;
+}
+
+.presentation-scene-live-overlay__title {
+  margin-bottom: 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-purple);
+}
+
+.presentation-scene-param-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+}
+
+.presentation-scene-param-chip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.presentation-scene-param-chip__label {
+  flex-shrink: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  color: var(--text-muted);
+}
+
+.presentation-scene-param-chip__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.presentation-scene-param-chip__unit {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.presentation-scene-param-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.presentation-slide-page--immersive {
+  padding: 0;
+  gap: 0;
+}
+
+.presentation-slide-page__immersive {
+  height: 100%;
+  width: 100%;
+}
+
+.presentation-slide-footer-hint {
+  border-top: 1px solid var(--surface-border);
+  background: color-mix(in srgb, var(--surface-panel) 85%, transparent);
+  padding: 0.35rem 1rem;
+  text-align: center;
+  font-size: 0.625rem;
+  color: var(--text-muted);
+}
+
+@media (max-width: 900px) {
+  .presentation-slide-split {
+    flex-direction: column;
+  }
+
+  .presentation-slide-page--split-50,
+  .presentation-slide-page--split-40-60,
+  .presentation-slide-page--split-60-40,
+  .presentation-slide-page--hero-title,
+  .presentation-slide-page--demo-rail,
+  .presentation-slide-page--grid-2x2,
+  .presentation-slide-page--grid-2x3 {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    padding: 1.5rem;
+  }
+
+  .presentation-slide-page__rail-main {
+    border-right: none;
+    border-bottom: 1px solid var(--surface-border);
+  }
+
+  .presentation-slide-page__rail-scene {
+    min-height: min(52vh, 420px);
+  }
+
+  .presentation-slide-split__visual {
+    width: 100%;
+    max-width: none;
+    padding: 0 2rem 2rem;
+  }
+
+  .presentation-title-hero {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .presentation-title-hero__visual {
+    width: min(360px, 88vw);
+    height: 280px;
+  }
+}

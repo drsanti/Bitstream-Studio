@@ -39,6 +39,8 @@ export type NodeInspectorNodeTabProps = {
   /** Catalog definition title for search + context (may be empty). */
   catalogDefinitionTitle: string;
   hasScene3dInspector: boolean;
+  /** Flow canvas node inspector vs Stage viewport object properties. */
+  presentation?: "flow" | "stage-object";
   /** When true (multi-select, same `nodeId`), hide JSON — store rejects multi JSON apply. */
   suppressDefaultConfigJson?: boolean;
   onUpdateLabel: (nextLabel: string) => void;
@@ -62,6 +64,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
     selectedNode,
     catalogDefinitionTitle,
     hasScene3dInspector,
+    presentation = "flow",
     suppressDefaultConfigJson = false,
     onUpdateLabel,
     onUpdateNodeUiAllowBodyCollapse,
@@ -138,19 +141,23 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
   const showJsonSection = shouldShowJsonConfigSection(settingsSearch);
 
   const visibleSectionIds = useMemo((): NodeInspectorSectionId[] => {
-    const out: NodeInspectorSectionId[] = ["linked-model", "identity", "canvas"];
+    const out: NodeInspectorSectionId[] = [];
+    if (presentation === "flow") {
+      out.push("linked-model", "identity", "canvas");
+    }
     if (showTypedSection && CatalogSection != null) {
       out.push("typed");
     }
-    if (showScene3dBlock) {
+    if (presentation === "flow" && showScene3dBlock) {
       out.push("scene3d");
     }
-    if (showJsonSection && !suppressDefaultConfigJson) {
+    if (presentation === "flow" && showJsonSection && !suppressDefaultConfigJson) {
       out.push("advanced");
     }
     return out;
   }, [
     CatalogSection,
+    presentation,
     showJsonSection,
     showScene3dBlock,
     showTypedSection,
@@ -185,6 +192,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden text-xs">
+      {presentation === "flow" ? (
       <div className="shrink-0 pb-2">
         <div className="flex items-center gap-1.5 rounded border border-zinc-700/70 bg-zinc-900/50 px-2 py-1">
           <Search className="h-3.5 w-3.5 shrink-0 text-zinc-500" aria-hidden />
@@ -198,6 +206,7 @@ export function NodeInspectorNodeTab(props: NodeInspectorNodeTabProps) {
           />
         </div>
       </div>
+      ) : null}
 
       <div
         className={`scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden pb-0.5 ${INSPECTOR_NODE_TAB_CARD_STACK_CLASS}`}

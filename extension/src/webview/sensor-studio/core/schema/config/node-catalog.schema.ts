@@ -24,6 +24,11 @@ const studioPortTypeEnum = z.enum([
   "physicsScene",
   "physicsCollider",
   "physicsBody",
+  "dashboardWidget",
+  "dashboardTheme",
+  "dashboardTab",
+  "material",
+  "mesh",
 ]);
 
 const catalogNodeBaseSchema = z.object({
@@ -38,6 +43,7 @@ const catalogNodeBaseSchema = z.object({
     "output",
     "utility",
     "generator",
+    "dashboard",
   ]),
   title: z.string().min(1),
   description: z.string().min(1),

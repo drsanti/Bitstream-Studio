@@ -2,6 +2,7 @@
 import react from "@vitejs/plugin-react";
 import { resolve, dirname, extname, relative } from "path";
 import { existsSync, readFileSync, statSync } from "fs";
+import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 
 import { defineConfig } from "vite";
@@ -404,6 +405,309 @@ const serveExtensionLocalAssetsPlugin = () => {
   };
 };
 
+function readHttpJsonBody(req) {
+  return new Promise((resolveBody, reject) => {
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", () => {
+      try {
+        const text = Buffer.concat(chunks).toString("utf8");
+        resolveBody(text.length > 0 ? JSON.parse(text) : {});
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
+function sendDevApiJson(res, status, body) {
+  res.statusCode = status;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(JSON.stringify(body));
+}
+
+/**
+ * Dev-only: write official flow preset overrides into the repo from the webview.
+ * POST /__dev_api/flow-preset/apply-override — { templateId, content }
+ * POST /__dev_api/flow-preset/commit-override — write + regen + stage + optional publish
+ * POST /__dev_api/flow-preset/finalize-overrides — regen + stage + optional publish
+ * POST /__dev_api/flow-preset/regen — runs flow-preset:gen
+ * GET  /__dev_api/flow-preset/publish-status
+ * POST /__dev_api/flow-preset/stage-free-pack
+ * POST /__dev_api/flow-preset/publish-free-pack
+ * POST /__dev_api/flow-preset/prepare-publish — { publishOnline?: boolean }
+ */
+const flowPresetOverrideDevApiPlugin = () => ({
+  name: "flow-preset-override-dev-api",
+  configureServer(server) {
+    const runFlowPresetGen = () => {
+      const result = spawnSync("npx", ["tsx", "scripts/generate-official-flow-presets.ts"], {
+        cwd: __dirname,
+        encoding: "utf8",
+        shell: process.platform === "win32",
+      });
+      if (result.status !== 0) {
+        return {
+          ok: false,
+          error: (result.stderr || result.stdout || "flow-preset:gen failed").trim(),
+        };
+      }
+      return { ok: true };
+    };
+
+    const runFlowPresetPublishPipeline = async (publishOnline: boolean) => {
+      const regen = runFlowPresetGen();
+      if (!regen.ok) {
+        return { ok: false as const, step: "regen", error: regen.error };
+      }
+
+      const { stageFlowPresetsFreePack, publishFlowPresetsFreePack } = await import(
+        "./scripts/flow-preset-publish-io.mjs"
+      );
+
+      const staged = stageFlowPresetsFreePack(__dirname);
+      if (!staged.ok) {
+        return { ok: false as const, step: "stage", error: staged.error };
+      }
+
+      if (publishOnline) {
+        const published = await publishFlowPresetsFreePack(__dirname);
+        if (!published.ok) {
+          return {
+            ok: false as const,
+            step: "publish",
+            staged,
+            error: published.error,
+          };
+        }
+        return { ok: true as const, regen: true as const, staged, published };
+      }
+
+      return { ok: true as const, regen: true as const, staged };
+    };
+
+    server.middlewares.use(async (req, res, next) => {
+      if (!req.url) {
+        return next();
+      }
+      const pathname = req.url.split("?")[0] || "";
+      const method = req.method ?? "GET";
+
+      if (method === "GET" && pathname === "/__dev_api/flow-preset/publish-status") {
+        try {
+          const { getFlowPresetPublishStatus } = await import(
+            "./scripts/flow-preset-publish-io.mjs"
+          );
+          sendDevApiJson(res, 200, { ok: true, ...getFlowPresetPublishStatus(__dirname) });
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (method !== "POST") {
+        return next();
+      }
+
+      if (pathname === "/__dev_api/flow-preset/apply-override") {
+        try {
+          const body = await readHttpJsonBody(req);
+          const templateId = String(body.templateId ?? "").trim();
+          const content = String(body.content ?? "");
+          if (templateId.length === 0 || content.length === 0) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "templateId and content are required",
+            });
+            return;
+          }
+          const parsed = JSON.parse(content);
+          const {
+            validateFlowPresetOverridePayload,
+            resolveFlowPresetOverrideDest,
+            writeFlowPresetOverrideFile,
+          } = await import("./scripts/flow-preset-override-io.mjs");
+          const validation = validateFlowPresetOverridePayload(templateId, parsed);
+          if (!validation.ok) {
+            sendDevApiJson(res, 400, { ok: false, error: validation.error });
+            return;
+          }
+          const destPath = resolveFlowPresetOverrideDest(__dirname, templateId);
+          writeFlowPresetOverrideFile(destPath, content);
+          const relPath = relative(__dirname, destPath).replace(/\\/g, "/");
+          sendDevApiJson(res, 200, {
+            ok: true,
+            path: relPath,
+            warning: validation.warning,
+          });
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (pathname === "/__dev_api/flow-preset/commit-override") {
+        try {
+          const body = await readHttpJsonBody(req);
+          const templateId = String(body.templateId ?? "").trim();
+          const content = String(body.content ?? "");
+          const publishOnline = body.publishOnline === true;
+          if (templateId.length === 0 || content.length === 0) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "templateId and content are required",
+            });
+            return;
+          }
+          const parsed = JSON.parse(content);
+          const {
+            validateFlowPresetOverridePayload,
+            resolveFlowPresetOverrideDest,
+            writeFlowPresetOverrideFile,
+          } = await import("./scripts/flow-preset-override-io.mjs");
+          const validation = validateFlowPresetOverridePayload(templateId, parsed);
+          if (!validation.ok) {
+            sendDevApiJson(res, 400, { ok: false, error: validation.error });
+            return;
+          }
+          const destPath = resolveFlowPresetOverrideDest(__dirname, templateId);
+          writeFlowPresetOverrideFile(destPath, content);
+          const relPath = relative(__dirname, destPath).replace(/\\/g, "/");
+
+          const pipeline = await runFlowPresetPublishPipeline(publishOnline);
+          if (!pipeline.ok) {
+            sendDevApiJson(res, pipeline.step === "regen" ? 500 : 400, {
+              ok: false,
+              step: pipeline.step,
+              path: relPath,
+              warning: validation.warning,
+              error: pipeline.error,
+            });
+            return;
+          }
+
+          sendDevApiJson(res, 200, {
+            ok: true,
+            path: relPath,
+            warning: validation.warning,
+            ...pipeline,
+          });
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (pathname === "/__dev_api/flow-preset/finalize-overrides") {
+        try {
+          const body = await readHttpJsonBody(req);
+          const publishOnline = body.publishOnline === true;
+          const pipeline = await runFlowPresetPublishPipeline(publishOnline);
+          if (!pipeline.ok) {
+            sendDevApiJson(res, pipeline.step === "regen" ? 500 : 400, {
+              ok: false,
+              step: pipeline.step,
+              error: pipeline.error,
+            });
+            return;
+          }
+          sendDevApiJson(res, 200, { ok: true, path: "", ...pipeline });
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (pathname === "/__dev_api/flow-preset/regen") {
+        try {
+          const result = runFlowPresetGen();
+          if (!result.ok) {
+            sendDevApiJson(res, 500, result);
+            return;
+          }
+          sendDevApiJson(res, 200, { ok: true });
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (pathname === "/__dev_api/flow-preset/stage-free-pack") {
+        try {
+          const { stageFlowPresetsFreePack } = await import(
+            "./scripts/flow-preset-publish-io.mjs"
+          );
+          const result = stageFlowPresetsFreePack(__dirname);
+          sendDevApiJson(res, result.ok ? 200 : 400, result);
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (pathname === "/__dev_api/flow-preset/publish-free-pack") {
+        try {
+          const { publishFlowPresetsFreePack } = await import(
+            "./scripts/flow-preset-publish-io.mjs"
+          );
+          const result = await publishFlowPresetsFreePack(__dirname);
+          sendDevApiJson(res, result.ok ? 200 : 400, result);
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      if (pathname === "/__dev_api/flow-preset/prepare-publish") {
+        try {
+          const body = await readHttpJsonBody(req);
+          const publishOnline = body.publishOnline === true;
+          const pipeline = await runFlowPresetPublishPipeline(publishOnline);
+          if (!pipeline.ok) {
+            sendDevApiJson(res, pipeline.step === "regen" ? 500 : 400, {
+              ok: false,
+              step: pipeline.step,
+              error: pipeline.error,
+            });
+            return;
+          }
+          sendDevApiJson(res, 200, { ok: true, ...pipeline });
+        } catch (error) {
+          sendDevApiJson(res, 500, {
+            ok: false,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+        return;
+      }
+
+      return next();
+    });
+  },
+});
+
 // Plugin to suppress CSS variable warnings during build
 const suppressCSSWarningsPlugin = () => {
   let originalWarn: typeof console.warn;
@@ -478,6 +782,7 @@ export default defineConfig({
     serveJoltAssetsPlugin(),
     serveVisionMediapipeAssetsPlugin(),
     serveExtensionLocalAssetsPlugin(), // src/assets for Model Catalog (browser dev)
+    flowPresetOverrideDevApiPlugin(),
     suppressCSSWarningsPlugin(), // Suppress CSS warnings during build
     viteStaticCopy({
       targets: [

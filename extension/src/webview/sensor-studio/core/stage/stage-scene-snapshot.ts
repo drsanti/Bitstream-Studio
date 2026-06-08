@@ -9,6 +9,9 @@ import type { FlowWireEnvironmentV1 } from "../../features/editor/nodes/environm
 import type { FlowWirePhysicsSceneV1 } from "../../features/editor/nodes/physics/flow-wire-physics-scene";
 import type { StagePhysicsColliderV1 } from "./stage-physics-colliders";
 import type { FlowWireTransformV1 } from "../../features/editor/nodes/transform/flow-wire-transform";
+import type { StageMeshEntryV1 } from "./stage-mesh-entry";
+
+export type { StageMeshEntryV1 } from "./stage-mesh-entry";
 
 /** One GLB instance committed to the Stage from the graph. */
 export type StageSceneModelEntryV1 = {
@@ -29,6 +32,8 @@ export type StageSceneSnapshotV1 = {
   updatedAtMs: number;
   showGrid: boolean;
   models: StageSceneModelEntryV1[];
+  /** Procedural meshes wired into Scene Output **Meshes** (Phase 3+). */
+  meshes: StageMeshEntryV1[];
   environmentWire: FlowWireEnvironmentV1 | null;
   cameraWire: FlowWireCameraV1 | null;
   animationWire: FlowWireAnimationV1 | null;
@@ -46,6 +51,7 @@ export const EMPTY_STAGE_SCENE_SNAPSHOT: StageSceneSnapshotV1 = {
   updatedAtMs: 0,
   showGrid: STAGE_DEFAULT_SHOW_GRID,
   models: [],
+  meshes: [],
   environmentWire: null,
   cameraWire: null,
   animationWire: null,

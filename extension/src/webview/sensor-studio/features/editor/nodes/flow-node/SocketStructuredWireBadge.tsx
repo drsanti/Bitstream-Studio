@@ -20,7 +20,7 @@ export function SocketStructuredWireBadge(props: SocketStructuredWireBadgeProps)
       data-flow-socket-live-preview
       className={twMerge(
         SOCKET_LIVE_VALUE_TYPOGRAPHY,
-        "inline-block min-w-0 max-w-full truncate rounded border px-1 py-px text-[10px] font-medium",
+        "inline-flex max-w-full items-center whitespace-nowrap rounded border px-1 py-px text-[10px] font-medium leading-none",
       )}
       style={{
         borderColor: `${accent}66`,

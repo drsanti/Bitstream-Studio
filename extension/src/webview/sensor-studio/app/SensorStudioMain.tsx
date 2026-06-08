@@ -5,6 +5,8 @@ import {
   dispatchFlowPanePointerEventFromDom,
 } from "./flow-event-dispatch";
 import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickScheduler";
+import { useSensorStudioLivePerformanceStats } from "./useSensorStudioLivePerformanceStats";
+import { useDashboardStructuralSnapshot } from "../features/dashboard/use-dashboard-structural-snapshot";
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
@@ -77,8 +79,11 @@ import { SaveToLibraryDialogHost } from "../features/editor/components/flow-libr
 import { parseFlowImportPayload } from "../features/editor/flow-library/parse-flow-import-payload";
 import type { StudioFlowPresetFile } from "../features/editor/flow-library/studio-flow-preset-file";
 import { scanStudioGraphDependencies } from "../features/editor/subgraphs/node-library/build-node-asset-from-group";
+import { persistActiveGraphBuffer } from "../features/editor/subgraphs/studio-subgraph-store-sync";
 import { STUDIO_ROOT_GRAPH_ID } from "../features/editor/subgraphs/studio-subgraph.types";
 import { TRNButton, TRNHintText } from "../../ui/TRN";
+import { installStudioLibraryWorkspaceSync } from "../persistence/install-studio-library-workspace-sync";
+import { readFlowGraphStoreStructuralRevision } from "../features/editor/flow-graph-store-revisions";
 
 function flowStructureFingerprint(
   nodes: StudioNode[],
@@ -152,6 +157,7 @@ export function SensorStudioMain() {
   useEffect(() => {
     setStudioAssetDescriptors(descriptors);
   }, [descriptors, setStudioAssetDescriptors]);
+  useEffect(() => installStudioLibraryWorkspaceSync(), []);
   const [bootViewport] = useState<StudioPersistedViewport | null>(() => {
     const raw = persistedBootstrapRef.current;
     const v = raw?.viewport;
@@ -163,8 +169,22 @@ export function SensorStudioMain() {
   const dataTypeColors = configService.getDataTypeColors().payload;
   const runtimeDefaults = configService.getRuntimeDefaults().payload;
 
-  const nodes = useFlowEditorStore((s) => s.nodes);
-  const edges = useFlowEditorStore((s) => s.edges);
+  const graphStructuralRevision = useFlowEditorStore((s) =>
+    readFlowGraphStoreStructuralRevision(s.nodes, s.edges),
+  );
+  const selectionRevision = useFlowEditorStore((s) =>
+    s.selectedNodeIds.length > 0
+      ? s.selectedNodeIds.join(",")
+      : (s.selectedNodeId ?? ""),
+  );
+  const nodes = useMemo(
+    () => useFlowEditorStore.getState().nodes,
+    [graphStructuralRevision, selectionRevision],
+  );
+  const edges = useMemo(
+    () => useFlowEditorStore.getState().edges,
+    [graphStructuralRevision],
+  );
   const selectedNodeId = useFlowEditorStore((s) => s.selectedNodeId);
   const selectedNodeIds = useFlowEditorStore((s) => s.selectedNodeIds);
   const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
@@ -187,6 +207,8 @@ export function SensorStudioMain() {
   const tickSimulation = useFlowEditorStore((s) => s.tickSimulation);
   useSensorStudioFlowTickScheduler(tickSimulation);
   useSensorStudioTelemetryFlowRefresh(tickSimulation);
+  useSensorStudioLivePerformanceStats();
+  useDashboardStructuralSnapshot();
   const undo = useFlowEditorStore((s) => s.undo);
   const redo = useFlowEditorStore((s) => s.redo);
   const hydrateFlowDocument = useFlowEditorStore((s) => s.hydrateFlowDocument);
@@ -253,6 +275,7 @@ export function SensorStudioMain() {
       output: "#22d3ee",
       utility: "#e879f9",
       generator: "#94a3b8",
+      dashboard: "#f472b6",
     }),
     [],
   );
@@ -321,18 +344,24 @@ export function SensorStudioMain() {
     }
     window.clearTimeout(persistTimerRef.current);
     persistTimerRef.current = window.setTimeout(() => {
-      const st = useFlowEditorStore.getState();
+      const st = persistActiveGraphBuffer(useFlowEditorStore.getState());
+      const atRoot = st.activeGraphId === STUDIO_ROOT_GRAPH_ID;
+      const exportNodes = atRoot || st.rootNodes.length === 0 ? st.nodes : st.rootNodes;
+      const exportEdges = atRoot || st.rootEdges.length === 0 ? st.edges : st.rootEdges;
+      const includeRootBuffer =
+        Object.keys(st.subgraphs).length > 0 ||
+        (!atRoot && st.rootNodes.length > 0);
       writePersistedFlowDocument({
         version: 1,
-        nodes:
-          st.activeGraphId === "__root__" || st.rootNodes.length === 0 ? st.nodes : st.rootNodes,
-        edges:
-          st.activeGraphId === "__root__" || st.rootEdges.length === 0 ? st.edges : st.rootEdges,
+        nodes: exportNodes,
+        edges: exportEdges,
         selectedNodeId: st.selectedNodeId,
         selectedNodeIds:
           st.selectedNodeIds.length > 0 ? st.selectedNodeIds : undefined,
         ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
-        ...(st.rootNodes.length > 0 ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
+        ...(includeRootBuffer
+          ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges }
+          : {}),
         viewport: viewportPersistRef.current ?? undefined,
         canvasPreferences: flowCanvasPrefsRef.current,
       });
@@ -816,6 +845,20 @@ export function SensorStudioMain() {
     flowCanvasGraphRef.current?.fitSelectionInView(ids);
   }, []);
 
+  const fitFlowCanvasToNodeIds = useCallback((nodeIds: readonly string[]) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    flowCanvasGraphRef.current?.fitSelectionInView([...nodeIds]);
+  }, []);
+
+  useEffect(() => {
+    useFlowEditorStore.getState().setFitFlowCanvasToNodeIdsHandler(fitFlowCanvasToNodeIds);
+    return () => {
+      useFlowEditorStore.getState().setFitFlowCanvasToNodeIdsHandler(null);
+    };
+  }, [fitFlowCanvasToNodeIds]);
+
   const selectedStudioNodeIdsForToggle = useCallback((): string[] => {
     const st = useFlowEditorStore.getState();
     const fromRf = st.nodes.filter((n) => n.selected).map((n) => n.id);
@@ -1207,6 +1250,11 @@ export function SensorStudioMain() {
         physicsSceneColor={dataTypeColors.physicsScene}
         physicsColliderColor={dataTypeColors.physicsCollider}
         physicsBodyColor={dataTypeColors.physicsBody}
+        dashboardWidgetColor={dataTypeColors.dashboardWidget}
+        dashboardThemeColor={dataTypeColors.dashboardTheme}
+        dashboardTabColor={dataTypeColors.dashboardTab}
+        materialColor={dataTypeColors.material}
+        meshColor={dataTypeColors.mesh}
         minimapCategoryColors={minimapCategoryColors}
         entries={catalog}
         nodes={nodes}

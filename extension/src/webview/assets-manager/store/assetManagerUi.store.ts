@@ -25,7 +25,7 @@ function isAssetManagerMainTab(v: unknown): v is AssetManagerMainTab {
 }
 
 function isAssetCategory(v: unknown): v is AssetCategory {
-  return v === "model" || v === "environment" || v === "texture";
+  return v === "model" || v === "environment" || v === "texture" || v === "library";
 }
 
 export type OpenAssetManagerPanelOptions = {

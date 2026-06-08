@@ -1,6 +1,14 @@
 # Official flow presets (bundled)
 
-Built-in Sensor Studio demo templates exported as `trn-flow-preset` files for the **Saved → Flows → Official** library.
+Built-in Sensor Studio demo templates exported as `trn-flow-preset` files for the **Presets → Flows → Official** library.
+
+## Maintainer workflow (Vite dev UI)
+
+1. **Maintainer mode** on Library → Presets → Flows.
+2. Load **Official** → **Replace**, edit canvas, **Override** icon (saves to `overrides/`).
+3. **Regenerate bundled** or **Publish official flows** (regen + stage + optional GitHub upload).
+
+CLI alternatives: `flow-preset:apply-override`, `flow-preset:gen`. See `overrides/README.md`.
 
 ## Regenerate
 
@@ -21,17 +29,13 @@ Vite serves these under `/__extension_src_assets/libraries/flow-preset/` and cop
 
 ## Publish to online free pack
 
-Local clone (recommended):
+**UI (Vite dev):** Maintainer tools → **Publish official flows** (set `GITHUB_TOKEN` on the dev server for direct GitHub upload).
+
+**CLI:**
 
 ```bash
 npm run flow-preset:stage-free-pack
-# then commit + push in ternion-3d-assets-free (bump assets/feed.json revision)
-```
-
-Direct GitHub upload (requires `GITHUB_TOKEN`):
-
-```bash
-npm run flow-preset:publish-free-pack
+npm run flow-preset:publish-free-pack   # needs GITHUB_TOKEN
 ```
 
 Remote path: `assets/libraries/flow-preset/` on `ternion-3d-assets-free` — see `extension/docs/ASSETS_ONLINE_REPO.md`.

@@ -163,7 +163,9 @@ Design: [`FLOW_SUBGRAPHS.md`](./FLOW_SUBGRAPHS.md).
 ### Key files
 
 - `features/editor/subgraphs/` — types, create, rewire, flatten, interface sync, store sync
-- `features/editor/layout-nodes/NodeGroupLayoutNode.tsx` (+ Group Input/Output)
+- `features/editor/layout-nodes/NodeGroupLayoutNode.tsx` (group shell)
+- `features/editor/layout-nodes/StudioGroupBoundaryCard.tsx` + `GroupBoundarySocketRows.tsx` (Group Input/Output — flex output / input socket rows, sim live values)
+- `features/editor/subgraphs/studio-group-boundary-live.ts`
 - `features/editor/components/inspector/NodeGroupInspectorSection.tsx`
 - `features/editor/components/FlowGraphBreadcrumb.tsx`
 - `extension/tests/sensor-studio/studio-subgraph.test.ts`

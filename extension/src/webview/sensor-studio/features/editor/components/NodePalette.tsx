@@ -43,7 +43,7 @@ import { NodePaletteSectioned } from "./node-palette/NodePaletteSectioned";
 import { NodePaletteTwoLine } from "./node-palette/NodePaletteTwoLine";
 import { NodePaletteAccordion } from "./node-palette/NodePaletteAccordion";
 
-type NodePaletteTabId = "nodes" | "simulation" | "saved";
+type NodePaletteTabId = "nodes" | "simulation" | "presets";
 
 type CategoryFilter = "all" | NodeCatalogEntry["category"];
 
@@ -127,7 +127,7 @@ export function NodePalette(props: NodePaletteProps) {
     if (flowLibraryNavPayload == null) {
       return;
     }
-    setTab("saved");
+    setTab("presets");
     if (flowLibraryNavPayload.highlightPresetId != null) {
       setQuery("");
     }
@@ -145,7 +145,7 @@ export function NodePalette(props: NodePaletteProps) {
   const nodeGroupLibrary = useFlowEditorStore((s) => s.nodeGroupLibrary);
   const flowPresetLibrary = useFlowEditorStore((s) => s.flowPresetLibrary);
 
-  const filteredSavedLibraryCount = useMemo(() => {
+  const filteredPresetsLibraryCount = useMemo(() => {
     const q = query.trim().toLowerCase();
     const match = (name: string, extra: string) => {
       const hay = `${name} ${extra}`.toLowerCase();
@@ -225,7 +225,7 @@ export function NodePalette(props: NodePaletteProps) {
 
   const activeList = tab === "simulation" ? simulationNodes : standardNodes;
 
-  const headerListCount = tab === "saved" ? filteredSavedLibraryCount : activeList.length;
+  const headerListCount = tab === "presets" ? filteredPresetsLibraryCount : activeList.length;
 
   const categoryCounts = useMemo(() => {
     const m = new Map<NodeCatalogEntry["category"], number>();
@@ -723,10 +723,10 @@ export function NodePalette(props: NodePaletteProps) {
             <span
               className="rounded-full bg-zinc-800/80 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
               title={
-                tab === "saved"
+                tab === "presets"
                   ? paletteFilterActive
-                    ? "Saved flows and groups matching search"
-                    : "Saved flow and group presets"
+                    ? "Flow and group presets matching search"
+                    : "Flow and group presets"
                   : paletteFilterActive
                     ? "Count of blocks matching the current list"
                     : "Blocks in this list"
@@ -789,23 +789,23 @@ export function NodePalette(props: NodePaletteProps) {
             Simulation
           </button>
           <button
-            id="palette-tab-saved"
+            id="palette-tab-presets"
             type="button"
             role="tab"
-            aria-selected={tab === "saved"}
+            aria-selected={tab === "presets"}
             onClick={() => {
-              setTab("saved");
+              setTab("presets");
               setCategoryFilter("all");
               setSensorFamilyFilter("all");
             }}
             className={`flex flex-1 items-center justify-center gap-1.5 rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/35 ${
               dense ? "px-2 py-1 text-[10px]" : "px-2 py-1.5 text-[11px]"
             } ${
-              tab === "saved" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
+              tab === "presets" ? "bg-zinc-800 text-zinc-100 shadow-sm" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             <Boxes className={`shrink-0 opacity-80 ${dense ? "size-3" : "size-3.5"}`} aria-hidden />
-            Saved
+            Presets
           </button>
         </div>
 
@@ -857,8 +857,8 @@ export function NodePalette(props: NodePaletteProps) {
           <input
             type="search"
             placeholder={
-              tab === "saved"
-                ? "Search saved flows and groups…"
+              tab === "presets"
+                ? "Search flow and group presets…"
                 : "Search by name, sensor, or description…"
             }
             value={query}
@@ -873,7 +873,7 @@ export function NodePalette(props: NodePaletteProps) {
               dense ? "py-1.5 text-[11px]" : "py-2 text-[12px]"
             } ${query.trim().length > 0 ? "pr-9" : "pr-2"}`}
             style={{ borderColor }}
-            aria-label={tab === "saved" ? "Search saved flows and groups" : "Search library"}
+            aria-label={tab === "presets" ? "Search flow and group presets" : "Search library"}
           />
           {query.trim().length > 0 ? (
             <button
@@ -1008,10 +1008,10 @@ export function NodePalette(props: NodePaletteProps) {
                 ? "palette-tab-nodes"
                 : tab === "simulation"
                   ? "palette-tab-simulation"
-                  : "palette-tab-saved"
+                  : "palette-tab-presets"
             }
           >
-          {tab === "saved" ? (
+          {tab === "presets" ? (
             <StudioSavedLibraryPanel dense={dense} query={query} borderColor={borderColor} remoteGroupsEnabled />
           ) : activeList.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">

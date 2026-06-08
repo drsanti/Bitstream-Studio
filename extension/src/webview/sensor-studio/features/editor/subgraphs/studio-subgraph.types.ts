@@ -6,6 +6,8 @@ export const STUDIO_ROOT_GRAPH_ID = "__root__" as const;
 
 export type StudioGraphId = typeof STUDIO_ROOT_GRAPH_ID | string;
 
+export type StudioGroupSocketDefaultValue = number | boolean | string;
+
 export type StudioGroupSocketDef = {
   id: string;
   label: string;
@@ -13,6 +15,8 @@ export type StudioGroupSocketDef = {
   direction: "input" | "output";
   /** Stable dedupe key from boundary crossing inference. */
   boundaryKey: string;
+  /** Used when the parent graph leaves this input socket unwired (input sockets only). */
+  defaultValue?: StudioGroupSocketDefaultValue;
 };
 
 export type StudioGroupInterface = {
@@ -28,7 +32,15 @@ export type StudioSubgraphDocument = {
   graphTitle?: string;
 };
 
-export type StudioNodeGroupData = {
+export type StudioNodeGroupHostLiveFields = {
+  /** Populated during simulation for collapsed shell socket readouts. */
+  liveNumberByHandle?: Record<string, number>;
+  liveBooleanByHandle?: Record<string, boolean>;
+  liveStringByHandle?: Record<string, string>;
+  liveVector3ByHandle?: Record<string, { x: number; y: number; z: number }>;
+};
+
+export type StudioNodeGroupData = StudioNodeGroupHostLiveFields & {
   graphTitle?: string;
   subgraphId: string;
   /** When set, this shell was spawned from or saved to the node group library. */
@@ -38,6 +50,11 @@ export type StudioNodeGroupData = {
 export type StudioGroupBoundaryData = {
   role: "input" | "output";
   interface: StudioGroupInterface;
+  /** Populated during simulation for Group Input output sockets. */
+  liveNumberByHandle?: Record<string, number>;
+  liveBooleanByHandle?: Record<string, boolean>;
+  liveStringByHandle?: Record<string, string>;
+  liveVector3ByHandle?: Record<string, { x: number; y: number; z: number }>;
 };
 
 export type StudioNodeGroupFlowNode = Node<StudioNodeGroupData, "studio-node-group">;

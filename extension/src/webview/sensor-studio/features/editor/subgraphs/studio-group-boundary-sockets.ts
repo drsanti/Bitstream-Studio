@@ -140,13 +140,51 @@ export function labelForGroupInputSocket(
   return dupes === 1 ? `${base} (${title})` : `${base} (${title} ${dupes + 1})`;
 }
 
+/**
+ * Dedup key for wires that cross into a group from the same external source.
+ * Fan-out from one route/parent pin to the same inner handle (e.g. Speed on many clips)
+ * becomes one published group input.
+ */
+export function boundarySocketKeyForCrossingInput(
+  externalSourceId: string,
+  externalSourceHandle: string | null | undefined,
+  targetNode: Node | undefined,
+  targetHandle: string | null | undefined,
+  subgraphs?: Record<string, StudioSubgraphDocument>,
+): string {
+  const handle = targetHandle ?? STUDIO_HANDLE_IN;
+  const portType = inferBoundarySocketType(targetNode, handle, "input", subgraphs);
+  const sourceHandle = externalSourceHandle ?? STUDIO_HANDLE_OUT;
+  // One published input per upstream pin — fan-out to many inner targets shares one socket.
+  return `crossIn:${externalSourceId}:${sourceHandle}:${portType}`;
+}
+
+export type GroupInputSocketLookup = {
+  externalSourceId: string;
+  externalSourceHandle?: string | null;
+};
+
 export function findGroupInputSocket(
   iface: StudioGroupInterface,
   targetNode: Node | undefined,
   targetHandle: string | null | undefined,
   subgraphs?: Record<string, StudioSubgraphDocument>,
+  lookup?: GroupInputSocketLookup,
 ): StudioGroupSocketDef | undefined {
   const handle = targetHandle ?? STUDIO_HANDLE_IN;
+  if (lookup != null) {
+    const crossKey = boundarySocketKeyForCrossingInput(
+      lookup.externalSourceId,
+      lookup.externalSourceHandle,
+      targetNode,
+      handle,
+      subgraphs,
+    );
+    const byCross = iface.inputs.find((s) => s.boundaryKey === crossKey);
+    if (byCross != null) {
+      return byCross;
+    }
+  }
   const key = boundarySocketKeyForNode(targetNode, handle, "input", subgraphs);
   return iface.inputs.find((s) => s.boundaryKey === key);
 }
@@ -182,12 +220,18 @@ export function inferGroupInterface(
     if (!srcIn && tgtIn) {
       const handle = edge.targetHandle ?? STUDIO_HANDLE_IN;
       const target = allNodes.find((n) => n.id === edge.target);
-      const key = boundarySocketKeyForNode(target, handle, "input", subgraphs);
+      const key = boundarySocketKeyForCrossingInput(
+        edge.source,
+        edge.sourceHandle,
+        target,
+        handle,
+        subgraphs,
+      );
       if (!inputKeys.has(key)) {
         inputKeys.add(key);
         iface.inputs.push({
           id: createGroupSocketId(),
-          label: labelForGroupInputSocket(target, handle, iface.inputs, subgraphs),
+          label: labelForBoundarySocket(target, handle, "input", subgraphs),
           portType: inferBoundarySocketType(target, handle, "input", subgraphs),
           direction: "input",
           boundaryKey: key,

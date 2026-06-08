@@ -47,6 +47,7 @@ Catalog id: **`scene-output`** (category **output**).
 | **Animation** | `glbAnimation` | Optional animation bundle wire |
 | **Transform** | `transform` | Optional root transform wire |
 | **Physics** | `physicsScene` | Optional **physics-world** wire (Rapier ground preview on Stage) |
+| **Meshes** | `mesh` | Procedural Three.js primitives — [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md) (v1 shipped). Interactive **Scene Editor** proposal: [`SCENE_EDITOR_MODE.md`](./SCENE_EDITOR_MODE.md). |
 
 **Defaults** (`core/stage/stage-scene-defaults.ts`): floor **grid off**; **Park** cubemap (`env.cubemap.park` / `textures/cubemap/park/`). New Scene Output nodes bake Park into `scene3d.environment`; the Stage demo wires an **Environment** node with the same preset.
 
@@ -123,8 +124,15 @@ After each simulation tick, **Stage** merges **`buildStageFlowMediaSceneProps`**
 
 Demo: Canvas **Run template** → **Stage camera + vision**.
 
+## Procedural meshes (planned)
+
+**Backlog (2026-06-07):** Flow nodes for built-in Three.js **primitive geometries** (box, sphere, plane, …) and **standalone mesh materials**, committed via a new Scene Output **`meshes`** input alongside wired **Models**. Canonical plan: **[`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md)**.
+
+Until shipped, Stage renders **GLB instances** from **model-select** wires only; `box-collider` / `sphere-collider` remain physics debug shapes, not general scene meshes.
+
 ## Related
 
 - `FLOW_DOMAINS.md` — Domain B frame loop
+- `PRIMITIVES_AND_MATERIALS_NODES.md` — Three.js primitive + mesh material nodes
 - `NODE_ANIMATOR_PARITY.md` — editor UX parity tracker
 - `TIER_D_PHYSICS_FOUNDATION.md` — physics on Stage (deferred D2+)

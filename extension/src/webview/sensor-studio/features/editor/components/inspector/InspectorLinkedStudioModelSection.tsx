@@ -13,6 +13,9 @@ import { useFlowEditorStore } from "../../store/flow-editor.store";
 const NODE_IDS_WITH_STUDIO_MODEL_SCOPE = new Set([
   "model-viewer",
   "glb-animation-bundle",
+  "animation-clip",
+  "part-spin",
+  "glb-part-transform",
   "event-trigger-glb-anim",
   "event-toggle-glb-part",
   "event-set-glb-part",

@@ -9,6 +9,7 @@ import { TRNGlassButton } from "../../../ui/TRN/TRNGlassButton";
 import { TRNSelect } from "../../../ui/TRN/TRNSelect";
 import { TRNToggleSwitch } from "../../../ui/TRN/TRNToggleSwitch";
 import { TRNHintText } from "../../../ui/TRN/TRNHintText";
+import { TRN_GLASS_DROPDOWN_TEXT_CLASS } from "../../../ui/components/toolbar-header-dropdown-menu-ui.js";
 
 function describeLogLevelError(errorCode: number | null, fallback: string): string {
   if (errorCode === 0x01) {
@@ -329,7 +330,7 @@ export function FirmwareLogLevelPanel() {
                 setLogLevel(next);
                 setFirmwareLogLevelUi(next);
               }}
-              buttonClassName="h-7 min-w-36 border-zinc-600/80 bg-zinc-950/80 px-2 text-xs text-zinc-100 shadow-none backdrop-blur-none"
+              buttonClassName={`h-7 min-w-36 border-zinc-600/80 bg-zinc-950/80 px-2 text-zinc-100 shadow-none backdrop-blur-none ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
               panelClassName="border border-zinc-700/70"
             />
           </div>

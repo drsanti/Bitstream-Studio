@@ -102,6 +102,18 @@ export function flowWireTransformFromNodeDefaultConfig(dc: Record<string, unknow
   return coerceFlowWireTransformV1({ version: 1, ...dc });
 }
 
+/** Flat `defaultConfig` patch for Object Transform / mesh embedded transform authoring. */
+export function flowWireTransformFieldsForNodeConfigPatch(
+  transform: FlowWireTransformV1,
+): Record<string, unknown> {
+  return {
+    version: 1,
+    position: { ...transform.position },
+    rotationDeg: { ...transform.rotationDeg },
+    scale: { ...transform.scale },
+  };
+}
+
 /** Build a transform wire from Euler radians (Sensor Studio vec3: x=roll, y=pitch, z=heading/yaw). */
 export function flowWireTransformFromEulerRad(
   euler: FlowWireVec3,

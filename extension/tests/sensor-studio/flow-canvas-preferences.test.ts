@@ -56,6 +56,26 @@ test("coerceFlowCanvasPreferences applies wire UX defaults for legacy payloads",
   assert.equal(next.connectionRadius, 28);
 });
 
+test("coerceFlowCanvasPreferences applies node selection chrome defaults", () => {
+  const next = coerceFlowCanvasPreferences({});
+  assert.equal(next.showNodeSelectionRing, true);
+  assert.equal(next.showMarqueeSelectionRect, false);
+  assert.equal(next.nodeSelectionRingHex, "#32fafa");
+  assert.equal(next.nodeSelectionRingWidthPx, 2);
+  assert.equal(next.marqueeSelectionHex, "#3b82f6");
+});
+
+test("mergeFlowCanvasPreferences rejects invalid selection colors", () => {
+  const next = mergeFlowCanvasPreferences(DEFAULT_FLOW_CANVAS_PREFERENCES, {
+    nodeSelectionRingHex: "bad",
+    marqueeSelectionHex: "nope",
+    nodeSelectionRingWidthPx: 9 as never,
+  });
+  assert.equal(next.nodeSelectionRingHex, "#32fafa");
+  assert.equal(next.marqueeSelectionHex, "#3b82f6");
+  assert.equal(next.nodeSelectionRingWidthPx, 2);
+});
+
 test("mergeFlowCanvasPreferences clamps wire numeric fields", () => {
   const next = mergeFlowCanvasPreferences(DEFAULT_FLOW_CANVAS_PREFERENCES, {
     edgeIdleOpacity: 2,

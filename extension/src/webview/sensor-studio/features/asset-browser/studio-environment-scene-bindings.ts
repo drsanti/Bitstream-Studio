@@ -10,8 +10,11 @@ export function listStudioEnvironmentDescriptors(catalog: readonly StudioAssetDe
 
 export function getStudioEnvironmentDescriptorById(
   id: string,
-  catalog: readonly StudioAssetDescriptor[],
+  catalog: readonly StudioAssetDescriptor[] | undefined,
 ): StudioAssetDescriptor | null {
+  if (catalog == null || catalog.length === 0) {
+    return null;
+  }
   const d = catalog.find((x) => x.id === id);
   return d != null && d.category === "environment" ? d : null;
 }

@@ -9,7 +9,7 @@ const PORT_TYPE_LABEL: Partial<Record<StudioPortType, string>> = {
   quaternion: "Quaternion",
   environment: "Environment",
   camera: "Camera",
-  glbAnimation: "GLB Anim",
+  glbAnimation: "Animation",
   transform: "Transform",
   fog: "Fog",
   studioLight: "Light",
@@ -22,6 +22,8 @@ const PORT_TYPE_LABEL: Partial<Record<StudioPortType, string>> = {
   physicsScene: "Physics scene",
   physicsCollider: "Collider",
   physicsBody: "Rigid body",
+  material: "Material",
+  mesh: "Mesh",
 };
 
 export function formatFlowPortTypeLabel(portType: string | undefined): string {

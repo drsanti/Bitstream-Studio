@@ -6,8 +6,17 @@ import { ClampSettingsSection } from "./sections/ClampSettingsSection";
 import { EnvironmentSettingsSection } from "./sections/EnvironmentSettingsSection";
 import { GlbMaterialTextureSettingsSection } from "./sections/GlbMaterialTextureSettingsSection";
 import { GlbAnimationBundleConnectionSection } from "./sections/GlbAnimationBundleConnectionSection";
+import { AnimationClipSettingsSection } from "./sections/AnimationClipSettingsSection";
+import { AnimationMergeSettingsSection } from "./sections/AnimationMergeSettingsSection";
+import { AnimationMixSettingsSection } from "./sections/AnimationMixSettingsSection";
+import { AnimationBlendSettingsSection } from "./sections/AnimationBlendSettingsSection";
+import { GlbPartTransformSettingsSection } from "./sections/GlbPartTransformSettingsSection";
+import { PartSpinSettingsSection } from "./sections/PartSpinSettingsSection";
 import { GlbMaterialParamSettingsSection } from "./sections/GlbMaterialParamSettingsSection";
 import { GlbMaterialColorSettingsSection } from "./sections/GlbMaterialColorSettingsSection";
+import { MeshGroupSettingsSection } from "./sections/MeshGroupSettingsSection";
+import { MeshMaterialSettingsSection } from "./sections/MeshMaterialSettingsSection";
+import { MeshPrimitiveSettingsSection } from "./sections/MeshPrimitiveSettingsSection";
 import { MaterialMixSettingsSection } from "./sections/MaterialMixSettingsSection";
 import { LogicGateSettingsSection } from "./sections/LogicGateSettingsSection";
 import { MultiplexerSettingsSection } from "./sections/MultiplexerSettingsSection";
@@ -58,6 +67,19 @@ import {
   VisionLandmarksDebugSettingsSection,
   VisionObjectSettingsSection,
 } from "./sections/VisionExpansionSettingsSections";
+import { DashboardButtonSettingsSection } from "./sections/DashboardButtonSettingsSection";
+import { DashboardGaugeSettingsSection } from "./sections/DashboardGaugeSettingsSection";
+import { DashboardGroupSettingsSection } from "./sections/DashboardGroupSettingsSection";
+import { DashboardTabSettingsSection } from "./sections/DashboardTabSettingsSection";
+import { DashboardKnobSettingsSection } from "./sections/DashboardKnobSettingsSection";
+import { DashboardSliderSettingsSection } from "./sections/DashboardSliderSettingsSection";
+import { DashboardStatusSettingsSection } from "./sections/DashboardStatusSettingsSection";
+import { DashboardSwitchSettingsSection } from "./sections/DashboardSwitchSettingsSection";
+import { IndicatorDashboardSettingsSection } from "./sections/IndicatorDashboardSettingsSection";
+import { DashboardThemeNodeSettingsSection } from "./sections/DashboardThemeNodeSettingsSection";
+import { DashboardLedSettingsSection } from "./sections/DashboardLedSettingsSection";
+import { DashboardOutputSettingsSection } from "./sections/DashboardOutputSettingsSection";
+import { DashboardTextSettingsSection } from "./sections/DashboardTextSettingsSection";
 import { SceneOutputSettingsSection } from "./sections/SceneOutputSettingsSection";
 import { StudioModelSettingsSection } from "./sections/StudioModelSettingsSection";
 
@@ -90,7 +112,26 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   environment: EnvironmentSettingsSection,
   "model-select": StudioModelSettingsSection,
   "scene-output": SceneOutputSettingsSection,
+  "dashboard-output": DashboardOutputSettingsSection,
+  "dashboard-button": DashboardButtonSettingsSection,
+  "dashboard-led": DashboardLedSettingsSection,
+  "dashboard-text": DashboardTextSettingsSection,
+  "dashboard-gauge": DashboardGaugeSettingsSection,
+  "dashboard-knob": DashboardKnobSettingsSection,
+  "dashboard-switch": DashboardSwitchSettingsSection,
+  "dashboard-slider": DashboardSliderSettingsSection,
+  "dashboard-status": DashboardStatusSettingsSection,
+  "dashboard-group": DashboardGroupSettingsSection,
+  indicator: IndicatorDashboardSettingsSection,
+  "dashboard-tab": DashboardTabSettingsSection,
+  "dashboard-theme": DashboardThemeNodeSettingsSection,
   "glb-animation-bundle": GlbAnimationBundleConnectionSection,
+  "animation-clip": AnimationClipSettingsSection,
+  "part-spin": PartSpinSettingsSection,
+  "glb-part-transform": GlbPartTransformSettingsSection,
+  "animation-merge": AnimationMergeSettingsSection,
+  "animation-mix": AnimationMixSettingsSection,
+  "animation-blend": AnimationBlendSettingsSection,
   "boolean-constant": BooleanConstantSettingsSection,
   "number-constant": NumberConstantSettingsSection,
   "float-constant": NumberConstantSettingsSection,
@@ -98,6 +139,19 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "glb-material-param": GlbMaterialParamSettingsSection,
   "glb-material-texture": GlbMaterialTextureSettingsSection,
   "glb-material-color": GlbMaterialColorSettingsSection,
+  "mesh-material-basic": MeshMaterialSettingsSection,
+  "mesh-material-standard": MeshMaterialSettingsSection,
+  "mesh-material-physical": MeshMaterialSettingsSection,
+  "mesh-material-toon": MeshMaterialSettingsSection,
+  "mesh-material-normal": MeshMaterialSettingsSection,
+  "mesh-box": MeshPrimitiveSettingsSection,
+  "mesh-sphere": MeshPrimitiveSettingsSection,
+  "mesh-plane": MeshPrimitiveSettingsSection,
+  "mesh-cylinder": MeshPrimitiveSettingsSection,
+  "mesh-cone": MeshPrimitiveSettingsSection,
+  "mesh-torus": MeshPrimitiveSettingsSection,
+  "mesh-capsule": MeshPrimitiveSettingsSection,
+  "mesh-group": MeshGroupSettingsSection,
   "material-mix": MaterialMixSettingsSection,
   math: MathSettingsSection,
   compare: CompareSettingsSection,

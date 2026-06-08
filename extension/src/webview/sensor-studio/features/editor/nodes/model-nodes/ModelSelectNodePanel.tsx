@@ -21,6 +21,7 @@ import {
   FLOW_NODE_TRN_SELECT_BUTTON_SM_CLASS,
   FLOW_NODE_TRN_SELECT_CLASS,
 } from "../flow-node/flow-node-trn-select-layout";
+import { ModelOutlinerOpenLink } from "../../model-outliner/ModelOutlinerOpenLink";
 
 export type ModelSelectNodePanelProps = {
   nodeId: string;
@@ -125,7 +126,13 @@ export function ModelSelectNodePanel(props: ModelSelectNodePanelProps) {
         <p className="text-[11px] leading-relaxed text-zinc-500">
           Choose a model from the list, or drag a 3D model from Asset Browser onto the canvas.
         </p>
-      ) : null}
+      ) : (
+        <ModelOutlinerOpenLink
+          label="Browse in Outliner"
+          canvasModelId={nodeId}
+          className="w-full"
+        />
+      )}
     </div>
   );
 }

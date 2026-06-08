@@ -1,6 +1,6 @@
 /**
  * Node selection styling for Sensor Studio flow nodes.
- * Selected nodes show a stable cyan ring overlay on the shell border.
+ * Colors and stroke width come from canvas prefs CSS vars on the graph wrapper.
  */
 
 .studio-flow-node--selected {
@@ -9,13 +9,60 @@
   border-color: transparent !important;
 }
 
-/* Stable 2px border overlay (exactly matches the shell border box). */
+/* Stable border overlay (exactly matches the shell border box). */
 .studio-flow-node--selected::before {
   content: "";
   position: absolute;
   inset: -1px;
   border-radius: inherit;
   pointer-events: none;
-  border: 2px solid rgb(50 250 250 / 0.4);
+  border: var(--studio-flow-selection-ring-width, 2px) solid
+    rgb(
+      var(--studio-flow-selection-ring-color, 50 250 250) /
+        var(--studio-flow-selection-ring-opacity, 0.4)
+    );
   z-index: 10;
+}
+
+.studio-flow-canvas--hide-node-selection .studio-flow-node--selected {
+  border-color: rgb(63 63 70 / 0.85) !important;
+}
+
+.studio-flow-canvas--hide-node-selection .studio-flow-node--selected::before {
+  display: none;
+}
+
+/**
+ * Marquee multi-select rectangle — hidden by default (RF bounds can lag content).
+ * Enable via Inspector → Canvas → Selection → Marquee rectangle.
+ */
+.studio-flow-canvas--select:not(.studio-flow-canvas--show-marquee-selection)
+  .react-flow__nodesselection,
+.studio-flow-canvas--select:not(.studio-flow-canvas--show-marquee-selection)
+  .react-flow__nodesselection-rect {
+  display: none !important;
+}
+
+.studio-flow-canvas--show-marquee-selection .react-flow__nodesselection-rect {
+  border: 1px solid
+    rgb(
+      var(--studio-flow-marquee-color, 59 130 246) /
+        var(--studio-flow-marquee-opacity, 0.28)
+    );
+  background: rgb(
+    var(--studio-flow-marquee-color, 59 130 246) /
+      calc(var(--studio-flow-marquee-opacity, 0.28) * 0.35)
+  );
+}
+
+/**
+ * Content-wrapped flow nodes keep RF pointer-events on visible chrome only so a stale tall
+ * RF box (before height resync) does not block nodes underneath.
+ */
+.react-flow__node.studio-flow-node--chrome-hit {
+  pointer-events: none;
+}
+
+.react-flow__node.studio-flow-node--chrome-hit .studio-flow-node-hit-target {
+  pointer-events: auto;
 }

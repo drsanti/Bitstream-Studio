@@ -8,8 +8,10 @@ import { isBrowserShellEnvironment } from "../state/webviewShellUrl";
 const APP_SWITCH_CODES = new Set([
   "Digit1",
   "Digit2",
+  "Digit3",
   "Numpad1",
   "Numpad2",
+  "Numpad3",
 ]);
 
 function isEditableTarget(target: EventTarget | null): boolean
@@ -49,6 +51,10 @@ function runShellShortcut(code: string): void
     case "Numpad2":
       switchBitstreamWorkspace("sensor-studio");
       break;
+    case "Digit3":
+    case "Numpad3":
+      switchBitstreamWorkspace("presentation");
+      break;
     default:
       break;
   }
@@ -73,7 +79,7 @@ function onShellShortcutKeyDown(event: KeyboardEvent): void
 let installed = false;
 
 /**
- * Register workspace switch shortcuts once (browser dev). Ctrl+Shift+1 telemetry, +2 studio.
+ * Register workspace switch shortcuts once (browser dev). Ctrl+Shift+1 telemetry, +2 studio, +3 presentation.
  */
 export function installWebviewShellShortcuts(): void
 {

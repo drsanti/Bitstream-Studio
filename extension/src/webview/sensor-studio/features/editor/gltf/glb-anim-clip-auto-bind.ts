@@ -1,10 +1,10 @@
 import type { StudioAssetDescriptor } from "../../asset-browser/studio-asset.types";
-import { resolveStudioModelGltfFetchUrl } from "../../asset-browser/studio-model-scene-bindings";
+import { resolveStudioModelSelectGltfFetchUrl } from "../../asset-browser/studio-model-scene-bindings";
+import { ANIMATION_CLIP_NAME_KEY, readAnimationClipName } from "../nodes/animation/animation-clip-config";
 import { extractStudioGltfComponents } from "./studio-gltf-extract";
 import {
   readGlbExtractTag,
   resolveNodeStudioModelScopeNodeId,
-  resolveStudioSourceModelGlbUrl,
   STUDIO_GLB_EXTRACT_KIND_KEY,
   STUDIO_GLB_EXTRACT_REF_KEY,
   STUDIO_SOURCE_MODEL_NODE_ID_KEY,
@@ -16,33 +16,29 @@ type FlowNodeLike = {
   data: { nodeId: string; defaultConfig: Record<string, unknown> };
 };
 
-/**
- * When a **Trigger GLB Anim** node has no clip binding but its scoped GLB exposes exactly one
- * animation, persist that clip so event pulses can drive the Model viewer without opening the inspector.
- */
-function resolveModelSelectFetchUrl(
-  nodes: readonly FlowNodeLike[],
-  modelFlowId: string,
-  catalog: readonly StudioAssetDescriptor[],
-): string | null {
-  const logical = resolveStudioSourceModelGlbUrl(nodes, modelFlowId);
-  if (logical == null || logical.trim().length === 0) {
-    return null;
-  }
-  const n = nodes.find((x) => x.id === modelFlowId);
-  const dc = n?.data.defaultConfig;
-  const studioAssetId =
-    dc != null && typeof dc.selectedStudioAssetId === "string"
-      ? dc.selectedStudioAssetId.trim()
-      : undefined;
-  const fetchUrl = resolveStudioModelGltfFetchUrl(
-    { url: logical.trim(), studioAssetId },
-    catalog,
-    "",
-  );
-  return fetchUrl.length > 0 ? fetchUrl : null;
+function buildAnimationClipPatch(ref: string, modelFlowId: string): Record<string, unknown> {
+  return {
+    [STUDIO_GLB_EXTRACT_KIND_KEY]: "animation",
+    [STUDIO_GLB_EXTRACT_REF_KEY]: ref,
+    [ANIMATION_CLIP_NAME_KEY]: ref,
+    [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+  };
 }
 
+function isUnboundGlbAnimTarget(node: FlowNodeLike): boolean {
+  if (node.data.nodeId === "event-trigger-glb-anim") {
+    return readGlbExtractTag(node.data.defaultConfig)?.kind !== "animation";
+  }
+  if (node.data.nodeId === "animation-clip") {
+    return readAnimationClipName(node.data.defaultConfig).length === 0;
+  }
+  return false;
+}
+
+/**
+ * Auto-bind GLB animation refs on **Trigger GLB Anim** and **Animation Clip** nodes when the
+ * scoped model exposes known clips (single clip for triggers; sequential assignment for clip nodes).
+ */
 export async function resolveSingleClipAutoBindPatchesForGlbAnimNodes(args: {
   nodes: readonly FlowNodeLike[];
   edges: readonly StudioFlowEdgeLike[];
@@ -52,22 +48,25 @@ export async function resolveSingleClipAutoBindPatchesForGlbAnimNodes(args: {
   const patches = new Map<string, Record<string, unknown>>();
   const urlCache = new Map<string, string | null>();
 
+  const clipNodesByModel = new Map<string, string[]>();
   for (const targetId of args.targetFlowNodeIds) {
     const node = args.nodes.find((n) => n.id === targetId);
-    if (node == null || node.data.nodeId !== "event-trigger-glb-anim") {
-      continue;
-    }
-    const dc = node.data.defaultConfig;
-    if (readGlbExtractTag(dc)?.kind === "animation") {
+    if (node == null || !isUnboundGlbAnimTarget(node)) {
       continue;
     }
     const modelFlowId = resolveNodeStudioModelScopeNodeId(node, args.nodes, args.edges);
     if (modelFlowId.trim().length === 0) {
       continue;
     }
+    if (node.data.nodeId === "animation-clip") {
+      const list = clipNodesByModel.get(modelFlowId) ?? [];
+      list.push(node.id);
+      clipNodesByModel.set(modelFlowId, list);
+      continue;
+    }
     let glbUrl = urlCache.get(modelFlowId);
     if (glbUrl === undefined) {
-      glbUrl = resolveModelSelectFetchUrl(args.nodes, modelFlowId, args.catalog);
+      glbUrl = resolveStudioModelSelectGltfFetchUrl(args.nodes, modelFlowId, args.catalog);
       urlCache.set(modelFlowId, glbUrl);
     }
     if (glbUrl == null || glbUrl.trim().length === 0) {
@@ -82,10 +81,35 @@ export async function resolveSingleClipAutoBindPatchesForGlbAnimNodes(args: {
       if (ref.length === 0) {
         continue;
       }
-      patches.set(node.id, {
-        [STUDIO_GLB_EXTRACT_KIND_KEY]: "animation",
-        [STUDIO_GLB_EXTRACT_REF_KEY]: ref,
-        [STUDIO_SOURCE_MODEL_NODE_ID_KEY]: modelFlowId,
+      patches.set(node.id, buildAnimationClipPatch(ref, modelFlowId));
+    } catch {
+      // GLB fetch/parse failed — leave unbound.
+    }
+  }
+
+  for (const [modelFlowId, nodeIds] of clipNodesByModel) {
+    if (nodeIds.length === 0) {
+      continue;
+    }
+    let glbUrl = urlCache.get(modelFlowId);
+    if (glbUrl === undefined) {
+      glbUrl = resolveStudioModelSelectGltfFetchUrl(args.nodes, modelFlowId, args.catalog);
+      urlCache.set(modelFlowId, glbUrl);
+    }
+    if (glbUrl == null || glbUrl.trim().length === 0) {
+      continue;
+    }
+    try {
+      const extraction = await extractStudioGltfComponents(glbUrl);
+      const refs = extraction.animations
+        .map((row) => row.ref.trim())
+        .filter((ref) => ref.length > 0);
+      if (refs.length === 0) {
+        continue;
+      }
+      nodeIds.forEach((nodeId, index) => {
+        const ref = refs[Math.min(index, refs.length - 1)]!;
+        patches.set(nodeId, buildAnimationClipPatch(ref, modelFlowId));
       });
     } catch {
       // GLB fetch/parse failed — leave unbound.

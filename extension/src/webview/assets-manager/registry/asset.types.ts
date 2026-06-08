@@ -3,7 +3,7 @@
  * URLs are resolved at runtime via {@link resolveAsset}.
  */
 
-export type AssetCategory = "model" | "environment" | "texture";
+export type AssetCategory = "model" | "environment" | "texture" | "library";
 
 /** Where the entry logically comes from (UI badge + filters). */
 export type AssetSource = "bundled" | "pack" | "downloaded" | "external";

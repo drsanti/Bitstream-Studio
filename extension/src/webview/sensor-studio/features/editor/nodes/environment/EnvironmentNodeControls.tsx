@@ -30,6 +30,7 @@ import {
   widestTrnSelectOptionLabel,
 } from "../flow-node/flow-node-intrinsic-width-utils";
 import { FLOW_NODE_TRN_SELECT_CLASS } from "../flow-node/flow-node-trn-select-layout";
+import { STUDIO_COMPACT_FLOW_SELECT_BUTTON_FULL_WIDTH_CLASS } from "../../components/inspector/inspector-dense-select-button";
 
 export type EnvironmentNodeControlsProps = {
   defaultConfig: Record<string, unknown>;
@@ -155,7 +156,7 @@ export function EnvironmentNodeControls(props: EnvironmentNodeControlsProps) {
           size="sm"
           value={selectValue}
           className={FLOW_NODE_TRN_SELECT_CLASS}
-          buttonClassName="w-full min-w-0 max-w-full text-[12px]"
+          buttonClassName={`${STUDIO_COMPACT_FLOW_SELECT_BUTTON_FULL_WIDTH_CLASS} min-w-0 max-w-full`}
           options={
             environmentSelectOptions.length > 0
               ? environmentSelectOptions

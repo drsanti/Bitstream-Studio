@@ -274,7 +274,8 @@ All entries go into:
 - [x] Per-file URL resolver (local → free → online)
 - [x] VSIX slim: lite + WASM only on `prebuild:webview`
 - [x] Publish `assets/vision/mediapipe/` to **`ternion-3d-assets-free`** on GitHub — [`4061528`](https://github.com/drsanti/ternion-3d-assets-free/commit/4061528)
-- [ ] Vision inspector chip when optional models missing (backlog)
+- [x] Vision inspector **Model missing** chip + Free Loader shortcut
+- [x] Asset Browser **Libraries** tab — MediaPipe pack row + sync status
 
 See **`extension/docs/VISION_MEDIAPIPE_FREE_PACK.md`**.
 

@@ -300,6 +300,15 @@
       "summary": "2D texture (wood) · textures/images/wood/Texturelabs_Wood_169M.jpg",
       "relativePath": "textures/images/wood/Texturelabs_Wood_169M.jpg",
       "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/textures/images/wood/Texturelabs_Wood_169M.jpg"
+    },
+    {
+      "id": "library.vision.mediapipe",
+      "category": "library",
+      "source": "pack",
+      "label": "MediaPipe vision models",
+      "summary": "Hand, face, object, and full/heavy pose models for Sensor Studio vision nodes. Lite + WASM ship in VSIX.",
+      "relativePath": "vision/mediapipe/manifest.v1.json",
+      "onlineFallbackUrl": "https://raw.githubusercontent.com/drsanti/ternion-3d-assets-free/main/assets/vision/mediapipe/manifest.v1.json"
     }
   ]
 }

@@ -38,6 +38,16 @@ export function studioPortAccent(portType: StudioPortType): string {
       return DT.physicsCollider;
     case "physicsBody":
       return DT.physicsBody;
+    case "dashboardWidget":
+      return DT.dashboardWidget;
+    case "dashboardTheme":
+      return DT.dashboardTheme;
+    case "dashboardTab":
+      return DT.dashboardTab;
+    case "material":
+      return DT.material;
+    case "mesh":
+      return DT.mesh;
     default:
       return "#a1a1aa";
   }

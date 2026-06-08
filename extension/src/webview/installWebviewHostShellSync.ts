@@ -17,7 +17,10 @@ function isShellHostMessage(data: unknown): data is TernionShellHostToWebviewMes
   }
   return (
     msg.type === "ternion-shell-navigate" &&
-    (msg.workspace === "sensor-telemetry" || msg.workspace === "telemetry" || msg.workspace === "sensor-studio")
+    (msg.workspace === "sensor-telemetry" ||
+      msg.workspace === "telemetry" ||
+      msg.workspace === "sensor-studio" ||
+      msg.workspace === "presentation")
   );
 }
 

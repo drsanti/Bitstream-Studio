@@ -2,12 +2,14 @@ import { create } from "zustand";
 import type { StudioDemoTemplateId } from "../store/flow-editor.store";
 import { officialFlowPresetIdForTemplate } from "./demo-template-flow-preset-category";
 
-export type FlowLibrarySavedTab = "flows" | "groups";
+export type FlowLibraryPresetsSubTab = "flows" | "groups";
 
 export type FlowLibraryNavigatePayload = {
-  savedTab?: FlowLibrarySavedTab;
+  presetsSubTab?: FlowLibraryPresetsSubTab;
   scrollToOfficial?: boolean;
   highlightPresetId?: string | null;
+  highlightGroupAssetId?: string | null;
+  scrollToProject?: boolean;
 };
 
 type FlowLibraryNavigationStore = {
@@ -34,7 +36,7 @@ export function buildOfficialFlowLibraryNavigate(
   templateId: StudioDemoTemplateId,
 ): FlowLibraryNavigatePayload {
   return {
-    savedTab: "flows",
+    presetsSubTab: "flows",
     scrollToOfficial: true,
     highlightPresetId: officialFlowPresetIdForTemplate(templateId),
   };
@@ -45,5 +47,21 @@ export function openFlowLibraryOfficial(
   templateId: StudioDemoTemplateId,
 ): void {
   useFlowLibraryNavigationStore.getState().requestNavigate(buildOfficialFlowLibraryNavigate(templateId));
+  focusFlowLibraryPane(focusWorkbenchPane);
+}
+
+export function buildProjectGroupLibraryNavigate(assetId: string): FlowLibraryNavigatePayload {
+  return {
+    presetsSubTab: "groups",
+    scrollToProject: true,
+    highlightGroupAssetId: assetId,
+  };
+}
+
+export function openGroupLibraryProjectAsset(
+  focusWorkbenchPane: (editorType: string) => void,
+  assetId: string,
+): void {
+  useFlowLibraryNavigationStore.getState().requestNavigate(buildProjectGroupLibraryNavigate(assetId));
   focusFlowLibraryPane(focusWorkbenchPane);
 }

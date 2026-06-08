@@ -20,6 +20,11 @@ export type FlowNodeSocketRegionProps = HTMLAttributes<HTMLDivElement> & {
   equalizeLabelWidth?: boolean;
   /** When false, drop the live-preview grid column (label + handle only). */
   showLivePreviewColumn?: boolean;
+  /**
+   * Aligned output rows with port-type metadata chips (not live previews).
+   * Uses `max-content` leading column so badges are never clipped by `1fr`.
+   */
+  alignedOutputMetadataColumns?: boolean;
   /** Flex layout: pack socket rows to the trailing edge (output pins). */
   alignRowsToEnd?: boolean;
 };
@@ -39,6 +44,7 @@ export function FlowNodeSocketRegion(props: FlowNodeSocketRegionProps) {
     alignedOutputColumns = false,
     equalizeLabelWidth = false,
     showLivePreviewColumn = true,
+    alignedOutputMetadataColumns = false,
     alignRowsToEnd = false,
     style,
     ...rest
@@ -53,7 +59,10 @@ export function FlowNodeSocketRegion(props: FlowNodeSocketRegionProps) {
     alignedOutputColumns && showLivePreviewColumn && equalizeLabelWidth;
 
   const alignedOutputLabelOnlyGrid =
-    alignedOutputColumns && !showLivePreviewColumn;
+    alignedOutputColumns && !showLivePreviewColumn && !alignedOutputMetadataColumns;
+
+  const alignedOutputMetadataGrid =
+    alignedOutputColumns && alignedOutputMetadataColumns;
 
   useLayoutEffect(() => {
     if (!equalizeLabelWidth) {
@@ -119,28 +128,37 @@ export function FlowNodeSocketRegion(props: FlowNodeSocketRegionProps) {
     showLivePreviewColumn,
   ]);
 
-  const alignedGridStyle: CSSProperties | undefined = alignedOutputLiveGrid
+  const alignedGridStyle: CSSProperties | undefined = alignedOutputMetadataGrid
     ? {
         gridTemplateColumns:
-          liveColumnWidths != null
-            ? ALIGNED_OUTPUT_LIVE_GRID_COLS(liveColumnWidths.label)
-            : "minmax(0, 1fr) max-content 0px",
-        ...(liveColumnWidths != null && liveColumnWidths.preview > 0
-          ? {
-              ["--flow-socket-preview-min-w" as string]: `${liveColumnWidths.preview}px`,
-            }
-          : null),
+          labelWidthPx != null && labelWidthPx > 0 && equalizeLabelWidth
+            ? `max-content ${labelWidthPx}px 0px`
+            : "max-content max-content 0px",
       }
-    : alignedOutputLabelOnlyGrid
-      ? { gridTemplateColumns: ALIGNED_OUTPUT_LABEL_ONLY_GRID_COLS }
-      : undefined;
+    : alignedOutputLiveGrid
+      ? {
+          gridTemplateColumns:
+            liveColumnWidths != null
+              ? ALIGNED_OUTPUT_LIVE_GRID_COLS(liveColumnWidths.label)
+              : "minmax(0, 1fr) max-content 0px",
+          ...(liveColumnWidths != null && liveColumnWidths.preview > 0
+            ? {
+                ["--flow-socket-preview-min-w" as string]: `${liveColumnWidths.preview}px`,
+              }
+            : null),
+        }
+      : alignedOutputLabelOnlyGrid
+        ? { gridTemplateColumns: ALIGNED_OUTPUT_LABEL_ONLY_GRID_COLS }
+        : undefined;
 
   return (
     <div
       ref={rootRef}
       className={twMerge(
         "nodrag min-w-0 w-full max-w-full overflow-visible",
-        alignedOutputLiveGrid || alignedOutputLabelOnlyGrid
+        alignedOutputLiveGrid ||
+          alignedOutputLabelOnlyGrid ||
+          alignedOutputMetadataGrid
           ? "grid w-full gap-x-2 gap-y-0.5"
           : twMerge(
               "flex flex-col gap-0.5",

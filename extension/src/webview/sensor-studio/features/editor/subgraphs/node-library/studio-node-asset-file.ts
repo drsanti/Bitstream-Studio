@@ -6,13 +6,25 @@ export const STUDIO_NODE_ASSET_MARKER = "trn-node-asset" as const;
 export const STUDIO_NODE_ASSET_VERSION = 1 as const;
 export const STUDIO_NODE_ASSET_DRAG_KIND = "nodeAsset" as const;
 
-export type StudioNodeAssetCategory =
-  | "animation"
-  | "data"
-  | "scene"
-  | "math"
-  | "utility"
-  | "composition";
+export const STUDIO_NODE_ASSET_CATEGORIES = [
+  "animation",
+  "data",
+  "scene",
+  "math",
+  "utility",
+  "composition",
+] as const;
+
+export type StudioNodeAssetCategory = (typeof STUDIO_NODE_ASSET_CATEGORIES)[number];
+
+export function isStudioNodeAssetCategory(
+  value: unknown,
+): value is StudioNodeAssetCategory {
+  return (
+    typeof value === "string" &&
+    (STUDIO_NODE_ASSET_CATEGORIES as readonly string[]).includes(value)
+  );
+}
 
 export type StudioNodeAssetDependencies = {
   modelUrls?: string[];

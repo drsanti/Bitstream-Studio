@@ -1,17 +1,14 @@
 import type { LayoutNode } from "../../../../ui/workbench";
 import { createEditorPane, createSplit } from "../../../../ui/workbench/layoutBuilders";
-import { DEFAULT_STUDIO_WORKBENCH_LAYOUT } from "./default-studio-workbench-layout";
+import {
+  createStudioLeftColumn,
+  DEFAULT_STUDIO_WORKBENCH_LAYOUT,
+} from "./default-studio-workbench-layout";
 import type { WorkbenchLayoutPreset } from "../../../../ui/workbench/workbench-layout-library";
 
 /** Wide flow canvas, compact library column, standard inspector stack. */
 const STUDIO_GRAPH_FOCUS_LAYOUT: LayoutNode = createSplit(
-  createSplit(
-    createEditorPane("library", { id: "preset-library" }),
-    createEditorPane("assets", { id: "preset-assets" }),
-    "vertical",
-    0.5,
-    "preset-left-column",
-  ),
+  createStudioLeftColumn("preset"),
   createSplit(
     createEditorPane("flow", { id: "preset-flow" }),
     createEditorPane("inspector", { id: "preset-inspector" }),
@@ -26,13 +23,7 @@ const STUDIO_GRAPH_FOCUS_LAYOUT: LayoutNode = createSplit(
 
 /** Larger inspector for node tuning sessions. */
 const STUDIO_INSPECTOR_WIDE_LAYOUT: LayoutNode = createSplit(
-  createSplit(
-    createEditorPane("library", { id: "preset-library-iw" }),
-    createEditorPane("assets", { id: "preset-assets-iw" }),
-    "vertical",
-    0.5,
-    "preset-left-iw",
-  ),
+  createStudioLeftColumn("preset-iw"),
   createSplit(
     createEditorPane("flow", { id: "preset-flow-iw" }),
     createEditorPane("inspector", { id: "preset-inspector-iw" }),
@@ -45,15 +36,30 @@ const STUDIO_INSPECTOR_WIDE_LAYOUT: LayoutNode = createSplit(
   "preset-inspector-wide-root",
 );
 
+/** Large Dashboard over a thin Flow strip (operator HMI focus). */
+const STUDIO_DASHBOARD_FOCUS_LAYOUT: LayoutNode = createSplit(
+  createStudioLeftColumn("preset-dash"),
+  createSplit(
+    createSplit(
+      createEditorPane("dashboard", { id: "preset-dashboard-focus" }),
+      createEditorPane("flow", { id: "preset-flow-dash" }),
+      "vertical",
+      0.78,
+      "preset-center-dash",
+    ),
+    createEditorPane("inspector", { id: "preset-inspector-dash" }),
+    "horizontal",
+    0.8,
+    "preset-main-dash",
+  ),
+  "horizontal",
+  0.16,
+  "preset-dashboard-focus-root",
+);
+
 /** Large Stage over a thin Flow strip (runtime preview focus). */
 const STUDIO_STAGE_FOCUS_LAYOUT: LayoutNode = createSplit(
-  createSplit(
-    createEditorPane("library", { id: "preset-library-stg" }),
-    createEditorPane("assets", { id: "preset-assets-stg" }),
-    "vertical",
-    0.5,
-    "preset-left-stg",
-  ),
+  createStudioLeftColumn("preset-stg"),
   createSplit(
     createSplit(
       createEditorPane("stage", { id: "preset-stage-focus" }),
@@ -71,6 +77,11 @@ const STUDIO_STAGE_FOCUS_LAYOUT: LayoutNode = createSplit(
   0.16,
   "preset-stage-focus-root",
 );
+
+/** Full-screen Dashboard — operator HMI with no flow, library, or inspector chrome. */
+const STUDIO_DASHBOARD_OPERATOR_LAYOUT: LayoutNode = createEditorPane("dashboard", {
+  id: "preset-dashboard-operator",
+});
 
 /** Flow + inspector only — side catalog panes omitted from tree. */
 const STUDIO_MINIMAL_LAYOUT: LayoutNode = createSplit(
@@ -99,6 +110,18 @@ export const STUDIO_WORKBENCH_PRESETS: readonly WorkbenchLayoutPreset[] = [
     label: "Stage focus",
     description: "Large Stage viewport over Flow (Scene Output preview)",
     layout: STUDIO_STAGE_FOCUS_LAYOUT,
+  },
+  {
+    id: "dashboard-focus",
+    label: "Dashboard focus",
+    description: "Large Dashboard pane over Flow (Dashboard Output HMI)",
+    layout: STUDIO_DASHBOARD_FOCUS_LAYOUT,
+  },
+  {
+    id: "dashboard-operator",
+    label: "Dashboard operator",
+    description: "Full-screen Dashboard — no flow or library chrome",
+    layout: STUDIO_DASHBOARD_OPERATOR_LAYOUT,
   },
   {
     id: "inspector-wide",

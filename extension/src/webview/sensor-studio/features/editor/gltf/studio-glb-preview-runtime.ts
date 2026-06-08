@@ -1,5 +1,10 @@
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import * as THREE from "three";
+import { applyFlowWireTransformToObject3D } from "../../../core/viewport/studio-viewport-stage-multi-models";
+import {
+  isFlowWireTransformV1,
+  type FlowWireTransformV1,
+} from "../nodes/transform/flow-wire-transform";
 
 /** Object path from root (named segments), matching {@link extractStudioGltfComponents} part refs. */
 export function studioGlbObjectPath(obj: THREE.Object3D): string {
@@ -136,6 +141,74 @@ export function applyGlbPartVisibilityByPathMap(
     }
   }
   st.lastKeys = next;
+}
+
+export type GlbPartSpinDriveRow = {
+  axis: "x" | "y" | "z";
+  /** Signed radians per second in local space (negative = reverse). */
+  speedRadS: number;
+  enabled: boolean;
+};
+
+const PART_SPIN_AXIS_VECTORS: Record<"x" | "y" | "z", THREE.Vector3> = {
+  x: new THREE.Vector3(1, 0, 0),
+  y: new THREE.Vector3(0, 1, 0),
+  z: new THREE.Vector3(0, 0, 1),
+};
+
+/**
+ * Apply authored part transforms from **`glb-part-transform`** nodes.
+ * Skips paths in `skipPaths` while the Stage gizmo is dragging that object.
+ */
+export function applyGlbPartTransformByPathMap(
+  pathToObject: Map<string, THREE.Object3D> | null,
+  transforms: Record<string, FlowWireTransformV1> | undefined,
+  skipPaths?: ReadonlySet<string> | null,
+): void {
+  if (pathToObject == null || pathToObject.size === 0 || transforms == null) {
+    return;
+  }
+  for (const [path, wire] of Object.entries(transforms)) {
+    if (skipPaths?.has(path) === true) {
+      continue;
+    }
+    if (!isFlowWireTransformV1(wire)) {
+      continue;
+    }
+    const obj = pathToObject.get(path);
+    if (obj == null) {
+      continue;
+    }
+    applyFlowWireTransformToObject3D(obj, wire);
+  }
+}
+
+/**
+ * Continuous local-axis rotation for GLB part paths. Applied **after** the animation mixer so
+ * spin is additive on top of baked clip TRS on the same object.
+ */
+export function tickGlbPartSpinByPathMap(
+  pathToObject: Map<string, THREE.Object3D> | null,
+  spins: Record<string, GlbPartSpinDriveRow> | undefined,
+  deltaSec: number,
+): void {
+  if (pathToObject == null || pathToObject.size === 0 || spins == null) {
+    return;
+  }
+  if (!(deltaSec > 0) || !Number.isFinite(deltaSec)) {
+    return;
+  }
+  for (const [path, row] of Object.entries(spins)) {
+    if (!row.enabled || row.speedRadS === 0) {
+      continue;
+    }
+    const obj = pathToObject.get(path);
+    if (obj == null) {
+      continue;
+    }
+    const axis = PART_SPIN_AXIS_VECTORS[row.axis];
+    obj.rotateOnAxis(axis, row.speedRadS * deltaSec);
+  }
 }
 
 import type { GlbMaterialPbrDriveRow } from "./studio-glb-material-param";

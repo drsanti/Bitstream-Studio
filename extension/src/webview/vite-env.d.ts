@@ -14,7 +14,11 @@ declare global {
     /** Host-injected; selects React root when `WEBVIEW_READY` is true. */
     TERNION_WEBVIEW_APP?: "bitstream";
     /** Host-injected when opening Bitstream (`sensor-telemetry` default). */
-    TERNION_BITSTREAM_WORKSPACE?: "sensor-telemetry" | "telemetry" | "sensor-studio";
+    TERNION_BITSTREAM_WORKSPACE?:
+      | "sensor-telemetry"
+      | "telemetry"
+      | "sensor-studio"
+      | "presentation";
     WEBVIEW_READY?: boolean;
     WEBVIEW_BASE_URI?: string;
     ONLINE_ASSETS_BASE_URI?: string;

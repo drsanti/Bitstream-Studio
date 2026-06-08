@@ -57,6 +57,13 @@ function mapCatalogModelOptions(descriptors: readonly StudioAssetDescriptor[]): 
   return listStudioModelDescriptors(descriptors).map(catalogModelSelectOption);
 }
 
+/** Catalog GLB rows only — no None / Custom URL sentinel. */
+export function buildStudioModelCatalogOnlySelectOptions(
+  descriptors: readonly StudioAssetDescriptor[],
+): TRNSelectOption[] {
+  return mapCatalogModelOptions(descriptors);
+}
+
 /** Flow **model-select** node and Stage toolbar — includes **None**. */
 export function buildStudioModelCatalogSelectOptions(
   descriptors: readonly StudioAssetDescriptor[],

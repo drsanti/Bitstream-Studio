@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { TRNSelect } from "../../../../../ui/TRN";
+import { STUDIO_COMPACT_FLOW_SELECT_BUTTON_H7_FULL_WIDTH_CLASS } from "../../components/inspector/inspector-dense-select-button";
 import { useStudioAssetDescriptors } from "../../../asset-browser/useStudioAssetDescriptors";
 import {
   getStudioTextureDescriptorById,
@@ -112,7 +113,7 @@ export function GlbMaterialTextureNodePanel(props: GlbMaterialTextureNodePanelPr
         ariaLabel="Select texture for GLB material map"
         size="sm"
         className={FLOW_NODE_TRN_SELECT_CLASS}
-        buttonClassName="h-7 w-full min-w-0 max-w-full text-[11px]"
+        buttonClassName={STUDIO_COMPACT_FLOW_SELECT_BUTTON_H7_FULL_WIDTH_CLASS}
         panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
       />
     </ReadingPanel>

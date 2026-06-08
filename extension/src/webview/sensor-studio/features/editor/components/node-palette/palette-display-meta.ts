@@ -1,4 +1,5 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
+import { GLB_ANIMATION_FLOW_SHIFT_A_NODE_IDS } from "../../../../config/glb-animation-flow-search-aliases";
 
 /** Blender GN–style display groups (9) over the 7 schema categories. */
 export type PaletteDisplayGroup =
@@ -8,6 +9,7 @@ export type PaletteDisplayGroup =
   | "transform"
   | "logic"
   | "output"
+  | "dashboard"
   | "scene"
   | "animation"
   | "events"
@@ -20,6 +22,7 @@ export const PALETTE_DISPLAY_GROUP_ORDER: PaletteDisplayGroup[] = [
   "transform",
   "logic",
   "output",
+  "dashboard",
   "scene",
   "animation",
   "events",
@@ -33,6 +36,7 @@ export const PALETTE_DISPLAY_GROUP_LABEL: Record<PaletteDisplayGroup, string> = 
   transform: "Transform",
   logic: "Logic",
   output: "Output",
+  dashboard: "Dashboard",
   scene: "Scene",
   animation: "Animation",
   events: "Events",
@@ -61,10 +65,16 @@ export function resolvePaletteDisplayGroup(entry: NodeCatalogEntry): PaletteDisp
     return "logic";
   }
   if (entry.category === "scene") {
+    if (GLB_ANIMATION_FLOW_SHIFT_A_NODE_IDS.has(entry.id)) {
+      return "animation";
+    }
     return "scene";
   }
   if (entry.category === "output") {
     return "output";
+  }
+  if (entry.category === "dashboard") {
+    return "dashboard";
   }
   if (entry.category === "generator") {
     // Generator nodes split: time/signal generators live under Animation; constants live under Data.

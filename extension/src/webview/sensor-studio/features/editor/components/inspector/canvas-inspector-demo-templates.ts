@@ -45,9 +45,34 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
       hint: "Camera Input → Video Texture + Vision Pose (wired Video bus). Enable the camera node and allow browser permission; pose outputs update when MediaPipe model loads.",
     },
     {
+      value: "dashboard-button-led",
+      label: "Dashboard + button",
+      hint: "Sine → **Dashboard Text**; **Dashboard Button** → Set Boolean → **Dashboard LED**; all widgets wired to **Dashboard Output**. Open the **Dashboard** workbench pane (or **Dashboard focus** layout preset).",
+    },
+    {
+      value: "dashboard-controls-demo",
+      label: "Dashboard controls",
+      hint: "Full operator starter — **Switch**, **Slider**, text, gauge, button/LED, and published **Compare** status pill. Open **Dashboard** → **Edit** to drag grid placement and resize spans.",
+    },
+    {
+      value: "dashboard-publish-demo",
+      label: "Dashboard publish",
+      hint: "Sine → **Radial Gauge** + **Numeric Display** + **LED** with **Show on Dashboard** enabled (no Widget wires). Add **Dashboard Output** only — open **Dashboard** or **Operator** layout to preview.",
+    },
+    {
+      value: "dashboard-tabs-demo",
+      label: "Dashboard tabs",
+      hint: "Two **Dashboard Tab** pages wired to **Tabs** on **Dashboard Output** — **Overview** (button + text) and **Trends** (published sparkline). Open **Dashboard** pane to switch tabs.",
+    },
+    {
       value: "stage-scene-output",
       label: "Stage + Scene Output",
       hint: "Model Source (PSoC E84 pack model) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",
+    },
+    {
+      value: "primitives-playground",
+      label: "Primitives playground",
+      hint: "Mesh materials + **Mesh Plane** floor + two **Mesh Sphere** nodes → Scene Output **Meshes** (+ **Environment**). Open **Stage** — no GLB required.",
     },
     {
       value: "stage-camera-vision",
@@ -63,6 +88,21 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
       value: "rotation-glb-anim",
       label: "Rotation + animation",
       hint: "BMI270 Euler → 3D Rotation with **Animation Clips** + **On Click → Play Animation** (pack default model). Bind a clip on the trigger/bundle, then click empty canvas to fire.",
+    },
+    {
+      value: "animation-clip-blend",
+      label: "Animation clip blend",
+      hint: "Model Source → **Model Viewer** with two **Animation Clip** nodes → **Animation Blend** (Sine → Map Range drives **Factor**). Clips auto-bind from the pack GLB when it exposes animations.",
+    },
+    {
+      value: "animation-mix-demo",
+      label: "Animation mix demo",
+      hint: "Model Source (**TESA drone**) → three **Animation Clip** nodes → **Animation Mix** → **Model Viewer**. Sine → Map Range drives the first mix weight socket (**wa**); clips auto-bind when the GLB loads.",
+    },
+    {
+      value: "part-spin-demo",
+      label: "Part spin demo",
+      hint: "Model Source (**TESA drone**) → **Model Viewer** with two **Part Spin** nodes (auto-bind first rotor parts). Sine → Map Range → spin A speed.",
     },
     {
       value: "signal-chain",

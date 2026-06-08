@@ -50,7 +50,7 @@ function landmarkToLocal(
 class StudioVisionLandmarks3dOverlay {
   private byVisionId = new Map<string, NodeMeshes>();
 
-  sync(camera: THREE.PerspectiveCamera, specs: readonly VisionLandmarks3dSpec[]): void {
+  sync(camera: THREE.Camera, specs: readonly VisionLandmarks3dSpec[]): void {
     const active = new Set(specs.map((spec) => spec.visionNodeId));
     for (const [visionNodeId, meshes] of this.byVisionId) {
       if (!active.has(visionNodeId)) {

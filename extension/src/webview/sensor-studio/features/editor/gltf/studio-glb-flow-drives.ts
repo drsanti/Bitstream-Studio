@@ -32,6 +32,14 @@ import {
   readGlbMaterialColorTarget,
   type GlbMaterialColorDriveRow,
 } from "./studio-glb-material-color";
+import { evaluatePartSpinDrive } from "../nodes/scene/part-spin-config";
+import {
+  GLB_PART_TRANSFORM_NODE_ID,
+  readGlbPartTransformFromConfig,
+  readGlbPartTransformPath,
+} from "../nodes/scene/glb-part-transform-config";
+import type { FlowWireTransformV1 } from "../nodes/transform/flow-wire-transform";
+import type { GlbPartSpinDriveRow } from "./studio-glb-preview-runtime";
 
 const GLB_SCALAR_DRIVE_NODE_IDS = new Set<string>([
   "number-constant",
@@ -160,6 +168,76 @@ export function collectGlbScalarDrivesForModel(
   }
 
   return { morphs, lights, anims, parts, materialPbr, cameras };
+}
+
+/**
+ * Continuous part rotation from **`part-spin`** nodes scoped to the active Model.
+ * Later nodes win when multiple drives target the same part path.
+ */
+export function collectGlbPartSpinDrivesForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): Record<string, GlbPartSpinDriveRow> {
+  const spins: Record<string, GlbPartSpinDriveRow> = {};
+  if (sourceModelNodeId.trim().length === 0) {
+    return spins;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== "part-spin") {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const wiredSpeed = n.data.liveInputNumberByHandle?.speed;
+    const wiredEnabled = n.data.liveInputBooleanByHandle?.enabled;
+    const drive = evaluatePartSpinDrive({
+      defaultConfig: n.data.defaultConfig,
+      wired: {
+        speedRadS:
+          typeof wiredSpeed === "number" && Number.isFinite(wiredSpeed)
+            ? wiredSpeed
+            : undefined,
+        enabled:
+          typeof wiredEnabled === "boolean" ? wiredEnabled : undefined,
+      },
+    });
+    if (drive == null) {
+      continue;
+    }
+    spins[drive.partPath] = drive.row;
+  }
+  return spins;
+}
+
+/**
+ * Authored local TRS from **`glb-part-transform`** nodes scoped to the active Model.
+ * Later nodes win when multiple drives target the same part path.
+ */
+export function collectGlbPartTransformDrivesForModel(
+  nodes: readonly FlowNodeLike[],
+  sourceModelNodeId: string,
+  edges?: readonly StudioFlowEdgeLike[],
+): Record<string, FlowWireTransformV1> {
+  const transforms: Record<string, FlowWireTransformV1> = {};
+  if (sourceModelNodeId.trim().length === 0) {
+    return transforms;
+  }
+  for (const n of nodes) {
+    if (n.data.nodeId !== GLB_PART_TRANSFORM_NODE_ID) {
+      continue;
+    }
+    if (!nodeMatchesModelScope(n, sourceModelNodeId, nodes, edges)) {
+      continue;
+    }
+    const partPath = readGlbPartTransformPath(n.data.defaultConfig);
+    if (partPath.length === 0) {
+      continue;
+    }
+    transforms[partPath] = readGlbPartTransformFromConfig(n.data.defaultConfig);
+  }
+  return transforms;
 }
 
 /**

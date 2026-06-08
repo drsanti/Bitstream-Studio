@@ -1,6 +1,14 @@
 import type { NodeCatalogEntry } from "../../../../core/config/config-types";
+import { GLB_ANIMATION_FLOW_SEARCH_ALIASES } from "../../../../config/glb-animation-flow-search-aliases";
+import { MESH_PRIMITIVE_SEARCH_ALIASES } from "../../../../config/mesh-primitive-search-aliases";
 import { VECTOR_QUATERNION_MATH_SEARCH_ALIASES } from "../../../../config/vector-quaternion-math-search-aliases";
 import { getPaletteEntryMeta } from "./palette-entry-meta";
+
+const PALETTE_SEARCH_ALIASES: Readonly<Record<string, readonly string[]>> = {
+  ...VECTOR_QUATERNION_MATH_SEARCH_ALIASES,
+  ...GLB_ANIMATION_FLOW_SEARCH_ALIASES,
+  ...MESH_PRIMITIVE_SEARCH_ALIASES,
+};
 
 function entryMatchesSearchQuery(entry: NodeCatalogEntry, q: string): boolean {
   if (
@@ -10,7 +18,7 @@ function entryMatchesSearchQuery(entry: NodeCatalogEntry, q: string): boolean {
   ) {
     return true;
   }
-  const aliases = VECTOR_QUATERNION_MATH_SEARCH_ALIASES[entry.id];
+  const aliases = PALETTE_SEARCH_ALIASES[entry.id];
   if (aliases != null && aliases.some((term) => term.includes(q) || q.includes(term))) {
     return true;
   }

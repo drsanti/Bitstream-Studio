@@ -18,6 +18,7 @@ export type {
   FlowCanvasGridSize,
   FlowCanvasHandleBorderWidthPx,
   FlowCanvasHandleSizePx,
+  FlowCanvasNodeSelectionRingWidthPx,
   FlowCanvasPreferences,
 } from "../../../persistence/flow-canvas-preferences";
 

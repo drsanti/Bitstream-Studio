@@ -1,14 +1,21 @@
 import type { Viewport } from "@xyflow/react";
 import { Expand, Focus, LayoutGrid, MousePointerClick, RotateCcw } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useCanvasInspectorFocusStore } from "../../../../state/canvas-inspector-focus.store";
 import { TRNButton } from "../../../../../ui/TRN";
 import type { FlowCanvasGridSize, FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
-import { CANVAS_GRID_SIZE_OPTIONS, formatCanvasZoomPercent } from "./canvas-inspector-helpers";
+import {
+  CANVAS_GRID_SIZE_OPTIONS,
+  CANVAS_NODE_SELECTION_RING_WIDTH_OPTIONS,
+  formatCanvasZoomPercent,
+} from "./canvas-inspector-helpers";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import { InspectorColorField } from "./InspectorDenseControls";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
+import { InspectorNumericScrubRow } from "./InspectorNumericScrubRow";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { InspectorSegmentButtonGroup, type InspectorSegmentOption } from "./InspectorSegmentButtonGroup";
+import type { FlowCanvasNodeSelectionRingWidthPx } from "../flow-canvas-ui-persistence";
 import {
   DEFAULT_CANVAS_TAB_CARD_ORDER,
   mergeCanvasTabCardOrder,
@@ -19,6 +26,10 @@ import {
   type CanvasInspectorCanvasTabCardId,
 } from "./canvas-inspector-ui-persistence";
 import { ScrubFieldInspectorPreferences } from "./ScrubFieldInspectorPreferences";
+import type { StagePresentationPreferences } from "../../../stage/stage-presentation-preferences";
+import { StageMeshesOnlyScenePreferencesSection } from "./StageMeshesOnlyScenePreferencesSection";
+import { SensorStudioPerformancePreferencesSection } from "./SensorStudioPerformancePreferencesSection";
+import { useSensorStudioPerformanceStore } from "../../../../state/sensor-studio-performance.store";
 
 export type CanvasInspectorCanvasTabProps = {
   flowViewport?: Viewport | null;
@@ -31,6 +42,10 @@ export type CanvasInspectorCanvasTabProps = {
   flowCanvasPreferences: FlowCanvasPreferences;
   themeCanvasBackgroundColor: string;
   onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;
+  stagePresentationPreferences: StagePresentationPreferences;
+  onStagePresentationPreferencesChange: (
+    patch: Partial<StagePresentationPreferences>,
+  ) => void;
 };
 
 export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
@@ -45,11 +60,17 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
     flowCanvasPreferences,
     themeCanvasBackgroundColor,
     onFlowCanvasPreferencesChange,
+    stagePresentationPreferences,
+    onStagePresentationPreferencesChange,
   } = props;
 
   const effectiveBackgroundHex =
     flowCanvasPreferences.backgroundHex ?? themeCanvasBackgroundColor;
   const usingThemeBackground = flowCanvasPreferences.backgroundHex == null;
+  const performancePreferences = useSensorStudioPerformanceStore((s) => s.preferences);
+  const patchPerformancePreferences = useSensorStudioPerformanceStore(
+    (s) => s.patchPreferences,
+  );
 
   const visibleCardIds = useMemo((): CanvasInspectorCanvasTabCardId[] => {
     const base = DEFAULT_CANVAS_TAB_CARD_ORDER.filter((id) => id !== "workbench");
@@ -63,10 +84,36 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
     () => readCanvasTabCardCollapsed(),
   );
   const [dragId, setDragId] = useState<CanvasInspectorCanvasTabCardId | null>(null);
+  const focusRequest = useCanvasInspectorFocusStore((s) => s.request);
+  const clearFocusRequest = useCanvasInspectorFocusStore((s) => s.clearRequest);
+  const handledFocusNonceRef = useRef(0);
 
   useEffect(() => {
     setCardOrder((prev) => mergeCanvasTabCardOrder(prev, visibleCardIds));
   }, [visibleCardIds]);
+
+  useEffect(() => {
+    if (focusRequest?.expandCardId !== "performance") {
+      return;
+    }
+    const nonce = Date.now();
+    handledFocusNonceRef.current = nonce;
+    setCollapsedById((prev) => {
+      const next = { ...prev, performance: false };
+      writeCanvasTabCardCollapsed(next);
+      return next;
+    });
+    const scrollTimer = window.setTimeout(() => {
+      if (handledFocusNonceRef.current !== nonce) {
+        return;
+      }
+      document
+        .getElementById("canvas-inspector-card-performance")
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      clearFocusRequest();
+    }, 50);
+    return () => window.clearTimeout(scrollTimer);
+  }, [focusRequest, clearFocusRequest]);
 
   const onDropCard = (targetId: CanvasInspectorCanvasTabCardId) => {
     if (dragId == null || dragId === targetId) {
@@ -139,6 +186,21 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
             }
           />
         </div>
+      </CanvasInspectorCard>
+    ),
+    performance: (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-performance"
+        title="Performance"
+        hint="Frame-rate caps and renderer suspension when workbench panes are collapsed."
+        collapsible
+        collapsed={collapsedById.performance}
+        onCollapsedChange={(next) => setCardCollapsed("performance", next)}
+      >
+        <SensorStudioPerformancePreferencesSection
+          preferences={performancePreferences}
+          onPreferencesChange={patchPerformancePreferences}
+        />
       </CanvasInspectorCard>
     ),
     grid: (
@@ -235,12 +297,100 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
       <CanvasInspectorCard
         id="canvas-inspector-card-selection"
         title="Selection"
-        hint="Multi-select helpers on the canvas."
+        hint="Selection ring style, marquee rectangle, and multi-select helpers."
         collapsible
         collapsed={collapsedById.selection}
         onCollapsedChange={(next) => setCardCollapsed("selection", next)}
       >
-        <div className="flex flex-wrap gap-1.5">
+        <InspectorCompactToggleRow
+          label="Node selection ring"
+          hint="Cyan-style outline on selected nodes, groups, notes, and frames."
+          checked={flowCanvasPreferences.showNodeSelectionRing}
+          onCheckedChange={(next) =>
+            onFlowCanvasPreferencesChange({ showNodeSelectionRing: next })
+          }
+        />
+        {flowCanvasPreferences.showNodeSelectionRing ? (
+          <div className="mt-2.5 space-y-2.5 border-t border-zinc-800/60 pt-2.5">
+            <InspectorPropertyRow
+              label="Ring color"
+              description="Stroke color for selected node chrome."
+            >
+              <InspectorColorField
+                ariaLabel="Node selection ring color"
+                value={flowCanvasPreferences.nodeSelectionRingHex}
+                onChange={(next) =>
+                  onFlowCanvasPreferencesChange({ nodeSelectionRingHex: next })
+                }
+              />
+            </InspectorPropertyRow>
+            <InspectorPropertyRow label="Ring width (px)">
+              <InspectorSegmentButtonGroup
+                ariaLabel="Node selection ring width"
+                layout="grid-3"
+                value={flowCanvasPreferences.nodeSelectionRingWidthPx}
+                options={CANVAS_NODE_SELECTION_RING_WIDTH_OPTIONS}
+                onChange={(next) =>
+                  onFlowCanvasPreferencesChange({
+                    nodeSelectionRingWidthPx: next as FlowCanvasNodeSelectionRingWidthPx,
+                  })
+                }
+              />
+            </InspectorPropertyRow>
+            <InspectorNumericScrubRow
+              label="Ring opacity"
+              description="Transparency of the selection ring stroke."
+              ariaLabel="Node selection ring opacity"
+              value={flowCanvasPreferences.nodeSelectionRingOpacity}
+              min={0.15}
+              max={1}
+              step={0.05}
+              fractionDigits={2}
+              onCommit={(next) =>
+                onFlowCanvasPreferencesChange({ nodeSelectionRingOpacity: next })
+              }
+            />
+          </div>
+        ) : null}
+        <div className="mt-2.5 space-y-2.5 border-t border-zinc-800/60 pt-2.5">
+          <InspectorCompactToggleRow
+            label="Marquee rectangle"
+            hint="Show the drag-select box while marquee-selecting nodes on the canvas."
+            checked={flowCanvasPreferences.showMarqueeSelectionRect}
+            onCheckedChange={(next) =>
+              onFlowCanvasPreferencesChange({ showMarqueeSelectionRect: next })
+            }
+          />
+          {flowCanvasPreferences.showMarqueeSelectionRect ? (
+            <>
+              <InspectorPropertyRow
+                label="Marquee color"
+                description="Stroke and fill tint for the drag-select rectangle."
+              >
+                <InspectorColorField
+                  ariaLabel="Marquee selection rectangle color"
+                  value={flowCanvasPreferences.marqueeSelectionHex}
+                  onChange={(next) =>
+                    onFlowCanvasPreferencesChange({ marqueeSelectionHex: next })
+                  }
+                />
+              </InspectorPropertyRow>
+              <InspectorNumericScrubRow
+                label="Marquee opacity"
+                ariaLabel="Marquee selection rectangle opacity"
+                value={flowCanvasPreferences.marqueeSelectionOpacity}
+                min={0.1}
+                max={1}
+                step={0.05}
+                fractionDigits={2}
+                onCommit={(next) =>
+                  onFlowCanvasPreferencesChange({ marqueeSelectionOpacity: next })
+                }
+              />
+            </>
+          ) : null}
+        </div>
+        <div className="mt-2.5 flex flex-wrap gap-1.5 border-t border-zinc-800/60 pt-2.5">
           <TRNButton
             size="compact"
             className="min-w-0 flex-1"
@@ -273,6 +423,25 @@ export function CanvasInspectorCanvasTab(props: CanvasInspectorCanvasTabProps) {
         onCollapsedChange={(next) => setCardCollapsed("numeric-scrub", next)}
       >
         <ScrubFieldInspectorPreferences showValueRules />
+      </CanvasInspectorCard>
+    ),
+    "meshes-only-scene": (
+      <CanvasInspectorCard
+        id="canvas-inspector-card-meshes-only-scene"
+        title="Meshes-only scene"
+        hint="Stage behavior when Scene Output has Meshes wired but no committed Models."
+        collapsible
+        collapsed={collapsedById["meshes-only-scene"]}
+        onCollapsedChange={(next) => setCardCollapsed("meshes-only-scene", next)}
+      >
+        <p className="mb-2.5 text-[10px] leading-snug text-zinc-500">
+          Also under Scene Output node settings and Stage inspector Toolbar → 3D Scene (Stage).
+        </p>
+        <StageMeshesOnlyScenePreferencesSection
+          preferences={stagePresentationPreferences}
+          onPreferencesChange={onStagePresentationPreferencesChange}
+          showHeading={false}
+        />
       </CanvasInspectorCard>
     ),
     workbench:

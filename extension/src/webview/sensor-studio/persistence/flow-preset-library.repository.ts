@@ -1,4 +1,5 @@
 import type { StudioFlowPresetFile } from "../features/editor/flow-library/studio-flow-preset-file";
+import { notifyStudioLibraryWorkspaceChanged } from "./studio-library-workspace-notify";
 import {
   STUDIO_FLOW_PRESET_MARKER,
   STUDIO_FLOW_PRESET_VERSION,
@@ -73,6 +74,7 @@ export function writePersistedFlowPresetLibrary(presets: StudioFlowPresetFile[])
     presets,
   };
   ls.setItem(STORAGE_KEY, JSON.stringify(payload));
+  notifyStudioLibraryWorkspaceChanged();
 }
 
 export function clearPersistedFlowPresetLibrary(): void {

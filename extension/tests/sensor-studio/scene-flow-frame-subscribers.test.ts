@@ -5,6 +5,7 @@ import {
   graphNeedsAudioFrameTick,
   graphNeedsCameraFrameTick,
   graphNeedsSceneFrameTick,
+  graphNeedsSceneFrameTickInDocument,
   nodeIdNeedsSceneFrameTick,
 } from "../../src/webview/sensor-studio/core/flow/scene-flow-frame-subscribers";
 import type { StudioNode } from "../../src/webview/sensor-studio/features/editor/store/flow-editor.store";
@@ -44,6 +45,25 @@ test("graphNeedsSceneFrameTick is true when any subscriber is present", () => {
   assert.equal(graphNeedsSceneFrameTick([canvasNode("plotter"), canvasNode("sensor-input")]), false);
   assert.equal(graphNeedsSceneFrameTick([canvasNode("plotter"), canvasNode("model-viewer")]), true);
   assert.equal(graphNeedsSceneFrameTick([canvasNode("sine-wave")]), true);
+});
+
+test("graphNeedsSceneFrameTickInDocument finds Scene Output on root while editing subgraph", () => {
+  assert.equal(
+    graphNeedsSceneFrameTickInDocument({
+      nodes: [canvasNode("plotter")],
+      rootNodes: [canvasNode("scene-output")],
+      subgraphs: { "group-1": { nodes: [canvasNode("sine-wave")] } },
+    }),
+    true,
+  );
+  assert.equal(
+    graphNeedsSceneFrameTickInDocument({
+      nodes: [canvasNode("plotter")],
+      rootNodes: [],
+      subgraphs: { "group-1": { nodes: [canvasNode("sine-wave")] } },
+    }),
+    true,
+  );
 });
 
 test("graphNeedsAudioFrameTick is true when audio nodes are on the canvas", () => {

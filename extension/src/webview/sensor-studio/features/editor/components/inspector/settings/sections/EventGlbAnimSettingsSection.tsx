@@ -19,6 +19,7 @@ import type { StudioGlbAnimationLoopModeV1 } from "../../../../nodes/animation/f
 import { useStudioGltfExtraction } from "../../../../gltf/useStudioGltfExtraction";
 import { useFlowEditorStore } from "../../../../store/flow-editor.store";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS } from "../../inspector-dense-select-button";
 import { InspectorNumericField } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
@@ -114,7 +115,7 @@ function GlbAnimBindHint(props: {
             }
             size="sm"
             className="min-w-0"
-            buttonClassName="min-h-7 text-[10px]"
+            buttonClassName={STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS}
             panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
             onValueChange={(next) => {
               if (next === GLB_CLIP_UNBOUND || next.trim().length === 0) {
@@ -274,7 +275,7 @@ export function EventTriggerGlbAnimSettingsSection(props: NodeInspectorSettingsS
           options={LOOP_OPTIONS}
           size="sm"
           className="min-w-0"
-          buttonClassName="min-h-7 text-[10px]"
+          buttonClassName={STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS}
           panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
           onValueChange={(next) => {
             props.onUpdateConfigField("loopMode", next as StudioGlbAnimationLoopModeV1);

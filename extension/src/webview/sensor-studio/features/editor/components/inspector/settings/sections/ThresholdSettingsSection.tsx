@@ -2,10 +2,13 @@ import { InspectorSelectRow } from "../../InspectorDenseControls";
 import { InspectorNumericScrubRow } from "../../InspectorNumericScrubRow";
 import { InspectorSettingsSectionFrame } from "../../InspectorSettingsSectionFrame";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
+import { DashboardPublishSettingsSection } from "./DashboardPublishSettingsSection";
+import { DashboardStatusLabelFields } from "./DashboardStatusLabelFields";
 
 export function ThresholdSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
   return (
+    <>
     <InspectorSettingsSectionFrame title="Threshold">
       <InspectorSelectRow
         label="Operator"
@@ -29,6 +32,11 @@ export function ThresholdSettingsSection(props: NodeInspectorSettingsSectionProp
           onUpdateConfigField("value", next);
         }}
       />
+      <div className="mt-3 border-t border-zinc-800/80 pt-3">
+        <DashboardStatusLabelFields {...props} />
+      </div>
     </InspectorSettingsSectionFrame>
+    <DashboardPublishSettingsSection {...props} />
+    </>
   );
 }

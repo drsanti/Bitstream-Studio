@@ -7,6 +7,7 @@ import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
 import { InspectorColorRow } from "../../InspectorDenseControls";
 import { InspectorNumericScrubRow, InspectorTextRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
+import { DashboardPublishSettingsSection } from "./DashboardPublishSettingsSection";
 
 export function LedIndicatorSettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -103,6 +104,7 @@ export function LedIndicatorSettingsSection(props: NodeInspectorSettingsSectionP
           }}
         />
       </InspectorCollapsibleSection>
+      <DashboardPublishSettingsSection {...props} />
     </>
   );
 }

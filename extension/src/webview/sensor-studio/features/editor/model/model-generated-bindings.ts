@@ -26,12 +26,32 @@ export const STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET = new Set<string>(
   STUDIO_GLB_EVENT_ACTION_CATALOG_IDS,
 );
 
+/** Nodes with optional wired **Model** input (model-select `out` → `model`). */
+export const STUDIO_GLB_MODEL_INPUT_CATALOG_IDS = [
+  ...STUDIO_GLB_EVENT_ACTION_CATALOG_IDS,
+  "animation-clip",
+  "part-spin",
+] as const;
+
+export const STUDIO_GLB_MODEL_INPUT_CATALOG_ID_SET = new Set<string>(
+  STUDIO_GLB_MODEL_INPUT_CATALOG_IDS,
+);
+
 export function isGlbEventActionCatalogNodeId(catalogNodeId: string): boolean {
   return STUDIO_GLB_EVENT_ACTION_CATALOG_ID_SET.has(catalogNodeId);
 }
 
+export function catalogNodeHasStudioModelInput(catalogNodeId: string): boolean {
+  return STUDIO_GLB_MODEL_INPUT_CATALOG_ID_SET.has(catalogNodeId);
+}
+
 /** Catalog ids that auto-bind to a lone selected **Model** when added from the palette or canvas drop. */
-export const STUDIO_CATALOG_IDS_SPAWN_LINKED_TO_MODEL: readonly string[] = ["model-viewer", "glb-animation-bundle"];
+export const STUDIO_CATALOG_IDS_SPAWN_LINKED_TO_MODEL: readonly string[] = [
+  "model-viewer",
+  "glb-animation-bundle",
+  "animation-clip",
+  "part-spin",
+];
 
 export function catalogEntrySpawnsLinkedToModel(catalogNodeId: string): boolean {
   return STUDIO_CATALOG_IDS_SPAWN_LINKED_TO_MODEL.includes(catalogNodeId);
@@ -136,7 +156,7 @@ export function resolveStudioModelScopeNodeId(args: {
     const wireHandle =
       args.catalogNodeId === "model-viewer"
         ? "in"
-        : isGlbEventActionCatalogNodeId(args.catalogNodeId)
+        : catalogNodeHasStudioModelInput(args.catalogNodeId)
           ? STUDIO_HANDLE_MODEL
           : undefined;
     if (wireHandle != null) {

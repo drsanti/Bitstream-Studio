@@ -13,8 +13,18 @@ export const SCENE_FRAME_WIRE_NODE_IDS: ReadonlySet<string> = new Set([
   "environment",
   "camera-view",
   "glb-animation-bundle",
+  "animation-clip",
+  "animation-merge",
+  "animation-mix",
+  "animation-blend",
   "object-transform",
   "transform-from-euler",
+]);
+
+/** Mechanical GLB part drives evaluated on scene frame (not animation wires). */
+export const SCENE_FRAME_MECHANICAL_DRIVE_NODE_IDS: ReadonlySet<string> = new Set([
+  "part-spin",
+  "glb-part-transform",
 ]);
 
 /** Commits evaluated scene to the Stage pane (node-animator Scene Output parity). */
@@ -58,6 +68,7 @@ export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
   return (
     SCENE_FRAME_PREVIEW_NODE_IDS.has(nodeId) ||
     SCENE_FRAME_WIRE_NODE_IDS.has(nodeId) ||
+    SCENE_FRAME_MECHANICAL_DRIVE_NODE_IDS.has(nodeId) ||
     SCENE_FRAME_TIME_SOURCE_NODE_IDS.has(nodeId) ||
     SCENE_FRAME_STAGE_NODE_IDS.has(nodeId)
   );
@@ -66,6 +77,25 @@ export function nodeIdNeedsSceneFrameTick(nodeId: string): boolean {
 /** True when the canvas should run Domain B (rAF) ticks in addition to telemetry ticks. */
 export function graphNeedsSceneFrameTick(nodes: ReadonlyArray<Node<StudioNodeData>>): boolean {
   return nodes.some((node) => nodeIdNeedsSceneFrameTick(node.data.nodeId));
+}
+
+/** Scan root buffer, active canvas, and nested subgraph documents for Domain B subscribers. */
+export function graphNeedsSceneFrameTickInDocument(args: {
+  nodes: ReadonlyArray<Node<StudioNodeData>>;
+  rootNodes?: ReadonlyArray<Node<StudioNodeData>>;
+  subgraphs?: Record<string, { nodes: ReadonlyArray<Node<StudioNodeData>> }>;
+}): boolean {
+  const buckets = [
+    args.nodes,
+    args.rootNodes ?? [],
+    ...Object.values(args.subgraphs ?? {}).map((subgraph) => subgraph.nodes),
+  ];
+  for (const list of buckets) {
+    if (graphNeedsSceneFrameTick(list)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function graphNeedsAudioFrameTick(nodes: ReadonlyArray<Node<StudioNodeData>>): boolean {

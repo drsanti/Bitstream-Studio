@@ -18,6 +18,7 @@ import { useWsClientStore } from "../../ws-client-store.js";
 import { isVsCodeExtensionWebview } from "../../isVsCodeExtensionWebview.js";
 import { BitstreamTelemetrySourceField } from "../../bitstream-shell/ui/BitstreamTelemetrySourceField.js";
 import { TRNButton, TRNHintText, TRNSelect } from "../../ui/TRN/index.js";
+import { TRN_GLASS_DROPDOWN_TEXT_CLASS } from "../../ui/components/toolbar-header-dropdown-menu-ui.js";
 import { ConnectionStepCard } from "./ConnectionStepCard.js";
 import { ConnectionUartAllowStrip } from "./ConnectionUartAllowStrip.js";
 import {
@@ -49,7 +50,7 @@ function ConnectionModeToggle(props: {
       ]}
       onValueChange={(v) => props.onChange(v as ConnectionPanelMode)}
       className="w-28"
-      buttonClassName="h-7 border-zinc-700/80 bg-zinc-900/90 text-[11px]"
+      buttonClassName={`h-7 border-zinc-700/80 bg-zinc-900/90 ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
     />
   );
 }
@@ -398,7 +399,7 @@ export function ConnectionPanel() {
                         setSerialPath(v);
                       }}
                       className="mt-1 w-full"
-                      buttonClassName="h-7 font-mono text-[11px]"
+                      buttonClassName={`h-7 font-mono ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
                     />
                   ) : (
                     <input
@@ -420,7 +421,7 @@ export function ConnectionPanel() {
                     options={BAUD_OPTIONS.map((b) => ({ value: b, label: b }))}
                     onValueChange={(v) => setBaudRate(Number(v))}
                     className="mt-1 w-full"
-                    buttonClassName="h-7 font-mono text-[11px]"
+                    buttonClassName={`h-7 font-mono ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
                   />
                 </label>
               </div>

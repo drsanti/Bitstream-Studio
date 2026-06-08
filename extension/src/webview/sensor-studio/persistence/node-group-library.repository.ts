@@ -1,4 +1,5 @@
 import type { StudioNodeAssetFile } from "../features/editor/subgraphs/node-library/studio-node-asset-file";
+import { notifyStudioLibraryWorkspaceChanged } from "./studio-library-workspace-notify";
 import {
   STUDIO_NODE_ASSET_MARKER,
   STUDIO_NODE_ASSET_VERSION,
@@ -74,6 +75,7 @@ export function writePersistedNodeGroupLibrary(assets: StudioNodeAssetFile[]): v
     assets,
   };
   ls.setItem(STORAGE_KEY, JSON.stringify(payload));
+  notifyStudioLibraryWorkspaceChanged();
 }
 
 export function clearPersistedNodeGroupLibrary(): void {

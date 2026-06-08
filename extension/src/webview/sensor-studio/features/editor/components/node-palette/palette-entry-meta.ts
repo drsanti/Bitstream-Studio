@@ -7,6 +7,7 @@ export type PaletteSceneSubgroup =
   | "viewports"
   | "stage"
   | "materials"
+  | "primitives"
   | "animation"
   | "control";
 
@@ -16,6 +17,7 @@ export const PALETTE_SCENE_SUBGROUP_ORDER: PaletteSceneSubgroup[] = [
   "viewports",
   "stage",
   "materials",
+  "primitives",
   "animation",
   "control",
 ];
@@ -25,6 +27,7 @@ const SCENE_SUBGROUP_LABEL: Record<PaletteSceneSubgroup, string> = {
   viewports: "Viewports",
   stage: "Stage",
   materials: "Materials",
+  primitives: "Primitives",
   animation: "Animation",
   control: "Scene control",
 };
@@ -44,7 +47,24 @@ const SCENE_NODE_SUBGROUP: Readonly<Record<string, PaletteSceneSubgroup>> = {
   "glb-material-param": "materials",
   "glb-material-texture": "materials",
   "glb-material-color": "materials",
+  "mesh-material-basic": "materials",
+  "mesh-material-standard": "materials",
+  "mesh-material-physical": "materials",
+  "mesh-material-toon": "materials",
+  "mesh-material-normal": "materials",
+  "mesh-box": "primitives",
+  "mesh-sphere": "primitives",
+  "mesh-plane": "primitives",
+  "mesh-cylinder": "primitives",
+  "mesh-cone": "primitives",
+  "mesh-torus": "primitives",
+  "mesh-capsule": "primitives",
+  "mesh-group": "primitives",
   "glb-animation-bundle": "animation",
+  "animation-clip": "animation",
+  "animation-merge": "animation",
+  "animation-mix": "animation",
+  "animation-blend": "animation",
   "scene-time": "animation",
   "scene-settings": "control",
   "scene-light": "control",

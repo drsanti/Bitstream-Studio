@@ -16,6 +16,7 @@ VS Code extension for **Sensor Telemetry** and **Sensor Studio** (BS2 Bitstream 
 ```text
 Bitstream-Studio/
   extension/     # VS Code extension (npm project root)
+  presentation/  # Standalone training / public-presentation app (see presentation/docs/DEVELOPMENT_PLAN.md)
   .cursor/       # Agent rules + skills (see .cursor/skills/README.md)
 ```
 

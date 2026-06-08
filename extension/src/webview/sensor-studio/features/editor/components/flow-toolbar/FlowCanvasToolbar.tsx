@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { Target, Trash2, Wand2 } from "lucide-react";
 import type { FlowCanvasInteractionMode } from "../../../../persistence/flow-canvas-preferences";
+import { readFlowGraphSocketToolbarRevision } from "../../flow-graph-store-revisions";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import { FlowCanvasInteractionModeButtons } from "./FlowCanvasInteractionModeButtons";
 import {
@@ -26,8 +27,17 @@ export type FlowCanvasToolbarProps = {
 
 export function FlowCanvasToolbar(props: FlowCanvasToolbarProps) {
   const { onFitAll, interactionMode, onInteractionModeChange } = props;
-  const nodes = useFlowEditorStore((s) => s.nodes);
-  const edges = useFlowEditorStore((s) => s.edges);
+  const socketToolbarRevision = useFlowEditorStore((s) =>
+    readFlowGraphSocketToolbarRevision(s.nodes),
+  );
+  const nodes = useMemo(
+    () => useFlowEditorStore.getState().nodes,
+    [socketToolbarRevision],
+  );
+  const edges = useMemo(
+    () => useFlowEditorStore.getState().edges,
+    [socketToolbarRevision],
+  );
   const applyFlowAutoLayout = useFlowEditorStore((s) => s.applyFlowAutoLayout);
   const resetCanvas = useFlowEditorStore((s) => s.resetCanvas);
   const toggleSocketsExpandedForNodes = useFlowEditorStore((s) => s.toggleSocketsExpandedForNodes);

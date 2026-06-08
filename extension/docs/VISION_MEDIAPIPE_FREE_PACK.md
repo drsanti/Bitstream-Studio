@@ -1,6 +1,6 @@
 # Vision MediaPipe pack — free assets + Free Loader
 
-**Status:** In progress (Phase H — free-pack distribution)  
+**Status:** Shipped (Phase H complete)  
 **Related:** [`ASSETS_ONLINE_REPO.md`](./ASSETS_ONLINE_REPO.md), [`CAMERA_NODES_REQUIREMENTS_AND_PLAN.md`](../src/webview/sensor-studio/docs/CAMERA_NODES_REQUIREMENTS_AND_PLAN.md), upstream [`ternion-3d-assets-free`](https://github.com/drsanti/ternion-3d-assets-free)
 
 ## Goal
@@ -74,7 +74,7 @@ Publish to GitHub: commit + push in **`ternion-3d-assets-free`** (use `git push`
 - [x] **H1** — Raw-manifest indexer + manifest generator + stage script  
 - [x] **H2** — Free Loader “Download vision models” + slim prebuild  
 - [x] **H3** — Publish pack to `ternion-3d-assets-free` on GitHub ([`4061528`](https://github.com/drsanti/ternion-3d-assets-free/commit/4061528))  
-- [ ] **H4** — Vision inspector chip when optional models missing; Asset Browser row (optional)
+- [x] **H4** — Vision inspector **Model missing** chip + Asset Browser **Libraries** tab (MediaPipe pack row)
 
 ## Tests
 

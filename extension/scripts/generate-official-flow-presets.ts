@@ -14,12 +14,42 @@ import {
   officialFlowPresetFileName,
   officialFlowPresetIdForTemplate,
 } from "../src/webview/sensor-studio/features/editor/flow-library/demo-template-flow-preset-category";
-import { serializeStudioFlowPresetFile } from "../src/webview/sensor-studio/features/editor/flow-library/studio-flow-preset-file";
+import { OFFICIAL_FLOW_PRESET_OVERRIDE_DIR_NAME } from "../src/webview/sensor-studio/features/editor/flow-library/official-flow-preset-override-paths";
+import {
+  parseStudioFlowPresetFile,
+  serializeStudioFlowPresetFile,
+  type StudioFlowPresetFile,
+} from "../src/webview/sensor-studio/features/editor/flow-library/studio-flow-preset-file";
 import type { StudioDemoTemplateId } from "../src/webview/sensor-studio/features/editor/store/flow-editor.store";
 import { useFlowEditorStore } from "../src/webview/sensor-studio/features/editor/store/flow-editor.store";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = path.resolve(__dirname, "../src/assets/libraries/flow-preset");
+const OVERRIDE_DIR = path.join(OUT_DIR, OFFICIAL_FLOW_PRESET_OVERRIDE_DIR_NAME);
+
+function indexEntryFromPreset(preset: StudioFlowPresetFile, fileName: string) {
+  return {
+    id: preset.meta.id,
+    name: preset.meta.name,
+    category: preset.meta.category,
+    file: fileName,
+    description: preset.meta.description,
+  };
+}
+
+function readMaintainerOverride(fileName: string): StudioFlowPresetFile | null {
+  const overridePath = path.join(OVERRIDE_DIR, fileName);
+  if (!fs.existsSync(overridePath)) {
+    return null;
+  }
+  const text = fs.readFileSync(overridePath, "utf8");
+  const parsed = parseStudioFlowPresetFile(text);
+  if (parsed == null) {
+    console.warn(`skip override ${fileName}: invalid trn-flow-preset`);
+    return null;
+  }
+  return parsed;
+}
 
 function main(): void {
   const catalog = NODE_CATALOG_DEFAULTS.payload.nodes;
@@ -58,6 +88,14 @@ function main(): void {
 
     const fileName = officialFlowPresetFileName(templateId);
     const outPath = path.join(OUT_DIR, fileName);
+    const override = readMaintainerOverride(fileName);
+    if (override != null) {
+      fs.writeFileSync(outPath, `${serializeStudioFlowPresetFile(override)}\n`, "utf8");
+      indexEntries.push(indexEntryFromPreset(override, fileName));
+      console.log(`override ${fileName} (${override.document.nodes.length} nodes)`);
+      continue;
+    }
+
     fs.writeFileSync(outPath, `${serializeStudioFlowPresetFile(preset)}\n`, "utf8");
 
     indexEntries.push({

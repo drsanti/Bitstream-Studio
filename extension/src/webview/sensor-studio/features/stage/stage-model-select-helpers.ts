@@ -60,5 +60,5 @@ export function patchStageFocusedModelCatalogSelect(
       return { ...n, data: { ...n.data, defaultConfig: dc } };
     }),
   }));
-  useFlowEditorStore.getState().tickSimulation();
+  useFlowEditorStore.getState().tickSimulation({ forceStageSnapshot: true });
 }

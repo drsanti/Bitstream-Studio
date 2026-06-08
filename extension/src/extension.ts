@@ -15,6 +15,7 @@ import {
 } from "./ai-bridge-handle";
 import { registerDiagnoseFreePackStorageCommand } from "./commands/diagnoseFreePackStorageCommand";
 import { registerSyncFreePackStorageCommand } from "./commands/syncFreePackStorageCommand";
+import { PresentationPanel } from "./panels/PresentationPanel";
 
 // Module-level status bar items for conditional visibility
 let launchMenuStatusBarItem: vscode.StatusBarItem | undefined;
@@ -376,6 +377,13 @@ export function activate(context: vscode.ExtensionContext) {
     },
   );
 
+  const openPresentationDisposable = vscode.commands.registerCommand(
+    "bitstream-studio.openPresentation",
+    () => {
+      PresentationPanel.createOrShow(context.extensionUri, context);
+    },
+  );
+
   const openInBrowserDisposable = vscode.commands.registerCommand(
     "bitstream-studio.openInBrowser",
     async () => {
@@ -465,6 +473,7 @@ export function activate(context: vscode.ExtensionContext) {
     startBitstreamSimulatorDisposable,
     stopBitstreamSimulatorDisposable,
     openToolsPanelDisposable,
+    openPresentationDisposable,
     openInBrowserDisposable,
     setBrowserAppPortDisposable,
     diagnoseFreePackStorageDisposable,

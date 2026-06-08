@@ -16,7 +16,7 @@ Sensor Studio has **no second workspace header**. Chrome lives on **`BitstreamMa
 
 **Floating footer** (`ShellLinkStatusFooter`): UART / broker / handshake / sensor-cfg / Wi‑Fi pills while link setup is incomplete (+ **Connection…**). Hidden in Studio when link is ready (wire/FPS only in the shell toolbar).
 
-**Flow canvas top-right** (`FlowCanvasTopLeftChrome`): **Studio ☰** only (wire/FPS metrics stay in the shell toolbar). Graph breadcrumb stays top-left when inside a node group.
+**Flow canvas top-right** (`FlowCanvasTopLeftChrome`): **Studio ☰** only (wire/FPS metrics stay in the shell toolbar). **Graph trail** breadcrumb pill is **bottom-center** when drilled into a node group; **hidden on Root**.
 
 **Studio ☰** sections: Workspace (Devices, Assets), Flow graph (duplicate / delete / selection), Flow file (import / export JSON), Workbench layout (`WorkbenchLayoutMenuSections`).
 
@@ -90,12 +90,12 @@ Constants: **`PALETTE_*_ROW_LABEL`** for palette; **`SENSOR_TEMPERATURE_PORT_LAB
 | **Subgroups** | **`PALETTE_SCENE_SUBGROUP_ORDER`**: Sources → Viewports → Stage → Materials → Animation → Scene control |
 | **Subgroup map** | **`SCENE_NODE_SUBGROUP`** in **`palette-entry-meta.ts`** — assign every new scene node |
 | **Layouts** | Sectioned, accordion, two-line, and classic palettes all render scene subgroups via **`palette-subgroup-layout.ts`** |
-| **Library tab** | Internal tab id **`glb`**; operator label **Model** (extract / spawn from linked **Model Source**) |
+| **Model Outliner** | Workbench pane **`model-outliner`** (under Library); GLB extract / spawn — see **`MODEL_OUTLINER.md`** |
 | **Inspector tint** | **`InspectorCategoryIcon`** — **`Layers`** + scene accent (`#818cf8`) |
 
 **Model Source** (`model-select`): canvas shows **model picker only** (no preview card, no linked-node list). Summary + **Focus** actions for linked nodes live in inspector **`StudioModelSettingsSection`**. Default **non-resizable** auto-fit width.
 
-**Model tab spawn hints:** Tex / Clr / Evt side buttons use **`TRNTooltip`** (`triggerWrapper="span"`) — not native **`title`**.
+**Model Outliner spawn hints:** Tex / Clr / Evt side buttons use **`TRNTooltip`** (`triggerWrapper="span"`) — not native **`title`**.
 
 ### Single-output sensor tap nodes (BMI270 / DPS368 / SHT40 / BMM350 taps)
 
@@ -112,7 +112,8 @@ Registry: **`isStudioSensorTapNodeId`**. Previews read **`liveQuaternionWire`**,
 | Rule | Detail |
 | ---- | ------ |
 | **Every scalar output pin** | Live preview on the socket row — **`syncSocketLivePreviewHandlesFromPinValues`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, **`liveStringByHandle`**, **`liveVector3ByHandle`** from evaluated pins |
-| **Bundled wire types** | No scalar preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`**, **`glbAnimation`** |
+| **Bundled wire types** | No scalar preview — **`environment`**, **`camera`**, **`transform`**, **`fog`**, **`studioLight`**, **`postProcessing`**, **`contactShadows`**, **`particleEmitter`**, **`event`** |
+| **Animation (`glbAnimation`)** | **`SocketStructuredWireBadge`** via **`resolveAnimationWireSocketLabel`** — one clip → name; N > 1 → **`name +N`** or **`N clips`**; bundle may append **`· parallel`** / **`· sequence`**; tooltip lists all enabled clip names |
 | **Catalog / wire badges** | **`SocketStructuredWireBadge`** — port-type accent border, **`text-[10px]`**, **`max-w-full min-w-0 truncate`**; CSS ellipsis when the row is narrow; full label when space allows |
 | **Environment / Camera** | Preset / FOV labels from **`resolveEnvironmentWireSocketLabel`** / **`resolveCameraWireSocketLabel`** |
 | **Model Source (string `model` pins)** | **`modelSelectEmitDisplayName`** (catalog / asset label, not URL) on **`model-select` `out`**, **`model-viewer` `in`**, event **`model`** inputs — same badge as Environment; pass full display name (no JS pre-truncate) |
@@ -199,7 +200,30 @@ Live tab content order: **Live readings** → **Diagnostics** (if errors) → **
 
 ## Output socket row layout
 
-Canonical pattern for **all** flow nodes with output handles. Live sensor nodes use the **aligned subgrid** variant; other nodes use the same spacing and handle rules on flex rows.
+Canonical pattern for **catalog** flow nodes with output handles. Two region variants share the same handle rules (**`w-0`** anchor, border-centered plugs, label **`pl-2 pr-3`**).
+
+| Variant | When | Parent region |
+| ------- | ---- | ------------- |
+| **Flex output** | Single-output utility / dataflow nodes (**Policy A**), **Group Input** boundary sockets | **`FlowNodeSocketRegion`** — **`alignRowsToEnd`**, **`equalizeLabelWidth`** + **`showLivePreviewColumn`** when live values are enabled |
+| **Aligned subgrid** | Multi-output live sensor sources only (**`isStudioAlignedOutputSocketColumnsNodeId`**) | **`FlowNodeSocketRegion`** — **`alignedOutputColumns`** |
+
+**Group Input** boundary rows are **electrically outputs** (handle **`type="source"`**, **`Position.Right`**) but represent the group’s **published inputs** — use the **flex output** variant, not the sensor subgrid.
+
+### Column layout (flex — utility + Group Input)
+
+Parent **`FlowNodeSocketRegion`** with **`alignRowsToEnd`** (no **`alignedOutputColumns`**):
+
+```text
+…empty… [ flex-1 items-center justify-end live preview ] [ flex h-6 items-center label pl-2 pr-3 ] [ 0px handle anchor ]
+```
+
+- **Socket wrapper** — **`py-1.5 pl-0 pr-0`** on the body region (same as **`StudioNodeCard`**).
+- **Live preview** — **`leadingPreview`** on **`FlowNodeSocketRow`** `variant="output"`; omit when no finite value (catalog) or show **type chip** when unwired (Group Input only).
+- **Rows with preview** — outer row **`w-full self-stretch`**; inner flex **`min-h-6 items-center`**. Preview column uses **`flex-1 items-center justify-end`** (spacer pushes label + handle to the **right border**); badge wrapper **`min-w-max shrink-0 items-center`** — do **not** drop **`flex-1`** on the preview column or output handles drift left.
+- **Rows without preview** — **`self-end`** / **`w-fit`** packing toward the **right** border.
+- **Vertical alignment** — port label, live badge, and handle column share **`h-6`** + **`items-center`** / **`self-center`** so plugs stay on the row midline (no baseline drift).
+
+Example (Group Input, sim running): **`+2.00`** · **`In`** · **(●)──→**
 
 ### Column layout (live sensor / aligned)
 
@@ -256,8 +280,11 @@ Follow **node-animator** `socketGridLayout` / `SocketHandle` — zero-width anch
 | **`flow-node/flow-node-handles.css`**     | Border-centered handle transform + z-index    |
 | **`flow-node/flow-node-handle-style.ts`** | Port accent inline style                      |
 | **`flow-node/SocketLivePreview.tsx`**     | Compact vec3 / quat / scalar preview          |
+| **`flow-node/SocketStructuredWireBadge.tsx`** | Bundled-wire badges (`material`, `mesh`, …) |
+| **`flow-node/flow-node-socket-preview-chrome-key.ts`** | Fingerprint for socket live-preview width refit |
+| **`flow-node/flow-node-intrinsic-size.ts`** | Header/body/socket intrinsic width measure |
 | **`flow-node/readings/live-reading-colors.ts`** | Scalar semantic tint + live/idle stream tone |
-| **`StudioNodeCard.tsx`**                  | Wires handles, previews, **`handleDotClass`** |
+| **`StudioNodeCard.tsx`**                  | Wires handles, previews, **`handleDotClass`**, auto width sync |
 
 ---
 
@@ -354,6 +381,51 @@ No scalar color helper on vec3/quat rows — axis colors are separate by design.
 - Avoid growing **`StudioNodeCard.tsx`** with one-off shells; extract panels under `nodes/<kind>/`.
 - **Output sockets:** use **Output socket row layout** (above) — especially **`w-0`** handle column, **`overflow-visible`** shell, label **`pl-2 pr-3`**.
 
+### Layout nodes (node groups)
+
+Not catalog nodes — created by **Ctrl+G** / empty group preset / library drag. Do **not** register in **`node-catalog.config.ts`**.
+
+| React Flow type | Role | Canvas card |
+| --------------- | ---- | ----------- |
+| **`studio-node-group`** | Collapsed shell on parent graph | **`NodeGroupLayoutNode`** — dynamic input/target + output/source handles from **`subgraphs[id].interface`** |
+| **`studio-group-input`** | Inner graph entry (one per subgraph) | **`StudioGroupBoundaryCard`** `role="input"` — title **Group Input** |
+| **`studio-group-output`** | Inner graph exit (one per subgraph) | **`StudioGroupBoundaryCard`** `role="output"` — title **Group Output** |
+
+**Creation / chrome** — **`create-studio-node-group.ts`** seeds boundary nodes; **`applyStudioGroupBoundaryNodeChrome`** sets **`draggable: true`**, **`dragHandle: .studio-group-boundary__header`**, **`zIndex: 100`** (headers stay above inner nodes). Fixed card width **200px**, **`rounded-md`** (matches **`FlowNodeShell`**). Styles: **`layout-nodes/subgraph-flow-nodes.css`**.
+
+**Socket semantics (Group Input)**
+
+| UI column | Data | Electrical |
+| --------- | ---- | ---------- |
+| Live value or type chip | Scalar preview or **`portType`** badge | — |
+| Port label | **`interface.inputs[].label`** (e.g. **`In`**) | — |
+| Handle on right border | same socket id | **`source`** — fans out to inner nodes |
+
+**Socket semantics (Group Output)** — mirror **Input socket row layout**: **`target`** handle on left, label, trailing type chip.
+
+**Row implementation** — shared primitives only: **`FlowNodeSocketRegion`**, **`FlowNodeSocketRow`**, **`FlowNodeSocketDot`**, **`SocketLivePreview`** / **`BoundarySocketTypeChip`** in **`GroupBoundarySocketRows.tsx`**. No per-row canvas reorder, inline rename, or **+** add buttons on the card.
+
+**Live values (Group Input)** — during **`tickSimulation`**, **`buildStudioGroupBoundaryLiveFields`** fills **`liveNumberByHandle`**, **`liveBooleanByHandle`**, etc. on boundary node data; UI via **`groupBoundarySocketLivePreview`**. Wired parent feeds resolve through **flattened** eval edges (upstream **output** pin), not only inner target input keys. Unwired defaults: **`applyUnwiredGroupInputDefaults`**.
+
+**Interface editing** — add / remove / rename / reorder / type / default value: **Inspector → Group Sockets** (**`NodeGroupInspectorSection`** / **`GroupSocketSortableList`**) when the shell or a boundary node is selected. Promote crossings: inspector **Promote wired crossings** (not on-card).
+
+**Toolbar exclusions** — boundary nodes are **not** **`studio`** type: socket expand/collapse, live-value toggle, and body-collapse toolbar actions apply to catalog nodes only.
+
+**Excluded from collapse-into-group** — **`isExcludedFromNodeGroup`** (frames, notes, other groups, boundary nodes).
+
+**Key files**
+
+| File | Role |
+| ---- | ---- |
+| **`layout-nodes/StudioGroupBoundaryCard.tsx`** | Boundary shell + socket region wrapper |
+| **`layout-nodes/GroupBoundarySocketRows.tsx`** | Socket rows (flex output / aligned input) |
+| **`layout-nodes/group-boundary-socket-live-preview.tsx`** | Row live readout |
+| **`subgraphs/studio-group-boundary-live.ts`** | Sim pin → boundary live maps |
+| **`subgraphs/studio-group-interface-sync.ts`** | Interface edits sync boundary **`data.interface`** |
+| **`subgraphs/create-studio-node-group.ts`** | Group creation + boundary placement |
+
+Design reference: **`FLOW_SUBGRAPHS.md`**, **`NODE_ANIMATOR_PARITY.md`** Phase 9.
+
 ### Flow node resize (min width / min height)
 
 All studio nodes default to **`ui.resizable`** from **`studioNodeDefaultResizable(nodeId)`** when unset (viewport/output nodes **on**, compact utilities **off**). **Height** auto-fits via **`syncFlowNodeHeightFit`** in **`StudioNodeCard`** when resize is off. **Width** auto-fits when the **display mode** changes (live values, unwired sockets, body visibility) via **`syncStudioNodeWidthFromContentMeasure`**. Manual edge drag requires **`ui.resizable: true`**; toggle in Inspector → **Node → Card size → Manual resize**. Turning resize **off** strips fixed dimensions and re-measures width.
@@ -366,6 +438,7 @@ All studio nodes default to **`ui.resizable`** from **`studioNodeDefaultResizabl
 | **Header width** | **`measureFlowNodeHeaderIntrinsicWidth`** — off-DOM sum of icon + untruncated title + trailing chips + padding; **`max(header, sockets, body)`** sets node width |
 | **Auto width apply** | Non-resizable nodes: sync whenever **`fitW !== currentW`**; resizable nodes: grow on mode change / unset width only |
 | **Header chrome churn** | **`headerChromeKey`** remeasure on label/health/invalid/family/compare/body changes; **`MutationObserver`** on **`data-flow-node-header-measure`** for badge DOM add/remove |
+| **Socket live preview churn** | **Layout remeasure** uses **`resolveFlowNodeSocketPreviewLayoutKey`** (wiring + structured wire badges only — **not** **`liveValue`** / **`live*ByHandle`**). Full fingerprint **`resolveFlowNodeSocketPreviewChromeKey`** includes scalars for diagnostics only. Socket region: **`childList`** **`MutationObserver`** for badge mount; no **`characterData`** observer or socket **`ResizeObserver`** on streaming numbers. **`resolveFlowNodeSocketRegionMinWidthPx`** uses **`max(live columns, full row intrinsic width)`** so wired badges never clip — see **`SENSOR_STUDIO_PERFORMANCE.md`** |
 | **Fit width** | **Shift+W** on canvas selection — manual re-measure (undoable) |
 | **Socket rows** | Inspector → **Node → Socket rows** — live values beside ports + unwired port visibility |
 | **Reset to defaults** | **Shift+R** on canvas selection — restores factory display and re-fits from content (undoable) |
@@ -409,6 +482,8 @@ Homogeneous multi-select applies width/height commits to every selected node of 
 
 ## Adding a new catalog node
 
+**Layout / subgraph nodes** (`studio-node-group`, `studio-group-input`, `studio-group-output`) are **not** catalog entries — follow **Layout nodes (node groups)** above and **`FLOW_SUBGRAPHS.md`**.
+
 1. **`node-catalog.config.ts`** — `defaultConfig`, ports, **`category`** (`sensor` for hardware BMI270/DPS368/SHT40/BMM350 + taps; **`scene`** for 3D model / viewport / stage / material / animation wiring; `input` only for legacy **`sensor-input`**), port **order** and **labels** (e.g. **`Temperature (°C)`** last on BMI270). Operator titles/descriptions: plain language (see **Node Palette — Scene category**).
 2. **Typography** — follow **Typography** (Inter; node title **`text-[13px]`**, socket labels/previews **`11px`**).
 3. **Socket preview kind** — pick one (see **Socket preview taxonomy** below); wire through **`socketLivePreviewForOutputHandle`** / **`socketLivePreviewForInputHandle`** — do not render ad-hoc preview spans on the card.
@@ -417,6 +492,21 @@ Homogeneous multi-select applies width/height commits to every selected node of 
 6. Optional **Settings** section + registry entry.
 7. Optional on-card panel — only if operators need at-a-glance control; **never** duplicate socket state in the header (title stays the catalog node name).
 8. Update **`node-inspector-settings-search.ts`** keywords when the section should appear in Settings filter.
+9. **Auto width** — when the node shows socket live previews, ensure simulation populates the right **`live*Wire`** / **`liveInput*ByHandle`** fields and register bundled port types in **`SOCKET_PREVIEW_STRUCTURED_PORT_TYPES`**; **`StudioNodeCard`** will grow the card on connect — no per-node width hacks.
+10. **Socket row layout** — reuse **`FlowNodeSocketRow`** only; follow **Input** / **Output socket row layout** (border **`w-0`** handles, output preview **`flex-1`**, **`h-6 items-center`**).
+
+### Procedural mesh primitive node (`mesh-box`, `mesh-sphere`, …)
+
+| Item | Rule |
+| ---- | ---- |
+| **Catalog** | Scene → **Primitives**; **`material`** + **`transform`** inputs + dimension **`number`** overrides |
+| **Card body** | **`MeshPrimitiveNodePanel`** — geometry dims only (no transform on card) |
+| **Inspector** | **`MeshPrimitiveSettingsSection`** — geometry block + **`MeshPrimitiveTransformInspectorSection`** (**`TRNTransformSection`**: position, rotation deg, scale) |
+| **Transform write target** | Unwired **`transform`** → embedded **`defaultConfig`** (`version: 1`, position/rotationDeg/scale); wired **`object-transform`** → edits upstream node (same resolver as Stage gizmo **`resolveStageSceneTransformWriteTarget`**) |
+| **Output preview** | **`liveMeshWire`** + **`resolveMeshWireSocketLabel`** → **`SocketStructuredWireBadge`** on **`out`** |
+| **Input previews** | **`liveMaterialWire`** on **`material`**; structured types via **`socket-live-preview-for-handle.tsx`** |
+| **Min dimensions** | Row in **`studio-node-resize-defaults.ts`** if the default floor is too tight |
+| **Tests** | Eval/config tests under **`tests/sensor-studio/`** when adding new primitive kinds |
 
 ### Socket preview taxonomy (canvas)
 
@@ -424,7 +514,7 @@ Homogeneous multi-select applies width/height commits to every selected node of 
 | ---- | ---- | ----------- | -------------- |
 | **Live scalar** | `number` / `boolean` evaluated pins | **`SocketLivePreview`** | Pin value; semantic tint for numbers |
 | **Live vector / quat** | `vector3` / `quaternion` | **`SocketLivePreview`** | Pin value; axis colors |
-| **Catalog / wire badge** | Asset or bundled-wire picks (environment, camera, **Model Source**, future catalog refs) | **`SocketStructuredWireBadge`** | `resolve*WireSocketLabel` or `*EmitDisplayName` helper — **not** raw URLs on the row |
+| **Catalog / wire badge** | Asset or bundled-wire picks (environment, camera, material, mesh, **Model Source**, …) | **`SocketStructuredWireBadge`** | `resolve*WireSocketLabel` or `*EmitDisplayName` helper — **not** raw URLs on the row. Badge: **`inline-flex items-center whitespace-nowrap leading-none`** — node auto-grows width; do not rely on **`truncate`** to clip structured wire labels on the row. |
 | **Generic string** | Opaque string payloads (URLs, ids) with no friendly resolver | **`SocketLivePreview`** `string` | Truncated pin value; full value in **`title`** |
 
 **Row layout (unchanged):** port label (**`Model`**, **`Environment`**) stays on the label column; the badge/preview sits in the preview column (output: before label; input: after label). Example output row: `[badge: Cubemap — park] Environment` — same structure as `[badge: PSoC E84…] Model`.
@@ -490,6 +580,7 @@ Device **`publishMode`** (periodic / on_change / hybrid) controls **how often UA
 
 ## Related docs
 
+- **`FLOW_SUBGRAPHS.md`** — node group data model, drill-in, boundary live values
 - **`FLOW_DOMAINS.md`** — multi-evaluator roadmap (telemetry, scene, events, material)
 - **`extension/docs/DEVELOPMENT_TRACKER.md`** — backlog and shipped work
 - **`NODE_CREATION_RULES.md`** (node-animator) — socket grid and manifest patterns (reference only)

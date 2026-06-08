@@ -28,6 +28,42 @@ export function findLinkedStudioLibraryPreset<
   );
 }
 
+export function patchNodeAssetMeta<
+  T extends {
+    meta: StudioLibraryPresetMeta & {
+      name: string;
+      description?: string;
+      category?: string;
+    };
+  },
+>(
+  library: T[],
+  assetId: string,
+  patch: {
+    name: string;
+    category?: string;
+    description?: string;
+  },
+): T[] | null {
+  const idx = library.findIndex((entry) => entry.meta.id === assetId);
+  if (idx < 0) {
+    return null;
+  }
+  const existing = library[idx]!;
+  const next = [...library];
+  next[idx] = {
+    ...existing,
+    meta: {
+      ...existing.meta,
+      name: patch.name.trim(),
+      description: patch.description,
+      category: patch.category ?? existing.meta.category,
+      updatedAt: new Date().toISOString(),
+    },
+  };
+  return next;
+}
+
 export function upsertStudioLibraryPreset<T extends { meta: StudioLibraryPresetMeta }>(
   library: T[],
   incoming: T,

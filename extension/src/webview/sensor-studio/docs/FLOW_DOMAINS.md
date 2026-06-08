@@ -4,7 +4,7 @@
 
 **Goal:** One React Flow canvas can host **sensor dataflow**, **3D scene control**, **input/event logic**, **material authoring**, and (future) **physics** — but each domain needs its **own evaluation model and tick source**, not a single global loop.
 
-**Related:** [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md) (current dataflow), [`STUDIO_SCENE3D_CONFIG.md`](./STUDIO_SCENE3D_CONFIG.md), [`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](./GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md) (Phase 4+ backlog), [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md), [`../../../../docs/DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md) (*Planned / next → physics domain*).
+**Related:** [`SENSOR_STUDIO_NODE_UI_RULES.md`](./SENSOR_STUDIO_NODE_UI_RULES.md) (current dataflow), [`STUDIO_SCENE3D_CONFIG.md`](./STUDIO_SCENE3D_CONFIG.md), [`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](./GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md) (Phase 4+ backlog), [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md) (Three.js mesh + material nodes backlog), [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md), [`../../../../docs/DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md) (*Planned / next → physics domain*).
 
 ---
 
@@ -36,21 +36,22 @@ Trying to drive **keyboard events**, **per-frame animation**, **UART samples**, 
 | **GLB scalar drives** | Partial | Morph, light, anim time, part visibility, emissive, camera |
 | **Transform graph** | Partial | Quaternion / Euler rotation — not full loc/scale/parent |
 | **Keyboard / mouse in graph** | No | Orbit lives in viewer chrome, not flow nodes |
-| **PBR material graph** | No | Import GLB materials; limited emissive scalar drive |
-| **Physics (flow canvas)** | Planned | Tier D — see [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md) |
-| **Geometry nodes** | No | No procedural mesh DAG |
+| **PBR material graph** | Partial | GLB material drives shipped; standalone **mesh materials** backlog — [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md) |
+| **Physics (flow canvas)** | Partial | Rapier on Stage (B3); full Domain E deferred — [`TIER_D_PHYSICS_FOUNDATION.md`](./TIER_D_PHYSICS_FOUNDATION.md) |
+| **Procedural meshes (Three.js primitives)** | No | Plan captured **2026-06-07** — box/sphere/plane + Stage commit; not a geometry DAG |
 
 Device **`publishMode`** (periodic / on_change / hybrid) controls **UART event rate**, not engine type. See **`extension/src/bitstream2/docs/SENSOR_CFG_V2.md`**.
 
 ---
 
-## Target domains (one canvas, five evaluators)
+## Target domains (one canvas, six evaluators)
 
 ```text
 Telemetry tick   →  Sensor dataflow     (tickSimulation @ sample / graph flush)
 Frame tick       →  Scene + animation   (requestAnimationFrame)
 Event dispatch   →  Input + logic       (exec graph, on demand)
 Material compile →  Shader / PBR DAG    (on edit or bake — not every UART frame)
+Dashboard eval   →  2D operator HMI     (after tickSimulation — grid layout)
 Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PLANNED)
 ```
 
@@ -99,17 +100,34 @@ Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PL
 
 ---
 
-### Domain D — Material / PBR (later)
+### Domain F — UI Dashboard (new)
 
-**Purpose:** Blender **Shader Editor**–like authoring or parameter wiring on imported materials.
+**Purpose:** Node-RED Dashboard–style **2D operator HMI** committed from the flow graph (sensors + logic + 3D on one canvas).
 
 | Item | Detail |
 | ---- | ------ |
-| **v1 (practical)** | Parameter nodes on GLB materials (roughness, emissive, texture swap) |
-| **v2 (large)** | Full node graph → compile to Three.js `MeshStandardMaterial` / node material |
-| **Eval** | On graph edit or explicit bake — **not** tied to telemetry tick |
+| **Trigger** | End of **`tickSimulation()`** (same as Stage snapshot); rAF optional for animated widgets |
+| **Commit node** | **`dashboard-output`** — wired **`dashboardWidget`** pins |
+| **Layout** | CSS grid on Dashboard Output (`columns`, `gap`, `padding`); per-widget `placement` |
+| **Interactions** | Dashboard pane clicks → Domain C event dispatch |
+| **Independence** | Does not read flow-card positions — wired `dashboard-*` widgets plus optional **`publishToDashboard`** on flow output nodes |
 
-**Recommendation:** Ship **parameter wiring** before a full in-app BSDF graph.
+**Canonical:** **`DASHBOARD_VIEWPORT_AND_OUTPUT.md`**.
+
+---
+
+### Domain D — Material / PBR (extend)
+
+**Purpose:** Parameter wiring on **imported GLB materials** and, in a later slice, **standalone mesh materials** for procedural geometry.
+
+| Item | Detail |
+| ---- | ------ |
+| **v1 (shipped)** | `glb-material-param`, `glb-material-color`, `glb-material-texture`, `material-video`; `material-domain-eval.ts` |
+| **v1.5 (partial)** | **`mesh-material-basic`** + **`mesh-material-standard`** shipped **2026-06-07**; more families + primitives backlog — [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md) |
+| **v2 (large)** | Full node graph → compile to Three.js `ShaderMaterial` / node material |
+| **Eval** | rAF coalesced material pass — **not** tied to telemetry tick |
+
+**Recommendation:** Ship **mesh materials + primitives** before a full in-app BSDF graph.
 
 ---
 
@@ -121,7 +139,8 @@ Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PL
 | Keyboard / mouse logic | Yes | No | Domain C — event/exec layer |
 | 3D transform control | Yes | Partial | Domain B — transform wires + rAF tick |
 | GLB animation control | Yes | Partial | Domain B — extend `glbAnimation` + drives |
-| PBR material authoring | Yes | No | Domain D — separate material eval |
+| PBR material authoring | Yes | Partial | Domain D — GLB params shipped; mesh materials backlog |
+| Three.js primitive meshes | Yes | No | Domain B extension — [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md) |
 
 ---
 
@@ -168,14 +187,16 @@ Physics step     →  Rigid bodies + joints (fixed dt, coalesced with rAF — PL
 - [x] Expand GLB drive kinds — part **opacity** (0–1), multi-camera **blend**, scalar drives on **3D Rotation** previews (**2026-05-31** slice 3)
 - [x] Multi-clip playback modes — **`parallel-all`** + **`sequence`** on **GLB Animation Bundle**; inspector **Playback mode**; mixer filter/advance in preview (**2026-05-31** slice 4)
 
-### Phase 4+ — GLB animation flow nodes (backlog)
+### Phase 4+ — GLB animation flow nodes
 
-**Status:** Not started — canonical plan **[`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](./GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md)** (logged **2026-06-02**).
+**Status:** **Phase A shipped 2026-06-06** — canonical plan **[`GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md`](./GLB_ANIMATION_FLOW_IMPLEMENTATION_PLAN.md)** (extended **2026-06-06**: mechanical **Part Spin**, full Blender/glTF channel matrix; Blender IK/drivers/NLA deferred).
 
-- [ ] **Animation Clip** node — per-clip `glbAnimation` wire (time, speed, loop, weight, enabled, trim); spawn from Library **Animations**
-- [ ] **Animation Merge** / **Animation Blend** — combine partial wires; mixer crossfade from wire fades
-- [ ] **Model catalog → Animations** guided workflow (optional wizard + demo templates)
-- [ ] Blender / glTF use-case matrix + export operator doc
+- [x] **Animation Clip** node — per-clip `glbAnimation` wire (time, speed, loop, weight, enabled); spawn from Library **Animations → Clip**
+- [x] **Animation Merge** / **Animation Blend** — combine partial wires; mixer crossfade from wire fades (**2026-06-06** Phase B)
+- [ ] **Part Spin** — continuous per-part rotation (drone propellers, belts); spawn from Library **Parts**
+- [ ] **Model catalog → Animations** guided workflow — **Phase C shipped** (wizard + demo template); optional catalog wizard polish backlog
+- [ ] Full **glTF channel** smoke (armature, object TRS, morph-in-action, static morph) — see plan § R5
+- [ ] Blender / glTF export operator doc
 
 ### Phase 5 — Material parameters (Domain D v1)
 
@@ -193,8 +214,35 @@ Practical **Domain D v2** slice before a full BSDF DAG: separate material evalua
 - [x] **`material-mix`** — blend two numbers with factor; wire into **`glb-material-param`** **Value** (**2026-05-31** slice 1)
 - [x] **`glb-material-param`** — optional wired **Value** input (**2026-05-31** slice 1)
 - [x] Material domain nodes trigger coalesced rAF **`tickSimulation`** via **`graphNeedsMaterialDomainEvalInGraph`** (**2026-05-31**)
-- [ ] Geometry-style mesh ops (backlog)
+- [ ] **Procedural meshes + mesh materials** — canonical plan **[`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md)** (design **2026-06-07**; implementation not started)
+  - [x] Phase 1 — `mesh-material-basic` / `mesh-material-standard` + `FlowWireMaterialV1` (**2026-06-07**)
+  - [x] Phase 2 — `mesh-box` / `mesh-sphere` / `mesh-plane` + `FlowWireMeshV1` (**2026-06-07**)
+  - [x] Phase 3 — Scene Output **`meshes`** + Stage viewport runtime (**2026-06-07**)
+  - [ ] Phase 4 — remaining primitives + `mesh-group`
+  - [ ] Phase 5 — physics / pick glue + demo template
 - [ ] Full shader DAG compile (backlog)
+
+### Phase 2c — Dashboard viewport + Dashboard Output (Domain F)
+
+- [x] Workbench **`dashboard`** pane + **Dashboard focus** layout preset (**2026-06-07**)
+- [x] Catalog **`dashboard-output`** + `evaluateDashboardSnapshot` → `useDashboardSceneStore` (**2026-06-07**)
+- [x] **`dashboard-button`**, **`dashboard-led`**, **`dashboard-text`** widget nodes + grid placement (**2026-06-07**)
+- [x] **`dispatchDashboardWidgetEvent`** (Domain C) for dashboard button clicks (**2026-06-07**)
+- [x] Demo template **`dashboard-button-led`** (**2026-06-07**)
+- [x] **`dashboard-gauge`**, **`dashboard-knob`** widgets (**2026-06-07**)
+- [x] Flex root layout + flex placement on widgets (**2026-06-07**)
+- [x] Dashboard pane **Preview / Edit** + grid overlay + **`DashboardOpenLink`** (**2026-06-07**)
+- [x] **`dashboard-group`** nested grid + **`dashboard-theme`** wire + pane CSS theme vars (**2026-06-07**)
+- [x] **`publishToDashboard`** on flow output nodes (gauge, LED, numeric, knob, bar, sparkline, plotter) + **`dashboardGroupId`** / **`dashboardTabId`** nest + **`dashboard-operator`** preset (**2026-06-07** F4–F6)
+- [x] **`dashboard-tab`** multi-page HMI + layout JSON export (**2026-06-07** F7)
+- [x] Layout JSON import + local save library; plotter follow-wire colors on Dashboard (**2026-06-07** F8)
+- [x] **`dashboard-switch`** / **`dashboard-slider`**; edit-mode grid placement + Stack layout (**2026-06-07** F9)
+- [x] Grid resize handles; **`dashboard-status`** + publish compare/indicator/threshold; **`dashboard-controls-demo`** (**2026-06-07** F10)
+- [x] **Dashboard Inspector** (Overview / Widgets / Controls / Layout); 8-handle resize; edit UX; overlap warnings; tab switcher; **Esc** deselect (**2026-06-07** F11)
+
+Canonical design: **`DASHBOARD_VIEWPORT_AND_OUTPUT.md`**.
+
+---
 
 ### Phase 7 — Physics domain (Domain E) — **deferred (complete later)**
 
@@ -229,9 +277,14 @@ UART vs Simulator telemetry rules (**`bitstream-dual-runtime.mdc`**) apply to Do
 | ------- | ------ | ---------------- |
 | **Telemetry (A)** | `sampleCount` ↑, BMI270 wire tap seq, graph flush, stale-health poll | Sensor inputs, transforms, Plotter history, gauges, health badges |
 | **Scene frame (B)** | `requestAnimationFrame` while `graphNeedsSceneFrameTick()` | `model-viewer`, `rotation-3d-*`, `environment`, `camera-view`, `glb-animation-bundle`, `object-transform`, `transform-from-euler`, `sine-wave` |
-| **Material (D partial)** | Same rAF coalesced loop when `graphNeedsMaterialDomainEvalInGraph()` | `glb-material-param`, `glb-material-texture`, `glb-material-color`, `material-mix` |
+| **Material (D partial)** | Same rAF coalesced loop when `graphNeedsMaterialDomainEvalInGraph()` | `glb-material-param`, `glb-material-texture`, `glb-material-color`, `material-mix`, `material-video`, `mesh-material-basic`, `mesh-material-standard` |
+| **Geometry (B extension, partial)** | Same rAF loop when `graphNeedsGeometryDomainEvalInGraph()` | `mesh-box`, `mesh-sphere`, `mesh-plane`; Phase 3+ `mesh-group`, Stage commit — **`PRIMITIVES_AND_MATERIALS_NODES.md`** |
 
 Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-frame-subscribers.ts`** (catalog). Both triggers coalesce into one rAF **`tickSimulation()`** per display frame. Three.js preview rendering remains in **`StudioSceneViewport`** (separate inner rAF).
+
+### Performance caps and canvas interaction (2026-06-08)
+
+Session prefs (**Inspector → View → Performance**): **`flowSimulationMaxFps`**, **`stage3dMaxFps`**, and **While editing canvas** policy (**Keep running** / **Pause** / **Reduce rate** with drag/pan triggers). **`readFlowInteractionTickGate()`** may block or throttle **`tickSimulation`** during node drag or viewport pan. Live node scalars patch **`useFlowNodeLiveStore`** instead of rewriting the full **`nodes`** array each tick. Full operator guide: **`SENSOR_STUDIO_PERFORMANCE.md`**.
 
 ---
 
@@ -248,6 +301,9 @@ Implementation: **`useSensorStudioFlowTickScheduler`** (app) + **`scene-flow-fra
 
 | Date | Change |
 | ---- | ------ |
+| **2026-06-08** | Performance prefs + canvas interaction tick gate; live store sidecar — [`SENSOR_STUDIO_PERFORMANCE.md`](./SENSOR_STUDIO_PERFORMANCE.md). |
+| **2026-06-07** | Phase 6 **Phase 1 shipped**: `mesh-material-basic`, `mesh-material-standard`, `material` port — [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md). |
+| **2026-06-07** | Phase 6 backlog: Three.js **primitives + mesh materials** plan — [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md). |
 | **2026-05-31** | Phase 6 slice 1: `material-domain-eval`, `glb-material-color`, `material-mix`, GLB **Clr** spawn, wired param **Value**. |
 | **2026-05-31** | Phase 5 slice 3: demo template `material-glb-drives`. |
 | **2026-05-31** | Phase 2: `FlowWireTransformV1`, transform utility nodes, model-viewer + rotation `xf` input. |

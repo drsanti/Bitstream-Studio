@@ -37,6 +37,8 @@ export type FlowNodeEdgeResizeProps = {
   active: boolean;
   minWidth: number;
   minHeight: number;
+  /** When false, only left/right edge handles are shown (height stays content-fitted). */
+  allowHeightResize?: boolean;
   shellRef: RefObject<HTMLElement | null>;
 };
 
@@ -237,7 +239,14 @@ function FlowNodeResizeHandle(props: {
 }
 
 export function FlowNodeEdgeResize(props: FlowNodeEdgeResizeProps) {
-  const { nodeId, active, minWidth, minHeight, shellRef } = props;
+  const {
+    nodeId,
+    active,
+    minWidth,
+    minHeight,
+    allowHeightResize = true,
+    shellRef,
+  } = props;
   const onNodesChange = useFlowEditorStore((s) => s.onNodesChange);
   const zoom = useStore((s) => s.transform[2]);
   const dragBaseRef = useRef<{
@@ -339,13 +348,15 @@ export function FlowNodeEdgeResize(props: FlowNodeEdgeResizeProps) {
         ariaLabel="Resize node from right edge"
         onResizeStart={onResizeStart}
       />
-      <FlowNodeResizeHandle
-        edge="s"
-        className="cursor-s-resize"
-        style={{ left: 0, right: 0, bottom: 0, height: edgeHit }}
-        ariaLabel="Resize node from bottom edge"
-        onResizeStart={onResizeStart}
-      />
+      {allowHeightResize ? (
+        <FlowNodeResizeHandle
+          edge="s"
+          className="cursor-s-resize"
+          style={{ left: 0, right: 0, bottom: 0, height: edgeHit }}
+          ariaLabel="Resize node from bottom edge"
+          onResizeStart={onResizeStart}
+        />
+      ) : null}
     </>
   );
 }

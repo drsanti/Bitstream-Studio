@@ -2,6 +2,7 @@ import { TRNHintText } from "../../../../../ui/TRN";
 import type { NodeInspectorSettingsSectionProps } from "./settings/node-inspector-settings-types";
 import { GlbBundleAnimationControlPanel } from "./settings/sections/GlbBundleAnimationControlPanel";
 import { useGlbAnimationBundleInspector } from "./settings/sections/use-glb-animation-bundle-inspector";
+import { ModelOutlinerOpenLink } from "../../model-outliner/ModelOutlinerOpenLink";
 
 /** GLB Animation Bundle — full animation editor (Animation inspector tab). */
 export function GlbAnimationBundleAnimationInspectorTab(props: NodeInspectorSettingsSectionProps) {
@@ -33,11 +34,18 @@ export function GlbAnimationBundleAnimationInspectorTab(props: NodeInspectorSett
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
-      <div className="shrink-0 rounded-md border border-zinc-700/70 bg-zinc-900/50 px-2.5 py-1.5 text-[10px] text-zinc-400">
-        <span className="font-medium text-zinc-200">{model.connectedEmitName}</span>
-        <span className="text-zinc-600"> · </span>
-        {model.targetStatsLine}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden">
+      <div className="shrink-0 space-y-2 rounded-md border border-zinc-700/70 bg-zinc-900/50 px-2.5 py-1.5 text-[10px] text-zinc-400">
+        <div>
+          <span className="font-medium text-zinc-200">{model.connectedEmitName}</span>
+          <span className="text-zinc-600"> · </span>
+          {model.targetStatsLine}
+        </div>
+        <ModelOutlinerOpenLink
+          label="Browse clips in Outliner"
+          canvasModelId={model.refStatus.modelFlowId}
+          typeFilter="animation"
+        />
       </div>
       <div className="scrollbar-hide flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
         <GlbBundleAnimationControlPanel

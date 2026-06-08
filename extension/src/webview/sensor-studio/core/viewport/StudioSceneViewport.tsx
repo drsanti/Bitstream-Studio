@@ -25,6 +25,15 @@ import {
   resolveStudioModelPackRelativePath,
 } from "../../features/asset-browser/studio-model-scene-bindings";
 import { useStudioAssetDescriptors } from "../../features/asset-browser/useStudioAssetDescriptors";
+import {
+  acquireWebGlRenderLoopSlot,
+  recordWebGlRenderFrame,
+  releaseWebGlRenderLoopSlot,
+} from "../../core/runtime/sensor-studio-performance-telemetry";
+import {
+  minFrameIntervalMs,
+  shouldRunCappedFrame,
+} from "../../persistence/sensor-studio-performance-preferences";
 import { buildCubeMapFaceUrls } from "../../../model-catalog/model-preview-utils";
 import {
   ROTATION_PREVIEW_IBL_OFF_ENV_INTENSITY_FRAC,
@@ -92,7 +101,9 @@ import {
   type GlbMaterialVideoDriveRow,
   type GlbMaterialVideoDriveState,
   applyGlbMorphWeightsToModelRoot,
+  applyGlbPartTransformByPathMap,
   applyGlbPartVisibilityByPathMap,
+  tickGlbPartSpinByPathMap,
   applyStudioCameraFromBlendedGlbCameras,
   buildStudioGlbPathIndex,
   collectEmbeddedGlbCameraNames,
@@ -136,7 +147,15 @@ import {
   cameraDriveKeyFromScene3d,
   frameStudioViewportCamera,
   resetStudioViewportCameraToScene3d,
+  type StudioViewportOrbitCamera,
 } from "./studio-viewport-camera";
+import {
+  applyOrthoZoomFromPerspectiveView,
+  copyStudioViewportCameraPose,
+  createStudioViewportOrthographicCamera,
+  type StudioViewportProjectionMode,
+  updateStudioViewportOrthographicCameraAspect,
+} from "./studio-viewport-projection";
 import { coerceFlowWirePhysicsSceneV1 } from "../../features/editor/nodes/physics/flow-wire-physics-scene";
 import type { StagePhysicsColliderV1 } from "../stage/stage-physics-colliders";
 import {
@@ -144,10 +163,30 @@ import {
   bindStageViewportPickHandler,
   frameStudioViewportOnModelRoots,
   layoutStageModelRootsAlongX,
+  resolveStagePickRootByObjectPath,
   stageMultiModelsLoadKey,
   type StageViewportModelInstance,
   type StageViewportPickDetail,
 } from "./studio-viewport-stage-multi-models";
+import { createStageViewportTransformControlsRuntime } from "./studio-viewport-transform-controls";
+import {
+  applyStudioViewportMousePreset,
+  bindStudioViewportBlenderShiftMiddlePan,
+  type StudioViewportMousePreset,
+} from "./studio-viewport-mouse-preset";
+import {
+  snapStudioViewportOrbitToView,
+  type StudioViewportViewSnapId,
+  type StudioViewportViewSnapMode,
+} from "./studio-viewport-view-snaps";
+import { createStageViewportSelectionHighlightRuntime } from "./studio-viewport-stage-selection-highlight";
+import type { StageMeshEntryV1 } from "../stage/stage-mesh-entry";
+import {
+  createStageProceduralMeshRuntimeState,
+  disposeStageProceduralMeshRuntime,
+  syncStageProceduralMeshes,
+  type StageProceduralMeshRuntimeState,
+} from "./studio-viewport-procedural-meshes";
 import {
   createPreviewPhysicsRuntimeState,
   disposePreviewPhysicsRuntime,
@@ -249,6 +288,31 @@ export type StudioSceneViewportProps = {
   previewScopeId?: string;
   /** Stage only — model pick → Domain C via {@link dispatchStagePickEvent}. */
   onStagePick?: (detail: StageViewportPickDetail) => void;
+  /** Stage only — session projection mode (not scene3d). */
+  viewportProjection?: StudioViewportProjectionMode;
+  /** Stage only — restored ortho zoom from session storage. */
+  viewportOrthoZoom?: number | null;
+  /** Stage only — persist ortho zoom after orbit zoom in orthographic mode. */
+  onViewportOrthoZoomChange?: (zoom: number) => void;
+  /** Stage only — session mouse preset (`three` | `blender`). */
+  viewportMousePreset?: import("./studio-viewport-mouse-preset").StudioViewportMousePreset;
+  /** Stage only — view snap axis mode. */
+  viewportViewSnapMode?: import("./studio-viewport-view-snaps").StudioViewportViewSnapMode;
+  /** SE1 — highlighted object path from Stage selection. */
+  stageSelectionObjectPath?: string | null;
+  /** SE1 — LMB click selection (distinct from orbit drag). */
+  onStageSelect?: (detail: StageViewportPickDetail) => void;
+  onStageClearSelection?: () => void;
+  /** SE2 — show transform gizmo on procedural mesh selection. */
+  stageGizmoEnabled?: boolean;
+  /** SE2 — translate / rotate / scale gizmo mode. */
+  stageGizmoMode?: import("./studio-viewport-gizmo-mode").StudioViewportGizmoMode;
+  /** SE2 — one undo snapshot at gizmo drag start (Edit mode). */
+  onStageTransformBeginDrag?: () => void;
+  /** SE2 — live inspector mirror while dragging (Edit mode). */
+  onStageTransformLiveChange?: (object: THREE.Object3D) => void;
+  /** SE2 — persist gizmo edit to flow graph after drag ends. */
+  onStageTransformCommit?: (object: THREE.Object3D) => void;
   /** Live vision inference status chips (pose / hands / face / object). */
   visionHudNodes?: readonly FlowGraphNode[];
   /** Flow edges for vision skeleton overlay bus resolution. */
@@ -258,6 +322,10 @@ export type StudioSceneViewportProps = {
     targetHandle?: string | null;
     sourceHandle?: string | null;
   }[];
+  /** When false, the WebGL rAF loop suspends (workbench pane collapsed / hidden). Default true. */
+  renderLoopActive?: boolean;
+  /** `0` = unlimited. Caps render loop rate for slow GPUs. */
+  maxRenderFps?: import("../../persistence/sensor-studio-performance-preferences").SensorStudioMaxFpsPreset;
 };
 
 /** Stable identity — avoids reload loops when `model.url` toggles relative path vs resolved fetch URL. */
@@ -480,8 +548,14 @@ function applyOrbitControlsFromScene3d(
 export type StudioSceneViewportHandle = {
   /** Frame orbit camera on the loaded GLB root. */
   framePrimaryModel: () => void;
+  /** Frame orbit camera on the Stage selection, else primary model. */
+  frameSelection: () => void;
   /** Restore camera + target from current `scene3d` rig. */
   resetCameraToScene3d: () => void;
+  /** Snap orbit to a cardinal view (VN1). */
+  snapToView: (
+    snap: import("./studio-viewport-view-snaps").StudioViewportViewSnapId,
+  ) => void;
 };
 
 /**
@@ -492,8 +566,90 @@ export const StudioSceneViewport = forwardRef<
   StudioSceneViewportHandle,
   StudioSceneViewportProps
 >(function StudioSceneViewport(props, ref) {
-  const { title, emptyHint, presentation = "flow-node", previewScopeId } = props;
+  const {
+    title,
+    emptyHint,
+    presentation = "flow-node",
+    previewScopeId,
+    viewportProjection,
+    viewportOrthoZoom,
+    onViewportOrthoZoomChange,
+    viewportMousePreset,
+    viewportViewSnapMode,
+    stageSelectionObjectPath,
+    onStageSelect,
+    onStageClearSelection,
+    stageGizmoEnabled,
+    stageGizmoMode,
+    onStageTransformBeginDrag,
+    onStageTransformLiveChange,
+    onStageTransformCommit,
+    renderLoopActive = true,
+    maxRenderFps = 0,
+  } = props;
   const stageFullBleed = presentation === "stage-fullbleed";
+  const renderLoopActiveRef = useRef(renderLoopActive);
+  const maxRenderFpsRef = useRef(maxRenderFps);
+  const resumeRenderLoopRef = useRef<(() => void) | null>(null);
+  renderLoopActiveRef.current = renderLoopActive;
+  maxRenderFpsRef.current = maxRenderFps;
+  useEffect(() => {
+    if (renderLoopActive) {
+      resumeRenderLoopRef.current?.();
+    }
+  }, [renderLoopActive]);
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (typeof document === "undefined" || document.hidden) {
+        return;
+      }
+      if (renderLoopActiveRef.current) {
+        resumeRenderLoopRef.current?.();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+  const viewportProjectionRef = useRef<StudioViewportProjectionMode>(
+    stageFullBleed ? (viewportProjection ?? "perspective") : "perspective",
+  );
+  const viewportOrthoZoomRef = useRef<number | null>(viewportOrthoZoom ?? null);
+  const onViewportOrthoZoomChangeRef = useRef(onViewportOrthoZoomChange);
+  viewportProjectionRef.current = stageFullBleed
+    ? (viewportProjection ?? "perspective")
+    : "perspective";
+  viewportOrthoZoomRef.current = viewportOrthoZoom ?? null;
+  onViewportOrthoZoomChangeRef.current = onViewportOrthoZoomChange;
+  const viewportMousePresetRef = useRef<StudioViewportMousePreset>(
+    stageFullBleed ? (viewportMousePreset ?? "three") : "three",
+  );
+  const viewportViewSnapModeRef = useRef<StudioViewportViewSnapMode>(
+    stageFullBleed ? (viewportViewSnapMode ?? "camera-relative") : "camera-relative",
+  );
+  const stageSelectionObjectPathRef = useRef<string | null>(
+    stageSelectionObjectPath ?? null,
+  );
+  const onStageSelectRef = useRef(onStageSelect);
+  const onStageClearSelectionRef = useRef(onStageClearSelection);
+  const stageGizmoEnabledRef = useRef(stageGizmoEnabled === true);
+  const stageGizmoModeRef = useRef(stageGizmoMode ?? "translate");
+  const onStageTransformBeginDragRef = useRef(onStageTransformBeginDrag);
+  const onStageTransformLiveChangeRef = useRef(onStageTransformLiveChange);
+  const onStageTransformCommitRef = useRef(onStageTransformCommit);
+  viewportMousePresetRef.current = stageFullBleed
+    ? (viewportMousePreset ?? "three")
+    : "three";
+  viewportViewSnapModeRef.current = stageFullBleed
+    ? (viewportViewSnapMode ?? "camera-relative")
+    : "camera-relative";
+  stageSelectionObjectPathRef.current = stageSelectionObjectPath ?? null;
+  onStageSelectRef.current = onStageSelect;
+  onStageClearSelectionRef.current = onStageClearSelection;
+  stageGizmoEnabledRef.current = stageGizmoEnabled === true;
+  stageGizmoModeRef.current = stageGizmoMode ?? "translate";
+  onStageTransformBeginDragRef.current = onStageTransformBeginDrag;
+  onStageTransformLiveChangeRef.current = onStageTransformLiveChange;
+  onStageTransformCommitRef.current = onStageTransformCommit;
   const previewScopeKey = previewScopeId ?? (stageFullBleed ? "stage-fullbleed" : title);
   const previewScopeKeyRef = useRef(previewScopeKey);
   previewScopeKeyRef.current = previewScopeKey;
@@ -502,7 +658,9 @@ export const StudioSceneViewport = forwardRef<
     ref,
     () => ({
       framePrimaryModel: () => viewportApiRef.current?.framePrimaryModel(),
+      frameSelection: () => viewportApiRef.current?.frameSelection(),
       resetCameraToScene3d: () => viewportApiRef.current?.resetCameraToScene3d(),
+      snapToView: (snap) => viewportApiRef.current?.snapToView(snap),
     }),
     [],
   );
@@ -543,6 +701,15 @@ export const StudioSceneViewport = forwardRef<
   const glbAnimPlaybackModePrevRef =
     useRef<StudioGlbAnimationPlaybackModeV1>("per-clip");
   const glbPartsRef = useRef<Record<string, number>>({});
+  const glbPartTransformsRef = useRef<
+    Record<
+      string,
+      import("../../features/editor/nodes/transform/flow-wire-transform").FlowWireTransformV1
+    >
+  >({});
+  const glbPartSpinsRef = useRef<
+    Record<string, { axis: "x" | "y" | "z"; speedRadS: number; enabled: boolean }>
+  >({});
   const glbMaterialPbrRef = useRef<Record<string, GlbMaterialPbrDriveRow>>({});
   const glbMaterialTexturesRef = useRef<
     Record<string, GlbMaterialTextureDriveRow>
@@ -569,6 +736,14 @@ export const StudioSceneViewport = forwardRef<
     glbAnimationClipOrder?: string[];
     glbAnimationInspectorTransportActive?: boolean;
     glbPartVisibilityByPath?: Record<string, number>;
+    glbPartTransformByPath?: Record<
+      string,
+      import("../../features/editor/nodes/transform/flow-wire-transform").FlowWireTransformV1
+    >;
+    glbPartSpinByPath?: Record<
+      string,
+      { axis: "x" | "y" | "z"; speedRadS: number; enabled: boolean }
+    >;
     glbMaterialPbrByName?: Record<string, GlbMaterialPbrDriveRow>;
     glbMaterialTexturesByName?: Record<string, GlbMaterialTextureDriveRow>;
     glbMaterialVideosByName?: Record<string, GlbMaterialVideoDriveRow>;
@@ -596,6 +771,8 @@ export const StudioSceneViewport = forwardRef<
     glbAnimPlaybackModePrevRef.current = glbAnimPlaybackModeRef.current;
   }
   glbPartsRef.current = scenePropsGlb.glbPartVisibilityByPath ?? {};
+  glbPartTransformsRef.current = scenePropsGlb.glbPartTransformByPath ?? {};
+  glbPartSpinsRef.current = scenePropsGlb.glbPartSpinByPath ?? {};
   glbMaterialPbrRef.current = scenePropsGlb.glbMaterialPbrByName ?? {};
   glbMaterialTexturesRef.current =
     scenePropsGlb.glbMaterialTexturesByName ?? {};
@@ -674,6 +851,7 @@ export const StudioSceneViewport = forwardRef<
   const stageSceneProps = props.sceneProps as RotationPreviewSceneProps & {
     stageModelInstances?: StageViewportModelInstance[];
     stagePrimaryModelIndex?: number;
+    stageProceduralMeshes?: StageMeshEntryV1[];
   };
   const stageModelsRef = useRef(stageSceneProps.stageModelInstances);
   const stagePrimaryIndexRef = useRef(
@@ -701,6 +879,9 @@ export const StudioSceneViewport = forwardRef<
   stagePhysicsCollidersRef.current = Array.isArray(stageSceneProps.stagePhysicsColliders)
     ? (stageSceneProps.stagePhysicsColliders as StagePhysicsColliderV1[])
     : [];
+
+  const stageProceduralMeshesRef = useRef(stageSceneProps.stageProceduralMeshes);
+  stageProceduralMeshesRef.current = stageSceneProps.stageProceduralMeshes;
 
   const onStagePickRef = useRef(props.onStagePick);
   onStagePickRef.current = props.onStagePick;
@@ -791,6 +972,13 @@ export const StudioSceneViewport = forwardRef<
       );
 
       const scene = new THREE.Scene();
+      const selectionHighlight =
+        stageFullBleed ? createStageViewportSelectionHighlightRuntime(scene) : null;
+      let transformControls: ReturnType<
+        typeof createStageViewportTransformControlsRuntime
+      > | null = null;
+      let unbindBlenderShiftPan: (() => void) | null = null;
+      let blenderShiftPanBound = false;
       const fogRuntime = createPreviewFogRuntimeState();
       const contactShadowRuntime = createPreviewContactShadowRuntimeState();
       const bloomRuntime = createPreviewBloomRuntimeState();
@@ -953,24 +1141,29 @@ export const StudioSceneViewport = forwardRef<
         }
       };
 
-      const camera = new THREE.PerspectiveCamera(
+      const perspectiveCamera = new THREE.PerspectiveCamera(
         scene3dRef.current.camera.fovDeg,
         1,
         0.01,
         200,
       );
+      const orthographicCamera = createStudioViewportOrthographicCamera(1, 0.01, 2000);
+      let activeCamera: StudioViewportOrbitCamera = perspectiveCamera;
+      let appliedProjectionMode: StudioViewportProjectionMode = "perspective";
+      let cameraHelper: THREE.CameraHelper | null = null;
+
       const css3dWorldRuntime: StudioViewportCss3dWorldRuntime =
         createStudioViewportCss3dWorldRuntime({
           host,
-          getCamera: () => camera,
+          getCamera: () => activeCamera,
         });
-      camera.position.set(
+      perspectiveCamera.position.set(
         scene3dRef.current.camera.transform.position.x,
         scene3dRef.current.camera.transform.position.y,
         scene3dRef.current.camera.transform.position.z,
       );
 
-      const controls = new OrbitControls(camera, renderer.domElement);
+      const controls = new OrbitControls(perspectiveCamera, renderer.domElement);
       applyOrbitControlsFromScene3d(controls, scene3dRef.current.controls);
       controls.target.set(
         scene3dRef.current.camera.transform.target.x,
@@ -978,6 +1171,96 @@ export const StudioSceneViewport = forwardRef<
         scene3dRef.current.camera.transform.target.z,
       );
       controls.update();
+
+      if (stageFullBleed) {
+        transformControls = createStageViewportTransformControlsRuntime({
+          camera: activeCamera,
+          domElement: canvas,
+          scene,
+          orbitControls: controls,
+          onBeginDrag: () => {
+            onStageTransformBeginDragRef.current?.();
+          },
+          onLiveChange: (object) => {
+            onStageTransformLiveChangeRef.current?.(object);
+          },
+          onCommit: (object) => {
+            onStageTransformCommitRef.current?.(object);
+          },
+        });
+      }
+
+      const refreshCameraHelperForActiveCamera = (): void => {
+        if (cameraHelper == null) {
+          return;
+        }
+        scene.remove(cameraHelper);
+        cameraHelper.dispose();
+        cameraHelper = new THREE.CameraHelper(activeCamera);
+        scene.add(cameraHelper);
+        disableShadowOnObjectSubtree(cameraHelper);
+      };
+
+      const persistOrthoZoomIfNeeded = (): void => {
+        if (
+          appliedProjectionMode !== "orthographic" ||
+          !(activeCamera instanceof THREE.OrthographicCamera)
+        ) {
+          return;
+        }
+        onViewportOrthoZoomChangeRef.current?.(activeCamera.zoom);
+      };
+
+      const applyViewportProjectionMode = (
+        mode: StudioViewportProjectionMode,
+        opts?: { storedOrthoZoom?: number | null },
+      ): void => {
+        if (!stageFullBleed || mode === appliedProjectionMode) {
+          return;
+        }
+        const storedOrthoZoom =
+          opts?.storedOrthoZoom ?? viewportOrthoZoomRef.current;
+        if (mode === "orthographic") {
+          copyStudioViewportCameraPose(activeCamera, orthographicCamera);
+          applyOrthoZoomFromPerspectiveView(orthographicCamera, {
+            distance: orthographicCamera.position.distanceTo(controls.target),
+            fovDeg: perspectiveCamera.fov,
+            storedZoom: storedOrthoZoom,
+          });
+          activeCamera = orthographicCamera;
+          controls.object = orthographicCamera;
+        } else {
+          copyStudioViewportCameraPose(activeCamera, perspectiveCamera);
+          activeCamera = perspectiveCamera;
+          controls.object = perspectiveCamera;
+        }
+        appliedProjectionMode = mode;
+        controls.update();
+        refreshCameraHelperForActiveCamera();
+      };
+
+      controls.addEventListener("end", persistOrthoZoomIfNeeded);
+
+      if (stageFullBleed && viewportProjectionRef.current === "orthographic") {
+        applyViewportProjectionMode("orthographic", {
+          storedOrthoZoom: viewportOrthoZoomRef.current,
+        });
+      }
+
+      if (stageFullBleed) {
+        applyStudioViewportMousePreset(
+          controls,
+          scene3dRef.current.controls,
+          viewportMousePresetRef.current,
+        );
+        if (viewportMousePresetRef.current === "blender") {
+          unbindBlenderShiftPan = bindStudioViewportBlenderShiftMiddlePan(
+            renderer.domElement,
+            controls,
+          );
+          blenderShiftPanBound = true;
+        }
+      }
 
       const ambient = new THREE.AmbientLight(
         parseHexToThreeColor(scene3dRef.current.lights.ambient.colorHex),
@@ -1154,7 +1437,6 @@ export const StudioSceneViewport = forwardRef<
         }
       };
 
-      let cameraHelper: THREE.CameraHelper | null = null;
       const maybeUpdateCameraHelper = () => {
         const s = scene3dRef.current;
         if (!s.helpers.camera.enabled) {
@@ -1166,7 +1448,7 @@ export const StudioSceneViewport = forwardRef<
           return;
         }
         if (cameraHelper == null) {
-          cameraHelper = new THREE.CameraHelper(camera);
+          cameraHelper = new THREE.CameraHelper(activeCamera);
           scene.add(cameraHelper);
           disableShadowOnObjectSubtree(cameraHelper);
         }
@@ -1253,6 +1535,8 @@ export const StudioSceneViewport = forwardRef<
       let stageMultiLoadGen = 0;
       let stageAnimHostUuid: string | null = null;
       const physicsRuntime: PreviewPhysicsRuntimeState = createPreviewPhysicsRuntimeState();
+      const proceduralMeshRuntime: StageProceduralMeshRuntimeState =
+        createStageProceduralMeshRuntimeState();
       let unbindStagePick: (() => void) | null = null;
       let animationMixer: THREE.AnimationMixer | null = null;
       const clipActions = new Map<string, THREE.AnimationAction>();
@@ -1393,23 +1677,41 @@ export const StudioSceneViewport = forwardRef<
 
       const getStagePickTargets = () => {
         const instances = stageModelsRef.current ?? [];
+        const targets: Array<{
+          root: THREE.Object3D;
+          modelIndex: number;
+          sourceNodeId: string;
+        }> = [];
         if (stageMultiRoots.length > 0) {
-          return stageMultiRoots.map((root, i) => ({
-            root,
-            modelIndex: i,
-            sourceNodeId: instances[i]?.sourceNodeId ?? "",
-          }));
+          stageMultiRoots.forEach((root, i) => {
+            targets.push({
+              root,
+              modelIndex: i,
+              sourceNodeId: instances[i]?.sourceNodeId ?? "",
+            });
+          });
+        } else if (modelRoot != null) {
+          targets.push({
+            root: modelRoot,
+            modelIndex: 0,
+            sourceNodeId: instances[0]?.sourceNodeId ?? "",
+          });
         }
-        if (modelRoot != null) {
-          return [
-            {
-              root: modelRoot,
-              modelIndex: 0,
-              sourceNodeId: instances[0]?.sourceNodeId ?? "",
-            },
-          ];
-        }
-        return [];
+        const procMeshes = proceduralMeshRuntime.group.children.filter(
+          (c): c is THREE.Mesh => (c as THREE.Mesh).isMesh === true,
+        );
+        procMeshes.forEach((mesh, i) => {
+          const sourceNodeId =
+            typeof mesh.userData.stageSourceNodeId === "string"
+              ? mesh.userData.stageSourceNodeId
+              : "";
+          targets.push({
+            root: mesh,
+            modelIndex: instances.length + i,
+            sourceNodeId,
+          });
+        });
+        return targets;
       };
 
       const getStageDriveRoot = (): THREE.Object3D | null => {
@@ -1421,6 +1723,24 @@ export const StudioSceneViewport = forwardRef<
           Math.min(stagePrimaryIndexRef.current, stageMultiRoots.length - 1),
         );
         return stageMultiRoots[idx] ?? stageMultiRoots[0] ?? null;
+      };
+
+      const frameStageSelectionOrPrimary = (): void => {
+        const path = stageSelectionObjectPathRef.current;
+        if (path != null) {
+          const root = resolveStagePickRootByObjectPath(path, getStagePickTargets());
+          if (root != null) {
+            frameStudioViewportCamera({
+              camera: activeCamera,
+              controls,
+              object: root,
+              margin: scene3dRef.current.camera.frameMargin,
+              fovDeg: scene3dRef.current.camera.fovDeg,
+            });
+            return;
+          }
+        }
+        viewportApiRef.current?.framePrimaryModel();
       };
 
       const updateStageViewportApi = (frameRoots: readonly THREE.Object3D[]) => {
@@ -1440,39 +1760,61 @@ export const StudioSceneViewport = forwardRef<
               const one = stageMultiRoots[idx];
               if (one != null) {
                 frameStudioViewportCamera({
-                  camera,
+                  camera: activeCamera,
                   controls,
                   object: one,
                   margin: scene3dRef.current.camera.frameMargin,
+                  fovDeg: scene3dRef.current.camera.fovDeg,
                 });
               }
               return;
             }
-            if (modelRoot == null) {
+            if (modelRoot != null) {
+              frameStudioViewportCamera({
+                camera: activeCamera,
+                controls,
+                object: modelRoot,
+                margin: scene3dRef.current.camera.frameMargin,
+                fovDeg: scene3dRef.current.camera.fovDeg,
+              });
               return;
             }
-            frameStudioViewportCamera({
-              camera,
-              controls,
-              object: modelRoot,
-              margin: scene3dRef.current.camera.frameMargin,
-            });
+            const procChildren = proceduralMeshRuntime.group.children;
+            if (procChildren.length > 0) {
+              frameStudioViewportOnModelRoots({
+                camera: activeCamera,
+                controls,
+                roots: procChildren,
+                margin: scene3dRef.current.camera.frameMargin,
+                fovDeg: scene3dRef.current.camera.fovDeg,
+              });
+            }
           },
           resetCameraToScene3d: () => {
             lastCameraDriveKey = resetStudioViewportCameraToScene3d({
-              camera,
+              camera: activeCamera,
               controls,
               scene3d: scene3dRef.current,
             });
             prevGlbCamActive = false;
           },
+          frameSelection: frameStageSelectionOrPrimary,
+          snapToView: (snap: StudioViewportViewSnapId) => {
+            snapStudioViewportOrbitToView({
+              camera: activeCamera,
+              controls,
+              snap,
+              mode: viewportViewSnapModeRef.current,
+            });
+          },
         };
         if (frameRoots.length > 0) {
           frameStudioViewportOnModelRoots({
-            camera,
+            camera: activeCamera,
             controls,
             roots: frameRoots,
             margin: scene3dRef.current.camera.frameMargin,
+            fovDeg: scene3dRef.current.camera.fovDeg,
           });
         }
       };
@@ -1663,10 +2005,16 @@ export const StudioSceneViewport = forwardRef<
         if (urlAtStart.trim().length === 0) {
           inflightModelKey = null;
           loadedModelKey = reasonKey;
-          setInitError(
-            emptyHintRef.current ??
-              "No model URL — wire a Model Source node or pick a model in the inspector.",
-          );
+          const hasProceduralMeshes =
+            (stageProceduralMeshesRef.current?.length ?? 0) > 0;
+          if (hasProceduralMeshes) {
+            setInitError(null);
+          } else {
+            setInitError(
+              emptyHintRef.current ??
+                "No model URL — wire a Model Source node or pick a model in the inspector.",
+            );
+          }
           return;
         }
 
@@ -1786,8 +2134,10 @@ export const StudioSceneViewport = forwardRef<
           renderer.setSize(w, h, false);
         }
         css3dWorldRuntime.resize(w, h);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
+        const aspect = w / h;
+        perspectiveCamera.aspect = aspect;
+        perspectiveCamera.updateProjectionMatrix();
+        updateStudioViewportOrthographicCameraAspect(orthographicCamera, aspect);
       };
 
       const scheduleResize = () => {
@@ -1811,21 +2161,79 @@ export const StudioSceneViewport = forwardRef<
       if (stageFullBleed) {
         unbindStagePick = bindStageViewportPickHandler({
           canvas,
-          camera,
+          getCamera: () => activeCamera,
           getPickTargets: getStagePickTargets,
           onPick: (detail) => {
             onStagePickRef.current?.(detail);
+          },
+          onSelect: (detail) => {
+            onStageSelectRef.current?.(detail);
+          },
+          onClearSelection: () => {
+            onStageClearSelectionRef.current?.();
           },
         });
       }
 
       let raf = 0;
+      let loopScheduled = false;
+      let lastRenderFrameMs = 0;
       let lastCameraDriveKey = cameraDriveKeyFromScene3d(scene3dRef.current);
       /** Previous frame's GLB camera drive winner; used to detect handoff back to `scene3d` rig. */
       let prevGlbCamActive = false;
       let lastPerfMs = performance.now();
+
+      let webGlLoopSlotHeld = false;
+
+      const scheduleRenderLoop = () => {
+        if (loopScheduled || disposed) {
+          return;
+        }
+        loopScheduled = true;
+        if (!webGlLoopSlotHeld) {
+          webGlLoopSlotHeld = true;
+          acquireWebGlRenderLoopSlot();
+        }
+        raf = requestAnimationFrame(loop);
+      };
+
+      const stopRenderLoop = () => {
+        loopScheduled = false;
+        if (raf !== 0) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+        if (webGlLoopSlotHeld) {
+          webGlLoopSlotHeld = false;
+          releaseWebGlRenderLoopSlot();
+        }
+      };
+
+      resumeRenderLoopRef.current = () => {
+        if (!renderLoopActiveRef.current || disposed) {
+          return;
+        }
+        scheduleRenderLoop();
+      };
+
       const loop = () => {
+        loopScheduled = false;
+        if (disposed) {
+          return;
+        }
+        if (!renderLoopActiveRef.current || (typeof document !== "undefined" && document.hidden)) {
+          return;
+        }
+
         const nowMs = performance.now();
+        const minIntervalMs = minFrameIntervalMs(maxRenderFpsRef.current);
+        if (!shouldRunCappedFrame(nowMs, lastRenderFrameMs, minIntervalMs)) {
+          scheduleRenderLoop();
+          return;
+        }
+        lastRenderFrameMs = nowMs;
+        const frameWorkStartMs = nowMs;
+
         const deltaSec = Math.min(
           0.05,
           Math.max(0, (nowMs - lastPerfMs) / 1000),
@@ -1836,7 +2244,7 @@ export const StudioSceneViewport = forwardRef<
 
         // Apply live renderer + light knobs without re-init.
         if (renderer == null) {
-          raf = requestAnimationFrame(loop);
+          scheduleRenderLoop();
           return;
         }
         renderer.toneMappingExposure =
@@ -1912,8 +2320,25 @@ export const StudioSceneViewport = forwardRef<
           deltaSec,
           particleOriginScratch,
         );
+        const shadowParams = resolveStudioShadowParams(s);
+        syncStageProceduralMeshes({
+          parent: root,
+          state: proceduralMeshRuntime,
+          entries: stageProceduralMeshesRef.current,
+          shadowsEnabled: shadowParams.enabled,
+          freezeLayoutWhileGizmoDrag: transformControls?.isDragging() === true,
+        });
         if (driveRoot != null) {
           syncShadowRendering(driveRoot);
+        } else if (proceduralMeshRuntime.group.children.length > 0) {
+          syncShadowRendering(proceduralMeshRuntime.group);
+        }
+        applyStudioShadowMeshes(proceduralMeshRuntime.group, shadowParams.enabled);
+        if (
+          driveRoot == null &&
+          proceduralMeshRuntime.group.children.length > 0
+        ) {
+          setInitError(null);
         }
 
         applyGlbPartVisibilityByPathMap(
@@ -2033,7 +2458,44 @@ export const StudioSceneViewport = forwardRef<
           animationMixer.update(deltaSec);
         }
 
+        const gizmoSkipPartPaths =
+          transformControls?.isDragging() === true &&
+          stageSelectionObjectPathRef.current != null &&
+          !stageSelectionObjectPathRef.current.startsWith("proc:")
+            ? new Set([stageSelectionObjectPathRef.current])
+            : null;
+        applyGlbPartTransformByPathMap(
+          glbPathIndex,
+          glbPartTransformsRef.current,
+          gizmoSkipPartPaths,
+        );
+
+        tickGlbPartSpinByPathMap(
+          glbPathIndex,
+          glbPartSpinsRef.current,
+          deltaSec,
+        );
+
         applyOrbitControlsFromScene3d(controls, s.controls);
+        if (stageFullBleed) {
+          applyStudioViewportMousePreset(
+            controls,
+            s.controls,
+            viewportMousePresetRef.current,
+          );
+          const wantsBlenderPan = viewportMousePresetRef.current === "blender";
+          if (wantsBlenderPan && !blenderShiftPanBound) {
+            unbindBlenderShiftPan = bindStudioViewportBlenderShiftMiddlePan(
+              renderer.domElement,
+              controls,
+            );
+            blenderShiftPanBound = true;
+          } else if (!wantsBlenderPan && blenderShiftPanBound) {
+            unbindBlenderShiftPan?.();
+            unbindBlenderShiftPan = null;
+            blenderShiftPanBound = false;
+          }
+        }
 
         root.position.set(
           s.model.transform.position.x,
@@ -2056,7 +2518,14 @@ export const StudioSceneViewport = forwardRef<
           root.quaternion.copy(orientationQ);
         }
 
-        camera.fov = s.camera.fovDeg;
+        if (stageFullBleed) {
+          const desiredProjection = viewportProjectionRef.current;
+          if (desiredProjection !== appliedProjectionMode) {
+            applyViewportProjectionMode(desiredProjection);
+          }
+        }
+
+        perspectiveCamera.fov = s.camera.fovDeg;
         const effectiveGlbCameras = resolveGlbCameraDrivesWithSwitch(
           glbCamerasRef.current,
           glbCameraSwitchIndexRef.current,
@@ -2070,7 +2539,7 @@ export const StudioSceneViewport = forwardRef<
           const camDriveKey = cameraDriveKeyFromScene3d(s);
           if (glbCamHandoffToScene || camDriveKey !== lastCameraDriveKey) {
             lastCameraDriveKey = camDriveKey;
-            camera.position.set(
+            activeCamera.position.set(
               s.camera.transform.position.x,
               s.camera.transform.position.y,
               s.camera.transform.position.z,
@@ -2083,12 +2552,19 @@ export const StudioSceneViewport = forwardRef<
           }
         }
         prevGlbCamActive = glbCamActive;
-        camera.updateProjectionMatrix();
-        if (glbCamActive && driveRoot != null) {
+        perspectiveCamera.updateProjectionMatrix();
+        if (activeCamera instanceof THREE.OrthographicCamera) {
+          activeCamera.updateProjectionMatrix();
+        }
+        if (
+          glbCamActive &&
+          driveRoot != null &&
+          appliedProjectionMode === "perspective"
+        ) {
           applyStudioCameraFromBlendedGlbCameras(
             driveRoot,
             glbCamBlend,
-            camera,
+            perspectiveCamera,
             controls,
           );
         }
@@ -2138,6 +2614,26 @@ export const StudioSceneViewport = forwardRef<
 
         controls.update(deltaSec);
 
+        if (selectionHighlight != null) {
+          selectionHighlight.setObjectPath(stageSelectionObjectPathRef.current);
+          selectionHighlight.sync((path) =>
+            resolveStagePickRootByObjectPath(path, getStagePickTargets()),
+          );
+        }
+
+        if (transformControls != null) {
+          transformControls.setCamera(activeCamera);
+          transformControls.setEnabled(stageGizmoEnabledRef.current);
+          transformControls.setMode(stageGizmoModeRef.current);
+          const path = stageSelectionObjectPathRef.current;
+          transformControls.sync(() => {
+            if (path == null) {
+              return null;
+            }
+            return resolveStagePickRootByObjectPath(path, getStagePickTargets());
+          });
+        }
+
         const hostW = Math.max(1, Math.round(host.clientWidth));
         const hostH = Math.max(1, Math.round(host.clientHeight));
         if (hostW !== lastResizeW || hostH !== lastResizeH) {
@@ -2147,19 +2643,22 @@ export const StudioSceneViewport = forwardRef<
         const hudNodes = visionHudNodesRef.current;
         if (hudNodes != null && hudNodes.length > 0) {
           studioVisionLandmarks3dOverlay.sync(
-            camera,
+            activeCamera,
             collectVisionLandmarks3dSpecs(hudNodes, visionHudEdgesRef.current),
           );
         } else {
-          studioVisionLandmarks3dOverlay.sync(camera, []);
+          studioVisionLandmarks3dOverlay.sync(activeCamera, []);
         }
 
-        renderer?.render(scene, camera);
+        renderer?.render(scene, activeCamera);
         css3dWorldRuntime.syncFeeds(cameraCss3dFeedsRef.current);
         css3dWorldRuntime.render();
-        raf = requestAnimationFrame(loop);
+        recordWebGlRenderFrame(performance.now() - frameWorkStartMs, frameWorkStartMs);
+        scheduleRenderLoop();
       };
-      raf = requestAnimationFrame(loop);
+      if (renderLoopActiveRef.current) {
+        scheduleRenderLoop();
+      }
 
       const onContextLost = (event: Event) => {
         event.preventDefault();
@@ -2187,12 +2686,22 @@ export const StudioSceneViewport = forwardRef<
         }
         unbindStagePick?.();
         unbindStagePick = null;
-        cancelAnimationFrame(raf);
+        unbindBlenderShiftPan?.();
+        unbindBlenderShiftPan = null;
+        selectionHighlight?.dispose();
+        transformControls?.dispose();
+        stopRenderLoop();
+        resumeRenderLoopRef.current = null;
         ro.disconnect();
-        studioVisionLandmarks3dOverlay.dispose(camera);
+        studioVisionLandmarks3dOverlay.dispose(activeCamera);
+        controls.removeEventListener("end", persistOrthoZoomIfNeeded);
         css3dWorldRuntime.dispose();
         controls.dispose();
         disposePreviewPhysicsRuntime(scene, physicsRuntime);
+        disposeStageProceduralMeshRuntime(proceduralMeshRuntime);
+        if (proceduralMeshRuntime.group.parent != null) {
+          proceduralMeshRuntime.group.parent.remove(proceduralMeshRuntime.group);
+        }
         resetAnimationMixer();
         resetGlbPartVisibilityDriveState(partVisibilityDriveState);
         resetGlbMaterialPbrDriveState(materialPbrDriveState);

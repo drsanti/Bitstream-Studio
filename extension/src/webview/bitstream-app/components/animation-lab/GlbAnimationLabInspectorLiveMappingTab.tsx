@@ -5,6 +5,7 @@ import {
   TRNSortableSettingsCardList,
   type TRNSortableSettingsCardItem,
 } from "@/ui/TRN";
+import { TRN_GLASS_DROPDOWN_TEXT_CLASS } from "@/ui/components/toolbar-header-dropdown-menu-ui.js";
 import { useMemo } from "react";
 import { twMerge } from "tailwind-merge";
 import { inferSensorTelemetryHintFromSourceKey } from "../../../sensor-studio/core/live/resolve-sensor-source-key.js";
@@ -250,7 +251,7 @@ function TwinMappingComponentCardContent(props: {
               ariaLabel={`Sensor for ${component.label} ${signal.label}`}
               value={columns.sensor}
               options={SENSOR_SELECT_OPTIONS}
-              buttonClassName="h-7 min-h-7 px-1.5 text-[10px]"
+              buttonClassName={`h-7 min-h-7 px-1.5 ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
               onValueChange={(sensor) => {
                 const sid = sensor as TwinMappingSensorId;
                 if (sid === TWIN_MAPPING_SENSOR_NONE) {
@@ -268,7 +269,7 @@ function TwinMappingComponentCardContent(props: {
               value={columns.subParam}
               disabled={columns.sensor === TWIN_MAPPING_SENSOR_NONE}
               options={subSelectOptions}
-              buttonClassName="h-7 min-h-7 px-1.5 text-[10px]"
+              buttonClassName={`h-7 min-h-7 px-1.5 ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
               onValueChange={(subParam) => {
                 if (columns.sensor === TWIN_MAPPING_SENSOR_NONE) {
                   return;

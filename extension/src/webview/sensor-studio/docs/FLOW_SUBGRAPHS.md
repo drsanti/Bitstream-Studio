@@ -26,9 +26,9 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | Group Sockets inspector | Select group shell (or boundary node inside) → rename, add/remove/reorder typed inputs/outputs; socket defaults and promote-crossings |
 | Group Input / Output cards | Inside a group: compact **200px** boundary nodes; **Group Input** socket rows match catalog **flex output** layout (`[live \| type] [name] (●)→`); live scalars during sim |
 | Duplicate linked / deep copy | Inspector **Duplicate linked** (shared inner graph) or **Duplicate deep copy** (independent clone) |
-| Group library | Inspector **Save to library** / **Export preset** / **Load preset into group**; Library **Saved → Groups** tab + canvas drag |
-| Flow library | Palette **Saved → Flows** — save full/partial flow presets, Replace/Merge load, import/export; see [`FLOW_LIBRARY.md`](./FLOW_LIBRARY.md) |
-| Remote official presets | **`libraries/node-graph/index.json`** on online asset base; **Saved → Groups** tab **Official** section |
+| Group library | Inspector **Save to library** / **Export preset** / **Load preset into group**; Library **Presets → Groups** tab + canvas drag |
+| Flow library | Palette **Presets → Flows** — save full/partial flow presets, Replace/Merge load, import/export; see [`FLOW_LIBRARY.md`](./FLOW_LIBRARY.md) |
+| Remote official presets | **`libraries/node-graph/index.json`** on online asset base; **Presets → Groups** tab **Official** section |
 | Linked preset sync | Inspector **Update from library** / **Break library link** |
 | Breadcrumb | Bottom-center minimal single-row pill (parent icon + trail); hidden on **Root** |
 
@@ -55,7 +55,7 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 | `subgraphs/node-library/remote-node-graph-index.ts` | Online index + asset fetch |
 | `subgraphs/node-library/normalize-node-asset-for-studio.ts` | node-animator → studio type mapping |
 | `subgraphs/node-library/use-remote-node-graph-presets.ts` | Groups tab remote loader hook |
-| `components/node-palette/StudioSavedLibraryPanel.tsx` | **Saved** tab shell (Flows \| Groups) |
+| `components/node-palette/StudioSavedLibraryPanel.tsx` | **Presets** tab shell (Flows \| Groups) |
 | `components/node-palette/FlowLibraryTabPanel.tsx` | Flow preset list + save/load |
 | `components/node-palette/GroupLibraryTabPanel.tsx` | Saved group presets + import/drag |
 | `persistence/node-group-library.repository.ts` | localStorage group library |
@@ -67,6 +67,6 @@ Sensor Studio collapses selected nodes into a **`studio-node-group`** shell on t
 
 ## Backlog
 
-- Feed cache badges / offline sync UX polish
+- (none for v0.1 — official group cache badges shipped in **Presets → Groups**; see [`FLOW_LIBRARY.md`](./FLOW_LIBRARY.md))
 
 See also [`FLOW_LIBRARY.md`](./FLOW_LIBRARY.md), [`NODE_ANIMATOR_PARITY.md`](./NODE_ANIMATOR_PARITY.md) Phase 9.

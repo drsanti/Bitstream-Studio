@@ -12,6 +12,7 @@ import {
   TRNToggleSwitch,
 } from "../../../../../../../ui/TRN";
 import { InspectorNumericField } from "../../InspectorNumericScrubRow";
+import { STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS } from "../../inspector-dense-select-button";
 import {
   resolveFlowWireClipTrimRange,
   type FlowWireAnimationClipV1,
@@ -360,7 +361,7 @@ export function GlbAnimationClipInspectorCard(props: GlbAnimationClipInspectorCa
             options={MASK_SELECT_OPTIONS}
             size="sm"
             className="min-w-0"
-            buttonClassName="min-h-7 text-[10px]"
+            buttonClassName={STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS}
             panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
             onValueChange={(next) =>
               onCommitClipPatch({

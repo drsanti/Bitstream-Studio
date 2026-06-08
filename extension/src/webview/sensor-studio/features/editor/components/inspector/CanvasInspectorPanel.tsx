@@ -1,6 +1,7 @@
 import type { Edge, Viewport } from "@xyflow/react";
 import { Activity, Cable, FileStack, LayoutGrid, type LucideIcon } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCanvasInspectorFocusStore } from "../../../../state/canvas-inspector-focus.store";
 import {
   TRNTabs,
   TRNTabsList,
@@ -101,6 +102,17 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
     writeStoredCanvasInspectorTab(next);
   }, []);
 
+  const focusRequest = useCanvasInspectorFocusStore((s) => s.request);
+
+  useEffect(() => {
+    if (focusRequest == null) {
+      return;
+    }
+    if (focusRequest.tab === "canvas") {
+      setActiveTabPersisted("canvas");
+    }
+  }, [focusRequest, setActiveTabPersisted]);
+
   const selectionCount = orderedSelectedNodes.length;
   const health = useMemo(() => summarizeCanvasSensorHealth(nodes), [nodes]);
 
@@ -154,6 +166,8 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
               flowCanvasPreferences={flowCanvasPreferences}
               themeCanvasBackgroundColor={themeCanvasBackgroundColor}
               onFlowCanvasPreferencesChange={onFlowCanvasPreferencesChange}
+              stagePresentationPreferences={stagePresentationPreferences}
+              onStagePresentationPreferencesChange={onStagePresentationPreferencesChange}
             />
           ) : null}
 

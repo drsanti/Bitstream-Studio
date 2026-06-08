@@ -48,6 +48,11 @@ export type DataTypeColorsPayload = {
   physicsScene: string;
   physicsCollider: string;
   physicsBody: string;
+  dashboardWidget: string;
+  dashboardTheme: string;
+  dashboardTab: string;
+  material: string;
+  mesh: string;
 };
 
 /** Blueprint-style output pins defined in catalog (config-first). */
@@ -74,7 +79,12 @@ export type NodeCatalogOutputPort = {
     | "videoTexture"
     | "physicsScene"
     | "physicsCollider"
-    | "physicsBody";
+    | "physicsBody"
+    | "dashboardWidget"
+    | "dashboardTheme"
+    | "dashboardTab"
+    | "material"
+    | "mesh";
   label: string;
 };
 
@@ -89,7 +99,8 @@ export type NodeCatalogEntry = {
     | "scene"
     | "output"
     | "utility"
-    | "generator";
+    | "generator"
+    | "dashboard";
   title: string;
   description: string;
   icon: string;

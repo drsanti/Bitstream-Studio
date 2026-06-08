@@ -122,9 +122,53 @@ import {
   isPhysicsDomainStubNodeId,
 } from "../../../core/flow/physics-domain-eval";
 import { flowWirePhysicsRigidBodyFromConfig } from "../nodes/physics/flow-wire-physics-body";
+import {
+  collectDashboardLayoutNodeFieldPatches,
+  parseDashboardLayoutImportJson,
+} from "../../../core/dashboard/dashboard-layout-import";
+import { buildDashboardStackPlacements } from "../../../core/dashboard/dashboard-layout-arrange";
+import {
+  coerceDashboardPlacementV1,
+  type DashboardPlacementV1,
+} from "../../../core/dashboard/dashboard-placement";
+import type { DashboardSnapshotItemV1 } from "../../../core/dashboard/dashboard-snapshot";
+import {
+  coerceFlowWireDashboardThemeV1,
+  flowValueAsDashboardTheme,
+} from "../nodes/dashboard/flow-wire-dashboard-theme";
+import type { SceneObjectRefV1 } from "../../../core/stage/scene-object-ref";
+import { resolveStageSceneDeletionNodeIds } from "../../../core/stage/stage-scene-selection-delete";
+import {
+  findGlbPartTransformNodeId,
+  glbPartTransformSpawnDefaultConfig,
+} from "../../../core/stage/stage-scene-glb-transform-write";
+import { graphHasDashboardOutputNode } from "../../../core/dashboard/dashboard-structural-revision";
+import { evaluateDashboardSnapshot } from "../../../core/dashboard/evaluate-dashboard-snapshot";
 import { evaluateStageSceneSnapshot } from "../../../core/stage/evaluate-stage-scene-snapshot";
-import { isFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
+import {
+  GLB_PART_TRANSFORM_NODE_ID,
+  glbPartTransformFieldsForNodeConfigPatch,
+} from "../nodes/scene/glb-part-transform-config";
+import { orphanSceneOutputModelEdgeIds } from "../../../core/stage/stage-meshes-only-scene";
+import { stagePresentationAutoDisconnectOrphanModelSources } from "../../stage/stage-presentation-preferences";
+import { readFlowInteractionTickGate } from "../../../core/runtime/flow-interaction-tick-gate";
+import { isStudioNodeTickRuntimeEqual } from "./studio-node-tick-data-equal";
+import {
+  mergeFlowGraphNodesWithLive,
+  readFlowNodeLiveSlice,
+  useFlowNodeLiveStore,
+} from "./flow-node-live.store";
+import {
+  extractStudioNodeLiveSlice,
+  mergeStudioNodeLiveIntoData,
+  type StudioNodeLiveSlice,
+} from "./studio-node-live.slice";
 import { filterNodeChangesForStore } from "../flow-react-flow-node-sync";
+import { useDashboardSceneStore } from "../../../state/dashboard-scene.store";
+import {
+  shouldRefreshStageSnapshotAfterTick,
+  type TickSimulationOptions,
+} from "../../../core/stage/stage-workbench-mode";
 import { useStageSceneStore } from "../../../state/stage-scene.store";
 import {
   evaluateFrameDelta,
@@ -291,12 +335,15 @@ import { instantiateStudioNodeAsset } from "../subgraphs/node-library/instantiat
 import {
   upsertStudioLibraryPreset,
   findLinkedStudioLibraryPreset,
+  patchNodeAssetMeta,
   type StudioLibrarySaveResult,
 } from "../subgraphs/node-library/library-preset-upsert";
 import { replaceStudioNodeGroupFromAsset } from "../subgraphs/node-library/replace-group-from-asset";
 import {
   downloadStudioNodeAssetFile,
   rekeyStudioNodeAssetMeta,
+  isStudioNodeAssetCategory,
+  type StudioNodeAssetCategory,
   type StudioNodeAssetFile,
 } from "../subgraphs/node-library/studio-node-asset-file";
 import {
@@ -309,6 +356,10 @@ import {
 } from "../../../persistence/flow-preset-library.repository";
 import { buildFlowImportDependencyHint } from "../flow-library/build-flow-import-dependency-hint";
 import { buildFlowPresetFromCanvas } from "../flow-library/build-flow-preset-from-canvas";
+import { buildFlowPresetUpdateFromCanvas } from "../flow-library/build-flow-preset-update-from-canvas";
+import { useFlowPresetLinkedSessionStore } from "../flow-library/flow-preset-linked-session";
+import { useGroupPresetLinkedSessionStore } from "../flow-library/group-preset-linked-session";
+import { buildNodeAssetUpdateFromCanvas } from "../subgraphs/node-library/build-node-asset-update-from-canvas";
 import {
   downloadStudioFlowPresetFile,
   rekeyStudioFlowPresetMeta,
@@ -324,6 +375,7 @@ import {
 import {
   findLinkedFlowPreset,
   patchFlowPresetMeta,
+  replaceFlowPresetById,
   upsertFlowPreset,
   type FlowPresetSaveResult,
 } from "../flow-library/flow-preset-upsert";
@@ -415,9 +467,15 @@ import {
   coerceFlowWireTransformV1,
   flowWireTransformFromEulerRad,
   readFlowWireTransformEulerMapping,
+  defaultFlowWireTransformV1,
   flowWireTransformFromNodeDefaultConfig,
   isFlowWireTransformV1,
 } from "../nodes/transform/flow-wire-transform";
+import {
+  meshCatalogIdForSpawnKind,
+  spawnKindTitle,
+  type StageProceduralSpawnKind,
+} from "../../../core/stage/stage-procedural-spawn-kind";
 import type { FlowWirePhysicsSceneV1 } from "../nodes/physics/flow-wire-physics-scene";
 import {
   flowWireStagePickFromDetail,
@@ -445,6 +503,36 @@ import {
   STUDIO_GLB_MATERIAL_PARAM_KEY,
 } from "../gltf/studio-glb-material-param";
 import { readGlbMaterialColorRgbFromConfig } from "../gltf/studio-glb-material-color";
+import {
+  coerceFlowWireMaterialV1,
+  isFlowWireMaterialV1,
+  type FlowWireMaterialV1,
+} from "../nodes/material/flow-wire-material";
+import {
+  flowWireMaterialFromMeshMaterialEval,
+  isMeshMaterialNodeId,
+  meshMaterialKindForNodeId,
+} from "../nodes/material/mesh-material-config";
+import {
+  coerceFlowWireMeshV1,
+  isFlowWireMeshV1,
+  type FlowWireMeshV1,
+} from "../nodes/mesh/flow-wire-mesh";
+import { mergeFlowWireMeshesV1 } from "../nodes/mesh/mesh-group-config";
+import {
+  MESH_GROUP_INPUT_COUNT_KEY,
+  MESH_GROUP_OUTPUT_HANDLE,
+  computeMeshGroupInputHandles,
+  meshGroupInputHandleId,
+  pruneMeshGroupEdges,
+  readMeshGroupInputCount,
+} from "../nodes/mesh/mesh-group-inputs";
+import {
+  flowWireMeshFromMeshPrimitiveEval,
+  isMeshPrimitiveNodeId,
+  isMeshWireOutputNodeId,
+  meshPrimitiveKindForNodeId,
+} from "../nodes/mesh/mesh-primitive-config";
 import {
   readSourceModelNodeId,
   reconcileStudioModelGeneratedChildIds,
@@ -509,6 +597,7 @@ import {
   clampStudioFlowNodeLayoutDimension,
   readStudioFlowNodeLayoutSize,
 } from "../nodes/flow-node/studio-node-layout-size";
+import { isStudioFlowNodeManualHeightResize } from "../nodes/flow-node/studio-flow-node-chrome-hit";
 import {
   applyStudioNodeMinDimensionsToUi,
   resolveStudioNodeMinDimensionFloor,
@@ -578,7 +667,13 @@ import {
   STUDIO_HANDLE_CAM,
   STUDIO_HANDLE_ENV,
   STUDIO_HANDLE_MODELS,
+  STUDIO_HANDLE_MESHES,
   STUDIO_HANDLE_PHYS,
+  STUDIO_HANDLE_TAB,
+  STUDIO_HANDLE_TABS,
+  STUDIO_HANDLE_THEME,
+  STUDIO_HANDLE_WIDGET,
+  STUDIO_HANDLE_WIDGETS,
   STUDIO_HANDLE_XF,
 } from "../studio-handle-ids";
 export {
@@ -589,6 +684,7 @@ export {
   STUDIO_HANDLE_ANIM,
   STUDIO_HANDLE_XF,
   STUDIO_HANDLE_MODELS,
+  STUDIO_HANDLE_MESHES,
   STUDIO_HANDLE_PHYS,
 };
 /** Optional exposure override on 3D canvas nodes (from **Scene Settings** `out`). */
@@ -792,6 +888,7 @@ export type StudioNodeData = {
   liveVector3Wire?: FlowWireVec3;
   /** Incoming `env` pin snapshot for 3D canvas nodes (HDRI / background / IBL). */
   liveEnvironmentWire?: FlowWireEnvironmentV1;
+  liveDashboardThemeWire?: import("../nodes/dashboard/flow-wire-dashboard-theme").FlowWireDashboardThemeV1;
   /** Incoming `cam` pin snapshot for 3D canvas nodes (camera + orbit limits). */
   liveCameraWire?: FlowWireCameraV1;
   /** Wired **`videoTexture`** on **`material-video`**. */
@@ -818,6 +915,10 @@ export type StudioNodeData = {
   liveContactShadowsWire?: FlowWireContactShadowsV1;
   /** Incoming **`emitter`** pin snapshot for 3D canvas nodes. */
   liveParticleEmitterWire?: FlowWireParticleEmitterV1;
+  /** Outgoing **`material`** wire on mesh material nodes (Phase 1+). */
+  liveMaterialWire?: FlowWireMaterialV1;
+  /** Outgoing **`mesh`** wire on procedural geometry nodes (Phase 2+). */
+  liveMeshWire?: FlowWireMeshV1;
   liveHistory?: number[];
   /** Multi-channel numeric history for plotter (`handleId` → samples). */
   livePlotHistory?: Record<string, number[]>;
@@ -862,7 +963,12 @@ export type StudioDemoTemplateId =
   | "audio-machine-fault-lab"
   | "camera-video-texture"
   | "stage-camera-vision"
-  | "stage-scene-output";
+  | "stage-scene-output"
+  | "primitives-playground"
+  | "dashboard-button-led"
+  | "dashboard-controls-demo"
+  | "dashboard-publish-demo"
+  | "dashboard-tabs-demo";
 
 export type FlowSnapshot = {
   nodes: FlowGraphNode[];
@@ -1048,9 +1154,40 @@ function syncStudioNodeLayoutStyleFromDimensionChanges(
 
 /** Re-run the pin solver so config-driven sources (e.g. `model-select`) refresh downstream `liveValue` without waiting for UART ticks. */
 function flushFlowSimulationPins(
-  get: () => { tickSimulation: () => void },
+  get: () => { tickSimulation: (options?: TickSimulationOptions) => void },
 ): void {
-  get().tickSimulation();
+  get().tickSimulation({ forceStageSnapshot: true });
+}
+
+function replaceDemoTemplateGraph(
+  get: () => FlowEditorState,
+  set: (
+    partial:
+      | Partial<FlowEditorState>
+      | ((state: FlowEditorState) => Partial<FlowEditorState>),
+  ) => void,
+  templateNodes: StudioNode[],
+  templateEdges: Edge[],
+  selectedNodeIds: string[],
+): void {
+  get().pushUndoSnapshot();
+  const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+    applyStudioFlowSelection(templateNodes, selectedNodeIds),
+    templateEdges,
+  );
+  const committed = commitActiveGraphMutation(
+    { ...get(), ...initialSubgraphStoreSlice() },
+    attachedNodes,
+    templateEdges,
+  );
+  set({
+    ...committed,
+    ...initialSubgraphStoreSlice(),
+    nodes: attachedNodes,
+    edges: templateEdges,
+    ...selectionFromIds(selectedNodeIds),
+  });
+  flushFlowSimulationPins(get);
 }
 
 function resolveRootGraphBuffer(state: StudioSubgraphStoreSlice): {
@@ -1182,15 +1319,30 @@ type FlowEditorState = {
   resolveNodeGroupAsset: (assetId: string) => StudioNodeAssetFile | undefined;
   saveGroupToNodeLibrary: (
     hostNodeId: string,
-    name?: string,
+    meta?: {
+      name?: string;
+      description?: string;
+      category?: StudioNodeAssetCategory;
+      tags?: string[];
+    },
   ) => StudioLibrarySaveResult | null;
+  updateNodeAssetInLibrary: (
+    assetId: string,
+    args: {
+      name: string;
+      category?: StudioNodeAssetCategory;
+      description?: string;
+    },
+  ) => boolean;
+  updateNodeAssetFromCanvas: (assetId: string) => boolean;
   removeNodeAssetFromLibrary: (assetId: string) => void;
   importNodeAssetToLibrary: (asset: StudioNodeAssetFile) => string;
   exportNodeAssetById: (assetId: string) => boolean;
   exportGroupAsNodeAssetFile: (hostNodeId: string) => boolean;
   saveToLibrary: (args: {
     name: string;
-    category?: StudioFlowPresetCategory;
+    flowCategory?: StudioFlowPresetCategory;
+    groupCategory?: StudioNodeAssetCategory;
     description?: string;
     tags?: string[];
   }) => { target: SaveToLibraryTarget } & (FlowPresetSaveResult | StudioLibrarySaveResult) | null;
@@ -1207,6 +1359,7 @@ type FlowEditorState = {
       description?: string;
     },
   ) => boolean;
+  updateFlowPresetFromCanvas: (presetId: string) => boolean;
   importFlowPresetToLibrary: (preset: StudioFlowPresetFile) => string;
   exportFlowPresetById: (presetId: string) => boolean;
   remoteFlowPresets: Record<string, StudioFlowPresetFile>;
@@ -1225,12 +1378,21 @@ type FlowEditorState = {
     position: { x: number; y: number },
   ) => boolean;
   deleteSelection: () => void;
+  /** Remove explicit flow nodes (undoable). Used by Stage selection delete and graph tools. */
+  deleteFlowNodesByIds: (nodeIds: readonly string[]) => void;
+  /** SE polish — delete procedural mesh or GLB part-transform behind a Stage pick. */
+  deleteStageSceneSelection: (selection: SceneObjectRefV1) => boolean;
   selectAllNodes: () => void;
   clearNodeSelection: () => void;
   /** Blender-style **A** — select all when not fully selected; deselect all when every node is selected. */
   toggleSelectAllNodes: () => void;
   /** Programmatic selection (e.g. jump from Model card to a linked node). Does not push undo. */
   selectStudioNodesByIds: (nodeIds: string[]) => void;
+  /** Registered by Flow canvas — fit given node ids in the 2D graph view. */
+  setFitFlowCanvasToNodeIdsHandler: (
+    handler: ((nodeIds: readonly string[]) => void) | null,
+  ) => void;
+  fitFlowCanvasToNodeIds: (nodeIds: readonly string[]) => void;
   onNodesChange: (
     changes: Parameters<typeof applyNodeChanges<StudioNode>>[0],
   ) => void;
@@ -1266,6 +1428,14 @@ type FlowEditorState = {
       mergeDefaultConfig?: Record<string, unknown>;
     },
   ) => string;
+  /** SE4 — spawn mesh + material + transform wired to Scene Output Meshes at a world point. */
+  spawnStageProceduralPrimitive: (args: {
+    kind: StageProceduralSpawnKind;
+    hitPoint: { x: number; y: number; z: number };
+  }) => {
+    meshFlowNodeId: string;
+    objectPath: string;
+  } | null;
   addLayoutNodeAt: (
     kind: LayoutMenuEntryId,
     position: { x: number; y: number },
@@ -1354,6 +1524,22 @@ type FlowEditorState = {
     key: string,
     value: unknown,
   ) => void;
+  /** Patch multiple config keys on one node in a single undo step (Stage gizmo, etc.). */
+  patchNodeConfigFieldsByNodeId: (
+    nodeId: string,
+    fields: Record<string, unknown>,
+  ) => boolean;
+  /** Same as `patchNodeConfigFieldsByNodeId` without a new undo snapshot (gizmo session commit). */
+  patchNodeConfigFieldsByNodeIdSilent: (
+    nodeId: string,
+    fields: Record<string, unknown>,
+  ) => boolean;
+  /** SE5 — create or update **glb-part-transform** from Stage gizmo / inspector. */
+  commitStageGlbPartTransformWrite: (args: {
+    selection: Extract<SceneObjectRefV1, { kind: "glb-instance" }>;
+    transform: import("../nodes/transform/flow-wire-transform").FlowWireTransformV1;
+    recordUndo?: boolean;
+  }) => boolean;
   /** Collapse/expand utility node bodies and sync React Flow height (header-only when collapsed). */
   setStudioUtilityNodeBodyExpanded: (
     flowNodeId: string,
@@ -1419,7 +1605,7 @@ type FlowEditorState = {
   updateSelectedNodePlotterConfig: (next: PlotterConfig) => void;
   /** Clear live trace buffers on the selected plotter node(s). */
   clearSelectedPlotterHistory: () => void;
-  tickSimulation: () => void;
+  tickSimulation: (options?: TickSimulationOptions) => boolean;
   /** Domain C — keyboard event sources → wired action nodes. Returns true when consumed. */
   dispatchFlowKeyboardEvent: (event: {
     code: string;
@@ -1437,6 +1623,42 @@ type FlowEditorState = {
     hitPoint: { x: number; y: number; z: number };
     objectPath: string;
   }) => boolean;
+  /** Apply exported dashboard layout JSON to matching flow nodes (single undo step). */
+  importDashboardLayoutJson: (
+    json: string,
+  ) =>
+    | {
+        ok: true;
+        matchedNodes: number;
+        skippedPatches: number;
+        missingNodeIds: string[];
+      }
+    | { ok: false; message: string };
+  /** Domain C — Dashboard button click → wired event outputs. */
+  dispatchDashboardWidgetEvent: (event: { sourceNodeId: string }) => void;
+  /** Dashboard knob / slider drag → update config value and re-tick simulation. */
+  dispatchDashboardKnobValue: (event: { sourceNodeId: string; value: number }) => void;
+  /** Dashboard switch toggle → update boolean config value and re-tick simulation. */
+  dispatchDashboardSwitchValue: (event: { sourceNodeId: string; value: boolean }) => void;
+  /** Edit mode — move a widget or group to a grid cell (grid layout only). */
+  moveDashboardWidgetToGridCell: (args: {
+    sourceNodeId: string;
+    row: number;
+    column: number;
+  }) => void;
+  /** Stack dashboard items vertically in column 1 (single undo step). */
+  arrangeDashboardWidgetsStacked: (items: readonly DashboardSnapshotItemV1[]) => void;
+  /** Edit mode — resize grid span for a widget or group (grid layout only). */
+  resizeDashboardWidgetPlacement: (args: {
+    sourceNodeId: string;
+    columnSpan: number;
+    rowSpan: number;
+  }) => void;
+  /** Edit mode — set full grid placement (move + resize). */
+  setDashboardWidgetGridPlacement: (args: {
+    sourceNodeId: string;
+    placement: DashboardPlacementV1;
+  }) => void;
 };
 
 function inferPortTypes(entry: NodeCatalogEntry): {
@@ -1475,6 +1697,12 @@ function inferPortTypes(entry: NodeCatalogEntry): {
     return {
       inputHandles: computeAnimationMergeInputHandles(entry.defaultConfig),
       outputHandles: [ANIMATION_MERGE_OUTPUT_HANDLE],
+    };
+  }
+  if (entry.id === "mesh-group") {
+    return {
+      inputHandles: computeMeshGroupInputHandles(entry.defaultConfig),
+      outputHandles: [MESH_GROUP_OUTPUT_HANDLE],
     };
   }
   if (entry.id === "animation-mix") {
@@ -1623,6 +1851,16 @@ function refreshCatalogOutputHandles(node: StudioNode): StudioNode {
   );
   if (entry == null) {
     return node;
+  }
+  if (entry.id === "mesh-group") {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        inputHandles: computeMeshGroupInputHandles(node.data.defaultConfig),
+        outputHandles: [MESH_GROUP_OUTPUT_HANDLE],
+      },
+    };
   }
   if (entry.id === "animation-merge") {
     return {
@@ -1998,6 +2236,15 @@ function attachConfigErrors(
         ...piped,
         inputHandles: computeAnimationMergeInputHandles(piped.defaultConfig),
         outputHandles: [ANIMATION_MERGE_OUTPUT_HANDLE],
+        inputType: undefined,
+        outputType: undefined,
+      };
+    }
+    if (piped.nodeId === "mesh-group") {
+      piped = {
+        ...piped,
+        inputHandles: computeMeshGroupInputHandles(piped.defaultConfig),
+        outputHandles: [MESH_GROUP_OUTPUT_HANDLE],
         inputType: undefined,
         outputType: undefined,
       };
@@ -2520,11 +2767,13 @@ function createStudioNodeFromCatalogEntry(
     ...options?.ui,
   };
   const catalogFloor = resolveStudioNodeMinDimensionFloor(entry.id);
+  const manualHeightResize = isStudioFlowNodeManualHeightResize(entry.id);
   const seedLayoutBox =
     ui.resizable === true || isStudioFlexPlotCanvasNodeId(entry.id);
-  const initialHeight = seedLayoutBox
-    ? resolveStudioNodeInitialLayoutHeight(entry.id, catalogFloor)
-    : undefined;
+  const initialHeight =
+    seedLayoutBox && manualHeightResize
+      ? resolveStudioNodeInitialLayoutHeight(entry.id, catalogFloor)
+      : undefined;
   const base: StudioNode = {
     id,
     type: "studio",
@@ -2627,6 +2876,131 @@ function flowValueAsCamera(v: unknown): FlowWireCameraV1 | null {
     return null;
   }
   return coerceFlowWireCameraV1(v);
+}
+
+function flowValueAsMaterial(v: unknown): FlowWireMaterialV1 | null {
+  if (!isFlowWireMaterialV1(v)) {
+    return null;
+  }
+  return coerceFlowWireMaterialV1(v);
+}
+
+function buildMeshMaterialWireForNode(
+  catalogNodeId: string,
+  defaultConfig: Record<string, unknown>,
+  readIncomingForNode: (handleId: string) => unknown,
+): FlowWireMaterialV1 | null {
+  const kind = meshMaterialKindForNodeId(catalogNodeId);
+  if (kind == null) {
+    return null;
+  }
+  const wiredColor = readIncomingForNode("color");
+  const wiredOpacity = readIncomingForNode("opacity");
+  const wiredRoughness = readIncomingForNode("roughness");
+  const wiredMetalness = readIncomingForNode("metalness");
+  const wiredClearcoat = readIncomingForNode("clearcoat");
+  const wiredClearcoatRoughness = readIncomingForNode("clearcoatRoughness");
+  const wiredTransmission = readIncomingForNode("transmission");
+  return flowWireMaterialFromMeshMaterialEval({
+    kind,
+    defaultConfig,
+    wired: {
+      color: wiredColor != null ? flowValueAsVec3(wiredColor) : undefined,
+      opacity:
+        typeof wiredOpacity === "number" && Number.isFinite(wiredOpacity)
+          ? wiredOpacity
+          : undefined,
+      roughness:
+        typeof wiredRoughness === "number" && Number.isFinite(wiredRoughness)
+          ? wiredRoughness
+          : undefined,
+      metalness:
+        typeof wiredMetalness === "number" && Number.isFinite(wiredMetalness)
+          ? wiredMetalness
+          : undefined,
+      clearcoat:
+        typeof wiredClearcoat === "number" && Number.isFinite(wiredClearcoat)
+          ? wiredClearcoat
+          : undefined,
+      clearcoatRoughness:
+        typeof wiredClearcoatRoughness === "number" &&
+        Number.isFinite(wiredClearcoatRoughness)
+          ? wiredClearcoatRoughness
+          : undefined,
+      transmission:
+        typeof wiredTransmission === "number" && Number.isFinite(wiredTransmission)
+          ? wiredTransmission
+          : undefined,
+    },
+  });
+}
+
+function flowValueAsMesh(v: unknown): FlowWireMeshV1 | null {
+  if (!isFlowWireMeshV1(v)) {
+    return null;
+  }
+  return coerceFlowWireMeshV1(v);
+}
+
+function buildMeshPrimitiveWireForNode(
+  catalogNodeId: string,
+  defaultConfig: Record<string, unknown>,
+  readIncomingForNode: (handleId: string) => unknown,
+): FlowWireMeshV1 | null {
+  const kind = meshPrimitiveKindForNodeId(catalogNodeId);
+  if (kind == null) {
+    return null;
+  }
+  const wiredWidth = readIncomingForNode("width");
+  const wiredHeight = readIncomingForNode("height");
+  const wiredDepth = readIncomingForNode("depth");
+  const wiredRadius = readIncomingForNode("radius");
+  const wiredRadiusTop = readIncomingForNode("radiusTop");
+  const wiredRadiusBottom = readIncomingForNode("radiusBottom");
+  const wiredTube = readIncomingForNode("tube");
+  const wiredLength = readIncomingForNode("length");
+  const wiredMaterial = readIncomingForNode("material");
+  const wiredTransform = readIncomingForNode("transform");
+  return flowWireMeshFromMeshPrimitiveEval({
+    kind,
+    defaultConfig,
+    wired: {
+      width:
+        typeof wiredWidth === "number" && Number.isFinite(wiredWidth)
+          ? wiredWidth
+          : undefined,
+      height:
+        typeof wiredHeight === "number" && Number.isFinite(wiredHeight)
+          ? wiredHeight
+          : undefined,
+      depth:
+        typeof wiredDepth === "number" && Number.isFinite(wiredDepth)
+          ? wiredDepth
+          : undefined,
+      radius:
+        typeof wiredRadius === "number" && Number.isFinite(wiredRadius)
+          ? wiredRadius
+          : undefined,
+      radiusTop:
+        typeof wiredRadiusTop === "number" && Number.isFinite(wiredRadiusTop)
+          ? wiredRadiusTop
+          : undefined,
+      radiusBottom:
+        typeof wiredRadiusBottom === "number" && Number.isFinite(wiredRadiusBottom)
+          ? wiredRadiusBottom
+          : undefined,
+      tube:
+        typeof wiredTube === "number" && Number.isFinite(wiredTube)
+          ? wiredTube
+          : undefined,
+      length:
+        typeof wiredLength === "number" && Number.isFinite(wiredLength)
+          ? wiredLength
+          : undefined,
+      material: flowValueAsMaterial(wiredMaterial) ?? undefined,
+      transform: flowValueAsTransform(wiredTransform) ?? undefined,
+    },
+  });
 }
 
 function flowValueAsVideoBus(v: unknown): ReturnType<typeof makeFlowWireVideoBusV1> | null {
@@ -3144,6 +3518,9 @@ function applyConfigFieldPatch(
   return next;
 }
 
+let fitFlowCanvasToNodeIdsHandler: ((nodeIds: readonly string[]) => void) | null =
+  null;
+
 export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   nodes: [],
   edges: [],
@@ -3264,7 +3641,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const nodesRaw = (snapshot.nodes as StudioNode[]).map(migrateStudioFlowNode);
     const sel = normalizeFlowSnapshotSelection(snapshot);
     const rootNodes = (
-      snapshot.rootNodes != null
+      snapshot.rootNodes != null && (snapshot.rootNodes as StudioNode[]).length > 0
         ? (snapshot.rootNodes as StudioNode[])
         : (snapshot.nodes as StudioNode[])
     ).map(migrateStudioFlowNode) as FlowGraphNode[];
@@ -3272,13 +3649,23 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       snapshot.subgraphs ?? {},
       rootNodes,
     );
-    const rootEdges = snapshot.rootEdges ?? snapshot.edges;
-    const canvasView = resolveRootCanvasViewOnHydrate({ rootNodes, rootEdges });
+    const canonicalEdges = snapshot.edges as Edge[];
+    const rootEdges =
+      snapshot.rootEdges != null && snapshot.rootEdges.length > 0
+        ? snapshot.rootEdges
+        : canonicalEdges;
+    const canvasView = resolveRootCanvasViewOnHydrate({
+      rootNodes,
+      rootEdges,
+      canonicalNodes: nodesRaw as FlowGraphNode[],
+      canonicalEdges,
+    });
+    const hydratedNodes = attachConfigErrorsWithModelChildRegistry(
+      applyStudioFlowSelection(canvasView.nodes, sel.selectedNodeIds),
+      canvasView.edges,
+    );
     set({
-      nodes: attachConfigErrorsWithModelChildRegistry(
-        applyStudioFlowSelection(canvasView.nodes, sel.selectedNodeIds),
-        canvasView.edges,
-      ),
+      nodes: hydratedNodes,
       edges: canvasView.edges,
       selectedNodeId: sel.selectedNodeId,
       selectedNodeIds: sel.selectedNodeIds,
@@ -3290,6 +3677,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       undoStack: [],
       redoStack: [],
     });
+    useFlowNodeLiveStore.getState().hydrateFromGraphNodes(hydratedNodes);
+    if (graphHasDashboardOutputNode(hydratedNodes)) {
+      const snapshot = evaluateDashboardSnapshot({
+        nodes: mergeFlowGraphNodesWithLive(hydratedNodes),
+        edges: canvasView.edges,
+      });
+      useDashboardSceneStore.getState().setSnapshot(snapshot);
+    } else {
+      useDashboardSceneStore.getState().resetSnapshot();
+    }
     flushFlowSimulationPins(get);
   },
   exportFlowGraphJson: (options) => {
@@ -4019,7 +4416,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     get().pushUndoSnapshot();
     applyGroupHostDuplicateToStore(set, s, result);
   },
-  saveGroupToNodeLibrary: (hostNodeId, name) => {
+  saveGroupToNodeLibrary: (hostNodeId, meta) => {
     const s = persistActiveGraphBuffer(get());
     const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
     if (hostCtx == null) {
@@ -4030,7 +4427,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       hostCtx.parentNodes,
       hostCtx.parentEdges,
       s.subgraphs,
-      name != null ? { name } : undefined,
+      meta,
     );
     if (asset == null) {
       return null;
@@ -4064,12 +4461,19 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       nodes:
         s.activeGraphId === STUDIO_ROOT_GRAPH_ID ? patchHost(s.nodes) : s.nodes,
     });
+    useGroupPresetLinkedSessionStore.getState().setLinkedProjectAsset(
+      result.id,
+      asset.meta.name,
+    );
     return result;
   },
   removeNodeAssetFromLibrary: (assetId) => {
     const next = get().nodeGroupLibrary.filter((a) => a.meta.id !== assetId);
     writePersistedNodeGroupLibrary(next);
     set({ nodeGroupLibrary: next });
+    if (useGroupPresetLinkedSessionStore.getState().linkedProjectAssetId === assetId) {
+      useGroupPresetLinkedSessionStore.getState().clearLinkedProjectAsset();
+    }
   },
   registerRemoteNodeGraphAsset: (asset) => {
     set((state) => ({
@@ -4172,7 +4576,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       if (host == null) {
         return null;
       }
-      const result = get().saveGroupToNodeLibrary(host.id, args.name);
+      const result = get().saveGroupToNodeLibrary(host.id, {
+        name: args.name,
+        description: args.description,
+        category: args.groupCategory,
+        tags: args.tags,
+      });
       if (result == null) {
         return null;
       }
@@ -4199,7 +4608,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       activeGraphId: s.activeGraphId,
       rootNodes: s.rootNodes,
       rootEdges: s.rootEdges,
-      category: args.category,
+      category: args.flowCategory ?? "custom",
       description: args.description,
       tags: args.tags,
       existingMeta: existing?.meta,
@@ -4321,6 +4730,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     const next = get().flowPresetLibrary.filter((p) => p.meta.id !== presetId);
     writePersistedFlowPresetLibrary(next);
     set({ flowPresetLibrary: next });
+    if (useFlowPresetLinkedSessionStore.getState().linkedProjectPresetId === presetId) {
+      useFlowPresetLinkedSessionStore.getState().clearLinkedProjectPreset();
+    }
   },
   updateFlowPresetInLibrary: (presetId, args) => {
     const next = patchFlowPresetMeta(get().flowPresetLibrary, presetId, args);
@@ -4329,6 +4741,103 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     writePersistedFlowPresetLibrary(next);
     set({ flowPresetLibrary: next });
+    return true;
+  },
+  updateNodeAssetInLibrary: (assetId, args) => {
+    const category =
+      args.category != null && isStudioNodeAssetCategory(args.category)
+        ? args.category
+        : undefined;
+    const next = patchNodeAssetMeta(get().nodeGroupLibrary, assetId, {
+      name: args.name,
+      description: args.description,
+      category,
+    });
+    if (next == null) {
+      return false;
+    }
+    writePersistedNodeGroupLibrary(next);
+    set({ nodeGroupLibrary: next });
+    return true;
+  },
+  updateNodeAssetFromCanvas: (assetId) => {
+    const existing = get().nodeGroupLibrary.find((a) => a.meta.id === assetId);
+    if (existing == null) {
+      return false;
+    }
+    const s = persistActiveGraphBuffer(get());
+    const hostNodeId =
+      (typeof existing.meta.sourceNodeId === "string"
+        ? (s.rootNodes.find(
+            (n) => n.id === existing.meta.sourceNodeId && isStudioNodeGroupNode(n),
+          ) ??
+          s.nodes.find(
+            (n) => n.id === existing.meta.sourceNodeId && isStudioNodeGroupNode(n),
+          ))
+        : undefined)?.id ??
+      s.rootNodes.find(
+        (n) =>
+          isStudioNodeGroupNode(n) &&
+          (n.data as StudioNodeGroupData).libraryAssetId === assetId,
+      )?.id ??
+      s.nodes.find(
+        (n) =>
+          isStudioNodeGroupNode(n) &&
+          (n.data as StudioNodeGroupData).libraryAssetId === assetId,
+      )?.id;
+    if (hostNodeId == null) {
+      return false;
+    }
+    const hostCtx = findStudioNodeGroupHost(hostNodeId, s);
+    if (hostCtx == null) {
+      return false;
+    }
+    const asset = buildNodeAssetUpdateFromCanvas({
+      existing,
+      hostNodeId,
+      parentNodes: hostCtx.parentNodes,
+      parentEdges: hostCtx.parentEdges,
+      subgraphs: s.subgraphs,
+    });
+    if (asset == null) {
+      return false;
+    }
+    const next = get().nodeGroupLibrary.map((entry) =>
+      entry.meta.id === assetId ? asset : entry,
+    );
+    writePersistedNodeGroupLibrary(next);
+    set({ nodeGroupLibrary: next });
+    useGroupPresetLinkedSessionStore.getState().setLinkedProjectAsset(
+      assetId,
+      existing.meta.name,
+    );
+    return true;
+  },
+  updateFlowPresetFromCanvas: (presetId) => {
+    const existing = get().flowPresetLibrary.find((p) => p.meta.id === presetId);
+    if (existing == null) {
+      return false;
+    }
+    const s = persistActiveGraphBuffer(get());
+    const preset = buildFlowPresetUpdateFromCanvas({
+      existing,
+      nodes: s.nodes,
+      edges: s.edges,
+      subgraphs: s.subgraphs,
+      activeGraphId: s.activeGraphId,
+      rootNodes: s.rootNodes,
+      rootEdges: s.rootEdges,
+    });
+    const replaced = replaceFlowPresetById(get().flowPresetLibrary, presetId, preset);
+    if (replaced == null) {
+      return false;
+    }
+    writePersistedFlowPresetLibrary(replaced.library);
+    set({ flowPresetLibrary: replaced.library });
+    useFlowPresetLinkedSessionStore.getState().setLinkedProjectPreset(
+      presetId,
+      existing.meta.name,
+    );
     return true;
   },
   registerRemoteFlowPreset: (preset) => {
@@ -4413,6 +4922,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       set({ subgraphs, rootNodes });
     }
     flushFlowSimulationPins(get);
+    if (get().nodeGroupLibrary.some((entry) => entry.meta.id === asset.meta.id)) {
+      useGroupPresetLinkedSessionStore.getState().setLinkedProjectAsset(
+        asset.meta.id,
+        asset.meta.name,
+      );
+    }
     return true;
   },
   instantiateNodeAssetAt: (asset, position) => {
@@ -4525,31 +5040,18 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       selectedNodeIds: [],
     });
   },
-  deleteSelection: () => {
-    const st = get();
-    const fromRf = st.nodes
-      .filter(
-        (n) =>
-          n.selected &&
-          n.type !== "studio-group-input" &&
-          n.type !== "studio-group-output",
-      )
-      .map((n) => n.id);
-    const ids =
-      fromRf.length > 0
-        ? new Set(fromRf)
-        : st.selectedNodeId != null
-          ? new Set([st.selectedNodeId])
-          : null;
-    if (ids == null || ids.size === 0) {
+  deleteFlowNodesByIds: (nodeIds) => {
+    const ids = [...new Set(nodeIds.filter((id) => id.trim().length > 0))];
+    if (ids.length === 0) {
       return;
     }
+    const st = get();
     get().pushUndoSnapshot();
-    const removedGroupIds = [...ids].filter((id) => {
+    const removedGroupIds = ids.filter((id) => {
       const node = st.nodes.find((n) => n.id === id);
       return isStudioNodeGroupNode(node);
     });
-    const frameIds = [...ids].filter(
+    const frameIds = ids.filter(
       (id) => get().nodes.find((n) => n.id === id)?.type === "studio-frame",
     );
     let workingNodes = st.nodes;
@@ -4557,7 +5059,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       const dissolved = dissolveStudioFrames(frameIds, workingNodes);
       workingNodes = dissolved.nodes;
     }
-    const removed = removeFlowNodesFromGraph([...ids], workingNodes, st.edges);
+    const removed = removeFlowNodesFromGraph(ids, workingNodes, st.edges);
     let nextNodes = removed.nodes;
     const nextEdges = removed.edges;
     let nextSubgraphs = { ...st.subgraphs };
@@ -4592,6 +5094,37 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       ...selectionFromIds(survivingSelectedIds),
     });
     flushFlowSimulationPins(get);
+  },
+  deleteSelection: () => {
+    const st = get();
+    const fromRf = st.nodes
+      .filter(
+        (n) =>
+          n.selected &&
+          n.type !== "studio-group-input" &&
+          n.type !== "studio-group-output",
+      )
+      .map((n) => n.id);
+    const ids =
+      fromRf.length > 0
+        ? fromRf
+        : st.selectedNodeId != null
+          ? [st.selectedNodeId]
+          : [];
+    get().deleteFlowNodesByIds(ids);
+  },
+  deleteStageSceneSelection: (selection) => {
+    const st = get();
+    const ids = resolveStageSceneDeletionNodeIds({
+      selection,
+      nodes: st.nodes,
+      edges: st.edges,
+    });
+    if (ids.length === 0) {
+      return false;
+    }
+    get().deleteFlowNodesByIds(ids);
+    return true;
   },
   selectAllNodes: () => {
     set((state) => {
@@ -4639,6 +5172,15 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         state.edges,
       ),
     }));
+  },
+  setFitFlowCanvasToNodeIdsHandler: (handler) => {
+    fitFlowCanvasToNodeIdsHandler = handler;
+  },
+  fitFlowCanvasToNodeIds: (nodeIds) => {
+    if (nodeIds.length === 0) {
+      return;
+    }
+    fitFlowCanvasToNodeIdsHandler?.(nodeIds);
   },
   onNodesChange: (changes) => {
     if (changes.length === 0) {
@@ -4942,6 +5484,148 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }));
     flushFlowSimulationPins(get);
     return nextNode.id;
+  },
+  spawnStageProceduralPrimitive: (args) => {
+    const catalog = NODE_CATALOG_DEFAULTS.payload.nodes;
+    const meshEntry = catalog.find((e) => e.id === meshCatalogIdForSpawnKind(args.kind));
+    const matEntry = catalog.find((e) => e.id === "mesh-material-standard");
+    const xfEntry = catalog.find((e) => e.id === "object-transform");
+    if (meshEntry == null || matEntry == null || xfEntry == null) {
+      return null;
+    }
+
+    const st = get();
+    const graph = resolveEvaluationGraph(st);
+    const outputNode = graph.nodes.find(
+      (n) => n.type === "studio" && n.data.nodeId === "scene-output",
+    );
+    if (outputNode == null) {
+      return null;
+    }
+
+    const meshWireCount = graph.edges.filter(
+      (e) =>
+        e.target === outputNode.id &&
+        (e.targetHandle ?? STUDIO_HANDLE_MESHES) === STUDIO_HANDLE_MESHES,
+    ).length;
+
+    const spawnColors = ["#f87171", "#60a5fa", "#34d399", "#fbbf24", "#c084fc"];
+    const colorHex = spawnColors[meshWireCount % spawnColors.length] ?? "#ffffff";
+    const kindTitle = spawnKindTitle(args.kind);
+    const stackY = outputNode.position.y + meshWireCount * 132;
+    const originX = outputNode.position.x;
+
+    get().pushUndoSnapshot();
+
+    const matNode = createStudioNodeFromCatalogEntry(matEntry, {
+      x: originX - 500,
+      y: stackY,
+    });
+    matNode.data.label = `${kindTitle} material`;
+    matNode.data.defaultConfig = {
+      ...matNode.data.defaultConfig,
+      meshMaterialColorHex: colorHex,
+      meshMaterialOpacity: 1,
+    };
+
+    const xfNode = createStudioNodeFromCatalogEntry(xfEntry, {
+      x: originX - 340,
+      y: stackY + 24,
+    });
+    xfNode.data.label = `${kindTitle} transform`;
+    const xfDefaults = defaultFlowWireTransformV1();
+    xfNode.data.defaultConfig = {
+      ...(xfDefaults as unknown as Record<string, unknown>),
+      position: {
+        x: args.hitPoint.x,
+        y: args.hitPoint.y,
+        z: args.hitPoint.z,
+      },
+      ...(args.kind === "plane"
+        ? { rotationDeg: { x: -90, y: 0, z: 0 } }
+        : {}),
+    };
+
+    const meshNode = createStudioNodeFromCatalogEntry(meshEntry, {
+      x: originX - 180,
+      y: stackY,
+    });
+    meshNode.data.label = kindTitle;
+    meshNode.selected = true;
+
+    let workingNodes: StudioNode[] = [...st.nodes, matNode, xfNode, meshNode];
+    let workingEdges: Edge[] = [...st.edges];
+    const connections = [
+      {
+        source: matNode.id,
+        target: meshNode.id,
+        sourceHandle: STUDIO_HANDLE_OUT,
+        targetHandle: "material",
+      },
+      {
+        source: xfNode.id,
+        target: meshNode.id,
+        sourceHandle: STUDIO_HANDLE_OUT,
+        targetHandle: "transform",
+      },
+      {
+        source: meshNode.id,
+        target: outputNode.id,
+        sourceHandle: STUDIO_HANDLE_OUT,
+        targetHandle: STUDIO_HANDLE_MESHES,
+      },
+    ] as const;
+
+    for (const connection of connections) {
+      const result = connectWithPolicy(connection, {
+        nodes: workingNodes,
+        edges: workingEdges,
+        subgraphs: st.subgraphs,
+      });
+      if (!result.ok) {
+        return null;
+      }
+      workingEdges = result.edges;
+    }
+
+    workingEdges = workingEdges.map((edge) => {
+      const match = connections.find(
+        (c) =>
+          c.source === edge.source &&
+          c.target === edge.target &&
+          (c.sourceHandle ?? STUDIO_HANDLE_OUT) === (edge.sourceHandle ?? STUDIO_HANDLE_OUT) &&
+          c.targetHandle === edge.targetHandle,
+      );
+      if (match == null) {
+        return edge;
+      }
+      const sourceNode = workingNodes.find((n) => n.id === edge.source);
+      const label =
+        sourceNode != null
+          ? edgeLabelForSource(sourceNode, edge.sourceHandle ?? STUDIO_HANDLE_OUT, st.subgraphs)
+          : edge.label;
+      return {
+        ...edge,
+        label: label ?? edge.label,
+        animated: true,
+        style: { ...(edge.style ?? {}), strokeWidth: 2 },
+      };
+    });
+
+    set({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(workingNodes, [meshNode.id]),
+        workingEdges,
+      ),
+      edges: workingEdges,
+      ...selectionFromIds([meshNode.id]),
+    });
+    flushFlowSimulationPins(get);
+
+    return {
+      meshFlowNodeId: meshNode.id,
+      objectPath: `proc:${meshNode.id}`,
+    };
   },
   addLayoutNodeAt: (kind, position) => {
     get().pushUndoSnapshot();
@@ -5531,9 +6215,188 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           edges = pruneAnimationMixEdges(nodes, edges);
         }
       }
+      if (
+        key === MESH_GROUP_INPUT_COUNT_KEY &&
+        touched != null &&
+        touched.type === "studio" &&
+        touched.data.nodeId === "mesh-group"
+      ) {
+        edges = pruneMeshGroupEdges(nodes, edges);
+      }
       return { nodes, edges };
     });
     flushFlowSimulationPins(get);
+  },
+  patchNodeConfigFieldsByNodeId: (nodeId, fields) => {
+    const keys = Object.keys(fields);
+    if (keys.length === 0) {
+      return false;
+    }
+    const exists = get().nodes.some((n) => n.id === nodeId);
+    if (!exists) {
+      return false;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: applyConfigFieldPatch(
+                    node.data.defaultConfig,
+                    fields,
+                  ),
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  patchNodeConfigFieldsByNodeIdSilent: (nodeId, fields) => {
+    const keys = Object.keys(fields);
+    if (keys.length === 0) {
+      return false;
+    }
+    const exists = get().nodes.some((n) => n.id === nodeId);
+    if (!exists) {
+      return false;
+    }
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  defaultConfig: applyConfigFieldPatch(
+                    node.data.defaultConfig,
+                    fields,
+                  ),
+                },
+              }
+            : node,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  commitStageGlbPartTransformWrite: (args) => {
+    const partPath = args.selection.objectPath.trim();
+    const sourceModelNodeId = args.selection.sourceNodeId;
+    if (partPath.length === 0 || sourceModelNodeId.length === 0) {
+      return false;
+    }
+    const fields = glbPartTransformFieldsForNodeConfigPatch(args.transform);
+    const st = get();
+    const existingId = findGlbPartTransformNodeId({
+      sourceModelNodeId,
+      partPath,
+      nodes: st.nodes,
+      edges: st.edges,
+    });
+    if (existingId != null) {
+      if (args.recordUndo === false) {
+        return get().patchNodeConfigFieldsByNodeIdSilent(existingId, fields);
+      }
+      return get().patchNodeConfigFieldsByNodeId(existingId, fields);
+    }
+
+    const catalogEntry = NODE_CATALOG_DEFAULTS.payload.nodes.find(
+      (e) => e.id === GLB_PART_TRANSFORM_NODE_ID,
+    );
+    const modelNode = st.nodes.find((n) => n.id === sourceModelNodeId);
+    if (catalogEntry == null || modelNode == null) {
+      return false;
+    }
+
+    const stackCount = st.nodes.filter(
+      (n) => n.type === "studio" && n.data.nodeId === GLB_PART_TRANSFORM_NODE_ID,
+    ).length;
+    const labelLeaf =
+      partPath === "(mesh)"
+        ? "root"
+        : partPath.split("/").filter((s) => s.length > 0).at(-1) ?? partPath;
+
+    if (args.recordUndo !== false) {
+      get().pushUndoSnapshot();
+    }
+
+    const nextNode = createStudioNodeFromCatalogEntry(catalogEntry, {
+      x: modelNode.position.x - 280,
+      y: modelNode.position.y + stackCount * 112,
+    });
+    nextNode.data.label = `Part ${labelLeaf}`;
+    nextNode.data.defaultConfig = {
+      ...nextNode.data.defaultConfig,
+      ...glbPartTransformSpawnDefaultConfig({
+        sourceModelNodeId,
+        partPath,
+        transform: args.transform,
+      }),
+    };
+
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        [...state.nodes, nextNode],
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return true;
+  },
+  importDashboardLayoutJson: (json) => {
+    const parsed = parseDashboardLayoutImportJson(json);
+    if (!parsed.ok) {
+      return parsed;
+    }
+    const existingNodeIds = new Set(get().nodes.map((node) => node.id));
+    const collected = collectDashboardLayoutNodeFieldPatches({
+      patches: parsed.parsed.nodePatches,
+      outputLayoutPatch: parsed.parsed.outputLayoutPatch,
+      existingNodeIds,
+    });
+    if (collected.matchedNodes === 0) {
+      return { ok: false, message: "No matching flow nodes for this layout export." };
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) => {
+          const fields = collected.nodeFieldPatches.get(node.id);
+          if (fields == null) {
+            return node;
+          }
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              defaultConfig: {
+                ...node.data.defaultConfig,
+                ...fields,
+              },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+    return {
+      ok: true,
+      matchedNodes: collected.matchedNodes,
+      skippedPatches: collected.skippedPatches,
+      missingNodeIds: collected.missingNodeIds,
+    };
   },
   setStudioUtilityNodeBodyExpanded: (flowNodeId, field, expanded) => {
     get().pushUndoSnapshot();
@@ -5552,6 +6415,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   resetCanvas: () => {
     get().pushUndoSnapshot();
     clearPersistedFlowDocument();
+    useFlowNodeLiveStore.getState().resetAll();
     set({
       nodes: [],
       edges: [],
@@ -5664,6 +6528,614 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       };
     };
 
+    if (templateId === "dashboard-button-led") {
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const outputEntry = catalog.find((entry) => entry.id === "dashboard-output");
+      const textEntry = catalog.find((entry) => entry.id === "dashboard-text");
+      const gaugeEntry = catalog.find((entry) => entry.id === "dashboard-gauge");
+      const buttonEntry = catalog.find((entry) => entry.id === "dashboard-button");
+      const setBoolEntry = catalog.find((entry) => entry.id === "event-set-boolean");
+      const ledEntry = catalog.find((entry) => entry.id === "dashboard-led");
+      if (
+        sineEntry == null ||
+        outputEntry == null ||
+        textEntry == null ||
+        buttonEntry == null ||
+        setBoolEntry == null ||
+        ledEntry == null
+      ) {
+        return;
+      }
+
+      const sineNode = makeNode(sineEntry, "demo-dash-sine", 80, 80);
+      sineNode.data.label = "Sine Wave";
+      const textNode = makeNode(textEntry, "demo-dash-text", 80, 240);
+      textNode.data.label = "RPM";
+      const gaugeNode =
+        gaugeEntry != null
+          ? makeNode(gaugeEntry, "demo-dash-gauge", 80, 400)
+          : null;
+      if (gaugeNode != null) {
+        gaugeNode.data.label = "Gauge";
+      }
+      const buttonNode = makeNode(buttonEntry, "demo-dash-button", 80, 560);
+      buttonNode.data.label = "Toggle LED";
+      const setBoolNode = makeNode(setBoolEntry, "demo-dash-set-bool", 360, 560);
+      setBoolNode.data.defaultConfig = {
+        ...setBoolNode.data.defaultConfig,
+        setTo: true,
+        value: true,
+      };
+      const ledNode = makeNode(ledEntry, "demo-dash-led", 620, 560);
+      ledNode.data.label = "Status LED";
+      const outputNode = makeNode(outputEntry, "demo-dash-output", 900, 300);
+      outputNode.data.label = "Dashboard Output";
+
+      const templateNodes: StudioNode[] = [
+        sineNode,
+        textNode,
+        buttonNode,
+        setBoolNode,
+        ledNode,
+        outputNode,
+      ];
+      if (gaugeNode != null) {
+        templateNodes.splice(2, 0, gaugeNode);
+      }
+
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-dash-e1",
+          source: sineNode.id,
+          target: textNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(sineNode, STUDIO_HANDLE_OUT) ?? "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-dash-e2",
+          source: textNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-dash-e3",
+          source: buttonNode.id,
+          target: setBoolNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "event",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-dash-e4",
+          source: setBoolNode.id,
+          target: ledNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "boolean",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-dash-e5",
+          source: buttonNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-dash-e6",
+          source: ledNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      if (gaugeNode != null) {
+        templateEdges.splice(1, 0, {
+          id: "demo-dash-e1b",
+          source: sineNode.id,
+          target: gaugeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(sineNode, STUDIO_HANDLE_OUT) ?? "number",
+          style: { strokeWidth: 2 },
+        });
+        templateEdges.splice(3, 0, {
+          id: "demo-dash-e2b",
+          source: gaugeNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
+      return;
+    }
+
+    if (templateId === "dashboard-controls-demo") {
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const constEntry = catalog.find((entry) => entry.id === "float-constant");
+      const compareEntry = catalog.find((entry) => entry.id === "compare");
+      const outputEntry = catalog.find((entry) => entry.id === "dashboard-output");
+      const textEntry = catalog.find((entry) => entry.id === "dashboard-text");
+      const gaugeEntry = catalog.find((entry) => entry.id === "dashboard-gauge");
+      const switchEntry = catalog.find((entry) => entry.id === "dashboard-switch");
+      const sliderEntry = catalog.find((entry) => entry.id === "dashboard-slider");
+      const buttonEntry = catalog.find((entry) => entry.id === "dashboard-button");
+      const setBoolEntry = catalog.find((entry) => entry.id === "event-set-boolean");
+      const ledEntry = catalog.find((entry) => entry.id === "dashboard-led");
+      if (
+        sineEntry == null ||
+        constEntry == null ||
+        compareEntry == null ||
+        outputEntry == null ||
+        textEntry == null ||
+        gaugeEntry == null ||
+        switchEntry == null ||
+        sliderEntry == null ||
+        buttonEntry == null ||
+        setBoolEntry == null ||
+        ledEntry == null
+      ) {
+        return;
+      }
+
+      const sineNode = makeNode(sineEntry, "demo-ctrl-sine", 60, 60);
+      sineNode.data.label = "Sine Wave";
+      const constNode = makeNode(constEntry, "demo-ctrl-const", 60, 220);
+      constNode.data.label = "Limit 0.5";
+      constNode.data.defaultConfig = { ...constNode.data.defaultConfig, value: 0.5 };
+      const compareNode = makeNode(compareEntry, "demo-ctrl-compare", 60, 380);
+      compareNode.data.label = "Sine > 0.5";
+      compareNode.data.defaultConfig = {
+        ...compareNode.data.defaultConfig,
+        operation: ">",
+        publishToDashboard: true,
+        onLabel: "Above",
+        offLabel: "Below",
+        placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
+      };
+
+      const textNode = makeNode(textEntry, "demo-ctrl-text", 320, 60);
+      textNode.data.label = "Live value";
+      textNode.data.defaultConfig = {
+        ...textNode.data.defaultConfig,
+        placement: { column: 4, row: 1, columnSpan: 4, rowSpan: 1 },
+      };
+      const gaugeNode = makeNode(gaugeEntry, "demo-ctrl-gauge", 320, 220);
+      gaugeNode.data.defaultConfig = {
+        ...gaugeNode.data.defaultConfig,
+        placement: { column: 8, row: 1, columnSpan: 5, rowSpan: 3 },
+      };
+      const switchNode = makeNode(switchEntry, "demo-ctrl-switch", 320, 400);
+      switchNode.data.label = "Enable output";
+      switchNode.data.defaultConfig = {
+        ...switchNode.data.defaultConfig,
+        placement: { column: 1, row: 2, columnSpan: 4, rowSpan: 1 },
+      };
+      const sliderNode = makeNode(sliderEntry, "demo-ctrl-slider", 320, 540);
+      sliderNode.data.label = "Setpoint";
+      sliderNode.data.defaultConfig = {
+        ...sliderNode.data.defaultConfig,
+        value: 50,
+        placement: { column: 5, row: 2, columnSpan: 8, rowSpan: 1 },
+      };
+      const buttonNode = makeNode(buttonEntry, "demo-ctrl-button", 600, 400);
+      buttonNode.data.label = "Pulse LED";
+      buttonNode.data.defaultConfig = {
+        ...buttonNode.data.defaultConfig,
+        placement: { column: 1, row: 4, columnSpan: 3, rowSpan: 1 },
+      };
+      const setBoolNode = makeNode(setBoolEntry, "demo-ctrl-set-bool", 860, 400);
+      setBoolNode.data.defaultConfig = {
+        ...setBoolNode.data.defaultConfig,
+        setTo: true,
+        value: true,
+      };
+      const ledNode = makeNode(ledEntry, "demo-ctrl-led", 1120, 400);
+      ledNode.data.defaultConfig = {
+        ...ledNode.data.defaultConfig,
+        placement: { column: 4, row: 4, columnSpan: 3, rowSpan: 1 },
+      };
+      const outputNode = makeNode(outputEntry, "demo-ctrl-output", 900, 200);
+      outputNode.data.label = "Dashboard Output";
+
+      const templateNodes: StudioNode[] = [
+        sineNode,
+        constNode,
+        compareNode,
+        textNode,
+        gaugeNode,
+        switchNode,
+        sliderNode,
+        buttonNode,
+        setBoolNode,
+        ledNode,
+        outputNode,
+      ];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-ctrl-e1",
+          source: sineNode.id,
+          target: textNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e2",
+          source: sineNode.id,
+          target: gaugeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e3",
+          source: sineNode.id,
+          target: compareNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "a",
+          animated: true,
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e4",
+          source: constNode.id,
+          target: compareNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "b",
+          animated: true,
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e5",
+          source: textNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e6",
+          source: gaugeNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e7",
+          source: switchNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e8",
+          source: sliderNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e9",
+          source: buttonNode.id,
+          target: setBoolNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "event",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e10",
+          source: setBoolNode.id,
+          target: ledNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "boolean",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e11",
+          source: buttonNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-ctrl-e12",
+          source: ledNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
+      return;
+    }
+
+    if (templateId === "dashboard-publish-demo") {
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const outputEntry = catalog.find((entry) => entry.id === "dashboard-output");
+      const gaugeEntry = catalog.find((entry) => entry.id === "radial-gauge");
+      const numericEntry = catalog.find((entry) => entry.id === "numeric-display");
+      const thresholdEntry = catalog.find((entry) => entry.id === "threshold");
+      const ledEntry = catalog.find((entry) => entry.id === "led-indicator");
+      if (
+        sineEntry == null ||
+        outputEntry == null ||
+        gaugeEntry == null ||
+        numericEntry == null ||
+        thresholdEntry == null ||
+        ledEntry == null
+      ) {
+        return;
+      }
+
+      const sineNode = makeNode(sineEntry, "demo-pub-sine", 80, 80);
+      sineNode.data.label = "Sine Wave";
+
+      const gaugeNode = makeNode(gaugeEntry, "demo-pub-gauge", 80, 260);
+      gaugeNode.data.label = "Radial Gauge";
+      gaugeNode.data.defaultConfig = {
+        ...gaugeNode.data.defaultConfig,
+        publishToDashboard: true,
+        placement: { column: 1, row: 1, columnSpan: 5, rowSpan: 3 },
+      };
+
+      const numericNode = makeNode(numericEntry, "demo-pub-numeric", 80, 420);
+      numericNode.data.label = "RPM readout";
+      numericNode.data.defaultConfig = {
+        ...numericNode.data.defaultConfig,
+        label: "RPM",
+        publishToDashboard: true,
+        placement: { column: 6, row: 1, columnSpan: 4, rowSpan: 1 },
+      };
+
+      const thresholdNode = makeNode(thresholdEntry, "demo-pub-threshold", 80, 580);
+      thresholdNode.data.defaultConfig = {
+        ...thresholdNode.data.defaultConfig,
+        value: 0,
+        operator: ">",
+      };
+
+      const ledNode = makeNode(ledEntry, "demo-pub-led", 80, 720);
+      ledNode.data.label = "High";
+      ledNode.data.defaultConfig = {
+        ...ledNode.data.defaultConfig,
+        publishToDashboard: true,
+        placement: { column: 10, row: 1, columnSpan: 2, rowSpan: 1 },
+      };
+
+      const outputNode = makeNode(outputEntry, "demo-pub-output", 520, 360);
+      outputNode.data.label = "Dashboard Output";
+
+      const templateNodes: StudioNode[] = [
+        sineNode,
+        gaugeNode,
+        numericNode,
+        thresholdNode,
+        ledNode,
+        outputNode,
+      ];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-pub-e1",
+          source: sineNode.id,
+          target: gaugeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(sineNode, STUDIO_HANDLE_OUT) ?? "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-pub-e2",
+          source: sineNode.id,
+          target: numericNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(sineNode, STUDIO_HANDLE_OUT) ?? "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-pub-e3",
+          source: sineNode.id,
+          target: thresholdNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: getSourcePortType(sineNode, STUDIO_HANDLE_OUT) ?? "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-pub-e4",
+          source: thresholdNode.id,
+          target: ledNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "boolean",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
+      return;
+    }
+
+    if (templateId === "dashboard-tabs-demo") {
+      const outputEntry = catalog.find((entry) => entry.id === "dashboard-output");
+      const tabOverviewEntry = catalog.find((entry) => entry.id === "dashboard-tab");
+      const tabTrendsEntry = catalog.find((entry) => entry.id === "dashboard-tab");
+      const buttonEntry = catalog.find((entry) => entry.id === "dashboard-button");
+      const textEntry = catalog.find((entry) => entry.id === "dashboard-text");
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const sparklineEntry = catalog.find((entry) => entry.id === "sparkline");
+      if (
+        outputEntry == null ||
+        tabOverviewEntry == null ||
+        buttonEntry == null ||
+        textEntry == null ||
+        sineEntry == null ||
+        sparklineEntry == null
+      ) {
+        return;
+      }
+
+      const outputNode = makeNode(outputEntry, "demo-tabs-output", 720, 320);
+      outputNode.data.label = "Dashboard Output";
+
+      const tabOverview = makeNode(tabOverviewEntry, "demo-tabs-overview", 80, 200);
+      tabOverview.data.label = "Overview";
+      tabOverview.data.defaultConfig = {
+        ...tabOverview.data.defaultConfig,
+        title: "Overview",
+        order: 0,
+      };
+
+      const tabTrends = makeNode(tabOverviewEntry, "demo-tabs-trends", 80, 400);
+      tabTrends.data.label = "Trends";
+      tabTrends.data.defaultConfig = {
+        ...tabTrends.data.defaultConfig,
+        title: "Trends",
+        order: 1,
+      };
+
+      const buttonNode = makeNode(buttonEntry, "demo-tabs-button", 80, 560);
+      buttonNode.data.label = "Acknowledge";
+      buttonNode.data.defaultConfig = {
+        ...buttonNode.data.defaultConfig,
+        placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
+      };
+
+      const textNode = makeNode(textEntry, "demo-tabs-text", 80, 700);
+      textNode.data.label = "Status";
+      textNode.data.defaultConfig = {
+        ...textNode.data.defaultConfig,
+        label: "Status",
+        placement: { column: 4, row: 1, columnSpan: 4, rowSpan: 1 },
+      };
+
+      const sineNode = makeNode(sineEntry, "demo-tabs-sine", 80, 80);
+      sineNode.data.label = "Sine Wave";
+
+      const sparkNode = makeNode(sparklineEntry, "demo-tabs-spark", 80, 860);
+      sparkNode.data.defaultConfig = {
+        ...sparkNode.data.defaultConfig,
+        publishToDashboard: true,
+        dashboardTabId: tabTrends.id,
+        placement: { column: 1, row: 1, columnSpan: 8, rowSpan: 3 },
+      };
+
+      const templateNodes: StudioNode[] = [
+        sineNode,
+        tabOverview,
+        tabTrends,
+        buttonNode,
+        textNode,
+        sparkNode,
+        outputNode,
+      ];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-tabs-e1",
+          source: tabOverview.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_TAB,
+          targetHandle: STUDIO_HANDLE_TABS,
+        },
+        {
+          id: "demo-tabs-e2",
+          source: tabTrends.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_TAB,
+          targetHandle: STUDIO_HANDLE_TABS,
+        },
+        {
+          id: "demo-tabs-e3",
+          source: buttonNode.id,
+          target: tabOverview.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+        },
+        {
+          id: "demo-tabs-e4",
+          source: textNode.id,
+          target: tabOverview.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+        },
+        {
+          id: "demo-tabs-e5",
+          source: sineNode.id,
+          target: textNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-tabs-e6",
+          source: sineNode.id,
+          target: sparkNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
+      return;
+    }
+
     if (templateId === "stage-scene-output") {
       const modelEntry = catalog.find((entry) => entry.id === "model-select");
       const outputEntry = catalog.find((entry) => entry.id === "scene-output");
@@ -5724,16 +7196,232 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         });
       }
 
-      get().pushUndoSnapshot();
-      set({
-        nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection(templateNodes, [outputNode.id]),
-          templateEdges,
-        ),
-        edges: templateEdges,
-        ...selectionFromIds([outputNode.id]),
-      });
-      flushFlowSimulationPins(get);
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
+      return;
+    }
+
+    if (templateId === "primitives-playground") {
+      const outputEntry = catalog.find((entry) => entry.id === "scene-output");
+      const envEntry = catalog.find((entry) => entry.id === "environment");
+      const matEntry = catalog.find((entry) => entry.id === "mesh-material-standard");
+      const planeEntry = catalog.find((entry) => entry.id === "mesh-plane");
+      const sphereEntry = catalog.find((entry) => entry.id === "mesh-sphere");
+      const xfEntry = catalog.find((entry) => entry.id === "object-transform");
+      if (
+        outputEntry == null ||
+        matEntry == null ||
+        planeEntry == null ||
+        sphereEntry == null ||
+        xfEntry == null
+      ) {
+        return;
+      }
+
+      const matFloor = makeNode(matEntry, "demo-prim-mat-floor", 60, 60);
+      matFloor.data.label = "Floor material";
+      matFloor.data.defaultConfig = {
+        ...matFloor.data.defaultConfig,
+        meshMaterialColorHex: "#8a8a8a",
+        meshMaterialRoughness: 0.92,
+        meshMaterialMetalness: 0.02,
+      };
+
+      const matRed = makeNode(matEntry, "demo-prim-mat-red", 60, 180);
+      matRed.data.label = "Red material";
+      matRed.data.defaultConfig = {
+        ...matRed.data.defaultConfig,
+        meshMaterialColorHex: "#e85d5d",
+        meshMaterialRoughness: 0.45,
+        meshMaterialMetalness: 0.05,
+      };
+
+      const matBlue = makeNode(matEntry, "demo-prim-mat-blue", 60, 300);
+      matBlue.data.label = "Blue material";
+      matBlue.data.defaultConfig = {
+        ...matBlue.data.defaultConfig,
+        meshMaterialColorHex: "#5d8fe8",
+        meshMaterialRoughness: 0.35,
+        meshMaterialMetalness: 0.12,
+      };
+
+      const xfFloor = makeNode(xfEntry, "demo-prim-xf-floor", 60, 420);
+      xfFloor.data.label = "Floor transform";
+      xfFloor.data.defaultConfig = {
+        ...(defaultFlowWireTransformV1() as unknown as Record<string, unknown>),
+        rotationDeg: { x: -90, y: 0, z: 0 },
+      };
+
+      const xfRed = makeNode(xfEntry, "demo-prim-xf-red", 220, 180);
+      xfRed.data.label = "Red sphere transform";
+      xfRed.data.defaultConfig = {
+        ...(defaultFlowWireTransformV1() as unknown as Record<string, unknown>),
+        position: { x: -1, y: 0.55, z: 0 },
+      };
+      // BUG - I used xfFloor instead of xfRed - fix in next edit
+
+      const planeNode = makeNode(planeEntry, "demo-prim-plane", 300, 60);
+      planeNode.data.label = "Floor plane";
+      planeNode.data.defaultConfig = {
+        ...planeNode.data.defaultConfig,
+        meshPlaneWidth: 5,
+        meshPlaneHeight: 5,
+      };
+
+      const sphereRed = makeNode(sphereEntry, "demo-prim-sphere-red", 300, 180);
+      sphereRed.data.label = "Red sphere";
+      sphereRed.data.defaultConfig = {
+        ...sphereRed.data.defaultConfig,
+        meshSphereRadius: 0.45,
+      };
+
+      const sphereBlue = makeNode(sphereEntry, "demo-prim-sphere-blue", 300, 300);
+      sphereBlue.data.label = "Blue sphere";
+      sphereBlue.data.defaultConfig = {
+        ...sphereBlue.data.defaultConfig,
+        meshSphereRadius: 0.35,
+      };
+
+      const xfBlue = makeNode(xfEntry, "demo-prim-xf-blue", 220, 300);
+      xfBlue.data.label = "Blue sphere transform";
+      xfBlue.data.defaultConfig = {
+        ...(defaultFlowWireTransformV1() as unknown as Record<string, unknown>),
+        position: { x: 1.25, y: 0.45, z: 0.6 },
+      };
+
+      const outputNode = makeNode(outputEntry, "demo-prim-scene-output", 560, 180);
+      outputNode.data.label = "Scene Output";
+      outputNode.data.defaultConfig = {
+        ...outputNode.data.defaultConfig,
+        showGrid: STAGE_DEFAULT_SHOW_GRID,
+        scene3d: stageSceneOutputDefaultScene3d(),
+      };
+
+      const templateNodes: StudioNode[] = [
+        matFloor,
+        matRed,
+        matBlue,
+        xfFloor,
+        xfRed,
+        xfBlue,
+        planeNode,
+        sphereRed,
+        sphereBlue,
+        outputNode,
+      ];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-prim-e-mat-floor",
+          source: matFloor.id,
+          target: planeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "material",
+          animated: true,
+          label: "material",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-xf-floor",
+          source: xfFloor.id,
+          target: planeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "transform",
+          animated: true,
+          label: "transform",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-plane-out",
+          source: planeNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MESHES,
+          animated: true,
+          label: "mesh",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-mat-red",
+          source: matRed.id,
+          target: sphereRed.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "material",
+          animated: true,
+          label: "material",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-xf-red",
+          source: xfRed.id,
+          target: sphereRed.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "transform",
+          animated: true,
+          label: "transform",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-sphere-red-out",
+          source: sphereRed.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MESHES,
+          animated: true,
+          label: "mesh",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-mat-blue",
+          source: matBlue.id,
+          target: sphereBlue.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "material",
+          animated: true,
+          label: "material",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-xf-blue",
+          source: xfBlue.id,
+          target: sphereBlue.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "transform",
+          animated: true,
+          label: "transform",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-prim-e-sphere-blue-out",
+          source: sphereBlue.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MESHES,
+          animated: true,
+          label: "mesh",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      if (envEntry != null) {
+        const envNode = makeNode(envEntry, "demo-prim-environment", 60, 540);
+        envNode.data.label = "Environment";
+        envNode.data.defaultConfig = {
+          ...envNode.data.defaultConfig,
+          ...stageEnvironmentNodeDefaultConfig(),
+        };
+        templateNodes.push(envNode);
+        templateEdges.push({
+          id: "demo-prim-e-env",
+          source: envNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_ENV,
+          animated: true,
+          label: getSourcePortType(envNode, STUDIO_HANDLE_OUT) ?? "environment",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
       return;
     }
 
@@ -5849,16 +7537,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         });
       }
 
-      get().pushUndoSnapshot();
-      set({
-        nodes: attachConfigErrorsWithModelChildRegistry(
-          applyStudioFlowSelection(templateNodes, [outputNode.id]),
-          templateEdges,
-        ),
-        edges: templateEdges,
-        ...selectionFromIds([outputNode.id]),
-      });
-      flushFlowSimulationPins(get);
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
       return;
     }
 
@@ -8543,15 +10222,32 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return { ok: false, message };
     }
   },
-  tickSimulation: () => {
-    if (isFlowNodeDragActive()) {
-      return;
+  tickSimulation: (options) => {
+    if (readFlowInteractionTickGate().blocked) {
+      return false;
     }
-    const state = get();
-    const { nodes, edges } = resolveEvaluationGraph(state);
+    let state = get();
+    state = {
+      ...state,
+      nodes: mergeFlowGraphNodesWithLive(state.nodes),
+      rootNodes: mergeFlowGraphNodesWithLive(state.rootNodes),
+    };
+    let { nodes, edges } = resolveEvaluationGraph(state);
+    if (stagePresentationAutoDisconnectOrphanModelSources()) {
+      const orphanEdgeIds = orphanSceneOutputModelEdgeIds({ nodes, edges });
+      if (orphanEdgeIds.length > 0) {
+        const remove = new Set(orphanEdgeIds);
+        set((current) => ({
+          edges: current.edges.filter((edge) => !remove.has(edge.id)),
+        }));
+        state = get();
+        ({ nodes, edges } = resolveEvaluationGraph(state));
+      }
+    }
     if (nodes.length === 0) {
       useStageSceneStore.getState().resetSnapshot();
-      return;
+      useDashboardSceneStore.getState().resetSnapshot();
+      return false;
     }
 
     advanceFlowClock();
@@ -9699,9 +11395,10 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             node.data.label.trim().length > 0
               ? node.data.label.trim()
               : "rigid-body";
+          const meshWire = flowValueAsMesh(readIncoming(node.id, "mesh"));
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            flowWirePhysicsRigidBodyFromConfig(node.id, label, cfg),
+            flowWirePhysicsRigidBodyFromConfig(node.id, label, cfg, meshWire),
           );
           continue;
         }
@@ -9716,6 +11413,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             includeUnwiredGraphNodes: cfg.enabled !== false,
           });
           const rigidBodies = collectPhysicsRigidBodiesForWorld({
+            nodes,
             edges,
             physicsWorldNodeId: node.id,
             pinValues,
@@ -9805,6 +11503,40 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             readEventBooleanValue(
               node.data.defaultConfig as Record<string, unknown>,
             ),
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "dashboard-theme") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            coerceFlowWireDashboardThemeV1(dc.theme ?? dc),
+          );
+          continue;
+        }
+
+        if (
+          node.data.nodeId === "knob" ||
+          node.data.nodeId === "dashboard-knob" ||
+          node.data.nodeId === "dashboard-slider"
+        ) {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const raw = dc.value;
+          const v =
+            typeof raw === "number" && Number.isFinite(raw)
+              ? raw
+              : coerceNumberConstantValue(dc, raw);
+          pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), v);
+          continue;
+        }
+
+        if (node.data.nodeId === "dashboard-switch") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const raw = dc.value;
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            typeof raw === "boolean" ? raw : false,
           );
           continue;
         }
@@ -10387,6 +12119,45 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (isMeshMaterialNodeId(node.data.nodeId)) {
+          const wire = buildMeshMaterialWireForNode(
+            node.data.nodeId,
+            node.data.defaultConfig as Record<string, unknown>,
+            (handleId) => readIncoming(node.id, handleId),
+          );
+          if (wire != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "mesh-group") {
+          const groupCount = readMeshGroupInputCount(node.data.defaultConfig);
+          const groupWires = [];
+          for (let i = 0; i < groupCount; i += 1) {
+            groupWires.push(
+              flowValueAsMesh(readIncoming(node.id, meshGroupInputHandleId(i))),
+            );
+          }
+          const wire = mergeFlowWireMeshesV1(groupWires);
+          if (wire != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          }
+          continue;
+        }
+
+        if (isMeshPrimitiveNodeId(node.data.nodeId)) {
+          const wire = buildMeshPrimitiveWireForNode(
+            node.data.nodeId,
+            node.data.defaultConfig as Record<string, unknown>,
+            (handleId) => readIncoming(node.id, handleId),
+          );
+          if (wire != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), wire);
+          }
+          continue;
+        }
+
         if (node.data.nodeId === "object-transform") {
           const wire = flowWireTransformFromNodeDefaultConfig(
             node.data.defaultConfig as Record<string, unknown>,
@@ -10681,8 +12452,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       };
     };
 
-    set((state) => {
-      const nodes = state.nodes.map((node) => {
+    let tickedNodes: FlowGraphNode[] = [];
+    const livePatches = new Map<string, StudioNodeLiveSlice>();
+    const evalNodes = state.nodes.map((node) => {
         if (isStudioNodeGroupNode(node)) {
           return patchNodeGroupHostLive(node, state.edges, state.subgraphs);
         }
@@ -10785,6 +12557,12 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         ) {
           delete dataWithoutSensorMode.liveAnimationWire;
         }
+        if (!isMeshMaterialNodeId(node.data.nodeId)) {
+          delete dataWithoutSensorMode.liveMaterialWire;
+        }
+        if (!isMeshWireOutputNodeId(node.data.nodeId)) {
+          delete dataWithoutSensorMode.liveMeshWire;
+        }
         if (
           node.data.nodeId !== "rotation-3d-euler" &&
           node.data.nodeId !== "rotation-3d-quaternion" &&
@@ -10878,7 +12656,6 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           ...dataWithoutSensorMode,
           liveValue: nextLive,
           liveHistory: nextHistory,
-          lastUpdatedAt: nowIso,
         };
 
         if (isPlotterNodeId(node.data.nodeId)) {
@@ -10915,6 +12692,126 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
                   );
                   return { x: rgb.r, y: rgb.g, z: rgb.b };
                 })();
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (isMeshMaterialNodeId(node.data.nodeId)) {
+          const wire =
+            flowValueAsMaterial(
+              pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)),
+            ) ??
+            buildMeshMaterialWireForNode(
+              node.data.nodeId,
+              node.data.defaultConfig as Record<string, unknown>,
+              (handleId) => readIncoming(node.id, handleId),
+            );
+          if (wire != null) {
+            base.liveMaterialWire = wire;
+          } else {
+            delete base.liveMaterialWire;
+          }
+          const wiredOpacity = readIncoming(node.id, "opacity");
+          const wiredRoughness = readIncoming(node.id, "roughness");
+          const wiredMetalness = readIncoming(node.id, "metalness");
+          if (typeof wiredOpacity === "number" && Number.isFinite(wiredOpacity)) {
+            base.liveInputNumberByHandle = {
+              ...(node.data.liveInputNumberByHandle ?? {}),
+              opacity: wiredOpacity,
+            };
+          }
+          if (typeof wiredRoughness === "number" && Number.isFinite(wiredRoughness)) {
+            base.liveInputNumberByHandle = {
+              ...(base.liveInputNumberByHandle ?? node.data.liveInputNumberByHandle ?? {}),
+              roughness: wiredRoughness,
+            };
+          }
+          if (typeof wiredMetalness === "number" && Number.isFinite(wiredMetalness)) {
+            base.liveInputNumberByHandle = {
+              ...(base.liveInputNumberByHandle ?? node.data.liveInputNumberByHandle ?? {}),
+              metalness: wiredMetalness,
+            };
+          }
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "mesh-group") {
+          const wire =
+            flowValueAsMesh(
+              pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)),
+            ) ??
+            mergeFlowWireMeshesV1(
+              Array.from(
+                { length: readMeshGroupInputCount(node.data.defaultConfig) },
+                (_, i) =>
+                  flowValueAsMesh(readIncoming(node.id, meshGroupInputHandleId(i))),
+              ),
+            );
+          if (wire != null) {
+            base.liveMeshWire = wire;
+          } else {
+            delete base.liveMeshWire;
+          }
+          base.liveValue = null;
+          base.liveHistory = [];
+        }
+
+        if (isMeshPrimitiveNodeId(node.data.nodeId)) {
+          const wire =
+            flowValueAsMesh(
+              pinValues.get(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT)),
+            ) ??
+            buildMeshPrimitiveWireForNode(
+              node.data.nodeId,
+              node.data.defaultConfig as Record<string, unknown>,
+              (handleId) => readIncoming(node.id, handleId),
+            );
+          if (wire != null) {
+            base.liveMeshWire = wire;
+          } else {
+            delete base.liveMeshWire;
+          }
+          const matWire = flowValueAsMaterial(readIncoming(node.id, "material"));
+          if (matWire != null) {
+            base.liveMaterialWire = matWire;
+          } else {
+            delete base.liveMaterialWire;
+          }
+          const xfWire = flowValueAsTransform(readIncoming(node.id, "transform"));
+          if (xfWire != null) {
+            base.liveTransformWire = xfWire;
+          } else {
+            delete base.liveTransformWire;
+          }
+          const wiredWidth = readIncoming(node.id, "width");
+          const wiredHeight = readIncoming(node.id, "height");
+          const wiredDepth = readIncoming(node.id, "depth");
+          const wiredRadius = readIncoming(node.id, "radius");
+          if (typeof wiredWidth === "number" && Number.isFinite(wiredWidth)) {
+            base.liveInputNumberByHandle = {
+              ...(node.data.liveInputNumberByHandle ?? {}),
+              width: wiredWidth,
+            };
+          }
+          if (typeof wiredHeight === "number" && Number.isFinite(wiredHeight)) {
+            base.liveInputNumberByHandle = {
+              ...(base.liveInputNumberByHandle ?? node.data.liveInputNumberByHandle ?? {}),
+              height: wiredHeight,
+            };
+          }
+          if (typeof wiredDepth === "number" && Number.isFinite(wiredDepth)) {
+            base.liveInputNumberByHandle = {
+              ...(base.liveInputNumberByHandle ?? node.data.liveInputNumberByHandle ?? {}),
+              depth: wiredDepth,
+            };
+          }
+          if (typeof wiredRadius === "number" && Number.isFinite(wiredRadius)) {
+            base.liveInputNumberByHandle = {
+              ...(base.liveInputNumberByHandle ?? node.data.liveInputNumberByHandle ?? {}),
+              radius: wiredRadius,
+            };
+          }
           base.liveValue = null;
           base.liveHistory = [];
         }
@@ -11466,6 +13363,50 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           patchSceneOutputLiveWires(base, node.id);
         }
 
+        if (
+          node.data.nodeId === "dashboard-led" ||
+          node.data.nodeId === "dashboard-text" ||
+          node.data.nodeId === "dashboard-gauge" ||
+          node.data.nodeId === "dashboard-status"
+        ) {
+          const wired = readIncoming(node.id, STUDIO_HANDLE_IN);
+          if (typeof wired === "number" && Number.isFinite(wired)) {
+            base.liveValue = wired;
+          } else if (typeof wired === "boolean") {
+            base.liveValue = wired;
+          } else {
+            base.liveValue = null;
+          }
+          base.liveHistory = [];
+        }
+
+        if (
+          node.data.nodeId === "dashboard-knob" ||
+          node.data.nodeId === "dashboard-slider"
+        ) {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const raw = dc.value;
+          base.liveValue =
+            typeof raw === "number" && Number.isFinite(raw) ? raw : null;
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "dashboard-switch") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          base.liveValue = typeof dc.value === "boolean" ? dc.value : false;
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "dashboard-output") {
+          const themeVal = readIncoming(node.id, STUDIO_HANDLE_THEME);
+          const themeWire = flowValueAsDashboardTheme(themeVal);
+          if (themeWire != null) {
+            base.liveDashboardThemeWire = themeWire;
+          } else {
+            delete base.liveDashboardThemeWire;
+          }
+        }
+
         if (node.data.nodeId === "model-viewer") {
           const incomingValue = readIncoming(node.id, STUDIO_HANDLE_IN);
           const dc = node.data.defaultConfig as Record<string, unknown>;
@@ -11561,21 +13502,26 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           }
         }
 
-        return {
-          ...node,
-          data: base,
+        const prevMerged = mergeStudioNodeLiveIntoData(
+          node.data,
+          readFlowNodeLiveSlice(node.id),
+        );
+        if (isStudioNodeTickRuntimeEqual(prevMerged, base)) {
+          return { ...node, data: prevMerged };
+        }
+        const mergedData: StudioNodeData = {
+          ...base,
+          lastUpdatedAt: nowIso,
         };
+        livePatches.set(node.id, extractStudioNodeLiveSlice(mergedData));
+        return { ...node, data: mergedData };
       });
-      const rootNodes =
-        state.activeGraphId === STUDIO_ROOT_GRAPH_ID
-          ? nodes
-          : state.rootNodes.map((node) =>
-              isStudioNodeGroupNode(node)
-                ? patchNodeGroupHostLive(node, state.rootEdges, state.subgraphs)
-                : node,
-            );
-      return { nodes, rootNodes };
-    });
+    const graphTickMutated = useFlowNodeLiveStore.getState().applyTickPatches(livePatches);
+    tickedNodes = evalNodes;
+    if (!graphTickMutated) {
+      return true;
+    }
+
     if (visionTriggerSourceIds.length > 0) {
       dispatchFlowEventSourcesFromHandle(
         get,
@@ -11584,7 +13530,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         "trigger",
       );
     }
-    const stageNodes = nodes.map((node) => {
+    const stageNodes = tickedNodes.map((node) => {
       if (node.data.nodeId !== "scene-output") {
         return node;
       }
@@ -11592,14 +13538,163 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       patchSceneOutputLiveWires(base, node.id);
       return { ...node, data: base };
     });
-    useStageSceneStore
-      .getState()
-      .setSnapshot(
+    const stageSceneState = useStageSceneStore.getState();
+    if (
+      shouldRefreshStageSnapshotAfterTick({
+        workbenchMode: stageSceneState.workbenchMode,
+        forceStageSnapshot: options?.forceStageSnapshot,
+        snapshotHasSceneOutput: stageSceneState.snapshot.sceneOutputNodeId != null,
+      })
+    ) {
+      stageSceneState.setSnapshot(
         evaluateStageSceneSnapshot({
           nodes: stageNodes,
           edges,
         }),
       );
+    }
+    // Dashboard layout snapshot refreshes on structural graph edits (see useDashboardStructuralSnapshot).
+    // Live widget values stream from flow-node-live.store into dashboard cells and flow node cards.
+    return true;
+  },
+  dispatchDashboardWidgetEvent: (event) => {
+    const source = get().nodes.find((n) => n.id === event.sourceNodeId);
+    if (source == null || source.data.nodeId !== "dashboard-button") {
+      return;
+    }
+    dispatchFlowEventSourcesFromHandle(
+      get,
+      set,
+      [source.id],
+      STUDIO_HANDLE_OUT,
+    );
+  },
+  dispatchDashboardKnobValue: (event) => {
+    const { sourceNodeId, value } = event;
+    if (!Number.isFinite(value)) {
+      return;
+    }
+    get().updateNodeConfigFieldByNodeId(sourceNodeId, "value", value);
+  },
+  dispatchDashboardSwitchValue: (event) => {
+    get().updateNodeConfigFieldByNodeId(event.sourceNodeId, "value", event.value);
+  },
+  moveDashboardWidgetToGridCell: ({ sourceNodeId, row, column }) => {
+    const node = get().nodes.find((n) => n.id === sourceNodeId);
+    if (node == null) {
+      return;
+    }
+    const dc = node.data.defaultConfig as Record<string, unknown>;
+    const placement = coerceDashboardPlacementV1(dc.placement);
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) =>
+          n.id === sourceNodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  defaultConfig: {
+                    ...n.data.defaultConfig,
+                    placement: {
+                      ...placement,
+                      row,
+                      column,
+                    },
+                  },
+                },
+              }
+            : n,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  resizeDashboardWidgetPlacement: ({ sourceNodeId, columnSpan, rowSpan }) => {
+    const node = get().nodes.find((n) => n.id === sourceNodeId);
+    if (node == null) {
+      return;
+    }
+    const dc = node.data.defaultConfig as Record<string, unknown>;
+    const placement = coerceDashboardPlacementV1(dc.placement);
+    get().setDashboardWidgetGridPlacement({
+      sourceNodeId,
+      placement: {
+        ...placement,
+        columnSpan: Math.max(1, Math.round(columnSpan)),
+        rowSpan: Math.max(1, Math.round(rowSpan)),
+      },
+    });
+  },
+  setDashboardWidgetGridPlacement: ({ sourceNodeId, placement }) => {
+    const node = get().nodes.find((n) => n.id === sourceNodeId);
+    if (node == null) {
+      return;
+    }
+    const dc = node.data.defaultConfig as Record<string, unknown>;
+    const current = coerceDashboardPlacementV1(dc.placement);
+    const next = coerceDashboardPlacementV1(placement);
+    if (
+      current.column === next.column &&
+      current.row === next.row &&
+      current.columnSpan === next.columnSpan &&
+      current.rowSpan === next.rowSpan
+    ) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((n) =>
+          n.id === sourceNodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  defaultConfig: {
+                    ...n.data.defaultConfig,
+                    placement: next,
+                  },
+                },
+              }
+            : n,
+        ),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
+  },
+  arrangeDashboardWidgetsStacked: (items) => {
+    const patches = buildDashboardStackPlacements(items);
+    if (patches.length === 0) {
+      return;
+    }
+    const patchById = new Map(patches.map((row) => [row.sourceNodeId, row.placement]));
+    get().pushUndoSnapshot();
+    set((state) => ({
+      nodes: attachConfigErrorsWithModelChildRegistry(
+        state.nodes.map((node) => {
+          const placement = patchById.get(node.id);
+          if (placement == null) {
+            return node;
+          }
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              defaultConfig: {
+                ...node.data.defaultConfig,
+                placement,
+              },
+            },
+          };
+        }),
+        state.edges,
+      ),
+    }));
+    flushFlowSimulationPins(get);
   },
   dispatchFlowKeyboardEvent: (event) => {
     const { nodes } = get();

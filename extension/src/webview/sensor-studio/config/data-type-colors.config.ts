@@ -25,5 +25,10 @@ export const DATA_TYPE_COLORS_DEFAULTS: DataTypeColorsConfig = {
     physicsScene: "#4ADE80",
     physicsCollider: "#2DD4BF",
     physicsBody: "#38BDF8",
+    dashboardWidget: "#E879F9",
+    dashboardTheme: "#C084FC",
+    dashboardTab: "#A78BFA",
+    material: "#F9A8D4",
+    mesh: "#6EE7B7",
   },
 };

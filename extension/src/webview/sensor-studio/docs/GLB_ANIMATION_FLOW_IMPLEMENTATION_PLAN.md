@@ -1,8 +1,10 @@
 # GLB / glTF animation flow — implementation plan (future)
 
-**Status:** **Backlog** — requirements and design captured **2026-06-02**; implementation **not started**.  
+**Status:** **Backlog** — requirements and design captured **2026-06-02**; extended **2026-06-06** (mechanical multi-part + full Blender/glTF channel coverage). Implementation **not started**.  
 **Domain:** Sensor Studio flow canvas — **Domain B** (scene + animation).  
 **Related:** [`FLOW_DOMAINS.md`](./FLOW_DOMAINS.md) (Phase 4 shipped baseline), [`flow-wire-animation.ts`](../features/editor/nodes/animation/flow-wire-animation.ts), [`GLB_ANIMATION_LAB.md`](../../../bitstream-app/components/animation-lab/GLB_ANIMATION_LAB.md), [`studio-gltf-extract.ts`](../features/editor/gltf/studio-gltf-extract.ts), [`DEVELOPMENT_TRACKER.md`](../../../../docs/DEVELOPMENT_TRACKER.md).
+
+**Product promise:** Play and combine **everything the GLB actually contains** — skeletal clips, object TRS, morph weights in actions, plus **parallel drives** (static morph, part visibility, lights, cameras, continuous part spin). **Not** live Blender IK, drivers, or NLA editing on the graph.
 
 ---
 
@@ -15,6 +17,7 @@ Give **animators and integrators** a clear, graph-visible workflow to:
 3. Control **each clip independently** (time, speed, direction, loop, weight, trim, enable).
 4. **Blend** and **merge** multiple clip states into one viewport.
 5. Cover **real Blender / glTF export use cases** without pretending to replicate Blender NLA or IK in the graph.
+6. Support **mechanical / multi-part** assets (robot arm, drone propellers) — independent per-part control via **clips** and **continuous part drives**.
 
 **Authoring / audition** stays in **GLB Animation Lab** and Model Catalog; the **flow graph** owns **runtime** behavior (sensors, events, logic → playback).
 
@@ -31,8 +34,34 @@ Give **animators and integrators** a clear, graph-visible workflow to:
 | **`mergeGlbAnimationClipDrivesForPreview`** | Scalar time → bundle wire → event drives → **Model Viewer** / **3D Rotation** mixer |
 | **GLB Library → Animations** | Extract clip list; spawn bundle or **Evt** trigger |
 | **GLB Animation Lab** | Solo / parallel / sequence, scrub, digital twin — **not** a flow node |
+| **`morph-target`** + GLB extract morph drives | Static morph weight 0–1 (`mesh:morph` ref); merged in preview |
+| **Part visibility / opacity** | **`event-toggle-glb-part`**, **`event-set-glb-part`**, scalar part drives |
+| **Lights / cameras / materials** | GLB Library extract + scalar / event drives (sibling to animation) |
 
-Phase 4 slices (1–4) in **`FLOW_DOMAINS.md`** are **done**; this plan is **Phase 4+** (per-clip nodes + blend + guided workflow).
+Phase 4 slices (1–4) in **`FLOW_DOMAINS.md`** are **done**; this plan is **Phase 4+** (per-clip nodes + merge + mechanical drives + guided workflow).
+
+---
+
+## Three motion families (character + mechanical)
+
+All paths anchor on **`model-select` (Model Source)** and merge in the viewport eval stack (mixer + part/morph drives).
+
+| Family | Examples | Graph primitive | Runtime |
+| ------ | -------- | ----------------- | ------- |
+| **A — Baked timeline (clip)** | Arm pick, door open, character walk, shape-key act | **Animation Clip** / Bundle → **`glbAnimation`** | `AnimationMixer` + clip tracks |
+| **B — Continuous mechanism** | Drone propeller spin, belt, idle rotor | **`part-spin`** (proposed) | Per-frame local rotation on part path |
+| **C — Static / scalar drive** | Morph smile dial, hide gear, emissive blink | **`morph-target`**, part events, material scalars | Direct property write each frame |
+
+**Mechanical UX:** Library **Parts** row → **Clip** (if an action exists for that object), **Spin** (continuous), **Evt** (visibility). Do not force propellers through clip semantics when integrators need arbitrary speed/direction.
+
+```text
+Model Source
+  ├─ Animation Clip "arm_pick"     (baked)
+  ├─ Part Spin "propeller_FL"       (continuous, speed wired)
+  ├─ Part Spin "propeller_FR"      (speed × -1)
+  ├─ Morph Target "body:Hatch"     (static weight)
+  └─ Merge (clips) + scene drives ──► Model Viewer / Stage
+```
 
 ---
 
@@ -101,30 +130,44 @@ Each clip the operator cares about must be adjustable **on the canvas** (not onl
 - **Animation Clip** nodes for **continuous** modulation (sensor → speed/weight/time).
 - Clear precedence vs **`mergeGlbAnimationClipDrivesForPreview`** (document layer order; extend if Clip nodes add a layer).
 
-### R5 — Blender / glTF coverage (honest scope)
+### R5 — Blender / glTF animation coverage (full channel matrix)
 
-| Export content | glTF / Three.js | Studio extraction today | Plan |
-| -------------- | --------------- | ------------------------ | ---- |
-| **Actions** (armature / object F-curves) | Named `AnimationClip` | **Animations** tab | **Animation Clip** nodes + Bundle |
-| **Shape keys in action** | Channels on morph weights | Clips + **Morphs** tab | Clip node + optional morph scalars in parallel |
-| **Multiple actions / NLA baked** | Multiple clip names | Bundle sequence / parallel | Director + Merge |
-| **Object-only animation** | TRS channels | Same clip system | Same nodes |
-| **Skin / bones** | Skinned mesh + clips | Same clip system | No per-bone flow nodes in v1 |
-| **Embedded cameras / lights** | Clip or static | **Cameras** / **Lights** drives | Sibling drive family, not “animation clip” |
-| **Morph targets** (static) | Mesh morph dictionary | **Morphs** tab + scalar drives | Document vs clip timeline |
-| **IK / constraints / NLA logic** | Only if **baked** into keys | — | **Out of scope** on graph; Blender + Lab |
+glTF 2.0 animation channels target **nodes** (TRS) or **morph weights**. Three.js **`AnimationClip`** plays whatever tracks were exported — **bones are nodes** in the glTF hierarchy (skinned meshes follow bone tracks automatically). Studio does **not** need separate “bone nodes” on the graph when motion is already in named clips.
 
-Product message: **“We play and blend what is baked into the GLB.”**
+| Blender export | glTF channel | Three.js / mixer | Studio today | Phase 4+ plan |
+| -------------- | ------------ | ---------------- | ------------ | ------------- |
+| **Armature / bone actions** | Node TRS on bone objects | Clip tracks → skinned mesh | **Animations** tab + Bundle / mixer | **Animation Clip** + Merge |
+| **Object animation** (empties, props, propeller mesh) | Node TRS | Same clip system | Same | Same |
+| **Shape keys in action** (animated morphs) | `weights` morph targets | Clip morph weight tracks | Clips + **Morphs** tab | Clip node plays timeline; optional **`morph-target`** for static override |
+| **Static shape keys** (no action) | Morph dictionary only | `morphTargetInfluences` | **`morph-target`**, Library **Morphs** | Graph-visible morph node + wired weight |
+| **Multiple actions / NLA baked** | Multiple `AnimationClip` names | Parallel / sequence modes | Bundle **`parallel-all`**, **`sequence`** | Director + Merge |
+| **Material nodes in action** | Node or material property tracks (if exporter emits) | Clip tracks when present | Material scalar drives (parallel) | Verify per exporter; document in Blender guide |
+| **Camera / light in action** | Node TRS or props | Clip tracks | **Cameras** / **Lights** tabs + drives | Clip can animate; static drives remain |
+| **Skinning / weights** | `skins` + inverse bind matrices | SkinnedMesh | Loaded with GLB | No graph node — data asset |
+| **IK / constraints / drivers / live NLA** | — | Only if **baked** to keys | — | **Out of scope** on graph; bake in Blender |
 
-### R6 — Dual runtime + VSIX
+**Implementation rule:** For anything in the **left column**, if it appears as **keys in a named glTF animation**, it is controlled through **`FlowWireAnimationV1`** (clip time, speed, weight, loop, trim, enabled). For **continuous or non-keyed** control, use **family B/C** drives.
+
+**Validation (when implementing):** Golden GLBs per row (character armature, drone props, morph face, multi-action robot) in `tests/sensor-studio/` or manual smoke checklist.
+
+Product message: **“We play and blend what is baked into the GLB; we drive static morphs and mechanisms on parallel paths.”**
+
+### R6 — Mechanical / multi-part independence
+
+- **Independent clips:** One **Animation Clip** node per *selected* glTF action when each action targets disjoint or partially overlapping rigs (merge policy documented when two clips touch the same node).
+- **Independent continuous motion:** **`part-spin`** (proposed) — bind to **`extractStudioGltfComponents`** part `ref` (object path); wired **speed**, **enabled**, **axis** (local X/Y/Z), optional **direction**; evaluated on scene frame tick alongside mixer.
+- **Do not** auto-spawn one node per part for entire assemblies; spawn from Library for parts the operator wires (same scale rule as clips).
+- **Default templates:** Drone demo → Part Spin per propeller; robot → Clip per joint action + optional Spin for belt/roller.
+
+### R7 — Dual runtime + VSIX
 
 - Same graphs in **Vite dev** and **installed VSIX** (`bitstream-dual-runtime.mdc`).
 - Re-test **`model-viewer`** and **3D Rotation** after new nodes and merge paths.
 
-### R7 — UI conventions
+### R8 — UI conventions
 
 - TRN inspector hints; socket-only cards where appropriate (`SENSOR_STUDIO_NODE_UI_RULES.md`).
-- Spawn from Library row: **Clip** (continuous), **Evt** (trigger), **Bundle** (all clips) — parallel to existing **Animations → Evt**.
+- Spawn from Library row: **Clip** (continuous), **Evt** (trigger), **Spin** (part, proposed), **Bundle** (all clips) — parallel to existing **Animations → Evt** and **Parts → Evt**.
 
 ---
 
@@ -138,10 +181,12 @@ Product message: **“We play and blend what is baked into the GLB.”**
 | `animation-select` | Animation Select | Clip name + bundle in → patched solo / enabled clip (state-machine helper) |
 | `animation-gate` | Animation Gate | Boolean → enable/disable one clip on a wire (thin wrapper) |
 | `animation-director` | Animation Director (optional) | Global `playbackMode`, `clipOrder`, transport — alternative to bundle-only policy |
+| `part-spin` | Part Spin | Continuous local-axis rotation on GLB part path; wired speed / enabled / direction; scene eval (not `glbAnimation`) |
+| `morph-target` (existing) | Morph Target | Static morph weight; keep; improve Library spawn + merge with clip morph tracks |
 
-**Keep:** `glb-animation-bundle`, `event-trigger-glb-anim`, `model-select` / Studio Model.
+**Keep:** `glb-animation-bundle`, `event-trigger-glb-anim`, `model-select` / Studio Model, **`morph-target`**, part event nodes.
 
-**Defer:** per-bone mask nodes (use `maskPreset` on wire later), NLA strip editor, IK on graph.
+**Defer:** per-bone mask nodes (use `maskPreset` on wire later), NLA strip editor, IK on graph, **procedural** clip authoring inside Studio.
 
 ---
 
@@ -160,7 +205,15 @@ Reuse **`FlowWireAnimationV1`** / **`FlowWireAnimationClipV1`** — Clip nodes e
 }
 ```
 
-Merge utility **deep-merges** `clips` by name (policy: later layer wins per field or per clip — TBD in implementation).
+Merge utility **deep-merges** `clips` by name — **implemented in `animation-wire-merge.ts`**:
+
+| Operation | Policy |
+| --------- | ------ |
+| **Merge** (`animation-merge`) | **2–8** ordered inputs (**1 → 2 → … → N**). Same clip name: later input overrides defined fields (`timeS`, `speed`, `weight`, `enabled`, loop, trim, fades). Distinct clip names accumulate and play in parallel. Inspector **+ / −** adjusts socket count. |
+| **Mix** (`animation-mix`) | **2–8** animation inputs with per-input weights (**W1…WN** sockets or inspector). Weights normalize to sum 1 by default; scales clip weights then merges in parallel. |
+| **Blend** (`animation-blend`) | Factor **0 = A**, **1 = B**. Weights scale **multiplicatively**: `wA = w × (1 − factor)`, `wB = w × factor` (not re-normalized). **`crossfadeS`** sets `fadeOutMs` on A clips and `fadeInMs` on B clips for the preview mixer. Output uses **`parallel-all`** playback mode. |
+
+**Weight normalization:** not applied in v1 — operator should keep clip weights ≤ 1 when blending two full-weight clips, or accept summed influence in the mixer.
 
 ### Evaluator / tick
 
@@ -190,28 +243,28 @@ Align with **`mergeGlbAnimationClipDrivesForPreview`** when implementing.
 
 ### Phase A — Animation Clip node (highest value)
 
-- [ ] Catalog + `nodeId` `animation-clip`
-- [ ] Config: `clipName`, model scope, defaults for loop/speed/weight
-- [ ] Optional input ports: `time`, `speed`, `weight`, `enabled`, loop enum
-- [ ] Output port: `glbAnimation`
-- [ ] Eval: build partial `FlowWireAnimationV1`
-- [ ] Library **Animations** row → **Spawn Clip** (alongside **Evt** / drag to canvas)
-- [ ] Inspector hints; socket live previews where applicable
-- [ ] Unit tests: eval + merge into preview drives
-- [ ] Demo template: e.g. **BMI270** or scalar → clip → viewer (live telemetry)
+- [x] Catalog + `nodeId` `animation-clip`
+- [x] Config: `clipName`, model scope, defaults for loop/speed/weight
+- [x] Optional input ports: `time`, `speed`, `weight`, `enabled`, loop enum
+- [x] Output port: `glbAnimation`
+- [x] Eval: build partial `FlowWireAnimationV1`
+- [x] Library **Animations** row → **Clip** (alongside **Evt** / drag to canvas)
+- [x] Inspector hints; socket live previews where applicable
+- [x] Unit tests: eval + merge into preview drives
+- [ ] Demo template: e.g. **BMI270** or scalar → clip → viewer (live telemetry) — **Phase C**
 
 ### Phase B — Merge and Blend
 
-- [ ] **`animation-merge`** — merge partial wires
-- [ ] **`animation-blend`** — two wires + factor; mixer crossfade from `fadeInMs` / `fadeOutMs`
-- [ ] Tests: two clips same GLB, weight sum / normalization rules
-- [ ] Document blend rules (additive vs normalized weights)
+- [x] **`animation-merge`** — merge partial wires (A/B/C; later wins per clip field)
+- [x] **`animation-blend`** — two wires + factor; mixer crossfade from `crossfadeS` → `fadeInMs` / `fadeOutMs`
+- [x] Tests: two clips same GLB, weight sum / merge rules
+- [x] Document blend rules (additive vs normalized weights) — see Architecture notes
 
 ### Phase C — Guided workflow
 
-- [ ] Canvas **Run demo template**: model + 2 clips + blend or sequence
-- [ ] Optional wizard: catalog → pick clips → spawn graph
-- [ ] Shift+A subgroup **Animation** under Utilities
+- [x] Canvas **Run demo template**: model + 2 clips + blend (`animation-clip-blend`)
+- [x] Optional wizard: Library **Model → Build animation graph** (1–8 clips → Clip + Merge/Mix/Blend + Viewer; 3+ picker for **Merge** vs **Mix**)
+- [x] Shift+A **Animation** group for `animation-clip`, `animation-merge`, `animation-blend` (and bundle)
 
 ### Phase D — Director + polish
 
@@ -219,11 +272,26 @@ Align with **`mergeGlbAnimationClipDrivesForPreview`** when implementing.
 - [ ] **Animation Select** / **Gate** if state-machine graphs demand it
 - [ ] NA import mapping for node-animator `animationPlayer` / per-clip graphs (if needed)
 
+### Phase F — Mechanical / part drives
+
+- [x] **`part-spin`** catalog + eval (local axis, speed, enabled, model scope)
+- [x] Library **Parts** → **Spin** spawn
+- [x] Merge with clip mixer in **`build-glb-scalar-preview-scene-props`** / viewport rAF (Part Spin applies **after** mixer — additive local rotation)
+- [x] Demo template: **`part-spin-demo`** — two spins + sine-driven speed (drone-style workflow)
+- [ ] Demo template: robot arm — clip + optional spin for conveyor
+
+### Phase G — Morph + channel verification
+
+- [ ] Document morph **in clip** vs **static morph-target** precedence
+- [ ] Golden/smoke: armature walk, morph blink in action, object-only prop spin clip
+- [ ] Exporter notes for glTF Shape Keys + armature in same file
+
 ### Phase E — Documentation and Blender export guide
 
-- [ ] Operator doc: Blender export checklist (one action per clip, bake NLA, naming)
+- [ ] Operator doc: Blender export checklist (one action per clip, bake NLA, naming, shape keys, apply modifiers)
 - [ ] Use-case matrix (this doc § R5) in user-facing help
 - [ ] Cross-link from **`GlbExtractionTabPanel`** empty states
+- [ ] Table: “when to use Clip vs Part Spin vs Morph Target”
 
 ---
 
@@ -234,7 +302,8 @@ Align with **`mergeGlbAnimationClipDrivesForPreview`** when implementing.
 | Model catalog dropdown → Animations → … | **Accepted** as primary UX path; dropdown on **Studio Model**, list in **GLB Library** |
 | One node per clip for speed/loop/etc. | **Accepted** as **Animation Clip** (multi-socket), not one node per parameter |
 | Full blending workflow | **Accepted** — Merge + Blend nodes + mixer fades |
-| Cover all Blender animation types | **Partial** — all **baked clip** types; morph/part/light/camera as **parallel** drives; no live IK/NLA |
+| Cover all Blender animation types | **Accepted** — all **baked glTF channels** via clips (bones, objects, morph weights in actions); static morph / part / light / camera via **parallel** drives; **Part Spin** for continuous mechanisms; no live IK/NLA |
+| Mechanical multi-part (drone, robot) | **Accepted** — Clip + **Part Spin** hybrid; Library spawn from **Parts** |
 | Replace Bundle | **No** — Bundle remains best for many clips + inspector transport |
 | Animation Lab on canvas | **No** — Lab stays workbench; graph consumes wires |
 
@@ -249,7 +318,21 @@ Align with **`mergeGlbAnimationClipDrivesForPreview`** when implementing.
 | Blend without same skeleton | Validate same `studioAssetId`; warn on merge |
 | Duplicate model scope | Single Studio Model anchor per subgraph |
 
-**Non-goals (v1):** Blender-style NLA editor, driver graphs, per-bone mask editor, procedural clip authoring inside Studio.
+**Non-goals (v1):** Blender-style NLA editor, driver graphs, per-bone mask editor, procedural clip authoring inside Studio, **unbaked** IK/constraints on the graph.
+
+---
+
+## Evaluator stack (target)
+
+Single **Model Viewer / Stage** frame tick applies layers in order (document + test):
+
+1. **Transform** wire (whole model)
+2. **`AnimationMixer`** — merged **`glbAnimation`** (all clip track types: bone, object, morph-in-action, camera/light if keyed)
+3. **Part Spin** drives (continuous local rotation — may override or add to clip pose on same node; policy TBD)
+4. **Morph Target** / scalar morph drives (static weights; merge with clip morph tracks — higher layer wins per morph ref)
+5. **Part visibility / opacity**, material PBR, embedded camera switch
+
+Event triggers inject **`restartNonce`** into clip drives before mixer apply.
 
 ---
 

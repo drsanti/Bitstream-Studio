@@ -1,10 +1,13 @@
-import { useEffect, useId, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Box, ChevronRight, Monitor, X } from "lucide-react";
 import { twMerge } from "tailwind-merge";
 import { TRNButton } from "../../ui/TRN/TRNButton.js";
 import { TrnLiveDataPulseIcon } from "../../ui/TRN/TrnLiveDataPulseIcon.js";
 import type { PreviewMeshDialogKind } from "../state/previewMeshMissingUi.store.js";
+
+/** Auto-dismiss when the pointer is not over the dialog card (pauses on hover). */
+export const PREVIEW_MESH_STATUS_AUTO_DISMISS_MS = 5000;
 
 export type PreviewMeshStatusDialogProps = {
   open: boolean;
@@ -94,16 +97,70 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
   const [pulseKey, setPulseKey] = useState(0);
   const [visible, setVisible] = useState(open);
   const [technicalDetailsOpen, setTechnicalDetailsOpen] = useState(false);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissAtRef = useRef<number | null>(null);
+  const remainingMsRef = useRef(PREVIEW_MESH_STATUS_AUTO_DISMISS_MS);
+  const hoverPausedRef = useRef(false);
+
+  const clearDismissTimer = useCallback(() => {
+    if (dismissTimerRef.current != null) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleDismiss = useCallback(
+    (delayMs: number) => {
+      clearDismissTimer();
+      const clamped = Math.max(0, delayMs);
+      remainingMsRef.current = clamped;
+      if (clamped <= 0) {
+        onDismiss();
+        return;
+      }
+      dismissAtRef.current = Date.now() + clamped;
+      dismissTimerRef.current = setTimeout(() => {
+        dismissTimerRef.current = null;
+        onDismiss();
+      }, clamped);
+    },
+    [clearDismissTimer, onDismiss],
+  );
+
+  const handlePointerEnter = useCallback(() => {
+    clearDismissTimer();
+    const dismissAt = dismissAtRef.current;
+    if (dismissAt != null) {
+      remainingMsRef.current = Math.max(0, dismissAt - Date.now());
+    }
+    dismissAtRef.current = null;
+    hoverPausedRef.current = true;
+  }, [clearDismissTimer]);
+
+  const handlePointerLeave = useCallback(() => {
+    if (!hoverPausedRef.current) {
+      return;
+    }
+    const remaining = remainingMsRef.current;
+    hoverPausedRef.current = false;
+    scheduleDismiss(remaining);
+  }, [scheduleDismiss]);
 
   useEffect(() => {
     if (!open) {
+      clearDismissTimer();
+      hoverPausedRef.current = false;
       setVisible(false);
       return;
     }
     setVisible(true);
     setPulseKey((k) => k + 1);
     setTechnicalDetailsOpen(false);
-  }, [open]);
+    hoverPausedRef.current = false;
+    remainingMsRef.current = PREVIEW_MESH_STATUS_AUTO_DISMISS_MS;
+    scheduleDismiss(PREVIEW_MESH_STATUS_AUTO_DISMISS_MS);
+    return clearDismissTimer;
+  }, [open, clearDismissTimer, scheduleDismiss]);
 
   if (!visible || typeof document === "undefined") {
     return null;
@@ -135,6 +192,8 @@ export function PreviewMeshStatusDialog(props: PreviewMeshStatusDialogProps) {
         )}
         style={{ ["--trn-floating-notice-ring" as string]: chrome.ringVar }}
         onClick={(e) => e.stopPropagation()}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
       >
         <button
           type="button"

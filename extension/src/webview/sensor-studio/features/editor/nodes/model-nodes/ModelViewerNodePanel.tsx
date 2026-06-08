@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { StudioSceneViewport } from "../../../../core/viewport/StudioSceneViewport";
+import { useSensorStudioPerformanceStore } from "../../../../state/sensor-studio-performance.store";
+import { useStudioRuntimeVisibilityStore } from "../../../../state/studio-runtime-visibility.store";
 import {
   coerceScene3DConfigV1,
   defaultScene3DConfig,
@@ -33,6 +35,8 @@ import type { FlowWireParticleEmitterV1 } from "../scene-fx/flow-wire-particle-e
 import { rotationPreviewOrientationFromTransformWire } from "../transform/flow-wire-transform-preview-orientation";
 import { resolveStudioModelScopeNodeId, resolveStudioSourceModelGlbUrl } from "../../model/model-generated-bindings";
 import { graphHasVisionHudNodes } from "../../../../core/camera/collect-vision-hud-chips";
+import { collectFlowMeshEntries } from "../../../../core/stage/collect-flow-mesh-entries";
+import { STUDIO_HANDLE_MESHES } from "../../studio-handle-ids";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 export type ModelViewerNodePanelProps = {
@@ -58,13 +62,15 @@ function readBoolean(cfg: Record<string, unknown>, key: string, fallback: boolea
 }
 
 const MODEL_VIEWER_EMPTY_HINT =
-  "Wire a Model Source node (drag a 3D model from Asset Browser onto the canvas, or add Model Source from the library).";
+  "Wire a Model Source node (drag a 3D model from Asset Browser onto the canvas, or add Model Source from the library), or connect procedural **Meshes**.";
 
 /**
  * Flow node: GLTF preview driven by the incoming **Model** wire (fetchable GLB URL).
  * No silent default mesh — stays empty until wired or linked to a configured Model Source.
  */
 export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
+  const flowPaneVisible = useStudioRuntimeVisibilityStore((s) => s.flowPaneVisible);
+  const stage3dMaxFps = useSensorStudioPerformanceStore((s) => s.preferences.stage3dMaxFps);
   const {
     nodeId,
     liveValue,
@@ -196,6 +202,18 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
 
   const showGrid = readBoolean(defaultConfig, "showGrid", true);
 
+  const stageProceduralMeshes = useMemo(
+    () =>
+      collectFlowMeshEntries({
+        nodes,
+        edges,
+        targetNodeId: nodeId,
+        targetHandle: STUDIO_HANDLE_MESHES,
+      }),
+    [nodes, edges, nodeId],
+  );
+  const hasProceduralMeshes = stageProceduralMeshes.length > 0;
+
   const glbScalarSceneProps = useMemo(
     () =>
       buildGlbScalarPreviewSceneProps({
@@ -233,6 +251,7 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       scene3d,
       stagePhysicsWire,
       stagePhysicsColliders,
+      stageProceduralMeshes: hasProceduralMeshes ? stageProceduralMeshes : undefined,
     };
   }, [
     showGrid,
@@ -242,6 +261,8 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
     liveTransformWire,
     stagePhysicsWire,
     stagePhysicsColliders,
+    hasProceduralMeshes,
+    stageProceduralMeshes,
   ]);
 
   const visionHudNodes = useMemo(
@@ -254,9 +275,15 @@ export function ModelViewerNodePanel(props: ModelViewerNodePanelProps) {
       title="3D Model"
       sceneProps={sceneProps}
       previewScopeId={`flow-node:${nodeId}`}
+      renderLoopActive={flowPaneVisible}
+      maxRenderFps={stage3dMaxFps}
       visionHudNodes={visionHudNodes}
       visionHudEdges={edges}
-      emptyHint={logicalModelUrl.length === 0 ? MODEL_VIEWER_EMPTY_HINT : undefined}
+      emptyHint={
+        logicalModelUrl.length === 0 && !hasProceduralMeshes
+          ? MODEL_VIEWER_EMPTY_HINT
+          : undefined
+      }
     />
   );
 }

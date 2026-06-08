@@ -11,6 +11,7 @@ import { InspectorCompactToggleRow } from "../../InspectorCompactToggleRow";
 import { InspectorNumericScrubRow, InspectorTextRow } from "../../InspectorNumericScrubRow";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 import { GaugeZonesEditor } from "../GaugeZonesEditor";
+import { DashboardPublishSettingsSection } from "./DashboardPublishSettingsSection";
 
 export function NumericDisplaySettingsSection(props: NodeInspectorSettingsSectionProps) {
   const { selectedNode, onUpdateConfigField } = props;
@@ -101,6 +102,7 @@ export function NumericDisplaySettingsSection(props: NodeInspectorSettingsSectio
           }}
         />
       </InspectorCollapsibleSection>
+      <DashboardPublishSettingsSection {...props} />
     </>
   );
 }

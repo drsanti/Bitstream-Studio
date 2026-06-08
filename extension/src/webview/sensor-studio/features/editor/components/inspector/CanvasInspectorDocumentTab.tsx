@@ -1,5 +1,5 @@
 import type { Edge } from "@xyflow/react";
-import { Import, Save, Trash2, VolumeX } from "lucide-react";
+import { Import, Save, Trash2, Upload, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { TRNButton, TRNSelect } from "../../../../../ui/TRN";
 import type { StudioDemoTemplateId, StudioNode } from "../../store/flow-editor.store";
@@ -8,6 +8,9 @@ import { CANVAS_DEMO_TEMPLATE_OPTIONS } from "./canvas-inspector-demo-templates"
 import { CanvasInspectorStatCell } from "./CanvasInspectorStatCell";
 import { InspectorPropertyRow } from "./InspectorPropertyRow";
 import { FlowLibraryOpenLink } from "../flow-library/FlowLibraryOpenLink";
+import { useFlowPresetLinkedSessionStore } from "../../flow-library/flow-preset-linked-session";
+import { requestProjectFlowPresetUpdate } from "../../flow-library/request-project-flow-preset-update";
+import { FlowPresetMaintainerTools } from "../flow-library/FlowPresetMaintainerTools";
 import { CanvasInspectorCard } from "./CanvasInspectorCard";
 import {
   DEFAULT_DOCUMENT_TAB_CARD_ORDER,
@@ -47,6 +50,13 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
   const undoDepth = useFlowEditorStore((s) => s.undoStack.length);
   const muteAllAudio = useFlowEditorStore((s) => s.muteAllAudio);
   const openSaveToLibraryDialog = useFlowEditorStore((s) => s.openSaveToLibraryDialog);
+  const updateFlowPresetFromCanvas = useFlowEditorStore((s) => s.updateFlowPresetFromCanvas);
+  const linkedProjectPresetId = useFlowPresetLinkedSessionStore(
+    (s) => s.linkedProjectPresetId,
+  );
+  const linkedProjectPresetName = useFlowPresetLinkedSessionStore(
+    (s) => s.linkedProjectPresetName,
+  );
 
   const templateOptions = useMemo(
     () =>
@@ -136,7 +146,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
       <CanvasInspectorCard
         id="canvas-inspector-starter-graph"
         title="Starter graph"
-        hint="Replace the canvas with a built-in demo template. The same graphs are also listed under Library → Saved → Flows → Official."
+        hint="Replace the canvas with a built-in demo template. The same graphs are also listed under Library → Presets → Flows → Official."
         collapsible
         collapsed={collapsedById["starter-graph"]}
         onCollapsedChange={(next) => setCardCollapsed("starter-graph", next)}
@@ -163,6 +173,7 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
             Run template
           </TRNButton>
           <FlowLibraryOpenLink templateId={templateId} className="w-full" />
+          <FlowPresetMaintainerTools dense templateId={templateId} />
         </div>
       </CanvasInspectorCard>
     ),
@@ -199,11 +210,32 @@ export function CanvasInspectorDocumentTab(props: CanvasInspectorDocumentTabProp
           size="compact"
           className="w-full"
           prefixIcon={<Save className="h-3 w-3" aria-hidden />}
-          hint="Save the full canvas or current selection to the Saved library (Flows or Groups)."
+          hint="Save the full canvas or current selection to Presets (Flows or Groups)."
           onClick={() => openSaveToLibraryDialog()}
         >
           Save to library
         </TRNButton>
+        {linkedProjectPresetId != null && linkedProjectPresetName != null ? (
+          <TRNButton
+            size="compact"
+            className="mt-2 w-full"
+            prefixIcon={<Upload className="h-3 w-3" aria-hidden />}
+            hint={`Overwrite the linked project preset "${linkedProjectPresetName}" with the current canvas.`}
+            onClick={() => {
+              requestProjectFlowPresetUpdate({
+                targetPresetId: linkedProjectPresetId,
+                targetPresetName: linkedProjectPresetName,
+                linkedProjectPresetId,
+                linkedProjectPresetName,
+                onUpdate: () => {
+                  updateFlowPresetFromCanvas(linkedProjectPresetId);
+                },
+              });
+            }}
+          >
+            Update linked preset
+          </TRNButton>
+        ) : null}
         <div className="mt-2 flex flex-wrap gap-1.5">
           <TRNButton
             size="compact"

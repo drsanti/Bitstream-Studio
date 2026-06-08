@@ -21,8 +21,11 @@ import {
   resolveVisionQualityTargetFps,
   type VisionQualityPreset,
 } from "../../../../../../core/camera/vision-shared-config";
+import { VisionMediapipePackMissingChip } from "./VisionMediapipePackMissingChip";
 
 function VisionInferenceInspectorFields(props: {
+  catalogNodeId: string;
+  config: Record<string, unknown>;
   parsed: {
     enabled: boolean;
     qualityPreset: VisionQualityPreset;
@@ -41,9 +44,10 @@ function VisionInferenceInspectorFields(props: {
   modelHint: string;
   showEvents?: boolean;
 }) {
-  const { parsed, ui, onUpdateConfigField, modelHint, showEvents = true } = props;
+  const { parsed, ui, onUpdateConfigField, modelHint, showEvents = true, catalogNodeId, config } = props;
   return (
     <>
+      <VisionMediapipePackMissingChip catalogNodeId={catalogNodeId} config={config} />
       <div className="mb-1 flex items-center gap-2">
         <FlowNodeHeaderBadge
           tone={ui.detected ? "live" : ui.status === "error" ? "invalid" : "neutral"}
@@ -153,6 +157,8 @@ export function VisionHandsSettingsSection(props: NodeInspectorSettingsSectionPr
         defaultExpanded
       >
         <VisionInferenceInspectorFields
+          catalogNodeId="vision-hands"
+          config={cfg}
           parsed={parsed}
           ui={ui}
           onUpdateConfigField={onUpdateConfigField}
@@ -178,6 +184,8 @@ export function VisionFaceSettingsSection(props: NodeInspectorSettingsSectionPro
         defaultExpanded
       >
         <VisionInferenceInspectorFields
+          catalogNodeId="vision-face"
+          config={cfg}
           parsed={parsed}
           ui={ui}
           onUpdateConfigField={onUpdateConfigField}
@@ -203,6 +211,8 @@ export function VisionObjectSettingsSection(props: NodeInspectorSettingsSectionP
         defaultExpanded
       >
         <VisionInferenceInspectorFields
+          catalogNodeId="vision-object"
+          config={cfg}
           parsed={parsed}
           ui={ui}
           onUpdateConfigField={onUpdateConfigField}

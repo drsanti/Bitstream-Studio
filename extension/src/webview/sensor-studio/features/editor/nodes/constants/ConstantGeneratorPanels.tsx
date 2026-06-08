@@ -67,17 +67,15 @@ export function NumberConstantNodePanel(props: NumberConstantNodePanelProps) {
   };
 
   return (
-    <div className="nodrag mt-2 min-w-0 w-full max-w-full">
-      <FlowCardScrubNumberField
-        ariaLabel="Numeric constant value"
-        className="w-full"
-        value={display}
-        step={valueStep}
-        min={min}
-        max={max}
-        fractionDigits={mode === "integer" ? 0 : undefined}
-        onCommit={commitValue}
-      />
-    </div>
+    <FlowCardScrubNumberField
+      ariaLabel="Numeric constant value"
+      className="w-full"
+      value={display}
+      step={valueStep}
+      min={min}
+      max={max}
+      fractionDigits={mode === "integer" ? 0 : undefined}
+      onCommit={commitValue}
+    />
   );
 }

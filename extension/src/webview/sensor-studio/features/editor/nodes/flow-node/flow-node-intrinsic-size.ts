@@ -171,6 +171,23 @@ export function measureFlowNodeSocketRegionIntrinsicWidth(socketsEl: HTMLElement
   return { labels: maxLabelW, previews: maxPreviewW, rows: maxRowW };
 }
 
+/** Full socket row width (metadata chip + label + handle) without parent column squeeze. */
+export function measureFlowNodeSocketRowIntrinsicWidth(rowEl: HTMLElement): number {
+  return measureSocketRegionChildIntrinsicWidth(rowEl);
+}
+
+/** Widest row in a subgraph socket block, including region padding and handle chrome. */
+export function measureSubgraphSocketRegionContentWidth(regionEl: HTMLElement): number {
+  let maxRowW = 0;
+  regionEl.querySelectorAll<HTMLElement>("[data-flow-socket-row]").forEach((row) => {
+    maxRowW = Math.max(maxRowW, measureFlowNodeSocketRowIntrinsicWidth(row));
+  });
+  const style = getComputedStyle(regionEl);
+  const padL = Number.parseFloat(style.paddingLeft) || 0;
+  const padR = Number.parseFloat(style.paddingRight) || 0;
+  return Math.ceil(maxRowW + padL + padR + FLOW_NODE_SOCKET_REGION_CHROME_PX);
+}
+
 /** Handle column + region padding folded into socket-region min width. */
 export const FLOW_NODE_SOCKET_REGION_CHROME_PX = 46;
 
@@ -226,14 +243,18 @@ export function resolveFlowNodeSocketRegionMinWidthPx(
   if (options?.labelOnly) {
     return resolveFlowNodeSocketRegionLabelOnlyWidthPx(socketsEl);
   }
+  const intrinsic = measureFlowNodeSocketRegionIntrinsicWidth(socketsEl);
   const previews = socketsEl.querySelectorAll<HTMLElement>(
     "[data-flow-socket-live-preview]",
   );
+  const liveColumnW =
+    previews.length > 0 ? resolveFlowNodeSocketRegionLiveWidthPx(socketsEl) : 0;
+  const rowW = Math.ceil(intrinsic.rows + FLOW_NODE_SOCKET_REGION_CHROME_PX);
+  const labelW = Math.ceil(intrinsic.labels + FLOW_NODE_SOCKET_REGION_CHROME_PX);
   if (previews.length > 0) {
-    return resolveFlowNodeSocketRegionLiveWidthPx(socketsEl);
+    return Math.max(liveColumnW, rowW, labelW);
   }
-  const { labels, rows } = measureFlowNodeSocketRegionIntrinsicWidth(socketsEl);
-  return Math.ceil(Math.max(labels, rows) + FLOW_NODE_SOCKET_REGION_CHROME_PX);
+  return Math.max(rowW, labelW);
 }
 
 /** Label + handle only (live previews hidden) — never use stretched row / grid width. */

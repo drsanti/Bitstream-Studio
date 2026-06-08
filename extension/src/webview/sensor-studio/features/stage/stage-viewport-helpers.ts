@@ -8,6 +8,8 @@ import {
 } from "../../core/scene3d/scene3d-config";
 import { STUDIO_HANDLE_ENV, STUDIO_HANDLE_MODELS } from "../editor/studio-handle-ids";
 import { useFlowEditorStore } from "../editor/store/flow-editor.store";
+import { resolveEvaluationGraph } from "../editor/subgraphs/studio-subgraph-store-sync";
+import { STUDIO_ROOT_GRAPH_ID } from "../editor/subgraphs/studio-subgraph.types";
 import {
   getStudioModelDescriptorById,
   persistedModelUrlFromStudioDescriptor,
@@ -35,11 +37,45 @@ export function runStageSceneOutputDemoTemplate(): void {
 }
 
 function findSceneOutputNodeId(): string | null {
+  const snapshotId = useStageSceneStore.getState().snapshot.sceneOutputNodeId;
+  if (snapshotId != null) {
+    return snapshotId;
+  }
+  const state = useFlowEditorStore.getState();
+  const { nodes } = resolveEvaluationGraph(state);
   return (
-    useFlowEditorStore
-      .getState()
-      .nodes.find((n) => n.type === "studio" && n.data.nodeId === "scene-output")?.id ?? null
+    nodes.find((n) => n.type === "studio" && n.data.nodeId === "scene-output")?.id ?? null
   );
+}
+
+function getSceneOutputDocumentGraph(): {
+  nodes: ReturnType<typeof useFlowEditorStore.getState>["nodes"];
+  edges: ReturnType<typeof useFlowEditorStore.getState>["edges"];
+} {
+  const state = useFlowEditorStore.getState();
+  return resolveEvaluationGraph(state);
+}
+
+function patchFlowNodeById(
+  nodeId: string,
+  patcher: (
+    node: ReturnType<typeof useFlowEditorStore.getState>["nodes"][number],
+  ) => ReturnType<typeof useFlowEditorStore.getState>["nodes"][number],
+): void {
+  useFlowEditorStore.setState((state) => {
+    const apply = (
+      list: ReturnType<typeof useFlowEditorStore.getState>["nodes"],
+    ) => list.map((n) => (n.id === nodeId ? patcher(n) : n));
+    const onRoot = state.rootNodes.some((n) => n.id === nodeId);
+    if (onRoot) {
+      const rootNodes = apply(state.rootNodes);
+      if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+        return { nodes: rootNodes, rootNodes };
+      }
+      return { rootNodes };
+    }
+    return { nodes: apply(state.nodes) };
+  });
 }
 
 /** When Scene Output `env` is wired, Stage toolbar toggles patch this Environment node. */
@@ -58,7 +94,8 @@ export function getStageEnvironmentWireContext(): StageEnvironmentWireContext {
   if (environmentNodeId == null) {
     return { wired: false, environmentNodeId: null, label: null };
   }
-  const node = useFlowEditorStore.getState().nodes.find((n) => n.id === environmentNodeId);
+  const { nodes } = getSceneOutputDocumentGraph();
+  const node = nodes.find((n) => n.id === environmentNodeId);
   const label =
     typeof node?.data.label === "string" && node.data.label.trim().length > 0
       ? node.data.label.trim()
@@ -89,7 +126,8 @@ function shouldPatchWiredEnvironmentNode(
 }
 
 function findWiredEnvironmentSourceNodeId(outputNodeId: string): string | null {
-  const edge = useFlowEditorStore.getState().edges.find(
+  const { nodes, edges } = getSceneOutputDocumentGraph();
+  const edge = edges.find(
     (e) =>
       e.target === outputNodeId &&
       (e.targetHandle ?? STUDIO_HANDLE_ENV) === STUDIO_HANDLE_ENV,
@@ -97,7 +135,7 @@ function findWiredEnvironmentSourceNodeId(outputNodeId: string): string | null {
   if (edge == null) {
     return null;
   }
-  const source = useFlowEditorStore.getState().nodes.find((n) => n.id === edge.source);
+  const source = nodes.find((n) => n.id === edge.source);
   if (source?.type !== "studio" || source.data.nodeId !== "environment") {
     return null;
   }
@@ -113,8 +151,10 @@ function patchSceneOutputScene3d(
     return;
   }
   const envSourceId = findWiredEnvironmentSourceNodeId(outputId);
-  useFlowEditorStore.setState((state) => ({
-    nodes: state.nodes.map((n) => {
+  const patchNodes = (
+    list: ReturnType<typeof useFlowEditorStore.getState>["nodes"],
+  ) =>
+    list.map((n) => {
       if (n.id === outputId && n.type === "studio") {
         const dc = { ...(n.data.defaultConfig as Record<string, unknown>) };
         const showGrid = typeof dc.showGrid === "boolean" ? dc.showGrid : false;
@@ -136,9 +176,15 @@ function patchSceneOutputScene3d(
         return { ...n, data: { ...n.data, defaultConfig: dc } };
       }
       return n;
-    }),
-  }));
-  useFlowEditorStore.getState().tickSimulation();
+    });
+  useFlowEditorStore.setState((state) => {
+    if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+      const nodes = patchNodes(state.nodes);
+      return { nodes, rootNodes: nodes, rootEdges: state.edges };
+    }
+    return { rootNodes: patchNodes(state.rootNodes) };
+  });
+  useFlowEditorStore.getState().tickSimulation({ forceStageSnapshot: true });
 }
 
 /** Patch Scene Output `scene3d` for the committed Stage snapshot (no wired Environment sync). */
@@ -149,7 +195,7 @@ export function patchCommittedScene3d(
 }
 
 function findPrimaryWiredModelSelectNodeId(outputNodeId: string): string | null {
-  const { edges, nodes } = useFlowEditorStore.getState();
+  const { edges, nodes } = getSceneOutputDocumentGraph();
   const modelEdge = edges.find(
     (e) =>
       e.target === outputNodeId &&
@@ -186,19 +232,17 @@ export function patchStageSceneModelCatalogSelect(
       : findPrimaryWiredModelSelectNodeId(outputId);
 
   if (modelSelectId != null) {
-    useFlowEditorStore.setState((state) => ({
-      nodes: state.nodes.map((n) => {
-        if (n.id !== modelSelectId || n.type !== "studio") {
-          return n;
-        }
-        const dc = { ...(n.data.defaultConfig as Record<string, unknown>) };
-        applyStudioModelCatalogSelectToNodeConfig(catalogValue, descriptors, (key, value) => {
-          dc[key] = value;
-        });
-        return { ...n, data: { ...n.data, defaultConfig: dc } };
-      }),
-    }));
-    useFlowEditorStore.getState().tickSimulation();
+    patchFlowNodeById(modelSelectId, (n) => {
+      if (n.type !== "studio") {
+        return n;
+      }
+      const dc = { ...(n.data.defaultConfig as Record<string, unknown>) };
+      applyStudioModelCatalogSelectToNodeConfig(catalogValue, descriptors, (key, value) => {
+        dc[key] = value;
+      });
+      return { ...n, data: { ...n.data, defaultConfig: dc } };
+    });
+    useFlowEditorStore.getState().tickSimulation({ forceStageSnapshot: true });
     return;
   }
 
@@ -234,24 +278,18 @@ export function patchSceneOutputShowGrid(showGrid: boolean): void {
   if (outputId == null) {
     return;
   }
-  useFlowEditorStore.setState((state) => ({
-    nodes: state.nodes.map((n) => {
-      if (n.id !== outputId || n.type !== "studio") {
-        return n;
-      }
-      const dc = { ...(n.data.defaultConfig as Record<string, unknown>) };
-      dc.showGrid = showGrid;
-      const base =
-        dc.scene3d != null
-          ? coerceScene3DConfigV1(dc.scene3d)
-          : defaultScene3DConfig();
-      dc.scene3d = persistScene3DConfig(
-        applyStageScene3dPresentation(base, { showGrid }),
-      );
-      return { ...n, data: { ...n.data, defaultConfig: dc } };
-    }),
-  }));
-  useFlowEditorStore.getState().tickSimulation();
+  patchFlowNodeById(outputId, (n) => {
+    if (n.type !== "studio") {
+      return n;
+    }
+    const dc = { ...(n.data.defaultConfig as Record<string, unknown>) };
+    dc.showGrid = showGrid;
+    const base =
+      dc.scene3d != null ? coerceScene3DConfigV1(dc.scene3d) : defaultScene3DConfig();
+    dc.scene3d = persistScene3DConfig(applyStageScene3dPresentation(base, { showGrid }));
+    return { ...n, data: { ...n.data, defaultConfig: dc } };
+  });
+  useFlowEditorStore.getState().tickSimulation({ forceStageSnapshot: true });
 }
 
 export function patchSceneOutputShowBackground(showBackgroundTexture: boolean): void {
@@ -291,7 +329,8 @@ export function patchSceneOutputEnvironmentFromSelect(
   if (outputId == null) {
     return;
   }
-  const outputNode = useFlowEditorStore.getState().nodes.find((n) => n.id === outputId);
+  const { nodes } = getSceneOutputDocumentGraph();
+  const outputNode = nodes.find((n) => n.id === outputId);
   const dc = (outputNode?.data.defaultConfig ?? {}) as Record<string, unknown>;
   const base =
     dc.scene3d != null ? coerceScene3DConfigV1(dc.scene3d) : defaultScene3DConfig();

@@ -18,3 +18,28 @@
 .react-flow__node.react-flow__node-studio .react-flow__handle.connectingfrom {
   pointer-events: all;
 }
+
+.react-flow__node.react-flow__node-studio-group-output .react-flow__handle-left,
+.react-flow__node.react-flow__node-studio-group-output .react-flow__handle-left:hover,
+.react-flow__node.react-flow__node-studio-node-group .react-flow__handle-left,
+.react-flow__node.react-flow__node-studio-node-group .react-flow__handle-left:hover {
+  transform: translate(-50%, -50%) !important;
+  z-index: 20;
+}
+
+.react-flow__node.react-flow__node-studio-group-input .react-flow__handle-right,
+.react-flow__node.react-flow__node-studio-group-input .react-flow__handle-right:hover,
+.react-flow__node.react-flow__node-studio-node-group .react-flow__handle-right,
+.react-flow__node.react-flow__node-studio-node-group .react-flow__handle-right:hover {
+  transform: translate(50%, -50%) !important;
+  z-index: 20;
+}
+
+.react-flow__node.react-flow__node-studio-group-input .react-flow__handle.connectionindicator,
+.react-flow__node.react-flow__node-studio-group-input .react-flow__handle.connectingfrom,
+.react-flow__node.react-flow__node-studio-group-output .react-flow__handle.connectionindicator,
+.react-flow__node.react-flow__node-studio-group-output .react-flow__handle.connectingfrom,
+.react-flow__node.react-flow__node-studio-node-group .react-flow__handle.connectionindicator,
+.react-flow__node.react-flow__node-studio-node-group .react-flow__handle.connectingfrom {
+  pointer-events: all;
+}

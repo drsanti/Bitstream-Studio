@@ -35,8 +35,8 @@ export function isStudioAudioCompactBodyNodeId(nodeId: string): boolean {
 const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   "scene-output": { minWidth: 185, minHeight: 72 },
   "model-select": { minWidth: 208, minHeight: 88 },
-  environment: { minWidth: 240, minHeight: 220 },
-  "camera-view": { minWidth: 240, minHeight: 220 },
+  environment: { minWidth: 240, minHeight: 72 },
+  "camera-view": { minWidth: 240, minHeight: 72 },
   "model-viewer": { minWidth: 280, minHeight: 200 },
   "rotation-3d-euler": { minWidth: 280, minHeight: 200 },
   "rotation-3d-quaternion": { minWidth: 280, minHeight: 200 },
@@ -45,6 +45,12 @@ const MIN_BY_NODE_ID: Readonly<Record<string, StudioNodeMinDimensions>> = {
   "bar-meter": { minWidth: 170, minHeight: 180 },
   knob: { minWidth: 170, minHeight: 180 },
   "glb-animation-bundle": { minWidth: 220, minHeight: 160 },
+  "animation-clip": { minWidth: 220, minHeight: 168 },
+  "part-spin": { minWidth: 200, minHeight: 120 },
+  "animation-merge": { minWidth: 200, minHeight: 96 },
+  "mesh-group": { minWidth: 200, minHeight: 96 },
+  "animation-mix": { minWidth: 200, minHeight: 120 },
+  "animation-blend": { minWidth: 200, minHeight: 96 },
   "mic-input": { minWidth: 200, minHeight: 72 },
   "audio-output": { minWidth: 220, minHeight: 72 },
   "audio-scope": { minWidth: 280, minHeight: 168 },
@@ -117,7 +123,7 @@ export function resolveStudioNodeMinDimensionFloor(nodeId: string): StudioNodeMi
 export function resolveStudioNodeInitialLayoutHeight(
   nodeId: string,
   floor: StudioNodeMinDimensions = resolveStudioNodeMinDimensionFloor(nodeId),
-): number {
+): number | undefined {
   if (isStudioFlexPlotCanvasNodeId(nodeId)) {
     return Math.max(floor.minHeight, 280);
   }

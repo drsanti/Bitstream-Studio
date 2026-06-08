@@ -18,10 +18,12 @@ import {
   persistScene3DConfig,
 } from "../../../../core/scene3d/scene3d-config";
 import { useStageSceneStore } from "../../../../state/stage-scene.store";
+import { useStageViewportNavigationStore } from "../../../../state/stage-viewport-navigation.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import type { StagePresentationPreferences } from "../../../stage/stage-presentation-preferences";
 import { getStageEnvironmentWireContext } from "../../../stage/stage-viewport-helpers";
 import { InspectorCompactToggleRow } from "./InspectorCompactToggleRow";
+import { StageMeshesOnlyScenePreferencesSection } from "./StageMeshesOnlyScenePreferencesSection";
 import { InspectorSettingsSectionFrame } from "./InspectorSettingsSectionFrame";
 import { StageInspectorScene3dTab } from "./StageInspectorScene3dTab";
 import { StageInspectorToolbarTab } from "./StageInspectorToolbarTab";
@@ -36,6 +38,8 @@ export type StageInspectorPanelProps = {
   onStagePresentationPreferencesChange: (
     patch: Partial<StagePresentationPreferences>,
   ) => void;
+  /** Nested under {@link StageWorkbenchInspectorPanel} — omit outer chrome. */
+  embedded?: boolean;
 };
 
 const STAGE_INSPECTOR_TABS: readonly {
@@ -61,12 +65,17 @@ function formatStudioEnvironmentLabel(studioAssetId: unknown): string {
 }
 
 export function StageInspectorPanel(props: StageInspectorPanelProps) {
-  const { stagePresentationPreferences, onStagePresentationPreferencesChange } = props;
+  const { stagePresentationPreferences, onStagePresentationPreferencesChange, embedded = false } =
+    props;
   const snapshot = useStageSceneStore((s) => s.snapshot);
   const primaryModelIndex = useStageSceneStore((s) => s.primaryModelIndex);
   const flowNodes = useFlowEditorStore((s) => s.nodes);
   const flowEdges = useFlowEditorStore((s) => s.edges);
   const selectStudioNodesByIds = useFlowEditorStore((s) => s.selectStudioNodesByIds);
+  const viewportMousePreset = useStageViewportNavigationStore((s) => s.mousePreset);
+  const viewportViewSnapMode = useStageViewportNavigationStore((s) => s.viewSnapMode);
+  const setViewportMousePreset = useStageViewportNavigationStore((s) => s.setMousePreset);
+  const setViewportViewSnapMode = useStageViewportNavigationStore((s) => s.setViewSnapMode);
 
   const [activeTab, setActiveTab] = useState<StageInspectorTab>(() => readStoredStageInspectorTab());
 
@@ -113,7 +122,7 @@ export function StageInspectorPanel(props: StageInspectorPanelProps) {
         return { ...n, data: { ...n.data, defaultConfig: dc } };
       }),
     }));
-    useFlowEditorStore.getState().tickSimulation();
+    useFlowEditorStore.getState().tickSimulation({ forceStageSnapshot: true });
   };
 
   const focusSceneOutput = () => {
@@ -164,24 +173,18 @@ export function StageInspectorPanel(props: StageInspectorPanelProps) {
           >
             Select Scene Output on canvas
           </button>
+          <div className="border-t border-zinc-800/60 pt-2.5">
+            <StageMeshesOnlyScenePreferencesSection
+              preferences={stagePresentationPreferences}
+              onPreferencesChange={onStagePresentationPreferencesChange}
+            />
+          </div>
         </div>
       )}
     </InspectorSettingsSectionFrame>
   );
 
-  return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-      <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2">
-        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-200/95">
-          <MonitorPlay className="h-3.5 w-3.5 shrink-0 text-violet-400/90" aria-hidden />
-          3D Scene
-        </div>
-        <p className="mt-1 text-[10px] leading-snug text-zinc-500">
-          Stage viewport and Scene Output commit. Flow canvas settings stay under View when the graph
-          is focused.
-        </p>
-      </div>
-
+  const tabs = (
       <TRNTabs
         value={activeTab}
         onValueChange={(next) => setActiveTabPersisted(next as StageInspectorTab)}
@@ -206,10 +209,33 @@ export function StageInspectorPanel(props: StageInspectorPanelProps) {
             <StageInspectorToolbarTab
               stagePresentationPreferences={stagePresentationPreferences}
               onStagePresentationPreferencesChange={onStagePresentationPreferencesChange}
+              viewportMousePreset={viewportMousePreset}
+              viewportViewSnapMode={viewportViewSnapMode}
+              onViewportMousePresetChange={setViewportMousePreset}
+              onViewportViewSnapModeChange={setViewportViewSnapMode}
             />
           ) : null}
         </div>
       </TRNTabs>
+  );
+
+  if (embedded) {
+    return <div className="flex min-h-0 min-w-0 flex-1 flex-col px-2.5 pb-3 pt-2">{tabs}</div>;
+  }
+
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
+      <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2">
+        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-200/95">
+          <MonitorPlay className="h-3.5 w-3.5 shrink-0 text-violet-400/90" aria-hidden />
+          3D Scene
+        </div>
+        <p className="mt-1 text-[10px] leading-snug text-zinc-500">
+          Stage viewport and Scene Output commit. Flow canvas settings stay under View when the graph
+          is focused.
+        </p>
+      </div>
+      {tabs}
     </div>
   );
 }

@@ -248,7 +248,7 @@ export function TRNSelect(props: TRNSelectProps) {
                         icon={opt.icon}
                         className={twMerge(
                           TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
-                          size === "sm" ? "text-xs" : size === "lg" ? "text-sm" : null,
+                          size === "lg" ? "text-sm" : null,
                           isSelected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
                         )}
                         rightSlot={opt.rightSlot ?? null}
@@ -313,11 +313,7 @@ export function TRNSelect(props: TRNSelectProps) {
         className={twMerge(
           TRN_SELECT_TRIGGER_BASE_CLASS,
           TRN_SELECT_TRIGGER_VARIANT_CLASS[variant],
-          size === "sm"
-            ? "py-1 text-xs"
-            : size === "lg"
-              ? "py-2 text-sm"
-              : "py-1.5",
+          size === "sm" ? "py-1" : size === "lg" ? "py-2 text-sm" : "py-1.5",
           mergedTriggerClassName,
         )}
       >

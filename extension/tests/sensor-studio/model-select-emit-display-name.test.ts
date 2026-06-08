@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { StudioAssetDescriptor } from "../../src/webview/sensor-studio/features/asset-browser/studio-asset.types";
-import { modelSelectEmitDisplayName } from "../../src/webview/sensor-studio/features/editor/nodes/animation/model-select-emit-display-name";
+import {
+  modelSelectEmitDisplayName,
+  modelUrlSocketDisplayLabel,
+} from "../../src/webview/sensor-studio/features/editor/nodes/animation/model-select-emit-display-name";
 
 const DESCRIPTORS: readonly StudioAssetDescriptor[] = [
   {
@@ -33,7 +36,21 @@ test("modelSelectEmitDisplayName falls back to filename when catalog is unknown"
     },
     [],
   );
-  assert.equal(label, "custom-bot.glb");
+  assert.equal(label, "custom-bot");
+});
+
+test("modelUrlSocketDisplayLabel strips path and extension from relative model URLs", () => {
+  assert.equal(
+    modelUrlSocketDisplayLabel("models/tesa-drone/tesa-drone.glb"),
+    "tesa-drone",
+  );
+});
+
+test("modelUrlSocketDisplayLabel prefers catalog label when the URL matches", () => {
+  assert.equal(
+    modelUrlSocketDisplayLabel("/assets/models/tesa-drone.glb", DESCRIPTORS),
+    "tesa-drone",
+  );
 });
 
 test("modelSelectEmitDisplayName returns empty when no model is selected", () => {

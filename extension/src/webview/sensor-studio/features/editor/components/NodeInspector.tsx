@@ -4,6 +4,7 @@ import {
   Clapperboard,
   ClipboardList,
   Cpu,
+  MonitorPlay,
   SlidersHorizontal,
   type LucideIcon,
 } from "lucide-react";
@@ -34,8 +35,19 @@ import {
   CanvasInspectorPanel,
   type CanvasInspectorPanelProps,
 } from "./inspector/CanvasInspectorPanel";
-import { StageInspectorPanel } from "./inspector/StageInspectorPanel";
+import { DashboardInspectorPanel } from "./inspector/DashboardInspectorPanel";
+import { DashboardSelectionInspectorStrip } from "./inspector/DashboardSelectionInspectorStrip";
+import { StageWorkbenchInspectorPanel } from "./inspector/StageWorkbenchInspectorPanel";
+import {
+  flattenDashboardInspectorWidgets,
+  resolveDashboardDisplayItems,
+} from "../../../core/dashboard/dashboard-inspector-helpers";
+import { useDashboardSceneStore } from "../../../state/dashboard-scene.store";
 import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
+import { useStageSceneStore } from "../../../state/stage-scene.store";
+import { flowNodeIdsForSceneObjectRef } from "../../../core/stage/scene-object-ref";
+import { readFlowGraphInspectorStoreRevision } from "../flow-graph-store-revisions";
+import { useFlowEditorStore } from "../store/flow-editor.store";
 import {
   readStoredInspectorActiveTab,
   writeStoredInspectorActiveTab,
@@ -102,12 +114,82 @@ export function NodeInspector(props: NodeInspectorProps) {
     orderedSelectedNodesForCanvas,
   } = props;
 
-  const orderedSelectedNodes =
-    orderedSelectedNodesProp != null && orderedSelectedNodesProp.length > 0
-      ? orderedSelectedNodesProp
-      : selectedNodeProp != null
-        ? [selectedNodeProp]
-        : [];
+  const activeEditorType = useStudioWorkbenchFocusStore((s) => s.activeEditorType);
+  const selectedSceneObject = useStageSceneStore((s) => s.selectedSceneObject);
+  const setSelectedSceneObject = useStageSceneStore((s) => s.setSelectedSceneObject);
+  const inspectorStoreRevision = useFlowEditorStore((s) =>
+    readFlowGraphInspectorStoreRevision({
+      nodes: s.nodes,
+      edges: s.edges,
+      selectedNodeIds: s.selectedNodeIds,
+      selectedNodeId: s.selectedNodeId,
+    }),
+  );
+  const flowNodes = useMemo(
+    () => useFlowEditorStore.getState().nodes,
+    [inspectorStoreRevision],
+  );
+  const flowEdges = useMemo(
+    () => useFlowEditorStore.getState().edges,
+    [inspectorStoreRevision],
+  );
+  const selectStudioNodesByIds = useFlowEditorStore((s) => s.selectStudioNodesByIds);
+  const fitFlowCanvasToNodeIds = useFlowEditorStore((s) => s.fitFlowCanvasToNodeIds);
+  const setActiveEditorType = useStudioWorkbenchFocusStore((s) => s.setActiveEditorType);
+  const dashboardSnapshot = useDashboardSceneStore((s) => s.snapshot);
+  const highlightedWidgetSourceNodeId = useDashboardSceneStore(
+    (s) => s.highlightedWidgetSourceNodeId,
+  );
+  const activeDashboardTabSourceNodeId = useDashboardSceneStore((s) => s.activeTabSourceNodeId);
+  const setHighlightedWidgetSourceNodeId = useDashboardSceneStore(
+    (s) => s.setHighlightedWidgetSourceNodeId,
+  );
+
+  const stageDerivedNode = useMemo(() => {
+    if (selectedSceneObject == null) {
+      return null;
+    }
+    return flowNodes.find((n) => n.id === selectedSceneObject.sourceNodeId) ?? null;
+  }, [flowNodes, selectedSceneObject]);
+
+  const stageWorkbenchActive =
+    activeEditorType === "stage" &&
+    canvasInspector?.stagePresentationPreferences != null &&
+    canvasInspector?.onStagePresentationPreferencesChange != null;
+
+  const flowPaneFromCanvasSelection =
+    stageWorkbenchActive &&
+    selectedNodeProp != null &&
+    isStudioFlowNode(selectedNodeProp);
+
+  const flowPaneNode = useMemo((): StudioNode | null => {
+    if (!stageWorkbenchActive) {
+      return null;
+    }
+    if (selectedNodeProp != null && isStudioFlowNode(selectedNodeProp)) {
+      return selectedNodeProp;
+    }
+    if (stageDerivedNode != null) {
+      return stageDerivedNode;
+    }
+    return null;
+  }, [selectedNodeProp, stageDerivedNode, stageWorkbenchActive]);
+
+  const orderedSelectedNodes = useMemo(() => {
+    if (stageWorkbenchActive) {
+      return stageDerivedNode != null ? [stageDerivedNode] : [];
+    }
+    if (orderedSelectedNodesProp != null && orderedSelectedNodesProp.length > 0) {
+      return orderedSelectedNodesProp;
+    }
+    return selectedNodeProp != null ? [selectedNodeProp] : [];
+  }, [
+    orderedSelectedNodesProp,
+    selectedNodeProp,
+    stageDerivedNode,
+    stageWorkbenchActive,
+  ]);
+
   const selectedNode = orderedSelectedNodes[0] ?? null;
   const isMultiSelect = orderedSelectedNodes.length > 1;
   const homogeneousMultiEdit = useMemo(() => {
@@ -133,20 +215,22 @@ export function NodeInspector(props: NodeInspectorProps) {
     readStoredInspectorActiveTab(),
   );
   const selectedNodeId = selectedNode?.id ?? null;
+  const flowPaneNodeId = flowPaneNode?.id ?? null;
 
   const setActiveTabPersisted = useCallback((next: InspectorMainTab) => {
     setActiveTab(next);
     writeStoredInspectorActiveTab(next);
   }, []);
   useEffect(() => {
-    if (selectedNode == null || !isStudioFlowNode(selectedNode)) {
+    const jsonNode = stageWorkbenchActive ? flowPaneNode : selectedNode;
+    if (jsonNode == null || !isStudioFlowNode(jsonNode)) {
       setJsonDraft("{}");
       setJsonError(null);
       return;
     }
-    setJsonDraft(JSON.stringify(selectedNode.data.defaultConfig, null, 2));
+    setJsonDraft(JSON.stringify(jsonNode.data.defaultConfig, null, 2));
     setJsonError(null);
-  }, [selectedNodeId, selectedNode]);
+  }, [flowPaneNode, flowPaneNodeId, selectedNode, selectedNodeId, stageWorkbenchActive]);
 
   const deviceSourceId = useMemo(
     () => resolveStudioNodeSourceId(selectedNode),
@@ -204,6 +288,13 @@ export function NodeInspector(props: NodeInspectorProps) {
     return catalogEntries.find((e) => e.id === selectedNode.data.nodeId);
   }, [catalogEntries, selectedNode]);
 
+  const flowCatalogEntry = useMemo((): NodeCatalogEntry | undefined => {
+    if (flowPaneNode == null) {
+      return undefined;
+    }
+    return catalogEntries.find((e) => e.id === flowPaneNode.data.nodeId);
+  }, [catalogEntries, flowPaneNode]);
+
   const categoryTint =
     selectedNode != null
       ? (categoryColors[selectedNode.data.category] ?? "#a1a1aa")
@@ -236,12 +327,87 @@ export function NodeInspector(props: NodeInspectorProps) {
       ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 pb-3 pt-2"
       : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
 
-  const activeEditorType = useStudioWorkbenchFocusStore((s) => s.activeEditorType);
-  const showStageInspector =
-    activeEditorType === "stage" &&
+  const onFocusStageSelectionInGraph = useCallback(() => {
+    if (selectedSceneObject == null) {
+      return;
+    }
+    const ids = flowNodeIdsForSceneObjectRef(selectedSceneObject);
+    selectStudioNodesByIds(ids);
+    fitFlowCanvasToNodeIds(ids);
+  }, [fitFlowCanvasToNodeIds, selectStudioNodesByIds, selectedSceneObject]);
+
+  const onSelectFlowNodeForStageInspector = useCallback(
+    (nodeId: string) => {
+      selectStudioNodesByIds([nodeId]);
+      fitFlowCanvasToNodeIds([nodeId]);
+    },
+    [fitFlowCanvasToNodeIds, selectStudioNodesByIds],
+  );
+
+  const onClearStageSelection = useCallback(() => {
+    setSelectedSceneObject(null);
+    selectStudioNodesByIds([]);
+  }, [selectStudioNodesByIds, setSelectedSceneObject]);
+
+  const showDashboardInspector =
+    activeEditorType === "dashboard" &&
     selectedNode == null &&
-    canvasInspector?.stagePresentationPreferences != null &&
-    canvasInspector?.onStagePresentationPreferencesChange != null;
+    dashboardSnapshot.dashboardOutputNodeId != null;
+
+  const dashboardDisplayItems = useMemo(
+    () =>
+      resolveDashboardDisplayItems({
+        snapshot: dashboardSnapshot,
+        activeTabSourceNodeId: activeDashboardTabSourceNodeId,
+      }),
+    [activeDashboardTabSourceNodeId, dashboardSnapshot],
+  );
+
+  const dashboardSelectionContext = useMemo(() => {
+    if (selectedNode == null || highlightedWidgetSourceNodeId !== selectedNode.id) {
+      return null;
+    }
+    for (const item of dashboardDisplayItems) {
+      if (item.kind === "group" && item.group.sourceNodeId === highlightedWidgetSourceNodeId) {
+        return {
+          widget: null,
+          group: item.group,
+          groupLabel: null as string | null,
+        };
+      }
+    }
+    const row =
+      flattenDashboardInspectorWidgets(dashboardDisplayItems).find(
+        (entry) => entry.widget.sourceNodeId === highlightedWidgetSourceNodeId,
+      ) ?? null;
+    if (row == null) {
+      return null;
+    }
+    return {
+      widget: row.widget,
+      group: null,
+      groupLabel: row.group?.label ?? null,
+    };
+  }, [dashboardDisplayItems, highlightedWidgetSourceNodeId, selectedNode]);
+
+  const onFocusDashboardSelectionInGraph = useCallback(() => {
+    if (selectedNode == null) {
+      return;
+    }
+    selectStudioNodesByIds([selectedNode.id]);
+    setActiveEditorType("flow");
+    fitFlowCanvasToNodeIds([selectedNode.id]);
+  }, [
+    fitFlowCanvasToNodeIds,
+    selectStudioNodesByIds,
+    selectedNode,
+    setActiveEditorType,
+  ]);
+
+  const onClearDashboardSelection = useCallback(() => {
+    setHighlightedWidgetSourceNodeId(null);
+    selectStudioNodesByIds([]);
+  }, [selectStudioNodesByIds, setHighlightedWidgetSourceNodeId]);
 
   return (
     <section
@@ -253,21 +419,53 @@ export function NodeInspector(props: NodeInspectorProps) {
     >
       <div className="mb-2 shrink-0">
         <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-100">
-          <SlidersHorizontal
-            className="h-3.5 w-3.5 shrink-0 text-zinc-400"
-            aria-hidden
-          />
-          Inspector
+          {stageWorkbenchActive ? (
+            <MonitorPlay
+              className="h-3.5 w-3.5 shrink-0 text-violet-400/90"
+              aria-hidden
+            />
+          ) : (
+            <SlidersHorizontal
+              className="h-3.5 w-3.5 shrink-0 text-zinc-400"
+              aria-hidden
+            />
+          )}
+          {stageWorkbenchActive ? "3D Scene" : "Inspector"}
         </div>
       </div>
-      {selectedNode == null ? (
-        showStageInspector ? (
-          <StageInspectorPanel
-            stagePresentationPreferences={canvasInspector!.stagePresentationPreferences}
-            onStagePresentationPreferencesChange={
-              canvasInspector!.onStagePresentationPreferencesChange
-            }
-          />
+      {stageWorkbenchActive ? (
+        <StageWorkbenchInspectorPanel
+          selectedSceneObject={selectedSceneObject}
+          boundNode={stageDerivedNode}
+          flowPaneNode={flowPaneNode}
+          flowPaneFromCanvasSelection={flowPaneFromCanvasSelection}
+          catalogEntry={catalogEntry}
+          flowCatalogEntry={flowCatalogEntry}
+          flowNodes={flowNodes}
+          flowEdges={flowEdges}
+          stagePresentationPreferences={canvasInspector!.stagePresentationPreferences}
+          onStagePresentationPreferencesChange={
+            canvasInspector!.onStagePresentationPreferencesChange
+          }
+          onFocusSelectionInGraph={onFocusStageSelectionInGraph}
+          onSelectFlowNode={onSelectFlowNodeForStageInspector}
+          onClearSelection={onClearStageSelection}
+          onUpdateConfigField={onUpdateConfigField}
+          onUpdateLabel={onUpdateLabel}
+          onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
+          onUpdateConfigJson={onUpdateConfigJson}
+          jsonDraft={jsonDraft}
+          setJsonDraft={setJsonDraft}
+          jsonError={jsonError}
+          setJsonError={setJsonError}
+          sourceKeyDraft={sourceKeyDraft}
+          setSourceKeyDraft={setSourceKeyDraft}
+          sourceKeyFieldError={sourceKeyFieldError}
+          setSourceKeyFieldError={setSourceKeyFieldError}
+        />
+      ) : selectedNode == null ? (
+        showDashboardInspector ? (
+          <DashboardInspectorPanel />
         ) : canvasInspector != null &&
           canvasNodes != null &&
           canvasEdges != null &&
@@ -301,6 +499,18 @@ export function NodeInspector(props: NodeInspectorProps) {
         </div>
       ) : (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
+          {dashboardSelectionContext != null ? (
+            <div className="shrink-0 px-2.5 pt-2">
+              <DashboardSelectionInspectorStrip
+                widget={dashboardSelectionContext.widget}
+                group={dashboardSelectionContext.group}
+                groupLabel={dashboardSelectionContext.groupLabel}
+                nodeLabel={selectedNode?.data.label}
+                onFocusInGraph={onFocusDashboardSelectionInGraph}
+                onClearSelection={onClearDashboardSelection}
+              />
+            </div>
+          ) : null}
           <TRNTabs
             value={activeTab}
             onValueChange={(next) =>

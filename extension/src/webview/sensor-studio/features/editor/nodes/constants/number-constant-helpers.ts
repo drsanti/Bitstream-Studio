@@ -1,6 +1,14 @@
 /** Persisted on **`number-constant`** `defaultConfig` (subset). */
 export type NumberConstantMode = "float" | "integer";
 
+export function isNumericConstantNodeId(nodeId: string): boolean {
+  return (
+    nodeId === "number-constant" ||
+    nodeId === "float-constant" ||
+    nodeId === "integer-constant"
+  );
+}
+
 export function readNumberConstantMode(dc: Record<string, unknown>): NumberConstantMode {
   return dc.numberMode === "integer" ? "integer" : "float";
 }

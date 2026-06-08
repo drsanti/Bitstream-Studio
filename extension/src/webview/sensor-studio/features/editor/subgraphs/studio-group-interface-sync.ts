@@ -1,5 +1,6 @@
 import type { Edge, Node } from "@xyflow/react";
 import type { StudioPortType } from "../store/flow-editor.store";
+import { applyStudioGroupBoundaryNodeChrome } from "../layout-nodes/studio-group-boundary-node-chrome";
 import {
   createGroupSocketId,
   findGroupBoundaryNode,
@@ -51,7 +52,10 @@ export function applyGroupInterfaceToSubgraph(
 
   const nodes = sub.nodes.map((n) => {
     if (n.type === "studio-group-input" || n.type === "studio-group-output") {
-      return { ...n, data: { ...n.data, interface: iface } };
+      return applyStudioGroupBoundaryNodeChrome({
+        ...n,
+        data: { ...n.data, interface: iface },
+      });
     }
     return n;
   });

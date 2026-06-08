@@ -17,9 +17,11 @@ import {
 } from "@xyflow/react";
 import {
   forwardRef,
+  memo,
   useCallback,
   useEffect,
   useImperativeHandle,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -36,7 +38,10 @@ import "../flow-canvas-edges.css";
 import "../layout-nodes/layout-flow-nodes.css";
 import "../layout-nodes/subgraph-flow-nodes.css";
 import { StudioNodeCard } from "../nodes/StudioNodeCard";
-import { setFlowNodeDragActive } from "../nodes/flow-node/flow-node-drag-state";
+import {
+  setFlowCanvasPanActive,
+  setFlowNodeDragActive,
+} from "../nodes/flow-node/flow-node-drag-state";
 import { RerouteLayoutNode } from "../layout-nodes/RerouteLayoutNode";
 import { FrameLayoutNode } from "../layout-nodes/FrameLayoutNode";
 import { NoteLayoutNode } from "../layout-nodes/NoteLayoutNode";
@@ -50,6 +55,7 @@ import type { FlowGraphNode } from "../store/flow-editor.store";
 import { useFlowEditorStore } from "../store/flow-editor.store";
 import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
 import { useFlowCanvasLayoutShortcuts } from "../keyboard/use-flow-canvas-layout-shortcuts";
+import { FLOW_CANVAS_DELETE_KEY_CODES } from "../keyboard/flow-canvas-delete-keys";
 import type { LayoutMenuEntryId } from "../layout/layout-flow-nodes.types";
 import { isStudioFlowNode } from "../layout/layout-port-resolution";
 import type { FlowCanvasPreferences } from "./flow-canvas-ui-persistence";
@@ -61,15 +67,30 @@ import {
 import { parsePaletteCatalogDragData } from "./node-palette/palette-catalog-drag";
 import {
   parseStudioGlbExtractDragData,
-  type StudioGlbExtractDragPayloadV1,
+  type StudioGlbExtractDragPayload,
 } from "./node-palette/glb-extract-drag";
 import { parseStudioNodeGroupAssetDragData } from "./node-palette/node-group-asset-drag";
 import { FlowAddNodeMenu } from "./FlowAddNodeMenu";
 import type { FlowCanvasGraphHandle } from "./flow-canvas-graph-handle";
 import { FlowCanvasToolbar } from "./flow-toolbar/FlowCanvasToolbar";
 import { FlowCanvasTopLeftChrome } from "./flow-toolbar/FlowCanvasTopLeftChrome";
+import { SensorStudioPerformanceViewportOverlay } from "../../shell/SensorStudioPerformanceViewportOverlay";
 import { EdgeSelectionToolbar } from "./flow-toolbar/EdgeSelectionToolbar";
 import { NodeSelectionToolbar } from "./flow-toolbar/NodeSelectionToolbar";
+import {
+  filterNodeChangesForStore,
+  flowGraphPropsStructurallyEqual,
+  mergeStoreNodesIntoRenderNodes,
+  nodeChangesIncludeSelection,
+  readFlowGraphStructuralKey,
+  storeSelectionWillChange,
+  syncRenderNodeSelection,
+} from "../flow-react-flow-node-sync";
+import { applyStudioGroupBoundaryNodeChrome } from "../layout-nodes/studio-group-boundary-node-chrome";
+import {
+  appendFlowNodeChromeHitClass,
+  shouldApplyFlowNodeChromeHitClass,
+} from "../nodes/flow-node/studio-flow-node-chrome-hit";
 import { resolveAddNodeMenuAnchor } from "../keyboard/resolve-add-node-menu-anchor";
 import { readRecentCatalogNodeIds } from "../keyboard/recent-catalog-nodes";
 import { listAddableCatalogEntries } from "./node-palette/list-addable-catalog-entries";
@@ -96,6 +117,7 @@ import {
 import { FlowConnectDragHint } from "./flow-toolbar/FlowConnectDragHint";
 import { FlowEdgeContextMenu } from "./FlowEdgeContextMenu";
 import { collectDownstreamEdgeIds } from "../edges/flow-edge-downstream-path";
+import { resolveSelectedNodeGroupSubgraphId } from "../subgraphs/resolve-selected-node-group";
 import {
   isStudioNodeGroupNode,
   type StudioNodeGroupData,
@@ -112,6 +134,10 @@ import {
   strokeForPortType,
 } from "../edges/flow-port-edge-colors";
 import { FlowCanvasPreferencesProvider } from "../context/flow-canvas-preferences-context";
+import {
+  buildFlowCanvasSelectionStyleVars,
+  flowCanvasSelectionChromeClassNames,
+} from "../flow-canvas-selection-style";
 
 /** Stable empty selection for Zustand-derived lists (never allocate in selectors). */
 const EMPTY_SELECTED_NODE_IDS: string[] = [];
@@ -142,6 +168,11 @@ type FlowCanvasProps = {
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
+  dashboardWidgetColor: string;
+  dashboardThemeColor: string;
+  dashboardTabColor: string;
+  materialColor: string;
+  meshColor: string;
   minimapCategoryColors: Record<NodeCatalogEntry["category"], string>;
   catalogEntries: readonly NodeCatalogEntry[];
   onAddCatalogEntryAtFlowPosition: (
@@ -167,7 +198,7 @@ type FlowCanvasProps = {
     flowPosition: { x: number; y: number },
   ) => void;
   onDropGlbExtract?: (
-    payload: StudioGlbExtractDragPayloadV1,
+    payload: StudioGlbExtractDragPayload,
     flowPosition: { x: number; y: number },
   ) => void;
   onDropStudioAsset?: (
@@ -186,7 +217,47 @@ type FlowCanvasProps = {
   onFlowPanePointerEvent?: (event: { button: number }) => void;
 };
 
-export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
+function flowCanvasPropsAreEqual(
+  prev: FlowCanvasProps,
+  next: FlowCanvasProps,
+): boolean {
+  if (
+    !flowGraphPropsStructurallyEqual(
+      prev.nodes,
+      prev.edges,
+      next.nodes,
+      next.edges,
+    )
+  ) {
+    return false;
+  }
+  if (
+    prev.fitViewVersion !== next.fitViewVersion ||
+    prev.applyViewportNonce !== next.applyViewportNonce
+  ) {
+    return false;
+  }
+  if (prev.flowCanvasPreferences !== next.flowCanvasPreferences) {
+    return false;
+  }
+  const prevVp = prev.applyViewport;
+  const nextVp = next.applyViewport;
+  if (prevVp !== nextVp) {
+    if (prevVp == null || nextVp == null) {
+      return false;
+    }
+    if (
+      prevVp.x !== nextVp.x ||
+      prevVp.y !== nextVp.y ||
+      prevVp.zoom !== nextVp.zoom
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
   function FlowCanvas(props, ref) {
     const {
       borderColor,
@@ -212,6 +283,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       physicsSceneColor,
       physicsColliderColor,
       physicsBodyColor,
+      dashboardWidgetColor,
+      dashboardThemeColor,
+      dashboardTabColor,
+      materialColor,
+      meshColor,
       minimapCategoryColors,
       catalogEntries,
       onAddCatalogEntryAtFlowPosition,
@@ -241,12 +317,23 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
 
     const nodeDragActiveRef = useRef(false);
     const [renderNodes, setRenderNodes] = useState(nodes);
+    const renderNodesRef = useRef(renderNodes);
+    renderNodesRef.current = renderNodes;
+
+    const graphStructuralKey = useMemo(
+      () => readFlowGraphStructuralKey(nodes),
+      [nodes],
+    );
 
     useEffect(() => {
-      if (!nodeDragActiveRef.current) {
-        setRenderNodes(nodes);
+      if (nodeDragActiveRef.current) {
+        return;
       }
-    }, [nodes]);
+      const incoming = useFlowEditorStore.getState().nodes;
+      setRenderNodes((current) =>
+        mergeStoreNodesIntoRenderNodes(current, incoming),
+      );
+    }, [graphStructuralKey]);
 
     const handleNodesChange = useCallback<OnNodesChange<FlowGraphNode>>(
       (changes) => {
@@ -267,18 +354,63 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               applyNodeChanges(changes, current) as FlowGraphNode[],
           );
           if (dragEnd) {
-            onNodesChange(changes);
+            const storeChanges = filterNodeChangesForStore(
+              changes,
+              useFlowEditorStore.getState().nodes,
+            );
+            if (storeChanges.length > 0) {
+              onNodesChange(storeChanges);
+            }
           }
           return;
         }
 
-        setRenderNodes(
-          (current) =>
-            applyNodeChanges(changes, current) as FlowGraphNode[],
+        const storeChanges = filterNodeChangesForStore(
+          changes,
+          renderNodesRef.current,
         );
-        onNodesChange(changes);
+        const hasSelectionChanges = nodeChangesIncludeSelection(changes);
+        if (!hasSelectionChanges && storeChanges.length === 0) {
+          return;
+        }
+
+        // Apply `select` locally so controlled `nodes` reflect the click immediately.
+        // Pan mode can update RF selection without a follow-up `onSelectionChange` — sync store here.
+        if (hasSelectionChanges) {
+          const nextAfterSelect = applyNodeChanges(
+            changes,
+            renderNodesRef.current,
+          ) as FlowGraphNode[];
+          const selectedIds = nextAfterSelect
+            .filter((node) => node.selected === true)
+            .map((node) => node.id);
+          const store = useFlowEditorStore.getState();
+          if (
+            storeSelectionWillChange(
+              store.selectedNodeIds,
+              store.selectedNodeId,
+              store.nodes,
+              selectedIds,
+            )
+          ) {
+            skipRenderSelectionSyncRef.current = true;
+            onSelectionChange(selectedIds);
+          }
+          setRenderNodes(nextAfterSelect);
+          if (storeChanges.length > 0) {
+            onNodesChange(storeChanges);
+          }
+          return;
+        }
+
+        setRenderNodes((current) =>
+          applyNodeChanges(storeChanges, current) as FlowGraphNode[],
+        );
+        if (storeChanges.length > 0) {
+          onNodesChange(storeChanges);
+        }
       },
-      [onNodesChange],
+      [onNodesChange, onSelectionChange],
     );
 
     const reactFlowRef = useRef<ReactFlowInstance<FlowGraphNode> | null>(null);
@@ -318,6 +450,8 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     const pendingTargetInputReconnectRef = useRef<{ edgeId: string } | null>(null);
     /** Prevents the pane click that follows connect-end from instantly closing the add menu. */
     const suppressPaneDismissRef = useRef(false);
+    /** Skips store→render selection sync when RF `select` was just applied in `handleNodesChange`. */
+    const skipRenderSelectionSyncRef = useRef(false);
     /** Skips one React Flow selection sync after Shift+click edge reroute insert. */
     const skipSelectionSyncAfterEdgeRerouteRef = useRef(false);
 
@@ -345,6 +479,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       physicsSceneColor,
       physicsColliderColor,
       physicsBodyColor,
+      dashboardWidgetColor,
+      dashboardThemeColor,
+      dashboardTabColor,
+      materialColor,
+      meshColor,
     }),
       [
         numberColor,
@@ -368,6 +507,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         physicsSceneColor,
         physicsColliderColor,
         physicsBodyColor,
+        dashboardWidgetColor,
+        dashboardThemeColor,
+        dashboardTabColor,
+        materialColor,
+        meshColor,
       ],
     );
 
@@ -382,6 +526,20 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       }
       return EMPTY_SELECTED_NODE_IDS;
     }, [storedSelectedNodeIds, storedSelectedNodeId]);
+
+    useLayoutEffect(() => {
+      if (nodeDragActiveRef.current) {
+        return;
+      }
+      const skip = skipRenderSelectionSyncRef.current;
+      skipRenderSelectionSyncRef.current = false;
+      if (skip) {
+        return;
+      }
+      setRenderNodes((current) =>
+        syncRenderNodeSelection(current, selectedNodeIdList),
+      );
+    }, [selectedNodeIdList]);
 
     const [viewportZoom, setViewportZoom] = useState(
       () => initialViewport?.zoom ?? 1,
@@ -515,19 +673,18 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           });
         },
         getSelectedNodeGroupId: () => {
-          const selectedGroups = nodes.filter(
-            (n) => n.selected && isStudioNodeGroupNode(n),
-          );
-          if (selectedGroups.length !== 1) {
-            return null;
-          }
-          const group = selectedGroups[0]!;
-          return group.data.subgraphId ?? group.id;
+          const state = useFlowEditorStore.getState();
+          return resolveSelectedNodeGroupSubgraphId({
+            renderNodes: renderNodesRef.current,
+            storeNodes: state.nodes,
+            selectedNodeIds: state.selectedNodeIds,
+            selectedNodeId: state.selectedNodeId,
+          });
         },
         fitSelectionInView,
         fitAllInView,
       }),
-      [addNodeMenuAnchor, fitAllInView, fitSelectionInView, nodes],
+      [addNodeMenuAnchor, fitAllInView, fitSelectionInView],
     );
 
     const openAddNodeMenuAtPointer = useCallback(
@@ -638,6 +795,25 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             if (node.type === "studio-note") {
               const locked = Boolean((node.data as any)?.locked);
               return locked ? { ...node, draggable: false } : node;
+            }
+            if (
+              node.type === "studio-group-input" ||
+              node.type === "studio-group-output"
+            ) {
+              return applyStudioGroupBoundaryNodeChrome(node);
+            }
+            const catalogNodeId = (node.data as { nodeId?: string } | undefined)
+              ?.nodeId;
+            if (
+              shouldApplyFlowNodeChromeHitClass({
+                nodeType: node.type ?? "",
+                catalogNodeId,
+              })
+            ) {
+              return {
+                ...node,
+                className: appendFlowNodeChromeHitClass(node.className),
+              };
             }
             return node;
           }),
@@ -1050,6 +1226,14 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
 
     const effectiveCanvasBackground =
       flowCanvasPreferences.backgroundHex ?? canvasBackgroundColor;
+    const selectionStyleVars = useMemo(
+      () => buildFlowCanvasSelectionStyleVars(flowCanvasPreferences),
+      [flowCanvasPreferences],
+    );
+    const selectionChromeClassNames = useMemo(
+      () => flowCanvasSelectionChromeClassNames(flowCanvasPreferences),
+      [flowCanvasPreferences],
+    );
     const snapGrid = useMemo(
       (): [number, number] => [
         flowCanvasPreferences.gridSize,
@@ -1072,11 +1256,11 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         if (node.type === "studio-node-group") {
           return "#0891b2";
         }
-        if (
-          node.type === "studio-group-input" ||
-          node.type === "studio-group-output"
-        ) {
-          return "#52525b";
+        if (node.type === "studio-group-input") {
+          return "#06b6d4";
+        }
+        if (node.type === "studio-group-output") {
+          return "#f59e0b";
         }
         const category = isStudioFlowNode(node)
           ? node.data?.category
@@ -1105,9 +1289,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               : "studio-flow-canvas--select relative min-h-0 flex-1") +
             (flowCanvasPreferences.edgeHoverHighlight
               ? " studio-flow-canvas--edge-hover"
+              : "") +
+            (selectionChromeClassNames.length > 0
+              ? ` ${selectionChromeClassNames}`
               : "")
           }
-          style={{ borderColor }}
+          style={{ borderColor, ...selectionStyleVars }}
           onDragOver={handleCanvasDragOver}
           onDrop={handleCanvasDrop}
           onPointerMove={(event) => {
@@ -1118,6 +1305,7 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
           }}
         >
           <FlowGraphBreadcrumbChrome />
+          <SensorStudioPerformanceViewportOverlay variant="flow" />
           <div className="pointer-events-none absolute right-3 top-3 z-20 flex max-w-[min(calc(100%-1.5rem),520px)] flex-col items-end gap-2">
             <FlowCanvasTopLeftChrome />
           </div>
@@ -1203,10 +1391,18 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               animated: flowCanvasPreferences.edgeAnimated,
               style: { strokeWidth: flowCanvasPreferences.edgeStrokeWidth },
             }}
-            deleteKeyCode={["Backspace", "Delete"]}
+            deleteKeyCode={[...FLOW_CANVAS_DELETE_KEY_CODES]}
             onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStop={handleNodeDragStop}
+            onNodeClick={(_event, node) => {
+              if (
+                node.type === "studio-group-input" ||
+                node.type === "studio-group-output"
+              ) {
+                onSelectionChange([node.id]);
+              }
+            }}
             onNodeDoubleClick={(_event, node) => {
               if (isStudioNodeGroupNode(node)) {
                 const data = node.data as StudioNodeGroupData;
@@ -1238,9 +1434,12 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               if (skipSelectionSyncAfterEdgeRerouteRef.current) {
                 return;
               }
-              onSelectionChange(selection.nodes.map((n) => n.id));
+              // Node selection store sync is owned by `handleNodesChange` (RF select) and
+              // `syncRenderNodeSelection` (programmatic A / inspector jumps).
               if (selection.nodes.length > 0 || selection.edges.length > 0) {
-                setActiveEditorType("flow");
+                if (useStudioWorkbenchFocusStore.getState().activeEditorType !== "stage") {
+                  setActiveEditorType("flow");
+                }
               }
             }}
             onPaneClick={(event) => {
@@ -1258,25 +1457,21 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
               setEdgeMenuAnchor(null);
               openAddNodeMenuAtPointer(event.clientX, event.clientY);
             }}
+            onMoveStart={() => {
+              setFlowCanvasPanActive(true);
+            }}
             onMove={(_event, viewport) => {
               if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
                 setViewportZoom(viewport.zoom);
               }
             }}
-            onMoveEnd={
-              onViewportMoveEnd != null
-                ? (_event, viewport) => {
-                    if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
-                      setViewportZoom(viewport.zoom);
-                    }
-                    onViewportMoveEnd(viewport);
-                  }
-                : (_event, viewport) => {
-                    if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
-                      setViewportZoom(viewport.zoom);
-                    }
-                  }
-            }
+            onMoveEnd={(_event, viewport) => {
+              setFlowCanvasPanActive(false);
+              if (Number.isFinite(viewport.zoom) && viewport.zoom > 0) {
+                setViewportZoom(viewport.zoom);
+              }
+              onViewportMoveEnd?.(viewport);
+            }}
             onInit={(instance) => {
               reactFlowRef.current = instance;
               const vp = instance.getViewport();
@@ -1336,3 +1531,5 @@ export const FlowCanvas = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     );
   },
 );
+
+export const FlowCanvas = memo(FlowCanvasInner, flowCanvasPropsAreEqual);

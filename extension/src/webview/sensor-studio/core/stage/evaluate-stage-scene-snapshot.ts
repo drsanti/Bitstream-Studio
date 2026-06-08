@@ -1,5 +1,10 @@
 import type { Edge } from "@xyflow/react";
-import { STUDIO_HANDLE_MODELS, STUDIO_HANDLE_OUT } from "../../features/editor/studio-handle-ids";
+import {
+  STUDIO_HANDLE_MESHES,
+  STUDIO_HANDLE_MODELS,
+  STUDIO_HANDLE_OUT,
+} from "../../features/editor/studio-handle-ids";
+import { collectFlowMeshEntries } from "./collect-flow-mesh-entries";
 import type { FlowGraphNode } from "../../features/editor/store/flow-graph-types";
 import { resolveStudioSourceModelGlbUrl } from "../../features/editor/model/model-generated-bindings";
 import { mergeFlowWireEnvironmentIntoScene3d } from "../../features/editor/nodes/environment/flow-wire-environment";
@@ -28,10 +33,15 @@ import {
 import { collectStagePhysicsCollidersFromGraph } from "./stage-physics-colliders";
 import type { StagePhysicsColliderV1 } from "./stage-physics-colliders";
 import type { StageViewportModelInstance } from "../viewport/studio-viewport-stage-multi-models";
-import type { StageSceneModelEntryV1, StageSceneSnapshotV1 } from "./stage-scene-snapshot";
+import type { StageMeshEntryV1, StageSceneModelEntryV1, StageSceneSnapshotV1 } from "./stage-scene-snapshot";
+import {
+  clearScene3dModelForMeshesOnly,
+  isMeshesOnlyCommittedStage,
+} from "./stage-meshes-only-scene";
 
 export const SCENE_OUTPUT_NODE_ID = "scene-output";
 export const SCENE_OUTPUT_HANDLE_MODELS = STUDIO_HANDLE_MODELS;
+export const SCENE_OUTPUT_HANDLE_MESHES = STUDIO_HANDLE_MESHES;
 
 function readBoolean(cfg: Record<string, unknown>, key: string, fallback: boolean): boolean {
   const v = cfg[key];
@@ -122,6 +132,7 @@ export function evaluateStageSceneSnapshot(args: {
       updatedAtMs: nowMs,
       showGrid: STAGE_DEFAULT_SHOW_GRID,
       models: [],
+      meshes: [],
       environmentWire: null,
       cameraWire: null,
       animationWire: null,
@@ -140,6 +151,12 @@ export function evaluateStageSceneSnapshot(args: {
       : stageSceneOutputDefaultScene3d();
 
   const models = collectModelsForSceneOutput(nodes, edges, outputNode.id);
+  const meshes = collectFlowMeshEntries({
+    nodes,
+    edges,
+    targetNodeId: outputNode.id,
+    targetHandle: SCENE_OUTPUT_HANDLE_MESHES,
+  });
   const primaryUrl = models[0]?.modelUrl ?? "";
 
   const environmentWire = outputNode.data.liveEnvironmentWire ?? null;
@@ -183,6 +200,9 @@ export function evaluateStageSceneSnapshot(args: {
   });
   scene3d = mergeFlowWirePhysicsIntoScene3d(scene3d, physicsWire);
   scene3d = applyStageScene3dPresentation(scene3d, { showGrid });
+  if (isMeshesOnlyCommittedStage({ models, meshesCount: meshes.length })) {
+    scene3d = clearScene3dModelForMeshesOnly(scene3d);
+  }
 
   return {
     version: 1,
@@ -190,6 +210,7 @@ export function evaluateStageSceneSnapshot(args: {
     updatedAtMs: nowMs,
     showGrid,
     models,
+    meshes,
     environmentWire,
     cameraWire,
     animationWire,
@@ -227,6 +248,7 @@ export function buildStagePreviewSceneProps(
   glbAnimationSceneExtras: ReturnType<typeof buildGlbAnimationPreviewSceneProps>;
   stagePhysicsWire: FlowWirePhysicsSceneV1 | null;
   stagePhysicsColliders: StagePhysicsColliderV1[];
+  stageProceduralMeshes: StageMeshEntryV1[];
 } {
   const modelCount = snapshot.models.length;
   const idx =
@@ -251,6 +273,16 @@ export function buildStagePreviewSceneProps(
           wiredAssetId != null && wiredAssetId.length > 0 ? wiredAssetId : undefined,
       },
     };
+  } else if (modelCount === 0 && snapshot.meshes.length > 0) {
+    // Meshes-only Stage: do not load Scene Output's baked-in demo GLB URL.
+    scene3d = {
+      ...scene3d,
+      model: {
+        ...scene3d.model,
+        url: "",
+        studioAssetId: undefined,
+      },
+    };
   }
 
   const stageModelInstances: StageViewportModelInstance[] = snapshot.models.map((m) => ({
@@ -272,6 +304,7 @@ export function buildStagePreviewSceneProps(
     glbAnimationSceneExtras,
     stagePhysicsWire: snapshot.physicsWire,
     stagePhysicsColliders: snapshot.physicsColliders,
+    stageProceduralMeshes: snapshot.meshes,
   };
 }
 
@@ -279,4 +312,23 @@ export function graphHasSceneOutputNode(
   nodes: ReadonlyArray<{ data: { nodeId: string } }>,
 ): boolean {
   return nodes.some((n) => n.data.nodeId === SCENE_OUTPUT_NODE_ID);
+}
+
+/** Scan root buffer, active canvas, and nested subgraph documents for Scene Output. */
+export function graphHasSceneOutputNodeInDocument(args: {
+  nodes: ReadonlyArray<{ data: { nodeId: string } }>;
+  rootNodes?: ReadonlyArray<{ data: { nodeId: string } }>;
+  subgraphs?: Record<string, { nodes: ReadonlyArray<{ data: { nodeId: string } }> }>;
+}): boolean {
+  const buckets = [
+    args.nodes,
+    args.rootNodes ?? [],
+    ...Object.values(args.subgraphs ?? {}).map((subgraph) => subgraph.nodes),
+  ];
+  for (const list of buckets) {
+    if (graphHasSceneOutputNode(list)) {
+      return true;
+    }
+  }
+  return false;
 }

@@ -17,11 +17,13 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useBitstreamWorkspaceModeStore } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { AssetManagerProvider, AssetRegistryProvider, openAssetManagerBrowseModels } from "../assets-manager";
+import { PresentationWorkspace } from "../presentation/PresentationWorkspace";
 
 export function BitstreamShellMain()
 {
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
   const sensorStudioMode = workspace === "sensor-studio";
+  const presentationMode = workspace === "presentation";
 
   const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
 
@@ -57,7 +59,9 @@ export function BitstreamShellMain()
           <BitstreamShellRoot>
             <Bmi270StreamModeSyncEffect mode={bmi270StreamMode} />
             <div key={workspace} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              {sensorStudioMode ? (
+              {presentationMode ? (
+                <PresentationWorkspace />
+              ) : sensorStudioMode ? (
                 <SensorStudioApp />
               ) : (
                 <BitstreamSensorWorkspaceView />

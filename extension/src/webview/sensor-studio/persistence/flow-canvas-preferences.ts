@@ -29,6 +29,8 @@ export type FlowCanvasEdgeBusLaneSort = "vertical" | "horizontal";
 
 export type FlowCanvasInteractionMode = "select" | "pan";
 
+export type FlowCanvasNodeSelectionRingWidthPx = 1 | 2 | 3;
+
 export type FlowCanvasPreferences = {
   snapToGrid: boolean;
   gridSize: FlowCanvasGridSize;
@@ -90,6 +92,17 @@ export type FlowCanvasPreferences = {
   edgeInteractionWidth: number;
   /** Extra corner radius on offset step/smooth wires (visual hop, not true overlap bridge). */
   edgeStepLaneHop: boolean;
+  /** Cyan ring overlay on selected flow nodes (catalog, notes, groups). */
+  showNodeSelectionRing: boolean;
+  /** React Flow marquee rectangle while drag-selecting on the canvas. */
+  showMarqueeSelectionRect: boolean;
+  /** `#RRGGBB` stroke for the per-node selection ring. */
+  nodeSelectionRingHex: string;
+  nodeSelectionRingOpacity: number;
+  nodeSelectionRingWidthPx: FlowCanvasNodeSelectionRingWidthPx;
+  /** `#RRGGBB` stroke/fill for the marquee selection rectangle. */
+  marqueeSelectionHex: string;
+  marqueeSelectionOpacity: number;
 };
 
 export const DEFAULT_FLOW_CANVAS_PREFERENCES: FlowCanvasPreferences = {
@@ -128,6 +141,13 @@ export const DEFAULT_FLOW_CANVAS_PREFERENCES: FlowCanvasPreferences = {
   edgeBusLaneSort: "vertical",
   edgeInteractionWidth: 20,
   edgeStepLaneHop: false,
+  showNodeSelectionRing: true,
+  showMarqueeSelectionRect: false,
+  nodeSelectionRingHex: "#32fafa",
+  nodeSelectionRingOpacity: 0.4,
+  nodeSelectionRingWidthPx: 2,
+  marqueeSelectionHex: "#3b82f6",
+  marqueeSelectionOpacity: 0.28,
 };
 
 const GRID_SIZES = new Set<number>([12, 16, 20, 24, 32]);
@@ -142,6 +162,7 @@ const HANDLE_SIZE_PX = new Set<number>([10, 12, 14]);
 const HANDLE_BORDER_PX = new Set<number>([1, 2]);
 const EDGE_BUNDLE_MODES = new Set<string>(["off", "fanOut", "fanIn", "both"]);
 const EDGE_BUS_LANE_SORT = new Set<string>(["vertical", "horizontal"]);
+const NODE_SELECTION_RING_WIDTH_PX = new Set<number>([1, 2, 3]);
 
 function isHexColor(value: unknown): value is string {
   return typeof value === "string" && /^#[0-9a-fA-F]{6}$/.test(value);
@@ -275,6 +296,31 @@ export function coerceFlowCanvasPreferences(raw: unknown): FlowCanvasPreferences
       coerceFiniteInRange(o.edgeInteractionWidth, 20, 8, 40),
     ),
     edgeStepLaneHop: o.edgeStepLaneHop === true,
+    showNodeSelectionRing: o.showNodeSelectionRing !== false,
+    showMarqueeSelectionRect: o.showMarqueeSelectionRect === true,
+    nodeSelectionRingHex: isHexColor(o.nodeSelectionRingHex)
+      ? o.nodeSelectionRingHex
+      : DEFAULT_FLOW_CANVAS_PREFERENCES.nodeSelectionRingHex,
+    nodeSelectionRingOpacity: coerceFiniteInRange(
+      o.nodeSelectionRingOpacity,
+      DEFAULT_FLOW_CANVAS_PREFERENCES.nodeSelectionRingOpacity,
+      0.15,
+      1,
+    ),
+    nodeSelectionRingWidthPx:
+      typeof o.nodeSelectionRingWidthPx === "number" &&
+      NODE_SELECTION_RING_WIDTH_PX.has(o.nodeSelectionRingWidthPx)
+        ? (o.nodeSelectionRingWidthPx as FlowCanvasNodeSelectionRingWidthPx)
+        : DEFAULT_FLOW_CANVAS_PREFERENCES.nodeSelectionRingWidthPx,
+    marqueeSelectionHex: isHexColor(o.marqueeSelectionHex)
+      ? o.marqueeSelectionHex
+      : DEFAULT_FLOW_CANVAS_PREFERENCES.marqueeSelectionHex,
+    marqueeSelectionOpacity: coerceFiniteInRange(
+      o.marqueeSelectionOpacity,
+      DEFAULT_FLOW_CANVAS_PREFERENCES.marqueeSelectionOpacity,
+      0.1,
+      1,
+    ),
   };
 }
 
@@ -379,6 +425,42 @@ export function mergeFlowCanvasPreferences(
   if (patch.edgeInteractionWidth != null) {
     merged.edgeInteractionWidth = Math.round(
       coerceFiniteInRange(patch.edgeInteractionWidth, prev.edgeInteractionWidth, 8, 40),
+    );
+  }
+  if (
+    patch.nodeSelectionRingHex !== undefined &&
+    patch.nodeSelectionRingHex !== null &&
+    !isHexColor(patch.nodeSelectionRingHex)
+  ) {
+    merged.nodeSelectionRingHex = prev.nodeSelectionRingHex;
+  }
+  if (patch.nodeSelectionRingOpacity != null) {
+    merged.nodeSelectionRingOpacity = coerceFiniteInRange(
+      patch.nodeSelectionRingOpacity,
+      prev.nodeSelectionRingOpacity,
+      0.15,
+      1,
+    );
+  }
+  if (
+    patch.nodeSelectionRingWidthPx != null &&
+    !NODE_SELECTION_RING_WIDTH_PX.has(patch.nodeSelectionRingWidthPx)
+  ) {
+    merged.nodeSelectionRingWidthPx = prev.nodeSelectionRingWidthPx;
+  }
+  if (
+    patch.marqueeSelectionHex !== undefined &&
+    patch.marqueeSelectionHex !== null &&
+    !isHexColor(patch.marqueeSelectionHex)
+  ) {
+    merged.marqueeSelectionHex = prev.marqueeSelectionHex;
+  }
+  if (patch.marqueeSelectionOpacity != null) {
+    merged.marqueeSelectionOpacity = coerceFiniteInRange(
+      patch.marqueeSelectionOpacity,
+      prev.marqueeSelectionOpacity,
+      0.1,
+      1,
     );
   }
   return merged;

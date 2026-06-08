@@ -11,6 +11,7 @@ import {
   readOnKeyConfig,
 } from "../../../../nodes/events/on-key-config";
 import { InspectorCollapsibleSection } from "../../InspectorCollapsibleSection";
+import { STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS } from "../../inspector-dense-select-button";
 import type { NodeInspectorSettingsSectionProps } from "../node-inspector-settings-types";
 
 const KEY_OPTIONS: TRNSelectOption[] = ON_KEY_PRESET_OPTIONS.map((o) => ({
@@ -37,7 +38,7 @@ export function OnKeySettingsSection(props: NodeInspectorSettingsSectionProps) {
           options={KEY_OPTIONS}
           size="sm"
           className="min-w-0"
-          buttonClassName="min-h-7 text-[10px]"
+          buttonClassName={STUDIO_COMPACT_FLOW_SELECT_BUTTON_CLASS}
           panelClassName="scrollbar-hide max-h-48 overflow-y-auto"
           onValueChange={(next) => {
             onUpdateConfigField("key", next);

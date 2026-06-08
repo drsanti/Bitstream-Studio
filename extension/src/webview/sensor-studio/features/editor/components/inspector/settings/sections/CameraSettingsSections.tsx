@@ -45,6 +45,7 @@ import {
 } from "../../../../../../core/camera/vision-mediapipe-endpoints";
 import { TRNButton } from "../../../../../../../ui/TRN";
 import { InspectorPropertyRow } from "../../InspectorPropertyRow";
+import { VisionMediapipePackMissingChip } from "./VisionMediapipePackMissingChip";
 
 function readFiniteNumber(raw: unknown, fallback: number): number {
   const n = typeof raw === "number" ? raw : Number(raw);
@@ -422,6 +423,7 @@ export function VisionPoseSettingsSection(props: NodeInspectorSettingsSectionPro
         iconHint="MediaPipe Pose Landmarker runs in the webview (GPU when available). Requires network for WASM + model on first load."
         defaultExpanded
       >
+        <VisionMediapipePackMissingChip catalogNodeId="vision-pose" config={cfg} />
         <div className="mb-1 flex items-center gap-2">
           <FlowNodeHeaderBadge
             tone={ui.detected ? "live" : ui.status === "error" ? "invalid" : "neutral"}

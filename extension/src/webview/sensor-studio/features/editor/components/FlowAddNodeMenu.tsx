@@ -17,6 +17,7 @@ import {
   Database,
   GitCompare,
   Hand,
+  LayoutDashboard,
   LayoutGrid,
   Mic,
   SlidersHorizontal,
@@ -87,6 +88,7 @@ const DISPLAY_GROUP_SCHEMA_COLOR: Record<
   transform: "transform",
   logic: "logic",
   output: "output",
+  dashboard: "dashboard",
   scene: "utility",
   animation: "generator",
   events: "utility",
@@ -103,6 +105,7 @@ const DISPLAY_GROUP_ICON: Record<
   transform: SlidersHorizontal,
   logic: GitCompare,
   output: Activity,
+  dashboard: LayoutDashboard,
   scene: Box,
   animation: Clapperboard,
   events: Sparkles,
@@ -118,7 +121,7 @@ function BrowseGroupIcon(props: {
   if (group === FLOW_LAYOUT_MENU_LAYOUT) {
     return <LayoutGrid className={className} style={props.style} aria-hidden />;
   }
-  const Icon = DISPLAY_GROUP_ICON[group];
+  const Icon = DISPLAY_GROUP_ICON[group] ?? Box;
   return <Icon className={className} style={props.style} aria-hidden />;
 }
 

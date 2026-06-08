@@ -1,4 +1,25 @@
-import { Box, Cloud, CloudFog, Focus, Grid3X3, ImageIcon, Layers, RotateCcw, Sparkles } from "lucide-react";
+import {
+  Box,
+  Circle,
+  Cloud,
+  CloudFog,
+  Focus,
+  Grid3X3,
+  ImageIcon,
+  Layers,
+  Move3d,
+  Pencil,
+  Play,
+  RotateCcw,
+  RotateCw,
+  Scaling,
+  Sparkles,
+  Square,
+} from "lucide-react";
+import type { StageProceduralSpawnKind } from "../../core/stage/stage-procedural-spawn-kind";
+import type { StageWorkbenchMode } from "../../core/stage/stage-workbench-mode";
+import type { StudioViewportGizmoMode } from "../../core/viewport/studio-viewport-gizmo-mode";
+import type { StudioViewportProjectionMode } from "../../core/viewport/studio-viewport-projection";
 import { useMemo } from "react";
 import type { TRNSelectOption } from "../../../ui/TRN";
 import { TRNIconButton } from "../../../ui/TRN/TRNIconButton";
@@ -35,10 +56,22 @@ export function StageViewportToolbar(props: {
   onToggleFog: () => void;
   onFrameModel?: () => void;
   onResetCamera?: () => void;
+  viewportProjection?: StudioViewportProjectionMode;
+  onToggleViewportProjection?: () => void;
+  gizmoEligible?: boolean;
+  gizmoMode?: StudioViewportGizmoMode;
+  onGizmoModeChange?: (mode: StudioViewportGizmoMode) => void;
+  /** SE4 — add procedural primitives at Stage click. */
+  spawnEnabled?: boolean;
+  spawnPendingKind?: StageProceduralSpawnKind | null;
+  onToggleSpawnKind?: (kind: StageProceduralSpawnKind) => void;
   stageToolbarPresentationEnabled?: boolean;
   stageEnvironmentPickerEnabled?: boolean;
   stageBackdropControlEnabled?: boolean;
   stageIblControlEnabled?: boolean;
+  /** Edit = gizmo + spawn authoring. Simulate = graph eval drives the viewport. */
+  workbenchMode?: StageWorkbenchMode;
+  onWorkbenchModeChange?: (mode: StageWorkbenchMode) => void;
 }) {
   const {
     showGrid,
@@ -66,10 +99,20 @@ export function StageViewportToolbar(props: {
     onToggleFog,
     onFrameModel,
     onResetCamera,
+    viewportProjection = "perspective",
+    onToggleViewportProjection,
+    gizmoEligible = false,
+    gizmoMode = "translate",
+    onGizmoModeChange,
+    spawnEnabled = false,
+    spawnPendingKind = null,
+    onToggleSpawnKind,
     stageToolbarPresentationEnabled = true,
     stageEnvironmentPickerEnabled = true,
     stageBackdropControlEnabled = true,
     stageIblControlEnabled = true,
+    workbenchMode = "edit",
+    onWorkbenchModeChange,
   } = props;
 
   const showModelFocusPicker =
@@ -109,6 +152,8 @@ export function StageViewportToolbar(props: {
       : `${name} — Scene Output environment`;
   }, [environmentSelectOptions, environmentSelectValue, environmentWired]);
   const canCamera = modelCount > 0 && onFrameModel != null && onResetCamera != null;
+  const isOrtho = viewportProjection === "orthographic";
+  const canToggleProjection = canCamera && onToggleViewportProjection != null;
   const iconBtn =
     "!h-7 !w-7 !rounded-full !border-0 !bg-transparent hover:!bg-zinc-800/60";
 
@@ -118,6 +163,45 @@ export function StageViewportToolbar(props: {
       role="toolbar"
       aria-label="Stage viewport"
     >
+      {onWorkbenchModeChange != null ? (
+        <div className="pointer-events-auto flex shrink-0 items-center gap-0.5 rounded-full border border-zinc-700/70 bg-zinc-900/50 p-0.5">
+          <TRNIconButton
+            icon={
+              <Play
+                size={14}
+                className={
+                  workbenchMode === "simulate" ? "text-sky-300" : "text-zinc-500"
+                }
+              />
+            }
+            label="Simulate"
+            hint="Simulate — flow graph evaluation drives the Stage viewport."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={workbenchMode === "simulate"}
+            onClick={() => onWorkbenchModeChange("simulate")}
+            className={iconBtn}
+          />
+          <TRNIconButton
+            icon={
+              <Pencil
+                size={14}
+                className={workbenchMode === "edit" ? "text-sky-300" : "text-zinc-500"}
+              />
+            }
+            label="Edit"
+            hint="Edit — select objects, use the transform gizmo, and place primitives."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={workbenchMode === "edit"}
+            onClick={() => onWorkbenchModeChange("edit")}
+            className={iconBtn}
+          />
+        </div>
+      ) : null}
+      {onWorkbenchModeChange != null ? (
+        <span className="pointer-events-none h-3.5 w-px bg-zinc-700/80" aria-hidden />
+      ) : null}
       {modelCount === 0 ? (
         <span className="pointer-events-none px-2 text-[10px] font-medium tracking-wide text-zinc-500">
           No models
@@ -240,6 +324,129 @@ export function StageViewportToolbar(props: {
             hintPlacement="bottom"
             hintDelayMs={TOOLBAR_HINT_DELAY_MS}
             onClick={onResetCamera}
+            className={iconBtn}
+          />
+          {canToggleProjection ? (
+            <TRNIconButton
+              icon={
+                <span
+                  className={`text-[10px] font-semibold tracking-wide ${isOrtho ? "text-sky-300" : "text-zinc-400"}`}
+                  aria-hidden
+                >
+                  {isOrtho ? "Ortho" : "Persp"}
+                </span>
+              }
+              label={isOrtho ? "Switch to perspective" : "Switch to orthographic"}
+              hint={
+                isOrtho
+                  ? "Orthographic view (session). Numpad 5 toggles projection."
+                  : "Perspective view (session). Numpad 5 toggles projection."
+              }
+              hintPlacement="bottom"
+              hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+              aria-pressed={isOrtho}
+              onClick={onToggleViewportProjection}
+              className={`${iconBtn} !w-11`}
+            />
+          ) : null}
+        </>
+      ) : null}
+      {spawnEnabled && onToggleSpawnKind != null ? (
+        <>
+          <span className="pointer-events-none h-3.5 w-px bg-zinc-700/80" aria-hidden />
+          <TRNIconButton
+            icon={
+              <Box
+                size={14}
+                className={spawnPendingKind === "box" ? "text-emerald-300" : "text-zinc-500"}
+              />
+            }
+            label="Add box"
+            hint="Arm box placement — click the Stage to spawn Mesh Box + material + transform (Esc to cancel)."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={spawnPendingKind === "box"}
+            onClick={() => onToggleSpawnKind("box")}
+            className={iconBtn}
+          />
+          <TRNIconButton
+            icon={
+              <Circle
+                size={14}
+                className={spawnPendingKind === "sphere" ? "text-emerald-300" : "text-zinc-500"}
+              />
+            }
+            label="Add sphere"
+            hint="Arm sphere placement — click the Stage to spawn Mesh Sphere wired to Scene Output."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={spawnPendingKind === "sphere"}
+            onClick={() => onToggleSpawnKind("sphere")}
+            className={iconBtn}
+          />
+          <TRNIconButton
+            icon={
+              <Square
+                size={14}
+                className={spawnPendingKind === "plane" ? "text-emerald-300" : "text-zinc-500"}
+              />
+            }
+            label="Add plane"
+            hint="Arm plane placement — click the Stage to spawn a horizontal Mesh Plane at the hit point."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={spawnPendingKind === "plane"}
+            onClick={() => onToggleSpawnKind("plane")}
+            className={iconBtn}
+          />
+        </>
+      ) : null}
+      {gizmoEligible && onGizmoModeChange != null ? (
+        <>
+          <span className="pointer-events-none h-3.5 w-px bg-zinc-700/80" aria-hidden />
+          <TRNIconButton
+            icon={
+              <Move3d
+                size={14}
+                className={gizmoMode === "translate" ? "text-sky-300" : "text-zinc-500"}
+              />
+            }
+            label="Move"
+            hint="Translate gizmo (G). Writes to wired Object Transform or mesh node."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={gizmoMode === "translate"}
+            onClick={() => onGizmoModeChange("translate")}
+            className={iconBtn}
+          />
+          <TRNIconButton
+            icon={
+              <RotateCw
+                size={14}
+                className={gizmoMode === "rotate" ? "text-sky-300" : "text-zinc-500"}
+              />
+            }
+            label="Rotate"
+            hint="Rotate gizmo (R). Orbit is disabled while dragging."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={gizmoMode === "rotate"}
+            onClick={() => onGizmoModeChange("rotate")}
+            className={iconBtn}
+          />
+          <TRNIconButton
+            icon={
+              <Scaling
+                size={14}
+                className={gizmoMode === "scale" ? "text-sky-300" : "text-zinc-500"}
+              />
+            }
+            label="Scale"
+            hint="Scale gizmo (S)."
+            hintPlacement="bottom"
+            hintDelayMs={TOOLBAR_HINT_DELAY_MS}
+            aria-pressed={gizmoMode === "scale"}
+            onClick={() => onGizmoModeChange("scale")}
             className={iconBtn}
           />
         </>

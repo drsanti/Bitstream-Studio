@@ -19,7 +19,7 @@ export type StudioViewportCss3dWorldRuntime = {
 
 export function createStudioViewportCss3dWorldRuntime(args: {
   host: HTMLElement;
-  getCamera: () => THREE.PerspectiveCamera | null;
+  getCamera: () => THREE.Camera | null;
 }): StudioViewportCss3dWorldRuntime {
   const cssScene = new THREE.Scene();
   const cssCamera = new THREE.PerspectiveCamera(55, 1, 0.1, 500);
@@ -102,8 +102,14 @@ export function createStudioViewportCss3dWorldRuntime(args: {
     if (cam == null) {
       return;
     }
-    cssCamera.fov = cam.fov;
-    cssCamera.aspect = cam.aspect;
+    if (cam instanceof THREE.PerspectiveCamera) {
+      cssCamera.fov = cam.fov;
+      cssCamera.aspect = cam.aspect;
+    } else if (cam instanceof THREE.OrthographicCamera) {
+      cssCamera.fov = 55;
+      cssCamera.aspect =
+        cam.right > cam.left ? (cam.right - cam.left) / (cam.top - cam.bottom) : 1;
+    }
     cssCamera.near = cam.near;
     cssCamera.far = cam.far;
     cssCamera.position.copy(cam.position);

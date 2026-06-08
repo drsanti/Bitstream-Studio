@@ -1,6 +1,7 @@
 import type { Edge, Node } from "@xyflow/react";
 import { findGroupInputSocket, findGroupOutputSocket, inferGroupInterface } from "./studio-group-boundary-sockets";
 import type { CreateStudioNodeGroupResult } from "./create-studio-node-group.types";
+import { applyStudioGroupBoundaryNodeChrome } from "../layout-nodes/studio-group-boundary-node-chrome";
 import {
   defaultGroupInterface,
   groupBoundaryNodeIds,
@@ -48,7 +49,10 @@ function wireBoundaryNodes(
 
     if (!srcIn && tgtIn) {
       const target = allNodes.find((n) => n.id === edge.target);
-      const sock = findGroupInputSocket(iface, target, edge.targetHandle, subgraphs);
+      const sock = findGroupInputSocket(iface, target, edge.targetHandle, subgraphs, {
+        externalSourceId: edge.source,
+        externalSourceHandle: edge.sourceHandle,
+      });
       if (sock == null) {
         continue;
       }
@@ -102,23 +106,19 @@ export function createStudioNodeGroupFromSelection(
 
   const innerNodes = offsetNodes(contentNodes, innerOffsetX, innerOffsetY);
 
-  const groupInputNode: Node = {
+  const groupInputNode = applyStudioGroupBoundaryNodeChrome({
     id: `${groupId}_input`,
     type: "studio-group-input",
     position: { x: BOUNDARY_NODE_X.input, y: BOUNDARY_NODE_Y },
     data: { interface: iface, role: "input" },
-    selectable: false,
-    draggable: false,
-  };
+  });
 
-  const groupOutputNode: Node = {
+  const groupOutputNode = applyStudioGroupBoundaryNodeChrome({
     id: `${groupId}_output`,
     type: "studio-group-output",
     position: { x: BOUNDARY_NODE_X.output, y: BOUNDARY_NODE_Y },
     data: { interface: iface, role: "output" },
-    selectable: false,
-    draggable: false,
-  };
+  });
 
   const subgraphNodes: Node[] = [groupInputNode, ...innerNodes, groupOutputNode];
   const subgraphEdges: Edge[] = [...internalEdges.map((e) => ({ ...e }))];
@@ -156,31 +156,39 @@ export function createStudioNodeGroupFromSelection(
   };
 }
 
-export function createEmptyStudioNodeGroup(
+export function createEmptySubgraphDocument(
   groupId: string,
-  position: { x: number; y: number },
-): CreateStudioNodeGroupResult {
+  graphTitle = "Node Group",
+): StudioSubgraphDocument {
   const iface = defaultGroupInterface();
   const ids = groupBoundaryNodeIds(groupId);
 
-  const groupInputNode: Node = {
+  const groupInputNode = applyStudioGroupBoundaryNodeChrome({
     id: ids.input,
     type: "studio-group-input",
     position: { x: BOUNDARY_NODE_X.input, y: BOUNDARY_NODE_Y },
     data: { interface: iface, role: "input" },
-    selectable: false,
-    draggable: false,
-  };
+  });
 
-  const groupOutputNode: Node = {
+  const groupOutputNode = applyStudioGroupBoundaryNodeChrome({
     id: ids.output,
     type: "studio-group-output",
     position: { x: BOUNDARY_NODE_X.output, y: BOUNDARY_NODE_Y },
     data: { interface: iface, role: "output" },
-    selectable: false,
-    draggable: false,
-  };
+  });
 
+  return {
+    nodes: [groupInputNode, groupOutputNode],
+    edges: [],
+    interface: iface,
+    graphTitle,
+  };
+}
+
+export function createEmptyStudioNodeGroup(
+  groupId: string,
+  position: { x: number; y: number },
+): CreateStudioNodeGroupResult {
   const groupNode: Node = {
     id: groupId,
     type: "studio-node-group",
@@ -194,11 +202,6 @@ export function createEmptyStudioNodeGroup(
 
   return {
     groupNode,
-    subgraph: {
-      nodes: [groupInputNode, groupOutputNode],
-      edges: [],
-      interface: iface,
-      graphTitle: "Node Group",
-    },
+    subgraph: createEmptySubgraphDocument(groupId),
   };
 }

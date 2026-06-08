@@ -7,7 +7,7 @@ import { truncateSocketStringPreview } from "./truncate-socket-string";
 
 export function resolveEnvironmentWireSocketLabel(
   wire: FlowWireEnvironmentV1,
-  descriptors: readonly StudioAssetDescriptor[],
+  descriptors: readonly StudioAssetDescriptor[] = [],
 ): string {
   const maps = getEngineEnvironmentCubeMaps();
   const desc = resolveStudioEnvironmentDescriptorForUI(

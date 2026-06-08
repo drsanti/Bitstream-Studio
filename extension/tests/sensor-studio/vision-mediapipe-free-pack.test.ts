@@ -10,6 +10,10 @@ import {
   VISION_MEDIAPIPE_PACK_REL,
 } from "../../src/asset-sync/visionMediapipeFreePack";
 import { resolveVisionMediapipePackAssetUrl } from "../../src/webview/sensor-studio/core/camera/vision-mediapipe-url-resolver";
+import {
+  visionMediapipeFriendlyFileLabel,
+  visionMediapipeRequiredOptionalFiles,
+} from "../../src/webview/sensor-studio/core/camera/vision-mediapipe-pack-availability";
 
 test("visionMediapipePackRelativeToRepoPath prefixes assets/", () => {
   assert.equal(
@@ -70,4 +74,32 @@ test("defaultVisionMediapipePackFilePaths lists expected optional models", () =>
   const files = defaultVisionMediapipePackFilePaths();
   assert.ok(files.includes("efficientdet_lite0.tflite"));
   assert.equal(files.filter((f) => f.startsWith("wasm/")).length, 4);
+});
+
+test("visionMediapipeRequiredOptionalFiles maps node + config to pack files", () => {
+  assert.deepEqual(
+    visionMediapipeRequiredOptionalFiles({
+      catalogNodeId: "vision-pose",
+      config: { modelVariant: "lite" },
+    }),
+    [],
+  );
+  assert.deepEqual(
+    visionMediapipeRequiredOptionalFiles({
+      catalogNodeId: "vision-pose",
+      config: { modelVariant: "heavy" },
+    }),
+    ["pose_landmarker_heavy.task"],
+  );
+  assert.deepEqual(
+    visionMediapipeRequiredOptionalFiles({
+      catalogNodeId: "vision-hands",
+      config: {},
+    }),
+    ["hand_landmarker.task"],
+  );
+  assert.equal(
+    visionMediapipeFriendlyFileLabel("efficientdet_lite0.tflite"),
+    "Object detector",
+  );
 });
