@@ -1,29 +1,36 @@
-import { SensorStudioApp } from "../sensor-studio/app/SensorStudioApp.tsx";
-import { FreeAssetsLoaderDashboard } from "../free-assets-loader/FreeAssetsLoaderDashboard";
-import { ModelLoaderDashboard } from "../model-loader/ModelLoaderDashboard";
+import { lazy, Suspense } from "react";
 import { GlobalShellOverlays } from "../GlobalShellOverlays";
 import { TelemetryRxMetricsProvider } from "../bitstream-app/components/telemetry/TelemetryRxMetricsContext.js";
 import { Bmi270StreamModeSyncEffect } from "../bitstream-app/sync-effects/Bmi270StreamModeSyncEffect";
 import { BitstreamShellRoot } from "./BitstreamShellRoot";
+import { BitstreamWorkspacePanel } from "./BitstreamWorkspacePanel";
 import { useBitstreamConfigStore } from "../bitstream-app/state/bitstreamConfig.store";
 import {
   suppressFreeLoaderAutoOpen,
   usePreviewMeshMissingUiStore,
 } from "../bitstream-app/state/previewMeshMissingUi.store";
-import { BitstreamSensorWorkspaceView } from "../bitstream-app/workspace/BitstreamSensorWorkspaceView";
 import { PreviewMeshStatusDialog } from "../bitstream-app/components/PreviewMeshStatusDialog.js";
 import { useStartupChecklistStore } from "../startup-checklist/startupChecklist.store.js";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useBitstreamWorkspaceModeStore } from "../bitstream-app/state/bitstreamWorkspaceMode.store";
 import { AssetManagerProvider, AssetRegistryProvider, openAssetManagerBrowseModels } from "../assets-manager";
-import { PresentationWorkspace } from "../presentation/PresentationWorkspace";
+
+const FreeAssetsLoaderDashboard = lazy(() =>
+  import("../free-assets-loader/FreeAssetsLoaderDashboard").then((m) => ({
+    default: m.FreeAssetsLoaderDashboard,
+  })),
+);
+
+const ModelLoaderDashboard = lazy(() =>
+  import("../model-loader/ModelLoaderDashboard").then((m) => ({
+    default: m.ModelLoaderDashboard,
+  })),
+);
 
 export function BitstreamShellMain()
 {
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
-  const sensorStudioMode = workspace === "sensor-studio";
-  const presentationMode = workspace === "presentation";
 
   const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
 
@@ -59,13 +66,7 @@ export function BitstreamShellMain()
           <BitstreamShellRoot>
             <Bmi270StreamModeSyncEffect mode={bmi270StreamMode} />
             <div key={workspace} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              {presentationMode ? (
-                <PresentationWorkspace />
-              ) : sensorStudioMode ? (
-                <SensorStudioApp />
-              ) : (
-                <BitstreamSensorWorkspaceView />
-              )}
+              <BitstreamWorkspacePanel workspace={workspace} />
             </div>
           </BitstreamShellRoot>
 
@@ -86,23 +87,31 @@ export function BitstreamShellMain()
             }}
           />
 
-          <FreeAssetsLoaderDashboard
-            open={freeAssetsLoaderOpen}
-            onClose={() => {
-              setFreeAssetsLoaderOpen(false);
-              suppressFreeLoaderAutoOpen();
-            }}
-          />
-          <ModelLoaderDashboard
-            open={modelLoaderOpen}
-            onClose={() => {
-              setModelLoaderOpen(false);
-            }}
-            onOpenModelCatalog={() => {
-              setModelLoaderOpen(false);
-              openAssetManagerBrowseModels();
-            }}
-          />
+          {freeAssetsLoaderOpen ? (
+            <Suspense fallback={null}>
+              <FreeAssetsLoaderDashboard
+                open={freeAssetsLoaderOpen}
+                onClose={() => {
+                  setFreeAssetsLoaderOpen(false);
+                  suppressFreeLoaderAutoOpen();
+                }}
+              />
+            </Suspense>
+          ) : null}
+          {modelLoaderOpen ? (
+            <Suspense fallback={null}>
+              <ModelLoaderDashboard
+                open={modelLoaderOpen}
+                onClose={() => {
+                  setModelLoaderOpen(false);
+                }}
+                onOpenModelCatalog={() => {
+                  setModelLoaderOpen(false);
+                  openAssetManagerBrowseModels();
+                }}
+              />
+            </Suspense>
+          ) : null}
 
           <GlobalShellOverlays />
           <ToastContainer

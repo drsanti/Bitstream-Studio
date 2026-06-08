@@ -14,7 +14,7 @@
 import type { LucideIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 
-export type LandingCardAccent = "sky" | "emerald" | "violet";
+export type LandingCardAccent = "sky" | "emerald" | "violet" | "amber";
 
 export type LandingCardIconProps = {
   icon: LucideIcon;
@@ -29,6 +29,8 @@ const ACCENT_ICON_SHELL: Record<LandingCardAccent, string> = {
     "border-emerald-400/40 bg-emerald-500/15 text-emerald-200 shadow-[0_0_24px_rgba(52,211,153,0.25)]",
   violet:
     "border-violet-400/40 bg-violet-500/15 text-violet-200 shadow-[0_0_24px_rgba(167,139,250,0.25)]",
+  amber:
+    "border-amber-400/40 bg-amber-500/15 text-amber-200 shadow-[0_0_24px_rgba(251,191,36,0.25)]",
 };
 
 /** Ring pulse color (matches TRNFloatingNotice --trn-floating-notice-ring pattern). */
@@ -36,6 +38,7 @@ const ACCENT_ICON_RING: Record<LandingCardAccent, string> = {
   sky: "rgba(56, 189, 248, 0.35)",
   emerald: "rgba(52, 211, 153, 0.35)",
   violet: "rgba(167, 139, 250, 0.35)",
+  amber: "rgba(251, 191, 36, 0.35)",
 };
 
 /**

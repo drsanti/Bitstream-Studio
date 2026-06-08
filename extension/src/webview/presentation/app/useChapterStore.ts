@@ -6,12 +6,14 @@ type ChapterStore = {
   chapterIndex: number;
   slideIndex: number;
   notesOpen: boolean;
+  readerOpen: boolean;
   fullscreen: boolean;
   goToChapter: (index: number) => void;
   goToSlide: (index: number) => void;
   next: () => void;
   prev: () => void;
   toggleNotes: () => void;
+  toggleReader: () => void;
   toggleFullscreen: () => void;
 };
 
@@ -23,6 +25,7 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
   chapterIndex: 0,
   slideIndex: 0,
   notesOpen: false,
+  readerOpen: false,
   fullscreen: false,
 
   goToChapter: (index) => {
@@ -57,6 +60,8 @@ export const useChapterStore = create<ChapterStore>((set, get) => ({
   },
 
   toggleNotes: () => set((s) => ({ notesOpen: !s.notesOpen })),
+
+  toggleReader: () => set((s) => ({ readerOpen: !s.readerOpen })),
 
   toggleFullscreen: () => {
     const entering = !get().fullscreen;
@@ -98,6 +103,10 @@ export function attachPresentationKeyboardNav(): () => void {
       case "s":
       case "S":
         store.toggleNotes();
+        break;
+      case "r":
+      case "R":
+        store.toggleReader();
         break;
       case "f":
       case "F":

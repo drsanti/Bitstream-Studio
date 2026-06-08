@@ -20,6 +20,8 @@ import { ChapterSidebar } from "./ChapterSidebar";
 
 import { SpeakerNotesPanel } from "./SpeakerNotesPanel";
 
+import { TheoryReaderPanel } from "./TheoryReaderPanel";
+
 import { SlideViewport } from "./SlideViewport";
 
 import { SlideBackdrop } from "../chapters/_shared/visual/SlideBackdrop";
@@ -68,7 +70,7 @@ function PresenterFooterHint() {
 
     <div className="presentation-slide-footer-hint shrink-0">
 
-      ← → slides · P present · L laser (pauses 3D orbit) · +/− zoom · 0 reset · Shift+arrows pan when zoomed · S notes · F fullscreen
+      ← → slides · P present · L laser (pauses 3D orbit) · +/− zoom · 0 reset · Shift+arrows pan when zoomed · R reader · S notes · F fullscreen
 
     </div>
 
@@ -108,25 +110,31 @@ export function PresentationShell() {
 
         <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
 
-          <div className="slide-root min-h-0 flex-1">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
 
-            <SlideViewport>
+            <div className="slide-root relative min-h-0 min-w-0 flex-1">
 
-              <Suspense fallback={<SlideFallback />}>
+              <SlideViewport>
 
-                {SlideComponent ? (
+                <Suspense fallback={<SlideFallback />}>
 
-                  <SlideBackdrop accent={chapterBackdropAccent(slide?.chapterId ?? "bitstream-studio")}>
+                  {SlideComponent ? (
 
-                    <SlideComponent />
+                    <SlideBackdrop accent={chapterBackdropAccent(slide?.chapterId ?? "bitstream-studio")}>
 
-                  </SlideBackdrop>
+                      <SlideComponent />
 
-                ) : null}
+                    </SlideBackdrop>
 
-              </Suspense>
+                  ) : null}
 
-            </SlideViewport>
+                </Suspense>
+
+              </SlideViewport>
+
+            </div>
+
+            <TheoryReaderPanel />
 
           </div>
 

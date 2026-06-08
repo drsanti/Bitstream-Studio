@@ -103,8 +103,13 @@ Legacy standalone app: `presentation/` at repo root (archive only).
 | Key | Action |
 |-----|--------|
 | ← → | Previous / next slide |
+| R | Theory reader (markdown + LaTeX side panel) |
 | S | Speaker notes |
 | F | Fullscreen |
+
+### Theory reader (`theory.md`)
+
+Slides may ship an optional **`theory.md`** next to `notes.md` — deep-dive content for students/engineers (definitions, derivations, tables). Rendered with KaTeX for `$...$` and `$$...$$` math. Toggle with **R** or the book icon in the presenter toolbar when the current slide has theory content.
 
 Workspace switch (browser): **Ctrl+Shift+3** → Presentation.
 

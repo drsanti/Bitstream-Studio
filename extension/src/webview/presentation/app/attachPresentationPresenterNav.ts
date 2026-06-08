@@ -39,6 +39,8 @@ export function attachPresentationPresenterNav(): () => void {
           presenter.resetViewport();
         } else if (state.presentMode) {
           presenter.setPresentMode(false);
+        } else if (useChapterStore.getState().readerOpen) {
+          useChapterStore.getState().toggleReader();
         } else if (useChapterStore.getState().notesOpen) {
           useChapterStore.getState().toggleNotes();
         }

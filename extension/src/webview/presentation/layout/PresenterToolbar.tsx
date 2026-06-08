@@ -1,6 +1,7 @@
-import { Crosshair, Maximize2, Presentation, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { BookOpen, Crosshair, Maximize2, Presentation, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip";
 import { TRN_HINT_HOVER_DELAY_MS } from "../../ui/TRN/TRNHintText";
+import { flatSlides } from "../chapters/registry";
 import { useChapterStore } from "../app/useChapterStore";
 import { usePresentationPresenterStore } from "../store/usePresentationPresenterStore";
 
@@ -53,9 +54,23 @@ export function PresenterToolbar() {
   const zoomOut = usePresentationPresenterStore((s) => s.zoomOut);
   const resetViewport = usePresentationPresenterStore((s) => s.resetViewport);
   const toggleFullscreen = useChapterStore((s) => s.toggleFullscreen);
+  const readerOpen = useChapterStore((s) => s.readerOpen);
+  const toggleReader = useChapterStore((s) => s.toggleReader);
+  const slideIndex = useChapterStore((s) => s.slideIndex);
+  const slideHasTheory = Boolean(flatSlides[slideIndex]?.theory);
 
   return (
     <div className="flex items-center gap-1.5">
+      {slideHasTheory ? (
+        <ToolbarButton
+          label="Theory reader"
+          hint="Theory reader (R) — deep-dive markdown for this slide"
+          active={readerOpen}
+          onClick={toggleReader}
+        >
+          <BookOpen size={15} strokeWidth={2} />
+        </ToolbarButton>
+      ) : null}
       <ToolbarButton
         label="Present mode"
         hint="Present mode (P) — hide sidebar"

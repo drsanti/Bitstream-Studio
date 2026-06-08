@@ -14,7 +14,9 @@ export function PresentationThemeProvider({
   const presentMode = usePresentationPresenterStore((s) => s.presentMode);
 
   useEffect(() => {
-    const el = document.querySelector(`.${rootClassName}`);
+    const classes = rootClassName.trim().split(/\s+/).filter(Boolean);
+    const selector = classes.map((c) => `.${CSS.escape(c)}`).join("");
+    const el = selector.length > 0 ? document.querySelector(selector) : null;
     if (!(el instanceof HTMLElement)) {
       return;
     }

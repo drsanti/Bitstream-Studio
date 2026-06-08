@@ -11,10 +11,10 @@
  *******************************************************************************/
 
 import type { LucideIcon } from "lucide-react";
-import { Activity, Workflow } from "lucide-react";
+import { Activity, GraduationCap, Workflow } from "lucide-react";
 import type { BitstreamWorkspaceId } from "../bitstream-app/state/bitstreamWorkspaceMode.store.js";
 
-export type LandingAccent = "sky" | "emerald";
+export type LandingAccent = "sky" | "emerald" | "amber";
 
 export type LandingOption = {
   workspace: BitstreamWorkspaceId;
@@ -46,5 +46,15 @@ export const BITSTREAM_LANDING_OPTIONS: LandingOption[] = [
     tags: ["Flow editor", "Charts", "3D preview", "Assets", "LVGL port"],
     accent: "emerald",
     icon: Workflow,
+  },
+  {
+    workspace: "course-studio",
+    title: "Course Studio",
+    subtitle: "Alive documents · theory · live diagrams",
+    description:
+      "Grid-based course pages with KaTeX theory markdown, callouts, 2D diagrams bound to live BMI270 data, and maintainer authoring in dev mode.",
+    tags: ["page.v1", "Theory", "Diagrams", "Live metrics", "Maintainer"],
+    accent: "amber",
+    icon: GraduationCap,
   },
 ];

@@ -72,6 +72,27 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-08** — **Course Studio (7f 3D slice):** `diagram-3d` page block — lazy Presentation R3F scenes (PCB orientation, axis triad, gyro gimbal); scene picker in block inspector; `Bmi270FrameRefSync` in shell for live quaternion/gyro; **+ 3D scene** palette entry.
+- **2026-06-08** — **Course Studio (7d bindings complete):** `evaluateDiagramProps` + golden resolved frames; MapOp chain editor (scale + clamp + fallback); connector `flowWhen` / `highlightWhen` bindings; MEMS pilot spring pipeline highlight; derived path `bmi270.axAbs`.
+- **2026-06-08** — **Course Studio (7d binding catalog + new diagram flow):** `DIAGRAM_BINDING_CATALOG` synced with `PresentationBmi270Frame` (accel/gyro/fusion/temp/status + bridge); searchable binding picker in node inspector; golden MEMS proof-mass frame test; **+ Diagram** creates blank canvas (dev saves `content/*.diagram.v1.json`); block inspector **New blank** / **Duplicate MEMS pilot**; session diagram registry via editor store.
+- **2026-06-08** — **Course Studio (7c pro curved connectors):** line/arrow optional `curve` control point; renderer uses SVG quadratic path; maintainer curve handle + inspector toggle/scrub fields; `+ Curved line` palette.
+- **2026-06-08** — **Course Studio (7c pro alignment):** diagram canvas edge/center snap guides while dragging (4px threshold, dashed overlay lines); skips bound axes.
+- **2026-06-08** — **Course Studio (7c pro undo):** diagram maintainer undo/redo stack (50 steps); canvas gestures snapshot at pointer-down; JSON edits coalesced per tick; Ctrl+Z / Ctrl+Shift+Z + toolbar buttons.
+- **2026-06-08** — **Course Studio (7c pro z-order):** diagram maintainer stack controls (back/down/up/front) for top-level nodes; canvas hit-test paints top layer last.
+- **2026-06-08** — **Course Studio maintainer TRN inspector:** right panel uses `TRNTabs` (Page / Block / Diagram) + `TRNFormSection`; all fields via `TRNInput` / `TRNTextarea` / `TRNHighlightedJsonTextarea`; new shared `TRNTextarea` primitive.
+- **2026-06-08** — **Dev perf — lazy workspace chunks:** `BitstreamWorkspacePanel` lazy-loads Course Studio / Presentation / Sensor Studio / Telemetry; asset loader dashboards deferred; Vite `optimizeDeps` + removed global `Cache-Control: no-store` on dev modules.
+- **2026-06-08** — **Course Studio landing + routing:** landing card for Course Studio; `?workspace=course-studio` skips picker; `dev:clean` frees port **5173**.
+- **2026-06-08** — **Course Studio (7i admonitions + 7g status):** markdown `> **Note:**` / **Warning** / **Tip** → shared `PresentationCallout`; optional `page.meta` (telemetry preference, link health); shell route + Live/Stale badges.
+- **2026-06-08** — **Course Studio (maintainer TRNSidePanel):** resizable/collapsible inspector (`variant="inspector"`, default 400px, persist `course-studio:maintainer-inspector`); Ctrl/Cmd+\\ toggle; floating expand when collapsed.
+- **2026-06-08** — **Course Studio (diagram editor pro slice):** canvas resize handles (E/S/SE), line/arrow endpoint drag, 4px snap grid; property panel fill/stroke tokens, width/height/rx, line dash style; add Line/Arrow palette buttons.
+- **2026-06-08** — **Course Studio (diagram node inspector + binding picker):** maintainer `CourseDiagramNodeInspector` — select node on canvas, static vs live axis binding, MapOp scale fields, text bind/unbind, add box/label, delete node; store `addNode`/`removeNode`/`replaceNode`; hit-bounds test for partial bindings.
+- **2026-06-08** — **Course Studio (diagram canvas + edge flow):** maintainer canvas editor — select/drag nodes (static axes); dashed line flow animation when live; `diagramNodeMutations` + tests.
+- **2026-06-08** — **Course Studio (link health + diagram maintainer):** `freeze-gray` stale policy on diagrams (last-good snapshot + inactive styling); binding catalog + path collector; maintainer diagram JSON editor with dev save API (`save-diagram`).
+- **2026-06-08** — **Course Studio (grid composer):** maintainer drag/resize on 12-col grid (dashboard grid math reuse), block palette add, delete block; `CoursePageGridComposer` + placement collision helper.
+- **2026-06-08** — **Course Studio (diagram v1 + renderer):** `diagram.v1` zod schema, `CourseDiagramRenderer`, binding eval (`scale`/`clamp`, `bmi270.*` paths), pilot MEMS cross-section JSON with live proof-mass offset; `diagram-2d` page block; unit tests `tests/course-studio/`.
+- **2026-06-08** — **Course Studio (maintainer + motion slice):** dev maintainer mode — block inspector, placement scrub fields, markdown KaTeX preview, save to `*.page.v1.json` via Vite dev API; pilot loads JSON; GSAP metric tweens (`useCourseDisplayTween`).
+- **2026-06-08** — **Course Studio (Phase 0 scaffold):** new `course-studio/` workspace — `page.v1` zod schema, grid renderer, pilot BMI270 accel page, callouts/cards/live-metric blocks, shared presentation live hooks; toolbar tab + Ctrl+Shift+4 + `?workspace=course-studio`; v1 `presentation/` frozen (`V1_FROZEN.md`).
+- **2026-06-08** — **Presentation — theory reader (full BMI270 + Euler):** all theory slides in BMI270 (12) and Euler & Quaternion (9) chapters ship `theory.md` with LaTeX; **R** reader panel + KaTeX renderer; DPS368 altitude pilot retained.
 - **2026-06-08** — **TRN menu search (>5 items):** shared **`TRNMenuSearch`**, **`TRNSearchableMenuShell`**, **`TRNMenuSearchableRow`**; search + edge auto-scroll on shell hamburger, **`TRNSelect`** / **`GlassDropdown`** / **`DropdownList`**, Studio/Telemetry overflow, layout menus, assistant + debug trace menus, 3D model/env pickers; rule **`trn-menu-search.mdc`**.
 - **2026-06-08** — **Shell UX recovery:** UART “board not responding” notice **Port Admin** action; startup checklist fail steps **Runtime services** (bridge) and **Connection setup** (WebSocket) recovery buttons; diagnostics window open via **`systemDiagnosticsUi.store`**.
 - **2026-06-08** — **Presentation — ecosystem block:** `bss-assets`, `bss-simulator-ext`, `bss-presentation-app` (Asset Manager overview, external Simulator VSIX, in-webview training deck).
@@ -627,7 +648,14 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
-- **Presentation workspace (`extension/src/webview/presentation/`)** — platform chapter complete (telemetry + Studio + ecosystem); next: multi-sensor fusion chapter, optional sensor depth slides, legacy `presentation/` archive move. Plan: **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)**, **[`INTEGRATION.md`](../src/webview/presentation/docs/INTEGRATION.md)**.
+- **Course Studio v2 (`extension/src/webview/course-studio/`)** — **Current focus (2026-06-08).** Phases **0**, **7a–7d**, **7f slice**, **7g–7i** shipped; maintainer + 54 tests. Read **`course-studio/README.md`** first. Next picks (ordered):
+  - **7f (remaining)** — `diagram.v1` 3D layers (model nodes, maintainer 3D viewport, shared binding resolver with 2D).
+  - **Content packs** — `.trn-presentation-pack` import/export; VSIX read-only consume.
+  - **`presentation:validate` CLI** — zod validate page/diagram/markdown trees.
+  - **7e** — embed Course diagrams in Presentation v1 theory slides (optional bridge).
+  - **UX** — confirm before deleting `frame` node; optional pop-out diagram editor.
+  - Plan: **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)** §16–17; architecture **`course-studio/docs/ARCHITECTURE.md`**.
+- **Presentation workspace (`extension/src/webview/presentation/`)** — **Frozen for features** (`V1_FROZEN.md`); platform chapter complete; optional 7e bridge from Course Studio. Plan: **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)**.
 - **Sensor Studio — Audio Machine v0.4** — Optional hybrid sample layers + filter-cutoff modulation. Design: **[`AUDIO_MACHINE_SOUND_DESIGN.md`](../src/webview/sensor-studio/docs/AUDIO_MACHINE_SOUND_DESIGN.md)**.
 - **Sensor Studio — Flow edge UX** — **Backlog**: true step overlap SVG bridges, minimap edge tint (if RF adds API). Plan: **[`FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md`](../src/webview/sensor-studio/docs/FLOW_EDGE_UX_IMPLEMENTATION_PLAN.md)**.
 - **Sensor Studio — Three.js primitives + mesh materials (v2)** — **Planned** after v1 (**2026-06-07**): v2a textures/PBR maps, v2b polyhedra, v2c lathe, v2d lines/points/sprites, v2e instancing — **[`PRIMITIVES_AND_MATERIALS_NODES.md`](../src/webview/sensor-studio/docs/PRIMITIVES_AND_MATERIALS_NODES.md)** § v2 roadmap.

@@ -73,6 +73,13 @@
     0 0 14px rgb(14 165 233 / 0.34);
 }
 
+.shell-deck-pill--ws-course-studio:hover {
+  border-color: rgb(251 191 36 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(251 191 36 / 0.24),
+    0 0 14px rgb(245 158 11 / 0.34);
+}
+
 /* Data source */
 .shell-deck-pill--src-hardware:hover {
   border-color: rgb(56 189 248 / 0.55);

@@ -9,6 +9,8 @@ export interface SlideDefinition {
   mode: SlideMode;
   section: string;
   notes: () => Promise<{ default: string }>;
+  /** Optional deep-dive markdown for students/engineers (LaTeX via KaTeX). */
+  theory?: () => Promise<{ default: string }>;
   Component: FC;
 }
 

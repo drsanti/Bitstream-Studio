@@ -1,4 +1,4 @@
-import { Activity, Workflow, Presentation } from "lucide-react";
+import { Activity, Workflow, Presentation, GraduationCap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   useBitstreamWorkspaceModeStore,
@@ -30,6 +30,7 @@ const WORKSPACE_HOVER_CLASS: Record<BitstreamWorkspaceId, string> = {
   "sensor-telemetry": SHELL_DECK_PILL_HOVER.workspaceTelemetry,
   "sensor-studio": SHELL_DECK_PILL_HOVER.workspaceStudio,
   presentation: SHELL_DECK_PILL_HOVER.workspacePresentation,
+  "course-studio": SHELL_DECK_PILL_HOVER.workspaceCourseStudio,
 };
 
 const WORKSPACE_TABS: readonly WorkspaceTab[] = [
@@ -52,9 +53,18 @@ const WORKSPACE_TABS: readonly WorkspaceTab[] = [
     activeIconClass: "text-violet-300",
   },
   {
+    id: "course-studio",
+    label: "Course Studio",
+    hint: "Alive documents — grid pages, theory markdown, callouts, and live sensor bindings.",
+    Icon: GraduationCap,
+    activeSurfaceClass:
+      "border-amber-500/45 bg-amber-500/15 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
+    activeIconClass: "text-amber-300",
+  },
+  {
     id: "presentation",
     label: "Presentation",
-    hint: "Training slides — theory, demos, and labs using live Bitstream Studio data.",
+    hint: "Training slides (v1) — theory reader, demos, and labs using live Bitstream Studio data.",
     Icon: Presentation,
     activeSurfaceClass:
       "border-sky-500/45 bg-sky-500/15 text-sky-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",

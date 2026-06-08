@@ -19,6 +19,7 @@ import process from "node:process";
 const DEFAULT_SERIAL_BROKER_PORT = 9998;
 const DEFAULT_MODEL_BROKER_PORT = 9999;
 const DEFAULT_AI_BRIDGE_PORT = 9987;
+const DEFAULT_VITE_DEV_PORT = 5173;
 
 function parsePorts() {
   const raw = process.env.DEV_CLEAN_PORTS?.trim();
@@ -39,7 +40,7 @@ function parsePorts() {
   const aiRaw = process.env.AI_BRIDGE_PORT?.trim();
   const aiN = aiRaw ? Number.parseInt(aiRaw, 10) : DEFAULT_AI_BRIDGE_PORT;
   const aiOk = Number.isFinite(aiN) && aiN > 0 && aiN <= 65535 ? aiN : DEFAULT_AI_BRIDGE_PORT;
-  return [...new Set([DEFAULT_SERIAL_BROKER_PORT, modelOk, aiOk])];
+  return [...new Set([DEFAULT_SERIAL_BROKER_PORT, modelOk, aiOk, DEFAULT_VITE_DEV_PORT])];
 }
 
 function canBindLocalPort(port) {

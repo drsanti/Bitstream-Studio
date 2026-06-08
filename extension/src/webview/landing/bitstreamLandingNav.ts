@@ -62,7 +62,9 @@ export function shouldShowBitstreamLanding(): boolean
       app === "sensor-studio" ||
       app === "sensor-telemetry" ||
       workspace === "sensor-studio" ||
-      workspace === "sensor-telemetry"
+      workspace === "sensor-telemetry" ||
+      workspace === "presentation" ||
+      workspace === "course-studio"
     )
     {
       return false;
@@ -100,10 +102,7 @@ export function commitBitstreamLandingChoice(workspace: BitstreamWorkspaceId): v
   {
     const url = new URL(window.location.href);
     url.searchParams.set("app", "bitstream");
-    url.searchParams.set(
-      "workspace",
-      workspace === "sensor-studio" ? "sensor-studio" : "sensor-telemetry",
-    );
+    url.searchParams.set("workspace", workspace);
     url.searchParams.delete("landing");
     window.history.replaceState({}, "", url);
   }

@@ -23,22 +23,33 @@ type BitstreamLandingOptionCardProps = {
 const ACCENT_RING: Record<LandingOption["accent"], string> = {
   sky: "from-sky-400/50 via-cyan-300/25 to-blue-600/40",
   emerald: "from-emerald-400/50 via-teal-300/25 to-cyan-600/40",
+  amber: "from-amber-400/50 via-orange-300/25 to-amber-600/40",
 };
 
 const ACCENT_GLOW: Record<LandingOption["accent"], string> = {
   sky: "group-hover:shadow-[0_0_40px_rgba(56,189,248,0.22)] group-hover:border-sky-400/45",
   emerald:
     "group-hover:shadow-[0_0_40px_rgba(52,211,153,0.22)] group-hover:border-emerald-400/45",
+  amber:
+    "group-hover:shadow-[0_0_40px_rgba(251,191,36,0.22)] group-hover:border-amber-400/45",
 };
 
 const ACCENT_TAG: Record<LandingOption["accent"], string> = {
   sky: "border-sky-500/25 bg-sky-950/50 text-sky-200/90",
   emerald: "border-emerald-500/25 bg-emerald-950/50 text-emerald-200/90",
+  amber: "border-amber-500/25 bg-amber-950/50 text-amber-200/90",
 };
 
 const ACCENT_CTA: Record<LandingOption["accent"], string> = {
   sky: "text-sky-300/80 group-hover:text-sky-200",
   emerald: "text-emerald-300/80 group-hover:text-emerald-200",
+  amber: "text-amber-300/80 group-hover:text-amber-200",
+};
+
+const ACCENT_BORDER: Record<LandingOption["accent"], string> = {
+  sky: "border-sky-500/25",
+  emerald: "border-emerald-500/25",
+  amber: "border-amber-500/25",
 };
 
 export function BitstreamLandingOptionCard({
@@ -57,7 +68,7 @@ export function BitstreamLandingOptionCard({
         "transition-[transform,box-shadow,border-color] duration-200 ease-out",
         "hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30",
         ACCENT_GLOW[option.accent],
-        option.accent === "sky" ? "border-sky-500/25" : "border-emerald-500/25",
+        ACCENT_BORDER[option.accent],
         `webview-launcher-card--delay-${index}`,
       ].join(" ")}
       onClick={onSelect}

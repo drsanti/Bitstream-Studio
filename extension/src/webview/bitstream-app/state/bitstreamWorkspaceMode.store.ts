@@ -6,11 +6,16 @@ import { isViteDevMode } from "../../utils/isViteDevMode.js";
  * Bitstream shell workspaces under {@link BitstreamAppMain}:
  * - **sensor-telemetry** — sensor configuration + live telemetry deck.
  * - **sensor-studio** — flow editor (`SensorStudioApp`).
- * - **presentation** — integrated training / slide deck (`PresentationWorkspace`).
+ * - **presentation** — integrated training / slide deck (`PresentationWorkspace`, v1 frozen).
+ * - **course-studio** — alive documents v2 (`CourseStudioWorkspace`).
  *
  * Tab selection is persisted in localStorage (no `?app=` URL routing).
  */
-export type BitstreamWorkspaceId = "sensor-telemetry" | "sensor-studio" | "presentation";
+export type BitstreamWorkspaceId =
+  | "sensor-telemetry"
+  | "sensor-studio"
+  | "presentation"
+  | "course-studio";
 
 const STORAGE_KEY = "bitstream-studio.workspace.v1";
 
@@ -26,6 +31,10 @@ export function normalizeBitstreamWorkspaceId(
   if (value === "presentation")
   {
     return "presentation";
+  }
+  if (value === "course-studio")
+  {
+    return "course-studio";
   }
   if (
     value === "sensor-telemetry" ||

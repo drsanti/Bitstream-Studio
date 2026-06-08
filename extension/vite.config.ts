@@ -1,7 +1,7 @@
 // @ts-nocheck
 import react from "@vitejs/plugin-react";
 import { resolve, dirname, extname, relative } from "path";
-import { existsSync, readFileSync, statSync } from "fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 
@@ -428,6 +428,139 @@ function sendDevApiJson(res, status, body) {
 }
 
 /**
+ * Dev-only: save Course Studio page JSON from maintainer mode.
+ * POST /__dev_api/course-studio/save-page — { sourcePath, page }
+ * POST /__dev_api/course-studio/save-diagram — { sourcePath, diagram }
+ * POST /__dev_api/course-studio/save-markdown — { sourcePath, markdown }
+ */
+const courseStudioDevApiPlugin = () => ({
+  name: "course-studio-dev-api",
+  configureServer(server) {
+    server.middlewares.use(async (req, res, next) => {
+      if (!req.url) {
+        return next();
+      }
+      const pathname = req.url.split("?")[0] || "";
+      const method = req.method ?? "GET";
+
+      if (method !== "POST") {
+        return next();
+      }
+
+      try {
+        if (pathname === "/__dev_api/course-studio/save-page") {
+          const body = await readHttpJsonBody(req);
+          const sourcePath = String(body.sourcePath ?? "").trim();
+          const page = body.page;
+          if (sourcePath.length === 0 || page == null) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath and page are required",
+            });
+            return;
+          }
+          if (
+            !sourcePath.startsWith("src/webview/course-studio/content/") ||
+            !sourcePath.endsWith(".page.v1.json")
+          ) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath must be a course-studio content page JSON file",
+            });
+            return;
+          }
+          const destPath = resolve(__dirname, sourcePath);
+          if (!destPath.startsWith(resolve(__dirname, "src/webview/course-studio/content"))) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid destination path" });
+            return;
+          }
+          const { parsePageV1 } = await import(
+            "./src/webview/course-studio/schemas/page.v1.ts"
+          );
+          const validated = parsePageV1(page);
+          writeFileSync(destPath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
+          sendDevApiJson(res, 200, { ok: true, path: sourcePath });
+          return;
+        }
+
+        if (pathname === "/__dev_api/course-studio/save-diagram") {
+          const body = await readHttpJsonBody(req);
+          const sourcePath = String(body.sourcePath ?? "").trim();
+          const diagram = body.diagram;
+          if (sourcePath.length === 0 || diagram == null) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath and diagram are required",
+            });
+            return;
+          }
+          if (
+            !sourcePath.startsWith("src/webview/course-studio/content/") ||
+            !sourcePath.endsWith(".diagram.v1.json")
+          ) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath must be a course-studio content diagram JSON file",
+            });
+            return;
+          }
+          const destPath = resolve(__dirname, sourcePath);
+          if (!destPath.startsWith(resolve(__dirname, "src/webview/course-studio/content"))) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid destination path" });
+            return;
+          }
+          const { parseDiagramV1 } = await import(
+            "./src/webview/course-studio/schemas/diagram.v1.ts"
+          );
+          const validated = parseDiagramV1(diagram);
+          writeFileSync(destPath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
+          sendDevApiJson(res, 200, { ok: true, path: sourcePath });
+          return;
+        }
+
+        if (pathname === "/__dev_api/course-studio/save-markdown") {
+          const body = await readHttpJsonBody(req);
+          const sourcePath = String(body.sourcePath ?? "").trim();
+          const markdown = body.markdown;
+          if (sourcePath.length === 0 || typeof markdown !== "string") {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath and markdown are required",
+            });
+            return;
+          }
+          if (
+            !sourcePath.startsWith("src/webview/course-studio/content/") ||
+            !sourcePath.endsWith(".md")
+          ) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath must be a course-studio content markdown file",
+            });
+            return;
+          }
+          const destPath = resolve(__dirname, sourcePath);
+          if (!destPath.startsWith(resolve(__dirname, "src/webview/course-studio/content"))) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid destination path" });
+            return;
+          }
+          writeFileSync(destPath, markdown.endsWith("\n") ? markdown : `${markdown}\n`, "utf8");
+          sendDevApiJson(res, 200, { ok: true, path: sourcePath });
+          return;
+        }
+
+        return next();
+      } catch (error) {
+        sendDevApiJson(res, 500, {
+          ok: false,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    });
+  },
+});
+
+/**
  * Dev-only: write official flow preset overrides into the repo from the webview.
  * POST /__dev_api/flow-preset/apply-override — { templateId, content }
  * POST /__dev_api/flow-preset/commit-override — write + regen + stage + optional publish
@@ -782,6 +915,7 @@ export default defineConfig({
     serveJoltAssetsPlugin(),
     serveVisionMediapipeAssetsPlugin(),
     serveExtensionLocalAssetsPlugin(), // src/assets for Model Catalog (browser dev)
+    courseStudioDevApiPlugin(),
     flowPresetOverrideDevApiPlugin(),
     suppressCSSWarningsPlugin(), // Suppress CSS warnings during build
     viteStaticCopy({
@@ -890,6 +1024,27 @@ export default defineConfig({
       "zustand",
     ],
   },
+  optimizeDeps: {
+    include: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "zustand",
+      "gsap",
+      "lucide-react",
+      "clsx",
+      "tailwind-merge",
+      "react-toastify",
+      "katex",
+      "react-markdown",
+      "remark-math",
+      "rehype-katex",
+      "three",
+      "@react-three/fiber",
+      "@react-three/drei",
+    ],
+  },
   define: {
     "import.meta.env.VITE_BITSTREAM_STUDIO_VERSION": JSON.stringify(extensionPackageVersion),
     "import.meta.env.VITE_MQTT_BROKER_URL": JSON.stringify(
@@ -909,12 +1064,6 @@ export default defineConfig({
         resolve(__dirname, ".."),
         resolve(__dirname, "node_modules"),
       ],
-    },
-    headers: {
-      // Prevent caching of source files to ensure alias resolution always runs
-      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      Pragma: "no-cache",
-      Expires: "0",
     },
   },
   logLevel: "warn", // Reduce log verbosity - only show warnings and errors

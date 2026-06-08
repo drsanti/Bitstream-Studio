@@ -5,6 +5,7 @@ export const SHELL_DECK_PILL_HOVER = {
   workspaceTelemetry: "shell-deck-pill--ws-telemetry",
   workspaceStudio: "shell-deck-pill--ws-studio",
   workspacePresentation: "shell-deck-pill--ws-presentation",
+  workspaceCourseStudio: "shell-deck-pill--ws-course-studio",
   sourceHardware: "shell-deck-pill--src-hardware",
   sourceSimulator: "shell-deck-pill--src-simulator",
   sourceSimulatorOffline: "shell-deck-pill--src-simulator-offline",

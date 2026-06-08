@@ -43,6 +43,7 @@ export const dps368Chapter: ChapterDefinition = {
       mode: "theory",
       section: "foundations",
       notes: () => import("./slides/dps-altitude/notes.md?raw"),
+      theory: () => import("./slides/dps-altitude/theory.md?raw"),
       Component: lazy(() => import("./slides/dps-altitude/DpsAltitudeSlide")),
     },
     {

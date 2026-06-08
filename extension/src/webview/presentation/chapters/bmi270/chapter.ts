@@ -32,6 +32,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-title/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-title/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-title/BmiTitleSlide")),
 
     },
@@ -49,6 +51,8 @@ export const bmi270Chapter: ChapterDefinition = {
       section: "opening",
 
       notes: () => import("./slides/bmi-objectives/notes.md?raw"),
+
+      theory: () => import("./slides/bmi-objectives/theory.md?raw"),
 
       Component: lazy(() => import("./slides/bmi-objectives/BmiObjectivesSlide")),
 
@@ -68,6 +72,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-what-is-imu/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-what-is-imu/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-what-is-imu/BmiWhatIsImuSlide")),
 
     },
@@ -85,6 +91,8 @@ export const bmi270Chapter: ChapterDefinition = {
       section: "foundations",
 
       notes: () => import("./slides/bmi-coordinates/notes.md?raw"),
+
+      theory: () => import("./slides/bmi-coordinates/theory.md?raw"),
 
       Component: lazy(() => import("./slides/bmi-coordinates/BmiCoordinatesSlide")),
 
@@ -104,6 +112,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-accel-theory/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-accel-theory/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-accel-theory/BmiAccelTheorySlide")),
 
     },
@@ -121,6 +131,8 @@ export const bmi270Chapter: ChapterDefinition = {
       section: "foundations",
 
       notes: () => import("./slides/bmi-gyro-theory/notes.md?raw"),
+
+      theory: () => import("./slides/bmi-gyro-theory/theory.md?raw"),
 
       Component: lazy(() => import("./slides/bmi-gyro-theory/BmiGyroTheorySlide")),
 
@@ -140,6 +152,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-product-overview/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-product-overview/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-product-overview/BmiProductOverviewSlide")),
 
     },
@@ -158,6 +172,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-mems-accel-theory/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-mems-accel-theory/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-mems-accel-theory/BmiMemsAccelTheorySlide")),
 
     },
@@ -175,6 +191,8 @@ export const bmi270Chapter: ChapterDefinition = {
       section: "mems",
 
       notes: () => import("./slides/bmi-mems-gyro-theory/notes.md?raw"),
+
+      theory: () => import("./slides/bmi-mems-gyro-theory/theory.md?raw"),
 
       Component: lazy(() => import("./slides/bmi-mems-gyro-theory/BmiMemsGyroTheorySlide")),
 
@@ -320,6 +338,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-wire-mask/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-wire-mask/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-wire-mask/BmiWireMaskSlide")),
 
     },
@@ -338,6 +358,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       notes: () => import("./slides/bmi-studio-node/notes.md?raw"),
 
+      theory: () => import("./slides/bmi-studio-node/theory.md?raw"),
+
       Component: lazy(() => import("./slides/bmi-studio-node/BmiStudioNodeSlide")),
 
     },
@@ -355,6 +377,8 @@ export const bmi270Chapter: ChapterDefinition = {
       section: "close",
 
       notes: () => import("./slides/bmi-summary/notes.md?raw"),
+
+      theory: () => import("./slides/bmi-summary/theory.md?raw"),
 
       Component: lazy(() => import("./slides/bmi-summary/BmiSummarySlide")),
 

@@ -20,6 +20,28 @@
   border-color: var(--surface-border);
 }
 
+.presentation-root .presentation-reader-panel {
+  background: var(--surface-panel);
+  border-color: var(--surface-border);
+}
+
+/* KaTeX — inherit presentation theme colors */
+.presentation-root .presentation-theory-markdown .katex {
+  color: var(--text-primary);
+  font-size: 1.05em;
+}
+
+.presentation-root .presentation-theory-markdown .katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0;
+}
+
+.presentation-root[data-presentation-theme="light"] .presentation-theory-markdown .katex {
+  color: var(--text-primary);
+}
+
 .presentation-root .presentation-sidebar {
   background: var(--surface-panel);
   border-color: var(--surface-border);

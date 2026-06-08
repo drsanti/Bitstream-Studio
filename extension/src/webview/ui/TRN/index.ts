@@ -117,6 +117,8 @@ export type { TRNTreeNode } from "./TRNTree.js";
 export { TRNFormField, TRNFormSection, TRNInlineEdit } from "./TRNForm.js";
 export { TRNInput } from "./TRNInput.js";
 export type { TRNInputProps, TRNInputSize, TRNInputVariant } from "./TRNInput.js";
+export { TRNTextarea } from "./TRNTextarea.js";
+export type { TRNTextareaProps } from "./TRNTextarea.js";
 export { TRNInputGroup } from "./TRNInputGroup.js";
 export type { TRNInputGroupProps } from "./TRNInputGroup.js";
 export { TRNSettingsPanel } from "./TRNSettingsPanel.js";
