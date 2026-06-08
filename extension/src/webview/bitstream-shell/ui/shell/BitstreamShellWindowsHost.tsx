@@ -1,5 +1,6 @@
 import { CircleHelp } from "lucide-react";
 import { useCallback, useState } from "react";
+import { useSystemDiagnosticsUiStore } from "../../state/systemDiagnosticsUi.store.js";
 import { TRNWindow } from "../../../ui/TRN/TRNWindow.js";
 import { TRNMarkdownZoomControls } from "../../../ui/TRN/TRNMarkdownRenderer.js";
 import { BitstreamSystemLogsWindow } from "../system-logs/BitstreamSystemLogsWindow";
@@ -68,7 +69,9 @@ export function useBitstreamShellWindowsState(): {
   const [telemetryPerformanceSettingsOpen, setTelemetryPerformanceSettingsOpen] =
     useState(false);
   const [telemetryLinkDiagnosticsOpen, setTelemetryLinkDiagnosticsOpen] = useState(false);
-  const [systemDiagnosticsOpen, setSystemDiagnosticsOpen] = useState(false);
+  const systemDiagnosticsOpen = useSystemDiagnosticsUiStore((s) => s.open);
+  const openSystemDiagnostics = useSystemDiagnosticsUiStore((s) => s.openPanel);
+  const closeSystemDiagnostics = useSystemDiagnosticsUiStore((s) => s.closePanel);
 
   const openSystemLogs = useCallback(() => setSystemLogsOpen(true), []);
   const openWifiPanel = useCallback(() => setWifiPanelOpen(true), []);
@@ -82,7 +85,6 @@ export function useBitstreamShellWindowsState(): {
     [],
   );
   const openTelemetryLinkDiagnostics = useCallback(() => setTelemetryLinkDiagnosticsOpen(true), []);
-  const openSystemDiagnostics = useCallback(() => setSystemDiagnosticsOpen(true), []);
 
   const closeSystemLogs = useCallback(() => setSystemLogsOpen(false), []);
   const closeWifiPanel = useCallback(() => setWifiPanelOpen(false), []);
@@ -96,7 +98,6 @@ export function useBitstreamShellWindowsState(): {
     [],
   );
   const closeTelemetryLinkDiagnostics = useCallback(() => setTelemetryLinkDiagnosticsOpen(false), []);
-  const closeSystemDiagnostics = useCallback(() => setSystemDiagnosticsOpen(false), []);
 
   return {
     state: {

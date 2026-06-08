@@ -21,6 +21,7 @@ import {
 } from "./useStartupChecklist.js";
 import type { useStartupChecklist } from "./useStartupChecklist.js";
 import { shouldShowStartupStepActions, shouldShowStartupRecheckButton } from "./startupChecklistCompletion.js";
+import { getStartupStepRecoveryAction } from "./startupChecklistRecoveryAction.js";
 import type {
   PresentedStartupStep,
   useStartupChecklistPresentation,
@@ -352,6 +353,10 @@ function StartupChecklistStepRow(props: {
 
   const displayStatus = step.displayStatus ?? step.status;
   const displayResult = step.displayResult ?? step.result;
+  const recoveryAction =
+    truthStatus === "fail" || truthStatus === "warn"
+      ? getStartupStepRecoveryAction(step.id)
+      : undefined;
 
   const accent =
     presentation === "completed"
@@ -386,6 +391,7 @@ function StartupChecklistStepRow(props: {
       accent={accent}
       presentation={presentation}
       isFocus={step.isFocus === true}
+      recoveryAction={recoveryAction}
     >
       {body}
     </StartupStepCard>

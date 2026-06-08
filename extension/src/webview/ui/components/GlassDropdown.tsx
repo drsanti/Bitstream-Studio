@@ -7,7 +7,14 @@ import {
   TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME,
   TRNMenuItemButton,
   TRNMenuPanel,
+  TRNMenuScrollRegion,
 } from "../TRN/TRNMenu.js";
+import {
+  matchesTrnMenuSearch,
+  shouldShowTrnMenuSearch,
+  TRNMenuNoResults,
+  TRNMenuSearchField,
+} from "../TRN/TRNMenuSearch.js";
 
 export interface GlassDropdownOption {
   value: string;
@@ -39,6 +46,21 @@ export const GlassDropdown: React.FC<GlassDropdownProps> = ({
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const lastTriggerRectRef = React.useRef<DOMRect | null>(null);
   const [open, setOpen] = React.useState(false);
+  const [filterQuery, setFilterQuery] = React.useState("");
+  const showMenuSearch = shouldShowTrnMenuSearch(options.length);
+
+  React.useEffect(() => {
+    if (!open) {
+      setFilterQuery("");
+    }
+  }, [open]);
+
+  const visibleOptions = React.useMemo(() => {
+    if (!showMenuSearch) {
+      return options;
+    }
+    return options.filter((option) => matchesTrnMenuSearch(filterQuery, option.label));
+  }, [filterQuery, options, showMenuSearch]);
   const [menuPos, setMenuPos] = React.useState<{
     top: number;
     left: number;
@@ -150,38 +172,81 @@ export const GlassDropdown: React.FC<GlassDropdownProps> = ({
             <TRNMenuPanel
               tone="glass-dropdown"
               className={twMerge(
-                "max-h-64 overflow-y-auto scrollbar-hide",
+                showMenuSearch ? "flex max-h-64 flex-col overflow-hidden !p-0" : "max-h-64 overflow-y-auto scrollbar-hide",
                 menuClassName,
               )}
             >
-              <div role="listbox" aria-label={ariaLabel} className="flex flex-col gap-1">
-                {options.map((option) => {
-                  const selected = option.value === value;
-                  return (
-                    <TRNMenuItemButton
-                      key={option.value}
-                      tone="glass-dropdown"
-                      role="option"
-                      aria-selected={selected}
-                      label={option.label}
-                      className={twMerge(
-                        TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                        "text-sm font-medium",
-                        selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
-                      )}
-                      rightSlot={
-                        selected ? (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                        ) : null
-                      }
-                      onClick={() => {
-                        onChange(option.value);
-                        setOpen(false);
-                      }}
+              {showMenuSearch ? (
+                <>
+                  <TRNMenuSearchField
+                    value={filterQuery}
+                    onChange={setFilterQuery}
+                    placeholder="Search…"
+                  />
+                  <TRNMenuScrollRegion edgeAutoScroll className="min-h-0 flex-1 px-1.5 py-1">
+                    <div role="listbox" aria-label={ariaLabel} className="flex flex-col gap-1">
+                      {visibleOptions.map((option) => {
+                        const selected = option.value === value;
+                        return (
+                          <TRNMenuItemButton
+                            key={option.value}
+                            tone="glass-dropdown"
+                            role="option"
+                            aria-selected={selected}
+                            label={option.label}
+                            className={twMerge(
+                              TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+                              "text-sm font-medium",
+                              selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                            )}
+                            rightSlot={
+                              selected ? (
+                                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
+                              ) : null
+                            }
+                            onClick={() => {
+                              onChange(option.value);
+                              setOpen(false);
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                    <TRNMenuNoResults
+                      visible={filterQuery.trim().length > 0 && visibleOptions.length === 0}
                     />
-                  );
-                })}
-              </div>
+                  </TRNMenuScrollRegion>
+                </>
+              ) : (
+                <div role="listbox" aria-label={ariaLabel} className="flex flex-col gap-1">
+                  {visibleOptions.map((option) => {
+                    const selected = option.value === value;
+                    return (
+                      <TRNMenuItemButton
+                        key={option.value}
+                        tone="glass-dropdown"
+                        role="option"
+                        aria-selected={selected}
+                        label={option.label}
+                        className={twMerge(
+                          TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+                          "text-sm font-medium",
+                          selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                        )}
+                        rightSlot={
+                          selected ? (
+                            <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
+                          ) : null
+                        }
+                        onClick={() => {
+                          onChange(option.value);
+                          setOpen(false);
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </TRNMenuPanel>
           </div>,
           document.body

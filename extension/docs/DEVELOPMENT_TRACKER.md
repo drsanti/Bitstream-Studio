@@ -72,6 +72,8 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-08** — **TRN menu search (>5 items):** shared **`TRNMenuSearch`**, **`TRNSearchableMenuShell`**, **`TRNMenuSearchableRow`**; search + edge auto-scroll on shell hamburger, **`TRNSelect`** / **`GlassDropdown`** / **`DropdownList`**, Studio/Telemetry overflow, layout menus, assistant + debug trace menus, 3D model/env pickers; rule **`trn-menu-search.mdc`**.
+- **2026-06-08** — **Shell UX recovery:** UART “board not responding” notice **Port Admin** action; startup checklist fail steps **Runtime services** (bridge) and **Connection setup** (WebSocket) recovery buttons; diagnostics window open via **`systemDiagnosticsUi.store`**.
 - **2026-06-08** — **Presentation — ecosystem block:** `bss-assets`, `bss-simulator-ext`, `bss-presentation-app` (Asset Manager overview, external Simulator VSIX, in-webview training deck).
 - **2026-06-08** — **Presentation — Sensor Studio block:** `bss-studio-nodes`, `bss-studio-stage`, `bss-studio-dashboard` (palette grid, Stage workbench, Dashboard grid diagrams).
 - **2026-06-08** — **Presentation — platform telemetry slides:** `bss-extension`, `bss-telemetry-connect`, `bss-telemetry-config` (dev/VSIX delivery, UART bring-up, SENSOR_CFG v2 overview).

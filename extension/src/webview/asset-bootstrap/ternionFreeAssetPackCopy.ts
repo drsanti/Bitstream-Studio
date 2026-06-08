@@ -123,6 +123,12 @@ export const ternionFreeAssetPackCopy = {
     handshakeSimulatorOnlyHint:
       "Releases COM, switches telemetry to Simulator, and publishes the simulator route on the broker.",
     handshakeConnectionDetailsHint: "Opens the full connection panel on the handshake step.",
+    openRuntimeServices: "Runtime services",
+    openRuntimeServicesHint:
+      "Opens Diagnostics & runtime services — start the connection service (serial bridge) from there.",
+    openConnectionSetup: "Connection setup",
+    openConnectionSetupHint:
+      "Opens the Connection panel on the app link step to connect this window to the broker.",
     setupChipLabel: "Setup incomplete",
     setupChipHint: "Device link is not ready. Open the checklist to finish connection steps.",
     setupClose: "Close",

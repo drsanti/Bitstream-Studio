@@ -50,7 +50,6 @@ import {
   TRNIconButton,
   TRNInlineToggleRow,
   TRNMenuItemButton,
-  TRNMenuPanel,
   TRNMenuSectionTitle,
   TRNMessageDialog,
   TRNTooltip,
@@ -64,6 +63,11 @@ import {
   type HtmlPreviewDeliveryMode,
 } from "../../../ui/TRN/htmlPreviewDelivery.store";
 import { TRNButton } from "../../../ui/TRN/TRNButton";
+import { TRNSearchableMenuShell } from "../../../ui/TRN/TRNSearchableMenuShell.js";
+import {
+  TRNMenuFilterableSection,
+  TRNMenuSearchableRow,
+} from "../../../ui/TRN/TRNMenuSearch.js";
 import {
   TRNMarkdownRenderer,
   TRNMarkdownZoomControls,
@@ -1113,61 +1117,79 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
       />
       {debugTraceThemeMenuOpen ? (
         <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(16rem,calc(100vw-1rem))] overflow-visible">
-          <TRNMenuPanel tone="glass-dropdown">
+          <TRNSearchableMenuShell
+            menuOpen={debugTraceThemeMenuOpen}
+            itemCount={2 + TRN_HIGHLIGHTED_JSON_SYNTAX_THEME_OPTIONS.length}
+            maxHeightClassName="max-h-80"
+          >
             <div className="flex min-w-0 flex-col gap-1">
-              <TRNMenuSectionTitle spacing="menuFirst">Trace header</TRNMenuSectionTitle>
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<AlignJustify className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Simplified"
-                rightSlot={
-                  debugTraceHeaderMode === "simplified" ? (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400/90" aria-hidden />
-                  ) : null
-                }
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  setDebugTraceHeaderMode("simplified");
-                  setDebugTraceThemeMenuOpen(false);
-                }}
-              />
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<ListTree className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Detail"
-                rightSlot={
-                  debugTraceHeaderMode === "detail" ? (
-                    <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400/90" aria-hidden />
-                  ) : null
-                }
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  setDebugTraceHeaderMode("detail");
-                  setDebugTraceThemeMenuOpen(false);
-                }}
-              />
-              <TRNMenuSectionTitle spacing="menuNext">JSON highlight</TRNMenuSectionTitle>
-              {TRN_HIGHLIGHTED_JSON_SYNTAX_THEME_OPTIONS.map((opt) => (
-                <TRNMenuItemButton
-                  key={opt.id}
+              <TRNMenuFilterableSection
+                title="Trace header"
+                itemLabels={["Simplified", "Detail"]}
+                spacing="menuFirst"
+              >
+                <TRNMenuSearchableRow
+                  searchLabel="Simplified"
                   tone="glass-dropdown"
                   role="menuitem"
-                  label={opt.label}
+                  icon={<AlignJustify className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                  label="Simplified"
                   rightSlot={
-                    debugTraceSyntaxThemeId === opt.id ? (
+                    debugTraceHeaderMode === "simplified" ? (
                       <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400/90" aria-hidden />
                     ) : null
                   }
+                  onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => {
-                    setDebugTraceSyntaxThemeId(opt.id);
+                    setDebugTraceHeaderMode("simplified");
                     setDebugTraceThemeMenuOpen(false);
                   }}
                 />
-              ))}
+                <TRNMenuSearchableRow
+                  searchLabel="Detail"
+                  tone="glass-dropdown"
+                  role="menuitem"
+                  icon={<ListTree className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                  label="Detail"
+                  rightSlot={
+                    debugTraceHeaderMode === "detail" ? (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400/90" aria-hidden />
+                    ) : null
+                  }
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => {
+                    setDebugTraceHeaderMode("detail");
+                    setDebugTraceThemeMenuOpen(false);
+                  }}
+                />
+              </TRNMenuFilterableSection>
+              <TRNMenuFilterableSection
+                title="JSON highlight"
+                itemLabels={TRN_HIGHLIGHTED_JSON_SYNTAX_THEME_OPTIONS.map((opt) => opt.label)}
+                spacing="menuNext"
+              >
+                {TRN_HIGHLIGHTED_JSON_SYNTAX_THEME_OPTIONS.map((opt) => (
+                  <TRNMenuSearchableRow
+                    key={opt.id}
+                    searchLabel={opt.label}
+                    searchKeywords={["json", "syntax", "theme"]}
+                    tone="glass-dropdown"
+                    role="menuitem"
+                    label={opt.label}
+                    rightSlot={
+                      debugTraceSyntaxThemeId === opt.id ? (
+                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400/90" aria-hidden />
+                      ) : null
+                    }
+                    onClick={() => {
+                      setDebugTraceSyntaxThemeId(opt.id);
+                      setDebugTraceThemeMenuOpen(false);
+                    }}
+                  />
+                ))}
+              </TRNMenuFilterableSection>
             </div>
-          </TRNMenuPanel>
+          </TRNSearchableMenuShell>
         </div>
       ) : null}
     </div>
@@ -1276,108 +1298,127 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
       />
       {assistantMenuOpen ? (
         <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(16rem,calc(100vw-1rem))] overflow-visible">
-          {/* Same section layout as BitstreamHeaderMenuPanel → TRNMenuPanel glass-dropdown. */}
-          <TRNMenuPanel tone="glass-dropdown">
+          <TRNSearchableMenuShell
+            menuOpen={assistantMenuOpen}
+            itemCount={onOpenSystemDiagnostics != null ? 10 : 9}
+            maxHeightClassName="max-h-80"
+          >
             <div className="flex min-w-0 flex-col gap-1">
-              <TRNMenuSectionTitle spacing="menuFirst">Assistant tools</TRNMenuSectionTitle>
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<Settings2 className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Advanced settings"
-                onClick={() => {
-                  setAdvancedWindowOpen(true);
-                  setAssistantMenuOpen(false);
-                }}
-              />
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<ScrollText className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Debug trace"
-                onClick={() => {
-                  setDebugTraceWindowOpen(true);
-                  setAssistantMenuOpen(false);
-                }}
-              />
-              {onOpenSystemDiagnostics != null ? (
-                <TRNMenuItemButton
-                  tone="glass-dropdown"
-                  role="menuitem"
-                  icon={<Activity className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                  label="Diagnostics & runtime services"
-                  title="Bitstream serial broker, transport, AI bridge host, model broker reachability"
+              <TRNMenuFilterableSection
+                title="Assistant tools"
+                itemLabels={[
+                  "Advanced settings",
+                  "Debug trace",
+                  ...(onOpenSystemDiagnostics != null ? ["Diagnostics & runtime services"] : []),
+                ]}
+                spacing="menuFirst"
+              >
+                <TRNMenuSearchableRow
+                  searchLabel="Advanced settings"
+                  label="Advanced settings"
+                  icon={<Settings2 className="h-3.5 w-3.5 opacity-85" aria-hidden />}
                   onClick={() => {
-                    onOpenSystemDiagnostics();
+                    setAdvancedWindowOpen(true);
                     setAssistantMenuOpen(false);
                   }}
                 />
-              ) : null}
-              <TRNMenuSectionTitle spacing="menuNext">HTML code preview</TRNMenuSectionTitle>
-              {HTML_PREVIEW_DELIVERY_MODES.map((mode) => (
-                <TRNMenuItemButton
-                  key={mode}
-                  tone="glass-dropdown"
-                  role="menuitem"
-                  icon={
-                    <Check
-                      className={
-                        htmlPreviewDeliveryMode === mode
-                          ? "h-3.5 w-3.5 text-emerald-400/95"
-                          : "h-3.5 w-3.5 text-transparent"
-                      }
-                      strokeWidth={2.25}
-                      aria-hidden
-                    />
-                  }
-                  label={HTML_PREVIEW_DELIVERY_LABELS[mode].title}
-                  title={HTML_PREVIEW_DELIVERY_LABELS[mode].hint}
+                <TRNMenuSearchableRow
+                  searchLabel="Debug trace"
+                  label="Debug trace"
+                  icon={<ScrollText className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                  onClick={() => {
+                    setDebugTraceWindowOpen(true);
+                    setAssistantMenuOpen(false);
+                  }}
+                />
+                {onOpenSystemDiagnostics != null ? (
+                  <TRNMenuSearchableRow
+                    searchLabel="Diagnostics & runtime services"
+                    label="Diagnostics & runtime services"
+                    searchKeywords={["runtime", "bridge", "services"]}
+                    icon={<Activity className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                    title="Bitstream serial broker, transport, AI bridge host, model broker reachability"
+                    onClick={() => {
+                      onOpenSystemDiagnostics();
+                      setAssistantMenuOpen(false);
+                    }}
+                  />
+                ) : null}
+              </TRNMenuFilterableSection>
+              <TRNMenuFilterableSection
+                title="HTML code preview"
+                itemLabels={HTML_PREVIEW_DELIVERY_MODES.map(
+                  (mode) => HTML_PREVIEW_DELIVERY_LABELS[mode].title,
+                )}
+                spacing="menuNext"
+              >
+                {HTML_PREVIEW_DELIVERY_MODES.map((mode) => (
+                  <TRNMenuSearchableRow
+                    key={mode}
+                    searchLabel={HTML_PREVIEW_DELIVERY_LABELS[mode].title}
+                    label={HTML_PREVIEW_DELIVERY_LABELS[mode].title}
+                    searchKeywords={["html", "preview", mode]}
+                    icon={
+                      <Check
+                        className={
+                          htmlPreviewDeliveryMode === mode
+                            ? "h-3.5 w-3.5 text-emerald-400/95"
+                            : "h-3.5 w-3.5 text-transparent"
+                        }
+                        strokeWidth={2.25}
+                        aria-hidden
+                      />
+                    }
+                    title={HTML_PREVIEW_DELIVERY_LABELS[mode].hint}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={() => {
+                      setHtmlPreviewDeliveryMode(mode);
+                      setAssistantMenuOpen(false);
+                    }}
+                  />
+                ))}
+              </TRNMenuFilterableSection>
+              <TRNMenuFilterableSection
+                title="Reply text zoom"
+                itemLabels={["Zoom in", "Zoom out", "Reset zoom"]}
+                spacing="menuNext"
+              >
+                <TRNMenuSearchableRow
+                  searchLabel="Zoom in"
+                  label="Zoom in"
+                  icon={<ZoomIn className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                  title="Ctrl++ or ⌘++ · Also Ctrl/⌘ + scroll over the message list or a reply"
                   onPointerDown={(e) => e.stopPropagation()}
                   onClick={() => {
-                    setHtmlPreviewDeliveryMode(mode);
+                    useTrnMarkdownZoomStore.getState().zoomIn();
                     setAssistantMenuOpen(false);
                   }}
                 />
-              ))}
-              <TRNMenuSectionTitle spacing="menuNext">Reply text zoom</TRNMenuSectionTitle>
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<ZoomIn className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Zoom in"
-                title="Ctrl++ or ⌘++ · Also Ctrl/⌘ + scroll over the message list or a reply"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  useTrnMarkdownZoomStore.getState().zoomIn();
-                  setAssistantMenuOpen(false);
-                }}
-              />
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<ZoomOut className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Zoom out"
-                title="Ctrl+- or ⌘+-"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  useTrnMarkdownZoomStore.getState().zoomOut();
-                  setAssistantMenuOpen(false);
-                }}
-              />
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={<RotateCcw className="h-3.5 w-3.5 opacity-85" aria-hidden />}
-                label="Reset zoom"
-                title="Ctrl+0 or ⌘+0"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => {
-                  useTrnMarkdownZoomStore.getState().reset();
-                  setAssistantMenuOpen(false);
-                }}
-              />
+                <TRNMenuSearchableRow
+                  searchLabel="Zoom out"
+                  label="Zoom out"
+                  icon={<ZoomOut className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                  title="Ctrl+- or ⌘+-"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => {
+                    useTrnMarkdownZoomStore.getState().zoomOut();
+                    setAssistantMenuOpen(false);
+                  }}
+                />
+                <TRNMenuSearchableRow
+                  searchLabel="Reset zoom"
+                  label="Reset zoom"
+                  icon={<RotateCcw className="h-3.5 w-3.5 opacity-85" aria-hidden />}
+                  title="Ctrl+0 or ⌘+0"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={() => {
+                    useTrnMarkdownZoomStore.getState().reset();
+                    setAssistantMenuOpen(false);
+                  }}
+                />
+              </TRNMenuFilterableSection>
             </div>
-          </TRNMenuPanel>
+          </TRNSearchableMenuShell>
         </div>
       ) : null}
     </div>

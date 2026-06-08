@@ -39,6 +39,28 @@ export type TRNMenuPanelProps = HTMLAttributes<HTMLDivElement> & {
   edgeAutoScroll?: boolean;
 };
 
+export type TRNMenuScrollRegionProps = HTMLAttributes<HTMLDivElement> & {
+  /** Scroll when the pointer hovers the top/bottom edge (for `overflow-y-auto` + hidden scrollbar). */
+  edgeAutoScroll?: boolean;
+};
+
+/** Scrollable menu body (place inside {@link TRNMenuPanel} when a sticky header e.g. search sits above). */
+export function TRNMenuScrollRegion(props: TRNMenuScrollRegionProps) {
+  const { className, edgeAutoScroll = false, children, ...rest } = props;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useScrollContainerEdgeAutoScroll(scrollRef, edgeAutoScroll);
+
+  return (
+    <div
+      ref={scrollRef}
+      className={twMerge("min-h-0 overflow-y-auto scrollbar-hide", className)}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function TRNMenuPanel(props: TRNMenuPanelProps) {
   const { className, tone = "glass-dropdown", edgeAutoScroll = false, children, ...rest } =
     props;

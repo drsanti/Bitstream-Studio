@@ -12,6 +12,7 @@
  *
  *******************************************************************************/
 
+import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
 import { TRNFloatingNotice } from "../../ui/TRN";
 import type {
@@ -47,6 +48,7 @@ export type BitstreamFloatingAlertNoticeProps = {
   autoDismissMs?: number;
   className?: string;
   zIndex?: number;
+  actions?: ReactNode;
 };
 
 /**
@@ -84,6 +86,7 @@ export function BitstreamFloatingAlertNotice(props: BitstreamFloatingAlertNotice
       showBackdrop={config.showBackdrop ?? false}
       className={twMerge("max-w-[340px]", config.className, props.className)}
       zIndex={props.zIndex ?? config.zIndex ?? 125}
+      actions={props.actions}
       onOpenChange={onOpenChange}
     />
   );

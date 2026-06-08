@@ -14,6 +14,8 @@ import {
   TRNMenuPanel,
   TRNMenuSectionTitle,
 } from "@/ui/TRN";
+import { TRNMenuSearchableRow } from "@/ui/TRN/TRNMenuSearch.js";
+import { TRNSearchableMenuShell } from "@/ui/TRN/TRNSearchableMenuShell.js";
 import { useAssetRegistry } from "../../../assets-manager/registry/AssetRegistryProvider.js";
 import { formatModelDisplayName } from "../../../model-catalog/formatModelDisplayName.js";
 import { resolveDefaultPreviewMeshGlbUrl } from "../3d-rotation/shared/resolveWebviewModelAssetUrl.js";
@@ -220,41 +222,51 @@ function AnimationLabViewportToolbar(props: {
           <Package className="h-4 w-4" strokeWidth={2} aria-hidden />
         </button>
         {modelMenuOpen ? (
-          <TRNMenuPanel
-            tone="glass-dropdown"
-            className="absolute right-0 top-full z-30 mt-1 max-h-[min(320px,50vh)] w-auto min-w-52 overflow-y-auto scrollbar-hide"
-          >
-            <TRNMenuSectionTitle spacing="menuFirst">Body model</TRNMenuSectionTitle>
-            <div className="flex flex-col gap-1" role="listbox">
-              <TRNMenuItemButton
-                tone="glass-dropdown"
-                role="option"
-                icon={<Box className="h-3.5 w-3.5" aria-hidden />}
-                label="PSoC E84 AI (default)"
-                className={twMerge(
-                  TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                  modelId === ANIMATION_LAB_DEFAULT_MODEL_ID
-                    ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME
-                    : null,
-                )}
-                onClick={() => onSelectModel(ANIMATION_LAB_DEFAULT_MODEL_ID)}
-              />
-              {catalogModels.map((m) => (
-                <TRNMenuItemButton
-                  key={m.id}
+          <div className="absolute right-0 top-full z-30 mt-1 w-auto min-w-52">
+            <TRNSearchableMenuShell
+              menuOpen={modelMenuOpen}
+              itemCount={1 + catalogModels.length}
+              maxHeightClassName="max-h-[min(320px,50vh)]"
+            >
+              <TRNMenuSectionTitle spacing="menuFirst">Body model</TRNMenuSectionTitle>
+              <div className="flex flex-col gap-1" role="listbox">
+                <TRNMenuSearchableRow
+                  searchLabel="PSoC E84 AI (default)"
+                  searchKeywords={["model", "glb", "default"]}
                   tone="glass-dropdown"
                   role="option"
-                  icon={<Package className="h-3.5 w-3.5 opacity-90" aria-hidden />}
-                  label={formatModelDisplayName(m.name)}
+                  icon={<Box className="h-3.5 w-3.5" aria-hidden />}
+                  label="PSoC E84 AI (default)"
                   className={twMerge(
                     TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                    modelId === m.id ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                    modelId === ANIMATION_LAB_DEFAULT_MODEL_ID
+                      ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME
+                      : null,
                   )}
-                  onClick={() => onSelectModel(m.id)}
+                  onClick={() => onSelectModel(ANIMATION_LAB_DEFAULT_MODEL_ID)}
                 />
-              ))}
-            </div>
-          </TRNMenuPanel>
+                {catalogModels.map((m) => {
+                  const displayName = formatModelDisplayName(m.name);
+                  return (
+                    <TRNMenuSearchableRow
+                      key={m.id}
+                      searchLabel={displayName}
+                      searchKeywords={["model", "glb", m.name]}
+                      tone="glass-dropdown"
+                      role="option"
+                      icon={<Package className="h-3.5 w-3.5 opacity-90" aria-hidden />}
+                      label={displayName}
+                      className={twMerge(
+                        TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+                        modelId === m.id ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                      )}
+                      onClick={() => onSelectModel(m.id)}
+                    />
+                  );
+                })}
+              </div>
+            </TRNSearchableMenuShell>
+          </div>
         ) : null}
       </div>
       <div className="relative" ref={envMenuRef}>
@@ -272,38 +284,43 @@ function AnimationLabViewportToolbar(props: {
           <Globe2 className="h-4 w-4" strokeWidth={2} aria-hidden />
         </button>
         {envMenuOpen ? (
-          <TRNMenuPanel
-            tone="glass-dropdown"
-            className="absolute right-0 top-full z-30 mt-1 max-h-[min(320px,50vh)] w-auto min-w-44 overflow-y-auto scrollbar-hide"
-          >
-            <TRNMenuSectionTitle spacing="menuFirst">Environment map</TRNMenuSectionTitle>
-            <div className="flex flex-col gap-1" role="listbox" aria-label="Environment map presets">
-              {getEngineEnvironmentCubeMaps().map((preset, index) => {
-                const selected = environmentPresetIndex === index;
-                return (
-                  <TRNMenuItemButton
-                    key={preset.path}
-                    tone="glass-dropdown"
-                    role="option"
-                    aria-selected={selected}
-                    icon={getEnvPresetIconByTitle(preset.title)}
-                    label={preset.title}
-                    className={twMerge(
-                      TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                      "text-xs font-medium",
-                      selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
-                    )}
-                    rightSlot={
-                      selected ? (
-                        <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                      ) : null
-                    }
-                    onClick={() => onSelectEnvironmentPreset(index)}
-                  />
-                );
-              })}
-            </div>
-          </TRNMenuPanel>
+          <div className="absolute right-0 top-full z-30 mt-1 w-auto min-w-44">
+            <TRNSearchableMenuShell
+              menuOpen={envMenuOpen}
+              itemCount={getEngineEnvironmentCubeMaps().length}
+              maxHeightClassName="max-h-[min(320px,50vh)]"
+            >
+              <TRNMenuSectionTitle spacing="menuFirst">Environment map</TRNMenuSectionTitle>
+              <div className="flex flex-col gap-1" role="listbox" aria-label="Environment map presets">
+                {getEngineEnvironmentCubeMaps().map((preset, index) => {
+                  const selected = environmentPresetIndex === index;
+                  return (
+                    <TRNMenuSearchableRow
+                      key={preset.path}
+                      searchLabel={preset.title}
+                      searchKeywords={["environment", "cubemap", preset.path]}
+                      tone="glass-dropdown"
+                      role="option"
+                      aria-selected={selected}
+                      icon={getEnvPresetIconByTitle(preset.title)}
+                      label={preset.title}
+                      className={twMerge(
+                        TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+                        "text-xs font-medium",
+                        selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                      )}
+                      rightSlot={
+                        selected ? (
+                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
+                        ) : null
+                      }
+                      onClick={() => onSelectEnvironmentPreset(index)}
+                    />
+                  );
+                })}
+              </div>
+            </TRNSearchableMenuShell>
+          </div>
         ) : null}
       </div>
     </div>

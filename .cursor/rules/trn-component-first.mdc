@@ -14,6 +14,8 @@ When adding UI under **`extension/src/webview/`**:
 
 Scrollable TRN menus: **`trn-glass-dropdown-scrollbars.mdc`** (`scrollbar-hide` on list panels).
 
+Menus with **more than 5 items**: **`trn-menu-search.mdc`** (`TRNSearchableMenuShell`, `TRNMenuSearch`).
+
 ## Communication
 
 **Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

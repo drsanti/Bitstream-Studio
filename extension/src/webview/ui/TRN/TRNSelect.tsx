@@ -19,8 +19,16 @@ import {
   TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME,
   TRNMenuItemButton,
   TRNMenuPanel,
+  TRNMenuScrollRegion,
   TRNMenuSectionTitle,
 } from "./TRNMenu.js";
+import {
+  getTrnMenuOptionSearchLabel,
+  matchesTrnMenuSearch,
+  shouldShowTrnMenuSearch,
+  TRNMenuNoResults,
+  TRNMenuSearchField,
+} from "./TRNMenuSearch.js";
 
 export type TRNSelectOption = {
   value: string;
@@ -108,6 +116,26 @@ export function TRNSelect(props: TRNSelectProps) {
   const mergedTriggerClassName = twMerge(buttonClassName, triggerClassName);
   const sectionHeadingId = useId();
   const [open, setOpen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
+  const showMenuSearch = shouldShowTrnMenuSearch(options.length);
+
+  useEffect(() => {
+    if (!open) {
+      setFilterQuery("");
+    }
+  }, [open]);
+
+  const visibleOptions = useMemo(() => {
+    if (!showMenuSearch) {
+      return options;
+    }
+    return options.filter((opt) =>
+      matchesTrnMenuSearch(
+        filterQuery,
+        getTrnMenuOptionSearchLabel(opt.label, opt.value),
+      ),
+    );
+  }, [filterQuery, options, showMenuSearch]);
   const [menuBox, setMenuBox] = useState<MenuBox | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -203,6 +231,55 @@ export function TRNSelect(props: TRNSelectProps) {
 
   const portalTarget = typeof document !== "undefined" ? document.body : null;
 
+  const optionList = (
+    <div className="flex flex-col gap-0.5">
+      {sectionTitle != null ? (
+        <TRNMenuSectionTitle id={sectionHeadingId} spacing="menuFirst">
+          {sectionTitle}
+        </TRNMenuSectionTitle>
+      ) : null}
+      <div
+        role="listbox"
+        aria-label={sectionTitle != null ? undefined : ariaLabel}
+        aria-labelledby={sectionTitle != null ? sectionHeadingId : undefined}
+        className="flex flex-col gap-0.5"
+      >
+        {visibleOptions.map((opt) => {
+          const optDisabled = disabled || opt.disabled === true;
+          const isSelected = opt.value === value;
+          return (
+            <TRNMenuItemButton
+              key={opt.value}
+              tone="glass-dropdown"
+              role="option"
+              disabled={optDisabled}
+              aria-disabled={optDisabled}
+              aria-selected={isSelected}
+              label={opt.label}
+              icon={opt.icon}
+              className={twMerge(
+                TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
+                size === "lg" ? "text-sm" : null,
+                isSelected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+              )}
+              rightSlot={opt.rightSlot ?? null}
+              onClick={() => {
+                if (optDisabled) {
+                  return;
+                }
+                onValueChange(opt.value);
+                setOpen(false);
+              }}
+            />
+          );
+        })}
+      </div>
+      <TRNMenuNoResults
+        visible={showMenuSearch && filterQuery.trim().length > 0 && visibleOptions.length === 0}
+      />
+    </div>
+  );
+
   const menuPanel =
     open && menuBox != null && portalTarget != null
       ? createPortal(
@@ -217,53 +294,31 @@ export function TRNSelect(props: TRNSelectProps) {
           >
             <TRNMenuPanel
               tone="glass-dropdown"
-              edgeAutoScroll
-              className={twMerge(TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS, panelClassName)}
+              edgeAutoScroll={!showMenuSearch}
+              className={twMerge(
+                TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS,
+                showMenuSearch ? "flex flex-col overflow-hidden !p-0" : null,
+                panelClassName,
+              )}
               style={{ maxHeight: menuBox.maxHeight }}
             >
-              <div className="flex flex-col gap-0.5">
-                {sectionTitle != null ? (
-                  <TRNMenuSectionTitle id={sectionHeadingId} spacing="menuFirst">
-                    {sectionTitle}
-                  </TRNMenuSectionTitle>
-                ) : null}
-                <div
-                  role="listbox"
-                  aria-label={sectionTitle != null ? undefined : ariaLabel}
-                  aria-labelledby={sectionTitle != null ? sectionHeadingId : undefined}
-                  className="flex flex-col gap-0.5"
-                >
-                  {options.map((opt) => {
-                    const optDisabled = disabled || opt.disabled === true;
-                    const isSelected = opt.value === value;
-                    return (
-                      <TRNMenuItemButton
-                        key={opt.value}
-                        tone="glass-dropdown"
-                        role="option"
-                        disabled={optDisabled}
-                        aria-disabled={optDisabled}
-                        aria-selected={isSelected}
-                        label={opt.label}
-                        icon={opt.icon}
-                        className={twMerge(
-                          TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS,
-                          size === "lg" ? "text-sm" : null,
-                          isSelected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
-                        )}
-                        rightSlot={opt.rightSlot ?? null}
-                        onClick={() => {
-                          if (optDisabled) {
-                            return;
-                          }
-                          onValueChange(opt.value);
-                          setOpen(false);
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
+              {showMenuSearch ? (
+                <>
+                  <TRNMenuSearchField
+                    value={filterQuery}
+                    onChange={setFilterQuery}
+                    placeholder="Search…"
+                  />
+                  <TRNMenuScrollRegion
+                    edgeAutoScroll
+                    className="min-h-0 flex-1 px-1.5 py-0.5"
+                  >
+                    {optionList}
+                  </TRNMenuScrollRegion>
+                </>
+              ) : (
+                optionList
+              )}
             </TRNMenuPanel>
           </div>,
           portalTarget,

@@ -1,0 +1,37 @@
+---
+description: TRN menus with more than five items must include search
+alwaysApply: true
+---
+
+# TRN menu search (>5 items)
+
+When adding or editing a **dropdown, overflow, or glass menu** under **`extension/src/webview/`**:
+
+## Threshold
+
+- Show a search field when the menu has **more than 5 items** (6+).
+- Canonical constant: **`TRN_MENU_SEARCH_MIN_ITEMS`** and **`shouldShowTrnMenuSearch(itemCount)`** in **`ui/TRN/TRNMenuSearch.tsx`**.
+
+## Use shared primitives
+
+| Pattern | Component |
+|---------|-----------|
+| Sectioned toolbar / shell menus | **`TRNSearchableMenuShell`** + **`TRNMenuFilterableSection`** + **`TRNMenuSearchableRow`** |
+| Simple option lists (`TRNSelect`, listbox) | **`shouldShowTrnMenuSearch`**, **`TRNMenuSearchField`**, **`matchesTrnMenuSearch`**, **`TRNMenuScrollRegion`** (see **`GlassDropdown`**) |
+| Filter hook per row | **`useTRNMenuItemMatches(label, keywords?)`** |
+
+Pass accurate **`itemCount`** to **`TRNSearchableMenuShell`** (include sections, presets, and dynamic rows). When search is shown, scroll the **body** via **`TRNMenuScrollRegion`** with **`edgeAutoScroll`** — not the sticky search header.
+
+## Menus that already follow this
+
+Shell hamburger, **`TRNSelect`**, **`GlassDropdown`**, **`DropdownList`**, **`IconMenu`**, Studio/Telemetry overflow, **`WorkbenchLayoutMenu`**, assistant tools, rotation preview / Animation Lab model and environment pickers.
+
+## Small menus (≤5 items)
+
+Do **not** add search (e.g. five-option tag filter, two-item Serial Port Manager menu).
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.
+
+Keep **`.cursor/rules/trn-menu-search.mdc`** in sync when editing this file.

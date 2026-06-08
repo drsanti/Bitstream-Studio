@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-06-08 (Sensor Studio performance + canvas interaction policy)  
+**Last updated:** 2026-06-08 (TRN menu search policy + shell recovery UX)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -185,6 +185,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-08 | **TRN menu search + shell recovery:** menus with **>5 items** use **`TRNSearchableMenuShell`** / **`TRNMenuSearch`** (`TRN_MENU_SEARCH_MIN_ITEMS = 6`); hamburger scroll + search (Port Admin reachable in VSIX); UART notice → Port Admin; startup checklist bridge/WebSocket recovery; rule **`trn-menu-search.mdc`** |
 | 2026-06-08 | **Sensor Studio performance:** live store sidecar + dashboard structural/live split; socket **layout key** (sine-wave fps fix); Inspector **Performance** card (flow/3D caps, live stats, overlay); **While editing canvas** policy (keep/pause/throttle); docs **`SENSOR_STUDIO_PERFORMANCE.md`** |
 | 2026-06-04 | **Free pack:** VSIX **Sync/Diagnose Free Pack**; studio-aligned sync; living-upstream maintainer docs; **`TRNWindow`** overlay portaled to `document.body` (Free Loader / modals above workbench panes) |
 | 2026-06-03 | **Wi-Fi BS2 UART:** `domains/wifi/*`, `useBitstreamWifiController` / `useBitstreamWifiEvtBridge`, Device Wi-Fi TRN window; removed legacy `src/bitstream/wifi/*`; spec `WIFI_BS2.md` + `BITSTREAM_BS_FRAMED_PROTOCOL_SPEC` §10; MCU soak OK |

@@ -10,7 +10,8 @@ import {
   TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS,
   toolbarHeaderDropdownMenuIcon,
 } from "../ui/components/toolbar-header-dropdown-menu-ui";
-import { TRNMenuItemButton, TRNMenuPanel } from "../ui/TRN/TRNMenu";
+import { TRNMenuSearchableRow } from "../ui/TRN/TRNMenuSearch.js";
+import { TRNSearchableMenuShell } from "../ui/TRN/TRNSearchableMenuShell.js";
 import { telemetryPaneMenuIcon } from "./telemetry-view-menu-ui";
 
 export type TelemetryPaneCommand = {
@@ -66,15 +67,17 @@ export function TelemetryToolbarActions(props: TelemetryToolbarActionsProps) {
         prefixIcon={toolbarHeaderDropdownMenuIcon(PanelsTopLeft)}
         hint="Show or expand a telemetry workbench pane (config, 3D, deck, activity)"
       >
-        <TRNMenuPanel
-          tone="glass-dropdown"
-          edgeAutoScroll
-          className={TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS}
+        <TRNSearchableMenuShell
+          itemCount={paneCommands.length}
+          panelClassName={TOOLBAR_HEADER_DROPDOWN_MENU_PANEL_CLASS}
+          maxHeightClassName="max-h-80"
         >
           <div className="flex flex-col gap-0.5">
             {paneCommands.map((pane) => (
-              <TRNMenuItemButton
+              <TRNMenuSearchableRow
                 key={pane.editorType}
+                searchLabel={pane.label}
+                searchKeywords={["pane", "view", "telemetry"]}
                 role="menuitem"
                 tone="glass-dropdown"
                 className={TOOLBAR_HEADER_DROPDOWN_MENU_ITEM_CLASS}
@@ -86,7 +89,7 @@ export function TelemetryToolbarActions(props: TelemetryToolbarActionsProps) {
               />
             ))}
           </div>
-        </TRNMenuPanel>
+        </TRNSearchableMenuShell>
       </StudioToolbarMenu>
 
       {layoutMenu}

@@ -3,8 +3,9 @@ import { twMerge } from "tailwind-merge";
 import {
   TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
   TRNMenuItemButton,
-  TRNMenuPanel,
 } from "../TRN/TRNMenu.js";
+import { TRNSearchableMenuShell } from "../TRN/TRNSearchableMenuShell.js";
+import { useTRNMenuItemMatches } from "../TRN/TRNMenuSearch.js";
 
 export interface IconMenuItem {
   id: string;
@@ -79,38 +80,62 @@ export const IconMenu: React.FC<IconMenuProps> = ({
         {triggerIcon}
       </button>
       {open ? (
-        <TRNMenuPanel
-          tone="glass-dropdown"
+        <div
           className={twMerge(
             "absolute right-0 top-full z-[60] mt-2 w-auto min-w-44",
             menuClassName,
           )}
         >
-          <div className="flex flex-col gap-1" role="menu">
-            {items.map((item) => (
-              <TRNMenuItemButton
-                key={item.id}
-                tone="glass-dropdown"
-                role="menuitem"
-                icon={item.icon}
-                label={item.label}
-                title={item.title}
-                className={twMerge(
-                  TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                  "text-xs font-medium",
-                  itemClassName,
-                  item.className,
-                )}
-                onClick={() => {
-                  onOpenChange(false);
-                  item.onSelect();
-                }}
-              />
-            ))}
-          </div>
-        </TRNMenuPanel>
+          <TRNSearchableMenuShell
+            menuOpen={open}
+            itemCount={items.length}
+            maxHeightClassName="max-h-64"
+          >
+            <div className="flex flex-col gap-1" role="menu">
+              {items.map((item) => (
+                <IconMenuRow
+                  key={item.id}
+                  item={item}
+                  itemClassName={itemClassName}
+                  onSelect={() => {
+                    onOpenChange(false);
+                    item.onSelect();
+                  }}
+                />
+              ))}
+            </div>
+          </TRNSearchableMenuShell>
+        </div>
       ) : null}
     </div>
   );
 };
+
+function IconMenuRow(props: {
+  item: IconMenuItem;
+  itemClassName?: string;
+  onSelect: () => void;
+}) {
+  const { item, itemClassName, onSelect } = props;
+  const visible = useTRNMenuItemMatches(item.label);
+  if (!visible) {
+    return null;
+  }
+  return (
+    <TRNMenuItemButton
+      tone="glass-dropdown"
+      role="menuitem"
+      icon={item.icon}
+      label={item.label}
+      title={item.title}
+      className={twMerge(
+        TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+        "text-xs font-medium",
+        itemClassName,
+        item.className,
+      )}
+      onClick={onSelect}
+    />
+  );
+}
 

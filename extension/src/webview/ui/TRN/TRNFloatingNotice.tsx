@@ -36,6 +36,8 @@ export type TRNFloatingNoticeProps = {
   showClose?: boolean;
   zIndex?: number;
   className?: string;
+  /** Optional row below message (e.g. action buttons). */
+  actions?: ReactNode;
   onOpenChange?: (open: boolean) => void;
 };
 
@@ -141,6 +143,7 @@ export function TRNFloatingNotice(props: TRNFloatingNoticeProps)
     showClose = true,
     zIndex = 120,
     className,
+    actions,
     onOpenChange,
   } = props;
 
@@ -370,6 +373,9 @@ export function TRNFloatingNotice(props: TRNFloatingNoticeProps)
               </p>
             ) : null}
           </div>
+          {actions != null ? (
+            <div className="flex w-full flex-col gap-1.5 px-1">{actions}</div>
+          ) : null}
           {showProgressBar ? (
             <div
               className="h-0.5 w-full overflow-hidden rounded-full bg-zinc-800/80"

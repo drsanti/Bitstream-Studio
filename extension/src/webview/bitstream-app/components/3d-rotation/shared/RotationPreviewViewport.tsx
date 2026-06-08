@@ -21,11 +21,11 @@ import { twMerge } from "tailwind-merge";
 import {
   TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
   TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME,
-  TRNMenuItemButton,
-  TRNMenuPanel,
   TRNMenuSectionTitle,
   TRNToolboxPanel,
 } from "@/ui/TRN";
+import { TRNMenuSearchableRow } from "@/ui/TRN/TRNMenuSearch.js";
+import { TRNSearchableMenuShell } from "@/ui/TRN/TRNSearchableMenuShell.js";
 import type { Bmi270WireReceiveDiag } from "../../../state/bitstreamLive.store.js";
 import { RenderFpsReporter } from "./RenderFpsReporter.js";
 import {
@@ -569,74 +569,82 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
             <Package className="h-4 w-4" strokeWidth={2} aria-hidden />
           </button>
           {modelMenuOpen ? (
-            <TRNMenuPanel
-              tone="glass-dropdown"
-              className="absolute right-0 top-full z-30 mt-1 w-auto min-w-52 max-h-[min(320px,50vh)] overflow-y-auto scrollbar-hide"
-            >
-              <div className="flex flex-col gap-1">
-                <TRNMenuSectionTitle id="rotation-preview-body-model-heading" spacing="menuFirst">
-                  Body model
-                </TRNMenuSectionTitle>
-                <div
-                  className="flex flex-col gap-1"
-                  role="listbox"
-                  aria-label="Preview body models"
-                  aria-labelledby="rotation-preview-body-model-heading"
-                >
-                <TRNMenuItemButton
-                  tone="glass-dropdown"
-                  role="option"
-                  aria-selected={previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID}
-                  icon={<Box className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />}
-                  label="PSoC E84 AI (default)"
-                  className={twMerge(
-                    TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                    "text-xs font-medium",
-                    previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID
-                      ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME
-                      : null,
-                  )}
-                  rightSlot={
-                    previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID ? (
-                      <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                    ) : null
-                  }
-                  onClick={() => {
-                    setPreviewBodyModelId(ROTATION_PREVIEW_DEFAULT_MODEL_ID);
-                    setModelMenuOpen(false);
-                  }}
-                />
-                {catalogModels.map((m) => {
-                  const selected = previewBodyModelId === m.id;
-                  return (
-                    <TRNMenuItemButton
-                      key={m.id}
+            <div className="absolute right-0 top-full z-30 mt-1 w-auto min-w-52">
+              <TRNSearchableMenuShell
+                menuOpen={modelMenuOpen}
+                itemCount={1 + catalogModels.length}
+                maxHeightClassName="max-h-[min(320px,50vh)]"
+              >
+                <div className="flex flex-col gap-1">
+                  <TRNMenuSectionTitle id="rotation-preview-body-model-heading" spacing="menuFirst">
+                    Body model
+                  </TRNMenuSectionTitle>
+                  <div
+                    className="flex flex-col gap-1"
+                    role="listbox"
+                    aria-label="Preview body models"
+                    aria-labelledby="rotation-preview-body-model-heading"
+                  >
+                    <TRNMenuSearchableRow
+                      searchLabel="PSoC E84 AI (default)"
+                      searchKeywords={["model", "glb", "default"]}
                       tone="glass-dropdown"
                       role="option"
-                      aria-selected={selected}
-                      icon={<Package className="h-3.5 w-3.5 shrink-0 opacity-90" strokeWidth={2} aria-hidden />}
-                      label={formatModelDisplayName(m.name)}
-                      title={m.dedupeKey}
+                      aria-selected={previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID}
+                      icon={<Box className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />}
+                      label="PSoC E84 AI (default)"
                       className={twMerge(
                         TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
                         "text-xs font-medium",
-                        selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                        previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID
+                          ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME
+                          : null,
                       )}
                       rightSlot={
-                        selected ? (
+                        previewBodyModelId === ROTATION_PREVIEW_DEFAULT_MODEL_ID ? (
                           <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
                         ) : null
                       }
                       onClick={() => {
-                        setPreviewBodyModelId(m.id);
+                        setPreviewBodyModelId(ROTATION_PREVIEW_DEFAULT_MODEL_ID);
                         setModelMenuOpen(false);
                       }}
                     />
-                  );
-                })}
+                    {catalogModels.map((m) => {
+                      const selected = previewBodyModelId === m.id;
+                      const displayName = formatModelDisplayName(m.name);
+                      return (
+                        <TRNMenuSearchableRow
+                          key={m.id}
+                          searchLabel={displayName}
+                          searchKeywords={["model", "glb", m.dedupeKey]}
+                          tone="glass-dropdown"
+                          role="option"
+                          aria-selected={selected}
+                          icon={<Package className="h-3.5 w-3.5 shrink-0 opacity-90" strokeWidth={2} aria-hidden />}
+                          label={displayName}
+                          title={m.dedupeKey}
+                          className={twMerge(
+                            TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+                            "text-xs font-medium",
+                            selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                          )}
+                          rightSlot={
+                            selected ? (
+                              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
+                            ) : null
+                          }
+                          onClick={() => {
+                            setPreviewBodyModelId(m.id);
+                            setModelMenuOpen(false);
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </TRNMenuPanel>
+              </TRNSearchableMenuShell>
+            </div>
           ) : null}
         </div>
         <div className="relative" ref={envMenuRef}>
@@ -654,52 +662,57 @@ export function RotationPreviewViewport(props: RotationPreviewViewportProps) {
             <Globe2 className="h-4 w-4" strokeWidth={2} aria-hidden />
           </button>
           {envMenuOpen ? (
-            <TRNMenuPanel
-              tone="glass-dropdown"
-              className="absolute right-0 top-full z-30 mt-1 w-auto min-w-44 max-h-[min(320px,50vh)] overflow-y-auto scrollbar-hide"
-            >
-              <div className="flex flex-col gap-1">
-                <TRNMenuSectionTitle id="rotation-preview-cubemap-heading" spacing="menuFirst">
-                  Cubemap preset
-                </TRNMenuSectionTitle>
-                <div
-                  className="flex flex-col gap-1"
-                  role="listbox"
-                  aria-label="Cubemap environment presets"
-                  aria-labelledby="rotation-preview-cubemap-heading"
-                >
-                {getEngineEnvironmentCubeMaps().map((preset, index) => {
-                  const selected = environmentPresetIndex === index;
-                  return (
-                    <TRNMenuItemButton
-                      key={preset.path}
-                      tone="glass-dropdown"
-                      role="option"
-                      aria-selected={selected}
-                      icon={getEnvPresetIconByTitle(preset.title)}
-                      label={preset.title}
-                      className={twMerge(
-                        TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
-                        "text-xs font-medium",
-                        selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
-                      )}
-                      rightSlot={
-                        selected ? (
-                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
-                        ) : null
-                      }
-                      onClick={() => {
-                        setEnvironmentPresetIndex(
-                          clampEngineCubemapPresetIndex(index),
-                        );
-                        setEnvMenuOpen(false);
-                      }}
-                    />
-                  );
-                })}
+            <div className="absolute right-0 top-full z-30 mt-1 w-auto min-w-44">
+              <TRNSearchableMenuShell
+                menuOpen={envMenuOpen}
+                itemCount={getEngineEnvironmentCubeMaps().length}
+                maxHeightClassName="max-h-[min(320px,50vh)]"
+              >
+                <div className="flex flex-col gap-1">
+                  <TRNMenuSectionTitle id="rotation-preview-cubemap-heading" spacing="menuFirst">
+                    Cubemap preset
+                  </TRNMenuSectionTitle>
+                  <div
+                    className="flex flex-col gap-1"
+                    role="listbox"
+                    aria-label="Cubemap environment presets"
+                    aria-labelledby="rotation-preview-cubemap-heading"
+                  >
+                    {getEngineEnvironmentCubeMaps().map((preset, index) => {
+                      const selected = environmentPresetIndex === index;
+                      return (
+                        <TRNMenuSearchableRow
+                          key={preset.path}
+                          searchLabel={preset.title}
+                          searchKeywords={["cubemap", "environment", preset.path]}
+                          tone="glass-dropdown"
+                          role="option"
+                          aria-selected={selected}
+                          icon={getEnvPresetIconByTitle(preset.title)}
+                          label={preset.title}
+                          className={twMerge(
+                            TRN_GLASS_LISTBOX_OPTION_ROW_COMPACT_CLASSNAME,
+                            "text-xs font-medium",
+                            selected ? TRN_GLASS_LISTBOX_OPTION_SELECTED_CLASSNAME : null,
+                          )}
+                          rightSlot={
+                            selected ? (
+                              <Check className="h-3.5 w-3.5 shrink-0 text-emerald-300" strokeWidth={2.5} aria-hidden />
+                            ) : null
+                          }
+                          onClick={() => {
+                            setEnvironmentPresetIndex(
+                              clampEngineCubemapPresetIndex(index),
+                            );
+                            setEnvMenuOpen(false);
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            </TRNMenuPanel>
+              </TRNSearchableMenuShell>
+            </div>
           ) : null}
         </div>
         {eulerWireOverlay ? (

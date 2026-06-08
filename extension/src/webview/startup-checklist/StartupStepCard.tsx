@@ -1,8 +1,15 @@
 import type { KeyboardEvent, ReactNode } from "react";
 import type { ConnectionStepStatus } from "../bitstream-app/connection/useConnectionSteps.js";
+import { TRNButton } from "../ui/TRN/TRNButton.js";
 import { TRNHintTooltip } from "../ui/TRN/TRNHintTooltip.js";
 import type { StartupStepMeta } from "./startup-step-meta.js";
 import { StartupStepIcon } from "./StartupStepIcon.js";
+
+export type StartupStepRecoveryAction = {
+  label: string;
+  hint?: string;
+  onClick: () => void;
+};
 
 export type StartupStepCardProps = {
   meta: StartupStepMeta;
@@ -17,6 +24,8 @@ export type StartupStepCardProps = {
   accent?: "default" | "active" | "fail" | "ok" | "warn";
   presentation?: "upcoming" | "current" | "completed";
   isFocus?: boolean;
+  /** Shown under the result when status is fail or warn (e.g. open runtime services). */
+  recoveryAction?: StartupStepRecoveryAction;
   children?: ReactNode;
 };
 
@@ -112,6 +121,7 @@ export function StartupStepCard(props: StartupStepCardProps) {
     accent = "default",
     presentation = "completed",
     isFocus = false,
+    recoveryAction,
     children,
   } = props;
 
@@ -188,6 +198,23 @@ export function StartupStepCard(props: StartupStepCardProps) {
           {showResult ? (
             <span className="mt-2 block" aria-live={isFocus ? "polite" : "off"}>
               <StepResultWithHint result={result} hint={resultTooltip} />
+            </span>
+          ) : null}
+          {recoveryAction != null && (status === "fail" || status === "warn") ? (
+            <span
+              className="mt-2 block"
+              onClick={stopTogglePropagation}
+              onKeyDown={stopTogglePropagation}
+              onPointerDown={stopTogglePropagation}
+            >
+              <TRNButton
+                size="compact"
+                className="w-full justify-center"
+                hint={recoveryAction.hint}
+                onClick={recoveryAction.onClick}
+              >
+                {recoveryAction.label}
+              </TRNButton>
             </span>
           ) : null}
         </span>

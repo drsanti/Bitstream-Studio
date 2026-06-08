@@ -236,6 +236,20 @@ export type {
   TRNMenuSectionTitleProps,
   TRNMenuSectionTitleSpacing,
 } from "./TRNMenu.js";
+export {
+  TRN_MENU_SEARCH_MIN_ITEMS,
+  matchesTrnMenuSearch,
+  shouldShowTrnMenuSearch,
+  TRNMenuFilterableSection,
+  TRNMenuNoResults,
+  TRNMenuSearchableRow,
+  TRNMenuSearchField,
+  TRNMenuSearchProvider,
+  useTRNMenuItemMatches,
+  useOptionalTRNMenuSearchContext,
+} from "./TRNMenuSearch.js";
+export { TRNSearchableMenuShell } from "./TRNSearchableMenuShell.js";
+export type { TRNSearchableMenuShellProps } from "./TRNSearchableMenuShell.js";
 export { TRNSelect } from "./TRNSelect.js";
 export type { TRNSelectProps, TRNSelectOption } from "./TRNSelect.js";
 export { TRNColorRingPicker } from "./TRNColorRingPicker.js";
