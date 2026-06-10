@@ -1,0 +1,108 @@
+{
+  "version": 1,
+  "id": "diagram-mq64yl82-1",
+  "title": "Live canvas demo",
+  "linkHealth": "freeze-gray",
+  "viewBox": [
+    0,
+    0,
+    800,
+    600
+  ],
+  "layers": [
+    {
+      "kind": "2d",
+      "nodes": []
+    }
+  ],
+  "nodes": [],
+  "freeform": {
+    "engine": "konva",
+    "shapes": [
+      {
+        "id": "proof-indicator",
+        "fill": "transparent",
+        "stroke": "#22d3ee",
+        "type": "diamond",
+        "x": 340,
+        "y": 240,
+        "width": 120,
+        "height": 120
+      },
+      {
+        "id": "ax-label",
+        "fill": "#f5f5f5",
+        "type": "text",
+        "x": 280,
+        "y": 400,
+        "text": "aX — connect Simulator or Bitstream",
+        "fontSize": 20
+      },
+      {
+        "id": "accel-arrow",
+        "stroke": "#22d3ee",
+        "type": "arrow",
+        "x1": 400,
+        "y1": 300,
+        "x2": 520,
+        "y2": 300
+      }
+    ],
+    "view": {
+      "width": 800,
+      "height": 600,
+      "background": "#000000"
+    },
+    "propertyBindings": {
+      "proof-indicator": {
+        "y": {
+          "base": 240,
+          "mode": "add",
+          "binding": {
+            "path": "bmi270.ax",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": -1,
+                "inMax": 1,
+                "outMin": 60,
+                "outMax": -60
+              }
+            ],
+            "fallback": 0
+          }
+        }
+      },
+      "ax-label": {
+        "text": {
+          "binding": {
+            "path": "bmi270.ax",
+            "format": "0.00",
+            "unit": "g",
+            "fallback": 0
+          },
+          "prefix": "aX "
+        }
+      },
+      "accel-arrow": {
+        "x2": {
+          "base": 400,
+          "mode": "add",
+          "binding": {
+            "path": "bmi270.ax",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": -1,
+                "inMax": 1,
+                "outMin": 40,
+                "outMax": 160
+              }
+            ],
+            "fallback": 0
+          }
+        }
+      }
+    }
+  }
+}

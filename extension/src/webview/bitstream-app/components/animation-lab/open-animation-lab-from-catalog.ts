@@ -25,7 +25,7 @@ export function animationLabModelIdFromAssetDescriptor(
 }
 
 /**
- * Switch to Sensor Telemetry workbench and select the catalog model in GLB Animation Lab.
+ * Switch to Sensor Telemetry workbench (Digital Twin pane) and select the catalog model.
  */
 export function openAnimationLabForCatalogModel(modelId: string): void {
   const id = modelId.trim();

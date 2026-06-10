@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { parsePageV1 } from "../../src/webview/course-studio/schemas/page.v1";
 
-test("parsePageV1 accepts diagram-3d block with sceneId", () => {
+test("parsePageV1 accepts scene-3d block with documentId", () => {
   const page = parsePageV1({
     version: 1,
     id: "test-page",
@@ -18,21 +18,21 @@ test("parsePageV1 accepts diagram-3d block with sceneId", () => {
       },
       {
         id: "scene-1",
-        kind: "diagram-3d",
+        kind: "scene-3d",
         placement: { column: 1, row: 3, columnSpan: 5, rowSpan: 4 },
-        sceneId: "bmi-pcb-orientation",
+        documentId: "pilot-bmi-pcb-orientation",
         caption: "PCB live",
       },
     ],
   });
 
-  const block = page.blocks.find((b) => b.kind === "diagram-3d");
-  assert.ok(block != null && block.kind === "diagram-3d");
-  assert.equal(block.sceneId, "bmi-pcb-orientation");
+  const block = page.blocks.find((b) => b.kind === "scene-3d");
+  assert.ok(block != null && block.kind === "scene-3d");
+  assert.equal(block.documentId, "pilot-bmi-pcb-orientation");
   assert.equal(block.caption, "PCB live");
 });
 
-test("parsePageV1 defaults diagram-3d sceneId when omitted", () => {
+test("parsePageV1 migrates legacy diagram-3d blocks to scene-3d", () => {
   const page = parsePageV1({
     version: 1,
     id: "test-page",
@@ -53,7 +53,7 @@ test("parsePageV1 defaults diagram-3d sceneId when omitted", () => {
     ],
   });
 
-  const block = page.blocks.find((b) => b.kind === "diagram-3d");
-  assert.ok(block != null && block.kind === "diagram-3d");
-  assert.equal(block.sceneId, "bmi-pcb-orientation");
+  const block = page.blocks.find((b) => b.kind === "scene-3d");
+  assert.ok(block != null && block.kind === "scene-3d");
+  assert.equal(block.documentId, "pilot-bmi-pcb-orientation");
 });

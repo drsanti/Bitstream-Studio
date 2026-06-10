@@ -48,11 +48,14 @@ export function BmiGyroGimbalScene({
   className = "",
   framed = false,
   overlay,
+  controlsHintClassName,
 }: {
   className?: string;
   framed?: boolean;
   overlay?: ReactNode;
+  controlsHintClassName?: string;
 }) {
+  const gimbalOrbitHint = "Drag to orbit · scroll to zoom · gimbal integrates live ω";
   const scene = (
     <div className={`relative flex h-full min-h-0 w-full flex-col bg-[var(--scene-bg)] ${framed ? "" : className}`}>
       <Canvas camera={{ position: [0, 0.4, 5], fov: 40 }} className="min-h-0 flex-1" shadows>
@@ -63,14 +66,13 @@ export function BmiGyroGimbalScene({
         </Suspense>
       </Canvas>
       {overlay ? <div className="presentation-scene-overlay-layer">{overlay}</div> : null}
-      {framed ? (
-        <PresentationSceneControlsHint orbitHint="Drag to orbit · scroll to zoom · gimbal integrates live ω" />
-      ) : null}
-      {!framed ? (
+      {framed || controlsHintClassName != null ? (
+        <PresentationSceneControlsHint orbitHint={gimbalOrbitHint} className={controlsHintClassName} />
+      ) : (
         <div className="border-t border-[var(--surface-border)] bg-[var(--surface-panel)] px-4 py-2 text-xs text-[var(--text-secondary)]">
           Rings integrate live ω (teaching visualization — drift without fusion). See Euler &amp; Quaternion chapter.
         </div>
-      ) : null}
+      )}
     </div>
   );
 

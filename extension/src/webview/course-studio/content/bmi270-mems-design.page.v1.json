@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "id": "bmi270-mems-design",
+  "title": "BMI270 — MEMS design & signal quality",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-mems",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMI270 · MEMS",
+      "title": "Capacitive sensing, axes, and bandwidth",
+      "subtitle": "Proof-mass mechanics, mounting discipline, and how live axis values drive diagram and 3D bindings."
+    },
+    {
+      "id": "callout-axes",
+      "kind": "callout-warning",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Frame alignment",
+      "body": "PCB silkscreen axes, package axes, and fusion frame must match the mechanical drawing. Mismatch shows up as disagreement between 3D preview, attitude plots, and bench expectations.",
+      "icon": "AlertTriangle"
+    },
+    {
+      "id": "md-mems",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 5 },
+      "src": "bmi270-mems-design.theory.md"
+    },
+    {
+      "id": "dash-ax",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Accel X",
+      "widgetKind": "text",
+      "style": { "label": "Ax", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.ax", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-az",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Accel Z",
+      "widgetKind": "text",
+      "style": { "label": "Az", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.az", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-gyr-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Gyro |ω|",
+      "widgetKind": "text",
+      "style": { "label": "|ω|", "unit": "°/s", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmi270.gyrMag", "fallback": 0, "unit": "°/s", "format": "0.0f" }
+    },
+    {
+      "id": "card-units",
+      "kind": "card",
+      "placement": { "column": 1, "row": 10, "columnSpan": 7, "rowSpan": 2 },
+      "title": "Units operators see",
+      "body": "Acceleration: g (1 g ≈ Earth gravity).\nGyro: degrees per second (°/s).\nTemperature: °C.\nDiagram spring highlight follows axis magnitude.\nProof-mass offset follows tilt on the sensitive axis."
+    },
+    {
+      "id": "mems-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 4 },
+      "diagramId": "pilot-bmi-accel-mems",
+      "caption": "MEMS cross-section — proof mass, springs, and live bindings"
+    }
+  ]
+}

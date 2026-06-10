@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "id": "scene-mq61cmcv-1",
+  "title": "Axis triad",
+  "linkHealth": "freeze-gray",
+  "camera": {
+    "position": [
+      2.2,
+      1.8,
+      2.8
+    ],
+    "fov": 42
+  },
+  "nodes": [
+    {
+      "id": "triad",
+      "type": "model",
+      "modelId": "procedural-axis-triad"
+    }
+  ],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}

@@ -27,6 +27,7 @@ import { handleBitstreamSimulatorWebviewMessage } from "../bitstream-simulator-h
 import { handleAiBridgeWebviewMessage } from "../ai-bridge-handle";
 import { handleCaCertInstall } from "../ca-cert-handle";
 import { handleModelDownloaderWebviewMessage } from "../model-downloader-handle";
+import { handleCourseStudioWebviewMessage } from "../course-studio-host/handleCourseStudioWebviewMessage";
 import { resolveGithubTokenForAssetSync } from "../githubTokenForAssetSync";
 import { checkBootstrapAssetsOnDisk } from "../asset-bootstrap/checkBootstrapAssetsOnDisk";
 import { getNonce } from "../webview-util";
@@ -249,6 +250,12 @@ export class TernionDigitalTwin {
     }
 
     if (handleAiBridgeWebviewMessage(message, this._context.extensionPath)) {
+      return;
+    }
+
+    if (
+      await handleCourseStudioWebviewMessage(message, this._panel, this._context)
+    ) {
       return;
     }
 
@@ -937,6 +944,7 @@ export class TernionDigitalTwin {
 <head>
 <title>Bitstream Studio</title>
   <meta charset="UTF-8">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self' ${cspSource} https: data: blob:;
     style-src 'self' ${cspSource} 'unsafe-inline' https:;
@@ -944,6 +952,7 @@ export class TernionDigitalTwin {
     img-src 'self' ${cspSource} data: blob: https:;
     font-src 'self' ${cspSource} data: https:;
     connect-src 'self' ${cspSource} ws: wss: http: https: blob: data:;
+    frame-src 'self' ${cspSource} https://www.youtube.com https://www.youtube-nocookie.com https:;
     worker-src 'self' ${cspSource} blob: https:;
   ">
   <meta http-equiv="Permissions-Policy" content="

@@ -1,20 +1,24 @@
 import { TRNInteractiveCard } from "@/ui/TRN";
+import { twMerge } from "tailwind-merge";
 import type { ReactNode } from "react";
 import { Bmi270AnimatedParameter } from "./Bmi270AnimatedParameter";
 import type { Bmi270RawSectionItem } from "./bmi270RawTypes";
 import { getBmi270AxisColorClass } from "./bmi270AxisTelemetryStyles";
+import type { SensorDeckCardFrameProps } from "../../types/sensorDeckCardFrame.js";
+import {
+  resolveSensorDeckHeaderTitleClassName,
+  resolveSensorDeckShell,
+} from "../../types/sensorDeckCardFrame.js";
 
-export function Bmi270RawSection(props: {
-  title: string;
-  titleLeadingSlot?: ReactNode;
-  titleTrailingSlot?: ReactNode;
-  items: Bmi270RawSectionItem[];
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
-  dragHandleSlot?: ReactNode;
-  samplingIntervalMs?: number;
-  prefaceSlot?: ReactNode;
-}) {
+export function Bmi270RawSection(
+  props: {
+    title: string;
+    titleLeadingSlot?: ReactNode;
+    titleTrailingSlot?: ReactNode;
+    items: Bmi270RawSectionItem[];
+    prefaceSlot?: ReactNode;
+  } & SensorDeckCardFrameProps,
+) {
   const {
     title,
     titleLeadingSlot,
@@ -25,6 +29,10 @@ export function Bmi270RawSection(props: {
     dragHandleSlot,
     samplingIntervalMs = 0,
     prefaceSlot,
+    shell,
+    headerTitleClassName,
+    headerClassName,
+    cardClassName,
   } = props;
 
   return (
@@ -37,9 +45,10 @@ export function Bmi270RawSection(props: {
         </div>
       }
       titleTrailingSlot={titleTrailingSlot}
-      headerTitleClassName="normal-case tracking-normal text-zinc-100"
-      shell="solid"
-      className="h-auto"
+      headerTitleClassName={resolveSensorDeckHeaderTitleClassName({ headerTitleClassName })}
+      headerClassName={twMerge("course-sensor-telemetry-card__header", headerClassName)}
+      shell={resolveSensorDeckShell({ shell })}
+      className={twMerge("h-auto course-sensor-telemetry-card__shell", cardClassName)}
       collapsible={onToggleCollapsed != null}
       collapsed={collapsed}
       onCollapsedChange={(nextCollapsed) => {

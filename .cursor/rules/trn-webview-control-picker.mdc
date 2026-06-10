@@ -1,0 +1,41 @@
+---
+description: TRN control picker — which component for text, numbers, toggles, menus, hints (read skill before new webview UI)
+alwaysApply: true
+---
+
+# TRN webview control picker
+
+**Before adding or editing UI under `extension/src/webview/**`**, read skill **`webview-ui-elements`** (`.cursor/skills/webview-ui-elements/SKILL.md`) and run its checklist. Match the **nearest sibling panel** in the same app (Course Studio, Sensor Studio, Bitstream, Sensor Telemetry).
+
+## Pick the control
+
+| Need | Use | Avoid |
+|------|-----|--------|
+| Boolean on/off | **`TRNInlineToggleRow`** (Course Studio / Bitstream maintainer cards) | Raw `TRNToggleSwitch` + `<label>`, native checkbox |
+| Boolean inside Sensor Studio node section | **`InspectorCompactToggleRow`** | Heavy `TRNInlineToggleRow` unless the node body already uses it |
+| Enum / mode (3+ options) | **`TRNSelect`** in **`TRNFormField`** | Native `<select>` |
+| Short mutually exclusive chips | **`TRNChipButtonGroup`** / **`TRNSegmentedControl`** | One-off button groups |
+| Free text (title, body, caption) | **`TRNInput`** / **`TRNTextarea`** in **`TRNFormField`**; Course maintainer copy → **`CourseEmojiTextField`** | Unstyled `<input>` |
+| Numeric scalar (Course Studio maintainer) | **`TRNFormField` + `CourseMaintainerScrubNumberField`** (`size="field"`, 13px, reset/step chrome) | Raw **`TRNScrubNumberField`**, native `type="number"` |
+| Numeric scalar (Sensor Studio inspector) | **`InspectorNumericScrubRow`** → **`TRNScrubNumberField`** | Bare scrub input in node sections |
+| Simple numeric (Course Studio maintainer) | **`TRNFormField` + `CourseMaintainerScrubNumberInput`** | Raw **`TRNScrubNumberInput`**, ad-hoc number input |
+| Color | **`TRNColorRingPicker`** / **`CourseBlockColorRow`** | Raw `<input type="color">` |
+| Operator hint on control | **`TRNTooltip`**, **`TRNHintTooltip`**, **`TRNButton` `hint`**, **`TRNInlineToggleRow` `hint`** | HTML **`title`** (`trn-no-native-tooltip.mdc`) |
+| Floating menu / picker | Portal to **`document.body`** + fixed position (`TRNSelect`, **`TRNEmojiPickerPopover`**) | `position: absolute` inside `overflow-hidden` scroll panes |
+| Inspector section card | **`CourseInspectorCard`** / **`TRNInteractiveCard`** — collapsible + Lucide **`titleIcon`** | Flat unmarked `<div>` stacks |
+
+## Typography (maintainer row values)
+
+Align control **value** text with siblings — typically **`text-[13px]`** on **`TRNSelect`** field triggers (`variant="field"` `size="sm"`) and Course Studio scrub rows via **`CourseMaintainerScrubNumberField`** / **`CourseMaintainerScrubNumberInput`** (`TRNScrubNumberField` **`size="field"`**; presets in `courseScrubFieldPresets.ts`). Labels stay **11px** via **`TRNFormField`**. No `tabular-nums` / `font-mono` unless requested.
+
+## Related
+
+- Skill: **`webview-ui-elements`**
+- **`trn-ui-consistency.mdc`**, **`trn-component-first.mdc`**, **`trn-no-native-tooltip.mdc`**, **`trn-glass-dropdown-scrollbars.mdc`**, **`trn-menu-search.mdc`**
+- Sensor Studio detail: **`extension/src/webview/sensor-studio/docs/SENSOR_STUDIO_NODE_UI_RULES.md`**
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.
+
+Keep **`extension/.cursor/rules/trn-webview-control-picker.mdc`** in sync when this file changes.

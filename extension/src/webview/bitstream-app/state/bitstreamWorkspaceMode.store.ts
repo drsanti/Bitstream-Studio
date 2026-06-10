@@ -1,15 +1,17 @@
 import { create } from "zustand";
 import type { BitstreamWorkspaceHostId } from "../../../ternion-shell-host-message.js";
+import { syncDevBitstreamWorkspaceUrl } from "../../landing/bitstreamLandingNav.js";
 import { isViteDevMode } from "../../utils/isViteDevMode.js";
 
 /**
  * Bitstream shell workspaces under {@link BitstreamAppMain}:
  * - **sensor-telemetry** — sensor configuration + live telemetry deck.
  * - **sensor-studio** — flow editor (`SensorStudioApp`).
- * - **presentation** — integrated training / slide deck (`PresentationWorkspace`, v1 frozen).
+ * - **presentation** — legacy v1 slide deck (VS Code side panel only; not in shell toolbar).
  * - **course-studio** — alive documents v2 (`CourseStudioWorkspace`).
  *
- * Tab selection is persisted in localStorage (no `?app=` URL routing).
+ * Tab selection is persisted in localStorage. In Vite dev, toolbar / shortcuts also sync
+ * `?app=bitstream&workspace=` via {@link syncDevBitstreamWorkspaceUrl}.
  */
 export type BitstreamWorkspaceId =
   | "sensor-telemetry"
@@ -66,7 +68,12 @@ function readPersistedBitstreamWorkspace(): BitstreamWorkspaceId | null
   try
   {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return normalizeBitstreamWorkspaceId(raw);
+    const normalized = normalizeBitstreamWorkspaceId(raw);
+    if (normalized === "presentation")
+    {
+      return "course-studio";
+    }
+    return normalized;
   }
   catch
   {
@@ -74,7 +81,7 @@ function readPersistedBitstreamWorkspace(): BitstreamWorkspaceId | null
   }
 }
 
-/** Dev landing sets `?workspace=` via {@link commitBitstreamLandingChoice}. */
+/** Dev URL `?workspace=` — read on boot; written by {@link syncDevBitstreamWorkspaceUrl}. */
 function readBitstreamWorkspaceFromDevUrlParam(): BitstreamWorkspaceId | null
 {
   if (typeof window === "undefined" || !isViteDevMode())
@@ -84,7 +91,12 @@ function readBitstreamWorkspaceFromDevUrlParam(): BitstreamWorkspaceId | null
   try
   {
     const params = new URLSearchParams(window.location.search);
-    return normalizeBitstreamWorkspaceId(params.get("workspace"));
+    const normalized = normalizeBitstreamWorkspaceId(params.get("workspace"));
+    if (normalized === "presentation")
+    {
+      return "course-studio";
+    }
+    return normalized;
   }
   catch
   {
@@ -141,12 +153,14 @@ type BitstreamWorkspaceModeState = {
 export const useBitstreamWorkspaceModeStore = create<BitstreamWorkspaceModeState>((set, get) => ({
   workspace: readInitialBitstreamWorkspace(),
   setWorkspace: (next) => {
-    if (get().workspace === next)
+    const resolved = next === "presentation" ? "course-studio" : next;
+    if (get().workspace === resolved)
     {
       return;
     }
-    set({ workspace: next });
-    persistBitstreamWorkspace(next);
+    set({ workspace: resolved });
+    persistBitstreamWorkspace(resolved);
+    syncDevBitstreamWorkspaceUrl(resolved);
   },
 }));
 

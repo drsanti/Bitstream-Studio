@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "id": "diagram-mq5afv39-1",
+  "title": "New diagram",
+  "linkHealth": "freeze-gray",
+  "viewBox": [
+    0,
+    0,
+    400,
+    300
+  ],
+  "layers": [
+    {
+      "kind": "2d",
+      "nodes": [
+        {
+          "id": "canvas-hint",
+          "type": "text",
+          "x": 200,
+          "y": 150,
+          "content": "Add shapes from the Diagram inspector",
+          "fontSize": 12,
+          "fill": "muted",
+          "textAnchor": "middle"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "canvas-hint",
+      "type": "text",
+      "x": 200,
+      "y": 150,
+      "content": "Add shapes from the Diagram inspector",
+      "fontSize": 12,
+      "fill": "muted",
+      "textAnchor": "middle"
+    }
+  ]
+}

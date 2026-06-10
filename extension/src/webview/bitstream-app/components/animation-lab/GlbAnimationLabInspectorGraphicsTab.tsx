@@ -34,6 +34,7 @@ import {
   TWIN_TAG_TITLE_FONT_PX_MAX,
   TWIN_TAG_WIDTH_PX_MAX,
   TWIN_TAG_WORLD_SCALE_MAX,
+  TWIN_TAG_WORLD_SCALE_MIN,
 } from "./animation-lab-twin-tag-style.types.js";
 import { GlbAnimationLabInspectorTwinLocaleField } from "./GlbAnimationLabInspectorTwinLocaleField.js";
 import { useGlbAnimationLabTwin } from "./glb-animation-lab-twin-context.js";
@@ -188,9 +189,9 @@ export function GlbAnimationLabInspectorGraphicsTab() {
               appearance="divider"
               name="3D world scale"
               value={sharedResolved.worldScale}
-              min={0.001}
+              min={TWIN_TAG_WORLD_SCALE_MIN}
               max={TWIN_TAG_WORLD_SCALE_MAX}
-              step={0.0004}
+              step={0.0001}
               throttleMs={80}
               valueFormatter={(v) => v.toFixed(4)}
               className="px-0"

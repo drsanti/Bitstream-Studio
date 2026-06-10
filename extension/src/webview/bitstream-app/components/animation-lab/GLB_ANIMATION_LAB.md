@@ -1,6 +1,10 @@
 # GLB Animation Lab
 
-Investigation surface for **multi-clip glTF/GLB** playback in Bitstream Studio. Lives beside the frozen **Quaternion · 3D Orientation** card so operators keep a simple fusion preview while integrators and animators compare playback policies.
+Investigation surface for **multi-clip glTF/GLB** playback in Bitstream Studio (internal module path `animation-lab/`).
+
+**Operator UI (Sensor Telemetry workbench):** pane **Digital Twin** · card **Machine Twin** · inspector tab **Machine**. Legacy labels were **3D Orientation** / **GLB Animation Lab**.
+
+The frozen **Quaternion · 3D Orientation** fusion preview cards remain in `components/3d-rotation/` for IMU-only surfaces; they are not mounted in the Telemetry main pane.
 
 ## Related components
 

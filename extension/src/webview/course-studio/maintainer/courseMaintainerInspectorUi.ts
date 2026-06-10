@@ -1,7 +1,7 @@
 import type { LucideIcon } from "lucide-react";
-import { FileText, LayoutGrid, PenLine } from "lucide-react";
+import { FileText, LayoutGrid } from "lucide-react";
 
-export type CourseMaintainerTab = "page" | "block" | "diagram";
+export type CourseMaintainerTab = "page" | "block";
 
 export const COURSE_MAINTAINER_TAB_STORAGE_KEY = "course-studio:maintainer-tab.v1";
 
@@ -12,7 +12,6 @@ export const COURSE_MAINTAINER_TABS: readonly {
 }[] = [
   { id: "page", label: "Page", Icon: FileText },
   { id: "block", label: "Block", Icon: LayoutGrid },
-  { id: "diagram", label: "Diagram", Icon: PenLine },
 ];
 
 export function readStoredCourseMaintainerTab(): CourseMaintainerTab {
@@ -21,8 +20,11 @@ export function readStoredCourseMaintainerTab(): CourseMaintainerTab {
   }
   try {
     const raw = window.localStorage.getItem(COURSE_MAINTAINER_TAB_STORAGE_KEY);
-    if (raw === "page" || raw === "block" || raw === "diagram") {
+    if (raw === "page" || raw === "block") {
       return raw;
+    }
+    if (raw === "diagram") {
+      return "block";
     }
   } catch {
     // ignore

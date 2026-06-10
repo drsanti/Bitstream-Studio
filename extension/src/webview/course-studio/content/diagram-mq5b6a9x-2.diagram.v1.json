@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "id": "diagram-mq5b6a9x-2",
+  "title": "New diagram",
+  "linkHealth": "freeze-gray",
+  "viewBox": [
+    0,
+    0,
+    800,
+    600
+  ],
+  "layers": [
+    {
+      "kind": "2d",
+      "nodes": []
+    }
+  ],
+  "nodes": [],
+  "freeform": {
+    "engine": "konva",
+    "shapes": [],
+    "view": {
+      "width": 800,
+      "height": 600,
+      "background": "#000000"
+    }
+  }
+}

@@ -1,7 +1,20 @@
 import type { ReactNode } from "react";
 import { twMerge } from "tailwind-merge";
+import {
+  TRN_FIELD_CONTROL_LABEL_CLASS,
+  trnFieldControlRowShellClass,
+  type TRNFieldControlSize,
+  type TRNFieldControlVariant,
+} from "./trnFieldControlClasses.js";
 import { TRNHintTooltip } from "./TRNHintTooltip.js";
 import { TRNToggleSwitch } from "./TRNToggleSwitch.js";
+
+export type TRNInlineToggleRowVariant = TRNFieldControlVariant | "plain";
+export type TRNInlineToggleRowSize = TRNFieldControlSize;
+
+/** Default shell preset — matches {@link TRNSelect} `variant="field"` trigger. */
+export const TRN_INLINE_TOGGLE_ROW_DEFAULT_VARIANT: TRNInlineToggleRowVariant = "field";
+export const TRN_INLINE_TOGGLE_ROW_DEFAULT_SIZE: TRNInlineToggleRowSize = "md";
 
 export type TRNInlineToggleRowProps = {
   label: string;
@@ -12,6 +25,10 @@ export type TRNInlineToggleRowProps = {
   disabled?: boolean;
   /** Accessibility label for the switch; defaults to `label`. */
   ariaLabel?: string;
+  /** Row chrome preset. Default `field` — same shell as {@link TRNSelect} field trigger. */
+  variant?: TRNInlineToggleRowVariant;
+  /** Vertical density. Default `md` — same padding as {@link TRNSelect} `size="md"`. */
+  size?: TRNInlineToggleRowSize;
   className?: string;
   /** Extra content between the label column and the switch (stays inline). */
   middleSlot?: ReactNode;
@@ -19,7 +36,7 @@ export type TRNInlineToggleRowProps = {
 
 /**
  * Compact settings row: primary label + optional hint + {@link TRNToggleSwitch}.
- * Visual shell matches {@link TRNSettingRow} (zinc border / muted panel).
+ * Default `variant="field"` matches {@link TRNSelect} field trigger chrome.
  */
 export function TRNInlineToggleRow(props: TRNInlineToggleRowProps) {
   const {
@@ -29,20 +46,19 @@ export function TRNInlineToggleRow(props: TRNInlineToggleRowProps) {
     onCheckedChange,
     disabled = false,
     ariaLabel,
+    variant = TRN_INLINE_TOGGLE_ROW_DEFAULT_VARIANT,
+    size = TRN_INLINE_TOGGLE_ROW_DEFAULT_SIZE,
     className,
     middleSlot,
   } = props;
 
-  const labelNode = (
-    <span className="inline-flex min-h-5 items-center text-xs font-semibold leading-none text-zinc-100">
-      {label}
-    </span>
-  );
+  const labelNode = <span className={TRN_FIELD_CONTROL_LABEL_CLASS}>{label}</span>;
 
   return (
     <div
       className={twMerge(
-        "flex min-h-9.5 items-center justify-between gap-3 rounded-md border border-zinc-700/80 bg-zinc-950/75 p-2 backdrop-blur-sm",
+        "flex w-full items-center justify-between gap-3",
+        trnFieldControlRowShellClass({ variant, size }),
         className,
       )}
     >

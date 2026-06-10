@@ -1,6 +1,7 @@
 import type { DiagramBindingV1, MapOpV1 } from "../../schemas/diagram.v1";
 import type { DiagramLiveSnapshot } from "./diagramBindingCatalog";
-import { resolveDiagramBindingPath } from "./diagramBindingCatalog";
+import { resolveDiagramBindingPath, resolveBindingDisplayUnit } from "./diagramBindingCatalog";
+import { applyBindingDisplayTransform } from "./courseBindingDisplayUnit";
 
 export function applyMapOps(value: number, ops: MapOpV1[] | undefined): number {
   let current = value;
@@ -26,9 +27,11 @@ function resolveBindingNumber(
   }
   if (typeof raw !== "number" || !Number.isFinite(raw)) {
     const fallback = binding.fallback;
-    return typeof fallback === "number" ? fallback : 0;
+    const base = typeof fallback === "number" ? fallback : 0;
+    return applyBindingDisplayTransform(base, binding);
   }
-  return applyMapOps(raw, binding.map);
+  const mapped = applyMapOps(raw, binding.map);
+  return applyBindingDisplayTransform(mapped, binding);
 }
 
 export { resolveBindingNumber };
@@ -82,11 +85,12 @@ export function evaluateTextProp(
   }
   const numeric =
     typeof raw === "number" && Number.isFinite(raw)
-      ? applyMapOps(raw, prop.binding.map)
+      ? applyBindingDisplayTransform(applyMapOps(raw, prop.binding.map), prop.binding)
       : typeof prop.binding.fallback === "number"
-        ? prop.binding.fallback
+        ? applyBindingDisplayTransform(prop.binding.fallback, prop.binding)
         : 0;
   const formatted = formatBindingNumber(numeric, prop.binding.format);
-  const unit = prop.binding.unit ? ` ${prop.binding.unit}` : "";
-  return `${prop.prefix ?? ""}${formatted}${unit}${prop.suffix ?? ""}`;
+  const unit = resolveBindingDisplayUnit(prop.binding);
+  const unitSuffix = unit.length > 0 ? ` ${unit}` : "";
+  return `${prop.prefix ?? ""}${formatted}${unitSuffix}${prop.suffix ?? ""}`;
 }

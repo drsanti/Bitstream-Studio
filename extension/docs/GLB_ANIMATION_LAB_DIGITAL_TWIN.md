@@ -18,7 +18,7 @@ Booth-oriented **machine twin** UI for automation and maintenance storytelling o
 | Sidebar panel | `GlbAnimationLabTwinMachinePanel.tsx` |
 | CSS3D tags (Phase B) | `components/animation-lab/css3d/*` — camera sync, anchor positions, billboard tags |
 
-**Data source** (Machine twin header): `simulated` | `mixed` | `live` — from mapped `liveSourceKey` signals when link is connected, handshake passed, and EVT_SENSOR received within 5 s.
+**Data source** (Machine Twin header): `simulated` | `mixed` | `live` — from mapped `liveSourceKey` signals when link is connected, handshake passed, and EVT_SENSOR received within 5 s.
 
 ### 3D tags (Phase B + polish)
 
@@ -116,8 +116,8 @@ Without metadata, models with multiple gimbal/wing/camera clips get an **inferre
 
 ## Operator flow
 
-1. Open Telemetry workbench → GLB Animation Lab with Tesa Drone (or similar).
-2. **Machine twin** panel shows overall status and grouped subsystems.
+1. Open Telemetry workbench → **Digital Twin** pane → **Machine Twin** card with Tesa Drone (or similar).
+2. **Machine Twin** panel shows overall status and grouped subsystems.
 3. Connect **Bitstream** or **Simulator** → IMU signals with `liveSourceKey` show **Live** or **Mixed**.
 4. Tap a subsystem → step 3 clip syncs (if `glbAnchor` set); enable **Tags** on the viewport for 3D callouts.
 5. Press **Play** → simulated load rises on the active / stressed subsystem (unmapped signals).

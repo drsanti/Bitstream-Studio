@@ -211,7 +211,10 @@ export function BitstreamShellRoot(props: { children?: ReactNode }) {
   const workspace = useBitstreamWorkspaceModeStore((s) => s.workspace);
   const sensorStudioMode = workspace === "sensor-studio";
   const hideShellBootLifecycleBar =
-    workspace === "sensor-studio" || workspace === "sensor-telemetry";
+    workspace === "sensor-studio" ||
+    workspace === "sensor-telemetry" ||
+    workspace === "course-studio" ||
+    workspace === "presentation";
 
   useEffect(() => {
     useWorkspaceHeaderMenuSlotStore.getState().setSections(null);

@@ -5,8 +5,12 @@ import {
   Thermometer,
   Waves,
 } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
-import type { Bmi270LiveSample } from "../../types/bitstreamWorkspaceTypes";
+import { useMemo } from "react";
+import type { Bmi270DeckCardFrameProps } from "../../types/sensorDeckCardFrame.js";
+import {
+  sensorDeckShowsDisplaySettings,
+  sensorDeckShowsUpdateBadge,
+} from "../../types/sensorDeckCardFrame.js";
 import {
   toScaledValue,
   toScaledValueBy,
@@ -37,14 +41,8 @@ import {
 } from "../../telemetry/fusionQuaternionDisplay.js";
 import { TemperatureDisplaySettingsMenu } from "../telemetry/TemperatureDisplaySettingsMenu.js";
 
-export function Bmi270RawGyroDataView(props: {
-  sample: Bmi270LiveSample;
-  samplingIntervalMs: number;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
-  dragHandleSlot?: ReactNode;
-}) {
-  const { sample, samplingIntervalMs, collapsed, onToggleCollapsed, dragHandleSlot } = props;
+export function Bmi270RawGyroDataView(props: Bmi270DeckCardFrameProps) {
+  const { sample, samplingIntervalMs = 0, showUpdateBadge, ...sectionFrame } = props;
   const updateBadge = useSensorLastUpdateBadge("bmi270", samplingIntervalMs);
   return (
     <Bmi270RawSection
@@ -53,13 +51,11 @@ export function Bmi270RawGyroDataView(props: {
         <Activity className="h-4 w-4 text-zinc-400" strokeWidth={2.25} aria-hidden />
       }
       titleTrailingSlot={
-        updateBadge != null ? (
+        sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
           <LastUpdateBadge {...updateBadge} />
         ) : null
       }
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
-      dragHandleSlot={dragHandleSlot}
+      {...sectionFrame}
       samplingIntervalMs={samplingIntervalMs}
       items={[
         {
@@ -85,14 +81,8 @@ export function Bmi270RawGyroDataView(props: {
   );
 }
 
-export function Bmi270RawAccelDataView(props: {
-  sample: Bmi270LiveSample;
-  samplingIntervalMs: number;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
-  dragHandleSlot?: ReactNode;
-}) {
-  const { sample, samplingIntervalMs, collapsed, onToggleCollapsed, dragHandleSlot } = props;
+export function Bmi270RawAccelDataView(props: Bmi270DeckCardFrameProps) {
+  const { sample, samplingIntervalMs = 0, showUpdateBadge, ...sectionFrame } = props;
   const updateBadge = useSensorLastUpdateBadge("bmi270", samplingIntervalMs);
   return (
     <Bmi270RawSection
@@ -101,13 +91,11 @@ export function Bmi270RawAccelDataView(props: {
         <Waves className="h-4 w-4 text-zinc-400" strokeWidth={2.25} aria-hidden />
       }
       titleTrailingSlot={
-        updateBadge != null ? (
+        sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
           <LastUpdateBadge {...updateBadge} />
         ) : null
       }
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
-      dragHandleSlot={dragHandleSlot}
+      {...sectionFrame}
       samplingIntervalMs={samplingIntervalMs}
       items={[
         {
@@ -133,14 +121,9 @@ export function Bmi270RawAccelDataView(props: {
   );
 }
 
-export function Bmi270RawTemperatureDataView(props: {
-  sample: Bmi270LiveSample;
-  samplingIntervalMs: number;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
-  dragHandleSlot?: ReactNode;
-}) {
-  const { sample, samplingIntervalMs, collapsed, onToggleCollapsed, dragHandleSlot } = props;
+export function Bmi270RawTemperatureDataView(props: Bmi270DeckCardFrameProps) {
+  const { sample, samplingIntervalMs = 0, showUpdateBadge, showDisplaySettings, ...sectionFrame } =
+    props;
   const updateBadge = useSensorLastUpdateBadge("bmi270", samplingIntervalMs);
   const bmi270EvtMaskSeenOr = useBitstreamLiveStore((s) => s.bmi270EvtMaskSeenOr);
   const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
@@ -182,13 +165,15 @@ export function Bmi270RawTemperatureDataView(props: {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {updateBadge != null ? <LastUpdateBadge {...updateBadge} /> : null}
-          <TemperatureDisplaySettingsMenu />
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
+            <LastUpdateBadge {...updateBadge} />
+          ) : null}
+          {sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <TemperatureDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
-      dragHandleSlot={dragHandleSlot}
+      {...sectionFrame}
       samplingIntervalMs={samplingIntervalMs}
       prefaceSlot={
         showEnableTempHint ? (
@@ -221,14 +206,9 @@ export function Bmi270RawTemperatureDataView(props: {
   );
 }
 
-export function Bmi270FusionQuaternionDataView(props: {
-  sample: Bmi270LiveSample;
-  samplingIntervalMs: number;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
-  dragHandleSlot?: ReactNode;
-}) {
-  const { sample, samplingIntervalMs, collapsed, onToggleCollapsed, dragHandleSlot } = props;
+export function Bmi270FusionQuaternionDataView(props: Bmi270DeckCardFrameProps) {
+  const { sample, samplingIntervalMs = 0, showUpdateBadge, showDisplaySettings, ...sectionFrame } =
+    props;
   const qtQx = useBmi270FusionQuatOrientationStore((s) => s.qx);
   const qtQy = useBmi270FusionQuatOrientationStore((s) => s.qy);
   const qtQz = useBmi270FusionQuatOrientationStore((s) => s.qz);
@@ -371,29 +351,26 @@ export function Bmi270FusionQuaternionDataView(props: {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {qtLastAtMs != null && updateBadge != null ? (
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) &&
+          qtLastAtMs != null &&
+          updateBadge != null ? (
             <LastUpdateBadge {...updateBadge} lastAtMs={qtLastAtMs} />
           ) : null}
-          <Bmi270FusionQuaternionDisplaySettingsMenu />
+          {sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <Bmi270FusionQuaternionDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
-      dragHandleSlot={dragHandleSlot}
+      {...sectionFrame}
       samplingIntervalMs={samplingIntervalMs}
       items={quatItems}
     />
   );
 }
 
-export function Bmi270FusionEulerDataView(props: {
-  sample: Bmi270LiveSample;
-  samplingIntervalMs: number;
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
-  dragHandleSlot?: ReactNode;
-}) {
-  const { sample, samplingIntervalMs, collapsed, onToggleCollapsed, dragHandleSlot } = props;
+export function Bmi270FusionEulerDataView(props: Bmi270DeckCardFrameProps) {
+  const { sample, samplingIntervalMs = 0, showUpdateBadge, showDisplaySettings, ...sectionFrame } =
+    props;
   const etPitchRad = useBmi270FusionEulerWireTapStore((s) => s.pitchRad);
   const etRollRad = useBmi270FusionEulerWireTapStore((s) => s.rollRad);
   const etYawRad = useBmi270FusionEulerWireTapStore((s) => s.yawRad);
@@ -435,15 +412,17 @@ export function Bmi270FusionEulerDataView(props: {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {etLastAtMs != null && updateBadge != null ? (
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) &&
+          etLastAtMs != null &&
+          updateBadge != null ? (
             <LastUpdateBadge {...updateBadge} lastAtMs={etLastAtMs} />
           ) : null}
-          <Bmi270FusionEulerDisplaySettingsMenu />
+          {sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <Bmi270FusionEulerDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      collapsed={collapsed}
-      onToggleCollapsed={onToggleCollapsed}
-      dragHandleSlot={dragHandleSlot}
+      {...sectionFrame}
       samplingIntervalMs={samplingIntervalMs}
       items={[
         {

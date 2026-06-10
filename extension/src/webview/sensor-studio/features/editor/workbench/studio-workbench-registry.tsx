@@ -1,3 +1,4 @@
+import { lazy, Suspense, type ReactNode } from "react";
 import {
   BookOpen,
   GitBranch,
@@ -9,13 +10,28 @@ import {
 } from "lucide-react";
 import type { WorkbenchRegistry } from "../../../../ui/workbench";
 import { AssetBrowsePanel } from "../../../../assets-manager/browse/AssetBrowsePanel.js";
-import { FlowCanvas } from "../components/FlowCanvas";
-import { NodeInspector } from "../components/NodeInspector";
 import { NodePalette } from "../components/NodePalette";
 import { useStudioWorkbenchShell } from "./studio-workbench-context";
-import { DashboardViewport } from "../../dashboard/DashboardViewport";
-import { StageViewport } from "../../stage/StageViewport";
 import { ModelOutlinerPanel } from "../model-outliner/ModelOutlinerPanel";
+
+const LazyFlowCanvas = lazy(() =>
+  import("../components/FlowCanvas").then((m) => ({ default: m.FlowCanvas })),
+);
+const LazyNodeInspector = lazy(() =>
+  import("../components/NodeInspector").then((m) => ({ default: m.NodeInspector })),
+);
+const LazyDashboardViewport = lazy(() =>
+  import("../../dashboard/DashboardViewport").then((m) => ({
+    default: m.DashboardViewport,
+  })),
+);
+const LazyStageViewport = lazy(() =>
+  import("../../stage/StageViewport").then((m) => ({ default: m.StageViewport })),
+);
+
+function WorkbenchPaneSuspense({ children }: { children: ReactNode }) {
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
 
 export function WorkbenchLibraryPanel() {
   const p = useStudioWorkbenchShell();
@@ -39,7 +55,8 @@ export function WorkbenchModelOutlinerPanel() {
 export function WorkbenchFlowPanel() {
   const p = useStudioWorkbenchShell();
   return (
-    <FlowCanvas
+    <WorkbenchPaneSuspense>
+    <LazyFlowCanvas
       ref={p.flowCanvasGraphRef ?? undefined}
       borderColor={p.borderColor}
       panelColor={p.panelBackgroundColor}
@@ -78,6 +95,7 @@ export function WorkbenchFlowPanel() {
       onFlowCanvasPreferencesChange={p.onFlowCanvasPreferencesChange}
       onFlowPanePointerEvent={p.onFlowPanePointerEvent}
     />
+    </WorkbenchPaneSuspense>
   );
 }
 
@@ -96,7 +114,8 @@ export function WorkbenchAssetsPanel() {
 export function WorkbenchInspectorPanel() {
   const p = useStudioWorkbenchShell();
   return (
-    <NodeInspector
+    <WorkbenchPaneSuspense>
+    <LazyNodeInspector
       borderColor={p.borderColor}
       panelColor={p.panelBackgroundColor}
       selectedNode={p.selectedNode}
@@ -131,6 +150,23 @@ export function WorkbenchInspectorPanel() {
         onStagePresentationPreferencesChange: p.onStagePresentationPreferencesChange,
       }}
     />
+    </WorkbenchPaneSuspense>
+  );
+}
+
+export function WorkbenchStagePanel() {
+  return (
+    <WorkbenchPaneSuspense>
+      <LazyStageViewport />
+    </WorkbenchPaneSuspense>
+  );
+}
+
+export function WorkbenchDashboardPanel() {
+  return (
+    <WorkbenchPaneSuspense>
+      <LazyDashboardViewport />
+    </WorkbenchPaneSuspense>
   );
 }
 
@@ -153,12 +189,12 @@ export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
   stage: {
     icon: <MonitorPlay className="size-3.5" aria-hidden />,
     label: "Stage",
-    component: StageViewport,
+    component: WorkbenchStagePanel,
   },
   dashboard: {
     icon: <LayoutGrid className="size-3.5" aria-hidden />,
     label: "Dashboard",
-    component: DashboardViewport,
+    component: WorkbenchDashboardPanel,
   },
   flow: {
     icon: <GitBranch className="size-3.5" aria-hidden />,

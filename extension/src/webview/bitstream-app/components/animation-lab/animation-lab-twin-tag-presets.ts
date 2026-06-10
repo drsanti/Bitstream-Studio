@@ -149,7 +149,7 @@ const PRESET_BY_ID = new Map(
   ANIMATION_LAB_TWIN_TAG_PRESETS.map((preset) => [preset.id, preset]),
 );
 
-export const DEFAULT_TWIN_TAG_PRESET_ID: AnimationLabTwinTagPresetId = "industrial-hud";
+export const DEFAULT_TWIN_TAG_PRESET_ID: AnimationLabTwinTagPresetId = "minimal-glass";
 
 export function isAnimationLabTwinTagPresetId(
   value: unknown,
@@ -169,7 +169,11 @@ export function resolveTwinTagPresetId(
 export function resolveTwinTagPresetDef(
   global: AnimationLabTwinTagGlobalStyle | undefined,
 ): AnimationLabTwinTagPresetDef {
-  return PRESET_BY_ID.get(resolveTwinTagPresetId(global)) ?? ANIMATION_LAB_TWIN_TAG_PRESETS[0];
+  return (
+    PRESET_BY_ID.get(resolveTwinTagPresetId(global)) ??
+    PRESET_BY_ID.get(DEFAULT_TWIN_TAG_PRESET_ID) ??
+    ANIMATION_LAB_TWIN_TAG_PRESETS[0]
+  );
 }
 
 export function twinTagPresetSelectOptions(

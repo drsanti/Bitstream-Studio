@@ -84,78 +84,78 @@ import {
   resolveStudioNodeMinDimensionFloor,
 } from "./flow-node/studio-node-resize-defaults";
 import { STUDIO_VIEWPORT_PREVIEW_PANEL_CHROME_HEIGHT_PX } from "./flow-node/studio-viewport-preview-layout";
-import { ModelSelectNodePanel } from "./model-nodes/ModelSelectNodePanel";
-import { GlbMaterialTextureNodePanel } from "./material/GlbMaterialTextureNodePanel";
-import { GlbMaterialColorNodePanel } from "./material/GlbMaterialColorNodePanel";
 import { isMeshMaterialNodeId } from "./material/mesh-material-config";
-import { MeshMaterialNodePanel } from "./material/MeshMaterialNodePanel";
-import { MeshGroupNodePanel } from "./mesh/MeshGroupNodePanel";
 import { isMeshPrimitiveNodeId } from "./mesh/mesh-primitive-config";
-import { MeshPrimitiveNodePanel } from "./mesh/MeshPrimitiveNodePanel";
-import { MathNodePanel } from "./math/MathNodePanel";
-import {
-  CompareNodePanel,
-  CompareOperationHeaderChip,
-} from "./math/CompareNodePanel";
 import { normalizeCompareOperation } from "../../../core/flow/compare-operations";
-import { LogicGateNodePanel } from "./math/LogicGateNodePanel";
-import { MultiplexerNodePanel } from "./data/MultiplexerNodePanel";
-import { GlbAnimationBundleNodePanel } from "./animation/glb-animation-bundle-node-panel";
-import { AnimationClipNodePanel } from "./animation/animation-clip-node-panel";
-import { PartSpinNodePanel } from "./scene/part-spin-node-panel";
-import { ModelViewerNodePanel } from "./model-nodes/ModelViewerNodePanel";
 import { StudioFlowCanvasDisplayScaleProvider } from "./display/studio-canvas-display-scale";
-import {
-  BooleanConstantNodePanel,
-  NumberConstantNodePanel,
-} from "./constants/ConstantGeneratorPanels";
 import { isNumericConstantNodeId } from "./constants/number-constant-helpers";
-import { EnvironmentNodePanel } from "./environment/EnvironmentNodePanel";
-import { CameraViewNodePanel } from "./camera-view/CameraViewNodePanel";
-import { StudioSceneViewport } from "../../../core/viewport/StudioSceneViewport";
-import { PlotterCanvas } from "./plotter/PlotterCanvas";
-import { SparklineNodePanel } from "./sparkline/SparklineNodePanel";
-import { RadialGaugeNodePanel } from "./radial-gauge/RadialGaugeNodePanel";
-import { BarMeterNodePanel } from "./bar-meter/BarMeterNodePanel";
-import { LedIndicatorNodePanel } from "./led-indicator/LedIndicatorNodePanel";
-import { KnobNodePanel } from "./knob/KnobNodePanel";
-import { NumericDisplayNodePanel } from "./numeric-display/NumericDisplayNodePanel";
 import {
-  AudioFilePlayerNodePanel,
-  AudioOscillatorNodePanel,
-  AudioOutputNodePanel,
-  AudioScopeNodePanel,
-  AudioMachineNodePanel,
-  AudioSfxNodePanel,
-  MicInputNodePanel,
-} from "./audio/AudioNodePanels";
-import { AudioFilePlayerHeaderBadge } from "./audio/AudioFilePlayerHeaderBadge";
-import { AudioOscillatorHeaderBadge } from "./audio/AudioOscillatorHeaderBadge";
-import { AudioOutputHeaderBadge } from "./audio/AudioOutputHeaderBadge";
-import { AudioScopeHeaderBadge } from "./audio/AudioScopeHeaderBadge";
-import { MicInputHeaderBadge } from "./audio/MicInputHeaderBadge";
-import {
-  CameraInputNodePanel,
-  VideoTextureNodePanel,
-} from "./camera/CameraNodePanels";
-import { MaterialVideoNodePanel } from "./camera/MaterialVideoNodePanel";
-import { Css3dCameraFeedNodePanel } from "./camera/Css3dCameraFeedNodePanel";
-import { CameraInputHeaderBadge } from "./camera/CameraInputHeaderBadge";
-import { VideoTextureHeaderBadge } from "./camera/VideoTextureHeaderBadge";
-import { MaterialVideoHeaderBadge } from "./camera/MaterialVideoHeaderBadge";
-import { Css3dCameraFeedHeaderBadge } from "./camera/Css3dCameraFeedHeaderBadge";
-import { VisionPoseHeaderBadge } from "./camera/VisionPoseHeaderBadge";
-import { VisionPoseNodePanel } from "./camera/VisionPoseNodePanel";
-import {
-  VisionFaceHeaderBadge,
-  VisionFaceNodePanel,
-  VisionHandsHeaderBadge,
-  VisionHandsNodePanel,
-  VisionLandmarksDebugHeaderBadge,
-  VisionLandmarksDebugNodePanel,
-  VisionObjectHeaderBadge,
-  VisionObjectNodePanel,
-} from "./camera/VisionExpansionNodePanels";
+  StudioNodePanelSuspense,
+  LazyModelSelectNodePanel as ModelSelectNodePanel,
+  LazyGlbMaterialTextureNodePanel as GlbMaterialTextureNodePanel,
+  LazyGlbMaterialColorNodePanel as GlbMaterialColorNodePanel,
+  LazyMeshMaterialNodePanel as MeshMaterialNodePanel,
+  LazyMeshGroupNodePanel as MeshGroupNodePanel,
+  LazyMeshPrimitiveNodePanel as MeshPrimitiveNodePanel,
+  LazyMathNodePanel as MathNodePanel,
+  LazyCompareNodePanel as CompareNodePanel,
+  LazyCompareOperationHeaderChip as CompareOperationHeaderChip,
+  LazyLogicGateNodePanel as LogicGateNodePanel,
+  LazyMultiplexerNodePanel as MultiplexerNodePanel,
+  LazyGlbAnimationBundleNodePanel as GlbAnimationBundleNodePanel,
+  LazyAnimationClipNodePanel as AnimationClipNodePanel,
+  LazyPartSpinNodePanel as PartSpinNodePanel,
+  LazyModelViewerNodePanel as ModelViewerNodePanel,
+  LazyBooleanConstantNodePanel as BooleanConstantNodePanel,
+  LazyNumberConstantNodePanel as NumberConstantNodePanel,
+  LazyEnvironmentNodePanel as EnvironmentNodePanel,
+  LazyCameraViewNodePanel as CameraViewNodePanel,
+  LazyStudioSceneViewport as StudioSceneViewport,
+  LazyPlotterCanvas as PlotterCanvas,
+  LazySparklineNodePanel as SparklineNodePanel,
+  LazyRadialGaugeNodePanel as RadialGaugeNodePanel,
+  LazyBarMeterNodePanel as BarMeterNodePanel,
+  LazyLedIndicatorNodePanel as LedIndicatorNodePanel,
+  LazyKnobNodePanel as KnobNodePanel,
+  LazyNumericDisplayNodePanel as NumericDisplayNodePanel,
+  LazyAudioFilePlayerNodePanel as AudioFilePlayerNodePanel,
+  LazyAudioOscillatorNodePanel as AudioOscillatorNodePanel,
+  LazyAudioOutputNodePanel as AudioOutputNodePanel,
+  LazyAudioScopeNodePanel as AudioScopeNodePanel,
+  LazyAudioMachineNodePanel as AudioMachineNodePanel,
+  LazyAudioSfxNodePanel as AudioSfxNodePanel,
+  LazyMicInputNodePanel as MicInputNodePanel,
+  LazyAudioFilePlayerHeaderBadge as AudioFilePlayerHeaderBadge,
+  LazyAudioOscillatorHeaderBadge as AudioOscillatorHeaderBadge,
+  LazyAudioOutputHeaderBadge as AudioOutputHeaderBadge,
+  LazyAudioScopeHeaderBadge as AudioScopeHeaderBadge,
+  LazyMicInputHeaderBadge as MicInputHeaderBadge,
+  LazyCameraInputNodePanel as CameraInputNodePanel,
+  LazyVideoTextureNodePanel as VideoTextureNodePanel,
+  LazyMaterialVideoNodePanel as MaterialVideoNodePanel,
+  LazyCss3dCameraFeedNodePanel as Css3dCameraFeedNodePanel,
+  LazyCameraInputHeaderBadge as CameraInputHeaderBadge,
+  LazyVideoTextureHeaderBadge as VideoTextureHeaderBadge,
+  LazyMaterialVideoHeaderBadge as MaterialVideoHeaderBadge,
+  LazyCss3dCameraFeedHeaderBadge as Css3dCameraFeedHeaderBadge,
+  LazyVisionPoseHeaderBadge as VisionPoseHeaderBadge,
+  LazyVisionPoseNodePanel as VisionPoseNodePanel,
+  LazyVisionFaceHeaderBadge as VisionFaceHeaderBadge,
+  LazyVisionFaceNodePanel as VisionFaceNodePanel,
+  LazyVisionHandsHeaderBadge as VisionHandsHeaderBadge,
+  LazyVisionHandsNodePanel as VisionHandsNodePanel,
+  LazyVisionLandmarksDebugHeaderBadge as VisionLandmarksDebugHeaderBadge,
+  LazyVisionLandmarksDebugNodePanel as VisionLandmarksDebugNodePanel,
+  LazyVisionObjectHeaderBadge as VisionObjectHeaderBadge,
+  LazyVisionObjectNodePanel as VisionObjectNodePanel,
+  LazyEventSetBooleanNodePanel as EventSetBooleanNodePanel,
+  LazyEventSetGlbPartNodePanel as EventSetGlbPartNodePanel,
+  LazyEventToggleBooleanNodePanel as EventToggleBooleanNodePanel,
+  LazyEventToggleGlbPartNodePanel as EventToggleGlbPartNodePanel,
+  LazyEventTriggerGlbAnimNodePanel as EventTriggerGlbAnimNodePanel,
+  LazyOnClickNodePanel as OnClickNodePanel,
+  LazyOnKeyNodePanel as OnKeyNodePanel,
+} from "./studio-node-card-lazy-panels";
 import { isStudioFlexPlotCanvasNodeId } from "./flow-node/studio-flex-plot-canvas";
 import {
   coercePlotterConfig,
@@ -180,15 +180,6 @@ import { mergeFlowSceneWiresIntoScene3d } from "./scene-fx/merge-flow-scene-wire
 import { buildGlbAnimationPreviewSceneProps } from "../gltf/build-glb-animation-preview-scene-props";
 import { buildGlbScalarPreviewSceneProps } from "../gltf/build-glb-scalar-preview-scene-props";
 import { graphHasVisionHudNodes } from "../../../core/camera/collect-vision-hud-chips";
-import {
-  EventSetBooleanNodePanel,
-  EventSetGlbPartNodePanel,
-  EventToggleBooleanNodePanel,
-  EventToggleGlbPartNodePanel,
-  EventTriggerGlbAnimNodePanel,
-  OnClickNodePanel,
-  OnKeyNodePanel,
-} from "./events/EventFlowNodePanels";
 import type { RotationPreviewSceneProps } from "../../../../bitstream-app/components/3d-rotation/shared/RotationPreviewScene";
 
 const handleDotClass =
@@ -873,7 +864,7 @@ function StudioNodeCard(props: NodeProps) {
     sensorHealthBadge != null ||
     invalidBadge != null ||
     sensorFamilyTag != null ? (
-      <>
+      <StudioNodePanelSuspense>
         {compareOperationChip}
         {micHeaderBadge}
         {cameraHeaderBadge}
@@ -892,7 +883,7 @@ function StudioNodeCard(props: NodeProps) {
         {sensorFamilyTag}
         {invalidBadge}
         {sensorHealthBadge}
-      </>
+      </StudioNodePanelSuspense>
     ) : null;
 
   const hasSocketRegion =
@@ -1561,10 +1552,12 @@ function StudioNodeCard(props: NodeProps) {
 
           {isNumericConstantNode ? (
             <FlowNodeBody ref={bodyMeasureRef}>
-              <NumberConstantNodePanel
-                nodeId={id}
-                defaultConfig={data.defaultConfig}
-              />
+              <StudioNodePanelSuspense>
+                <NumberConstantNodePanel
+                  nodeId={id}
+                  defaultConfig={data.defaultConfig}
+                />
+              </StudioNodePanelSuspense>
             </FlowNodeBody>
           ) : null}
 
@@ -1618,6 +1611,7 @@ function StudioNodeCard(props: NodeProps) {
                     : "space-y-0"
               }
             >
+              <StudioNodePanelSuspense>
               {data.nodeId === "rotation-3d-euler" ? (
                 <StudioSceneViewport
                   title="3D Scene (Euler)"
@@ -1978,6 +1972,7 @@ function StudioNodeCard(props: NodeProps) {
                   />
                 </ReadingPanel>
               ) : null}
+              </StudioNodePanelSuspense>
             </FlowNodeBody>
             </div>
           ) : null}

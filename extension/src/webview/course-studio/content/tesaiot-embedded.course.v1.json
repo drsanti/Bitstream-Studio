@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "id": "tesaiot-embedded",
+  "title": "TESAIoT Embedded",
+  "description": "Embedded sensors on the TESAIoT platform — how they work, how to read live data, and how to apply them in real-world operator views.",
+  "root": {
+    "id": "book-tesaiot-embedded",
+    "kind": "book",
+    "title": "TESAIoT Embedded",
+    "children": [
+      {
+        "id": "chapter-bmi270",
+        "kind": "chapter",
+        "title": "BMI270 — MEMS accelerometer",
+        "children": [
+          {
+            "id": "topic-bmi270-overview",
+            "kind": "topic",
+            "title": "Overview & measurement model",
+            "pageId": "bmi270-overview"
+          },
+          {
+            "id": "topic-bmi270-mems",
+            "kind": "topic",
+            "title": "MEMS design & signal quality",
+            "pageId": "bmi270-mems-design"
+          },
+          {
+            "id": "topic-bmi270-live",
+            "kind": "topic",
+            "title": "Live visualization",
+            "pageId": "bmi270-live-visualization"
+          },
+          {
+            "id": "topic-bmi270-applications",
+            "kind": "topic",
+            "title": "Applications & dashboards",
+            "pageId": "bmi270-applications"
+          }
+        ]
+      },
+      {
+        "id": "chapter-1",
+        "kind": "chapter",
+        "title": "Tesring",
+        "children": [
+          {
+            "id": "topic-1",
+            "kind": "topic",
+            "title": "3D Scene Block",
+            "pageId": "new-topic",
+            "children": []
+          }
+        ]
+      },
+      {
+        "id": "chapter-sht40",
+        "kind": "chapter",
+        "title": "SHT40 — humidity & temperature",
+        "children": [
+          {
+            "id": "topic-sht40-overview",
+            "kind": "topic",
+            "title": "Overview & measurement model",
+            "pageId": "sht40-overview"
+          },
+          {
+            "id": "topic-sht40-comfort",
+            "kind": "topic",
+            "title": "RH, comfort & signal quality",
+            "pageId": "sht40-comfort"
+          },
+          {
+            "id": "topic-sht40-live",
+            "kind": "topic",
+            "title": "Live visualization",
+            "pageId": "sht40-live"
+          },
+          {
+            "id": "topic-sht40-applications",
+            "kind": "topic",
+            "title": "Applications & dashboards",
+            "pageId": "sht40-applications"
+          }
+        ]
+      },
+      {
+        "id": "chapter-bmm350",
+        "kind": "chapter",
+        "title": "BMM350 — magnetometer",
+        "children": [
+          {
+            "id": "topic-bmm350-overview",
+            "kind": "topic",
+            "title": "Overview & measurement model",
+            "pageId": "bmm350-overview"
+          },
+          {
+            "id": "topic-bmm350-field",
+            "kind": "topic",
+            "title": "Earth field & heading",
+            "pageId": "bmm350-field"
+          },
+          {
+            "id": "topic-bmm350-live",
+            "kind": "topic",
+            "title": "Live visualization",
+            "pageId": "bmm350-live"
+          },
+          {
+            "id": "topic-bmm350-applications",
+            "kind": "topic",
+            "title": "Applications & dashboards",
+            "pageId": "bmm350-applications"
+          }
+        ]
+      },
+      {
+        "id": "chapter-dps368",
+        "kind": "chapter",
+        "title": "DPS368 — barometric pressure",
+        "children": [
+          {
+            "id": "topic-dps368-overview",
+            "kind": "topic",
+            "title": "Overview & measurement model",
+            "pageId": "dps368-overview"
+          },
+          {
+            "id": "topic-dps368-altitude",
+            "kind": "topic",
+            "title": "Pressure, altitude & signal quality",
+            "pageId": "dps368-altitude"
+          },
+          {
+            "id": "topic-dps368-live",
+            "kind": "topic",
+            "title": "Live visualization",
+            "pageId": "dps368-live"
+          },
+          {
+            "id": "topic-dps368-applications",
+            "kind": "topic",
+            "title": "Applications & dashboards",
+            "pageId": "dps368-applications"
+          }
+        ]
+      }
+    ]
+  }
+}

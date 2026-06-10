@@ -1,8 +1,8 @@
 /**
- * GLB Animation Lab — multi-clip investigation preview (solo / parallel).
- * Spec: `GLB_ANIMATION_LAB.md`. Quaternion orientation card stays frozen separately.
+ * Machine Twin — catalog GLB viewport (playback, CSS3D tags, twin inspector).
+ * Internal module path: `animation-lab/`. Spec: `GLB_ANIMATION_LAB.md`.
  */
-import { Clapperboard } from "lucide-react";
+import { Boxes } from "lucide-react";
 import { TRNInteractiveCard } from "@/ui/TRN";
 import { GlbAnimationLabViewport } from "./GlbAnimationLabViewport.js";
 
@@ -17,9 +17,9 @@ export function GlbAnimationLabPreviewCard(props: GlbAnimationLabPreviewCardProp
 
   return (
     <TRNInteractiveCard
-      title="GLB Animation Lab"
+      title="Machine Twin"
       titleLeadingSlot={
-        <Clapperboard className="h-4 w-4 text-zinc-400" strokeWidth={2.25} aria-hidden />
+        <Boxes className="h-4 w-4 text-zinc-400" strokeWidth={2.25} aria-hidden />
       }
       headerTitleClassName="normal-case tracking-normal text-zinc-100"
       className="flex min-h-0 flex-1 flex-col rounded-md border-zinc-700/80 bg-black/40 p-2 shadow-[0_8px_24px_rgba(0,0,0,0.35)]"

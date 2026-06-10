@@ -22,15 +22,48 @@ export function pointerToDashboardGridCell(args: {
   clientY: number;
   gridRect: DOMRect;
   metrics: DashboardGridMetricsV1;
+  gridElement?: HTMLElement | null;
 }): { column: number; row: number } {
   const { clientX, clientY, gridRect, metrics } = args;
-  const { columns, gapPx, paddingPx, rowHeightPx } = metrics;
-  const innerWidth = Math.max(1, gridRect.width - paddingPx * 2);
+  let { columns, gapPx, paddingPx, rowHeightPx } = metrics;
+  let rowGapPx = gapPx;
+  let paddingTopPx = paddingPx;
+  let paddingRightPx = paddingPx;
+
+  if (args.gridElement != null) {
+    const style = getComputedStyle(args.gridElement);
+    const paddingLeft = Number.parseFloat(style.paddingLeft);
+    const paddingTop = Number.parseFloat(style.paddingTop);
+    const paddingRight = Number.parseFloat(style.paddingRight);
+    const columnGap = Number.parseFloat(style.columnGap);
+    const parsedRowGap = Number.parseFloat(style.rowGap);
+    if (Number.isFinite(paddingLeft)) {
+      paddingPx = paddingLeft;
+    }
+    if (Number.isFinite(paddingTop)) {
+      paddingTopPx = paddingTop;
+    }
+    if (Number.isFinite(paddingRight)) {
+      paddingRightPx = paddingRight;
+    }
+    if (Number.isFinite(columnGap)) {
+      gapPx = columnGap;
+    }
+    if (Number.isFinite(parsedRowGap)) {
+      rowGapPx = parsedRowGap;
+    }
+    const autoRowPx = Number.parseFloat(style.gridAutoRows);
+    if (Number.isFinite(autoRowPx) && autoRowPx > 0) {
+      rowHeightPx = autoRowPx;
+    }
+  }
+
+  const innerWidth = Math.max(1, gridRect.width - paddingPx - paddingRightPx);
   const colWidth = (innerWidth - gapPx * Math.max(0, columns - 1)) / columns;
   const stepX = colWidth + gapPx;
-  const stepY = rowHeightPx + gapPx;
+  const stepY = rowHeightPx + rowGapPx;
   const x = clientX - gridRect.left - paddingPx;
-  const y = clientY - gridRect.top - paddingPx;
+  const y = clientY - gridRect.top - paddingTopPx;
   const column = Math.min(columns, Math.max(1, Math.floor(x / stepX) + 1));
   const row = Math.max(1, Math.floor(y / stepY) + 1);
   return { column, row };
@@ -148,6 +181,7 @@ export function startDashboardGridResizeSession(args: {
       clientY,
       gridRect: args.gridElement.getBoundingClientRect(),
       metrics: args.metrics,
+      gridElement: args.gridElement,
     });
     return computeDashboardPlacementFromResize({
       base: args.basePlacement,

@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "bmm350-field",
+  "title": "BMM350 — Earth field & heading",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-field",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMM350 · Field",
+      "title": "Earth field, interference, and level compass",
+      "subtitle": "Interpreting µT components, magnitude, and heading when the board stays horizontal."
+    },
+    {
+      "id": "callout-warning",
+      "kind": "callout-warning",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Local distortion",
+      "body": "Nearby steel, speakers, and power paths shift the field — expect bench offsets unless calibrated.",
+      "icon": "AlertTriangle"
+    },
+    {
+      "id": "md-field",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 6 },
+      "src": "bmm350-field.theory.md"
+    },
+    {
+      "id": "dash-bx",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Bx",
+      "widgetKind": "text",
+      "style": { "label": "Bx", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.bx", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-by",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
+      "title": "By",
+      "widgetKind": "text",
+      "style": { "label": "By", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.by", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-mag-valid",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Mag valid",
+      "widgetKind": "led",
+      "style": { "label": "Mag valid", "threshold": 0.5, "blink": false, "showStatusBar": true },
+      "binding": { "path": "bmm350.magValid", "fallback": 0 }
+    }
+  ]
+}

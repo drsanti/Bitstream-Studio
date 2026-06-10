@@ -7,10 +7,13 @@ alwaysApply: true
 
 When adding UI under **`extension/src/webview/`**:
 
-1. **Use TRN components if possible** — prefer **`extension/src/webview/ui/TRN`** (`TRNSelect`, `TRNScrubNumberInput`, `TRNFormField`, `TRNToggleSwitch`, `TRNButton`, hints, menus, etc.) over native `<select>`, raw `<input>`, or one-off styled controls.
-2. **Inspector rows** — use shared wrappers (`InspectorSelectField` → **`TRNSelect`**, `InspectorNumericField` → **`TRNScrubNumberInput`**, `InspectorCompactToggleRow`, …) under **`sensor-studio/.../inspector/`**.
-3. **Match sibling panels** — reuse patterns from Bitstream / Sensor Studio before inventing new styles.
-4. **Catalog widgets** — shared non-TRN pieces live in **`extension/src/webview/ui/catalog/`** (no `@ternion/t3d`).
+1. **Read skill `webview-ui-elements`** and rule **`trn-webview-control-picker.mdc`** **before** implementing new controls.
+2. **Use TRN components if possible** — prefer **`extension/src/webview/ui/TRN`** over native `<select>`, raw `<input>`, or one-off styled controls.
+3. **Inspector rows** — app-specific wrappers (Course Studio: **`TRNInlineToggleRow`**, **`CourseEmojiTextField`**, **`CourseMaintainerScrubNumberField`**, **`CourseMaintainerScrubNumberInput`**; Sensor Studio: **`InspectorNumericScrubRow`**, **`InspectorCompactToggleRow`**).
+4. **Match sibling panels** — reuse patterns from the same app before inventing new styles.
+5. **Catalog widgets** — shared non-TRN pieces live in **`extension/src/webview/ui/catalog/`** (no `@ternion/t3d`).
+
+Typography, collapsible icon cards, and “create TRN when missing”: **`trn-ui-consistency.mdc`**.
 
 Scrollable TRN menus: **`trn-glass-dropdown-scrollbars.mdc`** (`scrollbar-hide` on list panels).
 

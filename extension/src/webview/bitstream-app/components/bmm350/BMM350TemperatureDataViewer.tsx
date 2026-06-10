@@ -1,6 +1,11 @@
 import { TRNInteractiveCard } from "@/ui/TRN";
 import { Thermometer } from "lucide-react";
 import type { BMM350DataViewerProps } from "../../types/sensorDeckCardFrame";
+import {
+  sensorDeckCardChromeProps,
+  sensorDeckShowsDisplaySettings,
+  sensorDeckShowsUpdateBadge,
+} from "../../types/sensorDeckCardFrame";
 import { metricProgressPercent } from "../../telemetry/telemetryFormat";
 import { useSensorLastUpdateBadge } from "../telemetry/useSensorLastUpdateBadge.js";
 import { SensorMetricRow } from "../telemetry/SensorMetricRow";
@@ -16,6 +21,8 @@ export function BMM350TemperatureDataViewer(props: BMM350DataViewerProps) {
     collapsed,
     onToggleCollapsed,
     dragHandleSlot,
+    showUpdateBadge,
+    showDisplaySettings,
   } = props;
   const updateBadge = useSensorLastUpdateBadge("bmm350", samplingIntervalMs);
   const temperatureUnit = useBitstreamConfigStore((s) => s.temperatureDisplayUnit);
@@ -36,13 +43,15 @@ export function BMM350TemperatureDataViewer(props: BMM350DataViewerProps) {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {updateBadge != null ? <LastUpdateBadge {...updateBadge} /> : null}
-          <TemperatureDisplaySettingsMenu />
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
+            <LastUpdateBadge {...updateBadge} />
+          ) : null}
+          {sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <TemperatureDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      headerTitleClassName="normal-case tracking-normal text-zinc-100"
-      shell="solid"
-      className="h-auto"
+      {...sensorDeckCardChromeProps(props)}
       collapsible={onToggleCollapsed != null}
       collapsed={collapsed}
       onCollapsedChange={(nextCollapsed) => {

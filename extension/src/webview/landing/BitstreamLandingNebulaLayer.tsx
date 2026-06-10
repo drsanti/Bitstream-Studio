@@ -12,6 +12,7 @@
  *******************************************************************************/
 
 import { useEffect, useRef } from "react";
+import { disposeCanvas2d } from "../shared/canvas/disposeCanvas2d.js";
 
 type NebulaCloud = {
   baseX: number;
@@ -230,6 +231,9 @@ export function BitstreamLandingNebulaLayer()
       return () =>
       {
         ro.disconnect();
+        clouds = [];
+        stars = [];
+        disposeCanvas2d(canvas);
       };
     }
 
@@ -248,6 +252,9 @@ export function BitstreamLandingNebulaLayer()
         window.cancelAnimationFrame(rafRef.current);
         rafRef.current = null;
       }
+      clouds = [];
+      stars = [];
+      disposeCanvas2d(canvas);
     };
   }, []);
 

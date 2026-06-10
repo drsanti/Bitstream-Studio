@@ -75,6 +75,10 @@ export type WorkbenchPaneCommand = {
 export type UseManagedWorkbenchOptions = {
   initialLayout: LayoutNode;
   persistenceKey?: string;
+  /** When false, session layout/dock memory are not written to localStorage. Default true. */
+  persistLayout?: boolean;
+  /** When true, startup ignores saved session layout (uses `initialLayout`). Default false. */
+  ignorePersistedLayout?: boolean;
   validateLayout?: (raw: unknown) => LayoutNode;
   /** Editor types treated as side panels for collapse/expand-all commands. */
   sidePanelEditorTypes?: readonly string[];
@@ -89,10 +93,15 @@ export type UseManagedWorkbenchOptions = {
 function resolveInitialWorkbenchState(input: {
   initialLayout: LayoutNode;
   persistenceKey?: string;
+  ignorePersistedLayout?: boolean;
   validateLayout?: (raw: unknown) => LayoutNode;
   layoutPresets: readonly WorkbenchLayoutPreset[];
 }): { layout: LayoutNode; dockMemory: WorkbenchDockSizeMemory } {
-  if (input.persistenceKey == null || typeof window === "undefined") {
+  if (
+    input.persistenceKey == null ||
+    typeof window === "undefined" ||
+    input.ignorePersistedLayout
+  ) {
     return { layout: input.initialLayout, dockMemory: {} };
   }
 
@@ -141,6 +150,8 @@ export type WorkbenchCommandRunResult =
 export function useManagedWorkbench({
   initialLayout,
   persistenceKey,
+  persistLayout = true,
+  ignorePersistedLayout = false,
   validateLayout,
   sidePanelEditorTypes = [],
   paneCommands = [],
@@ -155,10 +166,11 @@ export function useManagedWorkbench({
       resolveInitialWorkbenchState({
         initialLayout,
         persistenceKey,
+        ignorePersistedLayout,
         validateLayout,
         layoutPresets,
       }),
-    [initialLayout, layoutPresets, persistenceKey, validateLayout],
+    [ignorePersistedLayout, initialLayout, layoutPresets, persistenceKey, validateLayout],
   );
   const [layout, setLayoutState] = useState<LayoutNode>(() => initialWorkbenchState.layout);
   const [layoutCanUndo, setLayoutCanUndo] = useState(false);
@@ -207,18 +219,23 @@ export function useManagedWorkbench({
   );
 
   useEffect(() => {
-    if (persistenceKey == null || typeof window === "undefined" || paneMaximized) {
+    if (
+      !persistLayout ||
+      persistenceKey == null ||
+      typeof window === "undefined" ||
+      paneMaximized
+    ) {
       return;
     }
     savePersistedLayout(persistenceKey, layout);
-  }, [layout, paneMaximized, persistenceKey]);
+  }, [layout, paneMaximized, persistLayout, persistenceKey]);
 
   useEffect(() => {
-    if (persistenceKey == null || typeof window === "undefined") {
+    if (!persistLayout || persistenceKey == null || typeof window === "undefined") {
       return;
     }
     savePersistedDockSizeMemory(persistenceKey, dockMemory);
-  }, [dockMemory, persistenceKey]);
+  }, [dockMemory, persistLayout, persistenceKey]);
 
   const applyLayoutSnapshot = useCallback(
     (nextLayout: LayoutNode, nextDockMemory: WorkbenchDockSizeMemory = {}) => {

@@ -77,23 +77,10 @@ export function shouldShowBitstreamLanding(): boolean
   }
 }
 
-/** Persist skip + set dev URL after the user picks a workspace on the landing page. */
-export function commitBitstreamLandingChoice(workspace: BitstreamWorkspaceId): void
+/** Update dev browser URL `?app=bitstream&workspace=` when switching workspaces (toolbar, landing, shortcuts). */
+export function syncDevBitstreamWorkspaceUrl(workspace: BitstreamWorkspaceId): void
 {
-  if (typeof window === "undefined")
-  {
-    return;
-  }
-  try
-  {
-    sessionStorage.setItem(LANDING_SKIP_KEY, "1");
-  }
-  catch
-  {
-    // ignore
-  }
-
-  if (!isViteDevMode())
+  if (typeof window === "undefined" || !isViteDevMode())
   {
     return;
   }
@@ -110,4 +97,23 @@ export function commitBitstreamLandingChoice(workspace: BitstreamWorkspaceId): v
   {
     // ignore
   }
+}
+
+/** Persist skip + set dev URL after the user picks a workspace on the landing page. */
+export function commitBitstreamLandingChoice(workspace: BitstreamWorkspaceId): void
+{
+  if (typeof window === "undefined")
+  {
+    return;
+  }
+  try
+  {
+    sessionStorage.setItem(LANDING_SKIP_KEY, "1");
+  }
+  catch
+  {
+    // ignore
+  }
+
+  syncDevBitstreamWorkspaceUrl(workspace);
 }

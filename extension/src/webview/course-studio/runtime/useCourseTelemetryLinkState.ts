@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useBitstreamConnectionStore } from "../../bitstream-app/state/bitstreamConnection.store";
 import { useBitstreamLiveStore } from "../../bitstream-app/state/bitstreamLive.store";
 import { useWsClientStore } from "../../ws-client-store";
-import { usePresentationBmi270 } from "../shared/live";
+import {
+  usePresentationBmi270,
+  usePresentationBmm350,
+  usePresentationDps368,
+  usePresentationSht40,
+} from "../shared/live";
 import type { DiagramLiveSnapshot } from "./diagram/diagramBindingCatalog";
 import {
   courseLinkHealthTickMs,
@@ -11,7 +16,10 @@ import {
 } from "./courseTelemetryFreshness";
 
 export function useCourseTelemetryLinkState(staleMs?: number) {
-  const frame = usePresentationBmi270();
+  const bmi270 = usePresentationBmi270();
+  const bmm350 = usePresentationBmm350();
+  const sht40 = usePresentationSht40();
+  const dps368 = usePresentationDps368();
   const connected = useBitstreamConnectionStore((s) => s.connected);
   const wsConnected = useWsClientStore((s) => s.isConnected);
   const bs2EvtSensorLastRxAtMs = useBitstreamLiveStore((s) => s.bs2EvtSensorLastRxAtMs);
@@ -33,10 +41,13 @@ export function useCourseTelemetryLinkState(staleMs?: number) {
 
   const snapshot = useMemo<DiagramLiveSnapshot>(
     () => ({
-      bmi270: frame,
+      bmi270,
+      bmm350,
+      sht40,
+      dps368,
       connected: transportUp,
     }),
-    [frame, transportUp],
+    [bmi270, bmm350, sht40, dps368, transportUp],
   );
 
   const healthy = isCourseLinkHealthy({

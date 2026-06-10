@@ -44,7 +44,7 @@ Decoupling complete (2026-05-30). Local **`ui/catalog/`**, **`extension-bridge/`
 
 ## Related rules
 
-- **`bitstream-studio-handoff.mdc`**, **`bs2-protocol-change.mdc`**, **`bitstream-dual-runtime.mdc`**, **`bitstream-simulator-app-path.mdc`**, **`tesaiot-firmware-bitstream-paths.mdc`**, **`glb-preview-authored-transform.mdc`**
+- **`bitstream-studio-handoff.mdc`**, **`bs2-protocol-change.mdc`**, **`bitstream-dual-runtime.mdc`**, **`bitstream-simulator-app-path.mdc`**, **`tesaiot-firmware-bitstream-paths.mdc`**, **`glb-preview-authored-transform.mdc`**, **`trn-webview-control-picker.mdc`** (skill **`webview-ui-elements`** for new webview UI)
 
 ## Communication
 

@@ -38,10 +38,29 @@ export function TRNButton({
   title,
   ...props
 }: TRNButtonProps) {
+  const flexLayout = pickFlexLayoutClasses(className);
+  const heightLayout = pickHeightLayoutClasses(className);
+  const innerLayout = pickButtonInnerLayoutClasses(className);
+  const fillHeight =
+    heightLayout.includes("h-full") || heightLayout.includes("self-stretch");
+  const hasFlexibleHeight =
+    heightLayout.includes("h-auto") || /\bmin-h-\S+/.test(heightLayout);
+  const isMultilineHintButton =
+    hint != null && (hasFlexibleHeight || innerLayout.includes("flex-col"));
   const sizeClass =
     size === "compact"
-      ? TRN_COMPACT_CHOICE_BUTTON_SIZE
-      : "h-8 min-w-12 px-3 text-sm font-semibold";
+      ? fillHeight || isMultilineHintButton
+        ? twMerge(
+            "min-h-0 min-w-10 px-2 text-xs font-medium",
+            isMultilineHintButton && "h-full w-full",
+          )
+        : TRN_COMPACT_CHOICE_BUTTON_SIZE
+      : fillHeight || isMultilineHintButton
+        ? twMerge(
+            "min-h-0 min-w-12 px-3 text-sm font-semibold",
+            isMultilineHintButton && "h-full w-full",
+          )
+        : "h-8 min-w-12 px-3 text-sm font-semibold";
   const toneClass = trnCompactChoiceButtonTone(selected, disabled === true);
 
   const buttonClassName = twMerge(
@@ -49,7 +68,8 @@ export function TRNButton({
     sizeClass,
     toneClass,
     hint != null ? "w-full" : "",
-    hint != null ? stripFlexLayoutClasses(className) : className,
+    hint != null ? stripOuterLayoutClasses(className) : className,
+    hint != null ? innerLayout : "",
   );
 
   const button = (
@@ -73,10 +93,18 @@ export function TRNButton({
 
   return (
     <TRNTooltip
-      className={twMerge("flex min-w-0 flex-1", pickFlexLayoutClasses(className))}
+      className={twMerge(
+        "flex min-w-0 flex-1 self-stretch",
+        flexLayout,
+        heightLayout,
+      )}
       triggerWrapper="span"
       trigger={button}
-      triggerClassName="flex w-full min-w-0 flex-1"
+      triggerClassName={twMerge(
+        "flex h-full w-full min-w-0 flex-1 self-stretch items-stretch p-0",
+        flexLayout,
+        heightLayout,
+      )}
       triggerAriaLabel={typeof children === "string" ? `${children} — show hint` : "Show hint"}
       content={
         <div className="whitespace-pre-wrap text-left text-[11px] leading-relaxed text-zinc-100">
@@ -97,6 +125,13 @@ export function TRNButton({
 const FLEX_LAYOUT_CLASS =
   /^(flex-1|flex-auto|flex-initial|flex-none|grow(?:-\d+)?|shrink(?:-\d+)?|min-w-\S+|max-w-\S+|w-full|basis-\S+)$/;
 
+const HEIGHT_LAYOUT_CLASS =
+  /^(h-full|h-auto|h-\S+|min-h-\S+|max-h-\S+|self-stretch|self-auto|items-stretch|items-center)$/;
+
+/** Stays on the inner `<button>` when a hint tooltip wraps it (multi-line rows). */
+const BUTTON_INNER_LAYOUT_CLASS =
+  /^(flex-col|flex-row|items-start|items-end|justify-start|justify-center|justify-between|gap-\S+|text-left|text-center|text-right|py-\S+|leading-tight|leading-snug|font-normal|font-medium)$/;
+
 function pickFlexLayoutClasses(className: string): string {
   return className
     .split(/\s+/)
@@ -104,9 +139,29 @@ function pickFlexLayoutClasses(className: string): string {
     .join(" ");
 }
 
-function stripFlexLayoutClasses(className: string): string {
+function pickHeightLayoutClasses(className: string): string {
   return className
     .split(/\s+/)
-    .filter((token) => token.length > 0 && !FLEX_LAYOUT_CLASS.test(token))
+    .filter((token) => HEIGHT_LAYOUT_CLASS.test(token))
+    .join(" ");
+}
+
+function pickButtonInnerLayoutClasses(className: string): string {
+  return className
+    .split(/\s+/)
+    .filter((token) => BUTTON_INNER_LAYOUT_CLASS.test(token))
+    .join(" ");
+}
+
+function stripOuterLayoutClasses(className: string): string {
+  return className
+    .split(/\s+/)
+    .filter(
+      (token) =>
+        token.length > 0 &&
+        !FLEX_LAYOUT_CLASS.test(token) &&
+        !HEIGHT_LAYOUT_CLASS.test(token) &&
+        !BUTTON_INNER_LAYOUT_CLASS.test(token),
+    )
     .join(" ");
 }

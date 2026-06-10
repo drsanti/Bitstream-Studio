@@ -1,6 +1,6 @@
 import { TheorySlideLayout } from "../../../_shared/layouts/TheorySlideLayout";
 import { TheoryBulletList } from "../../../_shared/components/TheoryBulletList";
-import { MemsCrossSectionSvg } from "../../../_shared/visual/diagrams/MemsCrossSectionSvg";
+import { PresentationCourseDiagramEmbed } from "../../../../components/PresentationCourseDiagramEmbed";
 
 export default function BmiMemsAccelTheorySlide() {
   return (
@@ -8,9 +8,9 @@ export default function BmiMemsAccelTheorySlide() {
       eyebrow="MEMS physics"
       title="Capacitive accelerometer"
       subtitle="Proof mass on springs · interdigitated fingers · differential capacitance."
-      visualLabel="Cross-section"
+      visualLabel="Cross-section · live"
       visualAccent="amber"
-      visual={<MemsCrossSectionSvg />}
+      visual={<PresentationCourseDiagramEmbed diagramId="pilot-bmi-accel-mems" />}
     >
       <TheoryBulletList
         accent="var(--accent-amber)"

@@ -11,6 +11,8 @@ export interface SlideDefinition {
   notes: () => Promise<{ default: string }>;
   /** Optional deep-dive markdown for students/engineers (LaTeX via KaTeX). */
   theory?: () => Promise<{ default: string }>;
+  /** Optional Course Studio `diagram.v1` id for theory visual panel (7e bridge). */
+  courseDiagramId?: string;
   Component: FC;
 }
 

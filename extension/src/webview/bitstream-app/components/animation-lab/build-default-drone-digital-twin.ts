@@ -75,7 +75,7 @@ export function buildDefaultDroneDigitalTwinFromClips(
   });
   return {
     assetId: "inferred-multi-actuator",
-    label: "Machine twin",
+    label: "Machine Twin",
     components,
   };
 }

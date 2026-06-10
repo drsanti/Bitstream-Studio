@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "id": "bmm350-live",
+  "title": "BMM350 — Live visualization",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-live",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMM350 · Live",
+      "title": "Deck-style telemetry cards",
+      "subtitle": "Magnetic field and temperature cards driven by the same live stream as the Bitstream sensor deck."
+    },
+    {
+      "id": "callout-tip",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable BMM350",
+      "body": "If cards stay gray, confirm BMM350 is enabled with MAG published in sensor configuration.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-live",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 5, "rowSpan": 5 },
+      "src": "bmm350-live.theory.md"
+    },
+    {
+      "id": "card-bmm350",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 6, "row": 5, "columnSpan": 4, "rowSpan": 5 },
+      "preset": "bmm350"
+    },
+    {
+      "id": "card-bmm350-temp",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 10, "row": 5, "columnSpan": 3, "rowSpan": 5 },
+      "preset": "bmm350Temperature"
+    }
+  ]
+}

@@ -1,16 +1,25 @@
-import { Trash2 } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
+import { CourseMaintainerScrubNumberInput } from "./CourseMaintainerScrubNumberInput";
 import { TRNButton } from "../../ui/TRN/TRNButton";
 import { TRNFormField, TRNFormSection } from "../../ui/TRN/TRNForm";
 import { TRNHintText } from "../../ui/TRN/TRNHintText";
 import { TRNInput } from "../../ui/TRN/TRNInput";
-import { TRNScrubNumberInput } from "../../ui/TRN/TRNScrubNumberInput";
 import { TRNSelect } from "../../ui/TRN/TRNSelect";
 import { TRNTextarea } from "../../ui/TRN/TRNTextarea";
-import { PresentationTheoryMarkdown } from "../../presentation/components/PresentationTheoryMarkdown";
-import { prepareNewCourseDiagram } from "../content/diagramTemplates";
-import { useCourseDiagramIds } from "../content/diagramRegistry";
-import { COURSE_3D_SCENE_CATALOG } from "../content/course3dSceneCatalog";
-import { CourseMarkdownFileEditor } from "./CourseMarkdownFileEditor";
+import { CourseDiagramBlockInspectorFields } from "../workbench/panes/CourseDiagramBlockInspectorFields";
+import { CourseScene3dBlockInspectorFields } from "./CourseScene3dBlockFields";
+import { CourseInspectorCard, COURSE_INSPECTOR_CARD_ICON_CLASS } from "./CourseInspectorCard";
+import { CourseCardBlockInspectorFields } from "./CourseCardBlockInspectorFields";
+import { CourseDashboardWidgetBlockInspectorFields } from "./CourseDashboardWidgetBlockInspectorFields";
+import { CourseLiveMetricBlockInspectorFields } from "./CourseLiveMetricBlockInspectorFields";
+import { CourseSensorTelemetryCardBlockInspectorFields } from "./CourseSensorTelemetryCardBlockInspectorFields";
+import { CourseEmojiTextField } from "./CourseEmojiTextField";
+import { CourseMarkdownBlockInspectorFields } from "./CourseMarkdownBlockInspectorFields";
+import { CourseYoutubeBlockInspectorFields } from "./CourseYoutubeBlockInspectorFields";
+import { CourseBlockPlacementInspectorCard } from "./CourseBlockPlacementStrip";
+import { calloutVariantFromBlockKind } from "../ui/catalog/callout-tokens";
+import { COURSE_TITLE_ICON_COLOR_DEFAULT_HEX } from "../schemas/courseTitleIcon";
+import { CourseTitleIconField } from "./inspector/CourseTitleIconField";
 import type { PageBlockV1 } from "../schemas/page.v1";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
 
@@ -21,124 +30,12 @@ const CALLOUT_KINDS = [
   { value: "callout-tip", label: "Tip" },
 ] as const;
 
-function PlacementFields({ block }: { block: PageBlockV1 }) {
-  const updatePlacement = useCoursePageEditorStore((s) => s.updatePlacement);
-  const { placement } = block;
-
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {(
-        [
-          ["column", "Column", 1, 48],
-          ["row", "Row", 1, 200],
-          ["columnSpan", "Col span", 1, 48],
-          ["rowSpan", "Row span", 1, 200],
-        ] as const
-      ).map(([key, label, min, max]) => (
-        <TRNFormField key={key} id={`placement-${block.id}-${key}`} label={label}>
-          <TRNScrubNumberInput
-            value={placement[key]}
-            min={min}
-            max={max}
-            step={1}
-            onChange={(value) => updatePlacement(block.id, { [key]: value })}
-          />
-        </TRNFormField>
-      ))}
-    </div>
-  );
-}
-
 function DiagramBlockFields({ block }: { block: Extract<PageBlockV1, { kind: "diagram-2d" }> }) {
-  const updateBlock = useCoursePageEditorStore((s) => s.updateBlock);
-  const diagramIds = useCourseDiagramIds();
-
-  return (
-    <div className="flex flex-col gap-3">
-      <TRNFormField id={`${block.id}-diagram`} label="Diagram">
-        <TRNSelect
-          value={block.diagramId}
-          ariaLabel="Diagram id"
-          options={diagramIds.map((id) => ({ value: id, label: id }))}
-          onValueChange={(value) => updateBlock(block.id, { diagramId: value })}
-        />
-      </TRNFormField>
-      <TRNFormField id={`${block.id}-caption`} label="Caption">
-        <TRNInput
-          id={`${block.id}-caption`}
-          variant="outlined"
-          size="sm"
-          className="w-full"
-          value={block.caption ?? ""}
-          onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
-        />
-      </TRNFormField>
-      <div className="flex flex-wrap gap-1.5">
-        <TRNButton
-          size="compact"
-          onClick={() =>
-            void prepareNewCourseDiagram("blank").then(({ diagramId }) =>
-              updateBlock(block.id, { diagramId }),
-            )
-          }
-        >
-          New blank diagram
-        </TRNButton>
-        <TRNButton
-          size="compact"
-          onClick={() =>
-            void prepareNewCourseDiagram("from-pilot").then(({ diagramId }) =>
-              updateBlock(block.id, { diagramId }),
-            )
-          }
-        >
-          Duplicate MEMS pilot
-        </TRNButton>
-      </div>
-      <TRNHintText>
-        Open the Diagram tab for canvas editing, node bindings, and JSON. + Diagram in the palette
-        creates a blank canvas (dev mode saves a new JSON file under content/).
-      </TRNHintText>
-    </div>
-  );
+  return <CourseDiagramBlockInspectorFields block={block} />;
 }
 
-function Diagram3dBlockFields({ block }: { block: Extract<PageBlockV1, { kind: "diagram-3d" }> }) {
-  const updateBlock = useCoursePageEditorStore((s) => s.updateBlock);
-
-  return (
-    <div className="flex flex-col gap-3">
-      <TRNFormField id={`${block.id}-scene`} label="3D scene">
-        <TRNSelect
-          value={block.sceneId}
-          ariaLabel="3D scene preset"
-          options={COURSE_3D_SCENE_CATALOG.map((entry) => ({
-            value: entry.id,
-            label: entry.label,
-          }))}
-          onValueChange={(value) =>
-            updateBlock(block.id, {
-              sceneId: value as typeof block.sceneId,
-            })
-          }
-        />
-      </TRNFormField>
-      <TRNFormField id={`${block.id}-caption`} label="Caption">
-        <TRNInput
-          id={`${block.id}-caption`}
-          variant="outlined"
-          size="sm"
-          className="w-full"
-          value={block.caption ?? ""}
-          onChange={(e) => updateBlock(block.id, { caption: e.target.value })}
-        />
-      </TRNFormField>
-      <TRNHintText>
-        Reuses Presentation v1 R3F scenes (`PresentationStage`, orbit controls). PCB and gimbal
-        scenes follow live BMI270 quaternion / gyro when the link is healthy.
-      </TRNHintText>
-    </div>
-  );
+function Scene3dBlockFields({ block }: { block: Extract<PageBlockV1, { kind: "scene-3d" }> }) {
+  return <CourseScene3dBlockInspectorFields block={block} />;
 }
 
 function BlockFields({ block }: { block: PageBlockV1 }) {
@@ -148,37 +45,37 @@ function BlockFields({ block }: { block: PageBlockV1 }) {
     case "heading":
       return (
         <div className="flex flex-col gap-3">
-          <TRNFormField id={`${block.id}-eyebrow`} label="Eyebrow">
-            <TRNInput
-              id={`${block.id}-eyebrow`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              value={block.eyebrow ?? ""}
-              onChange={(e) => updateBlock(block.id, { eyebrow: e.target.value })}
-            />
-          </TRNFormField>
-          <TRNFormField id={`${block.id}-title`} label="Title">
-            <TRNInput
-              id={`${block.id}-title`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              value={block.title}
-              onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-            />
-          </TRNFormField>
-          <TRNFormField id={`${block.id}-subtitle`} label="Subtitle">
-            <TRNTextarea
-              id={`${block.id}-subtitle`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              rows={3}
-              value={block.subtitle ?? ""}
-              onChange={(e) => updateBlock(block.id, { subtitle: e.target.value })}
-            />
-          </TRNFormField>
+          <CourseEmojiTextField
+            id={`${block.id}-eyebrow`}
+            label="Eyebrow"
+            value={block.eyebrow ?? ""}
+            onChange={(eyebrow) => updateBlock(block.id, { eyebrow })}
+          />
+          <CourseEmojiTextField
+            id={`${block.id}-title`}
+            label="Title"
+            value={block.title}
+            onChange={(title) => updateBlock(block.id, { title })}
+          />
+          <CourseTitleIconField
+            blockId={block.id}
+            id={`${block.id}-title-icon`}
+            icon={block.icon}
+            iconColor={block.iconColor}
+            mode="optional"
+            colorTarget={{ kind: "block" }}
+            iconAnimation={block.iconAnimation}
+            defaultIconColorHex={COURSE_TITLE_ICON_COLOR_DEFAULT_HEX.heading}
+            hint="Shown left of the page heading title."
+          />
+          <CourseEmojiTextField
+            id={`${block.id}-subtitle`}
+            label="Subtitle"
+            multiline
+            rows={3}
+            value={block.subtitle ?? ""}
+            onChange={(subtitle) => updateBlock(block.id, { subtitle })}
+          />
         </div>
       );
     case "callout-info":
@@ -199,111 +96,212 @@ function BlockFields({ block }: { block: PageBlockV1 }) {
               }
             />
           </TRNFormField>
-          <TRNFormField id={`${block.id}-title`} label="Title">
-            <TRNInput
-              id={`${block.id}-title`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              value={block.title ?? ""}
-              onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-            />
-          </TRNFormField>
-          <TRNFormField id={`${block.id}-body`} label="Body">
-            <TRNTextarea
-              id={`${block.id}-body`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              rows={4}
-              value={block.body}
-              onChange={(e) => updateBlock(block.id, { body: e.target.value })}
-            />
-          </TRNFormField>
+          <CourseEmojiTextField
+            id={`${block.id}-title`}
+            label="Title"
+            value={block.title ?? ""}
+            onChange={(title) => updateBlock(block.id, { title })}
+          />
+          <CourseTitleIconField
+            blockId={block.id}
+            id={`${block.id}-title-icon`}
+            icon={block.icon}
+            iconColor={block.iconColor}
+            mode="callout"
+            colorTarget={{ kind: "block" }}
+            iconAnimation={block.iconAnimation}
+            calloutVariant={calloutVariantFromBlockKind(block.kind)}
+            hint="Variant default uses the callout style icon. Pick None to hide the prefix icon."
+          />
+          <CourseEmojiTextField
+            id={`${block.id}-body`}
+            label="Body"
+            multiline
+            rows={4}
+            value={block.body}
+            onChange={(body) => updateBlock(block.id, { body })}
+          />
         </div>
       );
     case "markdown":
-      if (block.src != null) {
-        return (
-          <div className="flex flex-col gap-3">
-            <TRNHintText>
-              Theory content lives in <code className="text-[var(--accent-cyan)]">{block.src}</code>.
-              Edit the file below or switch to the Page tab for document settings.
-            </TRNHintText>
-            <CourseMarkdownFileEditor src={block.src} embedded />
-          </div>
-        );
-      }
-      return (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          <TRNFormField id={`${block.id}-markdown`} label="Markdown">
-            <TRNTextarea
-              id={`${block.id}-markdown`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              rows={8}
-              value={block.markdown ?? ""}
-              onChange={(e) => updateBlock(block.id, { markdown: e.target.value })}
-            />
-          </TRNFormField>
-          <TRNHintText>
-            Admonitions: {"> **Note:** …"}, {"> **Warning:** …"}, {"> **Tip:** …"} render as
-            callouts in preview.
-          </TRNHintText>
-          <TRNFormField id={`${block.id}-preview`} label="Preview">
-            <div className="max-h-48 overflow-y-auto scrollbar-hide rounded-md border border-zinc-700/80 bg-zinc-950/50 px-3 py-2">
-              <PresentationTheoryMarkdown markdown={block.markdown ?? ""} />
-            </div>
-          </TRNFormField>
-        </div>
-      );
+      return <CourseMarkdownBlockInspectorFields block={block} />;
     case "card":
-      return (
-        <div className="flex flex-col gap-3">
-          <TRNFormField id={`${block.id}-title`} label="Title">
-            <TRNInput
-              id={`${block.id}-title`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              value={block.title ?? ""}
-              onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-            />
-          </TRNFormField>
-          <TRNFormField id={`${block.id}-body`} label="Body">
-            <TRNTextarea
-              id={`${block.id}-body`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              rows={4}
-              value={block.body}
-              onChange={(e) => updateBlock(block.id, { body: e.target.value })}
-            />
-          </TRNFormField>
-        </div>
-      );
+      return <CourseCardBlockInspectorFields block={block} />;
     case "live-metric":
       return (
-        <TRNFormField id={`${block.id}-title`} label="Title">
-          <TRNInput
+        <div className="flex flex-col gap-3">
+          <CourseEmojiTextField
             id={`${block.id}-title`}
-            variant="outlined"
-            size="sm"
-            className="w-full"
+            label="Title"
             value={block.title}
-            onChange={(e) => updateBlock(block.id, { title: e.target.value })}
+            onChange={(title) => updateBlock(block.id, { title })}
           />
-        </TRNFormField>
+          <CourseTitleIconField
+            blockId={block.id}
+            id={`${block.id}-title-icon`}
+            icon={block.icon}
+            iconColor={block.iconColor}
+            mode="optional"
+            colorTarget={{ kind: "block" }}
+            iconAnimation={block.iconAnimation}
+            defaultIconColorHex={COURSE_TITLE_ICON_COLOR_DEFAULT_HEX.liveMetric}
+            hint="Defaults to the live metric glyph when unset. Pick None to hide the prefix icon."
+          />
+          <CourseLiveMetricBlockInspectorFields block={block} />
+        </div>
       );
+    case "dashboard-widget":
+      return <CourseDashboardWidgetBlockInspectorFields block={block} />;
+    case "sensor-telemetry-card":
+      return <CourseSensorTelemetryCardBlockInspectorFields block={block} />;
     case "diagram-2d":
       return <DiagramBlockFields block={block} />;
-    case "diagram-3d":
-      return <Diagram3dBlockFields block={block} />;
+    case "scene-3d":
+      return <Scene3dBlockFields block={block} />;
+    case "image":
+      return (
+        <div className="flex flex-col gap-3">
+          <TRNFormField id={`${block.id}-src`} label="Image URL">
+            <TRNInput
+              id={`${block.id}-src`}
+              variant="outlined"
+              size="sm"
+              className="w-full"
+              value={block.src}
+              onChange={(e) => updateBlock(block.id, { src: e.target.value })}
+            />
+            <TRNHintText className="mt-1 text-[10px]">
+              GitHub <code className="text-[var(--accent-cyan)]">/blob/</code> links are resolved to
+              raw file URLs automatically when the image renders.
+            </TRNHintText>
+          </TRNFormField>
+          <CourseEmojiTextField
+            id={`${block.id}-alt`}
+            label="Alt text"
+            value={block.alt ?? ""}
+            onChange={(alt) => updateBlock(block.id, { alt })}
+          />
+          <CourseEmojiTextField
+            id={`${block.id}-caption`}
+            label="Caption"
+            value={block.caption ?? ""}
+            onChange={(caption) => updateBlock(block.id, { caption })}
+          />
+          <TRNFormField id={`${block.id}-fit`} label="Fit">
+            <TRNSelect
+              value={block.fit}
+              ariaLabel="Image fit"
+              options={[
+                { value: "contain", label: "Contain" },
+                { value: "cover", label: "Cover" },
+              ]}
+              onValueChange={(value) =>
+                updateBlock(block.id, { fit: value as "contain" | "cover" })
+              }
+            />
+          </TRNFormField>
+        </div>
+      );
+    case "code":
+      return (
+        <div className="flex flex-col gap-3">
+          <TRNFormField id={`${block.id}-language`} label="Language">
+            <TRNInput
+              id={`${block.id}-language`}
+              variant="outlined"
+              size="sm"
+              className="w-full"
+              value={block.language}
+              onChange={(e) => updateBlock(block.id, { language: e.target.value })}
+            />
+          </TRNFormField>
+          <TRNFormField id={`${block.id}-code`} label="Code">
+            <TRNTextarea
+              id={`${block.id}-code`}
+              variant="outlined"
+              size="sm"
+              className="w-full font-mono"
+              rows={10}
+              value={block.code}
+              onChange={(e) => updateBlock(block.id, { code: e.target.value })}
+            />
+          </TRNFormField>
+          <CourseEmojiTextField
+            id={`${block.id}-caption`}
+            label="Caption"
+            value={block.caption ?? ""}
+            onChange={(caption) => updateBlock(block.id, { caption })}
+          />
+        </div>
+      );
+    case "youtube":
+      return <CourseYoutubeBlockInspectorFields block={block} />;
+    case "iframe":
+      return (
+        <div className="flex flex-col gap-3">
+          <TRNFormField id={`${block.id}-src`} label="Embed URL">
+            <TRNInput
+              id={`${block.id}-src`}
+              variant="outlined"
+              size="sm"
+              className="w-full"
+              value={block.src}
+              onChange={(e) => updateBlock(block.id, { src: e.target.value })}
+            />
+          </TRNFormField>
+          <CourseEmojiTextField
+            id={`${block.id}-title`}
+            label="Accessible title"
+            value={block.title ?? ""}
+            onChange={(title) => updateBlock(block.id, { title })}
+          />
+          <CourseEmojiTextField
+            id={`${block.id}-caption`}
+            label="Caption"
+            value={block.caption ?? ""}
+            onChange={(caption) => updateBlock(block.id, { caption })}
+          />
+          <TRNHintText>
+            Embedded pages run in a sandboxed iframe. Some sites block embedding via X-Frame-Options.
+          </TRNHintText>
+        </div>
+      );
     default:
       return null;
   }
+}
+
+export function CourseBlockContentFields({ block }: { block: PageBlockV1 }) {
+  const fields = <BlockFields block={block} />;
+
+  if (
+    block.kind === "youtube" ||
+    block.kind === "markdown" ||
+    block.kind === "card" ||
+    block.kind === "scene-3d" ||
+    block.kind === "sensor-telemetry-card" ||
+    block.kind === "dashboard-widget"
+  ) {
+    return (
+      <div className="course-block-content-fields flex flex-col gap-2" data-course-block-content-fields>
+        {fields}
+      </div>
+    );
+  }
+
+  return (
+    <CourseInspectorCard
+      id={`course-block-properties-content-${block.id}`}
+      title="Content"
+      titleIcon={<FileText className={COURSE_INSPECTOR_CARD_ICON_CLASS} aria-hidden />}
+      hint="Block copy and type-specific settings."
+      defaultExpanded
+    >
+      <div className="course-block-content-fields" data-course-block-content-fields>
+        {fields}
+      </div>
+    </CourseInspectorCard>
+  );
 }
 
 export function CourseBlockInspector({
@@ -315,14 +313,17 @@ export function CourseBlockInspector({
   const selectedBlockId = useCoursePageEditorStore((s) => s.selectedBlockId);
   const removeBlock = useCoursePageEditorStore((s) => s.removeBlock);
   const block = page?.blocks.find((b) => b.id === selectedBlockId) ?? null;
-  const canDelete = (page?.blocks.length ?? 0) > 1;
+  const canDelete = (page?.blocks.length ?? 0) > 0;
 
   if (variant === "diagram-empty") {
+    const emptyHint = (
+      <TRNHintText>
+        Select a diagram-2d block on the page to edit canvas nodes, bindings, and diagram JSON.
+      </TRNHintText>
+    );
     return (
       <TRNFormSection title="Diagram editor" showHeading={false} className="border-dashed">
-        <TRNHintText>
-          Select a diagram-2d block on the page to edit canvas nodes, bindings, and diagram JSON.
-        </TRNHintText>
+        {emptyHint}
       </TRNFormSection>
     );
   }
@@ -350,7 +351,7 @@ export function CourseBlockInspector({
           <TRNButton
             size="compact"
             disabled={!canDelete}
-            hint={canDelete ? "Remove block from page" : "Page must keep at least one block"}
+            hint={canDelete ? "Remove block from page" : "No block selected"}
             onClick={() => removeBlock(block.id)}
           >
             <Trash2 size={14} strokeWidth={2} />
@@ -358,9 +359,7 @@ export function CourseBlockInspector({
         </div>
       </TRNFormSection>
 
-      <TRNFormSection title="Placement">
-        <PlacementFields block={block} />
-      </TRNFormSection>
+      <CourseBlockPlacementInspectorCard block={block} />
 
       <TRNFormSection title="Content" className="min-h-0 flex-1">
         <BlockFields block={block} />

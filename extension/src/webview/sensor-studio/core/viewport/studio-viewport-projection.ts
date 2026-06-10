@@ -51,6 +51,36 @@ export function computeOrthoZoomFromPerspectiveView(params: {
   return orthoFrustumHeight / visibleHeight;
 }
 
+/** Inverse of {@link computeOrthoZoomFromPerspectiveView} — preserve visible height when leaving ortho. */
+export function computePerspectiveDistanceFromOrthographicView(params: {
+  orthoZoom: number;
+  fovDeg: number;
+  orthoFrustumHeight?: number;
+}): number {
+  const { orthoZoom, fovDeg, orthoFrustumHeight = STUDIO_VIEWPORT_ORTHO_FRUSTUM_HEIGHT } =
+    params;
+  const visibleHeight = orthoFrustumHeight / Math.max(1e-6, orthoZoom);
+  const fovRad = (fovDeg * Math.PI) / 180;
+  return visibleHeight / (2 * Math.tan(fovRad / 2));
+}
+
+export function placePerspectiveCameraAtOrbitDistance(params: {
+  camera: THREE.PerspectiveCamera;
+  target: THREE.Vector3;
+  distance: number;
+}): void {
+  const { camera, target, distance } = params;
+  const offset = new THREE.Vector3().subVectors(camera.position, target);
+  if (offset.lengthSq() < 1e-12) {
+    offset.set(0, 0, 1);
+  } else {
+    offset.normalize();
+  }
+  offset.multiplyScalar(Math.max(1e-6, distance));
+  camera.position.copy(target).add(offset);
+  camera.updateProjectionMatrix();
+}
+
 export function applyOrthoZoomFromPerspectiveView(
   ortho: THREE.OrthographicCamera,
   params: {

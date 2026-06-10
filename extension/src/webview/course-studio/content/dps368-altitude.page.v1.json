@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "dps368-altitude",
+  "title": "DPS368 — Pressure, altitude & signal quality",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-altitude",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "DPS368 · Altitude",
+      "title": "Derived altitude and baseline drift",
+      "subtitle": "How barometric altitude is estimated, why weather shifts absolute pressure, and sensible publish intervals."
+    },
+    {
+      "id": "callout-warning",
+      "kind": "callout-warning",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Not survey grade",
+      "body": "Barometric altitude teaches relative height change — calibrate baseline for floor-level apps.",
+      "icon": "AlertTriangle"
+    },
+    {
+      "id": "md-altitude",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 6 },
+      "src": "dps368-altitude.theory.md"
+    },
+    {
+      "id": "dash-pressure",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Pressure",
+      "widgetKind": "text",
+      "style": { "label": "P", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-alt",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Altitude",
+      "widgetKind": "text",
+      "style": { "label": "Alt", "unit": "m", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
+    },
+    {
+      "id": "dash-pressure-valid",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Pressure valid",
+      "widgetKind": "led",
+      "style": { "label": "P valid", "threshold": 0.5, "blink": false, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureValid", "fallback": 0 }
+    }
+  ]
+}

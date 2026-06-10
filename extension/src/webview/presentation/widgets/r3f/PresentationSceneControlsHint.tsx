@@ -5,7 +5,7 @@ const ORBIT_HINT = "Drag to orbit · scroll to zoom";
 
 export function PresentationSceneControlsHint({
   orbitHint = ORBIT_HINT,
-  className = "absolute bottom-3 right-3 rounded border border-[var(--surface-border)] bg-[var(--surface-panel)] px-2 py-1 text-2xs text-[var(--text-muted)] opacity-95",
+  className = "presentation-scene-controls-hint absolute bottom-3 right-3 rounded border border-[var(--surface-border)] bg-[var(--surface-panel)] px-2 py-0.5 font-sans text-[10px] font-medium leading-none tracking-wide text-[var(--text-muted)] opacity-95",
 }: {
   orbitHint?: string;
   className?: string;

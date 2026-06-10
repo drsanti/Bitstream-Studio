@@ -1,7 +1,7 @@
 # Sensor Config pane improvement plan
 
 **Date:** 2026-05-29  
-**Scope:** Sensor Telemetry workbench — **Sensor Config** pane (`TelemetryConfigPanel`, `SensorCfgApplyBar`, `PaneFrame` header). Workbench panes (title case): **Sensor Config** · **3D Orientation** · **Telemetry Deck** · **Activity Log** (`telemetry-workbench-registry.tsx`).
+**Scope:** Sensor Telemetry workbench — **Sensor Config** pane (`TelemetryConfigPanel`, `SensorCfgApplyBar`, `PaneFrame` header). Workbench panes (title case): **Sensor Config** · **Digital Twin** · **Telemetry Deck** · **Activity Log** (`telemetry-workbench-registry.tsx`).
 
 ## Current architecture
 

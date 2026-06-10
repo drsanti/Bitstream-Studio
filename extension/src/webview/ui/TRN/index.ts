@@ -128,8 +128,30 @@ export {
   TRN_SETTING_ROW_HINT_HOVER_MS,
 } from "./TRNSettingRow.js";
 export type { TRNSettingRowProps } from "./TRNSettingRow.js";
-export { TRNInlineToggleRow } from "./TRNInlineToggleRow.js";
-export type { TRNInlineToggleRowProps } from "./TRNInlineToggleRow.js";
+export {
+  TRNInlineToggleRow,
+  TRN_INLINE_TOGGLE_ROW_DEFAULT_SIZE,
+  TRN_INLINE_TOGGLE_ROW_DEFAULT_VARIANT,
+} from "./TRNInlineToggleRow.js";
+export type {
+  TRNInlineToggleRowProps,
+  TRNInlineToggleRowSize,
+  TRNInlineToggleRowVariant,
+} from "./TRNInlineToggleRow.js";
+export {
+  TRN_FIELD_CONTROL_BORDER_BG_CLASS,
+  TRN_FIELD_CONTROL_DEFAULT_SIZE,
+  TRN_FIELD_CONTROL_DEFAULT_VARIANT,
+  TRN_FIELD_CONTROL_FIELD_VARIANT_CLASS,
+  TRN_FIELD_CONTROL_GLASS_VARIANT_CLASS,
+  TRN_FIELD_CONTROL_LABEL_CLASS,
+  TRN_FIELD_CONTROL_PADDING_MD_CLASS,
+  TRN_FIELD_CONTROL_ROW_SHELL_CLASS,
+  TRN_FIELD_CONTROL_SHADOW_BLUR_CLASS,
+  TRN_FIELD_CONTROL_TRIGGER_BASE_CLASS,
+  trnFieldControlRowShellClass,
+} from "./trnFieldControlClasses.js";
+export type { TRNFieldControlSize, TRNFieldControlVariant } from "./trnFieldControlClasses.js";
 export { TRNToggleSwitch } from "./TRNToggleSwitch.js";
 export type { TRNToggleSwitchProps } from "./TRNToggleSwitch.js";
 export { TRNSectionContainer } from "./TRNSectionContainer.js";
@@ -309,6 +331,14 @@ export type {
 } from "./TRNBadgedScrubNumberField.js";
 export { TRNBadgedScrubNumberFieldGrid } from "./TRNBadgedScrubNumberFieldGrid.js";
 export type { TRNBadgedScrubNumberFieldGridProps } from "./TRNBadgedScrubNumberFieldGrid.js";
+export { TRNGridPlacementBadgedFields } from "./TRNGridPlacementBadgedFields.js";
+export type {
+  TRNGridPlacementBadgedFieldsLayout,
+  TRNGridPlacementBadgedFieldsLimits,
+  TRNGridPlacementBadgedFieldsProps,
+  TRNGridPlacementFieldKey,
+  TRNGridPlacementValue,
+} from "./TRNGridPlacementBadgedFields.js";
 export { TRN_DENSE_FIELD_SHELL } from "./trn-dense-field-shell.js";
 export {
   TRNVector3Field,

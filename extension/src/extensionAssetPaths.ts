@@ -52,6 +52,13 @@ export function getFreeGithubMirrorRootUri(
   );
 }
 
+/** Pasted / imported Course Studio markdown images (VSIX session media). */
+export function getCourseStudioMediaRootUri(
+  context: vscode.ExtensionContext,
+): vscode.Uri {
+  return vscode.Uri.joinPath(context.globalStorageUri, "course-studio", "media");
+}
+
 /** True if `resolvedPath` is inside globalStorage `assets/` (free pack, tesaiot, …). */
 export function pathIsUnderUserAssetsTree(
   context: vscode.ExtensionContext,

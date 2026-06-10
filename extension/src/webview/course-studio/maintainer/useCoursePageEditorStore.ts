@@ -3,6 +3,8 @@ import type { PageBlockV1, PageV1 } from "../schemas/page.v1";
 import { parsePageV1 } from "../schemas/page.v1";
 import type { PageMetaV1 } from "../schemas/pageMeta";
 import { DEFAULT_PAGE_META } from "../schemas/pageMeta";
+import type { PageGridChrome } from "../schemas/pageGridChrome";
+import { patchPageGridChrome } from "../schemas/pageGridChrome";
 import {
   EMPTY_HISTORY_STACKS,
   pushHistorySnapshot,
@@ -26,7 +28,7 @@ type CoursePageEditorState = {
   selectedBlockId: string | null;
   dirty: boolean;
   historyStacks: HistoryStacks<PageV1>;
-  initPage: (page: PageV1, sourcePath: string) => void;
+  initPage: (page: PageV1, sourcePath: string, options?: { dirty?: boolean }) => void;
   selectBlock: (blockId: string | null) => void;
   pushPageUndoSnapshot: () => void;
   updateBlock: (blockId: string, patch: Partial<PageBlockV1>, options?: PageMutationOptions) => void;
@@ -37,6 +39,9 @@ type CoursePageEditorState = {
   ) => void;
   updatePageTitle: (title: string, options?: PageMutationOptions) => void;
   updatePageMeta: (patch: Partial<PageMetaV1>, options?: PageMutationOptions) => void;
+  updatePageGridChrome: (patch: Partial<PageGridChrome>, options?: PageMutationOptions) => void;
+  applyPageGridChrome: (chrome: PageGridChrome | undefined, options?: PageMutationOptions) => void;
+  setBlocks: (blocks: PageBlockV1[], options?: PageMutationOptions) => void;
   undoPage: () => void;
   redoPage: () => void;
   discardChanges: () => void;
@@ -52,14 +57,14 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
   selectedBlockId: null,
   dirty: false,
   historyStacks: EMPTY_HISTORY_STACKS,
-  initPage: (page, sourcePath) => {
+  initPage: (page, sourcePath, options) => {
     const snapshot = clonePage(page);
     set({
       sourcePath,
       baseline: snapshot,
       page: clonePage(snapshot),
       selectedBlockId: null,
-      dirty: false,
+      dirty: options?.dirty === true,
       historyStacks: EMPTY_HISTORY_STACKS,
     });
   },
@@ -81,9 +86,29 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
     if (options?.recordUndo !== false) {
       get().pushPageUndoSnapshot();
     }
-    const blocks = current.blocks.map((block) =>
-      block.id === blockId ? ({ ...block, ...patch } as PageBlockV1) : block,
-    );
+    const blocks = current.blocks.map((block) => {
+      if (block.id !== blockId) {
+        return block;
+      }
+      let next = { ...block, ...patch } as PageBlockV1 & {
+        icon?: string;
+        iconColor?: string;
+        iconAnimation?: unknown;
+      };
+      if ("icon" in patch && patch.icon === undefined) {
+        const { icon: _removedIcon, ...rest } = next;
+        next = rest as typeof next;
+      }
+      if ("iconColor" in patch && patch.iconColor === undefined) {
+        const { iconColor: _removedColor, ...rest } = next;
+        next = rest as typeof next;
+      }
+      if ("iconAnimation" in patch && patch.iconAnimation === undefined) {
+        const { iconAnimation: _removedAnimation, ...rest } = next;
+        next = rest as typeof next;
+      }
+      return next as PageBlockV1;
+    });
     set({ page: { ...current, blocks }, dirty: true });
   },
   updatePlacement: (blockId, placement, options) => {
@@ -124,8 +149,59 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
     if ("staleMs" in patch && patch.staleMs === undefined) {
       delete next.staleMs;
     }
+    if ("cardColors" in patch && patch.cardColors === undefined) {
+      delete next.cardColors;
+    }
+    if ("markdownColors" in patch && patch.markdownColors === undefined) {
+      delete next.markdownColors;
+    }
+    if ("cardThemePresetId" in patch && patch.cardThemePresetId === undefined) {
+      delete next.cardThemePresetId;
+    }
+    if ("markdownThemePresetId" in patch && patch.markdownThemePresetId === undefined) {
+      delete next.markdownThemePresetId;
+    }
     set({
       page: { ...current, meta: next },
+      dirty: true,
+    });
+  },
+  updatePageGridChrome: (patch, options) => {
+    const current = get().page;
+    if (current == null) {
+      return;
+    }
+    get().applyPageGridChrome(patchPageGridChrome(current.grid.chrome, patch), options);
+  },
+  applyPageGridChrome: (chrome, options) => {
+    const current = get().page;
+    if (current == null) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushPageUndoSnapshot();
+    }
+    const grid = { ...current.grid };
+    if (chrome == null) {
+      delete grid.chrome;
+    } else {
+      grid.chrome = chrome;
+    }
+    set({
+      page: { ...current, grid },
+      dirty: true,
+    });
+  },
+  setBlocks: (blocks, options) => {
+    const current = get().page;
+    if (current == null) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushPageUndoSnapshot();
+    }
+    set({
+      page: { ...current, blocks },
       dirty: true,
     });
   },
@@ -200,7 +276,7 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
   },
   removeBlock: (blockId, options) => {
     const current = get().page;
-    if (current == null || current.blocks.length <= 1) {
+    if (current == null) {
       return;
     }
     if (options?.recordUndo !== false) {

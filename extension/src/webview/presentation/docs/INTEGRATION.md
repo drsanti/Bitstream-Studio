@@ -81,6 +81,18 @@ BMI270 / fusion demos: `usePresentationBmi270()` + `Bmi270FrameRefSync` for R3F 
 
 `TheorySlideLayout` accepts optional `visual` for split theory + diagram panels.
 
+### Course Studio diagram embed (7e)
+
+Theory slides can embed live **`diagram.v1`** assets from Course Studio via **`PresentationCourseDiagramEmbed`** (`components/PresentationCourseDiagramEmbed.tsx`). Presentation bootstraps bundled diagrams on workspace mount (`bootstrapPresentationCourseDiagramBridge`).
+
+| Slide | Diagram id |
+|-------|------------|
+| BMI270 · Accelerometer theory | `pilot-bmi-accel-mems` |
+| BMI270 · MEMS accel theory | `pilot-bmi-accel-mems` |
+| Euler · Quaternion basics | `pilot-bmi-orientation-3d` |
+
+Optional slide metadata: `courseDiagramId` on `SlideDefinition`. Theory reader (**R**) repeats the live diagram below markdown when set.
+
 ## Layout & presenter tools
 
 See **`LAYOUT_AND_PRESENTER.md`** — `SlidePage` layouts (heading/body/footer), present mode, zoom, laser pointer, and full **OrbitControls** on all 3D scenes.

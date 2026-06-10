@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Clapperboard, ImageIcon, Menu, MonitorPlay, X } from 'lucide-react';
+import { Box, Boxes, ImageIcon, Menu, MonitorPlay, X } from 'lucide-react';
 import { openAnimationLabForCatalogModel } from '../bitstream-app/components/animation-lab/open-animation-lab-from-catalog.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -92,7 +92,7 @@ export interface ModelPreviewModalProps {
   onClose: () => void;
   modelUrl?: string | null;
   modelName?: string | null;
-  /** {@link ModelEntry.id} — enables “Open in GLB Animation Lab”. */
+  /** {@link ModelEntry.id} — enables “Open in Machine Twin” (Digital Twin workbench pane). */
   catalogModelId?: string | null;
   onCaptureThumbnail?: (dataUrl: string) => Promise<void> | void;
 }
@@ -1388,13 +1388,13 @@ export function ModelPreviewModal({
         ? [
             {
               id: 'open-animation-lab',
-              label: 'Open in GLB Animation Lab',
-              icon: <Clapperboard className="h-3.5 w-3.5 shrink-0" />,
+              label: 'Open in Machine Twin',
+              icon: <Boxes className="h-3.5 w-3.5 shrink-0" />,
               onSelect: () => {
                 openAnimationLabForCatalogModel(catalogModelId);
                 onClose();
               },
-              title: 'Sensor Telemetry workbench — multi-clip playback investigation',
+              title: 'Sensor Telemetry workbench — Digital Twin pane',
             } satisfies IconMenuItem,
           ]
         : []),

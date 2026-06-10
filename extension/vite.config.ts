@@ -1,7 +1,7 @@
 // @ts-nocheck
 import react from "@vitejs/plugin-react";
 import { resolve, dirname, extname, relative } from "path";
-import { existsSync, readFileSync, statSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "fs";
 import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 
@@ -16,6 +16,48 @@ import tailwindcss from "@tailwindcss/vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/**
+ * Markdown that is part of the webview bundle (`?raw` imports or Course content).
+ * All other `.md` files (docs, README, tracker, cursor rules) must not wake Vite HMR.
+ */
+function isWebviewBundledMarkdownWatchPath(filePath: string): boolean {
+  const norm = filePath.replace(/\\/g, "/").toLowerCase();
+  if (!norm.endsWith(".md")) {
+    return false;
+  }
+  return (
+    norm.includes("/src/webview/course-studio/content/") ||
+    norm.includes("/src/webview/presentation/chapters/") ||
+    norm.endsWith("/src/webview/bitstream-app/components/ai-dev/ai_bridge_help.md")
+  );
+}
+
+/** Return true to exclude the path from chokidar (no dev reload). */
+function shouldIgnoreDevWatchPath(watchPath: string): boolean {
+  const norm = watchPath.replace(/\\/g, "/");
+  if (norm.endsWith(".md")) {
+    return !isWebviewBundledMarkdownWatchPath(norm);
+  }
+  // Repo / extension docs trees — never app source.
+  if (/\/docs\//i.test(norm) && /\.(md|mdc)$/i.test(norm)) {
+    return true;
+  }
+  if (/\/\.cursor\//i.test(norm)) {
+    return true;
+  }
+  const repoDocBasenames = [
+    "/agent_handoff.md",
+    "/changelog.md",
+    "/readme.md",
+    "/how_to_run.md",
+  ];
+  const lower = norm.toLowerCase();
+  if (repoDocBasenames.some((suffix) => lower.endsWith(suffix))) {
+    return true;
+  }
+  return false;
+}
 
 const extensionPackageVersion = JSON.parse(
   readFileSync(resolve(__dirname, "package.json"), "utf8"),
@@ -430,8 +472,12 @@ function sendDevApiJson(res, status, body) {
 /**
  * Dev-only: save Course Studio page JSON from maintainer mode.
  * POST /__dev_api/course-studio/save-page — { sourcePath, page }
+ * POST /__dev_api/course-studio/save-course — { sourcePath, course }
  * POST /__dev_api/course-studio/save-diagram — { sourcePath, diagram }
+ * POST /__dev_api/course-studio/save-scene — { sourcePath, scene }
  * POST /__dev_api/course-studio/save-markdown — { sourcePath, markdown }
+ * POST /__dev_api/course-studio/import-pack — { pack, overwrite?, activatePageId? }
+ * POST /__dev_api/course-studio/reload-content — { activePageId? }
  */
 const courseStudioDevApiPlugin = () => ({
   name: "course-studio-dev-api",
@@ -448,6 +494,41 @@ const courseStudioDevApiPlugin = () => ({
       }
 
       try {
+        if (pathname === "/__dev_api/course-studio/save-course") {
+          const body = await readHttpJsonBody(req);
+          const sourcePath = String(body.sourcePath ?? "").trim();
+          const course = body.course;
+          if (sourcePath.length === 0 || course == null) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath and course are required",
+            });
+            return;
+          }
+          if (
+            !sourcePath.startsWith("src/webview/course-studio/content/") ||
+            !sourcePath.endsWith(".course.v1.json")
+          ) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath must be a course-studio content course JSON file",
+            });
+            return;
+          }
+          const destPath = resolve(__dirname, sourcePath);
+          if (!destPath.startsWith(resolve(__dirname, "src/webview/course-studio/content"))) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid destination path" });
+            return;
+          }
+          const { parseCourseV1 } = await import(
+            "./src/webview/course-studio/schemas/course.v1.ts"
+          );
+          const validated = parseCourseV1(course);
+          writeFileSync(destPath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
+          sendDevApiJson(res, 200, { ok: true, path: sourcePath });
+          return;
+        }
+
         if (pathname === "/__dev_api/course-studio/save-page") {
           const body = await readHttpJsonBody(req);
           const sourcePath = String(body.sourcePath ?? "").trim();
@@ -518,6 +599,77 @@ const courseStudioDevApiPlugin = () => ({
           return;
         }
 
+        if (pathname === "/__dev_api/course-studio/save-scene") {
+          const body = await readHttpJsonBody(req);
+          const sourcePath = String(body.sourcePath ?? "").trim();
+          const scene = body.scene;
+          if (sourcePath.length === 0 || scene == null) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath and scene are required",
+            });
+            return;
+          }
+          if (
+            !sourcePath.startsWith("src/webview/course-studio/content/") ||
+            !sourcePath.endsWith(".scene.v1.json")
+          ) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "sourcePath must be a course-studio content scene JSON file",
+            });
+            return;
+          }
+          const destPath = resolve(__dirname, sourcePath);
+          if (!destPath.startsWith(resolve(__dirname, "src/webview/course-studio/content"))) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid destination path" });
+            return;
+          }
+          const { parseSceneV1 } = await import(
+            "./src/webview/course-studio/schemas/scene.v1.ts"
+          );
+          const validated = parseSceneV1(scene);
+          writeFileSync(destPath, `${JSON.stringify(validated, null, 2)}\n`, "utf8");
+          sendDevApiJson(res, 200, { ok: true, path: sourcePath });
+          return;
+        }
+
+        if (pathname === "/__dev_api/course-studio/save-image") {
+          const body = await readHttpJsonBody(req);
+          const dataUrl = String(body.dataUrl ?? "").trim();
+          const suggestedName = String(body.suggestedName ?? "pasted-image.png").trim();
+          if (dataUrl.length === 0 || !dataUrl.startsWith("data:image/")) {
+            sendDevApiJson(res, 400, {
+              ok: false,
+              error: "dataUrl must be a base64 image data URL",
+            });
+            return;
+          }
+          const match = /^data:image\/([\w+.-]+);base64,(.+)$/s.exec(dataUrl);
+          if (match == null) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid image data URL" });
+            return;
+          }
+          const ext = match[1].replace("jpeg", "jpg").replace("svg+xml", "svg");
+          const safeBase = suggestedName.replace(/\.[^.]+$/, "").replace(/[^\w.-]+/g, "-");
+          const fileName = `${safeBase || "pasted-image"}-${Date.now()}.${ext}`;
+          const relDir = "src/webview/course-studio/content/media";
+          const sourcePath = `${relDir}/${fileName}`;
+          const destPath = resolve(__dirname, sourcePath);
+          if (!destPath.startsWith(resolve(__dirname, "src/webview/course-studio/content"))) {
+            sendDevApiJson(res, 400, { ok: false, error: "Invalid destination path" });
+            return;
+          }
+          mkdirSync(resolve(__dirname, relDir), { recursive: true });
+          writeFileSync(destPath, Buffer.from(match[2], "base64"));
+          sendDevApiJson(res, 200, {
+            ok: true,
+            sourcePath,
+            markdownPath: `media/${fileName}`,
+          });
+          return;
+        }
+
         if (pathname === "/__dev_api/course-studio/save-markdown") {
           const body = await readHttpJsonBody(req);
           const sourcePath = String(body.sourcePath ?? "").trim();
@@ -546,6 +698,72 @@ const courseStudioDevApiPlugin = () => ({
           }
           writeFileSync(destPath, markdown.endsWith("\n") ? markdown : `${markdown}\n`, "utf8");
           sendDevApiJson(res, 200, { ok: true, path: sourcePath });
+          return;
+        }
+
+        if (pathname === "/__dev_api/course-studio/import-pack") {
+          const body = await readHttpJsonBody(req);
+          const pack = body.pack;
+          if (pack == null) {
+            sendDevApiJson(res, 400, { ok: false, error: "pack is required" });
+            return;
+          }
+          const { parsePresentationPackV1 } = await import(
+            "./src/webview/course-studio/schemas/presentationPack.v1.ts"
+          );
+          const { importPresentationPackToContentDir } = await import(
+            "./src/webview/course-studio/content/presentationPackImportDisk.ts"
+          );
+          const validated = parsePresentationPackV1(pack);
+          const contentDir = resolve(__dirname, "src/webview/course-studio/content");
+          const result = importPresentationPackToContentDir(validated, contentDir, {
+            overwrite: body.overwrite === true,
+          });
+          const activatePageId =
+            typeof body.activatePageId === "string" && body.activatePageId.length > 0
+              ? body.activatePageId
+              : result.pageIds[0] ?? null;
+          sendDevApiJson(res, 200, {
+            ok: true,
+            written: result.written,
+            skipped: result.skipped,
+            pageIds: result.pageIds,
+            activatePageId,
+          });
+          return;
+        }
+
+        if (pathname === "/__dev_api/course-studio/reload-content") {
+          const body = await readHttpJsonBody(req);
+          const { buildPresentationPackFromContentDir } = await import(
+            "./src/webview/course-studio/content/buildPresentationPackFromContentDir.ts"
+          );
+          const contentDir = resolve(__dirname, "src/webview/course-studio/content");
+          const pack = buildPresentationPackFromContentDir(contentDir, {
+            id: "content-dir",
+            title: "Course Studio content",
+          });
+          const pageIds = Object.keys(pack.files)
+            .filter((path) => path.startsWith("pages/"))
+            .map((path) => {
+              const pageJson = JSON.parse(pack.files[path] ?? "{}") as { id?: string };
+              return pageJson.id ?? path;
+            })
+            .filter((id): id is string => typeof id === "string" && id.length > 0);
+          const requestedPageId =
+            typeof body.activePageId === "string" && body.activePageId.length > 0
+              ? body.activePageId
+              : null;
+          const activatePageId =
+            requestedPageId != null && pageIds.includes(requestedPageId)
+              ? requestedPageId
+              : pageIds[0] ?? null;
+          sendDevApiJson(res, 200, {
+            ok: true,
+            pack,
+            pageIds,
+            activePageId: activatePageId,
+          });
           return;
         }
 
@@ -900,7 +1118,7 @@ const suppressCSSWarningsPlugin = () => {
   };
 };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: resolve(__dirname, "src/webview"),
   // VS Code webview resources are served from an asWebviewUri base; absolute `/assets/...`
   // can resolve outside that base and return 401. Keep emitted asset URLs relative.
@@ -908,7 +1126,9 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: ["babel-plugin-react-compiler"], // must run first!
+        // React Compiler slows Vite dev transforms; keep it for production builds only.
+        plugins:
+          mode === "production" ? ["babel-plugin-react-compiler"] : [],
       },
     }),
     tailwindcss(),
@@ -1028,6 +1248,7 @@ export default defineConfig({
     include: [
       "react",
       "react-dom",
+      "react-dom/client",
       "react/jsx-runtime",
       "react/jsx-dev-runtime",
       "zustand",
@@ -1043,6 +1264,9 @@ export default defineConfig({
       "three",
       "@react-three/fiber",
       "@react-three/drei",
+      "@xyflow/react",
+      "konva",
+      "react-konva",
     ],
   },
   define: {
@@ -1056,6 +1280,23 @@ export default defineConfig({
     /** Default dev entry — toolbar tabs switch workspace (no `?app=`). */
     open: process.env.VITE_DEV_OPEN ?? "/",
     cors: true,
+    watch: {
+      ignored: (watchPath) => shouldIgnoreDevWatchPath(String(watchPath)),
+    },
+    /** Pre-transform hot paths so first browser load after server start is not blocked on dep crawl. */
+    warmup: {
+      clientFiles: [
+        "./main.tsx",
+        "./landing/BitstreamWebviewRoot.tsx",
+        "./bitstream-shell/BitstreamApp.tsx",
+        "./bitstream-shell/BitstreamShellMain.tsx",
+        "./bitstream-shell/BitstreamWorkspacePanel.tsx",
+        "./sensor-studio/app/SensorStudioApp.tsx",
+        "./sensor-studio/app/SensorStudioMain.tsx",
+        "./sensor-studio/features/editor/components/StudioLayout.tsx",
+        "./sensor-studio/features/editor/nodes/StudioNodeCard.tsx",
+      ],
+    },
     fs: {
       // Allow serving files from node_modules
       allow: [
@@ -1188,4 +1429,4 @@ export default defineConfig({
     emptyOutDir: true,
     assetsDir: "assets",
   },
-});
+}));

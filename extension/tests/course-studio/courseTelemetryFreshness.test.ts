@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
 import { presentationBmi270FromSample } from "../../src/webview/presentation/display/selectors";
+import { diagramLiveSnapshot } from "./diagramLiveSnapshotFixtures";
 import type { DiagramLiveSnapshot } from "../../src/webview/course-studio/runtime/diagram/diagramBindingCatalog";
 import {
   isCourseLinkHealthy,
@@ -11,10 +12,10 @@ import {
   resolveDiagramRenderSnapshot,
 } from "../../src/webview/course-studio/runtime/diagram/diagramLinkHealth";
 
-const liveSnapshot: DiagramLiveSnapshot = {
-  bmi270: { ...presentationBmi270FromSample(null), hasSample: true, ax: 0.02 },
+const liveSnapshot = diagramLiveSnapshot({
   connected: true,
-};
+  bmi270: { ...presentationBmi270FromSample(null), hasSample: true, ax: 0.02 },
+});
 
 describe("courseTelemetryFreshness", () => {
   test("resolveCourseLastRxAtMs prefers BS2 EVT_SENSOR timestamp", () => {

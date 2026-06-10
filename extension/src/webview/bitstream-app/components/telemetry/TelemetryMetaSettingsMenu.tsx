@@ -1,9 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Check, Gauge, Hash, Settings2, Timer, Waves } from "lucide-react";
-import {
-  TRNMenuPanel,
-  TRNMenuSectionTitle,
-} from "@/ui/TRN";
+import type { ReactNode } from "react";
+import { Check, Gauge, Hash, Timer, Waves } from "lucide-react";
+import { TRNMenuSectionTitle } from "@/ui/TRN";
 import {
   TELEMETRY_META_MENU_DESC_DISPLAY_BOTH,
   TELEMETRY_META_MENU_DESC_DISPLAY_COUNTER,
@@ -18,9 +15,10 @@ import type {
   TelemetryMetaDisplayMode,
   TelemetryMetaRateSource,
 } from "../../utils/telemetryMetaDisplay.js";
-
-const MENU_ITEM_ROW_CLASS =
-  "flex w-full shrink-0 items-start justify-start gap-1.5 rounded-md border border-white/10 bg-white/5 px-3 py-1.5 text-left text-sm font-normal text-zinc-100 shadow-none transition-colors hover:border-white/20 hover:bg-white/12";
+import {
+  TELEMETRY_CARD_SETTINGS_MENU_ITEM_ROW_CLASS,
+  TelemetryCardSettingsMenuShell,
+} from "./TelemetryCardSettingsMenuShell.js";
 
 type MenuOption = {
   id: string;
@@ -93,7 +91,7 @@ function TelemetryMetaMenuItem(props: TelemetryMetaMenuItemProps) {
     <button
       type="button"
       role="menuitem"
-      className={MENU_ITEM_ROW_CLASS}
+      className={TELEMETRY_CARD_SETTINGS_MENU_ITEM_ROW_CLASS}
       onPointerDown={(e) => e.stopPropagation()}
       onClick={onSelect}
     >
@@ -115,87 +113,55 @@ function TelemetryMetaMenuItem(props: TelemetryMetaMenuItemProps) {
 
 /** Gear menu on Telemetry Meta card title — display mode and Hz rate source. */
 export function TelemetryMetaSettingsMenu() {
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const [open, setOpen] = useState(false);
-
   const displayMode = useBitstreamConfigStore((s) => s.telemetryMetaDisplayMode);
   const rateSource = useBitstreamConfigStore((s) => s.telemetryMetaRateSource);
   const setDisplayMode = useBitstreamConfigStore((s) => s.setTelemetryMetaDisplayMode);
   const setRateSource = useBitstreamConfigStore((s) => s.setTelemetryMetaRateSource);
 
-  useEffect(() => {
-    if (!open)
-    {
-      return;
-    }
-    const onPointerDown = (e: PointerEvent) => {
-      const el = menuRef.current;
-      if (el != null && !el.contains(e.target as Node))
-      {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", onPointerDown, true);
-    return () => document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [open]);
-
-  const showRateSource = displayMode === "hz" || displayMode === "both";
-
   return (
-    <div ref={menuRef} className="relative flex shrink-0 items-center">
-      <button
-        type="button"
-        aria-label="Telemetry Meta display options"
-        title="Telemetry Meta display options"
-        className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-sm p-0 text-zinc-400 transition-colors hover:text-zinc-100 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <Settings2 className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
-      </button>
-      {open ? (
-        <div className="absolute top-[calc(100%+6px)] right-0 z-50 w-[min(19rem,calc(100vw-1rem))] overflow-visible">
-          <TRNMenuPanel tone="glass-dropdown" className="py-1">
-            <div className="flex min-w-0 flex-col gap-0.5">
-              <TRNMenuSectionTitle spacing="menuFirst">Show</TRNMenuSectionTitle>
-              {DISPLAY_OPTIONS.map((opt) => (
-                <TelemetryMetaMenuItem
-                  key={opt.id}
-                  description={opt.description}
-                  label={opt.label}
-                  icon={opt.icon}
-                  selected={displayMode === opt.id}
-                  onSelect={() => {
-                    setDisplayMode(opt.id as TelemetryMetaDisplayMode);
-                    if (opt.id === "counter")
-                    {
-                      setOpen(false);
-                    }
-                  }}
-                />
-              ))}
-              {showRateSource ? (
-                <>
-                  <TRNMenuSectionTitle spacing="menuNext">Rate source</TRNMenuSectionTitle>
-                  {RATE_SOURCE_OPTIONS.map((opt) => (
-                    <TelemetryMetaMenuItem
-                      key={opt.id}
-                      description={opt.description}
-                      label={opt.label}
-                      icon={opt.icon}
-                      selected={rateSource === opt.id}
-                      onSelect={() => {
-                        setRateSource(opt.id as TelemetryMetaRateSource);
-                        setOpen(false);
-                      }}
-                    />
-                  ))}
-                </>
-              ) : null}
-            </div>
-          </TRNMenuPanel>
-        </div>
-      ) : null}
-    </div>
+    <TelemetryCardSettingsMenuShell ariaLabel="Telemetry Meta display options">
+      {({ close }) => {
+        const showRateSource = displayMode === "hz" || displayMode === "both";
+
+        return (
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <TRNMenuSectionTitle spacing="menuFirst">Show</TRNMenuSectionTitle>
+            {DISPLAY_OPTIONS.map((opt) => (
+              <TelemetryMetaMenuItem
+                key={opt.id}
+                description={opt.description}
+                label={opt.label}
+                icon={opt.icon}
+                selected={displayMode === opt.id}
+                onSelect={() => {
+                  setDisplayMode(opt.id as TelemetryMetaDisplayMode);
+                  if (opt.id === "counter") {
+                    close();
+                  }
+                }}
+              />
+            ))}
+            {showRateSource ? (
+              <>
+                <TRNMenuSectionTitle spacing="menuNext">Rate source</TRNMenuSectionTitle>
+                {RATE_SOURCE_OPTIONS.map((opt) => (
+                  <TelemetryMetaMenuItem
+                    key={opt.id}
+                    description={opt.description}
+                    label={opt.label}
+                    icon={opt.icon}
+                    selected={rateSource === opt.id}
+                    onSelect={() => {
+                      setRateSource(opt.id as TelemetryMetaRateSource);
+                      close();
+                    }}
+                  />
+                ))}
+              </>
+            ) : null}
+          </div>
+        );
+      }}
+    </TelemetryCardSettingsMenuShell>
   );
 }

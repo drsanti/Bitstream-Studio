@@ -133,6 +133,51 @@ export function snapDiagramDragDelta(args: {
   };
 }
 
+/** Snap a canvas point to grid + peer edge/center lines. */
+export function snapDiagramCanvasPoint(args: {
+  x: number;
+  y: number;
+  targets: DiagramAlignBounds[];
+  snapEnabled?: boolean;
+  grid?: number;
+  threshold?: number;
+}): { x: number; y: number; guides: DiagramAlignmentGuide[] } {
+  const {
+    x,
+    y,
+    targets,
+    snapEnabled = true,
+    grid = DIAGRAM_SNAP_GRID,
+    threshold = DIAGRAM_ALIGN_SNAP_THRESHOLD,
+  } = args;
+
+  if (!snapEnabled) {
+    return { x, y, guides: [] };
+  }
+
+  let sx = snapDiagramCoord(x, grid);
+  let sy = snapDiagramCoord(y, grid);
+  const guides: DiagramAlignmentGuide[] = [];
+
+  if (targets.length === 0) {
+    return { x: sx, y: sy, guides };
+  }
+
+  const { x: targetX, y: targetY } = collectTargetLines(targets);
+  const xSnap = bestAxisSnap([sx], targetX, threshold);
+  if (xSnap != null) {
+    sx += xSnap.shift;
+    guides.push({ axis: "x", position: xSnap.guide });
+  }
+  const ySnap = bestAxisSnap([sy], targetY, threshold);
+  if (ySnap != null) {
+    sy += ySnap.shift;
+    guides.push({ axis: "y", position: ySnap.guide });
+  }
+
+  return { x: sx, y: sy, guides };
+}
+
 export function collectDiagramAlignTargets(
   diagram: DiagramV1,
   excludeNodeId: string,

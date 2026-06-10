@@ -63,7 +63,10 @@ export function BitstreamWebviewRoot()
     routeBody = simulationReady ? (
       <SimulationHub key={activeSimulationId} />
     ) : (
-      <WebGLRouteTransitionSplash label="Starting simulation…" />
+      <WebGLRouteTransitionSplash
+        label="Starting simulation…"
+        hint="Handing off WebGL to the simulation hub."
+      />
     );
   }
   else if (landingRequested)
@@ -75,7 +78,10 @@ export function BitstreamWebviewRoot()
         onOpenSimulation={handleOpenSimulation}
       />
     ) : (
-      <WebGLRouteTransitionSplash label="Loading workspace…" />
+      <WebGLRouteTransitionSplash
+        label="Loading workspace…"
+        hint="Preparing the landing canvas and 3D scene."
+      />
     );
   }
   else if (appRequested)
@@ -83,7 +89,10 @@ export function BitstreamWebviewRoot()
     routeBody = appReady ? (
       <BitstreamApp />
     ) : (
-      <WebGLRouteTransitionSplash label="Opening workspace…" />
+      <WebGLRouteTransitionSplash
+        label="Opening workspace…"
+        hint="Loading the Bitstream shell and telemetry services."
+      />
     );
   }
   else

@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "bmm350-applications",
+  "title": "BMM350 — Applications & dashboards",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-apps",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMM350 · Applications",
+      "title": "From magnetic sensing to operator dashboards",
+      "subtitle": "Compass-style heading, interference detection, and Sensor Studio wiring for live BMM350 streams.",
+      "icon": "LayoutDashboard"
+    },
+    {
+      "id": "callout-studio",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Node-based tooling",
+      "body": "Open Sensor Studio to wire BMM350 field and heading taps into gauges and compass widgets on the Dashboard.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-apps",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 5 },
+      "src": "bmm350-applications.theory.md"
+    },
+    {
+      "id": "dash-apps-heading",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Heading",
+      "widgetKind": "text",
+      "style": { "label": "Heading", "unit": "°", "decimals": 0, "showStatusBar": true },
+      "binding": { "path": "bmm350.headingDeg", "fallback": 0, "unit": "°", "format": "0f" }
+    },
+    {
+      "id": "dash-apps-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Field |B|",
+      "widgetKind": "text",
+      "style": { "label": "|B|", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "card-apps",
+      "kind": "card",
+      "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Studio checklist",
+      "body": "Add BMM350 input or tap nodes.\nWire heading and |B| outputs.\nKeep board flat for compass demos.\nPair with IMU for fused attitude later."
+    }
+  ]
+}

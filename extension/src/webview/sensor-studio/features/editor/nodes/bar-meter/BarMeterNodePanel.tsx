@@ -288,7 +288,7 @@ export function BarMeterNodePanel({
     <div
       ref={wrapRef}
       className={className ?? "relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden"}
-      style={{ minHeight: 80 }}
+      style={className != null ? undefined : { minHeight: 80 }}
     >
       <canvas
         ref={canvasRef}

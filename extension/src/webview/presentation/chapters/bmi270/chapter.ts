@@ -114,6 +114,8 @@ export const bmi270Chapter: ChapterDefinition = {
 
       theory: () => import("./slides/bmi-accel-theory/theory.md?raw"),
 
+      courseDiagramId: "pilot-bmi-accel-mems",
+
       Component: lazy(() => import("./slides/bmi-accel-theory/BmiAccelTheorySlide")),
 
     },
@@ -173,6 +175,8 @@ export const bmi270Chapter: ChapterDefinition = {
       notes: () => import("./slides/bmi-mems-accel-theory/notes.md?raw"),
 
       theory: () => import("./slides/bmi-mems-accel-theory/theory.md?raw"),
+
+      courseDiagramId: "pilot-bmi-accel-mems",
 
       Component: lazy(() => import("./slides/bmi-mems-accel-theory/BmiMemsAccelTheorySlide")),
 

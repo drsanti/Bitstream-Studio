@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "bmi270-live-visualization",
+  "title": "BMI270 — Live visualization",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-live",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMI270 · Live",
+      "title": "PCB attitude, MEMS diagram, and deck cards",
+      "subtitle": "Telemetry cards, 3D PCB orientation, and diagram layers driven by one BMI270 stream."
+    },
+    {
+      "id": "callout-bench",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Bench exercise",
+      "body": "Tilt the board slowly and compare telemetry cards with the MEMS proof-mass offset and the 3D PCB attitude.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-live",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 4, "rowSpan": 5 },
+      "src": "bmi270-live-visualization.theory.md"
+    },
+    {
+      "id": "card-accel",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 5, "row": 5, "columnSpan": 4, "rowSpan": 5 },
+      "preset": "accel"
+    },
+    {
+      "id": "card-euler",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 9, "row": 5, "columnSpan": 4, "rowSpan": 5 },
+      "preset": "euler"
+    },
+    {
+      "id": "scene-pcb",
+      "kind": "scene-3d",
+      "placement": { "column": 1, "row": 10, "columnSpan": 12, "rowSpan": 4 },
+      "documentId": "pilot-bmi-pcb-orientation",
+      "caption": "PCB orientation (3D scene)"
+    },
+    {
+      "id": "mems-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 1, "row": 14, "columnSpan": 6, "rowSpan": 4 },
+      "diagramId": "pilot-bmi-accel-mems",
+      "caption": "MEMS cross-section"
+    },
+    {
+      "id": "orient-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 7, "row": 14, "columnSpan": 6, "rowSpan": 4 },
+      "diagramId": "pilot-bmi-orientation-3d",
+      "caption": "Diagram 3D layer (live PCB)"
+    },
+    {
+      "id": "dash-acc-bar",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 18, "columnSpan": 4, "rowSpan": 3 },
+      "title": "Bench · |a|",
+      "widgetKind": "bar",
+      "style": {
+        "min": 0,
+        "max": 2,
+        "unit": "g",
+        "decimals": 2,
+        "orientation": "vertical",
+        "showPeakHold": true
+      },
+      "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g" }
+    },
+    {
+      "id": "dash-gyr-gauge",
+      "kind": "dashboard-widget",
+      "placement": { "column": 5, "row": 18, "columnSpan": 4, "rowSpan": 3 },
+      "title": "Bench · |ω|",
+      "widgetKind": "gauge",
+      "style": {
+        "min": 0,
+        "max": 200,
+        "unit": "°/s",
+        "decimals": 1,
+        "arcPreset": "automotive270",
+        "showDigitalValue": true,
+        "showUnit": true
+      },
+      "binding": { "path": "bmi270.gyrMag", "fallback": 0, "unit": "°/s" }
+    },
+    {
+      "id": "dash-acc-status",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 18, "columnSpan": 4, "rowSpan": 3 },
+      "title": "Bench · Accel valid",
+      "widgetKind": "status",
+      "style": {
+        "label": "Accel valid",
+        "onLabel": "Valid",
+        "offLabel": "Invalid",
+        "onTone": "success",
+        "offTone": "danger",
+        "threshold": 0.5
+      },
+      "binding": { "path": "bmi270.accValid", "fallback": 0 }
+    }
+  ]
+}

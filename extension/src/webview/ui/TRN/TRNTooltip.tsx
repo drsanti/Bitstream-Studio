@@ -389,13 +389,12 @@ export function TRNTooltip({
     "aria-label": triggerAriaLabel ?? "Show hint",
     "aria-expanded": open,
     "aria-controls": tooltipId,
-    className:
-      "inline-flex items-center justify-center rounded-sm p-0.5 transition-all duration-150 focus:outline-none " +
-      focusRingClassName +
-      " " +
-      triggerClassName +
-      " " +
+    className: twMerge(
+      "inline-flex items-center justify-center rounded-sm p-0.5 transition-all duration-150 focus:outline-none",
+      focusRingClassName,
       hoverFxClassName,
+      triggerClassName,
+    ),
     onClick: () => setOpen((previous) => !previous),
     onFocus: openWithDelay,
     onBlur: closeImmediately,
@@ -426,7 +425,7 @@ export function TRNTooltip({
   return (
     <div
       ref={rootRef}
-      className={`relative ${className}`}
+      className={twMerge("relative", className)}
       onPointerEnter={handleRootPointerEnter}
       onPointerLeave={handleRootPointerLeave}
       {...(showTriggerOnParentHover

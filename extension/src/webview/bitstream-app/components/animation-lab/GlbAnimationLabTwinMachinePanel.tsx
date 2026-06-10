@@ -143,7 +143,7 @@ export function GlbAnimationLabTwinMachinePanel() {
     const items: TRNSortableSettingsCardItem[] = [
       {
         id: "overview",
-        title: "Machine twin",
+        title: "Machine Twin",
         icon: <Activity className="size-3.5 text-cyan-400/90" aria-hidden />,
         titleTrailingSlot: <HealthPill health={twinCtx.summary.health} />,
         defaultExpanded: true,

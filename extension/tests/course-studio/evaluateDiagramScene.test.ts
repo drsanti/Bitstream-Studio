@@ -10,11 +10,9 @@ import type { DiagramLiveSnapshot } from "../../src/webview/course-studio/runtim
 import { parseDiagramV1 } from "../../src/webview/course-studio/schemas/diagram.v1";
 import { presentationBmi270FromSample } from "../../src/webview/presentation/display/selectors";
 import pilotMemsDiagramJson from "../../src/webview/course-studio/content/pilot-bmi-accel-mems.diagram.v1.json";
+import { diagramLiveSnapshot } from "./diagramLiveSnapshotFixtures";
 
-const snapshot: DiagramLiveSnapshot = {
-  bmi270: presentationBmi270FromSample(null),
-  connected: true,
-};
+const snapshot = diagramLiveSnapshot({ connected: true });
 
 test("parseDiagramV1 accepts pilot MEMS diagram JSON", () => {
   const diagram = parseDiagramV1(pilotMemsDiagramJson);
@@ -69,15 +67,15 @@ test("pilot MEMS proof-mass Y resolves golden frame from ax binding", () => {
   const proofMass = diagram.nodes.find((n) => n.id === "proof-mass");
   assert.ok(proofMass != null && proofMass.type === "rect");
 
-  const atZero: DiagramLiveSnapshot = {
-    bmi270: { ...presentationBmi270FromSample(null), ax: 0 },
+  const atZero = diagramLiveSnapshot({
     connected: true,
-  };
+    bmi270: { ...presentationBmi270FromSample(null), ax: 0 },
+  });
   assert.equal(evaluateNumericProp(proofMass.y, atZero), 78);
 
-  const atOne: DiagramLiveSnapshot = {
-    bmi270: { ...presentationBmi270FromSample(null), ax: 1 },
+  const atOne = diagramLiveSnapshot({
     connected: true,
-  };
+    bmi270: { ...presentationBmi270FromSample(null), ax: 1 },
+  });
   assert.equal(evaluateNumericProp(proofMass.y, atOne), 64);
 });

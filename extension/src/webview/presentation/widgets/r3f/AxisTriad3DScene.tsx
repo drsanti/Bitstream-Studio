@@ -4,6 +4,7 @@ import { Text } from "@react-three/drei";
 import * as THREE from "three";
 import { PresentationStage } from "./PresentationStage";
 import { PresentationOrbitControls } from "./PresentationOrbitControls";
+import { PresentationSceneControlsHint } from "./PresentationSceneControlsHint";
 
 function AxisTriad() {
   const groupRef = useRef<THREE.Group>(null);
@@ -44,9 +45,15 @@ function AxisTriad() {
   );
 }
 
-export function AxisTriad3DScene({ className = "" }: { className?: string }) {
+export function AxisTriad3DScene({
+  className = "",
+  controlsHintClassName,
+}: {
+  className?: string;
+  controlsHintClassName?: string;
+}) {
   return (
-    <div className={`h-full w-full bg-[var(--scene-bg)] ${className}`}>
+    <div className={`relative h-full w-full bg-[var(--scene-bg)] ${className}`}>
       <Canvas camera={{ position: [2.2, 1.8, 2.8], fov: 42 }} className="h-full w-full" gl={{ antialias: true }}>
         <Suspense fallback={null}>
           <PresentationStage />
@@ -54,6 +61,9 @@ export function AxisTriad3DScene({ className = "" }: { className?: string }) {
           <PresentationOrbitControls />
         </Suspense>
       </Canvas>
+      {controlsHintClassName != null ? (
+        <PresentationSceneControlsHint className={controlsHintClassName} />
+      ) : null}
     </div>
   );
 }

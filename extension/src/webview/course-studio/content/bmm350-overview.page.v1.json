@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "bmm350-overview",
+  "title": "BMM350 — Overview & measurement model",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMM350 · Chapter overview",
+      "title": "Magnetic field vector and level heading",
+      "subtitle": "What the BMM350 measures, how µT components behave on the bench, and how heading helps validate magnetometer data."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator and enable BMM350 MAG (and TMP as needed) in sensor configuration.",
+      "icon": "Info"
+    },
+    {
+      "id": "md-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 8, "rowSpan": 5 },
+      "src": "bmm350-overview.theory.md"
+    },
+    {
+      "id": "dash-bmm-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 5, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Field |B|",
+      "widgetKind": "text",
+      "style": { "label": "|B|", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-bmm-heading",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 7, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Level heading",
+      "widgetKind": "text",
+      "style": { "label": "Heading", "unit": "°", "decimals": 0, "showStatusBar": true },
+      "binding": { "path": "bmm350.headingDeg", "fallback": 0, "unit": "°", "format": "0f" }
+    },
+    {
+      "id": "card-overview",
+      "kind": "card",
+      "placement": { "column": 9, "row": 9, "columnSpan": 4, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "Board held flat for heading demos.\nRotate slowly — heading sweeps 0–360°.\nKeep magnets away unless testing interference.\nMag valid true when streaming."
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import type { DiagramV1 } from "../schemas/diagram.v1";
+import { isCourseContentReadOnlySourcePath } from "../content/courseSourcePaths";
 
 export async function saveCourseDiagramDev(
   sourcePath: string,
@@ -6,6 +7,10 @@ export async function saveCourseDiagramDev(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!import.meta.env.DEV) {
     return { ok: false, error: "Save is only available in Vite dev mode." };
+  }
+
+  if (isCourseContentReadOnlySourcePath(sourcePath)) {
+    return { ok: false, error: "This diagram is loaded from a read-only presentation pack." };
   }
 
   const response = await fetch("/__dev_api/course-studio/save-diagram", {

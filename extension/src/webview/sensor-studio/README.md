@@ -21,6 +21,8 @@ Current focus is configuration-first architecture and Node Editor groundwork.
    - [`docs/FLOW_DOMAINS.md`](./docs/FLOW_DOMAINS.md)
 8. Performance (fps caps, canvas interaction, diagnostics):
    - [`docs/SENSOR_STUDIO_PERFORMANCE.md`](./docs/SENSOR_STUDIO_PERFORMANCE.md)
+8b. **Vite dev load time** (lazy panes/panels, do not eager-import panels in `StudioNodeCard`):
+   - [`../../../docs/WEBVIEW_DEV_PERFORMANCE.md`](../../../docs/WEBVIEW_DEV_PERFORMANCE.md)
 9. node-animator editor parity (Shift+A, layout nodes, shortcuts):
    - [`docs/NODE_ANIMATOR_PARITY.md`](./docs/NODE_ANIMATOR_PARITY.md)
 
@@ -29,6 +31,8 @@ Current focus is configuration-first architecture and Node Editor groundwork.
 ```text
 sensor-studio/
 ├─ README.md
+├─ features/editor/nodes/studio-node-card-lazy-panels.tsx  # lazy flow node panels (dev perf)
+├─ features/editor/workbench/studio-workbench-registry.tsx  # lazy Flow/Stage/Dashboard/Inspector
 ├─ docs/
 │  ├─ DEVICE_SENSOR_SETTINGS_IMPLEMENTATION_PLAN.md
 │  └─ STUDIO_SCENE3D_CONFIG.md

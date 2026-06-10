@@ -40,7 +40,6 @@ export function EnvironmentSettingsSection(props: NodeInspectorSettingsSectionPr
               return (
                 <TRNInlineToggleRow
                   key={def.id}
-                  className="rounded-xl border-zinc-700/70 p-2.5"
                   label={`Pin · ${def.label}`}
                   hint={
                     wired

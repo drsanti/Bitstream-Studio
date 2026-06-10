@@ -4,6 +4,8 @@ This guide maps **`npm` scripts in `extension/`** (Bitstream Studio) to typical 
 
 > **New here?** Use the visual cheat sheet first: **[`DEV_MODE_QUICKSTART.md`](./DEV_MODE_QUICKSTART.md)** (`npm start`, F5 panel, split terminals, bookmark URLs).
 
+> **Slow refresh / blank dev page?** See **[`WEBVIEW_DEV_PERFORMANCE.md`](./WEBVIEW_DEV_PERFORMANCE.md)** (lazy Sensor Studio chunks, Vite warmup, HMR vs hard reload).
+
 For bridge internals, see [How the Bridge Works](./BRIDGE.md). For **Bitstream Assistant** (AI bridge) details and serial attach options, see [`src/ai/README.md`](../src/ai/README.md).
 
 ## Dev mode at a glance

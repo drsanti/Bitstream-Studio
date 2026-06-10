@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "id": "bmi270-overview",
+  "title": "BMI270 — Overview & measurement model",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMI270 · Chapter overview",
+      "title": "Specific force and the IMU frame",
+      "subtitle": "What the BMI270 measures, how magnitude behaves at rest, and how live readouts validate sensor behavior on the bench."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator and enable BMI270 ACC + GYR in sensor configuration before working through this chapter.",
+      "icon": "Info"
+    },
+    {
+      "id": "md-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 6 },
+      "src": "bmi270-overview.theory.md"
+    },
+    {
+      "id": "live-overview",
+      "kind": "live-metric",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 3 },
+      "title": "Accelerometer (live)",
+      "icon": "Activity",
+      "axes": {
+        "ax": { "path": "bmi270.ax", "fallback": 0, "unit": "g", "format": "0.000f" },
+        "ay": { "path": "bmi270.ay", "fallback": 0, "unit": "g", "format": "0.000f" },
+        "az": { "path": "bmi270.az", "fallback": 0, "unit": "g", "format": "0.000f" }
+      }
+    },
+    {
+      "id": "dash-acc-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 8, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Accel |a|",
+      "widgetKind": "text",
+      "style": { "label": "|a|", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-pitch",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 10, "columnSpan": 3, "rowSpan": 2 },
+      "title": "Pitch",
+      "widgetKind": "text",
+      "style": { "label": "Pitch", "unit": "°", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmi270.pitch", "fallback": 0, "unit": "°", "format": "0.0f" }
+    },
+    {
+      "id": "dash-acc-valid",
+      "kind": "dashboard-widget",
+      "placement": { "column": 11, "row": 10, "columnSpan": 2, "rowSpan": 2 },
+      "title": "Accel valid",
+      "widgetKind": "led",
+      "style": { "label": "Accel valid", "threshold": 0.5, "blink": false, "showStatusBar": true },
+      "binding": { "path": "bmi270.accValid", "fallback": 0 }
+    },
+    {
+      "id": "card-overview",
+      "kind": "card",
+      "placement": { "column": 1, "row": 11, "columnSpan": 7, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "One axis near +1 g when +Z is up.\nVector magnitude |a| ≈ 1 g.\nTilt moves gravity between axes — not a firmware defect.\nShake adds true acceleration on top of gravity."
+    }
+  ]
+}

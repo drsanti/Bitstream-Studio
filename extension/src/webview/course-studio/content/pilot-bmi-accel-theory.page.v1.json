@@ -63,6 +63,18 @@
       "title": "Live accelerometer"
     },
     {
+      "id": "pcb-scene",
+      "kind": "scene-3d",
+      "placement": {
+        "column": 8,
+        "row": 8,
+        "columnSpan": 5,
+        "rowSpan": 3
+      },
+      "documentId": "pilot-bmi-pcb-orientation",
+      "caption": "PCB orientation"
+    },
+    {
       "id": "mems-diagram",
       "kind": "diagram-2d",
       "placement": {
@@ -73,6 +85,18 @@
       },
       "diagramId": "pilot-bmi-accel-mems",
       "caption": "MEMS cross-section"
+    },
+    {
+      "id": "orientation-diagram",
+      "kind": "diagram-2d",
+      "placement": {
+        "column": 6,
+        "row": 11,
+        "columnSpan": 7,
+        "rowSpan": 3
+      },
+      "diagramId": "pilot-bmi-orientation-3d",
+      "caption": "Live PCB (diagram 3D layer)"
     }
   ]
 }

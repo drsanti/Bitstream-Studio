@@ -54,3 +54,44 @@ export function findOpenPlacement(
   );
   return { column: 1, row: maxRow, ...span };
 }
+
+/** Prefer duplicate to the right, then below, then first open slot. */
+export function findDuplicateBlockPlacement(
+  page: PageV1,
+  sourcePlacement: GridPlacementV1,
+): GridPlacementV1 {
+  const span = {
+    columnSpan: sourcePlacement.columnSpan,
+    rowSpan: sourcePlacement.rowSpan,
+  };
+  const occupied = occupiedPlacementKeys(page);
+  const { columns } = page.grid;
+
+  const candidates: GridPlacementV1[] = [
+    {
+      column: sourcePlacement.column + sourcePlacement.columnSpan,
+      row: sourcePlacement.row,
+      ...span,
+    },
+    {
+      column: sourcePlacement.column,
+      row: sourcePlacement.row + sourcePlacement.rowSpan,
+      ...span,
+    },
+  ];
+
+  for (const candidate of candidates) {
+    if (placementFits(candidate, occupied, columns)) {
+      return candidate;
+    }
+  }
+
+  return findOpenPlacement(page, span);
+}
+
+/** Human-readable span summary for grid placement inspector copy. */
+export function formatPlacementOccupancyHint(placement: GridPlacementV1): string {
+  const colEnd = placement.column + placement.columnSpan - 1;
+  const rowEnd = placement.row + placement.rowSpan - 1;
+  return `Occupies columns ${placement.column}–${colEnd}, rows ${placement.row}–${rowEnd} (${placement.columnSpan}×${placement.rowSpan} cells)`;
+}

@@ -10,20 +10,21 @@
  *
  *******************************************************************************/
 
+import { BitstreamStudioLoadingScreen } from "../../bitstream-shell/ui/BitstreamStudioLoadingScreen.js";
+
 export type WebGLRouteTransitionSplashProps = {
   label?: string;
+  hint?: string;
 };
 
 /**
  * Shown between landing and simulation routes while the prior Canvas disposes.
  */
 export function WebGLRouteTransitionSplash({
-  label = "Loading…",
-}: WebGLRouteTransitionSplashProps)
-{
+  label,
+  hint,
+}: WebGLRouteTransitionSplashProps) {
   return (
-    <div className="fixed inset-0 z-400 flex items-center justify-center bg-zinc-950 text-sm text-zinc-400">
-      {label}
-    </div>
+    <BitstreamStudioLoadingScreen layout="fullscreen" label={label} hint={hint} />
   );
 }

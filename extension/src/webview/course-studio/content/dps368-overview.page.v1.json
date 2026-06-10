@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "id": "dps368-overview",
+  "title": "DPS368 — Overview & measurement model",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "DPS368 · Chapter overview",
+      "title": "Barometric pressure and derived altitude",
+      "subtitle": "What the DPS368 measures, how hPa relates to height changes, and how live readouts validate barometer behavior."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator and enable DPS368 PRESS + TMP in sensor configuration.",
+      "icon": "Info"
+    },
+    {
+      "id": "md-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 8, "rowSpan": 5 },
+      "src": "dps368-overview.theory.md"
+    },
+    {
+      "id": "dash-dps-pressure",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 5, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Pressure",
+      "widgetKind": "text",
+      "style": { "label": "P", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-dps-alt",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 7, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Altitude",
+      "widgetKind": "text",
+      "style": { "label": "Alt", "unit": "m", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
+    },
+    {
+      "id": "card-overview",
+      "kind": "card",
+      "placement": { "column": 9, "row": 9, "columnSpan": 4, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "PRESS mask bit enabled.\nBaseline pressure near 1000 hPa (weather dependent).\nLift board ~1 m — pressure drops slightly.\nPressure valid when streaming."
+    }
+  ]
+}

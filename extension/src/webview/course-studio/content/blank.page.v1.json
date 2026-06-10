@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "id": "blank",
+  "title": "Untitled page",
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": []
+}

@@ -39,41 +39,56 @@ function simulateSignalValue(args: {
   const t = args.nowMs / 1000;
   const phase = (hashString(args.componentId) % 360) * (Math.PI / 180);
   const base = 0.55 + 0.45 * Math.sin(t * 0.35 + phase);
+  const ripple =
+    Math.sin(t * 2.4 + phase * 1.7) * 0.12 + Math.sin(t * 5.1 + phase) * 0.05;
   const key = args.key.toLowerCase();
 
   if (key.includes("temp")) {
-    const idle = 38 + base * 8;
-    return args.stressed ? idle + 18 + Math.sin(t * 2.1) * 4 : idle;
+    const idle = 38 + base * 8 + ripple * 4;
+    return args.stressed ? idle + 12 + Math.sin(t * 2.1) * 3 + ripple * 2 : idle;
   }
   if (key.includes("current")) {
-    const idle = 2.2 + base * 1.8;
-    return args.stressed ? idle + 4.5 + Math.sin(t * 3.2) * 1.2 : idle;
+    const idle = 2.2 + base * 1.8 + ripple * 0.35;
+    return args.stressed ? idle + 2.8 + Math.sin(t * 3.2) * 0.8 + ripple * 0.25 : idle;
   }
   if (key.includes("vibration")) {
-    const idle = 1.2 + base * 1.4;
-    return args.stressed ? idle + 2.8 + Math.sin(t * 4) * 0.6 : idle;
+    const idle = 1.2 + base * 1.4 + ripple * 0.3;
+    return args.stressed ? idle + 1.8 + Math.sin(t * 4) * 0.4 + ripple * 0.2 : idle;
   }
   if (key.includes("load")) {
-    return args.stressed ? 55 + base * 35 : 18 + base * 22;
+    return args.stressed
+      ? 45 + base * 22 + ripple * 6
+      : 18 + base * 22 + ripple * 5;
   }
   if (key.includes("track")) {
-    return args.stressed ? 0.4 + base * 1.4 : 0.05 + base * 0.35;
+    return args.stressed
+      ? 0.2 + base * 0.75 + ripple * 0.15
+      : 0.05 + base * 0.35 + ripple * 0.08;
   }
   if (key.includes("stabilizer")) {
-    return args.stressed ? 48 + base * 28 : 15 + base * 18;
+    return args.stressed
+      ? 38 + base * 22 + ripple * 5
+      : 15 + base * 18 + ripple * 4;
   }
   if (key.includes("link") || key.includes("dbm")) {
-    return -62 - base * 12 - (args.stressed ? 8 : 0);
+    return -62 - base * 12 - (args.stressed ? 8 : 0) + ripple * 3;
   }
-  return 10 + base * 20;
+  return 10 + base * 20 + ripple * 8;
 }
 
 function isComponentStressed(
   glbAnchor: string | undefined,
+  playbackMode: GlbAnimationLabPlaybackMode,
   activeClipName: string | null,
   transport: AnimationLabTwinSimulatorInput["transport"],
 ): boolean {
-  if (transport !== "playing" || glbAnchor == null || activeClipName == null) {
+  if (transport !== "playing") {
+    return false;
+  }
+  if (playbackMode === "parallel-all") {
+    return true;
+  }
+  if (glbAnchor == null || activeClipName == null) {
     return false;
   }
   return (
@@ -97,9 +112,12 @@ export function runAnimationLabTwinSimulator(
     demoFaultEnabled && faultMotorId != null && tSec > 45 && tSec % 90 < 25;
 
   const components: AnimationLabTwinComponentLive[] = twin.components.map((component) => {
-    const stressed =
-      playbackMode === "parallel-all" ||
-      isComponentStressed(component.glbAnchor, activeClipName, transport);
+    const stressed = isComponentStressed(
+      component.glbAnchor,
+      playbackMode,
+      activeClipName,
+      transport,
+    );
     const componentFault = injectFault && component.id === faultMotorId;
 
     const signals: AnimationLabTwinSignalLive[] = component.signals.map((def) => {

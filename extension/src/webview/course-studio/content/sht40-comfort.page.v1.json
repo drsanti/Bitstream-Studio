@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "id": "sht40-comfort",
+  "title": "SHT40 — RH, comfort & signal quality",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-comfort",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "SHT40 · Comfort",
+      "title": "RH basics and comfort bands",
+      "subtitle": "How to read %RH with temperature, interpret comfort zones, and keep publish intervals sensible for slow environmental sensors."
+    },
+    {
+      "id": "callout-warning",
+      "kind": "callout-warning",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Teaching bands only",
+      "body": "Comfort tables in this course are simplified guides for operators — not HVAC setpoints or safety limits.",
+      "icon": "AlertTriangle"
+    },
+    {
+      "id": "md-comfort",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 6 },
+      "src": "sht40-comfort.theory.md"
+    },
+    {
+      "id": "dash-comfort-temp",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Temperature",
+      "widgetKind": "text",
+      "style": {
+        "label": "Temp",
+        "unit": "°C",
+        "decimals": 1,
+        "showStatusBar": true
+      },
+      "binding": {
+        "path": "sht40.temp",
+        "fallback": 0,
+        "unit": "°C",
+        "format": "0.0f"
+      }
+    },
+    {
+      "id": "dash-comfort-rh",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Relative humidity",
+      "widgetKind": "text",
+      "style": {
+        "label": "%RH",
+        "unit": "%RH",
+        "decimals": 1,
+        "showStatusBar": true
+      },
+      "binding": {
+        "path": "sht40.rh",
+        "fallback": 0,
+        "unit": "%RH",
+        "format": "0.0f"
+      }
+    },
+    {
+      "id": "dash-rh-valid",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
+      "title": "RH valid",
+      "widgetKind": "led",
+      "style": {
+        "label": "RH valid",
+        "threshold": 0.5,
+        "blink": false,
+        "showStatusBar": true
+      },
+      "binding": {
+        "path": "sht40.rhValid",
+        "fallback": 0
+      }
+    }
+  ]
+}

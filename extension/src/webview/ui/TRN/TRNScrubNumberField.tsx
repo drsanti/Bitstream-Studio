@@ -56,7 +56,8 @@ export type TRNScrubNumberFieldProps = {
   ariaLabel?: string;
   className?: string;
   inputClassName?: string;
-  size?: "sm" | "md";
+  /** `field` — 13px value text + `py-1` shell; matches {@link TRNSelect} `variant="field"` triggers. */
+  size?: TRNScrubNumberFieldSize;
   appearance?: TRNScrubNumberFieldAppearance;
   interaction?: TRNScrubNumberFieldInteraction;
   /** Optional persistence key for saving settings. */
@@ -80,8 +81,36 @@ const ICON_BTN_BASE_MD =
 const ICON_BTN_BASE_SM =
   "nodrag inline-flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded bg-transparent p-0 text-zinc-400 outline-none transition-colors hover:bg-zinc-800/60 hover:text-zinc-100 focus-visible:ring-2 focus-visible:ring-cyan-400/45 disabled:opacity-50";
 
-function scrubIconBtnClass(size: "sm" | "md"): string {
+export type TRNScrubNumberFieldSize = "sm" | "md" | "field";
+
+function scrubIconBtnClass(size: TRNScrubNumberFieldSize): string {
   return size === "sm" ? ICON_BTN_BASE_SM : ICON_BTN_BASE_MD;
+}
+
+function scrubFieldLayout(size: TRNScrubNumberFieldSize): {
+  shellClass: string;
+  inputSizeClass: string;
+  iconSizeClass: string;
+} {
+  if (size === "field") {
+    return {
+      shellClass: "px-1 py-1",
+      inputSizeClass: "text-[13px] font-normal leading-tight",
+      iconSizeClass: "h-3 w-3",
+    };
+  }
+  if (size === "sm") {
+    return {
+      shellClass: "px-1 py-[3px]",
+      inputSizeClass: "text-[10px]",
+      iconSizeClass: "h-2.5 w-2.5",
+    };
+  }
+  return {
+    shellClass: "px-1 py-1",
+    inputSizeClass: "text-[11px]",
+    iconSizeClass: "h-3 w-3",
+  };
 }
 
 /** Lock toggle — unlocked = editable (green tint), locked = blocked (red tint). */
@@ -330,12 +359,8 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
         ? settings.valueRules?.step
         : undefined;
 
-  const iconSizeClass = size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3";
+  const { shellClass, inputSizeClass, iconSizeClass } = scrubFieldLayout(size);
   const iconBtnClass = scrubIconBtnClass(size);
-  const shellClass =
-    size === "sm"
-      ? "px-1 py-[3px]"
-      : "px-1 py-1";
 
   const stepButtonsVisibleClass = scrubFieldIconHoverClass(mergedAppearance.stepButtonsVisibility);
   const lockVisibleClass = scrubFieldIconHoverClass(mergedAppearance.lockIconVisibility);
@@ -965,10 +990,10 @@ export function TRNScrubNumberField(props: TRNScrubNumberFieldProps) {
           wheelPixelAccumThreshold={mergedInteraction.wheelPixelAccumThreshold}
           className="min-w-0 flex-1"
           inputClassName={twMerge(
-            inputClassName,
-            size === "sm" ? "text-[10px]" : "text-[11px]",
+            inputSizeClass,
             // Default TRN style: no mono/tabular, center the value.
             "font-sans proportional-nums text-center",
+            inputClassName,
           )}
           aria-label={ariaLabel}
         />

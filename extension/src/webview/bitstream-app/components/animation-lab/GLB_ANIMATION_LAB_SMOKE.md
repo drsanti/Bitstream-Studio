@@ -1,6 +1,6 @@
 # GLB Animation Lab — manual smoke checklist
 
-Run with **`npm run dev:webview`** → `http://localhost:5173/?app=bitstream` (or VSIX) → **Sensor Telemetry** workbench → **GLB Animation Lab** card.
+Run with **`npm run dev:webview`** → `http://localhost:5173/?app=bitstream` (or VSIX) → **Sensor Telemetry** workbench → **Digital Twin** pane → **Machine Twin** card.
 
 Prerequisite: **Tesa Drone** (or another multi-clip GLB) in the free-pack mirror (`__ternion_user_free/models/tesa-drone/tesa-drone.glb`).
 
@@ -29,9 +29,9 @@ Prerequisite: **Tesa Drone** (or another multi-clip GLB) in the free-pack mirror
 Bundled in dev: `extension/src/webview/assets/free/models/tesa-drone/tesa-drone_metadata.json` (or copy the example beside your GLB as `tesa-drone_metadata.json`), reload:
 
 - [ ] “Catalog hints applied” banner; default clip + mode from JSON
-- [ ] **Machine twin** panel lists gimbal / propulsion / IMU groups (not only clip heuristic)
+- [ ] **Machine Twin** panel lists gimbal / propulsion / IMU groups (not only clip heuristic)
 
-## Machine twin + 3D tags
+## Machine Twin + 3D tags
 
 - [ ] **Machine** inspector tab: overall health pill + subsystem rows
 - [ ] Select subsystem → clip row matches `glbAnchor`
@@ -57,7 +57,7 @@ Bundled in dev: `extension/src/webview/assets/free/models/tesa-drone/tesa-drone_
 
 With **Bitstream** or **Simulator** connected, handshake passed, and EVT_SENSOR streaming:
 
-- [ ] Machine twin header shows **Live** or **Mixed** (not only Simulated)
+- [ ] Machine Twin header shows **Live** or **Mixed** (not only Simulated)
 - [ ] Flight IMU temperature / vibration track BMI270 when `liveSourceKey` is in metadata
 - [ ] Motor/gimbal channels remain simulated until wire keys exist
 - [ ] Disconnect or stop stream → returns to **Simulated** within ~5 s

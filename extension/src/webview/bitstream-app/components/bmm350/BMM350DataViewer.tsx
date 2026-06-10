@@ -2,6 +2,11 @@ import { TRNInteractiveCard } from "@/ui/TRN";
 import { Activity, Compass } from "lucide-react";
 import { useMemo } from "react";
 import type { BMM350DataViewerProps } from "../../types/sensorDeckCardFrame";
+import {
+  sensorDeckCardChromeProps,
+  sensorDeckShowsDisplaySettings,
+  sensorDeckShowsUpdateBadge,
+} from "../../types/sensorDeckCardFrame";
 import { metricProgressPercent } from "../../telemetry/telemetryFormat";
 import { useSensorLastUpdateBadge } from "../telemetry/useSensorLastUpdateBadge.js";
 import { getBmi270AxisColorClass } from "../bmi270/bmi270AxisTelemetryStyles";
@@ -21,6 +26,8 @@ export function BMM350DataViewer(props: BMM350DataViewerProps) {
     collapsed,
     onToggleCollapsed,
     dragHandleSlot,
+    showUpdateBadge,
+    showDisplaySettings,
   } = props;
   const updateBadge = useSensorLastUpdateBadge("bmm350", samplingIntervalMs);
   const showMagnitude = useBitstreamConfigStore((s) => s.bmm350MagShowMagnitude);
@@ -65,13 +72,15 @@ export function BMM350DataViewer(props: BMM350DataViewerProps) {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {updateBadge != null ? <LastUpdateBadge {...updateBadge} /> : null}
-          <Bmm350MagnetometerDisplaySettingsMenu />
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
+            <LastUpdateBadge {...updateBadge} />
+          ) : null}
+          {sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <Bmm350MagnetometerDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      headerTitleClassName="normal-case tracking-normal text-zinc-100"
-      shell="solid"
-      className="h-auto"
+      {...sensorDeckCardChromeProps(props)}
       collapsible={onToggleCollapsed != null}
       collapsed={collapsed}
       onCollapsedChange={(nextCollapsed) => {

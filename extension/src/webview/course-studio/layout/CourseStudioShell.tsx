@@ -1,38 +1,53 @@
-import { useCallback, useState } from "react";
-import { Moon, Sun, GraduationCap, Pencil, Save, Undo2 } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+import { Moon, Sun, GraduationCap, Save, Undo2 } from "lucide-react";
 import { toast } from "react-toastify";
+import type { WorkbenchLayoutMenuProps } from "../../ui/workbench";
+import { WorkbenchLayoutMenu } from "../../ui/workbench";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip";
 import { TRN_HINT_HOVER_DELAY_MS } from "../../ui/TRN/TRNHintText";
-import { TRNToggleSwitch } from "../../ui/TRN/TRNToggleSwitch";
 import { PresentationThemeProvider } from "../../presentation/design/PresentationThemeProvider";
 import { usePresentationThemeStore } from "../../presentation/store/usePresentationThemeStore";
-import { useBitstreamConnectionStore } from "../../bitstream-app/state/bitstreamConnection.store";
-import { useWsClientStore } from "../../ws-client-store";
-import { CoursePageRenderer } from "../runtime/CoursePageRenderer";
 import { CourseDocumentStatusBadge } from "../runtime/CourseDocumentStatusBadge";
 import {
   isCourseStudioMaintainerModeAvailable,
   useCourseStudioMaintainerModeEnabled,
-  useCourseStudioMaintainerModeStore,
 } from "../maintainer/courseStudioMaintainerMode";
-import { CourseMaintainerSidePanel } from "../maintainer/CourseMaintainerSidePanel";
+import {
+  getCoursePageSourcePath,
+  isRuntimeCoursePage,
+  loadCoursePage,
+  registerRuntimeCoursePage,
+} from "../content/pageRegistry";
 import { saveCoursePageDev } from "../maintainer/saveCoursePageDev";
 import { useCoursePageEditorStore } from "../maintainer/useCoursePageEditorStore";
 import { useCourseMaintainerKeyboardShortcuts } from "../maintainer/useCourseMaintainerKeyboardShortcuts";
+import { CourseWorkbenchLayout } from "../workbench/CourseWorkbenchLayout";
+import { CourseReaderShell } from "../reader/CourseReaderShell";
+import { useCourseOutlineStore } from "../maintainer/useCourseOutlineStore";
+import { courseBreadcrumbForNode, collectCoursePageIds } from "../runtime/course/courseOutlineTree";
+import { saveCourseDev } from "../maintainer/saveCourseDev";
 import { CourseMotionController } from "../motion/CourseMotionController";
 import { Bmi270FrameRefSync } from "../../presentation/app/Bmi270FrameRefSync";
+import { CourseStudioModePill } from "./CourseStudioModePill";
+import {
+  COURSE_STUDIO_TOPBAR_ACTION_CLASS,
+  COURSE_STUDIO_TOPBAR_BRAND_ICON_CLASS,
+  COURSE_STUDIO_TOPBAR_BRAND_ICON_PX,
+  COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS,
+  COURSE_STUDIO_TOPBAR_ICON_BTN_CLASS,
+  COURSE_STUDIO_TOPBAR_LAYOUT_MENU_CLASS,
+  COURSE_STUDIO_TOPBAR_SUBTITLE_CLASS,
+  COURSE_STUDIO_TOPBAR_TITLE_CLASS,
+  COURSE_STUDIO_TOPBAR_TITLE_STACK_CLASS,
+} from "./course-studio-topbar-ui";
 import "../course-studio.css";
 
 export function CourseStudioShell() {
   const theme = usePresentationThemeStore((s) => s.theme);
   const toggleTheme = usePresentationThemeStore((s) => s.toggle);
-  const connected = useBitstreamConnectionStore((s) => s.connected);
-  const wsConnected = useWsClientStore((s) => s.isConnected);
-  const live = connected && wsConnected;
 
   const maintainerAvailable = isCourseStudioMaintainerModeAvailable();
   const maintainerEnabled = useCourseStudioMaintainerModeEnabled();
-  const setMaintainerEnabled = useCourseStudioMaintainerModeStore((s) => s.setEnabled);
   useCourseMaintainerKeyboardShortcuts(maintainerEnabled);
 
   const page = useCoursePageEditorStore((s) => s.page);
@@ -40,63 +55,134 @@ export function CourseStudioShell() {
   const sourcePath = useCoursePageEditorStore((s) => s.sourcePath);
   const discardChanges = useCoursePageEditorStore((s) => s.discardChanges);
   const markClean = useCoursePageEditorStore((s) => s.markClean);
-  const selectBlock = useCoursePageEditorStore((s) => s.selectBlock);
+  const courseTitle = useCourseOutlineStore((s) => s.course?.title);
+  const courseDirty = useCourseOutlineStore((s) => s.dirty);
+  const courseSourcePath = useCourseOutlineStore((s) => s.sourcePath);
+  const courseDocument = useCourseOutlineStore((s) => s.course);
+  const courseRoot = useCourseOutlineStore((s) => s.course?.root);
+  const activeOutlineNodeId = useCourseOutlineStore((s) => s.activeNodeId);
+  const discardCourseChanges = useCourseOutlineStore((s) => s.discardChanges);
+  const markCourseClean = useCourseOutlineStore((s) => s.markClean);
+  const breadcrumb = useMemo(
+    () => courseBreadcrumbForNode(courseRoot, activeOutlineNodeId),
+    [activeOutlineNodeId, courseRoot],
+  );
 
   const [saving, setSaving] = useState(false);
+  const [layoutMenuProps, setLayoutMenuProps] = useState<WorkbenchLayoutMenuProps | null>(null);
 
   const handleSave = useCallback(async () => {
-    if (page == null || !dirty) {
+    if (!dirty && !courseDirty) {
       return;
     }
     setSaving(true);
     try {
-      const result = await saveCoursePageDev(sourcePath, page);
-      if (!result.ok) {
-        toast.error(result.error);
-        return;
+      const savedPageIds = new Set<string>();
+
+      if (dirty && page != null) {
+        const pageResult = await saveCoursePageDev(sourcePath, page);
+        if (!pageResult.ok) {
+          toast.error(pageResult.error);
+          return;
+        }
+        registerRuntimeCoursePage(page.id, page, sourcePath);
+        markClean(page);
+        savedPageIds.add(page.id);
       }
-      markClean(page);
-      toast.success("Page saved to repo");
+
+      if (courseDirty && courseDocument != null) {
+        for (const pageId of collectCoursePageIds(courseDocument.root)) {
+          if (savedPageIds.has(pageId) || !isRuntimeCoursePage(pageId)) {
+            continue;
+          }
+          const runtimePage = loadCoursePage(pageId);
+          const runtimePath = getCoursePageSourcePath(pageId);
+          if (runtimePage == null || runtimePath == null) {
+            continue;
+          }
+          const pageResult = await saveCoursePageDev(runtimePath, runtimePage);
+          if (!pageResult.ok) {
+            toast.error(pageResult.error);
+            return;
+          }
+          registerRuntimeCoursePage(pageId, runtimePage, runtimePath);
+          savedPageIds.add(pageId);
+          if (page?.id === pageId) {
+            markClean(runtimePage);
+          }
+        }
+
+        const courseResult = await saveCourseDev(courseSourcePath, courseDocument);
+        if (!courseResult.ok) {
+          toast.error(courseResult.error);
+          return;
+        }
+        markCourseClean(courseDocument);
+      }
+      toast.success("Saved to repo");
     } finally {
       setSaving(false);
     }
-  }, [dirty, markClean, page, sourcePath]);
+  }, [
+    courseDirty,
+    courseDocument,
+    courseSourcePath,
+    dirty,
+    markClean,
+    markCourseClean,
+    page,
+    sourcePath,
+  ]);
+
+  const handleDiscard = useCallback(() => {
+    discardChanges();
+    discardCourseChanges();
+  }, [discardChanges, discardCourseChanges]);
+
+  const subtitle = useMemo(() => {
+    const crumbs =
+      breadcrumb.length > 1
+        ? breadcrumb
+            .slice(1)
+            .map((entry) => entry.title)
+            .join(" › ")
+        : (courseTitle ?? page?.title ?? "");
+    const unsaved = dirty || courseDirty ? " · Unsaved" : "";
+    return `${crumbs}${unsaved}`;
+  }, [breadcrumb, courseDirty, courseTitle, dirty, page?.title]);
 
   if (page == null) {
     return null;
   }
 
   return (
-    <PresentationThemeProvider rootClassName="presentation-root course-studio-root">
+    <PresentationThemeProvider
+      rootClassName={`presentation-root course-studio-root${
+        maintainerEnabled ? "" : " course-studio-root--read-mode"
+      }`}
+    >
       <Bmi270FrameRefSync />
       <CourseMotionController>
-        <header className="course-studio-topbar flex h-11 shrink-0 items-center justify-between border-b px-4">
-          <div className="flex min-w-0 items-center gap-2">
-            <GraduationCap size={16} strokeWidth={2} style={{ color: "var(--accent-amber)" }} />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-[var(--text-primary)]">
-                Course Studio
-              </div>
-              <div className="truncate text-2xs text-[var(--text-muted)]">
-                {page.title}
-                {maintainerEnabled ? " · Maintainer" : ""}
-                {dirty ? " · Unsaved" : ""}
-              </div>
+        <header className="course-studio-topbar relative flex h-11 shrink-0 items-center border-b px-4">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            <GraduationCap
+              className={COURSE_STUDIO_TOPBAR_BRAND_ICON_CLASS}
+              size={COURSE_STUDIO_TOPBAR_BRAND_ICON_PX}
+              strokeWidth={1.75}
+              aria-hidden
+            />
+            <div className={COURSE_STUDIO_TOPBAR_TITLE_STACK_CLASS}>
+              <div className={COURSE_STUDIO_TOPBAR_TITLE_CLASS}>Course Studio</div>
+              <div className={COURSE_STUDIO_TOPBAR_SUBTITLE_CLASS}>{subtitle}</div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {maintainerAvailable ? (
-              <label className="flex items-center gap-2 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] px-2.5 py-1">
-                <Pencil size={13} strokeWidth={2} className="text-[var(--text-muted)]" />
-                <span className="text-2xs font-medium text-[var(--text-secondary)]">Maintainer</span>
-                <TRNToggleSwitch
-                  checked={maintainerEnabled}
-                  onCheckedChange={setMaintainerEnabled}
-                  ariaLabel="Toggle maintainer mode"
-                />
-              </label>
-            ) : null}
-            {maintainerEnabled && dirty ? (
+          {maintainerAvailable ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <CourseStudioModePill />
+            </div>
+          ) : null}
+          <div className="course-studio-topbar-actions flex flex-1 items-center justify-end">
+            {maintainerEnabled && (dirty || courseDirty) ? (
               <>
                 <TRNTooltip
                   content="Discard unsaved edits"
@@ -107,16 +193,16 @@ export function CourseStudioShell() {
                   trigger={
                     <button
                       type="button"
-                      className="flex h-8 items-center gap-1.5 rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] px-2.5 text-2xs font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
-                      onClick={discardChanges}
+                      className={`${COURSE_STUDIO_TOPBAR_ACTION_CLASS} gap-1 hover:bg-[var(--surface-hover)]`}
+                      onClick={handleDiscard}
                     >
-                      <Undo2 size={14} strokeWidth={2} />
+                      <Undo2 className={COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS} strokeWidth={2} aria-hidden />
                       Discard
                     </button>
                   }
                 />
                 <TRNTooltip
-                  content="Save page JSON to repo (dev only)"
+                  content="Save page and course outline to repo (dev only)"
                   openDelayMs={TRN_HINT_HOVER_DELAY_MS}
                   disableHoverFx
                   triggerWrapper="span"
@@ -125,28 +211,23 @@ export function CourseStudioShell() {
                     <button
                       type="button"
                       disabled={saving}
-                      className="flex h-8 items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/15 px-2.5 text-2xs font-semibold text-amber-100 hover:bg-amber-500/25 disabled:opacity-60"
+                      className={`${COURSE_STUDIO_TOPBAR_ACTION_CLASS} gap-1 border-amber-500/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25 disabled:opacity-60`}
                       onClick={() => void handleSave()}
                     >
-                      <Save size={14} strokeWidth={2} />
+                      <Save className={COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS} strokeWidth={2} aria-hidden />
                       {saving ? "Saving…" : "Save"}
                     </button>
                   }
                 />
               </>
             ) : null}
+            {layoutMenuProps != null && maintainerEnabled ? (
+              <WorkbenchLayoutMenu
+                {...layoutMenuProps}
+                menuTriggerClassName={COURSE_STUDIO_TOPBAR_LAYOUT_MENU_CLASS}
+              />
+            ) : null}
             <CourseDocumentStatusBadge meta={page.meta} />
-            <span
-              className="rounded-full border px-2.5 py-1 text-2xs font-semibold"
-              style={{
-                color: live ? "var(--status-live)" : "var(--text-muted)",
-                borderColor: live
-                  ? "color-mix(in srgb, var(--status-live) 35%, transparent)"
-                  : "var(--surface-border)",
-              }}
-            >
-              {live ? "Live store" : "No link"}
-            </span>
             <TRNTooltip
               content={theme === "dark" ? "Light theme" : "Dark theme"}
               openDelayMs={TRN_HINT_HOVER_DELAY_MS}
@@ -157,27 +238,25 @@ export function CourseStudioShell() {
                 <button
                   type="button"
                   aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
-                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--surface-border)] bg-[var(--surface-card)] text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]"
+                  className={`${COURSE_STUDIO_TOPBAR_ICON_BTN_CLASS} text-[var(--text-secondary)] hover:bg-[var(--surface-hover)]`}
                   onClick={toggleTheme}
                 >
-                  {theme === "dark" ? <Sun size={15} strokeWidth={2} /> : <Moon size={15} strokeWidth={2} />}
+                  {theme === "dark" ? (
+                    <Sun className={COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS} strokeWidth={2} aria-hidden />
+                  ) : (
+                    <Moon className={COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS} strokeWidth={2} aria-hidden />
+                  )}
                 </button>
               }
             />
           </div>
         </header>
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
-          <main
-            className="min-h-0 min-w-0 flex-1 overflow-y-auto scrollbar-hide py-6"
-            onClick={maintainerEnabled ? () => selectBlock(null) : undefined}
-          >
-            <CoursePageRenderer page={page} />
-          </main>
           {maintainerEnabled ? (
-            <div className="course-maintainer-side-panel-host relative h-full min-h-0 shrink-0">
-              <CourseMaintainerSidePanel />
-            </div>
-          ) : null}
+            <CourseWorkbenchLayout onLayoutMenuPropsChange={setLayoutMenuProps} />
+          ) : (
+            <CourseReaderShell />
+          )}
         </div>
       </CourseMotionController>
     </PresentationThemeProvider>

@@ -2,6 +2,11 @@ import { TRNInteractiveCard } from "@/ui/TRN";
 import { Gauge } from "lucide-react";
 import { useMemo } from "react";
 import type { DPS368DataViewerProps } from "../../types/sensorDeckCardFrame";
+import {
+  sensorDeckCardChromeProps,
+  sensorDeckShowsDisplaySettings,
+  sensorDeckShowsUpdateBadge,
+} from "../../types/sensorDeckCardFrame";
 import { metricProgressPercent } from "../../telemetry/telemetryFormat";
 import { useSensorLastUpdateBadge } from "../telemetry/useSensorLastUpdateBadge.js";
 import { SensorMetricRow } from "../telemetry/SensorMetricRow";
@@ -21,6 +26,8 @@ export function DPS368DataViewer(props: DPS368DataViewerProps) {
     collapsed,
     onToggleCollapsed,
     dragHandleSlot,
+    showUpdateBadge,
+    showDisplaySettings,
   } = props;
   const updateBadge = useSensorLastUpdateBadge("dps368", samplingIntervalMs);
   const pressureUnit = useBitstreamConfigStore((s) => s.dps368PressureDisplayUnit);
@@ -53,13 +60,15 @@ export function DPS368DataViewer(props: DPS368DataViewerProps) {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {updateBadge != null ? <LastUpdateBadge {...updateBadge} /> : null}
-          <Dps368PressureDisplaySettingsMenu />
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
+            <LastUpdateBadge {...updateBadge} />
+          ) : null}
+          {sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <Dps368PressureDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      headerTitleClassName="normal-case tracking-normal text-zinc-100"
-      shell="solid"
-      className="h-auto"
+      {...sensorDeckCardChromeProps(props)}
       collapsible={onToggleCollapsed != null}
       collapsed={collapsed}
       onCollapsedChange={(nextCollapsed) => {

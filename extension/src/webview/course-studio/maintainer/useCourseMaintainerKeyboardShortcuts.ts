@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import { readStoredCourseMaintainerTab } from "./courseMaintainerInspectorUi";
+import { useCourseWorkbenchFocusStore } from "../workbench/course-workbench-focus.store";
 import { useCourseDiagramEditorStore } from "./useCourseDiagramEditorStore";
+import { tryDeleteSelectedCoursePageBlock } from "./coursePageBlockDeleteKey";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
 
-function shouldDeferMaintainerUndoToNativeTextControl(
+function shouldDeferMaintainerShortcutToNativeTextControl(
   target: EventTarget | null,
   preferDiagramUndo: boolean,
 ): boolean {
@@ -35,15 +36,19 @@ export function useCourseMaintainerKeyboardShortcuts(enabled: boolean): void {
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      const activeTab = readStoredCourseMaintainerTab();
+      const contextEditorType = useCourseWorkbenchFocusStore.getState().contextEditorType;
       const pageState = useCoursePageEditorStore.getState();
       const selectedBlock =
         pageState.page?.blocks.find((block) => block.id === pageState.selectedBlockId) ?? null;
       const diagramId =
         selectedBlock?.kind === "diagram-2d" ? selectedBlock.diagramId : null;
-      const preferDiagramUndo = activeTab === "diagram" && diagramId != null;
+      const preferDiagramUndo = contextEditorType === "diagram" && diagramId != null;
 
-      if (shouldDeferMaintainerUndoToNativeTextControl(event.target, preferDiagramUndo)) {
+      if (tryDeleteSelectedCoursePageBlock(event, contextEditorType)) {
+        return;
+      }
+
+      if (shouldDeferMaintainerShortcutToNativeTextControl(event.target, preferDiagramUndo)) {
         return;
       }
 

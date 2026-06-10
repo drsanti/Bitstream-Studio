@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "id": "new-topic",
+  "title": "New topic",
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-1",
+      "kind": "heading",
+      "placement": {
+        "column": 1,
+        "row": 1,
+        "columnSpan": 16,
+        "rowSpan": 2
+      },
+      "eyebrow": "Topic",
+      "title": "New topic",
+      "subtitle": "Edit this page in the Page Editor."
+    }
+  ]
+}

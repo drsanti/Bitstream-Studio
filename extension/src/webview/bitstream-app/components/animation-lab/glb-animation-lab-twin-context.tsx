@@ -84,7 +84,7 @@ export type GlbAnimationLabTwinContextValue = {
 
 const GlbAnimationLabTwinContext = createContext<GlbAnimationLabTwinContextValue | null>(null);
 
-const TWIN_TICK_MS = 1000;
+const TWIN_TICK_MS = 500;
 
 export function GlbAnimationLabTwinProvider(props: { children: ReactNode }) {
   const lab = useGlbAnimationLab();

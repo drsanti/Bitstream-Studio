@@ -1,0 +1,61 @@
+---
+description: TRN UI typography, collapsible icon cards, and component-first policy
+alwaysApply: true
+---
+
+# Webview UI consistency (TRN)
+
+When adding or editing UI under **`extension/src/webview/`**:
+
+## 1. Typography — match siblings, do not invent sizes
+
+New labels, hints, toolbar copy, and inspector rows must use the **same scale as the panel you are editing** — not one-off `text-sm`, `text-2xs`, or ad-hoc pixel sizes.
+
+| Role | Typical size | Pattern |
+|------|--------------|---------|
+| Card / section title | 11px | `text-[11px] font-semibold` (see `CourseInspectorCard`) |
+| Row label / control label | 11px | `TRNFormField` label or `text-[11px] leading-tight` |
+| Control value (select trigger, scrub field) | 13px | `TRNSelect` field trigger; Course maintainer → **`CourseMaintainerScrubNumberField`** / **`CourseMaintainerScrubNumberInput`** (`TRNScrubNumberField` `size="field"`) |
+| Group heading / meta | 10px | `text-[10px] font-semibold uppercase tracking-wide` |
+| Secondary value / hex / hint line | 10px | `text-[10px] text-zinc-500` (or `--text-muted`) |
+| Toolbar chip | 11px | `course-studio-topbar-ui.ts` |
+
+Before introducing a new size, **copy the nearest sibling panel** (Bitstream, Sensor Studio, Course Studio). See also **`no-tabular-font-unless-asked.mdc`** (no `font-mono` / `tabular-nums` unless requested).
+
+## 2. TRN components first — extend TRN when missing
+
+1. **Prefer existing TRN** — `TRNSelect`, `TRNFormField`, `TRNIconButton`, `TRNColorRingPicker`, `TRNTooltip`, `TRNInteractiveCard`, etc. (`extension/src/webview/ui/TRN/`).
+2. **No raw controls** — avoid native `<select>`, unstyled `<input>`, or one-off buttons when a TRN equivalent exists.
+3. **If nothing fits** — add a **new reusable TRN component** under `ui/TRN/` (with props aligned to existing TRN patterns), export from `ui/TRN/index.ts`, and add a short note in `ui/TRN/docs/` when non-trivial.
+4. **App wrappers** — domain-specific chrome (e.g. `CourseInspectorCard`) should thin-wrap TRN, not duplicate styles.
+
+Related: **`trn-webview-control-picker.mdc`**, skill **`webview-ui-elements`**, **`trn-component-first.mdc`**, **`trn-no-native-tooltip.mdc`**, **`trn-glass-dropdown-scrollbars.mdc`**, **`trn-menu-search.mdc`**.
+
+## 3. Cards — collapsible + meaningful title icon
+
+Every **card-style section** (inspector cards, deck panels, property groups) must:
+
+1. **Collapse** — `collapsible` default **on** (`TRNInteractiveCard`, `TRNCard`, or wrappers like `CourseInspectorCard`).
+2. **Prefix icon** — a **meaningful** Lucide icon before the title via `titleLeadingSlot` (`TRNInteractiveCard`) or `icon` (`TRNCard`), sized **`h-3.5 w-3.5`** or **`h-4 w-4`**, muted (`text-zinc-400` / `--text-muted`).
+3. **Icon semantics** — pick an icon that matches content (e.g. `Palette` Colors, `FileText` Content, `Youtube` Video, `Grid3x3` placement) — not a generic dot or duplicate icon across unrelated cards.
+
+```tsx
+<TRNInteractiveCard
+  title="Colors"
+  hint="Per-block prose colors."
+  collapsible
+  defaultExpanded={false}
+  titleLeadingSlot={<Palette className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />}
+  shell="glass"
+>
+  …
+</TRNInteractiveCard>
+```
+
+When introducing an app-level card helper, expose **`titleIcon`** (or `titleLeadingSlot`) and **`collapsible`** so callers cannot skip this pattern.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.
+
+Repo copies: keep **`extension/.cursor/rules/trn-ui-consistency.mdc`** in sync when this file changes.

@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { parseDiagramV1, type DiagramV1 } from "../schemas/diagram.v1";
+import { parseDiagramV1, type DiagramNodeV1, type DiagramV1 } from "../schemas/diagram.v1";
+import type { DiagramKonvaFreeformV1 } from "../schemas/diagramFreeform";
+import type { KonvaPropertyBindingValueV1 } from "../schemas/konvaPropertyBindings";
+import type { KonvaShapeV1 } from "../schemas/konvaShapes";
+import { migrateLegacyFreeformToKonva } from "../runtime/diagram/migrateLegacyFreeform";
+import { normalizeKonvaCanvasView } from "./courseKonvaTheme";
 import {
   canRedoDiagramHistory,
   canUndoDiagramHistory,
@@ -18,16 +23,68 @@ import {
   type DiagramNodePatch,
   type DiagramNodeZOrderDirection,
 } from "../runtime/diagram/diagramNodeMutations";
-import type { DiagramNodeV1 } from "../schemas/diagram.v1";
+import {
+  addDiagram3dNode,
+  addDiagram3dNodeToParent,
+  createDefaultDiagram3dModelNode,
+  ensureDiagram3dLayerWithModel,
+  moveDiagram3dNodeToParent,
+  patchDiagram3dCamera,
+  patchDiagram3dNode,
+  resetDiagram3dCamera,
+  removeDiagram3dNode,
+  type Diagram3dCameraPatch,
+  type Diagram3dNodePatch,
+} from "../runtime/diagram/diagram3dNodeMutations";
+import type { Diagram3dModelNodeV1, Diagram3dNodeV1 } from "../schemas/diagram.v1";
+import { syncDiagramLayers } from "../schemas/normalizeDiagramV1";
 import { pushDiagramJsonUndoCoalesced } from "./diagramJsonUndoCoalesce";
 
+function normalizeKonvaFreeformInDiagram(diagram: DiagramV1): DiagramV1 {
+  if (diagram.freeform == null) {
+    return diagram;
+  }
+  if (diagram.freeform.engine === "konva") {
+    const view = normalizeKonvaCanvasView(diagram.freeform.view);
+    if (diagram.freeform.view === view) {
+      return diagram;
+    }
+    return parseDiagramV1({
+      ...diagram,
+      freeform: { ...diagram.freeform, view },
+    });
+  }
+  const migrated = migrateLegacyFreeformToKonva(
+    diagram.freeform as unknown as Record<string, unknown>,
+  );
+  return parseDiagramV1({
+    ...diagram,
+    freeform: migrated,
+  });
+}
+
 function cloneDiagram(diagram: DiagramV1): DiagramV1 {
-  return parseDiagramV1(structuredClone(diagram));
+  const populatedLayers = diagram.layers.filter((layer) => layer.nodes.length > 0);
+  const parsed = parseDiagramV1({
+    version: diagram.version,
+    id: diagram.id,
+    title: diagram.title,
+    linkHealth: diagram.linkHealth,
+    viewBox: diagram.viewBox,
+    nodes: diagram.nodes,
+    freeform: diagram.freeform,
+    ...(populatedLayers.length > 0 ? { layers: populatedLayers } : {}),
+  });
+  return normalizeKonvaFreeformInDiagram(parsed);
 }
 
 type DiagramMutationOptions = {
   recordUndo?: boolean;
 };
+
+function publishDiagramDraft(diagram: DiagramV1): DiagramV1 {
+  return syncDiagramLayers(diagram);
+}
 
 type CourseDiagramEditorState = {
   sourcePaths: Record<string, string>;
@@ -35,10 +92,27 @@ type CourseDiagramEditorState = {
   drafts: Record<string, DiagramV1>;
   dirty: Record<string, boolean>;
   selectedNodeIds: Record<string, string | null>;
+  selected3dNodeIds: Record<string, string | null>;
   historyStacks: Record<string, DiagramHistoryStacks>;
   initDiagram: (diagram: DiagramV1, sourcePath: string) => void;
   setDraftJson: (diagramId: string, rawJson: string) => { ok: true } | { ok: false; error: string };
+  updateKonvaFreeform: (
+    diagramId: string,
+    payload: {
+      shapes: KonvaShapeV1[];
+      view?: DiagramKonvaFreeformV1["view"];
+    },
+    options?: DiagramMutationOptions,
+  ) => void;
+  patchKonvaPropertyBinding: (
+    diagramId: string,
+    shapeId: string,
+    property: string,
+    binding: KonvaPropertyBindingValueV1 | null,
+    options?: DiagramMutationOptions,
+  ) => void;
   setSelectedNodeId: (diagramId: string, nodeId: string | null) => void;
+  setSelected3dNodeId: (diagramId: string, nodeId: string | null) => void;
   pushDiagramUndoSnapshot: (diagramId: string) => void;
   patchNode: (
     diagramId: string,
@@ -60,6 +134,31 @@ type CourseDiagramEditorState = {
     direction: DiagramNodeZOrderDirection,
     options?: DiagramMutationOptions,
   ) => void;
+  enableDiagram3dLayer: (diagramId: string, options?: DiagramMutationOptions) => void;
+  patch3dNode: (
+    diagramId: string,
+    nodeId: string,
+    patch: Diagram3dNodePatch,
+    options?: DiagramMutationOptions,
+  ) => void;
+  patch3dCamera: (
+    diagramId: string,
+    patch: Diagram3dCameraPatch,
+    options?: DiagramMutationOptions,
+  ) => void;
+  reset3dCamera: (diagramId: string, options?: DiagramMutationOptions) => void;
+  add3dNode: (
+    diagramId: string,
+    node: Diagram3dNodeV1,
+    options?: DiagramMutationOptions & { parentGroupId?: string | null },
+  ) => void;
+  move3dNode: (
+    diagramId: string,
+    nodeId: string,
+    parentGroupId: string | null,
+    options?: DiagramMutationOptions,
+  ) => void;
+  remove3dNode: (diagramId: string, nodeId: string, options?: DiagramMutationOptions) => void;
   undoDiagram: (diagramId: string) => void;
   redoDiagram: (diagramId: string) => void;
   canUndoDiagram: (diagramId: string) => boolean;
@@ -86,6 +185,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
   drafts: {},
   dirty: {},
   selectedNodeIds: {},
+  selected3dNodeIds: {},
   historyStacks: {},
   initDiagram: (diagram, sourcePath) => {
     const snapshot = cloneDiagram(diagram);
@@ -137,9 +237,77 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
       };
     }
   },
+  updateKonvaFreeform: (diagramId, payload, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    const priorFreeform = draft.freeform;
+    const freeform: DiagramKonvaFreeformV1 = {
+      engine: "konva",
+      shapes: payload.shapes,
+      view: normalizeKonvaCanvasView(payload.view ?? priorFreeform?.view),
+      ...(priorFreeform?.propertyBindings != null
+        ? { propertyBindings: priorFreeform.propertyBindings }
+        : {}),
+    };
+    const next = publishDiagramDraft(
+      parseDiagramV1({
+        ...draft,
+        freeform,
+      }),
+    );
+    if (options?.recordUndo !== false) {
+      pushDiagramJsonUndoCoalesced(diagramId, () => {
+        get().pushDiagramUndoSnapshot(diagramId);
+      });
+    }
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: next },
+      dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
+  patchKonvaPropertyBinding: (diagramId, shapeId, property, binding, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft?.freeform?.engine !== "konva") {
+      return;
+    }
+    const prior = draft.freeform.propertyBindings ?? {};
+    const shapeBindings = { ...(prior[shapeId] ?? {}) };
+    if (binding == null) {
+      delete shapeBindings[property];
+    } else {
+      shapeBindings[property] = binding;
+    }
+    const nextBindings = { ...prior };
+    if (Object.keys(shapeBindings).length === 0) {
+      delete nextBindings[shapeId];
+    } else {
+      nextBindings[shapeId] = shapeBindings;
+    }
+    const freeform: DiagramKonvaFreeformV1 = {
+      ...draft.freeform,
+      propertyBindings: Object.keys(nextBindings).length > 0 ? nextBindings : undefined,
+    };
+    const next = publishDiagramDraft(parseDiagramV1({ ...draft, freeform }));
+    if (options?.recordUndo !== false) {
+      pushDiagramJsonUndoCoalesced(diagramId, () => {
+        get().pushDiagramUndoSnapshot(diagramId);
+      });
+    }
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: next },
+      dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
   setSelectedNodeId: (diagramId, nodeId) => {
     set((state) => ({
       selectedNodeIds: { ...state.selectedNodeIds, [diagramId]: nodeId },
+    }));
+  },
+  setSelected3dNodeId: (diagramId, nodeId) => {
+    set((state) => ({
+      selected3dNodeIds: { ...state.selected3dNodeIds, [diagramId]: nodeId },
     }));
   },
   patchNode: (diagramId, nodeId, patch, options) => {
@@ -147,7 +315,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
     if (draft == null) {
       return;
     }
-    const next = patchDiagramNode(draft, nodeId, patch);
+    const next = publishDiagramDraft(patchDiagramNode(draft, nodeId, patch));
     if (next === draft) {
       return;
     }
@@ -164,7 +332,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
     if (draft == null) {
       return;
     }
-    const next = replaceDiagramNode(draft, nodeId, node);
+    const next = publishDiagramDraft(replaceDiagramNode(draft, nodeId, node));
     if (options?.recordUndo !== false) {
       get().pushDiagramUndoSnapshot(diagramId);
     }
@@ -181,7 +349,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
     if (options?.recordUndo !== false) {
       get().pushDiagramUndoSnapshot(diagramId);
     }
-    const next = addDiagramNode(draft, node);
+    const next = publishDiagramDraft(addDiagramNode(draft, node));
     set((state) => ({
       drafts: { ...state.drafts, [diagramId]: next },
       dirty: { ...state.dirty, [diagramId]: true },
@@ -196,7 +364,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
     if (options?.recordUndo !== false) {
       get().pushDiagramUndoSnapshot(diagramId);
     }
-    const next = removeDiagramNode(draft, nodeId);
+    const next = publishDiagramDraft(removeDiagramNode(draft, nodeId));
     set((state) => ({
       drafts: { ...state.drafts, [diagramId]: next },
       dirty: { ...state.dirty, [diagramId]: true },
@@ -211,7 +379,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
     if (draft == null) {
       return;
     }
-    const next = reorderDiagramNode(draft, nodeId, direction);
+    const next = publishDiagramDraft(reorderDiagramNode(draft, nodeId, direction));
     if (next === draft) {
       return;
     }
@@ -221,6 +389,127 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
     set((state) => ({
       drafts: { ...state.drafts, [diagramId]: next },
       dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
+  enableDiagram3dLayer: (diagramId, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    const next = publishDiagramDraft(ensureDiagram3dLayerWithModel(draft));
+    const layerNodeId = next.layers.find((layer) => layer.kind === "3d")?.nodes[0]?.id ?? null;
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: next },
+      dirty: { ...state.dirty, [diagramId]: true },
+      selected3dNodeIds: {
+        ...state.selected3dNodeIds,
+        [diagramId]: layerNodeId,
+      },
+    }));
+  },
+  patch3dNode: (diagramId, nodeId, patch, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    const candidate = publishDiagramDraft(patchDiagram3dNode(draft, nodeId, patch));
+    if (candidate === draft) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: candidate },
+      dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
+  patch3dCamera: (diagramId, patch, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    const candidate = publishDiagramDraft(patchDiagram3dCamera(draft, patch));
+    if (candidate === draft) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: candidate },
+      dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
+  reset3dCamera: (diagramId, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    const candidate = publishDiagramDraft(resetDiagram3dCamera(draft));
+    if (candidate === draft) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: candidate },
+      dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
+  add3dNode: (diagramId, node, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    const parentGroupId = options?.parentGroupId ?? null;
+    const next = publishDiagramDraft(addDiagram3dNodeToParent(draft, node, parentGroupId));
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: next },
+      dirty: { ...state.dirty, [diagramId]: true },
+      selected3dNodeIds: { ...state.selected3dNodeIds, [diagramId]: node.id },
+    }));
+  },
+  move3dNode: (diagramId, nodeId, parentGroupId, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    const next = publishDiagramDraft(moveDiagram3dNodeToParent(draft, nodeId, parentGroupId));
+    if (next === draft) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: next },
+      dirty: { ...state.dirty, [diagramId]: true },
+    }));
+  },
+  remove3dNode: (diagramId, nodeId, options) => {
+    const draft = get().drafts[diagramId];
+    if (draft == null) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushDiagramUndoSnapshot(diagramId);
+    }
+    const next = publishDiagramDraft(removeDiagram3dNode(draft, nodeId));
+    set((state) => ({
+      drafts: { ...state.drafts, [diagramId]: next },
+      dirty: { ...state.dirty, [diagramId]: true },
+      selected3dNodeIds: {
+        ...state.selected3dNodeIds,
+        [diagramId]: state.selected3dNodeIds[diagramId] === nodeId ? null : state.selected3dNodeIds[diagramId],
+      },
     }));
   },
   undoDiagram: (diagramId) => {
@@ -266,6 +555,7 @@ export const useCourseDiagramEditorStore = create<CourseDiagramEditorState>((set
       drafts: { ...state.drafts, [diagramId]: cloneDiagram(baseline) },
       dirty: { ...state.dirty, [diagramId]: false },
       selectedNodeIds: { ...state.selectedNodeIds, [diagramId]: null },
+      selected3dNodeIds: { ...state.selected3dNodeIds, [diagramId]: null },
       historyStacks: clearDiagramHistory(state.historyStacks, diagramId),
     }));
   },

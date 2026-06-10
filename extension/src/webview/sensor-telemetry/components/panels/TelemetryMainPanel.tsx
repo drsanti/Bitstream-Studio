@@ -1,7 +1,7 @@
 /*******************************************************************************
  * File Name : TelemetryMainPanel.tsx
  *
- * Description : Center workbench pane — GLB Animation Lab (catalog GLB playback).
+ * Description : Center workbench pane — Machine Twin (catalog GLB + digital twin).
  *
  * Author : Asst.Prof.Santi Nuratch, Ph.D
  * Thailand Embedded Systems Association (TESA)
@@ -13,7 +13,7 @@
 import { GlbAnimationLabPreviewCard } from "../../../bitstream-app/components/animation-lab/GlbAnimationLabPreviewCard.js";
 
 /**
- * Telemetry workbench focal surface: animation lab only (no IMU quaternion preview here).
+ * Telemetry workbench focal surface: Machine Twin only (no IMU quaternion preview here).
  * Live BMI270 orientation remains on the Bitstream rotation / fusion workspace when enabled elsewhere.
  */
 export function TelemetryMainPanel() {

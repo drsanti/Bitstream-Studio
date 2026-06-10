@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "id": "sht40-live",
+  "title": "SHT40 — Live visualization",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-live",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "SHT40 · Live",
+      "title": "Deck-style telemetry cards",
+      "subtitle": "Humidity and temperature cards driven by the same live stream as the Bitstream sensor deck."
+    },
+    {
+      "id": "callout-tip",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable SHT40",
+      "body": "If cards stay gray, open sensor settings and confirm SHT40 is enabled with TEMP and HUM published.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-live",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 5, "rowSpan": 5 },
+      "src": "sht40-live.theory.md"
+    },
+    {
+      "id": "card-sht40-humidity",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 6, "row": 5, "columnSpan": 3, "rowSpan": 5 },
+      "preset": "sht40Humidity"
+    },
+    {
+      "id": "card-sht40-temperature",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 9, "row": 5, "columnSpan": 4, "rowSpan": 5 },
+      "preset": "sht40Temperature"
+    }
+  ]
+}

@@ -1,40 +1,63 @@
 import type { PageBlockV1 } from "../schemas/page.v1";
 import type { PageV1 } from "../schemas/page.v1";
-import { DEFAULT_COURSE_3D_SCENE_ID } from "../schemas/course3dScene";
+import {
+  COURSE_DASHBOARD_WIDGET_DEFAULT_BINDING,
+  COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT,
+} from "../schemas/courseLiveBindingDefaults";
+import { COURSE_SENSOR_TELEMETRY_CARD_PRESET_DEFAULT } from "../schemas/sensorTelemetryCardPreset";
 import { findOpenPlacement } from "./blockPlacement";
+import { PAGE_BLOCK_PALETTE, type CourseBlockPaletteEntry } from "./blockPaletteMeta";
 
 export type PageBlockKind = PageBlockV1["kind"];
 
-export const PAGE_BLOCK_PALETTE: ReadonlyArray<{
-  kind: PageBlockKind;
-  label: string;
-  defaultSpan: { columnSpan: number; rowSpan: number };
-}> = [
-  { kind: "heading", label: "Heading", defaultSpan: { columnSpan: 12, rowSpan: 2 } },
-  { kind: "callout-info", label: "Callout", defaultSpan: { columnSpan: 6, rowSpan: 2 } },
-  { kind: "markdown", label: "Markdown", defaultSpan: { columnSpan: 6, rowSpan: 4 } },
-  { kind: "card", label: "Card", defaultSpan: { columnSpan: 4, rowSpan: 2 } },
-  { kind: "live-metric", label: "Live metric", defaultSpan: { columnSpan: 4, rowSpan: 3 } },
-  { kind: "diagram-2d", label: "Diagram", defaultSpan: { columnSpan: 5, rowSpan: 3 } },
-  { kind: "diagram-3d", label: "3D scene", defaultSpan: { columnSpan: 5, rowSpan: 4 } },
-];
+export { PAGE_BLOCK_PALETTE };
+export type { CourseBlockPaletteEntry };
 
-let blockIdCounter = 0;
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
-function nextBlockId(kind: string): string {
-  blockIdCounter += 1;
-  return `${kind}-${blockIdCounter}`;
+/** Allocate `kind-N` ids that do not collide with blocks already on the page. */
+export function nextUniquePageBlockId(
+  kind: string,
+  existingBlocks: readonly { id: string }[],
+): string {
+  const existingIds = new Set(existingBlocks.map((block) => block.id));
+  const prefix = `${kind}-`;
+  const numericSuffix = new RegExp(`^${escapeRegExp(prefix)}(\\d+)$`);
+
+  let maxSuffix = 0;
+  for (const id of existingIds) {
+    const match = id.match(numericSuffix);
+    if (match) {
+      maxSuffix = Math.max(maxSuffix, Number.parseInt(match[1]!, 10));
+    }
+  }
+
+  let candidate = maxSuffix + 1;
+  while (existingIds.has(`${prefix}${candidate}`)) {
+    candidate += 1;
+  }
+  return `${prefix}${candidate}`;
+}
+
+/** New unique block id for duplicate / palette add. */
+export function generatePageBlockId(
+  kind: string,
+  existingBlocks: readonly { id: string }[] = [],
+): string {
+  return nextUniquePageBlockId(kind, existingBlocks);
 }
 
 export function createPageBlock(
   kind: PageBlockKind,
   page: PageV1,
-  options?: { diagramId?: string },
+  options?: { diagramId?: string; documentId?: string },
 ): PageBlockV1 {
   const palette = PAGE_BLOCK_PALETTE.find((entry) => entry.kind === kind);
   const span = palette?.defaultSpan ?? { columnSpan: 4, rowSpan: 2 };
   const placement = findOpenPlacement(page, span);
-  const id = nextBlockId(kind);
+  const id = nextUniquePageBlockId(kind, page.blocks);
 
   switch (kind) {
     case "heading":
@@ -79,21 +102,84 @@ export function createPageBlock(
         placement,
         title: "Live tri-axis",
       };
-    case "diagram-2d":
+    case "dashboard-widget":
       return {
         id,
         kind,
         placement,
-        diagramId: options?.diagramId ?? "pilot-bmi-accel-mems",
+        widgetKind: "text",
+        style: { ...COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT },
+        binding: { ...COURSE_DASHBOARD_WIDGET_DEFAULT_BINDING },
+        title: "Live value",
+      };
+    case "sensor-telemetry-card":
+      return {
+        id,
+        kind,
+        placement,
+        preset: COURSE_SENSOR_TELEMETRY_CARD_PRESET_DEFAULT,
+      };
+    case "diagram-2d": {
+      const diagramId = options?.diagramId;
+      if (diagramId == null || diagramId.length === 0) {
+        throw new Error("diagram-2d blocks require a diagramId from prepareNewCourseDiagram().");
+      }
+      return {
+        id,
+        kind,
+        placement,
+        diagramId,
         caption: "Diagram",
       };
-    case "diagram-3d":
+    }
+    case "scene-3d": {
+      const documentId = options?.documentId;
+      if (documentId == null || documentId.length === 0) {
+        throw new Error("scene-3d blocks require a documentId from registerNewCourseScene().");
+      }
       return {
         id,
         kind,
         placement,
-        sceneId: DEFAULT_COURSE_3D_SCENE_ID,
-        caption: "3D orientation",
+        documentId,
+        caption: "3D Scene",
+      };
+    }
+    case "image":
+      return {
+        id,
+        kind,
+        placement,
+        src: "https://placehold.co/800x450/1a1a1c/71717a?text=Image",
+        alt: "Placeholder image",
+        caption: "Image caption",
+        fit: "contain",
+      };
+    case "code":
+      return {
+        id,
+        kind,
+        placement,
+        language: "typescript",
+        code: "// Edit code in the inspector\nconsole.log('Hello, Course Studio');",
+        caption: "Code sample",
+      };
+    case "youtube":
+      return {
+        id,
+        kind,
+        placement,
+        url: "https://www.youtube.com/watch?v=J---aiyznGQ",
+        caption: "Video caption",
+      };
+    case "iframe":
+      return {
+        id,
+        kind,
+        placement,
+        src: "https://example.com",
+        title: "Embedded page",
+        caption: "Embed caption",
       };
     default:
       return {

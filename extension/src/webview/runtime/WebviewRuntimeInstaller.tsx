@@ -2,6 +2,7 @@ import React from "react";
 import { installDevAssetBaseUris } from "../installDevAssetBaseUris";
 import { installWebviewHostShellSync } from "../installWebviewHostShellSync";
 import { installWebviewQuickActionShortcut } from "../installWebviewQuickActionShortcut";
+import { installKonvaEditorGroupShortcuts } from "../course-studio/maintainer/konvaEditorShortcutBridge";
 import { resolveInitialWebviewEntry, shouldShowWebviewLauncher } from "../ternion-webview-entry";
 import { getWebviewEntryStore, initWebviewEntryStore } from "../state/webviewEntry.store";
 import { installWebviewShellUrlSync } from "../state/webviewShellUrlSync";
@@ -32,6 +33,7 @@ export function WebviewRuntimeInstaller()
 
     installDevAssetBaseUris();
     installWebviewQuickActionShortcut();
+    installKonvaEditorGroupShortcuts();
     installWebviewHostShellSync();
 
     /* Init the webview entry store if it is not already initialized. */

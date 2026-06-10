@@ -7,7 +7,8 @@ Course Studio is the **v2 alive-documents** workspace for Bitstream Studio. Pres
 ```text
 course-studio/
   CourseStudioWorkspace.tsx   # workspace entry
-  layout/CourseStudioShell.tsx
+  layout/CourseStudioShell.tsx  # top bar + workbench host
+  workbench/                    # StandaloneWorkbench registry + panes
   runtime/
     CoursePageRenderer.tsx    # 12-col grid
     BlockRenderer.tsx         # block kind → UI
@@ -66,11 +67,13 @@ Page blocks reference diagrams via `diagram-2d` + `diagramId`. Live proof-mass o
 
 **Maintainer undo:** Ctrl+Z / Cmd+Z (and Ctrl+Shift+Z / Ctrl+Y redo) when Maintainer is on — **page grid** drag/resize on the main canvas, plus **diagram** edits when the Diagram inspector tab is active. Typing in block text fields keeps native text undo.
 
-**Diagram maintainer (7c):** Select a `diagram-2d` block → **canvas** drag for static nodes (4px grid + **alignment guides**), **curved connectors** (quadratic `curve` control on line/arrow), **resize handles** (E/S/SE), **line endpoint + curve** handles, stack-order controls, JSON editor + property panel → **Save diagram** (dev API). Bound axes (e.g. proof-mass Y) stay live-driven.
+**Diagram maintainer (7c):** Select a `diagram-2d` block → **Draw** tab (Konva live canvas + per-shape **Data bindings** panel) or **Data layer (SVG)** tab. **Any object property** — position, size, opacity, text, visibility, 3D rotation, connector flow/highlight — can bind to live sensor paths (`bmi270.*`) or bridge variables; MapOp scale/clamp chains map raw values to layout. Bound fields stay data-driven on page preview; static canvas edits define layout only.
 
-**Edge flow (7g slice):** Dashed connector lines animate when link is healthy; animation pauses when frozen/disconnected (`prefers-reduced-motion` respected).
+**Konva freeform:** `diagram.v1` `freeform` engine `konva` with `propertyBindings` maps shape id → property → binding spec; `evaluateKonvaShapes` resolves live values at preview/runtime. Legacy `excalidraw` freeform payloads migrate to Konva on parse.
 
-**3D scenes (7f slice):** Page block `diagram-3d` embeds Presentation R3F presets (`bmi-pcb-orientation`, `axis-triad`, `bmi-gyro-gimbal`) via lazy `CourseDiagram3DSceneHost`. Live scenes use `presentationBmi270FrameRef` (synced by `Bmi270FrameRefSync` in shell). Full `diagram.v1` 3D layers remain backlog.
+**3D scene documents (7f slice):** Page block `scene-3d` references `content/{documentId}.scene.v1.json` (`scene.v1` — nodes, camera, environment settings, link health). Runtime: `CourseDiagram3DLayer` via `sceneV1ToDiagramV1()`. Maintainer **3D Scene Editor** workbench pane edits the bound scene document (gizmo viewport, add/duplicate/delete objects, per-model PBR `material`, environment, undo/redo, dev **Save scene**). Production checklist and backlog: **`docs/SCENE_3D_EDITOR.md`**. Legacy `diagram-3d` + `sceneId` blocks migrate to `scene-3d` on page parse. Pilot: `pilot-bmi-pcb-orientation`.
+
+**3D layers (7f):** `diagram.v1` optional `layers[]` — `{ kind: "2d", nodes }` and `{ kind: "3d", nodes }`. Runtime: `CourseDiagramCompositeRenderer` (page preview). Layered `diagram-2d` blocks with a 3D layer route to **Diagram** pane **3D layer** sub-tab (`CourseDiagram3dViewportEditor`); page-level **`scene-3d`** blocks route to **3D Scene Editor** instead.
 
 **Document meta (7g):** Optional `page.meta` — `telemetryPreference` (`auto` | `uart` | `simulator`), `defaultLinkHealth`, `staleMs`. When `staleMs` is set, link health compares `bs2EvtSensorLastRxAtMs` (or firmware RX fallback) against wall clock — stale samples trigger **Stale** badges and diagram `freeze-gray` inactive styling. Shell shows route + data chips via `CourseDocumentStatusBadge`.
 
@@ -78,9 +81,9 @@ Page blocks reference diagrams via `diagram-2d` + `diagramId`. Live proof-mass o
 
 ## Maintainer inspector panel
 
-Maintainer mode uses `TRNSidePanel` (`variant="inspector"`) — resizable, collapsible right inspector with width persisted in `localStorage` (`course-studio:maintainer-inspector`). Inner body uses **`TRNTabs`** (Page · Block · Diagram) with **`TRNFormSection`**, **`TRNInput`**, **`TRNTextarea`**, **`TRNSelect`**, **`TRNScrubNumberInput`**, and **`TRNHighlightedJsonTextarea`** — same inspector tab chrome as Sensor Studio (`TRN_INSPECTOR_TAB_*` classes). Collapse to preview the page full-width; expand via the floating **Maintainer** control or **Ctrl+\\** / **Cmd+\\**.
+Maintainer mode uses a **split-pane workbench** (`workbench/CourseWorkbenchLayout.tsx`) with dedicated panes for Content, Inspector, Diagram, Markdown, and 3D Scene. The **Inspector side panel** is **contextual** — it follows the active editor pane (`useCourseWorkbenchFocusStore.contextEditorType`): Page/Block when Content is focused, Diagram bindings/nodes when Diagram is focused, Markdown block fields when Markdown is focused, 3D models when 3D Scene is focused.
 
-Implementation: `maintainer/CourseMaintainerSidePanel.tsx` (palette + block/diagram inspector).
+Legacy `CourseMaintainerSidePanel` (`TRNSidePanel`) is superseded by the workbench but kept for reference.
 
 ## Grid composer (Phase 7h slice)
 
@@ -93,4 +96,4 @@ Maintainer mode uses `CoursePageGridComposer` — reuses Sensor Studio dashboard
 
 ## Next phases
 
-Full `diagram.v1` **3D layers** (model nodes, maintainer viewport, shared binding resolver with 2D), **content packs**, validate CLI — see `presentation/docs/DEVELOPMENT_PLAN.md` §16–17.
+**3D Scene Editor** post-baseline (bindings panel, texture maps, VSIX smoke): **`docs/SCENE_3D_EDITOR.md`**. Broader Course Studio: **content packs v2**, Presentation `courseDiagramId` slides — `presentation/docs/DEVELOPMENT_PLAN.md` §16–17.

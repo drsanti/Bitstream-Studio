@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "id": "bmi270-applications",
+  "title": "BMI270 — Applications & dashboards",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-apps",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMI270 · Applications",
+      "title": "From sensor physics to operator dashboards",
+      "subtitle": "Where accelerometers matter in practice, and how Sensor Studio maps live BMI270 streams to Dashboard widgets.",
+      "icon": "LayoutDashboard"
+    },
+    {
+      "id": "callout-studio",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Node-based tooling",
+      "body": "Open Sensor Studio to wire BMI270 taps into gauges, charts, LEDs, and 3D stages on the Dashboard — same bindings as the blocks on this page.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-apps",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 6 },
+      "src": "bmi270-applications.theory.md"
+    },
+    {
+      "id": "card-gyro",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 3 },
+      "preset": "gyro"
+    },
+    {
+      "id": "card-quat",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 8, "row": 8, "columnSpan": 5, "rowSpan": 3 },
+      "preset": "quat"
+    },
+    {
+      "id": "dash-ax",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 11, "columnSpan": 3, "rowSpan": 2 },
+      "title": "Accel X",
+      "widgetKind": "text",
+      "style": { "label": "Accel X", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.ax", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-acc-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 4, "row": 11, "columnSpan": 3, "rowSpan": 2 },
+      "title": "Accel |a|",
+      "widgetKind": "text",
+      "style": { "label": "|a|", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-acc-valid",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 11, "columnSpan": 2, "rowSpan": 2 },
+      "title": "Accel valid",
+      "widgetKind": "led",
+      "style": { "label": "Accel valid", "threshold": 0.5, "blink": false, "showStatusBar": true },
+      "binding": { "path": "bmi270.accValid", "fallback": 0 }
+    },
+    {
+      "id": "card-use-cases",
+      "kind": "card",
+      "placement": { "column": 9, "row": 11, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Common use cases",
+      "body": "Tilt and level indicators\nVibration and shock monitoring\nOrientation for mobile robots\nMachine alignment and safety interlocks\nActivity and motion context (with fusion)",
+      "icon": "Briefcase"
+    },
+    {
+      "id": "card-dashboard",
+      "kind": "card",
+      "placement": { "column": 1, "row": 13, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Sensor Studio → Dashboard workflow",
+      "body": "1. Stream live BMI270 data (Bitstream or Simulator).\n2. Add BMI270 input or tap nodes in Sensor Studio.\n3. Enable Show on Dashboard for gauges, LEDs, charts, or 3D views.\n4. In Course Studio, map the same paths on Dashboard widget or Sensor card blocks.",
+      "icon": "Workflow"
+    }
+  ]
+}

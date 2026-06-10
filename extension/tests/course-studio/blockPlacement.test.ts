@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { findOpenPlacement } from "../../src/webview/course-studio/maintainer/blockPlacement";
+import {
+  findOpenPlacement,
+  formatPlacementOccupancyHint,
+} from "../../src/webview/course-studio/maintainer/blockPlacement";
 import { loadPilotBmiAccelTheoryPage } from "../../src/webview/course-studio/content/loadPilotPage";
+
+test("formatPlacementOccupancyHint summarizes column and row spans", () => {
+  assert.equal(
+    formatPlacementOccupancyHint({ column: 1, row: 12, columnSpan: 12, rowSpan: 7 }),
+    "Occupies columns 1–12, rows 12–18 (12×7 cells)",
+  );
+});
 
 test("findOpenPlacement avoids occupied cells", () => {
   const page = loadPilotBmiAccelTheoryPage();

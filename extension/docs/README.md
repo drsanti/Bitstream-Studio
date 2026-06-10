@@ -22,6 +22,7 @@ Also under **`../src/bitstream2/docs/`** (SENSOR_CFG, HOST_UART_LINK, UART probe
 | [`DEVELOPMENT_TRACKER.md`](./DEVELOPMENT_TRACKER.md) | Backlog and shipped work |
 | [`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md) | Port E84 / ABB / vehicle sims from `ternion-t3d` (R3F, no `@ternion/t3d`) |
 | [**`DEV_MODE_QUICKSTART.md`**](./DEV_MODE_QUICKSTART.md) | **Visual** dev paths — `npm start`, F5, URLs (start here) |
+| [**`WEBVIEW_DEV_PERFORMANCE.md`**](./WEBVIEW_DEV_PERFORMANCE.md) | Vite dev refresh/HMR, lazy Sensor Studio chunks, blank-page troubleshooting |
 | [`DEVELOPMENT_COMMANDS.md`](./DEVELOPMENT_COMMANDS.md) | `npm` scripts and dev workflows |
 | [`PUBLISHING.md`](./PUBLISHING.md) | VSIX packaging |
 

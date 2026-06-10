@@ -10,11 +10,11 @@ import {
 import { parseDiagramV1 } from "../../src/webview/course-studio/schemas/diagram.v1";
 import pilotMemsDiagramJson from "../../src/webview/course-studio/content/pilot-bmi-accel-mems.diagram.v1.json";
 
-test("createBlankDiagramV1 produces a valid single-node diagram", () => {
+test("createBlankDiagramV1 produces Konva freeform diagram", () => {
   const diagram = createBlankDiagramV1("test-blank");
   assert.equal(diagram.id, "test-blank");
-  assert.equal(diagram.nodes.length, 1);
-  assert.equal(diagram.nodes[0]?.type, "text");
+  assert.equal(diagram.nodes.length, 0);
+  assert.equal(diagram.freeform?.engine, "konva");
 });
 
 test("duplicateDiagramV1 clones pilot with new id", () => {
@@ -36,7 +36,8 @@ test("courseDiagramSourcePathForId maps id to content path", () => {
 test("buildCourseDiagramFromTemplate blank vs from-pilot", () => {
   const blank = buildCourseDiagramFromTemplate("blank");
   assert.match(blank.diagramId, /^diagram-/);
-  assert.equal(blank.diagram.nodes.length, 1);
+  assert.equal(blank.diagram.nodes.length, 0);
+  assert.equal(blank.diagram.freeform?.engine, "konva");
 
   const pilot = buildCourseDiagramFromTemplate("from-pilot");
   assert.match(pilot.diagramId, /^diagram-/);

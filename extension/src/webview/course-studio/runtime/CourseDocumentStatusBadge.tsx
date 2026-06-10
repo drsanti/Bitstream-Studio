@@ -1,7 +1,7 @@
 import { useBitstreamTelemetrySourceStore } from "../../bitstream-app/state/bitstreamTelemetrySource.store";
 import type { PageMetaV1 } from "../schemas/pageMeta";
+import { COURSE_STUDIO_TOPBAR_BADGE_CLASS } from "../layout/course-studio-topbar-ui";
 import { useCourseTelemetryLinkState } from "./useCourseTelemetryLinkState";
-
 export function CourseDocumentStatusBadge({ meta }: { meta?: PageMetaV1 }) {
   const backend = useBitstreamTelemetrySourceStore((s) => s.backend);
   const { healthy, transportUp } = useCourseTelemetryLinkState(meta?.staleMs);
@@ -21,7 +21,7 @@ export function CourseDocumentStatusBadge({ meta }: { meta?: PageMetaV1 }) {
   return (
     <div className="flex items-center gap-1.5">
       <span
-        className="rounded-full border px-2 py-0.5 text-2xs font-semibold"
+        className={COURSE_STUDIO_TOPBAR_BADGE_CLASS}
         style={{
           color: backend === "simulator" ? "var(--status-sim)" : "var(--accent-cyan)",
           borderColor:
@@ -33,7 +33,7 @@ export function CourseDocumentStatusBadge({ meta }: { meta?: PageMetaV1 }) {
         {routeLabel}
       </span>
       <span
-        className="rounded-full border px-2 py-0.5 text-2xs font-semibold"
+        className={COURSE_STUDIO_TOPBAR_BADGE_CLASS}
         style={{
           color: healthy ? "var(--status-live)" : "var(--text-muted)",
           borderColor: healthy

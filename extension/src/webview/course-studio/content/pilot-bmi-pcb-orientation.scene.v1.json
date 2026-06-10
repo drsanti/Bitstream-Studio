@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "id": "pilot-bmi-pcb-orientation",
+  "title": "PCB orientation — live quaternion",
+  "camera": {
+    "position": [3, 2.5, 4],
+    "fov": 45
+  },
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  },
+  "nodes": [
+    {
+      "id": "pcb",
+      "type": "model",
+      "modelId": "procedural-pcb",
+      "rotation": {
+        "kind": "quaternion",
+        "bindings": {
+          "qw": { "path": "bmi270.qw", "fallback": 1 },
+          "qx": { "path": "bmi270.qx", "fallback": 0 },
+          "qy": { "path": "bmi270.qy", "fallback": 0 },
+          "qz": { "path": "bmi270.qz", "fallback": 0 }
+        }
+      }
+    }
+  ]
+}

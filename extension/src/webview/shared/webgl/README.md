@@ -35,4 +35,5 @@ Mounting a new Canvas in the same React commit as unmounting another causes:
 
 - Do **not** re-introduce `lazy()` for `SimulationHost` or `BitstreamLandingBackground3D` without fixing chunk dedupe.
 - R3F hook files should use **`"use no memo"`** (React Compiler opt-out) when using `useFrame` / `useThree`.
+- **Never use positive `useFrame` priority** unless the callback calls `gl.render` — priority &gt; 0 disables R3F auto-render (black canvas with a healthy scene). See **`course-studio/docs/SCENE_3D_EDITOR.md`** § Viewport guardrails.
 - A single **Context Lost** log during the splash transition is acceptable; the next Canvas should recover.

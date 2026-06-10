@@ -55,7 +55,7 @@ function runShellShortcut(code: string): void
       break;
     case "Digit3":
     case "Numpad3":
-      switchBitstreamWorkspace("presentation");
+      switchBitstreamWorkspace("course-studio");
       break;
     case "Digit4":
     case "Numpad4":
@@ -86,7 +86,7 @@ let installed = false;
 
 /**
  * Register workspace switch shortcuts once (browser dev).
- * Ctrl+Shift+1 telemetry, +2 studio, +3 presentation, +4 course studio.
+ * Ctrl+Shift+1 telemetry, +2 studio, +3/+4 course studio.
  */
 export function installWebviewShellShortcuts(): void
 {

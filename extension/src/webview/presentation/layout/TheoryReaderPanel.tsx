@@ -3,6 +3,7 @@ import { BookOpen, X } from "lucide-react";
 import { flatSlides } from "../chapters/registry";
 import { useChapterStore } from "../app/useChapterStore";
 import { PresentationTheoryMarkdown } from "../components/PresentationTheoryMarkdown";
+import { PresentationCourseDiagramEmbed } from "../components/PresentationCourseDiagramEmbed";
 
 export function TheoryReaderPanel() {
   const readerOpen = useChapterStore((s) => s.readerOpen);
@@ -68,7 +69,22 @@ export function TheoryReaderPanel() {
         {loading ? (
           <p className="text-sm text-[var(--text-muted)]">Loading…</p>
         ) : hasTheory && content ? (
-          <PresentationTheoryMarkdown markdown={content} />
+          <div className="flex flex-col gap-4">
+            <PresentationTheoryMarkdown markdown={content} />
+            {slide?.courseDiagramId ? (
+              <div className="overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)]">
+                <div className="border-b border-[var(--surface-border)] px-3 py-2 text-2xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                  Live diagram
+                </div>
+                <div className="h-[220px] min-h-[180px] p-2">
+                  <PresentationCourseDiagramEmbed
+                    diagramId={slide.courseDiagramId}
+                    showLiveBadge
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <p className="text-sm text-[var(--text-muted)]">
             No reader content for this slide yet. Theory articles are added per slide as{" "}

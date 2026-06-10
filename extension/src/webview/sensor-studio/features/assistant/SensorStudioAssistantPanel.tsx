@@ -1019,14 +1019,12 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
         hint="Verbose protocol events (see Debug trace window)."
         checked={devTrace}
         onCheckedChange={setDevTrace}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNInlineToggleRow
         label="Bitstream MCP tools"
         hint="Device control (risky operations require confirmation unless Always allow is on)."
         checked={enableMcpTools}
         onCheckedChange={setEnableMcpTools}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNInlineToggleRow
         label="Always allow risky tools"
@@ -1034,7 +1032,6 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
         checked={autoConfirmRiskyTools}
         onCheckedChange={setAutoConfirmRiskyTools}
         disabled={!enableMcpTools}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNMenuSectionTitle spacing="settingsInset">Reply display</TRNMenuSectionTitle>
       <TRNInlineToggleRow
@@ -1042,7 +1039,6 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
         hint="When off, assistant replies show as plain monospace text (same payload as Raw). Markdown zoom shortcuts apply only when this is on."
         checked={assistantRenderMarkdown}
         onCheckedChange={setAssistantRenderMarkdown}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNInlineToggleRow
         label="HTML fenced preview"
@@ -1050,7 +1046,6 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
         checked={assistantHtmlFencePreview}
         onCheckedChange={setAssistantHtmlFencePreview}
         disabled={!assistantRenderMarkdown}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNInlineToggleRow
         label="Allow JavaScript and popups in HTML preview"
@@ -1058,7 +1053,6 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
         checked={htmlPreviewSandboxAllowScripts}
         onCheckedChange={setHtmlPreviewSandboxAllowScripts}
         disabled={!assistantRenderMarkdown || !assistantHtmlFencePreview}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNInlineToggleRow
         label="Syntax-highlight fenced code"
@@ -1066,7 +1060,6 @@ export function SensorStudioAssistantPanel(props: SensorStudioAssistantPanelProp
         checked={assistantCodeSyntaxHighlight}
         onCheckedChange={setAssistantCodeSyntaxHighlight}
         disabled={!assistantRenderMarkdown}
-        className="border-zinc-700/60 bg-zinc-950/50"
       />
       <TRNHintText className="px-0.5">
         Each send clears the debug trace and bridge-error buffer for that run so logs stay isolated.

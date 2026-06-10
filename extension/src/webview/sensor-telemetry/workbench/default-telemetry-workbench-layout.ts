@@ -2,7 +2,7 @@
  * File Name : default-telemetry-workbench-layout.ts
  *
  * Description : Default Sensor Telemetry workbench layout (user-resizable).
- *               Top: Sensor Config | 3D Orientation | Telemetry Deck. Bottom: Activity Log.
+ *               Top: Sensor Config | Digital Twin | Telemetry Deck. Bottom: Activity Log.
  *
  * Author : Asst.Prof.Santi Nuratch, Ph.D
  * Thailand Embedded Systems Association (TESA)

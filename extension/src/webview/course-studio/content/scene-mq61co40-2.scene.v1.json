@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "id": "scene-mq61co40-2",
+  "title": "Gyro gimbal",
+  "linkHealth": "freeze-gray",
+  "camera": {
+    "position": [
+      0,
+      0.4,
+      5
+    ],
+    "fov": 40
+  },
+  "nodes": [
+    {
+      "id": "gimbal",
+      "type": "model",
+      "modelId": "procedural-gyro-gimbal",
+      "rotation": {
+        "kind": "euler",
+        "pitch": {
+          "mode": "absolute",
+          "binding": {
+            "path": "bmi270.gx",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": -250,
+                "inMax": 250,
+                "outMin": -50,
+                "outMax": 50
+              }
+            ],
+            "fallback": 0
+          }
+        },
+        "yaw": {
+          "mode": "absolute",
+          "binding": {
+            "path": "bmi270.gy",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": -250,
+                "inMax": 250,
+                "outMin": -50,
+                "outMax": 50
+              }
+            ],
+            "fallback": 0
+          }
+        },
+        "roll": {
+          "mode": "absolute",
+          "binding": {
+            "path": "bmi270.gz",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": -250,
+                "inMax": 250,
+                "outMin": -50,
+                "outMax": 50
+              }
+            ],
+            "fallback": 0
+          }
+        }
+      }
+    }
+  ],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}

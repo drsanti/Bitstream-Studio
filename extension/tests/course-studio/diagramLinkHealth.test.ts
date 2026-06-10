@@ -2,21 +2,19 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { presentationBmi270FromSample } from "../../src/webview/presentation/display/selectors";
+import { diagramLiveSnapshot } from "./diagramLiveSnapshotFixtures";
 import type { DiagramLiveSnapshot } from "../../src/webview/course-studio/runtime/diagram/diagramBindingCatalog";
 import {
   isDiagramLinkHealthy,
   resolveDiagramRenderSnapshot,
 } from "../../src/webview/course-studio/runtime/diagram/diagramLinkHealth";
 
-const staleSnapshot: DiagramLiveSnapshot = {
-  bmi270: presentationBmi270FromSample(null),
-  connected: false,
-};
+const staleSnapshot = diagramLiveSnapshot({ connected: false });
 
-const liveSnapshot: DiagramLiveSnapshot = {
-  bmi270: { ...presentationBmi270FromSample(null), hasSample: true, ax: 0.02 },
+const liveSnapshot = diagramLiveSnapshot({
   connected: true,
-};
+  bmi270: { ...presentationBmi270FromSample(null), hasSample: true, ax: 0.02 },
+});
 
 test("isDiagramLinkHealthy requires connection and BMI270 sample", () => {
   assert.equal(isDiagramLinkHealthy(staleSnapshot), false);

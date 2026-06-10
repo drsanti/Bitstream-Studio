@@ -6,7 +6,7 @@ The shipped **Presentation** workspace (`extension/src/webview/presentation/`) r
 
 ## Policy
 
-- **Allowed:** bug fixes, broken slide fixes, theory reader typos, critical parity with live store
+- **Allowed:** bug fixes, broken slide fixes, theory reader typos, critical parity with live store, **7e Course Studio diagram embed** on theory slides
 - **Not allowed:** new slide layouts, grid composer, diagram editor, maintainer tools, large content migrations
 
 ## Successor

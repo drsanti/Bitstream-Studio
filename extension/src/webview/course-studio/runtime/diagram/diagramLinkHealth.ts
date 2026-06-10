@@ -1,5 +1,6 @@
 import type { LinkHealthPolicy } from "../../schemas/linkHealth";
 import type { DiagramLiveSnapshot } from "./diagramBindingCatalog";
+import { snapshotHasAnySensorSample } from "./diagramBindingCatalog";
 import {
   isCourseLinkHealthy,
   type CourseLinkHealthContext,
@@ -17,7 +18,7 @@ export function isDiagramLinkHealthy(
       staleMs: freshness.staleMs,
     });
   }
-  return snapshot.connected && snapshot.bmi270.hasSample;
+  return snapshot.connected && snapshotHasAnySensorSample(snapshot);
 }
 
 export function resolveDiagramRenderSnapshot(args: {

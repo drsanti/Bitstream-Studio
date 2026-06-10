@@ -6,6 +6,145 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>TERNION Bitstream</title>
+  <style>
+    /* Visible until React mounts — avoids a white flash during Vite module load. */
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #030308;
+      color: #fafafa;
+    }
+
+    #bitstream-boot-shell {
+      box-sizing: border-box;
+      display: flex;
+      min-height: 100vh;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      background: #030308;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    /* Landing-style 2D nebula (CSS only — canvas layers mount after React). */
+    #bitstream-boot-shell .bitstream-boot-backdrop-base {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 85% 55% at 50% 0%, rgba(76, 29, 149, 0.12), transparent 54%),
+        linear-gradient(180deg, #04030a 0%, #080612 45%, #030308 100%);
+    }
+
+    #bitstream-boot-shell .bitstream-boot-backdrop-nebula {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse 95% 65% at 50% 12%, rgba(88, 28, 135, 0.38), transparent 58%),
+        radial-gradient(ellipse 55% 45% at 78% 22%, rgba(14, 116, 144, 0.22), transparent 52%),
+        radial-gradient(ellipse 70% 55% at 18% 28%, rgba(59, 130, 246, 0.14), transparent 50%),
+        linear-gradient(180deg, #070512 0%, #05040c 42%, #030308 100%);
+    }
+
+    #bitstream-boot-shell .bitstream-boot-backdrop-horizon {
+      position: absolute;
+      inset-inline: 0;
+      bottom: 0;
+      height: 40%;
+      pointer-events: none;
+      background: linear-gradient(180deg, transparent 0%, rgba(3, 3, 8, 0.75) 50%, #030308 100%);
+    }
+
+    #bitstream-boot-shell .bitstream-boot-backdrop-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse 90% 80% at 50% 50%, transparent 35%, rgba(0, 0, 0, 0.65) 100%);
+    }
+
+    #bitstream-boot-shell .bitstream-boot-card {
+      position: relative;
+      display: flex;
+      width: 100%;
+      max-width: 20rem;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(16, 185, 129, 0.22);
+      background: rgba(24, 24, 27, 0.55);
+      padding: 2.25rem 2rem;
+      text-align: center;
+      box-shadow: 0 24px 64px -24px rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+    }
+
+    #bitstream-boot-shell .bitstream-boot-spinner-wrap {
+      position: relative;
+      width: 3.5rem;
+      height: 3.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #bitstream-boot-shell .bitstream-boot-spinner-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 9999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #bitstream-boot-shell .bitstream-boot-spinner {
+      width: 2.25rem;
+      height: 2.25rem;
+      border-radius: 9999px;
+      border: 2px solid rgba(52, 211, 153, 0.18);
+      border-top-color: rgba(52, 211, 153, 0.95);
+      animation: bitstream-boot-spin 0.9s linear infinite;
+    }
+
+    #bitstream-boot-shell .bitstream-boot-brand {
+      margin: 0;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #71717a;
+    }
+
+    #bitstream-boot-shell .bitstream-boot-label {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #f4f4f5;
+    }
+
+    #bitstream-boot-shell .bitstream-boot-hint {
+      margin: 0;
+      max-width: 18rem;
+      font-size: 0.75rem;
+      line-height: 1.5;
+      color: #71717a;
+    }
+
+    @keyframes bitstream-boot-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #bitstream-boot-shell .bitstream-boot-spinner {
+        animation: none;
+        border-top-color: rgba(52, 211, 153, 0.55);
+      }
+    }
+  </style>
   <!-- Dev: drop stale t3d-coi SW (T3D / vehicle physics) before Vite loads modules -->
   <script>
     (function () {
@@ -52,7 +191,23 @@
 </head>
 
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div id="bitstream-boot-shell" role="status" aria-live="polite" aria-busy="true" aria-label="Loading studio">
+      <div class="bitstream-boot-backdrop-base" aria-hidden="true"></div>
+      <div class="bitstream-boot-backdrop-nebula" aria-hidden="true"></div>
+      <div class="bitstream-boot-backdrop-horizon" aria-hidden="true"></div>
+      <div class="bitstream-boot-backdrop-vignette" aria-hidden="true"></div>
+      <div class="bitstream-boot-card">
+        <div class="bitstream-boot-spinner-wrap" aria-hidden="true">
+          <span class="bitstream-boot-spinner-ring"></span>
+          <span class="bitstream-boot-spinner"></span>
+        </div>
+        <p class="bitstream-boot-brand">TERNION Bitstream</p>
+        <p class="bitstream-boot-label">Loading studio…</p>
+        <p class="bitstream-boot-hint">Starting modules and UI shell.</p>
+      </div>
+    </div>
+  </div>
   <script type="module" src="/main.tsx"></script>
 </body>
 

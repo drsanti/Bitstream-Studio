@@ -196,26 +196,41 @@ function draw(
     ctx.fill();
   }
 
-  if (showDigitalValue) {
+  if (showDigitalValue || (showUnit && unit.length > 0)) {
     const valStr =
       readoutValue != null && Number.isFinite(readoutValue)
         ? readoutValue.toFixed(decimals)
         : "—";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `bold ${Math.round(r * 0.28)}px ui-monospace, monospace`;
-    ctx.fillStyle = gaugeZoneColor(
+    const valueY = cy - r * 0.3;
+    const unitY = cy + r * 0.26;
+    const maxReadoutWidth = wCss * 0.72;
+    let valueFontSize = Math.round(r * 0.12);
+    const unitFontSize = Math.round(r * 0.13);
+    const valueColor = gaugeZoneColor(
       zones,
       readoutValue ?? v,
       "rgba(228,228,231,0.95)",
     );
-    ctx.fillText(valStr, cx, cy + r * 0.38);
-  }
+    const unitColor = "rgba(161,161,170,0.85)";
 
-  if (showUnit && unit.length > 0) {
-    ctx.font = `${Math.round(r * 0.16)}px ui-monospace, monospace`;
-    ctx.fillStyle = "rgba(161,161,170,0.8)";
-    ctx.fillText(unit, cx, cy + r * 0.56);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    if (showDigitalValue) {
+      ctx.font = `bold ${valueFontSize}px ui-monospace, monospace`;
+      while (ctx.measureText(valStr).width > maxReadoutWidth && valueFontSize > 10) {
+        valueFontSize = Math.max(10, Math.round(valueFontSize * 0.9));
+        ctx.font = `bold ${valueFontSize}px ui-monospace, monospace`;
+      }
+      ctx.fillStyle = valueColor;
+      ctx.fillText(valStr, cx, valueY);
+    }
+
+    if (showUnit && unit.length > 0) {
+      ctx.font = `${unitFontSize}px ui-monospace, monospace`;
+      ctx.fillStyle = unitColor;
+      ctx.fillText(unit, cx, unitY);
+    }
   }
   endGaugeCanvasHealthStyle(ctx, healthTone);
 }
@@ -328,7 +343,7 @@ export function RadialGaugeNodePanel({
         className ??
         "relative box-border min-h-0 min-w-0 h-full w-full overflow-hidden"
       }
-      style={{ minHeight: 120 }}
+      style={className != null ? undefined : { minHeight: 120 }}
     >
       <canvas
         ref={canvasRef}

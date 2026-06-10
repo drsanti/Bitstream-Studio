@@ -1,4 +1,5 @@
 import type { DiagramNodeV1, DiagramV1 } from "../../schemas/diagram.v1";
+import { getDiagram2dNodes } from "../../schemas/normalizeDiagramV1";
 import type { DiagramLiveSnapshot } from "./diagramBindingCatalog";
 import {
   evaluateBindingGate,
@@ -97,7 +98,7 @@ export function evaluateDiagramProps(
 ): ResolvedDiagramProps {
   const linkHealthy = options?.linkHealthy ?? true;
   const nodes: ResolvedNodeProps[] = [];
-  walkNodes(diagram.nodes, snapshot, linkHealthy, nodes);
+  walkNodes(getDiagram2dNodes(diagram), snapshot, linkHealthy, nodes);
   return { diagramId: diagram.id, nodes };
 }
 

@@ -301,6 +301,15 @@ export function withClampMapOp(
   return { ...binding, map: [...rest, clamp] };
 }
 
+export function hasScaleMapOp(binding: DiagramBindingV1 | undefined): boolean {
+  return binding?.map?.some((op) => op.op === "scale") ?? false;
+}
+
+export function withoutScaleMapOp(binding: DiagramBindingV1): DiagramBindingV1 {
+  const rest = (binding.map ?? []).filter((op) => op.op !== "scale");
+  return { ...binding, map: rest.length > 0 ? rest : undefined };
+}
+
 export function defaultPipelineFlowWhenBinding(): DiagramBindingV1 {
   return {
     path: "bmi270.accValid",

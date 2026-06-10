@@ -31,13 +31,18 @@ import { useWorkbenchFloating } from "./useWorkbenchFloating";
 import { WorkbenchCommandOverlay } from "./WorkbenchCommandOverlay";
 import { WorkbenchSaveLayoutDialog } from "./WorkbenchSaveLayoutDialog";
 import { useWorkbenchKeyboardShortcuts } from "./use-workbench-keyboard-shortcuts";
-import { installWorkbenchLayoutHostSync } from "./install-workbench-layout-host-sync";
 import type { WorkbenchLayoutSnapshotV1 } from "./workbench-layout-library";
+import { installWorkbenchLayoutHostSync } from "./install-workbench-layout-host-sync";
+import type { WorkbenchDockSizeMemory } from "./workbench-dock-size-memory";
 
 export interface StandaloneWorkbenchProps {
   initialLayout: LayoutNode;
   registry: WorkbenchRegistry;
   persistenceKey?: string;
+  /** When false, session layout/dock memory are not written to localStorage. Default true. */
+  persistLayout?: boolean;
+  /** When true, startup ignores saved session layout (uses `initialLayout`). Default false. */
+  ignorePersistedLayout?: boolean;
   enableFloating?: boolean;
   enableCommandPalette?: boolean;
   onDetachRejected?: () => void;
@@ -54,6 +59,11 @@ export interface StandaloneWorkbenchProps {
   onActiveEditorTypeChange?: (editorType: string | null) => void;
   /** Fired when docked layout changes (collapse, split, tab switch, preset). */
   onWorkbenchLayoutChange?: (layout: LayoutNode) => void;
+  /** Fired when layout or dock-size memory changes (split ratios, collapsed rails). */
+  onWorkbenchSessionChange?: (snapshot: {
+    layout: LayoutNode;
+    dockMemory: WorkbenchDockSizeMemory;
+  }) => void;
 }
 
 export type StandaloneWorkbenchHandle = {
@@ -77,6 +87,8 @@ export const StandaloneWorkbench = memo(
       initialLayout,
       registry,
       persistenceKey,
+      persistLayout = true,
+      ignorePersistedLayout = false,
       enableFloating = true,
       enableCommandPalette = true,
       onDetachRejected,
@@ -89,6 +101,7 @@ export const StandaloneWorkbench = memo(
       onLayoutMenuPropsChange,
       onActiveEditorTypeChange,
       onWorkbenchLayoutChange,
+      onWorkbenchSessionChange,
     },
     ref,
   ) {
@@ -97,6 +110,8 @@ export const StandaloneWorkbench = memo(
     const managed = useManagedWorkbench({
       initialLayout,
       persistenceKey,
+      persistLayout,
+      ignorePersistedLayout,
       validateLayout,
       sidePanelEditorTypes,
       paneCommands,
@@ -391,6 +406,13 @@ export const StandaloneWorkbench = memo(
     useEffect(() => {
       onWorkbenchLayoutChange?.(managed.layout);
     }, [managed.layout, onWorkbenchLayoutChange]);
+
+    useEffect(() => {
+      onWorkbenchSessionChange?.({
+        layout: managed.layout,
+        dockMemory: managed.dockMemory,
+      });
+    }, [managed.dockMemory, managed.layout, onWorkbenchSessionChange]);
 
     return (
       <>

@@ -8,6 +8,7 @@ Project skills live under **`.cursor/skills/`**. Cursor discovers them when the 
 | [bitstream-studio-dev](bitstream-studio-dev/SKILL.md) | compile, bridge, dev:webview, test, package VSIX |
 | [bs2-uart-bringup](bs2-uart-bringup/SKILL.md) | Real COM, uart-probe, MCU validation |
 | [bitstream-simulator-app](bitstream-simulator-app/SKILL.md) | External sim VSIX, Simulator toolbar mode |
+| [webview-ui-elements](webview-ui-elements/SKILL.md) | New webview UI — TRN toggles, numerics, selects, cards, portaled pickers |
 
 Rules: **`.cursor/rules/`** — start with **`bitstream-studio-handoff.mdc`** and **`bs2-protocol-change.mdc`**.
 

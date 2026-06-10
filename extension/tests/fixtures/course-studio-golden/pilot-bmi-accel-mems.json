@@ -1,0 +1,46 @@
+{
+  "diagramId": "pilot-bmi-accel-mems",
+  "cases": [
+    {
+      "id": "proof-mass-at-rest",
+      "snapshot": { "ax": 0, "accValid": true, "hasSample": true, "connected": true },
+      "linkHealthy": true,
+      "nodes": {
+        "proof-mass": { "y": 78 },
+        "live-ax": { "content": "aX = 0.000 g" }
+      }
+    },
+    {
+      "id": "proof-mass-tilted",
+      "snapshot": { "ax": 1, "accValid": true, "hasSample": true, "connected": true },
+      "linkHealthy": true,
+      "nodes": {
+        "proof-mass": { "y": 64 }
+      }
+    },
+    {
+      "id": "spring-flow-idle",
+      "snapshot": { "ax": 0, "accValid": false, "hasSample": false, "connected": true },
+      "linkHealthy": true,
+      "nodes": {
+        "spring-left": { "flowActive": false, "highlighted": false }
+      }
+    },
+    {
+      "id": "spring-flow-live",
+      "snapshot": { "ax": 0.35, "accValid": true, "hasSample": true, "connected": true },
+      "linkHealthy": true,
+      "nodes": {
+        "spring-left": { "flowActive": true, "highlighted": true }
+      }
+    },
+    {
+      "id": "spring-flow-stale-link",
+      "snapshot": { "ax": 0.35, "accValid": true, "hasSample": true, "connected": true },
+      "linkHealthy": false,
+      "nodes": {
+        "spring-left": { "flowActive": false }
+      }
+    }
+  ]
+}

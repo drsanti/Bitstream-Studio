@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "id": "sht40-overview",
+  "title": "SHT40 — Overview & measurement model",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "SHT40 · Chapter overview",
+      "title": "Temperature and relative humidity",
+      "subtitle": "What the SHT40 measures, how %RH relates to temperature, and how live readouts validate sensor behavior on the bench."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect live sensor data (toolbar Bitstream or Simulator) and enable SHT40 TEMP + HUM in sensor configuration before working through this chapter.",
+      "icon": "Info"
+    },
+    {
+      "id": "md-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 8, "rowSpan": 5 },
+      "src": "sht40-overview.theory.md"
+    },
+    {
+      "id": "dash-sht-temp",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 5, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Temperature",
+      "widgetKind": "text",
+      "style": {
+        "label": "Temp",
+        "unit": "°C",
+        "decimals": 1,
+        "showStatusBar": true
+      },
+      "binding": {
+        "path": "sht40.temp",
+        "fallback": 0,
+        "unit": "°C",
+        "format": "0.0f"
+      }
+    },
+    {
+      "id": "dash-sht-rh",
+      "kind": "dashboard-widget",
+      "placement": { "column": 9, "row": 7, "columnSpan": 4, "rowSpan": 2 },
+      "title": "Humidity",
+      "widgetKind": "text",
+      "style": {
+        "label": "%RH",
+        "unit": "%RH",
+        "decimals": 1,
+        "showStatusBar": true
+      },
+      "binding": {
+        "path": "sht40.rh",
+        "fallback": 0,
+        "unit": "%RH",
+        "format": "0.0f"
+      }
+    },
+    {
+      "id": "card-overview",
+      "kind": "card",
+      "placement": { "column": 9, "row": 9, "columnSpan": 4, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "Both TEMP and HUM mask bits enabled.\nValid flags true when streaming.\nRH responds to breath/exhalation nearby.\nTemperature tracks ambient drift slowly."
+    }
+  ]
+}

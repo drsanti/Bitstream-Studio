@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "id": "scene-mq61upio-8",
+  "title": "PCB orientation",
+  "linkHealth": "freeze-gray",
+  "camera": {
+    "position": [
+      3,
+      2.5,
+      4
+    ],
+    "fov": 45
+  },
+  "nodes": [
+    {
+      "id": "pcb",
+      "type": "model",
+      "modelId": "procedural-pcb",
+      "rotation": {
+        "kind": "quaternion",
+        "bindings": {
+          "qw": {
+            "path": "bmi270.qw",
+            "fallback": 1
+          },
+          "qx": {
+            "path": "bmi270.qx",
+            "fallback": 0
+          },
+          "qy": {
+            "path": "bmi270.qy",
+            "fallback": 0
+          },
+          "qz": {
+            "path": "bmi270.qz",
+            "fallback": 0
+          }
+        }
+      }
+    }
+  ],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}

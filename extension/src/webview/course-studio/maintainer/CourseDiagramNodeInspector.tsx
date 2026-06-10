@@ -1,9 +1,9 @@
 import { Trash2, ArrowDown, ArrowUp, ChevronsDown, ChevronsUp } from "lucide-react";
+import { CourseMaintainerScrubNumberInput } from "./CourseMaintainerScrubNumberInput";
 import { TRNButton } from "../../ui/TRN/TRNButton";
 import { TRNFormField, TRNFormSection } from "../../ui/TRN/TRNForm";
 import { TRNHintText } from "../../ui/TRN/TRNHintText";
 import { TRNInput } from "../../ui/TRN/TRNInput";
-import { TRNScrubNumberInput } from "../../ui/TRN/TRNScrubNumberInput";
 import { TRNSelect } from "../../ui/TRN/TRNSelect";
 import type { DiagramBindingV1, DiagramV1, StyleTokenV1 } from "../schemas/diagram.v1";
 import { DIAGRAM_STYLE_TOKEN_OPTIONS } from "../runtime/diagram/diagramStyleTokens";
@@ -21,6 +21,7 @@ import {
   readNumericBase,
 } from "../runtime/diagram/diagramNodeMutations";
 import { DiagramMapOpChainFields } from "./DiagramMapOpChainFields";
+import { requestRemoveDiagramNode } from "./diagramNodeRemoval";
 import { useCourseDiagramEditorStore } from "./useCourseDiagramEditorStore";
 
 const BINDING_OPTIONS = diagramBindingSelectOptions(true);
@@ -235,7 +236,7 @@ function RectAxisField({
       {bound ? (
         <>
           <TRNFormField id={`${nodeId}-${axis}-base`} label="Base px (add mode)">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={value.base ?? 0}
               step={1}
               onChange={(base) =>
@@ -257,7 +258,7 @@ function RectAxisField({
         </>
       ) : (
         <TRNFormField id={`${nodeId}-${axis}-static`} label={`${axis.toUpperCase()} px`}>
-          <TRNScrubNumberInput
+          <CourseMaintainerScrubNumberInput
             value={value}
             step={1}
             onChange={(n) => patchNode(diagramId, nodeId, { [axis]: n })}
@@ -411,7 +412,11 @@ export function CourseDiagramNodeInspector({
         <TRNButton
           size="compact"
           hint="Remove node from diagram"
-          onClick={() => removeNode(diagramId, node.id)}
+          onClick={() => {
+            if (requestRemoveDiagramNode(node)) {
+              removeNode(diagramId, node.id);
+            }
+          }}
         >
           <Trash2 size={14} strokeWidth={2} />
         </TRNButton>
@@ -483,7 +488,7 @@ export function CourseDiagramNodeInspector({
           </TRNFormField>
           <div className="grid grid-cols-2 gap-2">
             <TRNFormField id={`${node.id}-width`} label="Width">
-              <TRNScrubNumberInput
+              <CourseMaintainerScrubNumberInput
                 value={node.width}
                 min={8}
                 step={4}
@@ -491,7 +496,7 @@ export function CourseDiagramNodeInspector({
               />
             </TRNFormField>
             <TRNFormField id={`${node.id}-height`} label="Height">
-              <TRNScrubNumberInput
+              <CourseMaintainerScrubNumberInput
                 value={node.height}
                 min={8}
                 step={4}
@@ -500,7 +505,7 @@ export function CourseDiagramNodeInspector({
             </TRNFormField>
           </div>
           <TRNFormField id={`${node.id}-rx`} label="Corner radius">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={node.rx ?? 0}
               min={0}
               step={1}
@@ -520,7 +525,7 @@ export function CourseDiagramNodeInspector({
             onChange={(stroke) => patchNode(diagramId, node.id, { stroke })}
           />
           <TRNFormField id={`${node.id}-strokeWidth`} label="Stroke width">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={node.strokeWidth ?? 1}
               min={0}
               step={1}
@@ -533,14 +538,14 @@ export function CourseDiagramNodeInspector({
       {node.type === "text" ? (
         <>
           <TRNFormField id={`${node.id}-x`} label="X">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={node.x}
               step={1}
               onChange={(x) => patchNode(diagramId, node.id, { x })}
             />
           </TRNFormField>
           <TRNFormField id={`${node.id}-y`} label="Y">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={node.y}
               step={1}
               onChange={(y) => patchNode(diagramId, node.id, { y })}
@@ -625,7 +630,7 @@ export function CourseDiagramNodeInspector({
             onChange={(fill) => patchNode(diagramId, node.id, { fill })}
           />
           <TRNFormField id={`${node.id}-fontSize`} label="Font size">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={node.fontSize ?? 10}
               min={6}
               step={1}
@@ -658,28 +663,28 @@ export function CourseDiagramNodeInspector({
           </TRNFormField>
           <div className="grid grid-cols-2 gap-2">
             <TRNFormField id={`${node.id}-x1`} label="X1">
-              <TRNScrubNumberInput
+              <CourseMaintainerScrubNumberInput
                 value={node.x1}
                 step={4}
                 onChange={(x1) => patchNode(diagramId, node.id, { x1 })}
               />
             </TRNFormField>
             <TRNFormField id={`${node.id}-y1`} label="Y1">
-              <TRNScrubNumberInput
+              <CourseMaintainerScrubNumberInput
                 value={node.y1}
                 step={4}
                 onChange={(y1) => patchNode(diagramId, node.id, { y1 })}
               />
             </TRNFormField>
             <TRNFormField id={`${node.id}-x2`} label="X2">
-              <TRNScrubNumberInput
+              <CourseMaintainerScrubNumberInput
                 value={node.x2}
                 step={4}
                 onChange={(x2) => patchNode(diagramId, node.id, { x2 })}
               />
             </TRNFormField>
             <TRNFormField id={`${node.id}-y2`} label="Y2">
-              <TRNScrubNumberInput
+              <CourseMaintainerScrubNumberInput
                 value={node.y2}
                 step={4}
                 onChange={(y2) => patchNode(diagramId, node.id, { y2 })}
@@ -689,14 +694,14 @@ export function CourseDiagramNodeInspector({
           {hasConnectorCurve(node) ? (
             <div className="grid grid-cols-2 gap-2">
               <TRNFormField id={`${node.id}-curve-cx`} label="Control X">
-                <TRNScrubNumberInput
+                <CourseMaintainerScrubNumberInput
                   value={node.curve.cx}
                   step={4}
                   onChange={(curveCx) => patchNode(diagramId, node.id, { curveCx })}
                 />
               </TRNFormField>
               <TRNFormField id={`${node.id}-curve-cy`} label="Control Y">
-                <TRNScrubNumberInput
+                <CourseMaintainerScrubNumberInput
                   value={node.curve.cy}
                   step={4}
                   onChange={(curveCy) => patchNode(diagramId, node.id, { curveCy })}
@@ -711,7 +716,7 @@ export function CourseDiagramNodeInspector({
             onChange={(stroke) => patchNode(diagramId, node.id, { stroke })}
           />
           <TRNFormField id={`${node.id}-strokeWidth`} label="Stroke width">
-            <TRNScrubNumberInput
+            <CourseMaintainerScrubNumberInput
               value={node.strokeWidth ?? 2}
               min={1}
               step={1}

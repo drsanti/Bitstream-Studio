@@ -156,11 +156,18 @@ function WorkbenchLayoutMenuAction(props: {
   );
 }
 
-export function WorkbenchLayoutMenu(props: WorkbenchLayoutMenuProps) {
+export function WorkbenchLayoutMenu(
+  props: WorkbenchLayoutMenuProps & { menuTriggerClassName?: string },
+) {
+  const { menuTriggerClassName, ...menuProps } = props;
   const menuItemCount = useMemo(
-    () => props.presets.length + props.namedLayouts.length + 5,
-    [props.namedLayouts.length, props.presets.length],
+    () => menuProps.presets.length + menuProps.namedLayouts.length + 5,
+    [menuProps.namedLayouts.length, menuProps.presets.length],
   );
+
+  const triggerClassName =
+    menuTriggerClassName ??
+    `inline-flex items-center gap-1 rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-sky-100/90 hover:bg-sky-900/25 ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`;
 
   return (
     <div className="relative shrink-0">
@@ -169,7 +176,7 @@ export function WorkbenchLayoutMenu(props: WorkbenchLayoutMenuProps) {
         hint="Presets, saved layouts, export and import."
         align="right"
         prefixIcon={<LayoutTemplate className="size-3 shrink-0 opacity-90" aria-hidden />}
-        buttonClassName={`inline-flex items-center gap-1 rounded border border-sky-800/60 bg-sky-950/30 px-2 py-1 text-sky-100/90 hover:bg-sky-900/25 ${TRN_GLASS_DROPDOWN_TEXT_CLASS}`}
+        buttonClassName={triggerClassName}
       >
         <TRNSearchableMenuShell
           itemCount={menuItemCount}
@@ -177,7 +184,7 @@ export function WorkbenchLayoutMenu(props: WorkbenchLayoutMenuProps) {
           maxHeightClassName="max-h-80"
         >
           <div className="flex flex-col gap-0.5" role="menu">
-            <WorkbenchLayoutMenuSections {...props} />
+            <WorkbenchLayoutMenuSections {...menuProps} />
           </div>
         </TRNSearchableMenuShell>
       </ToolbarDropdownMenu>

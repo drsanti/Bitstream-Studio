@@ -9,19 +9,20 @@ import type { DiagramLiveSnapshot } from "../../src/webview/course-studio/runtim
 import { parseDiagramV1 } from "../../src/webview/course-studio/schemas/diagram.v1";
 import { presentationBmi270FromSample } from "../../src/webview/presentation/display/selectors";
 import pilotMemsDiagramJson from "../../src/webview/course-studio/content/pilot-bmi-accel-mems.diagram.v1.json";
+import { diagramLiveSnapshot } from "./diagramLiveSnapshotFixtures";
 
 const diagram = parseDiagramV1(pilotMemsDiagramJson);
 
 function snapshotWithAx(ax: number, accValid = true): DiagramLiveSnapshot {
-  return {
+  return diagramLiveSnapshot({
+    connected: true,
     bmi270: {
       ...presentationBmi270FromSample(null),
       ax,
       accValid,
       hasSample: accValid,
     },
-    connected: true,
-  };
+  });
 }
 
 test("evaluateDiagramProps resolves proof-mass position golden frames", () => {

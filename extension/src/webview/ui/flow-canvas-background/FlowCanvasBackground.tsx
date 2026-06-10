@@ -12,6 +12,7 @@
  *******************************************************************************/
 
 import { useEffect, useRef } from "react";
+import { disposeCanvas2d } from "../../shared/canvas/disposeCanvas2d.js";
 
 type Particle = {
   x: number;
@@ -522,6 +523,9 @@ export function FlowCanvasBackground({
       interactionRoot.removeEventListener("pointermove", onPointerMove);
       interactionRoot.removeEventListener("pointerleave", onPointerLeave);
       interactionRoot.removeEventListener("pointercancel", onPointerLeave);
+      pointer.active = false;
+      particles = [];
+      disposeCanvas2d(canvas);
     };
   }, [interactionRootClass]);
 

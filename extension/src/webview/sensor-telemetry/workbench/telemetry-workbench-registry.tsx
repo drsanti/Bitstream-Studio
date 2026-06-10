@@ -25,7 +25,7 @@ export const TELEMETRY_WORKBENCH_REGISTRY: WorkbenchRegistry = {
   },
   main: {
     icon: <Box className="size-3.5" aria-hidden />,
-    label: "3D Orientation",
+    label: "Digital Twin",
     component: TelemetryMainPanel,
   },
   telemetry: {

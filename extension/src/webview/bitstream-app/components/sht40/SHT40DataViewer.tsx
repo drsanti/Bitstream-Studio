@@ -1,6 +1,11 @@
 import { TRNInteractiveCard } from "@/ui/TRN";
 import { Droplets, Thermometer } from "lucide-react";
 import type { SHT40DataViewerProps } from "../../types/sensorDeckCardFrame";
+import {
+  sensorDeckCardChromeProps,
+  sensorDeckShowsDisplaySettings,
+  sensorDeckShowsUpdateBadge,
+} from "../../types/sensorDeckCardFrame";
 import { metricProgressPercent } from "../../telemetry/telemetryFormat";
 import { useSensorLastUpdateBadge } from "../telemetry/useSensorLastUpdateBadge.js";
 import { SensorMetricRow } from "../telemetry/SensorMetricRow";
@@ -21,6 +26,8 @@ export function SHT40DataViewer(props: SHT40DataViewerProps) {
     onToggleCollapsed,
     dragHandleSlot,
     variant = "environment",
+    showUpdateBadge,
+    showDisplaySettings,
   } = props;
   const updateBadge = useSensorLastUpdateBadge("sht40", samplingIntervalMs);
   const temperatureUnit = useBitstreamConfigStore((s) => s.temperatureDisplayUnit);
@@ -86,13 +93,15 @@ export function SHT40DataViewer(props: SHT40DataViewerProps) {
       }
       titleTrailingSlot={
         <div className="inline-flex shrink-0 items-center gap-1.5">
-          {updateBadge != null ? <LastUpdateBadge {...updateBadge} /> : null}
-          {showTemperature ? <TemperatureDisplaySettingsMenu /> : null}
+          {sensorDeckShowsUpdateBadge({ showUpdateBadge }) && updateBadge != null ? (
+            <LastUpdateBadge {...updateBadge} />
+          ) : null}
+          {showTemperature && sensorDeckShowsDisplaySettings({ showDisplaySettings }) ? (
+            <TemperatureDisplaySettingsMenu />
+          ) : null}
         </div>
       }
-      headerTitleClassName="normal-case tracking-normal text-zinc-100"
-      shell="solid"
-      className="h-auto"
+      {...sensorDeckCardChromeProps(props)}
       collapsible={onToggleCollapsed != null}
       collapsed={collapsed}
       onCollapsedChange={(nextCollapsed) => {

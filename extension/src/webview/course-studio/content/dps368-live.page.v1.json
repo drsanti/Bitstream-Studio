@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "id": "dps368-live",
+  "title": "DPS368 — Live visualization",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-live",
+      "kind": "heading",
+      "placement": {
+        "column": 1,
+        "row": 1,
+        "columnSpan": 12,
+        "rowSpan": 2
+      },
+      "eyebrow": "DPS368 · Live",
+      "title": "Deck-style telemetry cards",
+      "subtitle": "Pressure and temperature cards driven by the same live stream as the Bitstream sensor deck."
+    },
+    {
+      "id": "callout-tip",
+      "kind": "callout-tip",
+      "placement": {
+        "column": 1,
+        "row": 3,
+        "columnSpan": 12,
+        "rowSpan": 2
+      },
+      "title": "Enable DPS368",
+      "body": "If cards stay gray, confirm DPS368 is enabled with PRESS published in sensor configuration.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-live",
+      "kind": "markdown",
+      "placement": {
+        "column": 1,
+        "row": 7,
+        "columnSpan": 12,
+        "rowSpan": 8
+      },
+      "src": "dps368-live.theory.md"
+    },
+    {
+      "id": "card-pressure",
+      "kind": "sensor-telemetry-card",
+      "placement": {
+        "column": 1,
+        "row": 5,
+        "columnSpan": 6,
+        "rowSpan": 2
+      },
+      "preset": "pressure"
+    },
+    {
+      "id": "card-dps-temp",
+      "kind": "sensor-telemetry-card",
+      "placement": {
+        "column": 7,
+        "row": 5,
+        "columnSpan": 6,
+        "rowSpan": 2
+      },
+      "preset": "dps368Temperature"
+    }
+  ]
+}

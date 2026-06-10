@@ -29,6 +29,7 @@ After a substantial session, append **`AGENT_HANDOFF.md`** §7.
 | **`bs2-uart-bringup`** | real COM / uart-probe / MCU soak |
 | **`bitstream-simulator-app`** | external sim VSIX, Simulator toolbar mode |
 | **`glb-preview-authored-transform`** | GLB placement, `useGLTF`, Animation Lab, Model Viewer, Blender parity |
+| **`webview-ui-elements`** | New/edited UI under `extension/src/webview/` — TRN control picker checklist |
 
 ## External repos
 

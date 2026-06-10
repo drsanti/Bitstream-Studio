@@ -131,6 +131,8 @@ For **Simulator** telemetry, also run the **Bitstream Simulator** extension from
 
 **Stale COI service worker:** A leftover `t3d-coi-serviceworker.js` from T3D / vehicle physics on the same port can break Vite with `Failed to fetch`. **Auto-fix:** `index.html` + `unregisterStaleCoiServiceWorker.ts` unregister it on localhost dev (one reload if needed). Manual fallback: DevTools → **Application** → **Service Workers** → unregister, then hard-reload.
 
+**Dev load time / blank page / long “Loading workspace…” spinner:** See **[`docs/WEBVIEW_DEV_PERFORMANCE.md`](docs/WEBVIEW_DEV_PERFORMANCE.md)** — lazy workspace + Sensor Studio pane/panel splits, `main.tsx` boot, React Compiler dev-off, troubleshooting. Restart Vite after `vite.config.ts` edits; prefer HMR over F5 for `src/webview/**` edits.
+
 Implementation: **`src/webview/landing/`**, **`src/webview/simulations/`**, **`src/webview/shared/webgl/`**, **`src/webview/ui/flow-canvas-background/`**.
 
 **WebGL route changes:** Landing and simulations each mount an R3F `Canvas`. Switching routes (landing card → sim, **Ctrl+/** back to landing) uses a short transition splash while the prior Canvas tears down (~80 ms). Do not remove **`useWebGLSurfaceReady`** without retesting. Details: **`src/webview/shared/webgl/README.md`**.
@@ -388,6 +390,22 @@ Tracker mirror: **`docs/DEVELOPMENT_TRACKER.md`** § VSIX and marketplace readin
 **Path rules (code):** VSIX writes use **`ExtensionContext.globalStorageUri`** (`extensionAssetPaths.ts`) — not hardcoded `%APPDATA%`. CLI **`check:free-pack-storage`** heuristics mirror Windows / macOS / Linux in **`extensionGlobalStoragePaths.ts`** (see **`tests/asset-sync/extension-global-storage-paths.test.ts`**).
 
 **Native serial:** `serialport` ships prebuilds for Windows and macOS; if the extension-managed bridge fails to list ports, install Node.js on PATH or set **`TERNION_SERIAL_BRIDGE_NODE`**.
+
+### F — Course Studio 3D Scene (VSIX or F5 dev host)
+
+Open **Course Studio** from the Bitstream panel, add or select a **`scene-3d`** block, then open the **3D Scene Editor** workbench pane.
+
+| Step | Action | Pass if |
+|------|--------|---------|
+| F1 | Add mesh + catalog GLB via **Shift+A** | Objects appear in viewport and outliner |
+| F2 | **Shift+click** two objects | Both highlighted; gizmo on first selection only |
+| F3 | **Ctrl+D** / **Delete** | Duplicate / remove all selected nodes |
+| F4 | Inspector **Data bindings** + **Material** (`byName`, texture URLs, map repeat) | Fields persist after save |
+| F5 | ⋮ Scene → **Save scene** (VSIX) or dev save | `*.scene.v1.json` updates; reload page keeps edits |
+| F6 | ⋮ Scene → **Copy JSON** / **Download** / **Import** | Round-trip without data loss |
+| F7 | Scene with live rotation bindings + bridge streaming | **Live** status chip turns active when samples arrive |
+
+Automated gate: `npm run test:course-studio` (includes `courseSceneSelection.test.ts`, `sceneContentValidate.test.ts`).
 
 ---
 

@@ -65,11 +65,13 @@ export function BmiPcbOrientationScene({
   className = "",
   framed = false,
   overlay,
+  controlsHintClassName,
 }: {
   className?: string;
   framed?: boolean;
   /** Live parameters HUD — rendered over the canvas (orbit still works). */
   overlay?: ReactNode;
+  controlsHintClassName?: string;
 }) {
   const scene = (
     <div className={`relative flex h-full min-h-0 w-full flex-col bg-[var(--scene-bg)] ${framed ? "" : className}`}>
@@ -81,7 +83,10 @@ export function BmiPcbOrientationScene({
         </Suspense>
       </Canvas>
       {overlay ? <div className="presentation-scene-overlay-layer">{overlay}</div> : null}
-      <PresentationSceneControlsHint orbitHint="Drag to orbit · scroll to zoom · follows live quaternion when published" />
+      <PresentationSceneControlsHint
+        orbitHint="Drag to orbit · scroll to zoom · follows live quaternion when published"
+        className={controlsHintClassName}
+      />
     </div>
   );
 

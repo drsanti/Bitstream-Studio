@@ -9,6 +9,10 @@ export type PresentationThemeMode = "dark" | "light";
 
 type CSSVarMap = Record<string, string>;
 
+/** Neutral dark base — Course Studio / Presentation dark theme background. */
+const DARK_SURFACE_BASE = "#111113";
+const darkSurface = chroma(DARK_SURFACE_BASE);
+
 function buildAxisVars(prefix: string, ramp: (typeof presentationTokens.axis.x)): CSSVarMap {
   return {
     [prefix]: ramp.base,
@@ -22,15 +26,16 @@ function buildAxisVars(prefix: string, ramp: (typeof presentationTokens.axis.x))
 }
 
 export const presentationDarkTheme: CSSVarMap = {
-  "--surface-bg": "#0b0f1a",
-  "--surface-panel": "#111827",
-  "--surface-card": "#1e293b",
-  "--surface-border": "#334155",
-  "--surface-hover": "#263044",
-  "--text-primary": "#f1f5f9",
-  "--text-secondary": "#94a3b8",
-  "--text-muted": "#64748b",
-  "--text-inverse": "#0b0f1a",
+  "--surface-bg": DARK_SURFACE_BASE,
+  "--surface-panel": darkSurface.brighten(0.28).hex(),
+  "--surface-card": darkSurface.brighten(0.48).hex(),
+  "--surface-border": darkSurface.brighten(0.9).hex(),
+  "--surface-hover": darkSurface.brighten(0.58).hex(),
+  "--text-primary": "#f5f5f5",
+  "--text-secondary": darkSurface.brighten(2.15).hex(),
+  "--text-prose": darkSurface.brighten(2.85).hex(),
+  "--text-muted": darkSurface.brighten(1.55).hex(),
+  "--text-inverse": DARK_SURFACE_BASE,
   "--axis-x": BASE.axisX,
   "--axis-y": BASE.axisY,
   "--axis-z": BASE.axisZ,
@@ -48,10 +53,10 @@ export const presentationDarkTheme: CSSVarMap = {
   "--accent-green-bg": chroma(BASE.green).alpha(0.1).css(),
   "--accent-red-bg": chroma(BASE.red).alpha(0.1).css(),
   "--status-live": BASE.green,
-  "--status-disconnected": "#475569",
+  "--status-disconnected": darkSurface.brighten(1.2).hex(),
   "--status-connecting": BASE.amber,
   "--status-sim": BASE.purple,
-  "--scene-bg": "#080c14",
+  "--scene-bg": darkSurface.darken(0.35).hex(),
 };
 
 export const presentationLightTheme: CSSVarMap = {
@@ -62,6 +67,7 @@ export const presentationLightTheme: CSSVarMap = {
   "--surface-hover": "#e8edf4",
   "--text-primary": "#0f172a",
   "--text-secondary": "#475569",
+  "--text-prose": "#475569",
   "--text-muted": "#94a3b8",
   "--text-inverse": "#f8fafc",
   "--axis-x": chroma(BASE.axisX).darken(0.3).hex(),

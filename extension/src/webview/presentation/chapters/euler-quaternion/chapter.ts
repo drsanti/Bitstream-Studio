@@ -66,6 +66,9 @@ export const eulerQuaternionChapter: ChapterDefinition = {
       section: "foundations",
       notes: () => import("./slides/eq-quaternion-basics/notes.md?raw"),
       theory: () => import("./slides/eq-quaternion-basics/theory.md?raw"),
+
+      courseDiagramId: "pilot-bmi-orientation-3d",
+
       Component: lazy(() => import("./slides/eq-quaternion-basics/EqQuaternionBasicsSlide")),
     },
     {

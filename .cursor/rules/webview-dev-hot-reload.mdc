@@ -33,6 +33,12 @@ npm run dev:webview           # http://localhost:5173/?app=bitstream
 
 Hard-reload the browser tab after **`vite.config.ts`** changes or stale HMR.
 
+## Dev load time / blank page
+
+Canonical doc: **`extension/docs/WEBVIEW_DEV_PERFORMANCE.md`** — Sensor Studio lazy panes/panels, `main.tsx` boot, React Compiler **prod-only**, troubleshooting. Do **not** re-add eager node-panel imports to **`StudioNodeCard.tsx`**.
+
+**Docs `*.md` / `*.mdc`** under `extension/docs/`, `.cursor/`, README, handoff — **do not** trigger Vite HMR (`server.watch.ignored` in `vite.config.ts`). Bundled content markdown under `course-studio/content/` and `presentation/chapters/` is still watched.
+
 ## Communication
 
 **Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.

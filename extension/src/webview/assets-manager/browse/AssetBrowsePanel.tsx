@@ -7,7 +7,7 @@ import {
   Image as ImageIcon,
   Map as MapIcon,
   MonitorPlay,
-  Clapperboard,
+  Boxes,
   RefreshCw,
   ScanEye,
   Search,
@@ -369,13 +369,13 @@ export function AssetBrowsePanel(props: AssetBrowsePanelProps) {
                     type="button"
                     size="compact"
                     className="w-full justify-center gap-1.5"
-                    hint="Open this catalog model in the Telemetry GLB Animation Lab workbench."
+                    hint="Open this catalog model in the Sensor Telemetry Digital Twin workbench."
                     onClick={() => {
                       openAnimationLabForAssetDescriptor(selected, catalogModelEntries);
                     }}
                   >
-                    <Clapperboard className="size-3.5 shrink-0" aria-hidden />
-                    Animation Lab
+                    <Boxes className="size-3.5 shrink-0" aria-hidden />
+                    Machine Twin
                   </TRNButton>
                 ) : null}
               </div>

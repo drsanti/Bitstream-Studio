@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-06-08 (Course Studio v2 Phases 0, 7a–7d, 7f slice, 7g–7i)  
+**Last updated:** 2026-06-08 (Course Studio — four-sensor book, outline authoring, maintainer persistence)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -19,10 +19,12 @@
    - Terminal 2: `npm run dev:webview`
 5. **After bridge or host changes:** restart **`start:bridge`**. After webview-only edits, Vite HMR is enough.
 6. **VSIX:** `npm run compile && npm run package` → install `bitstream-studio-0.1.0.vsix` → reload window.
-7. **Tests:** `npm run test:bitstream2` (BS2); **Course Studio:** `npx tsx --test --test-force-exit tests/course-studio/*.test.ts` (54 tests).
+7. **Tests:** `npm run test:bitstream2` (BS2); **Course Studio:** `npx tsx --test --test-force-exit tests/course-studio/*.test.ts` (**441** tests).
 8. **External repos** (not in tree): **bitstream-simulator** (Simulator mode), **TESAIoT_Firmware** (MCU BS2 truth).
 
-**Course Studio (current focus):** `http://localhost:5173/?workspace=course-studio` — read **`extension/src/webview/course-studio/README.md`** first, then **`course-studio/docs/ARCHITECTURE.md`**. Maintainer is **dev-only** (`import.meta.env.DEV`). Presentation v1 frozen: **`extension/src/webview/presentation/V1_FROZEN.md`**.
+**Course Studio (current focus):** `http://localhost:5173/?workspace=course-studio` — read **`extension/src/webview/course-studio/README.md`** first, then **`course-studio/docs/COURSE_OUTLINE.md`** + **`course-studio/docs/ARCHITECTURE.md`**. Maintainer is **dev-only** (`import.meta.env.DEV`). Presentation v1 frozen: **`extension/src/webview/presentation/V1_FROZEN.md`**.
+
+**Course authoring → VSIX:** Edit in dev with Maintainer on → top-bar **Save** writes `content/*.page.v1.json` + `tesaiot-embedded.course.v1.json` (diagram/scene/markdown use per-pane Save). **Commit** those JSON/md files → **`npm run compile && npm run package`**. Installed VSIX is read-only (no Save APIs). Unsaved work survives browser refresh via **localStorage session draft** only until Save + commit.
 
 **Landing (dev):** `http://localhost:5173/` — workspace + simulation picker; 2D/3D/blend backdrop; flat HTML cards (see `extension/src/webview/landing/README.md`). **Ctrl+/** → **Open workspace landing** (dev + VSIX).
 
@@ -60,6 +62,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 |------|------|
 | **`extension/`** | VS Code extension + webview + `src/bitstream2/` |
 | **`extension/docs/DEVELOPMENT_TRACKER.md`** | Backlog, VSIX gates, recently completed |
+| **`extension/docs/WEBVIEW_DEV_PERFORMANCE.md`** | Vite dev load time, lazy Sensor Studio panes/panels, HMR vs refresh |
 | **`extension/src/webview/landing/README.md`** | Landing backdrop, cards, routing |
 | **`extension/src/webview/simulations/README.md`** | Digital Twin hub + sim apps |
 | **`extension/src/webview/shared/webgl/README.md`** | WebGL Canvas transition gate + Vite chunks |
@@ -150,7 +153,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 3D block scenes | `extension/src/webview/course-studio/ui/catalog/CourseDiagram3DCard.tsx` |
 | Dev save APIs | `extension/vite.config.ts` → `save-page`, `save-diagram`, `save-markdown` |
 | Lazy workspace load | `extension/src/webview/bitstream-app/BitstreamWorkspacePanel.tsx` |
-| Unit tests | `extension/tests/course-studio/*.test.ts` (54 tests) |
+| Unit tests | `extension/tests/course-studio/*.test.ts` (**441** tests) |
 | v2 roadmap | `presentation/docs/DEVELOPMENT_PLAN.md` §16–17 |
 
 **Dev URL:** `http://localhost:5173/?workspace=course-studio` — Maintainer toggle + inspector (**Ctrl+\\**).  
@@ -213,7 +216,10 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-08 | **Course Studio — four-sensor book + outline authoring:** TESAIoT Embedded manifest ships **BMI270**, **BMM350**, **DPS368**, **SHT40** (four topics each); outline Add defers disk write (no Vite full reload); session draft persists outline + runtime pages; `mergeCourseOutlineWithBundled` on restore; multi-subtopic under one topic; GitHub `/blob/` image URLs resolve via raw fetch; BMI270 pages refined; **441** course-studio tests |
+| 2026-06-09 | **Course Studio 3D Scene editor:** Split workbench pane (preset `diagram-3d` vs design `diagram-2d` 3D layer); gizmo + outliner + default camera + **Save view**; Quick add on blank page; auto-enable 3D layer; focus routing tests |
 | 2026-06-08 | **Course Studio v2 (Phases 0, 7a–7d, 7f slice, 7g–7i):** new `course-studio/` workspace — page grid, markdown theory, `diagram.v1` + maintainer canvas (undo, z-order, curves, snap), bindings + MapOp chain, `diagram-3d` block; lazy workspace chunks + landing routing; TRN maintainer inspector; 54 unit tests; **`course-studio/README.md`** + tracker/architecture docs |
+| 2026-06-10 | **Webview dev perf:** Sensor Studio lazy workbench panes + lazy flow node panels; React Compiler prod-only; `main.tsx` immediate mount + HMR root; **`docs/WEBVIEW_DEV_PERFORMANCE.md`** |
 | 2026-06-08 | **TRN menu search + shell recovery:** menus with **>5 items** use **`TRNSearchableMenuShell`** / **`TRNMenuSearch`** (`TRN_MENU_SEARCH_MIN_ITEMS = 6`); hamburger scroll + search (Port Admin reachable in VSIX); UART notice → Port Admin; startup checklist bridge/WebSocket recovery; rule **`trn-menu-search.mdc`** |
 | 2026-06-08 | **Sensor Studio performance:** live store sidecar + dashboard structural/live split; socket **layout key** (sine-wave fps fix); Inspector **Performance** card (flow/3D caps, live stats, overlay); **While editing canvas** policy (keep/pause/throttle); docs **`SENSOR_STUDIO_PERFORMANCE.md`** |
 | 2026-06-04 | **Free pack:** VSIX **Sync/Diagnose Free Pack**; studio-aligned sync; living-upstream maintainer docs; **`TRNWindow`** overlay portaled to `document.body` (Free Loader / modals above workbench panes) |
@@ -251,8 +257,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Priority | Work | Notes |
 |----------|------|--------|
-| 1 | **Course Studio — 7f (remaining)** | `diagram.v1` 3D layers, model nodes, maintainer 3D viewport, shared binding resolver with 2D — see **`course-studio/README.md`** |
-| 2 | **Course Studio — content packs** | `.trn-presentation-pack` import/export; `presentation:validate` CLI |
+| 1 | **Course Studio — VSIX smoke** | `npm run package` → open Course Studio in VSIX; verify four chapters, live cards (Simulator), diagram/scene blocks, reader View mode — **`HOW_TO_RUN.md`** |
+| 2 | **Course Studio — content polish** | Diagram/scene assets per chapter; pack export includes course manifest; outline drag-reorder |
 | 3 | **Course Studio — 7e** | Optional embed diagrams in Presentation v1 theory slides |
 | 4 | **Verify landing ↔ sim on VSIX** | Click E84 / ABB / Vehicle from landing; Ctrl+/ back to landing |
 | 5 | **UART + MCU** | `npm run bitstream2:uart-probe -- --path COMx --baud 921600` when board connected |

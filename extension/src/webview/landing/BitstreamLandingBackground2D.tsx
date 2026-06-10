@@ -20,6 +20,8 @@ export type BitstreamLandingBackground2DProps = {
   nebulaOpacity?: number;
   flowOpacity?: number;
   className?: string;
+  /** Pointer routing root for {@link FlowCanvasBackground} (defaults to launcher shell). */
+  interactionRootClass?: string;
 };
 
 /**
@@ -32,6 +34,7 @@ export function BitstreamLandingBackground2D({
   nebulaOpacity = 1,
   flowOpacity = 1,
   className,
+  interactionRootClass = "webview-launcher",
 }: BitstreamLandingBackground2DProps)
 {
   if (!showBase && !showNebula && !showFlow)
@@ -62,7 +65,7 @@ export function BitstreamLandingBackground2D({
           style={{ opacity: flowOpacity }}
         >
           <FlowCanvasBackground
-            interactionRootClass="webview-launcher"
+            interactionRootClass={interactionRootClass}
             particleDensity={1.85}
             className="t3d-flow-canvas-bg__canvas pointer-events-none absolute inset-0 z-2 h-full w-full"
           />

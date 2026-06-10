@@ -1,0 +1,591 @@
+{
+  "version": 1,
+  "id": "diagram-mq64ypgu-2",
+  "title": "MEMS accelerometer (copy)",
+  "linkHealth": "freeze-gray",
+  "viewBox": [
+    0,
+    0,
+    360,
+    220
+  ],
+  "layers": [
+    {
+      "kind": "2d",
+      "nodes": [
+        {
+          "id": "frame",
+          "type": "rect",
+          "x": 20,
+          "y": 20,
+          "width": 320,
+          "height": 180,
+          "rx": 10,
+          "fill": "card",
+          "stroke": "card"
+        },
+        {
+          "id": "fixed-fingers",
+          "type": "group",
+          "children": [
+            {
+              "id": "ff-0",
+              "opacity": 0.55,
+              "type": "rect",
+              "x": 60,
+              "y": 52,
+              "width": 10,
+              "height": 36,
+              "rx": 2,
+              "fill": "axis-z"
+            },
+            {
+              "id": "ff-1",
+              "opacity": 0.55,
+              "type": "rect",
+              "x": 82,
+              "y": 52,
+              "width": 10,
+              "height": 36,
+              "rx": 2,
+              "fill": "axis-z"
+            },
+            {
+              "id": "ff-2",
+              "opacity": 0.55,
+              "type": "rect",
+              "x": 104,
+              "y": 52,
+              "width": 10,
+              "height": 36,
+              "rx": 2,
+              "fill": "axis-z"
+            },
+            {
+              "id": "ff-3",
+              "opacity": 0.55,
+              "type": "rect",
+              "x": 126,
+              "y": 52,
+              "width": 10,
+              "height": 36,
+              "rx": 2,
+              "fill": "axis-z"
+            },
+            {
+              "id": "ff-4",
+              "opacity": 0.55,
+              "type": "rect",
+              "x": 148,
+              "y": 52,
+              "width": 10,
+              "height": 36,
+              "rx": 2,
+              "fill": "axis-z"
+            }
+          ]
+        },
+        {
+          "id": "proof-mass",
+          "type": "rect",
+          "x": 118,
+          "y": {
+            "base": 78,
+            "mode": "add",
+            "binding": {
+              "path": "bmi270.ax",
+              "map": [
+                {
+                  "op": "scale",
+                  "inMin": -1,
+                  "inMax": 1,
+                  "outMin": 14,
+                  "outMax": -14
+                }
+              ],
+              "fallback": 0
+            }
+          },
+          "width": 88,
+          "height": 48,
+          "rx": 6,
+          "fill": "accent-amber",
+          "stroke": "accent-amber",
+          "strokeWidth": 2,
+          "label": "Proof mass"
+        },
+        {
+          "id": "mobile-fingers",
+          "type": "group",
+          "children": [
+            {
+              "id": "mf-0",
+              "opacity": 0.75,
+              "type": "rect",
+              "x": 68,
+              "y": 88,
+              "width": 10,
+              "height": 28,
+              "rx": 2,
+              "fill": "axis-x"
+            },
+            {
+              "id": "mf-1",
+              "opacity": 0.75,
+              "type": "rect",
+              "x": 90,
+              "y": 88,
+              "width": 10,
+              "height": 28,
+              "rx": 2,
+              "fill": "axis-x"
+            },
+            {
+              "id": "mf-2",
+              "opacity": 0.75,
+              "type": "rect",
+              "x": 112,
+              "y": 88,
+              "width": 10,
+              "height": 28,
+              "rx": 2,
+              "fill": "axis-x"
+            },
+            {
+              "id": "mf-3",
+              "opacity": 0.75,
+              "type": "rect",
+              "x": 134,
+              "y": 88,
+              "width": 10,
+              "height": 28,
+              "rx": 2,
+              "fill": "axis-x"
+            },
+            {
+              "id": "mf-4",
+              "opacity": 0.75,
+              "type": "rect",
+              "x": 156,
+              "y": 88,
+              "width": 10,
+              "height": 28,
+              "rx": 2,
+              "fill": "axis-x"
+            }
+          ]
+        },
+        {
+          "id": "spring-left",
+          "type": "line",
+          "x1": 40,
+          "y1": 102,
+          "x2": 108,
+          "y2": 102,
+          "stroke": "card",
+          "strokeWidth": 2,
+          "strokeDasharray": "5 4",
+          "flowWhen": {
+            "path": "bmi270.accValid",
+            "fallback": 0
+          },
+          "highlightWhen": {
+            "path": "bmi270.axAbs",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": 0.08,
+                "inMax": 0.6,
+                "outMin": 0,
+                "outMax": 1
+              },
+              {
+                "op": "clamp",
+                "min": 0,
+                "max": 1
+              }
+            ],
+            "fallback": 0
+          },
+          "highlightStroke": "accent-cyan"
+        },
+        {
+          "id": "spring-right",
+          "type": "line",
+          "x1": 216,
+          "y1": 102,
+          "x2": 300,
+          "y2": 102,
+          "stroke": "card",
+          "strokeWidth": 2,
+          "strokeDasharray": "5 4",
+          "flowWhen": {
+            "path": "bmi270.accValid",
+            "fallback": 0
+          },
+          "highlightWhen": {
+            "path": "bmi270.axAbs",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": 0.08,
+                "inMax": 0.6,
+                "outMin": 0,
+                "outMax": 1
+              },
+              {
+                "op": "clamp",
+                "min": 0,
+                "max": 1
+              }
+            ],
+            "fallback": 0
+          },
+          "highlightStroke": "accent-cyan"
+        },
+        {
+          "id": "label-spring",
+          "type": "text",
+          "x": 48,
+          "y": 94,
+          "content": "spring",
+          "fontSize": 9,
+          "fill": "muted"
+        },
+        {
+          "id": "label-c1",
+          "type": "text",
+          "x": 72,
+          "y": 168,
+          "content": "C1",
+          "fontSize": 10,
+          "fill": "axis-z"
+        },
+        {
+          "id": "label-c2",
+          "type": "text",
+          "x": 268,
+          "y": 168,
+          "content": "C2",
+          "fontSize": 10,
+          "fill": "axis-x"
+        },
+        {
+          "id": "label-pipeline",
+          "type": "text",
+          "x": 180,
+          "y": 188,
+          "content": "ΔC = C1 − C2 → Σ-Δ ADC → digital accel",
+          "fontSize": 10,
+          "fill": "muted",
+          "textAnchor": "middle"
+        },
+        {
+          "id": "live-ax",
+          "type": "text",
+          "x": 180,
+          "y": 36,
+          "content": {
+            "binding": {
+              "path": "bmi270.ax",
+              "format": "0.000",
+              "unit": "g"
+            },
+            "prefix": "aX = "
+          },
+          "fontSize": 11,
+          "fontWeight": 700,
+          "fill": "axis-x",
+          "textAnchor": "middle"
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "id": "frame",
+      "type": "rect",
+      "x": 20,
+      "y": 20,
+      "width": 320,
+      "height": 180,
+      "rx": 10,
+      "fill": "card",
+      "stroke": "card"
+    },
+    {
+      "id": "fixed-fingers",
+      "type": "group",
+      "children": [
+        {
+          "id": "ff-0",
+          "opacity": 0.55,
+          "type": "rect",
+          "x": 60,
+          "y": 52,
+          "width": 10,
+          "height": 36,
+          "rx": 2,
+          "fill": "axis-z"
+        },
+        {
+          "id": "ff-1",
+          "opacity": 0.55,
+          "type": "rect",
+          "x": 82,
+          "y": 52,
+          "width": 10,
+          "height": 36,
+          "rx": 2,
+          "fill": "axis-z"
+        },
+        {
+          "id": "ff-2",
+          "opacity": 0.55,
+          "type": "rect",
+          "x": 104,
+          "y": 52,
+          "width": 10,
+          "height": 36,
+          "rx": 2,
+          "fill": "axis-z"
+        },
+        {
+          "id": "ff-3",
+          "opacity": 0.55,
+          "type": "rect",
+          "x": 126,
+          "y": 52,
+          "width": 10,
+          "height": 36,
+          "rx": 2,
+          "fill": "axis-z"
+        },
+        {
+          "id": "ff-4",
+          "opacity": 0.55,
+          "type": "rect",
+          "x": 148,
+          "y": 52,
+          "width": 10,
+          "height": 36,
+          "rx": 2,
+          "fill": "axis-z"
+        }
+      ]
+    },
+    {
+      "id": "proof-mass",
+      "type": "rect",
+      "x": 118,
+      "y": {
+        "base": 78,
+        "mode": "add",
+        "binding": {
+          "path": "bmi270.ax",
+          "map": [
+            {
+              "op": "scale",
+              "inMin": -1,
+              "inMax": 1,
+              "outMin": 14,
+              "outMax": -14
+            }
+          ],
+          "fallback": 0
+        }
+      },
+      "width": 88,
+      "height": 48,
+      "rx": 6,
+      "fill": "accent-amber",
+      "stroke": "accent-amber",
+      "strokeWidth": 2,
+      "label": "Proof mass"
+    },
+    {
+      "id": "mobile-fingers",
+      "type": "group",
+      "children": [
+        {
+          "id": "mf-0",
+          "opacity": 0.75,
+          "type": "rect",
+          "x": 68,
+          "y": 88,
+          "width": 10,
+          "height": 28,
+          "rx": 2,
+          "fill": "axis-x"
+        },
+        {
+          "id": "mf-1",
+          "opacity": 0.75,
+          "type": "rect",
+          "x": 90,
+          "y": 88,
+          "width": 10,
+          "height": 28,
+          "rx": 2,
+          "fill": "axis-x"
+        },
+        {
+          "id": "mf-2",
+          "opacity": 0.75,
+          "type": "rect",
+          "x": 112,
+          "y": 88,
+          "width": 10,
+          "height": 28,
+          "rx": 2,
+          "fill": "axis-x"
+        },
+        {
+          "id": "mf-3",
+          "opacity": 0.75,
+          "type": "rect",
+          "x": 134,
+          "y": 88,
+          "width": 10,
+          "height": 28,
+          "rx": 2,
+          "fill": "axis-x"
+        },
+        {
+          "id": "mf-4",
+          "opacity": 0.75,
+          "type": "rect",
+          "x": 156,
+          "y": 88,
+          "width": 10,
+          "height": 28,
+          "rx": 2,
+          "fill": "axis-x"
+        }
+      ]
+    },
+    {
+      "id": "spring-left",
+      "type": "line",
+      "x1": 40,
+      "y1": 102,
+      "x2": 108,
+      "y2": 102,
+      "stroke": "card",
+      "strokeWidth": 2,
+      "strokeDasharray": "5 4",
+      "flowWhen": {
+        "path": "bmi270.accValid",
+        "fallback": 0
+      },
+      "highlightWhen": {
+        "path": "bmi270.axAbs",
+        "map": [
+          {
+            "op": "scale",
+            "inMin": 0.08,
+            "inMax": 0.6,
+            "outMin": 0,
+            "outMax": 1
+          },
+          {
+            "op": "clamp",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "fallback": 0
+      },
+      "highlightStroke": "accent-cyan"
+    },
+    {
+      "id": "spring-right",
+      "type": "line",
+      "x1": 216,
+      "y1": 102,
+      "x2": 300,
+      "y2": 102,
+      "stroke": "card",
+      "strokeWidth": 2,
+      "strokeDasharray": "5 4",
+      "flowWhen": {
+        "path": "bmi270.accValid",
+        "fallback": 0
+      },
+      "highlightWhen": {
+        "path": "bmi270.axAbs",
+        "map": [
+          {
+            "op": "scale",
+            "inMin": 0.08,
+            "inMax": 0.6,
+            "outMin": 0,
+            "outMax": 1
+          },
+          {
+            "op": "clamp",
+            "min": 0,
+            "max": 1
+          }
+        ],
+        "fallback": 0
+      },
+      "highlightStroke": "accent-cyan"
+    },
+    {
+      "id": "label-spring",
+      "type": "text",
+      "x": 48,
+      "y": 94,
+      "content": "spring",
+      "fontSize": 9,
+      "fill": "muted"
+    },
+    {
+      "id": "label-c1",
+      "type": "text",
+      "x": 72,
+      "y": 168,
+      "content": "C1",
+      "fontSize": 10,
+      "fill": "axis-z"
+    },
+    {
+      "id": "label-c2",
+      "type": "text",
+      "x": 268,
+      "y": 168,
+      "content": "C2",
+      "fontSize": 10,
+      "fill": "axis-x"
+    },
+    {
+      "id": "label-pipeline",
+      "type": "text",
+      "x": 180,
+      "y": 188,
+      "content": "ΔC = C1 − C2 → Σ-Δ ADC → digital accel",
+      "fontSize": 10,
+      "fill": "muted",
+      "textAnchor": "middle"
+    },
+    {
+      "id": "live-ax",
+      "type": "text",
+      "x": 180,
+      "y": 36,
+      "content": {
+        "binding": {
+          "path": "bmi270.ax",
+          "format": "0.000",
+          "unit": "g"
+        },
+        "prefix": "aX = "
+      },
+      "fontSize": 11,
+      "fontWeight": 700,
+      "fill": "axis-x",
+      "textAnchor": "middle"
+    }
+  ]
+}

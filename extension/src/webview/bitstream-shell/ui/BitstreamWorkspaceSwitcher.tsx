@@ -1,4 +1,4 @@
-import { Activity, Workflow, Presentation, GraduationCap } from "lucide-react";
+import { Activity, Workflow, GraduationCap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   useBitstreamWorkspaceModeStore,
@@ -18,7 +18,7 @@ import { TRN_HINT_HOVER_DELAY_MS } from "../../ui/TRN/TRNHintText";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip";
 
 type WorkspaceTab = {
-  id: BitstreamWorkspaceId;
+  id: Exclude<BitstreamWorkspaceId, "presentation">;
   label: string;
   hint: string;
   Icon: LucideIcon;
@@ -26,13 +26,16 @@ type WorkspaceTab = {
   activeIconClass: string;
 };
 
-const WORKSPACE_HOVER_CLASS: Record<BitstreamWorkspaceId, string> = {
+const WORKSPACE_HOVER_CLASS = {
   "sensor-telemetry": SHELL_DECK_PILL_HOVER.workspaceTelemetry,
   "sensor-studio": SHELL_DECK_PILL_HOVER.workspaceStudio,
-  presentation: SHELL_DECK_PILL_HOVER.workspacePresentation,
   "course-studio": SHELL_DECK_PILL_HOVER.workspaceCourseStudio,
-};
+} as const satisfies Record<
+  Exclude<BitstreamWorkspaceId, "presentation">,
+  string
+>;
 
+/** Shell toolbar workspaces (legacy Presentation v1 tab removed — use Course Studio). */
 const WORKSPACE_TABS: readonly WorkspaceTab[] = [
   {
     id: "sensor-telemetry",
@@ -60,15 +63,6 @@ const WORKSPACE_TABS: readonly WorkspaceTab[] = [
     activeSurfaceClass:
       "border-amber-500/45 bg-amber-500/15 text-amber-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
     activeIconClass: "text-amber-300",
-  },
-  {
-    id: "presentation",
-    label: "Presentation",
-    hint: "Training slides (v1) — theory reader, demos, and labs using live Bitstream Studio data.",
-    Icon: Presentation,
-    activeSurfaceClass:
-      "border-sky-500/45 bg-sky-500/15 text-sky-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]",
-    activeIconClass: "text-sky-300",
   },
 ];
 

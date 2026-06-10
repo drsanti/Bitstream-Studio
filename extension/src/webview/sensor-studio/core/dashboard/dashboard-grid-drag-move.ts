@@ -31,6 +31,7 @@ export function dashboardGridCellFromPointer(args: {
     clientY: args.clientY,
     gridRect: args.gridElement.getBoundingClientRect(),
     metrics: args.metrics,
+    gridElement: args.gridElement,
   });
   return clampDashboardGridOrigin({
     column: cell.column,

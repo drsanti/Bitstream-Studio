@@ -30,6 +30,11 @@ import {
   TRNMenuSearchField,
 } from "./TRNMenuSearch.js";
 
+import {
+  TRN_FIELD_CONTROL_FIELD_VARIANT_CLASS,
+  TRN_FIELD_CONTROL_TRIGGER_BASE_CLASS,
+} from "./trnFieldControlClasses.js";
+
 export type TRNSelectOption = {
   value: string;
   label: ReactNode;
@@ -68,14 +73,8 @@ export type TRNSelectProps = {
   panelClassName?: string;
 };
 
-const TRN_SELECT_TRIGGER_BASE_CLASS =
-  "inline-flex w-full items-center gap-2 rounded-md px-2.5 font-sans text-[13px] font-normal leading-tight text-zinc-100 " +
-  "shadow-[0_16px_48px_-16px_rgba(0,0,0,0.35)] backdrop-blur-2xl " +
-  "transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-white/20 " +
-  "disabled:cursor-not-allowed disabled:opacity-50";
-
 const TRN_SELECT_TRIGGER_VARIANT_CLASS: Record<NonNullable<TRNSelectProps["variant"]>, string> = {
-  field: "border border-zinc-700/80 bg-zinc-950/45 hover:bg-zinc-950/55",
+  field: TRN_FIELD_CONTROL_FIELD_VARIANT_CLASS,
   glass:
     "border border-white/15 bg-black/70 ring-1 ring-white/10 hover:bg-black/80",
 };
@@ -366,7 +365,8 @@ export function TRNSelect(props: TRNSelectProps) {
           }
         }}
         className={twMerge(
-          TRN_SELECT_TRIGGER_BASE_CLASS,
+          "inline-flex w-full items-center gap-2 rounded-md px-2.5",
+          TRN_FIELD_CONTROL_TRIGGER_BASE_CLASS,
           TRN_SELECT_TRIGGER_VARIANT_CLASS[variant],
           size === "sm" ? "py-1" : size === "lg" ? "py-2 text-sm" : "py-1.5",
           mergedTriggerClassName,

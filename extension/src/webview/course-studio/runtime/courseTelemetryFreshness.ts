@@ -1,4 +1,5 @@
 import type { DiagramLiveSnapshot } from "./diagram/diagramBindingCatalog";
+import { snapshotHasAnySensorSample } from "./diagram/diagramBindingCatalog";
 
 /** Default when maintainer enables stale timeout without picking a value. */
 export const DEFAULT_COURSE_STALE_MS = 2000;
@@ -19,7 +20,7 @@ export function resolveCourseLastRxAtMs(
 }
 
 export function isCourseLinkHealthy(ctx: CourseLinkHealthContext): boolean {
-  if (!ctx.snapshot.connected || !ctx.snapshot.bmi270.hasSample) {
+  if (!ctx.snapshot.connected || !snapshotHasAnySensorSample(ctx.snapshot)) {
     return false;
   }
   if (ctx.staleMs == null) {

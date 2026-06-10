@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "dps368-applications",
+  "title": "DPS368 — Applications & dashboards",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": { "columns": 12, "rowHeightPx": 48, "gapPx": 12, "paddingPx": 32 },
+  "blocks": [
+    {
+      "id": "heading-apps",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "DPS368 · Applications",
+      "title": "From barometric sensing to operator dashboards",
+      "subtitle": "Floor detection, slow pressure trends, and Sensor Studio wiring for live DPS368 streams.",
+      "icon": "LayoutDashboard"
+    },
+    {
+      "id": "callout-studio",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Node-based tooling",
+      "body": "Open Sensor Studio to wire DPS368 pressure and altitude taps into gauges and trend plots on the Dashboard.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "md-apps",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 5, "columnSpan": 7, "rowSpan": 5 },
+      "src": "dps368-applications.theory.md"
+    },
+    {
+      "id": "dash-apps-pressure",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Pressure",
+      "widgetKind": "text",
+      "style": { "label": "P", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-apps-alt",
+      "kind": "dashboard-widget",
+      "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Altitude",
+      "widgetKind": "text",
+      "style": { "label": "Alt", "unit": "m", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
+    },
+    {
+      "id": "card-apps",
+      "kind": "card",
+      "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
+      "title": "Studio checklist",
+      "body": "Add DPS368 input or tap nodes.\nCapture baseline pressure at desk height.\nWire altitude for relative lift demos.\nPair with SHT40 for environment labs."
+    }
+  ]
+}

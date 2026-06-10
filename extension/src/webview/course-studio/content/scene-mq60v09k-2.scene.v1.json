@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "id": "scene-mq60v09k-2",
+  "title": "New 3D scene",
+  "linkHealth": "freeze-gray",
+  "nodes": [],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}
