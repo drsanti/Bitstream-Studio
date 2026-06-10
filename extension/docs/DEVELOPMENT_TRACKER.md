@@ -72,6 +72,10 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-10** — **Course Studio Widget Editor (phase 2):** workbench pane + inner grid composer (drag/resize), widget palette (metric bar, hero gauge), per-widget binding inspector, v7 maintainer layout migration; builds on `widget-board` block + five theme presets.
+- **2026-06-10** — **Course Studio widget board (phase 1):** `widget-board` page block with inner grid, `metric-bar` + `hero-radial-gauge` widgets, five theme presets (`ev-compact`, `course-amber`, `industrial`, `telemetry-cyan`, `sci-fi`), semantic `--course-wb-*` tokens, EV compact template, palette add, inspector theme/meta/caption.
+- **2026-06-10** — **Course Studio content polish (four-sensor diagrams/scenes):** BMM350 compass diagram + heading scene; DPS368 pressure bar + altitude scene; SHT40 comfort gauge + RH sphere scene; live/field topic pages wired; **462** course-studio tests; `presentation:validate` clean.
+- **2026-06-10** — **Course Studio pack export + outline reorder:** `presentation:pack:export --course tesaiot-embedded` bundles `courses/*.course.v1.json` + all outline pages/assets; `buildPresentationPackFromCourse`; outline sibling drag-reorder (grip + `@dnd-kit`); `reorderCourseSiblings` tests.
 - **2026-06-10** — **Telemetry provider kit docs (AI agents):** SKILL + README refresh — WebSocket/postMessage first, mock fallback, avoid UART/baud in generated copy; shipped-phase table; per-sensor stale in SKILL.
 - **2026-06-10** — **Course Studio telemetry provider demos:** SHT40 / DPS368 / BMI270 **Live visualization** pages embed kit `EXAMPLES/*.html` as html-page blocks (`telemetry-examples/` synced on `bitstream2:telemetry-catalog:gen`); theory markdown updated.
 - **2026-06-10** — **Bitstream Telemetry Provider hardening:** Course iframe `postMessage` origin registry (handshake-only clients, targeted `targetOrigin`); per-sensor `staleAfterMs` in catalog (~3× publish interval).
@@ -741,7 +745,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- **Course Studio — VSIX smoke + content polish** — four-sensor book bundled; telemetry provider HTML demos on live topics; next: packaged verification (provider :9997, iframe bars), per-chapter diagram/scene assets, outline drag-reorder.
+- **Course Studio — VSIX smoke** — four-sensor book + diagram/scene assets + pack export shipped; next: install `bitstream-studio-0.1.0.vsix` and verify live topics (provider :9997, iframe bars, outline reorder).
 - **Sensor Studio — Stage viewport B2+** — multi-model, orbit toolbar, Rapier on Stage; see **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**.
 - **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
 

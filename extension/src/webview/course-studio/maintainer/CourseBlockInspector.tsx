@@ -12,6 +12,7 @@ import { CourseInspectorCard, COURSE_INSPECTOR_CARD_ICON_CLASS } from "./CourseI
 import { CourseBlockReadHeightField } from "./CourseBlockReadHeightField";
 import { CourseCardBlockInspectorFields } from "./CourseCardBlockInspectorFields";
 import { CourseDashboardWidgetBlockInspectorFields } from "./CourseDashboardWidgetBlockInspectorFields";
+import { CourseWidgetBoardBlockInspectorFields } from "./CourseWidgetBoardBlockInspectorFields";
 import { CourseLiveMetricBlockInspectorFields } from "./CourseLiveMetricBlockInspectorFields";
 import { CourseSensorTelemetryCardBlockInspectorFields } from "./CourseSensorTelemetryCardBlockInspectorFields";
 import { CourseEmojiTextField } from "./CourseEmojiTextField";
@@ -155,6 +156,8 @@ function BlockFields({ block }: { block: PageBlockV1 }) {
       );
     case "dashboard-widget":
       return <CourseDashboardWidgetBlockInspectorFields block={block} />;
+    case "widget-board":
+      return <CourseWidgetBoardBlockInspectorFields block={block} />;
     case "sensor-telemetry-card":
       return <CourseSensorTelemetryCardBlockInspectorFields block={block} />;
     case "diagram-2d":
@@ -259,7 +262,8 @@ export function CourseBlockContentFields({ block }: { block: PageBlockV1 }) {
     block.kind === "card" ||
     block.kind === "scene-3d" ||
     block.kind === "sensor-telemetry-card" ||
-    block.kind === "dashboard-widget"
+    block.kind === "dashboard-widget" ||
+    block.kind === "widget-board"
   ) {
     return (
       <div className="course-block-content-fields flex flex-col gap-2" data-course-block-content-fields>

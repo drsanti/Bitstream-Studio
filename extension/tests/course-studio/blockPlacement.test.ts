@@ -5,7 +5,29 @@ import {
   findOpenPlacement,
   formatPlacementOccupancyHint,
 } from "../../src/webview/course-studio/maintainer/blockPlacement";
+import {
+  clampPlacementToGrid,
+  placementGridStyle,
+} from "../../src/webview/course-studio/schemas/placement";
 import { loadPilotBmiAccelTheoryPage } from "../../src/webview/course-studio/content/loadPilotPage";
+
+test("clampPlacementToGrid keeps column spans inside the page grid", () => {
+  assert.deepEqual(
+    clampPlacementToGrid({ column: 1, row: 1, columnSpan: 16, rowSpan: 2 }, 12),
+    { column: 1, row: 1, columnSpan: 12, rowSpan: 2 },
+  );
+  assert.deepEqual(
+    clampPlacementToGrid({ column: 10, row: 3, columnSpan: 6, rowSpan: 1 }, 12),
+    { column: 10, row: 3, columnSpan: 3, rowSpan: 1 },
+  );
+});
+
+test("placementGridStyle bounds spans when columns are provided", () => {
+  assert.deepEqual(placementGridStyle({ column: 1, row: 1, columnSpan: 16, rowSpan: 2 }, 12), {
+    gridColumn: "1 / span 12",
+    gridRow: "1 / span 2",
+  });
+});
 
 test("formatPlacementOccupancyHint summarizes column and row spans", () => {
   assert.equal(

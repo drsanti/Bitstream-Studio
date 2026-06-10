@@ -5,9 +5,10 @@ import {
   LEGACY_COURSE_AUTHOR_WORKBENCH_LAYOUT,
   V2_COURSE_AUTHOR_WORKBENCH_LAYOUT,
   V3_COURSE_AUTHOR_WORKBENCH_LAYOUT,
+  V6_COURSE_AUTHOR_WORKBENCH_LAYOUT,
 } from "./default-course-workbench-layout";
 
-export const COURSE_WORKBENCH_LAYOUT_REVISION = 6 as const;
+export const COURSE_WORKBENCH_LAYOUT_REVISION = 7 as const;
 const REVISION_STORAGE_KEY = "course-studio:workbench-layout-revision.v1";
 
 function layoutShapeFingerprint(layout: LayoutNode): string {
@@ -32,6 +33,7 @@ function layoutShapeFingerprint(layout: LayoutNode): string {
 const LEGACY_AUTHOR_FINGERPRINT = layoutShapeFingerprint(LEGACY_COURSE_AUTHOR_WORKBENCH_LAYOUT);
 const V2_AUTHOR_FINGERPRINT = layoutShapeFingerprint(V2_COURSE_AUTHOR_WORKBENCH_LAYOUT);
 const V3_AUTHOR_FINGERPRINT = layoutShapeFingerprint(V3_COURSE_AUTHOR_WORKBENCH_LAYOUT);
+const V6_AUTHOR_FINGERPRINT = layoutShapeFingerprint(V6_COURSE_AUTHOR_WORKBENCH_LAYOUT);
 
 /** True when persisted layout matches the pre-v2 default tiling. */
 export function isLegacyCourseAuthorWorkbenchLayout(layout: LayoutNode): boolean {
@@ -46,6 +48,11 @@ export function isV2CourseAuthorWorkbenchLayout(layout: LayoutNode): boolean {
 /** True when persisted layout matches the v3 default (dual inspector column). */
 export function isV3CourseAuthorWorkbenchLayout(layout: LayoutNode): boolean {
   return layoutShapeFingerprint(layout) === V3_AUTHOR_FINGERPRINT;
+}
+
+/** True when persisted layout matches the v6 default (pre–Widget Editor pane). */
+export function isV6CourseAuthorWorkbenchLayout(layout: LayoutNode): boolean {
+  return layoutShapeFingerprint(layout) === V6_AUTHOR_FINGERPRINT;
 }
 
 export function layoutContainsEditorType(layout: LayoutNode, editorType: string): boolean {
@@ -114,8 +121,10 @@ export function shouldResetCourseWorkbenchLayoutToDefault(layout: LayoutNode): b
     isLegacyCourseAuthorWorkbenchLayout(layout) ||
     isV2CourseAuthorWorkbenchLayout(layout) ||
     isV3CourseAuthorWorkbenchLayout(layout) ||
+    isV6CourseAuthorWorkbenchLayout(layout) ||
     layoutContainsEditorType(layout, "block-inspector") ||
     !layoutContainsEditorType(layout, "outline") ||
-    !layoutContainsEditorType(layout, "html-page")
+    !layoutContainsEditorType(layout, "html-page") ||
+    !layoutContainsEditorType(layout, "widget-board")
   );
 }

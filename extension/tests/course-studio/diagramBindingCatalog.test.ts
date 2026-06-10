@@ -103,11 +103,20 @@ test("catalogEntryForPath returns metadata for inspector defaults", () => {
 
 test("resolveBindingDisplayUnit uses catalog unit for fusion paths", () => {
   assert.equal(
-    resolveBindingDisplayUnit({ path: "bmi270.heading", unit: "g", fallback: 0 }),
-    "°",
+    resolveBindingDisplayUnit({ path: "bmi270.heading", unit: "percent", fallback: 0 }),
+    "percent",
   );
+  assert.equal(resolveBindingDisplayUnit({ path: "bmi270.heading", fallback: 0 }), "°");
   assert.equal(
     resolveBindingDisplayUnit({ path: "bmi270.ax", unit: "g", fallback: 0 }),
     "g",
   );
+});
+
+test("resolveBindingDisplayUnit honors unit override on catalog scalar paths", () => {
+  assert.equal(
+    resolveBindingDisplayUnit({ path: "bmi270.az", unit: "percent", fallback: 0 }),
+    "percent",
+  );
+  assert.equal(resolveBindingDisplayUnit({ path: "bmi270.az", fallback: 0 }), "g");
 });

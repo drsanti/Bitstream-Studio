@@ -39,6 +39,7 @@ test("parsePresentationPackAssets extracts page, diagram, scene, and markdown en
   assert.equal(assets.scenes.length, 1);
   assert.equal(assets.scenes[0]?.scene.id, "pilot-bmi-pcb-orientation");
   assert.equal(assets.markdown.length, 1);
+  assert.equal(assets.courses.length, 0);
 });
 
 test("applyPresentationPackRuntime registers virtual paths in VSIX mode", () => {

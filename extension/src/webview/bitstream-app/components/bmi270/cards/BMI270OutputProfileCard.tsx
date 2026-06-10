@@ -18,18 +18,16 @@ import {
 } from "../../../../sensor-telemetry/components/panels/SensorCfgCardHeaderTrailing.js";
 import {
   BMI270_OUTPUT_PRESETS,
-  resolveBmi270OutputPresetId,
   type Bmi270OutputPresetId,
 } from "../../../lib/bmi270OutputProfiles.js";
-import type { Bmi270StreamModeUi } from "../../../state/bitstreamConfig.store.js";
 import type { Bmi270AckState } from "../types.js";
 import { SENSOR_CFG_UI } from "../../../constants/sensorConfigUiLabels.js";
 
 export function BMI270OutputProfileCard(props: {
   collapsed: boolean;
   controlsDisabled: boolean;
-  mask: number;
-  streamMode: Bmi270StreamModeUi;
+  /** Firmware-aware preset highlight (from {@link resolveBmi270OutputPresetDisplayState}). */
+  activePresetId: Bmi270OutputPresetId | null;
   ack: Bmi270AckState;
   onToggleCollapsed: () => void;
   onPresetSelect: (presetId: Bmi270OutputPresetId) => void;
@@ -39,15 +37,12 @@ export function BMI270OutputProfileCard(props: {
   const {
     collapsed,
     controlsDisabled,
-    mask,
-    streamMode,
+    activePresetId,
     ack,
     onToggleCollapsed,
     onPresetSelect,
     cardApply,
   } = props;
-
-  const activePresetId = resolveBmi270OutputPresetId(mask, streamMode);
 
   return (
     <TRNInteractiveCard

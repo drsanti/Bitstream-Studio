@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "id": "bmm350-compass-scene",
+  "title": "Compass triad — level heading",
+  "linkHealth": "freeze-gray",
+  "camera": {
+    "position": [0, 2.8, 4.5],
+    "fov": 42
+  },
+  "nodes": [
+    {
+      "id": "triad",
+      "type": "model",
+      "modelId": "procedural-axis-triad",
+      "rotation": {
+        "kind": "euler",
+        "pitch": 0,
+        "yaw": {
+          "mode": "absolute",
+          "binding": {
+            "path": "bmm350.headingDeg",
+            "map": [{ "op": "scale", "inMin": 0, "inMax": 360, "outMin": 0, "outMax": 360 }],
+            "fallback": 0
+          }
+        },
+        "roll": 0
+      }
+    }
+  ],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}

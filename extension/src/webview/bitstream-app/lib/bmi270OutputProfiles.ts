@@ -78,6 +78,26 @@ export function getBmi270OutputPreset(id: Bmi270OutputPresetId): Bmi270OutputPre
   return found ?? BMI270_OUTPUT_PRESETS[0]!;
 }
 
+/** Infer stream mode from SENSOR_CFG mask when it matches exactly one preset row. */
+export function inferBmi270StreamModeFromMask(mask: number): Bmi270StreamModeUi | null
+{
+  const m = mask & 0xff;
+  let match: Bmi270StreamModeUi | null = null;
+  for (const preset of BMI270_OUTPUT_PRESETS)
+  {
+    if (preset.mask !== m)
+    {
+      continue;
+    }
+    if (match != null)
+    {
+      return null;
+    }
+    match = preset.streamMode;
+  }
+  return match;
+}
+
 /** Active preset when draft mask + stream mode match a built-in row; else null (custom). */
 export function resolveBmi270OutputPresetId(
   mask: number,
@@ -93,6 +113,73 @@ export function resolveBmi270OutputPresetId(
     }
   }
   return null;
+}
+
+export type Bmi270OutputPresetDisplayInput = {
+  draftMask: number;
+  firmwareMask: number;
+  draftStreamMode: Bmi270StreamModeUi;
+  /** Last BMI270_MODE_GET baseline; null before first firmware read this session. */
+  firmwareStreamMode: Bmi270StreamModeUi | null;
+  maskUserDirty: boolean;
+  streamModeUserDirty: boolean;
+  /** Draft-until-Apply: operator picked a preset but has not Applied yet. */
+  outputProfileUserEdited: boolean;
+};
+
+/**
+ * Preset highlight for Raw / Fusion / All.
+ *
+ * BMI270 output preset id matches stream mode (`raw` / `fusion` / `hybrid`). On UART,
+ * SENSOR_CFG mask and BMI270_MODE_GET can be briefly out of sync after refresh; when
+ * not editing, trust MODE GET (or mask inference before GET completes).
+ */
+export function resolveBmi270OutputPresetDisplayState(
+  input: Bmi270OutputPresetDisplayInput,
+): {
+  presetId: Bmi270OutputPresetId | null;
+  mask: number;
+  streamMode: Bmi270StreamModeUi;
+}
+{
+  const draftMask = input.draftMask & 0xff;
+  const firmwareMask = input.firmwareMask & 0xff;
+  const isEditing =
+    input.outputProfileUserEdited || input.maskUserDirty || input.streamModeUserDirty;
+
+  if (isEditing)
+  {
+    const streamMode = input.draftStreamMode;
+    const paired = resolveBmi270OutputPresetId(draftMask, streamMode);
+    if (paired != null)
+    {
+      return { presetId: paired, mask: draftMask, streamMode };
+    }
+    /* Preset row click updates stream mode before parent re-renders with new mask. */
+    if (input.outputProfileUserEdited || input.streamModeUserDirty)
+    {
+      return { presetId: streamMode, mask: draftMask, streamMode };
+    }
+    return { presetId: null, mask: draftMask, streamMode };
+  }
+
+  if (input.firmwareStreamMode != null)
+  {
+    return {
+      presetId: input.firmwareStreamMode,
+      mask: firmwareMask,
+      streamMode: input.firmwareStreamMode,
+    };
+  }
+
+  const inferred = inferBmi270StreamModeFromMask(firmwareMask);
+  const streamMode = inferred ?? input.draftStreamMode;
+  return {
+    presetId:
+      inferred != null ? inferred : resolveBmi270OutputPresetId(firmwareMask, streamMode),
+    mask: firmwareMask,
+    streamMode,
+  };
 }
 
 export function isBmi270CustomOutput(mask: number, streamMode: Bmi270StreamModeUi): boolean

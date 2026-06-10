@@ -1,3 +1,4 @@
+import { parseCourseV1, type CourseV1 } from "../schemas/course.v1";
 import { parseDiagramV1, type DiagramV1 } from "../schemas/diagram.v1";
 import { parsePageV1, type PageV1 } from "../schemas/page.v1";
 import { parseSceneV1, type SceneV1 } from "../schemas/scene.v1";
@@ -33,11 +34,18 @@ export type PackSceneAsset = {
   scene: SceneV1;
 };
 
+export type PackCourseAsset = {
+  packPath: string;
+  fileName: string;
+  course: CourseV1;
+};
+
 export type ParsedPresentationPackAssets = {
   pages: PackPageAsset[];
   diagrams: PackDiagramAsset[];
   scenes: PackSceneAsset[];
   markdown: PackMarkdownAsset[];
+  courses: PackCourseAsset[];
 };
 
 export function packVirtualSourcePath(packId: string, packPath: string): string {
@@ -53,6 +61,7 @@ export function parsePresentationPackAssets(pack: PresentationPackV1): ParsedPre
   const diagrams: PackDiagramAsset[] = [];
   const scenes: PackSceneAsset[] = [];
   const markdown: PackMarkdownAsset[] = [];
+  const courses: PackCourseAsset[] = [];
 
   for (const [packPath, body] of Object.entries(pack.files)) {
     if (packPath.startsWith("pages/") && packPath.endsWith(".page.v1.json")) {
@@ -93,10 +102,20 @@ export function parsePresentationPackAssets(pack: PresentationPackV1): ParsedPre
         src: fileName,
         text: body,
       });
+      continue;
+    }
+
+    if (packPath.startsWith("courses/") && packPath.endsWith(".course.v1.json")) {
+      const course = parseCourseV1(JSON.parse(body) as unknown);
+      courses.push({
+        packPath,
+        fileName: pathBasename(packPath),
+        course,
+      });
     }
   }
 
-  return { pages, diagrams, scenes, markdown };
+  return { pages, diagrams, scenes, markdown, courses };
 }
 
 export type CoursePackOverlay = {
@@ -233,7 +252,8 @@ export function mapPackAssetsToContentFiles(pack: PresentationPackV1): Map<strin
       packPath.startsWith("pages/") ||
       packPath.startsWith("diagrams/") ||
       packPath.startsWith("scenes/") ||
-      packPath.startsWith("markdown/")
+      packPath.startsWith("markdown/") ||
+      packPath.startsWith("courses/")
     ) {
       mapped.set(pathBasename(packPath), body);
     }

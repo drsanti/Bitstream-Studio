@@ -13,6 +13,8 @@ export function coursePageBlockSelectionLabel(block: PageBlockV1): string {
       return block.title?.trim() || "Live metric";
     case "dashboard-widget":
       return block.title?.trim() || "Dashboard widget";
+    case "widget-board":
+      return "Widget board";
     case "sensor-telemetry-card":
       return courseSensorTelemetryCardPresetLabel(block.preset);
     case "diagram-2d":

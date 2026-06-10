@@ -31,17 +31,17 @@ export function CourseBindingPreviewStrip({
   health: CourseBindingHealthStatus;
   compact?: boolean;
 }) {
-  const valueWithUnit =
-    unit.length > 0 && displayText !== "—" ? `${displayText} ${unit}` : displayText;
+  const showUnit = unit.length > 0 && displayText !== "—";
 
   if (compact) {
     return (
       <div className="flex min-w-0 items-center gap-1.5">
         <CourseBindingHealthBadge status={health} />
-        <span className="truncate text-[10px] text-zinc-400">
-          <span className="text-zinc-500">{pathLabel}</span>
-          <span className="mx-1 text-zinc-600">·</span>
-          <span className="text-zinc-200">{valueWithUnit}</span>
+        <span className="flex min-w-0 items-baseline gap-1 truncate text-[13px] font-normal leading-tight">
+          <span className="shrink-0 text-zinc-500">{pathLabel}</span>
+          <span className="shrink-0 text-zinc-600">·</span>
+          <span className="min-w-0 truncate text-zinc-100">{displayText}</span>
+          {showUnit ? <span className="shrink-0 text-zinc-500">{unit}</span> : null}
         </span>
       </div>
     );
@@ -51,7 +51,10 @@ export function CourseBindingPreviewStrip({
     <div className="flex items-center justify-between gap-2 rounded-md border border-zinc-700/80 bg-zinc-950/60 px-3 py-2">
       <div className="min-w-0">
         <div className="truncate text-[11px] font-medium text-zinc-200">{pathLabel}</div>
-        <div className="mt-0.5 truncate text-sm font-semibold text-zinc-100">{valueWithUnit}</div>
+        <div className="mt-0.5 truncate text-sm font-semibold leading-tight">
+          <span className="text-zinc-100">{displayText}</span>
+          {showUnit ? <span className="ml-1 font-normal text-zinc-500">{unit}</span> : null}
+        </div>
       </div>
       <CourseBindingHealthBadge status={health} />
     </div>

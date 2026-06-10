@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "id": "bmm350-compass",
+  "title": "Level compass & field vector",
+  "viewBox": [0, 0, 360, 220],
+  "nodes": [
+    {
+      "id": "frame",
+      "type": "rect",
+      "x": 16,
+      "y": 12,
+      "width": 328,
+      "height": 196,
+      "rx": 10,
+      "fill": "card",
+      "stroke": "card"
+    },
+    {
+      "id": "ring",
+      "type": "ellipse",
+      "cx": 180,
+      "cy": 110,
+      "rx": 88,
+      "ry": 88,
+      "fill": "plain",
+      "stroke": "muted",
+      "strokeWidth": 2
+    },
+    {
+      "id": "north",
+      "type": "text",
+      "x": 180,
+      "y": 28,
+      "content": "N",
+      "fontSize": 12,
+      "fontWeight": 600,
+      "fill": "accent-cyan",
+      "textAnchor": "middle"
+    },
+    {
+      "id": "field-dot",
+      "type": "ellipse",
+      "cx": {
+        "base": 180,
+        "mode": "add",
+        "binding": {
+          "path": "bmm350.bx",
+          "map": [{ "op": "scale", "inMin": -40, "inMax": 40, "outMin": -52, "outMax": 52 }],
+          "fallback": 0
+        }
+      },
+      "cy": {
+        "base": 110,
+        "mode": "add",
+        "binding": {
+          "path": "bmm350.by",
+          "map": [{ "op": "scale", "inMin": -40, "inMax": 40, "outMin": 52, "outMax": -52 }],
+          "fallback": 0
+        }
+      },
+      "rx": 10,
+      "ry": 10,
+      "fill": "accent-cyan",
+      "stroke": "accent-amber",
+      "strokeWidth": 2
+    },
+    {
+      "id": "mag-bar-track",
+      "type": "rect",
+      "x": 300,
+      "y": 40,
+      "width": 20,
+      "height": 140,
+      "rx": 4,
+      "fill": "plain",
+      "stroke": "muted",
+      "strokeWidth": 1
+    },
+    {
+      "id": "mag-bar",
+      "type": "rect",
+      "x": 302,
+      "y": {
+        "base": 178,
+        "mode": "add",
+        "binding": {
+          "path": "bmm350.magnitude",
+          "map": [
+            { "op": "scale", "inMin": 0, "inMax": 80, "outMin": 0, "outMax": -120 },
+            { "op": "clamp", "min": -120, "max": 0 }
+          ],
+          "fallback": 0
+        }
+      },
+      "width": 16,
+      "height": 120,
+      "rx": 3,
+      "fill": "accent-amber",
+      "label": "|B|"
+    },
+    {
+      "id": "heading-readout",
+      "type": "text",
+      "x": 180,
+      "y": 198,
+      "content": {
+        "binding": { "path": "bmm350.headingDeg", "fallback": 0, "format": "0.0" },
+        "prefix": "Heading ",
+        "suffix": "°"
+      },
+      "fontSize": 13,
+      "fontWeight": 600,
+      "fill": "accent-amber",
+      "textAnchor": "middle"
+    }
+  ]
+}

@@ -19,6 +19,7 @@ import {
   DPS368_ALTITUDE_MD_SRC,
   DPS368_LIVE_MD_SRC,
   DPS368_OVERVIEW_MD_SRC,
+  NEW_TOPIC_2_SANDBOX_MD_SRC,
 } from "./courseMarkdownBundledSrcs";
 import bmi270ApplicationsMd from "./bmi270-applications.theory.md?raw";
 import bmi270LiveVisualizationMd from "./bmi270-live-visualization.theory.md?raw";
@@ -37,6 +38,7 @@ import sht40ApplicationsMd from "./sht40-applications.theory.md?raw";
 import sht40ComfortMd from "./sht40-comfort.theory.md?raw";
 import sht40LiveMd from "./sht40-live.theory.md?raw";
 import sht40OverviewMd from "./sht40-overview.theory.md?raw";
+import newTopic2SandboxMd from "./new-topic-2.sandbox.md?raw";
 
 export { PILOT_ACCEL_THEORY_MD_SRC };
 
@@ -75,6 +77,8 @@ const SHT40_LIVE_MD_SOURCE_PATH =
   "src/webview/course-studio/content/sht40-live.theory.md";
 const SHT40_APPLICATIONS_MD_SOURCE_PATH =
   "src/webview/course-studio/content/sht40-applications.theory.md";
+const NEW_TOPIC_2_SANDBOX_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/new-topic-2.sandbox.md";
 
 const BUNDLED_MARKDOWN: Record<string, string> = {
   [PILOT_ACCEL_THEORY_MD_SRC]: pilotTheoryMd,
@@ -94,6 +98,7 @@ const BUNDLED_MARKDOWN: Record<string, string> = {
   [SHT40_COMFORT_MD_SRC]: sht40ComfortMd,
   [SHT40_LIVE_MD_SRC]: sht40LiveMd,
   [SHT40_APPLICATIONS_MD_SRC]: sht40ApplicationsMd,
+  [NEW_TOPIC_2_SANDBOX_MD_SRC]: newTopic2SandboxMd,
 };
 
 const MARKDOWN_SOURCE_PATHS: Record<string, string> = {
@@ -114,6 +119,7 @@ const MARKDOWN_SOURCE_PATHS: Record<string, string> = {
   [SHT40_COMFORT_MD_SRC]: SHT40_COMFORT_MD_SOURCE_PATH,
   [SHT40_LIVE_MD_SRC]: SHT40_LIVE_MD_SOURCE_PATH,
   [SHT40_APPLICATIONS_MD_SRC]: SHT40_APPLICATIONS_MD_SOURCE_PATH,
+  [NEW_TOPIC_2_SANDBOX_MD_SRC]: NEW_TOPIC_2_SANDBOX_MD_SOURCE_PATH,
 };
 
 function resolveBundledMarkdown(src: string): string | null {

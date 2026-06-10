@@ -24,6 +24,8 @@ export const DPS368_ALTITUDE_MD_SRC = "dps368-altitude.theory.md";
 export const DPS368_LIVE_MD_SRC = "dps368-live.theory.md";
 export const DPS368_APPLICATIONS_MD_SRC = "dps368-applications.theory.md";
 
+export const NEW_TOPIC_2_SANDBOX_MD_SRC = "new-topic-2.sandbox.md";
+
 export const COURSE_MARKDOWN_BUNDLED_SRCS = [
   PILOT_ACCEL_THEORY_MD_SRC,
   BMI270_OVERVIEW_MD_SRC,
@@ -42,6 +44,7 @@ export const COURSE_MARKDOWN_BUNDLED_SRCS = [
   SHT40_COMFORT_MD_SRC,
   SHT40_LIVE_MD_SRC,
   SHT40_APPLICATIONS_MD_SRC,
+  NEW_TOPIC_2_SANDBOX_MD_SRC,
 ] as const;
 
 export type CourseMarkdownBundledSrc = (typeof COURSE_MARKDOWN_BUNDLED_SRCS)[number];

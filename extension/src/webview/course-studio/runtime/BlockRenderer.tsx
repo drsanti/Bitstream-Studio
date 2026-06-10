@@ -18,6 +18,7 @@ import { CourseIframeCard } from "../ui/catalog/CourseIframeCard";
 import { useRemoteHtml } from "../content/useRemoteHtml";
 import { CourseImageCard } from "../ui/catalog/CourseImageCard";
 import { CourseDashboardWidgetCard } from "../ui/catalog/CourseDashboardWidgetCard";
+import { CourseWidgetBoardCard } from "../ui/catalog/widget-board/CourseWidgetBoardCard";
 import { CourseLiveMetricCard } from "../ui/catalog/CourseLiveMetricCard";
 import { CourseSensorTelemetryCard } from "../ui/catalog/CourseSensorTelemetryCard";
 import { CourseTitleWithIcon } from "../ui/catalog/CourseTitleWithIcon";
@@ -180,7 +181,7 @@ export function BlockRenderer({
   switch (block.kind) {
     case "heading":
       return (
-        <div className="flex h-full flex-col justify-center gap-2">
+        <div className="flex h-full min-w-0 max-w-full flex-col justify-center gap-2">
           {block.eyebrow ? (
             <p className="text-xs font-semibold uppercase tracking-widest text-[var(--accent-amber)]">
               {block.eyebrow}
@@ -256,6 +257,8 @@ export function BlockRenderer({
           staleMs={pageStaleMs}
         />
       );
+    case "widget-board":
+      return <CourseWidgetBoardCard block={block} staleMs={pageStaleMs} />;
     case "sensor-telemetry-card":
       return (
         <CourseSensorTelemetryCard

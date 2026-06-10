@@ -1,0 +1,186 @@
+{
+  "version": 1,
+  "id": "new-topic-3",
+  "title": "New topic",
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-1",
+      "kind": "heading",
+      "placement": {
+        "column": 1,
+        "row": 1,
+        "columnSpan": 16,
+        "rowSpan": 2
+      },
+      "eyebrow": "Topic",
+      "title": "New topic",
+      "subtitle": "Edit this page in the Page Editor."
+    },
+    {
+      "id": "widget-board-1",
+      "kind": "widget-board",
+      "placement": {
+        "column": 1,
+        "row": 3,
+        "columnSpan": 10,
+        "rowSpan": 8
+      },
+      "appearance": {
+        "themePresetId": "telemetry-cyan",
+        "metaLine": "Decorative · no telemetry",
+        "caption": "Compact EV hero widget board. Bind paths in the Widget Editor (coming soon) or use demo values locally.",
+        "showMetaLine": false,
+        "showCaption": false
+      },
+      "grid": {
+        "columns": 5,
+        "rowHeightPx": 48,
+        "gapPx": 8,
+        "paddingPx": 16
+      },
+      "widgets": [
+        {
+          "id": "power",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 1,
+            "columnSpan": 2,
+            "rowSpan": 2
+          },
+          "label": "Machine Load",
+          "binding": {
+            "path": "bmi270.ax",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": -1,
+                "inMax": 0,
+                "outMin": 0,
+                "outMax": 93
+              },
+              {
+                "op": "clamp",
+                "min": 0,
+                "max": 100
+              }
+            ],
+            "mapScaleDraft": {
+              "inMin": -1,
+              "inMax": 0,
+              "outMin": 0,
+              "outMax": 93
+            },
+            "unit": "percent",
+            "fallback": 0
+          },
+          "min": 0,
+          "max": 99,
+          "decimals": 0,
+          "demoValue": 46,
+          "typography": {
+            "labelFontSizePx": 13
+          }
+        },
+        {
+          "id": "battery",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 3,
+            "columnSpan": 2,
+            "rowSpan": 2
+          },
+          "label": "Battery",
+          "binding": {
+            "path": "bmi270.pitch",
+            "map": [
+              {
+                "op": "scale",
+                "inMin": 0,
+                "inMax": 180,
+                "outMin": 0,
+                "outMax": 100
+              },
+              {
+                "op": "clamp",
+                "min": 0,
+                "max": 1000
+              }
+            ],
+            "mapScaleDraft": {
+              "inMin": 0,
+              "inMax": 180,
+              "outMin": 0,
+              "outMax": 100
+            },
+            "unit": "points",
+            "angularUnit": "deg",
+            "fallback": 0
+          },
+          "min": 0,
+          "max": 1000,
+          "decimals": 2,
+          "demoValue": 78
+        },
+        {
+          "id": "speed",
+          "kind": "hero-radial-gauge",
+          "placement": {
+            "column": 3,
+            "row": 2,
+            "columnSpan": 3,
+            "rowSpan": 6
+          },
+          "binding": {
+            "path": "bmi270.gx",
+            "unit": "hello",
+            "angularUnit": "rad",
+            "fallback": 0
+          },
+          "min": 0,
+          "max": 180,
+          "decimals": 0,
+          "unit": "km/h",
+          "demoValue": 90
+        },
+        {
+          "id": "metric-bar-1",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 5,
+            "columnSpan": 2,
+            "rowSpan": 2
+          },
+          "label": "Metric",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "demoValue": 50
+        },
+        {
+          "id": "metric-bar-4",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 7,
+            "columnSpan": 2,
+            "rowSpan": 2
+          },
+          "label": "Metric",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "demoValue": 50
+        }
+      ]
+    }
+  ]
+}

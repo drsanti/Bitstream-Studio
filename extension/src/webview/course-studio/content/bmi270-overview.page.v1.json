@@ -45,20 +45,21 @@
       "kind": "markdown",
       "placement": {
         "column": 1,
-        "row": 5,
-        "columnSpan": 7,
+        "row": 8,
+        "columnSpan": 12,
         "rowSpan": 6
       },
       "src": "bmi270-overview.theory.md",
       "colors": {
         "body": "#dddddf"
-      }
+      },
+      "readHeight": "grid"
     },
     {
       "id": "live-overview",
       "kind": "live-metric",
       "placement": {
-        "column": 8,
+        "column": 1,
         "row": 5,
         "columnSpan": 5,
         "rowSpan": 3
@@ -90,9 +91,9 @@
       "id": "dash-acc-mag",
       "kind": "dashboard-widget",
       "placement": {
-        "column": 8,
-        "row": 8,
-        "columnSpan": 5,
+        "column": 6,
+        "row": 5,
+        "columnSpan": 3,
         "rowSpan": 2
       },
       "widgetKind": "text",
@@ -114,9 +115,9 @@
       "id": "dash-pitch",
       "kind": "dashboard-widget",
       "placement": {
-        "column": 8,
-        "row": 10,
-        "columnSpan": 3,
+        "column": 9,
+        "row": 5,
+        "columnSpan": 2,
         "rowSpan": 2
       },
       "widgetKind": "text",
@@ -139,7 +140,7 @@
       "kind": "dashboard-widget",
       "placement": {
         "column": 11,
-        "row": 10,
+        "row": 5,
         "columnSpan": 2,
         "rowSpan": 2
       },
@@ -161,8 +162,8 @@
       "kind": "card",
       "placement": {
         "column": 1,
-        "row": 11,
-        "columnSpan": 7,
+        "row": 14,
+        "columnSpan": 12,
         "rowSpan": 2
       },
       "title": "At rest checklist",

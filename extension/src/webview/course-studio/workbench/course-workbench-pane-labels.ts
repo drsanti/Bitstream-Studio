@@ -7,4 +7,5 @@ export const COURSE_WORKBENCH_PANE_LABELS = {
   markdown: "Markdown Editor",
   "html-page": "HTML Editor",
   "scene-3d": "3D Scene Editor",
+  "widget-board": "Widget Editor",
 } as const satisfies Record<string, string>;

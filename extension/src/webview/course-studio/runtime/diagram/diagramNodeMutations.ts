@@ -1,5 +1,6 @@
 import type { DiagramLiveSnapshot } from "./diagramBindingCatalog";
 import { evaluateNumericProp } from "./evaluateDiagramScene";
+import type { MapScaleDraftV1 } from "../../schemas/diagramBindingSchemas";
 import type {
   ArrowNodeV1,
   ConnectorCurveV1,
@@ -265,6 +266,35 @@ export function defaultAccelYBinding(base = 78): RectNodeV1["y"] {
   };
 }
 
+export const DEFAULT_MAP_SCALE_DRAFT = {
+  inMin: -1,
+  inMax: 1,
+  outMin: 14,
+  outMax: -14,
+} as const;
+
+export function mapScaleDraftFromScale(
+  scale: MapOpV1 & { op: "scale" },
+): MapScaleDraftV1 {
+  return {
+    inMin: scale.inMin,
+    inMax: scale.inMax,
+    outMin: scale.outMin,
+    outMax: scale.outMax,
+  };
+}
+
+export function readMapScaleDraft(binding: DiagramBindingV1 | undefined): MapScaleDraftV1 {
+  if (binding?.mapScaleDraft != null) {
+    return binding.mapScaleDraft;
+  }
+  const scale = binding?.map?.find((op) => op.op === "scale");
+  if (scale?.op === "scale") {
+    return mapScaleDraftFromScale(scale);
+  }
+  return { ...DEFAULT_MAP_SCALE_DRAFT };
+}
+
 export function readScaleMapOp(
   binding: DiagramBindingV1 | undefined,
 ): MapOpV1 & { op: "scale" } {
@@ -272,7 +302,8 @@ export function readScaleMapOp(
   if (scale?.op === "scale") {
     return scale;
   }
-  return { op: "scale", inMin: -1, inMax: 1, outMin: 14, outMax: -14 };
+  const draft = readMapScaleDraft(binding);
+  return { op: "scale", ...draft };
 }
 
 export function withScaleMapOp(
@@ -281,6 +312,29 @@ export function withScaleMapOp(
 ): DiagramBindingV1 {
   const rest = (binding.map ?? []).filter((op) => op.op !== "scale");
   return { ...binding, map: [scale, ...rest] };
+}
+
+export function withScaleMapOpDraftSync(
+  binding: DiagramBindingV1,
+  scale: MapOpV1 & { op: "scale" },
+): DiagramBindingV1 {
+  return {
+    ...withScaleMapOp(binding, scale),
+    mapScaleDraft: mapScaleDraftFromScale(scale),
+  };
+}
+
+export function disableScaleMapOp(binding: DiagramBindingV1): DiagramBindingV1 {
+  const draft = mapScaleDraftFromScale(readScaleMapOp(binding));
+  return {
+    ...withoutScaleMapOp(binding),
+    mapScaleDraft: draft,
+  };
+}
+
+export function enableScaleMapOp(binding: DiagramBindingV1): DiagramBindingV1 {
+  const draft = readMapScaleDraft(binding);
+  return withScaleMapOpDraftSync(binding, { op: "scale", ...draft });
 }
 
 export function readClampMapOp(

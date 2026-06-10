@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "id": "dps368-altitude-scene",
+  "title": "Altitude lift — barometric height",
+  "linkHealth": "freeze-gray",
+  "camera": {
+    "position": [2.5, 2, 5],
+    "fov": 40
+  },
+  "nodes": [
+    {
+      "id": "marker",
+      "type": "model",
+      "modelId": "procedural-box",
+      "position": {
+        "x": 0,
+        "y": {
+          "base": 0,
+          "mode": "add",
+          "binding": {
+            "path": "dps368.altitudeM",
+            "map": [{ "op": "scale", "inMin": -5, "inMax": 15, "outMin": -1.2, "outMax": 2.4 }],
+            "fallback": 0
+          }
+        },
+        "z": 0
+      },
+      "material": {
+        "presetId": "physical-cyan-glass",
+        "kind": "physical",
+        "color": "#22d3ee",
+        "transmission": 0.35,
+        "roughness": 0.2
+      }
+    }
+  ],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}

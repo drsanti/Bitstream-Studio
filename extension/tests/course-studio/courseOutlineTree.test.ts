@@ -10,6 +10,7 @@ import {
   mergeCourseOutlineWithBundled,
   removeCourseNode,
   renameCourseNode,
+  reorderCourseSiblings,
 } from "../../src/webview/course-studio/runtime/course/courseOutlineTree";
 
 const sampleCourse = parseCourseV1({
@@ -177,6 +178,23 @@ test("insertCourseChildNode adds multiple subtopics under the same topic", () =>
     topicAfterSecond?.children?.map((node) => node.title).join(","),
     "Subtopic A,Subtopic B",
   );
+});
+
+test("reorderCourseSiblings moves topic within chapter", () => {
+  const withSecond = insertCourseChildNode(sampleCourse, "chapter-1", "topic", {
+    title: "Topic 2",
+  });
+  const chapterId = withSecond.course.root.children?.[0]?.id ?? "chapter-1";
+  const topicIds = withSecond.course.root.children?.[0]?.children?.map((node) => node.id) ?? [];
+  assert.equal(topicIds.length, 2);
+  const reordered = reorderCourseSiblings(
+    withSecond.course,
+    chapterId,
+    topicIds[1]!,
+    topicIds[0]!,
+  );
+  const titles = reordered.root.children?.[0]?.children?.map((node) => node.title) ?? [];
+  assert.deepEqual(titles, ["Topic 2", "Topic 1"]);
 });
 
 test("parseCourseV1 rejects topic without page or children", () => {

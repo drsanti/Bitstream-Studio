@@ -28,11 +28,18 @@ export function buildPresentationPackFromContentDir(
     files[`markdown/${markdownName}`] = readFileSync(join(contentDir, markdownName), "utf8");
   }
 
+  for (const [, entry] of index.courses) {
+    files[`courses/${basename(entry.file)}`] = readFileSync(entry.file, "utf8");
+  }
+
+  const soleCourseId = index.courses.size === 1 ? [...index.courses.keys()][0] : undefined;
+
   return parsePresentationPackV1({
     version: 1,
     id: meta?.id ?? "content-dir",
     title: meta?.title ?? "Course Studio content",
     createdAt: new Date().toISOString(),
+    courseId: soleCourseId,
     files,
   });
 }

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { BS2_CMD } from "../../../bitstream2/domains/config/commands";
 import {
   bmi270StreamModeCodeToUi,
@@ -90,12 +90,16 @@ export function useBitstream2Bmi270Transport() {
     [sendReqAwait],
   );
 
-  return {
-    setStreamMode,
-    getStreamMode,
-    setFusionFeedIntervalMs,
-    getFusionFeedIntervalMs,
-  };
+  /* Stable identity — consumers use this object in effect deps. */
+  return useMemo(
+    () => ({
+      setStreamMode,
+      getStreamMode,
+      setFusionFeedIntervalMs,
+      getFusionFeedIntervalMs,
+    }),
+    [setStreamMode, getStreamMode, setFusionFeedIntervalMs, getFusionFeedIntervalMs],
+  );
 }
 
 export type { Bs2Bmi270StreamMode };

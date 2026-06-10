@@ -109,6 +109,10 @@ export function resolveAltitudeDisplayUnit(binding: DiagramBindingV1): string {
 
 /** Resolved suffix for widgets and LIVE preview. */
 export function resolveBindingDisplayUnitForBinding(binding: DiagramBindingV1): string {
+  const unitOverride = binding.unit?.trim();
+  if (unitOverride != null && unitOverride.length > 0) {
+    return unitOverride;
+  }
   const kind = catalogBindingDisplayUnitKind(binding.path);
   if (kind === "rate" || kind === "angle") {
     return resolveAngularDisplayUnit(binding, kind);

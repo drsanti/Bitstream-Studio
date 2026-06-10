@@ -121,7 +121,7 @@ function CoursePublishedPageGridCell({
           ? `${publishedCellClass} course-page-grid__cell--markdown-read-content relative min-h-0 min-w-0`
           : `${publishedCellClass} relative min-h-0 min-w-0 overflow-hidden`
       }
-      style={placementGridStyleForReadMode(block.placement, autoReadHeight)}
+      style={placementGridStyleForReadMode(block.placement, autoReadHeight, grid.columns)}
       data-course-block-id={block.id}
       data-course-read-height={autoReadHeight ? "content" : "grid"}
     >

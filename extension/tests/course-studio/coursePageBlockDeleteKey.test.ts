@@ -5,8 +5,12 @@ import {
   shouldDeferCoursePageBlockDeleteKey,
   tryDeleteSelectedCoursePageBlock,
 } from "../../src/webview/course-studio/maintainer/coursePageBlockDeleteKey";
+import { useCourseWidgetBoardEditorStore } from "../../src/webview/course-studio/maintainer/widget-board/useCourseWidgetBoardEditorStore";
+import { useCourseWorkbenchFocusStore } from "../../src/webview/course-studio/workbench/course-workbench-focus.store";
 import { useCoursePageEditorStore } from "../../src/webview/course-studio/maintainer/useCoursePageEditorStore";
 import { loadBlankCoursePage } from "../../src/webview/course-studio/content/loadBlankPage";
+import { createEvCompactWidgetBoardWidgets } from "../../src/webview/course-studio/schemas/widgetBoard.v1";
+import { parsePageV1 } from "../../src/webview/course-studio/schemas/page.v1";
 import type { PageV1 } from "../../src/webview/course-studio/schemas/page.v1";
 
 function mockElement(options: {
@@ -132,6 +136,71 @@ test("Delete is ignored while the 3D Scene editor pane is active", () => {
 
   assert.equal(handled, false);
   assert.equal(useCoursePageEditorStore.getState().page?.blocks.length, 1);
+});
+
+test("shouldDeferCoursePageBlockDeleteKey defers when focus is inside widget board editor", () => {
+  const target = mockElement({
+    ancestors: { ".course-workbench-widget-board-pane": true },
+  });
+  assert.equal(shouldDeferCoursePageBlockDeleteKey(target), true);
+});
+
+test("Delete is ignored while the widget-board editor pane is active", () => {
+  const page = parsePageV1({
+    version: 1,
+    id: "widget-demo",
+    title: "Widget demo",
+    grid: { columns: 12, rowHeightPx: 48, gapPx: 12, paddingPx: 32 },
+    blocks: [
+      {
+        id: "widget-board-1",
+        kind: "widget-board",
+        placement: { column: 1, row: 1, columnSpan: 8, rowSpan: 5 },
+        grid: { columns: 6, rowHeightPx: 40, gapPx: 8, paddingPx: 16 },
+        widgets: createEvCompactWidgetBoardWidgets(),
+      },
+    ],
+  });
+  useCoursePageEditorStore.getState().initPage(page, "test.page.json");
+  useCoursePageEditorStore.getState().selectBlock("widget-board-1");
+  useCourseWidgetBoardEditorStore.getState().selectWidget("power");
+  useCourseWorkbenchFocusStore.getState().setActiveEditorType("widget-board");
+
+  const target = mockElement({ ancestors: { ".course-workbench-widget-board-pane": true } });
+  const event = mockDeleteEvent(target);
+  const handled = tryDeleteSelectedCoursePageBlock(event, "widget-board");
+
+  assert.equal(handled, false);
+  assert.equal(useCoursePageEditorStore.getState().page?.blocks.length, 1);
+});
+
+test("Delete removes widget-board block from content composer even if a widget was selected earlier", () => {
+  const page = parsePageV1({
+    version: 1,
+    id: "widget-demo",
+    title: "Widget demo",
+    grid: { columns: 12, rowHeightPx: 48, gapPx: 12, paddingPx: 32 },
+    blocks: [
+      {
+        id: "widget-board-1",
+        kind: "widget-board",
+        placement: { column: 1, row: 1, columnSpan: 8, rowSpan: 5 },
+        grid: { columns: 6, rowHeightPx: 40, gapPx: 8, paddingPx: 16 },
+        widgets: createEvCompactWidgetBoardWidgets(),
+      },
+    ],
+  });
+  useCoursePageEditorStore.getState().initPage(page, "test.page.json");
+  useCoursePageEditorStore.getState().selectBlock("widget-board-1");
+  useCourseWidgetBoardEditorStore.getState().clearWidgetSelection();
+  useCourseWorkbenchFocusStore.getState().setActiveEditorType("content");
+
+  const target = mockElement({ ancestors: { ".course-workbench-content-pane": true } });
+  const event = mockDeleteEvent(target);
+  const handled = tryDeleteSelectedCoursePageBlock(event, "content");
+
+  assert.equal(handled, true);
+  assert.equal(useCoursePageEditorStore.getState().page?.blocks.length, 0);
 });
 
 test("Delete is ignored when focus is inside the 3D Scene editor pane", () => {

@@ -26,6 +26,7 @@ import {
 import { useCoursePageGridGuidesStore } from "./coursePageGridGuides";
 import { isCoursePageGridDeselectSuppressed } from "./coursePageEditorDeselectGuard";
 import { useCourseWorkbenchFocusStore } from "../workbench/course-workbench-focus.store";
+import { useCourseWidgetBoardEditorStore } from "./widget-board/useCourseWidgetBoardEditorStore";
 
 export function CoursePageGridComposer({ page }: { page: PageV1 }) {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -34,6 +35,7 @@ export function CoursePageGridComposer({ page }: { page: PageV1 }) {
   const selectedBlockId = useCoursePageEditorStore((s) => s.selectedBlockId);
   const selectBlock = useCoursePageEditorStore((s) => s.selectBlock);
   const setActiveEditorType = useCourseWorkbenchFocusStore((s) => s.setActiveEditorType);
+  const clearWidgetSelection = useCourseWidgetBoardEditorStore((s) => s.clearWidgetSelection);
   const updatePlacement = useCoursePageEditorStore((s) => s.updatePlacement);
   const pushPageUndoSnapshot = useCoursePageEditorStore((s) => s.pushPageUndoSnapshot);
   const [previewByBlockId, setPreviewByBlockId] = useState<Record<string, GridPlacementV1>>({});
@@ -81,6 +83,8 @@ export function CoursePageGridComposer({ page }: { page: PageV1 }) {
         return;
       }
       event.stopPropagation();
+      clearWidgetSelection();
+      setActiveEditorType("content");
       (event.currentTarget as HTMLElement).focus({ preventScroll: true });
       startDashboardGridDragSession({
         pointerId: event.pointerId,
@@ -114,10 +118,12 @@ export function CoursePageGridComposer({ page }: { page: PageV1 }) {
     },
     [
       clearPreview,
+      clearWidgetSelection,
       isGridResizing,
       metrics,
       pushPageUndoSnapshot,
       selectBlock,
+      setActiveEditorType,
       updatePlacement,
     ],
   );
@@ -139,9 +145,10 @@ export function CoursePageGridComposer({ page }: { page: PageV1 }) {
     if (isCoursePageGridDeselectSuppressed()) {
       return;
     }
+    clearWidgetSelection();
     selectBlock(null);
     setActiveEditorType("content");
-  }, [selectBlock, setActiveEditorType]);
+  }, [clearWidgetSelection, selectBlock, setActiveEditorType]);
 
   return (
     <CoursePublishedPageGridShell gridStyleVars={gridStyleVars}>
@@ -182,6 +189,7 @@ export function CoursePageGridComposer({ page }: { page: PageV1 }) {
               courseThemes={courseThemes}
               pageLinkHealth={page.meta?.defaultLinkHealth}
               pageStaleMs={page.meta?.staleMs}
+              gridColumns={grid.columns}
               onBlockPointerDown={onBlockPointerDown}
             />
           ))}

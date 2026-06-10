@@ -9,11 +9,13 @@ import { BMI270SamplingFrequencyCard } from "./cards/BMI270SamplingFrequencyCard
 import { BMI270TelemetryChannelsCard } from "./cards/BMI270TelemetryChannelsCard";
 import {
   bmi270DraftForOutputPreset,
-  isBmi270CustomOutput,
+  resolveBmi270OutputPresetDisplayState,
   type Bmi270OutputPresetId,
 } from "../../lib/bmi270OutputProfiles.js";
 import { useBitstreamTransportActions } from "../../context/bitstreamTransportActions.context.js";
-import { useBmi270FirmwareExtrasDraftStore } from "../../state/bmi270FirmwareExtrasDraft.store.js";
+import {
+  useBmi270FirmwareExtrasDraftStore,
+} from "../../state/bmi270FirmwareExtrasDraft.store.js";
 import type { Bmi270StreamModeUi } from "../../state/bitstreamConfig.store.js";
 import { useBitstreamConfigStore } from "../../state/bitstreamConfig.store.js";
 import { useBitstreamDeviceSensorConfigStore } from "../../state/bitstreamDeviceSensorConfig.store.js";
@@ -123,15 +125,32 @@ export function BMI270ControlPanel(props: {
     useBitstreamTransportActions();
   const setBmi270StreamMode = useBitstreamConfigStore((s) => s.setBmi270StreamMode);
   const bmi270StreamMode = useBitstreamConfigStore((s) => s.bmi270StreamMode);
-  const isCustomOutputProfile = isBmi270CustomOutput(mask, bmi270StreamMode);
-  const appliedMask =
-    useBitstreamDeviceSensorConfigStore(
-      (s) =>
-        s.baselineBySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ??
-        s.bySourceId[SENSOR_SOURCE_ID_BMI270]?.mask ??
-        mask,
-    ) & 0xff;
-  const showFusionFeedCard = bmi270StreamMode === "fusion" || bmi270StreamMode === "hybrid";
+  const streamModeBaseline = useBmi270FirmwareExtrasDraftStore((s) => s.streamModeBaseline);
+  const outputProfileUserEdited = useBmi270FirmwareExtrasDraftStore((s) => s.extrasUserEdited);
+  const firmwareMaskBaseline = useBitstreamDeviceSensorConfigStore(
+    (s) => s.baselineBySourceId[SENSOR_SOURCE_ID_BMI270]?.mask,
+  );
+  const draftMaskFromStore = useBitstreamDeviceSensorConfigStore(
+    (s) => s.bySourceId[SENSOR_SOURCE_ID_BMI270]?.mask,
+  );
+  const appliedMask = (firmwareMaskBaseline ?? draftMaskFromStore ?? mask) & 0xff;
+  const maskUserDirty =
+    firmwareMaskBaseline != null ? (mask & 0xff) !== (firmwareMaskBaseline & 0xff) : false;
+  const streamModeUserDirty =
+    streamModeBaseline != null && bmi270StreamMode !== streamModeBaseline;
+  const outputPresetDisplay = resolveBmi270OutputPresetDisplayState({
+    draftMask: mask,
+    firmwareMask: appliedMask,
+    draftStreamMode: bmi270StreamMode,
+    firmwareStreamMode: streamModeBaseline,
+    maskUserDirty,
+    streamModeUserDirty,
+    outputProfileUserEdited,
+  });
+  const isCustomOutputProfile = outputPresetDisplay.presetId == null;
+  const showFusionFeedCard =
+    outputPresetDisplay.streamMode === "fusion" ||
+    outputPresetDisplay.streamMode === "hybrid";
 
   const operationControlsDisabled = !enabled;
   const isPeriodicMode = publishMode === 0;
@@ -241,8 +260,12 @@ export function BMI270ControlPanel(props: {
     (presetId: Bmi270OutputPresetId) => {
       const draft = bmi270DraftForOutputPreset(presetId);
       runSensorCfgCardChange(draftUntilApply, () => beginCardAck("outputProfile"), () => {
-        onMaskChange(draft.mask);
+        if (draftUntilApply)
+        {
+          useBmi270FirmwareExtrasDraftStore.getState().markExtrasUserEdited();
+        }
         applyStreamModeOnly(draft.streamMode);
+        onMaskChange(draft.mask);
       });
     },
     [applyStreamModeOnly, beginCardAck, draftUntilApply, onMaskChange],
@@ -350,8 +373,7 @@ export function BMI270ControlPanel(props: {
             <BMI270OutputProfileCard
               collapsed={collapsedCards.outputProfile}
               controlsDisabled={operationControlsDisabled}
-              mask={mask}
-              streamMode={bmi270StreamMode}
+              activePresetId={outputPresetDisplay.presetId}
               ack={cardAckForDraftMode(draftUntilApply, cardAck.outputProfile)}
               onToggleCollapsed={() => toggleCardCollapsed("outputProfile")}
               onPresetSelect={handlePresetSelect}

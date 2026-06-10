@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "id": "sht40-comfort-gauge",
+  "title": "RH comfort band",
+  "viewBox": [0, 0, 360, 220],
+  "nodes": [
+    {
+      "id": "frame",
+      "type": "rect",
+      "x": 16,
+      "y": 12,
+      "width": 328,
+      "height": 196,
+      "rx": 10,
+      "fill": "card",
+      "stroke": "card"
+    },
+    {
+      "id": "comfort-band",
+      "type": "rect",
+      "x": 48,
+      "y": 72,
+      "width": 264,
+      "height": 48,
+      "rx": 6,
+      "fill": "axis-z",
+      "opacity": 0.25,
+      "stroke": "axis-z",
+      "strokeWidth": 1,
+      "label": "Comfort band 40–60 %RH"
+    },
+    {
+      "id": "rh-track",
+      "type": "rect",
+      "x": 48,
+      "y": 140,
+      "width": 264,
+      "height": 16,
+      "rx": 4,
+      "fill": "plain",
+      "stroke": "muted",
+      "strokeWidth": 1
+    },
+    {
+      "id": "rh-marker",
+      "type": "ellipse",
+      "cx": {
+        "base": 52,
+        "mode": "add",
+        "binding": {
+          "path": "sht40.rh",
+          "map": [
+            { "op": "scale", "inMin": 0, "inMax": 100, "outMin": 0, "outMax": 256 },
+            { "op": "clamp", "min": 0, "max": 256 }
+          ],
+          "fallback": 0
+        }
+      },
+      "cy": 148,
+      "rx": 9,
+      "ry": 9,
+      "fill": "accent-cyan",
+      "stroke": "accent-amber",
+      "strokeWidth": 2
+    },
+    {
+      "id": "rh-readout",
+      "type": "text",
+      "x": 180,
+      "y": 198,
+      "content": {
+        "binding": { "path": "sht40.rh", "fallback": 0, "format": "0.0f" },
+        "prefix": "",
+        "suffix": " %RH"
+      },
+      "fontSize": 13,
+      "fontWeight": 600,
+      "fill": "accent-cyan",
+      "textAnchor": "middle"
+    },
+    {
+      "id": "temp-readout",
+      "type": "text",
+      "x": 180,
+      "y": 48,
+      "content": {
+        "binding": { "path": "sht40.temp", "fallback": 0, "format": "0.0f" },
+        "prefix": "",
+        "suffix": " °C"
+      },
+      "fontSize": 12,
+      "fontWeight": 600,
+      "fill": "accent-amber",
+      "textAnchor": "middle"
+    }
+  ]
+}

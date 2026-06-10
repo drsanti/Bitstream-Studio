@@ -1,4 +1,5 @@
 import type { CourseWorkbenchEditorType } from "../workbench/course-workbench-focus.store";
+import { shouldRouteDeleteToPageBlock } from "./courseMaintainerDeleteContext";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
 
 export function shouldDeferCoursePageBlockDeleteKey(target: EventTarget | null): boolean {
@@ -25,6 +26,9 @@ export function shouldDeferCoursePageBlockDeleteKey(target: EventTarget | null):
     }
   }
   if (el.closest(".course-workbench-scene-pane")) {
+    return true;
+  }
+  if (el.closest(".course-workbench-widget-board-pane")) {
     return true;
   }
   if (el.closest("[data-course-block-content-fields]")) {
@@ -56,6 +60,9 @@ export function tryDeleteSelectedCoursePageBlock(
     return false;
   }
   if (shouldDeferCoursePageBlockDeleteKey(event.target)) {
+    return false;
+  }
+  if (!shouldRouteDeleteToPageBlock(event.target)) {
     return false;
   }
 

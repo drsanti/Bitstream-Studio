@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "id": "sht40-humidity-scene",
+  "title": "Humidity sphere — RH scale",
+  "linkHealth": "freeze-gray",
+  "camera": {
+    "position": [0, 1.2, 4],
+    "fov": 42
+  },
+  "nodes": [
+    {
+      "id": "droplet",
+      "type": "model",
+      "modelId": "procedural-sphere",
+      "scale": {
+        "x": {
+          "base": 0.6,
+          "mode": "add",
+          "binding": {
+            "path": "sht40.rh",
+            "map": [{ "op": "scale", "inMin": 0, "inMax": 100, "outMin": 0, "outMax": 0.9 }],
+            "fallback": 0
+          }
+        },
+        "y": {
+          "base": 0.6,
+          "mode": "add",
+          "binding": {
+            "path": "sht40.rh",
+            "map": [{ "op": "scale", "inMin": 0, "inMax": 100, "outMin": 0, "outMax": 0.9 }],
+            "fallback": 0
+          }
+        },
+        "z": {
+          "base": 0.6,
+          "mode": "add",
+          "binding": {
+            "path": "sht40.rh",
+            "map": [{ "op": "scale", "inMin": 0, "inMax": 100, "outMin": 0, "outMax": 0.9 }],
+            "fallback": 0
+          }
+        }
+      },
+      "material": {
+        "presetId": "physical-cyan-glass",
+        "kind": "physical",
+        "color": "#38bdf8",
+        "transmission": 0.45,
+        "roughness": 0.15
+      }
+    }
+  ],
+  "settings": {
+    "backgroundColor": "#0a0a0f",
+    "showGrid": true,
+    "contactShadows": true,
+    "environmentPresetIndex": 0,
+    "useIbl": true,
+    "showBackground": false
+  }
+}

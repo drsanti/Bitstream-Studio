@@ -5,6 +5,7 @@ import {
 } from "../../maintainer/courseStudioMaintainerMode";
 import { CoursePageRenderer } from "../../runtime/CoursePageRenderer";
 import { isCoursePageGridDeselectSuppressed } from "../../maintainer/coursePageEditorDeselectGuard";
+import { useCourseWidgetBoardEditorStore } from "../../maintainer/widget-board/useCourseWidgetBoardEditorStore";
 import { useCourseWorkbenchFocusStore } from "../course-workbench-focus.store";
 import type { MouseEvent } from "react";
 
@@ -12,6 +13,7 @@ export function CourseContentWorkbenchPane() {
   const page = useCoursePageEditorStore((s) => s.page);
   const selectBlock = useCoursePageEditorStore((s) => s.selectBlock);
   const setActiveEditorType = useCourseWorkbenchFocusStore((s) => s.setActiveEditorType);
+  const clearWidgetSelection = useCourseWidgetBoardEditorStore((s) => s.clearWidgetSelection);
   const maintainer = useCourseStudioMaintainerModeEnabled();
   const maintainerAvailable = isCourseStudioMaintainerModeAvailable();
   const composerMode = maintainerAvailable && maintainer;
@@ -32,6 +34,7 @@ export function CourseContentWorkbenchPane() {
         if (isCoursePageGridDeselectSuppressed()) {
           return;
         }
+        clearWidgetSelection();
         selectBlock(null);
         setActiveEditorType("content");
       }

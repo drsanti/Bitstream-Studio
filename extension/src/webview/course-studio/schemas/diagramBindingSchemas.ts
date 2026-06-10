@@ -17,9 +17,20 @@ export const mapOpSchema = z.discriminatedUnion("op", [
 
 export type MapOpV1 = z.infer<typeof mapOpSchema>;
 
+/** Persisted input/output domain while map-range mode is off (Direct). */
+export const mapScaleDraftSchema = z.object({
+  inMin: z.number(),
+  inMax: z.number(),
+  outMin: z.number(),
+  outMax: z.number(),
+});
+
+export type MapScaleDraftV1 = z.infer<typeof mapScaleDraftSchema>;
+
 export const diagramBindingSchema = z.object({
   path: z.string().min(1),
   map: z.array(mapOpSchema).optional(),
+  mapScaleDraft: mapScaleDraftSchema.optional(),
   format: z.string().optional(),
   unit: z.string().optional(),
   /** Gyro (°/s↔rad/s) and fusion Euler (°↔rad) display; wire values stay in degrees. */

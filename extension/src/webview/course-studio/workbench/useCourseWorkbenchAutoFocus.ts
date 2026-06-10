@@ -22,7 +22,8 @@ export function useCourseWorkbenchAutoFocus(
       if (
         contextEditorType === "scene-3d" ||
         contextEditorType === "diagram" ||
-        contextEditorType === "markdown"
+        contextEditorType === "markdown" ||
+        contextEditorType === "widget-board"
       ) {
         workbenchRef.current?.focusPane(contextEditorType);
         setActiveEditorType(contextEditorType);

@@ -90,6 +90,13 @@
         "path": "sht40.rhValid",
         "fallback": 0
       }
+    },
+    {
+      "id": "comfort-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 1, "row": 11, "columnSpan": 12, "rowSpan": 4 },
+      "diagramId": "sht40-comfort-gauge",
+      "caption": "RH comfort band & live marker"
     }
   ]
 }

@@ -299,6 +299,39 @@ export function removeCourseNode(course: CourseV1, nodeId: string): CourseV1 {
   return draft;
 }
 
+/** Reorder a node among its siblings (same parent). No-op when ids match or parent missing. */
+export function reorderCourseSiblings(
+  course: CourseV1,
+  parentId: string,
+  activeNodeId: string,
+  overNodeId: string,
+): CourseV1 {
+  if (activeNodeId === overNodeId) {
+    return course;
+  }
+  const draft = cloneCourse(course);
+  const parentLocation = findCourseNode(draft.root, parentId);
+  if (parentLocation?.node == null) {
+    throw new Error(`Parent node "${parentId}" not found`);
+  }
+  const parent = parentLocation.node;
+  const children = [...(parent.children ?? [])];
+  const oldIndex = children.findIndex((child) => child.id === activeNodeId);
+  const newIndex = children.findIndex((child) => child.id === overNodeId);
+  if (oldIndex < 0 || newIndex < 0) {
+    return course;
+  }
+  const [moved] = children.splice(oldIndex, 1);
+  children.splice(newIndex, 0, moved);
+  parent.children = children;
+  return draft;
+}
+
+export function parentIdForCourseNode(root: CourseNodeV1, nodeId: string): string | null {
+  const location = findCourseNode(root, nodeId);
+  return location?.parent?.id ?? null;
+}
+
 export function duplicateCourseNode(
   course: CourseV1,
   nodeId: string,

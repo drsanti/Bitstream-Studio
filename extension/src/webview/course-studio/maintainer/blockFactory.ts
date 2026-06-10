@@ -5,6 +5,11 @@ import {
   COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT,
 } from "../schemas/courseLiveBindingDefaults";
 import { COURSE_SENSOR_TELEMETRY_CARD_PRESET_DEFAULT } from "../schemas/sensorTelemetryCardPreset";
+import {
+  WIDGET_BOARD_DEFAULT_INNER_GRID,
+  createEvCompactWidgetBoardWidgets,
+  defaultWidgetBoardAppearance,
+} from "../schemas/widgetBoard.v1";
 import { findOpenPlacement } from "./blockPlacement";
 import { PAGE_BLOCK_PALETTE, type CourseBlockPaletteEntry } from "./blockPaletteMeta";
 
@@ -111,6 +116,15 @@ export function createPageBlock(
         style: { ...COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT },
         binding: { ...COURSE_DASHBOARD_WIDGET_DEFAULT_BINDING },
         title: "Live value",
+      };
+    case "widget-board":
+      return {
+        id,
+        kind,
+        placement: { ...placement, columnSpan: Math.max(placement.columnSpan, 8), rowSpan: Math.max(placement.rowSpan, 5) },
+        appearance: defaultWidgetBoardAppearance(),
+        grid: { ...WIDGET_BOARD_DEFAULT_INNER_GRID },
+        widgets: createEvCompactWidgetBoardWidgets(),
       };
     case "sensor-telemetry-card":
       return {

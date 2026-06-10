@@ -8,6 +8,7 @@ export const COURSE_WORKBENCH_EDITOR_TYPES = [
   "markdown",
   "html-page",
   "scene-3d",
+  "widget-board",
 ] as const;
 
 export type CourseWorkbenchEditorType = (typeof COURSE_WORKBENCH_EDITOR_TYPES)[number];

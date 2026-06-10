@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useCourseWorkbenchFocusStore } from "../workbench/course-workbench-focus.store";
 import { useCourseDiagramEditorStore } from "./useCourseDiagramEditorStore";
 import { tryDeleteSelectedCoursePageBlock } from "./coursePageBlockDeleteKey";
+import { tryDeleteSelectedWidgetBoardWidget } from "./widget-board/courseWidgetBoardDeleteKey";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
 
 function shouldDeferMaintainerShortcutToNativeTextControl(
@@ -44,6 +45,9 @@ export function useCourseMaintainerKeyboardShortcuts(enabled: boolean): void {
         selectedBlock?.kind === "diagram-2d" ? selectedBlock.diagramId : null;
       const preferDiagramUndo = contextEditorType === "diagram" && diagramId != null;
 
+      if (tryDeleteSelectedWidgetBoardWidget(event)) {
+        return;
+      }
       if (tryDeleteSelectedCoursePageBlock(event, contextEditorType)) {
         return;
       }

@@ -6,6 +6,8 @@ export const presentationPackV1Schema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   createdAt: z.string().datetime(),
+  /** When set, names the bundled `courses/*.course.v1.json` manifest id. */
+  courseId: z.string().min(1).optional(),
   /** Relative paths inside the pack (e.g. pages/foo.page.v1.json) → UTF-8 file body. */
   files: z.record(z.string(), z.string()),
 });

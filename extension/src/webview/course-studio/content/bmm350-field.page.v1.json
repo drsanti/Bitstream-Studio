@@ -57,6 +57,13 @@
       "widgetKind": "led",
       "style": { "label": "Mag valid", "threshold": 0.5, "blink": false, "showStatusBar": true },
       "binding": { "path": "bmm350.magValid", "fallback": 0 }
+    },
+    {
+      "id": "compass-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 1, "row": 11, "columnSpan": 12, "rowSpan": 4 },
+      "diagramId": "bmm350-compass",
+      "caption": "Level compass — field vector and heading"
     }
   ]
 }

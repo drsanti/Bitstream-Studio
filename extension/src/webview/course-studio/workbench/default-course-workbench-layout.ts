@@ -110,6 +110,7 @@ export const V5_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
 
 /**
  * Maintainer author layout (v6): outline + editor grid with HTML Editor pane + inspector.
+ * Kept for layout migration fingerprinting only.
  */
 export const V6_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
   createEditorPane("outline", { id: "pane-outline" }),
@@ -152,8 +153,55 @@ export const V6_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
 /** v4 default: 2×2 editor grid + single contextual Inspector side panel. */
 export const V4_COURSE_AUTHOR_WORKBENCH_LAYOUT = V2_COURSE_AUTHOR_WORKBENCH_LAYOUT;
 
-/** v6 default: outline tree + editor grid including HTML Editor pane. */
-export const DEFAULT_COURSE_AUTHOR_WORKBENCH_LAYOUT = V6_COURSE_AUTHOR_WORKBENCH_LAYOUT;
+/**
+ * Maintainer author layout (v7): v6 + Widget Editor pane (stacked under Markdown).
+ */
+export const V7_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
+  createEditorPane("outline", { id: "pane-outline" }),
+  createSplit(
+    createSplit(
+      createSplit(
+        createEditorPane("content", { id: "pane-content" }),
+        createEditorPane("diagram", { id: "pane-diagram" }),
+        "horizontal",
+        0.5,
+        "editors-top-row",
+      ),
+      createSplit(
+        createSplit(
+          createEditorPane("markdown", { id: "pane-markdown" }),
+          createEditorPane("widget-board", { id: "pane-widget-board" }),
+          "vertical",
+          0.55,
+          "editors-bottom-left",
+        ),
+        createSplit(
+          createEditorPane("html-page", { id: "pane-html-page" }),
+          createEditorPane("scene-3d", { id: "pane-scene-3d" }),
+          "horizontal",
+          0.5,
+          "editors-bottom-right",
+        ),
+        "horizontal",
+        0.5,
+        "editors-bottom-row",
+      ),
+      "vertical",
+      0.52,
+      "editors-quadrant",
+    ),
+    createEditorPane("inspector", { id: "pane-inspector" }),
+    "horizontal",
+    0.76,
+    "course-root-inner",
+  ),
+  "horizontal",
+  0.17,
+  "course-root",
+);
+
+/** v7 default: outline tree + editor grid including Widget Editor pane. */
+export const DEFAULT_COURSE_AUTHOR_WORKBENCH_LAYOUT = V7_COURSE_AUTHOR_WORKBENCH_LAYOUT;
 
 /** v1 author layout: Content | (Inspector | Diagram / Markdown / 3D Scene). */
 export const LEGACY_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(

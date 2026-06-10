@@ -18,6 +18,7 @@ import { useBitstream2Bmi270Transport } from "../hooks/useBitstream2Bmi270Transp
 import { useBitstreamConnectionStore } from "../state/bitstreamConnection.store.js";
 import { syncBmi270FirmwareExtrasFromDevice } from "../bridge/bmi270FirmwareExtrasSync.js";
 import { runSensorCfgColdSync } from "../bridge/sensorCfgColdSync.js";
+import { useBmi270FirmwareExtrasDraftStore } from "../state/bmi270FirmwareExtrasDraft.store.js";
 import { useBitstreamDeviceSensorConfigStore } from "../state/bitstreamDeviceSensorConfig.store.js";
 import { appendTelemetryActivity } from "../../sensor-telemetry/store/telemetryActivity.store.js";
 
@@ -43,6 +44,7 @@ export function SensorCfgColdSyncEffect(props: {
       syncedForLinkRef.current = false;
       inFlightRef.current = false;
       useBitstreamDeviceSensorConfigStore.getState().resetSensorCfgSyncState();
+      useBmi270FirmwareExtrasDraftStore.getState().resetBaselines();
       onTruthReady(false);
       return;
     }

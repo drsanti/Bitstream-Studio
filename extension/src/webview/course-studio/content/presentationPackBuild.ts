@@ -3,6 +3,7 @@ import { basename, join } from "node:path";
 
 import type { CourseContentIndex } from "../validate/courseContentValidate";
 import { discoverCourseContent } from "../validate/courseContentValidate";
+import { collectCoursePageIds } from "../runtime/course/courseOutlineTree";
 import {
   collectPageDiagramIds,
   collectPageMarkdownSrcs,
@@ -30,6 +31,10 @@ function packPathForMarkdown(markdownFileName: string): string {
 
 function packPathForScene(sceneFileName: string): string {
   return `scenes/${sceneFileName}`;
+}
+
+function packPathForCourse(courseFileName: string): string {
+  return `courses/${courseFileName}`;
 }
 
 function fileNameFromPath(filePath: string): string {
@@ -107,6 +112,65 @@ export function buildPresentationPackFromPageIds(
   return { pack, pageIds: includedPages, missingRefs };
 }
 
+export function attachCourseManifestToPack(
+  pack: PresentationPackV1,
+  contentDir: string,
+  courseId: string,
+  index: CourseContentIndex = discoverCourseContent(contentDir),
+): { pack: PresentationPackV1; missingRefs: string[] } {
+  const courseEntry = index.courses.get(courseId);
+  if (courseEntry == null) {
+    return { pack, missingRefs: [`course:${courseId}`] };
+  }
+  const courseFileName = fileNameFromPath(courseEntry.file);
+  const path = packPathForCourse(courseFileName);
+  return {
+    pack: {
+      ...pack,
+      courseId,
+      files: {
+        ...pack.files,
+        [path]: readFileSync(courseEntry.file, "utf8"),
+      },
+    },
+    missingRefs: [],
+  };
+}
+
+export function buildPresentationPackFromCourse(
+  contentDir: string,
+  courseId: string,
+  meta: { id: string; title: string; description?: string; createdAt?: string },
+  index: CourseContentIndex = discoverCourseContent(contentDir),
+): PresentationPackBuildResult {
+  const courseEntry = index.courses.get(courseId);
+  if (courseEntry == null) {
+    return {
+      pack: {
+        version: 1,
+        id: meta.id,
+        title: meta.title,
+        description: meta.description,
+        createdAt: meta.createdAt ?? new Date().toISOString(),
+        courseId,
+        files: {},
+      },
+      pageIds: [],
+      missingRefs: [`course:${courseId}`],
+    };
+  }
+
+  const pageIds = collectCoursePageIds(courseEntry.course.root);
+  const pageResult = buildPresentationPackFromPageIds(contentDir, pageIds, meta, index);
+  const withCourse = attachCourseManifestToPack(pageResult.pack, contentDir, courseId, index);
+
+  return {
+    pack: withCourse.pack,
+    pageIds: pageResult.pageIds,
+    missingRefs: [...pageResult.missingRefs, ...withCourse.missingRefs],
+  };
+}
+
 export type PresentationPackImportResult = {
   written: string[];
   skipped: string[];
@@ -123,6 +187,8 @@ export function mapPackFilesToContentDir(pack: PresentationPackV1): Map<string, 
     } else if (packPath.startsWith("markdown/")) {
       mapped.set(basename(packPath), body);
     } else if (packPath.startsWith("scenes/")) {
+      mapped.set(basename(packPath), body);
+    } else if (packPath.startsWith("courses/")) {
       mapped.set(basename(packPath), body);
     }
   }

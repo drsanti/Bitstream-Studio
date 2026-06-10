@@ -14,8 +14,8 @@
       "kind": "heading",
       "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
       "eyebrow": "BMM350 · Live",
-      "title": "Deck-style telemetry cards",
-      "subtitle": "Magnetic field and temperature cards driven by the same live stream as the Bitstream sensor deck."
+      "title": "Compass triad, field diagram, and deck cards",
+      "subtitle": "3D heading triad, live compass diagram, and magnetic field cards from one BMM350 stream."
     },
     {
       "id": "callout-tip",
@@ -42,6 +42,20 @@
       "kind": "sensor-telemetry-card",
       "placement": { "column": 10, "row": 5, "columnSpan": 3, "rowSpan": 5 },
       "preset": "bmm350Temperature"
+    },
+    {
+      "id": "scene-compass",
+      "kind": "scene-3d",
+      "placement": { "column": 1, "row": 10, "columnSpan": 12, "rowSpan": 4 },
+      "documentId": "bmm350-compass-scene",
+      "caption": "Axis triad — level heading (3D scene)"
+    },
+    {
+      "id": "compass-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 1, "row": 14, "columnSpan": 12, "rowSpan": 4 },
+      "diagramId": "bmm350-compass",
+      "caption": "Field vector & heading readout"
     }
   ]
 }

@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "id": "dps368-pressure-bar",
+  "title": "Barometric pressure column",
+  "viewBox": [0, 0, 360, 220],
+  "nodes": [
+    {
+      "id": "frame",
+      "type": "rect",
+      "x": 16,
+      "y": 12,
+      "width": 328,
+      "height": 196,
+      "rx": 10,
+      "fill": "card",
+      "stroke": "card"
+    },
+    {
+      "id": "label",
+      "type": "text",
+      "x": 180,
+      "y": 28,
+      "content": "Sea-level pressure band (hPa)",
+      "fontSize": 11,
+      "fontWeight": 600,
+      "fill": "muted",
+      "textAnchor": "middle"
+    },
+    {
+      "id": "bar-track",
+      "type": "rect",
+      "x": 156,
+      "y": 44,
+      "width": 48,
+      "height": 140,
+      "rx": 6,
+      "fill": "plain",
+      "stroke": "muted",
+      "strokeWidth": 1
+    },
+    {
+      "id": "pressure-bar",
+      "type": "rect",
+      "x": 160,
+      "y": {
+        "base": 180,
+        "mode": "add",
+        "binding": {
+          "path": "dps368.pressureHpa",
+          "map": [
+            { "op": "scale", "inMin": 950, "inMax": 1050, "outMin": 0, "outMax": -120 },
+            { "op": "clamp", "min": -120, "max": 0 }
+          ],
+          "fallback": 0
+        }
+      },
+      "width": 40,
+      "height": 120,
+      "rx": 4,
+      "fill": "accent-cyan",
+      "stroke": "accent-cyan",
+      "strokeWidth": 1
+    },
+    {
+      "id": "pressure-readout",
+      "type": "text",
+      "x": 180,
+      "y": 198,
+      "content": {
+        "binding": { "path": "dps368.pressureHpa", "fallback": 0, "format": "0.00f" },
+        "prefix": "",
+        "suffix": " hPa"
+      },
+      "fontSize": 13,
+      "fontWeight": 600,
+      "fill": "accent-cyan",
+      "textAnchor": "middle"
+    },
+    {
+      "id": "alt-readout",
+      "type": "text",
+      "x": 280,
+      "y": 110,
+      "content": {
+        "binding": { "path": "dps368.altitudeM", "fallback": 0, "format": "0.0f" },
+        "prefix": "Alt ",
+        "suffix": " m"
+      },
+      "fontSize": 12,
+      "fontWeight": 600,
+      "fill": "accent-amber",
+      "textAnchor": "middle"
+    }
+  ]
+}

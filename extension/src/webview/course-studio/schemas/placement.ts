@@ -35,13 +35,30 @@ export function coerceGridPlacementV1(raw: unknown): GridPlacementV1 {
   };
 }
 
-export function placementGridStyle(placement: GridPlacementV1): {
+/** Keep block spans inside the page grid so cells do not overflow implicit tracks. */
+export function clampPlacementToGrid(
+  placement: GridPlacementV1,
+  columns: number,
+): GridPlacementV1 {
+  const safeColumns = Math.max(1, columns);
+  const column = Math.max(1, Math.min(placement.column, safeColumns));
+  const maxColumnSpan = Math.max(1, safeColumns - column + 1);
+  const columnSpan = Math.max(1, Math.min(placement.columnSpan, maxColumnSpan));
+  return { ...placement, column, columnSpan };
+}
+
+export function placementGridStyle(
+  placement: GridPlacementV1,
+  columns?: number,
+): {
   gridColumn: string;
   gridRow: string;
 } {
+  const bounded =
+    columns != null ? clampPlacementToGrid(placement, columns) : placement;
   return {
-    gridColumn: `${placement.column} / span ${placement.columnSpan}`,
-    gridRow: `${placement.row} / span ${placement.rowSpan}`,
+    gridColumn: `${bounded.column} / span ${bounded.columnSpan}`,
+    gridRow: `${bounded.row} / span ${bounded.rowSpan}`,
   };
 }
 
@@ -61,15 +78,18 @@ export function placementSpanHeightPx(
 export function placementGridStyleForReadMode(
   placement: GridPlacementV1,
   autoHeight: boolean,
+  columns?: number,
 ): {
   gridColumn: string;
   gridRow: string;
 } {
+  const bounded =
+    columns != null ? clampPlacementToGrid(placement, columns) : placement;
   if (!autoHeight) {
-    return placementGridStyle(placement);
+    return placementGridStyle(bounded);
   }
   return {
-    gridColumn: `${placement.column} / span ${placement.columnSpan}`,
-    gridRow: `${placement.row} / span 1`,
+    gridColumn: `${bounded.column} / span ${bounded.columnSpan}`,
+    gridRow: `${bounded.row} / span 1`,
   };
 }

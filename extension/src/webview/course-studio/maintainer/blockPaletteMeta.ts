@@ -11,6 +11,7 @@ export type CourseBlockPaletteIconId =
   | "card"
   | "live-metric"
   | "dashboard-widget"
+  | "widget-board"
   | "sensor-telemetry-card"
   | "diagram"
   | "scene-3d"
@@ -134,6 +135,16 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     category: "live",
     icon: "dashboard-widget",
     defaultSpan: { columnSpan: 3, rowSpan: 3 },
+    accentClassName: "text-cyan-400/90",
+    tier: "default",
+  },
+  {
+    kind: "widget-board",
+    label: "Widget board",
+    description: "Composed telemetry panel with themed metric cards and gauges",
+    category: "live",
+    icon: "widget-board",
+    defaultSpan: { columnSpan: 8, rowSpan: 5 },
     accentClassName: "text-cyan-400/90",
     tier: "default",
   },

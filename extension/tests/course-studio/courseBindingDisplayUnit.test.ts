@@ -63,6 +63,15 @@ test("resolveBindingDisplayUnit honors temperature and altitude preferences", ()
     }),
     "rad",
   );
+  assert.equal(
+    resolveBindingDisplayUnitForBinding({
+      path: "sht40.temp",
+      fallback: 0,
+      temperatureUnit: "celsius",
+      unit: "C",
+    }),
+    "C",
+  );
 });
 
 test("applyBindingDisplayTransform composes angular and temperature transforms independently", () => {

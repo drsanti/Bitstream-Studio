@@ -16,7 +16,9 @@ import {
   insertCourseChildNode,
   pageIdForCourseNode,
   removeCourseNode,
+  parentIdForCourseNode,
   renameCourseNode,
+  reorderCourseSiblings,
 } from "../runtime/course/courseOutlineTree";
 import { loadCoursePage, registerRuntimeCoursePage } from "../content/pageRegistry";
 import { parsePageV1 } from "../schemas/page.v1";
@@ -58,6 +60,7 @@ type CourseOutlineState = {
   duplicateNode: (
     nodeId: string,
   ) => Promise<{ ok: true; nodeId: string } | { ok: false; error: string }>;
+  reorderNode: (activeNodeId: string, overNodeId: string) => void;
   markClean: (course?: CourseV1) => void;
   discardChanges: () => void;
   saveCourse: () => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -232,6 +235,22 @@ export const useCourseOutlineStore = create<CourseOutlineState>((set, get) => ({
         error: error instanceof Error ? error.message : "Failed to add outline node",
       };
     }
+  },
+
+  reorderNode: (activeNodeId, overNodeId) => {
+    const current = get().course;
+    if (current == null || activeNodeId === overNodeId) {
+      return;
+    }
+    const parentId = parentIdForCourseNode(current.root, activeNodeId);
+    const overParentId = parentIdForCourseNode(current.root, overNodeId);
+    if (parentId == null || parentId !== overParentId) {
+      return;
+    }
+    set({
+      course: reorderCourseSiblings(current, parentId, activeNodeId, overNodeId),
+      dirty: true,
+    });
   },
 
   duplicateNode: async (nodeId) => {

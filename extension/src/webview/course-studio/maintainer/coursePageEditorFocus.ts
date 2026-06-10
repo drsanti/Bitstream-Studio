@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Box, CodeXml, FileText, PanelRight, PenLine } from "lucide-react";
+import { Box, CodeXml, FileText, LayoutDashboard, PanelRight, PenLine } from "lucide-react";
 import type { CourseWorkbenchEditorType } from "../workbench/course-workbench-focus.store";
 import type { PageBlockV1 } from "../schemas/page.v1";
 
@@ -15,6 +15,8 @@ export function courseWorkbenchEditorTypeForBlockKind(
       return "html-page";
     case "scene-3d":
       return "scene-3d";
+    case "widget-board":
+      return "widget-board";
     default:
       return null;
   }
@@ -37,6 +39,8 @@ export function courseWorkbenchOpenLabelForBlockKind(kind: string): string {
       return "Open HTML Editor";
     case "scene-3d":
       return "Open 3D Scene Editor";
+    case "widget-board":
+      return "Open Widget Editor";
     default:
       return "Open Inspector";
   }
@@ -56,6 +60,8 @@ export function courseWorkbenchOpenIconForBlock(block: PageBlockV1): LucideIcon 
       return FileText;
     case "html-page":
       return CodeXml;
+    case "widget-board":
+      return LayoutDashboard;
     default:
       return PanelRight;
   }

@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 
-import { buildPresentationPackFromPageIds } from "../../src/webview/course-studio/content/presentationPackBuild";
+import {
+  buildPresentationPackFromCourse,
+  buildPresentationPackFromPageIds,
+} from "../../src/webview/course-studio/content/presentationPackBuild";
 import { parsePresentationPackV1 } from "../../src/webview/course-studio/schemas/presentationPack.v1";
 import {
   findDuplicateBlockIds,
@@ -52,6 +55,20 @@ test("findPageGridOverlaps detects overlapping blocks", () => {
   const overlaps = findPageGridOverlaps(page);
   assert.ok(overlaps.length > 0);
   assert.equal(findDuplicateBlockIds(page).length, 0);
+});
+
+test("buildPresentationPackFromCourse bundles outline pages and course manifest", () => {
+  const { pack, missingRefs } = buildPresentationPackFromCourse(
+    contentDir,
+    "tesaiot-embedded",
+    { id: "tesaiot", title: "TESAIoT Embedded" },
+  );
+
+  assert.deepEqual(missingRefs, []);
+  assert.equal(pack.courseId, "tesaiot-embedded");
+  assert.ok(Object.keys(pack.files).some((path) => path.startsWith("courses/")));
+  assert.ok(pack.files["courses/tesaiot-embedded.course.v1.json"]?.includes('"tesaiot-embedded"'));
+  assert.ok(Object.keys(pack.files).filter((path) => path.startsWith("pages/")).length >= 16);
 });
 
 test("buildPresentationPackFromPageIds bundles page assets", () => {

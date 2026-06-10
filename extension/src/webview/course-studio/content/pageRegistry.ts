@@ -58,6 +58,11 @@ import {
 import { BLANK_PAGE_SOURCE_PATH, loadBlankCoursePage } from "./loadBlankPage";
 import { getActiveCoursePackOverlay } from "./presentationPackLoad";
 import { loadPilotBmiAccelTheoryPage, PILOT_PAGE_SOURCE_PATH } from "./loadPilotPage";
+import {
+  loadNewTopic2Page,
+  NEW_TOPIC_2_PAGE_ID,
+  NEW_TOPIC_2_PAGE_SOURCE_PATH,
+} from "./loadTestChapterPages";
 
 /** Pages discovered from `content/*.page.v1.json` at Vite bootstrap (see registerContentFolderPages). */
 const contentFolderPages: Record<string, { page: PageV1; sourcePath: string }> = {};
@@ -149,6 +154,10 @@ const BUNDLED_PAGES: Record<string, { page: PageV1; sourcePath: string }> = {
   "bmi-accel-theory": {
     page: loadPilotBmiAccelTheoryPage(),
     sourcePath: PILOT_PAGE_SOURCE_PATH,
+  },
+  [NEW_TOPIC_2_PAGE_ID]: {
+    page: loadNewTopic2Page(),
+    sourcePath: NEW_TOPIC_2_PAGE_SOURCE_PATH,
   },
 };
 

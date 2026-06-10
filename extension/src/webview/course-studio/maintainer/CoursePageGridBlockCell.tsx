@@ -10,7 +10,12 @@ import { useCourseWorkbenchFocusStore } from "../workbench/course-workbench-focu
 import { tryDeleteSelectedCoursePageBlock } from "./coursePageBlockDeleteKey";
 
 function courseGridCellBodyOverflow(blockKind: PageBlockV1["kind"]): string {
-  if (blockKind === "dashboard-widget" || blockKind === "live-metric" || blockKind === "sensor-telemetry-card") {
+  if (
+    blockKind === "dashboard-widget" ||
+    blockKind === "widget-board" ||
+    blockKind === "live-metric" ||
+    blockKind === "sensor-telemetry-card"
+  ) {
     return "overflow-hidden";
   }
   return "overflow-auto";
@@ -65,6 +70,7 @@ export function CoursePageGridBlockCell({
   courseThemes,
   pageLinkHealth,
   pageStaleMs,
+  gridColumns,
   onBlockPointerDown,
 }: {
   block: PageBlockV1;
@@ -77,6 +83,7 @@ export function CoursePageGridBlockCell({
   courseThemes?: CourseThemesV1;
   pageLinkHealth?: LinkHealthPolicy;
   pageStaleMs?: number;
+  gridColumns: number;
   onBlockPointerDown: (
     blockId: string,
     placement: GridPlacementV1,
@@ -86,7 +93,7 @@ export function CoursePageGridBlockCell({
   const canvasBg =
     block.kind === "diagram-2d" ? useKonvaCanvasBackground(block.diagramId) : null;
   const cellStyle = {
-    ...placementGridStyle(placement),
+    ...placementGridStyle(placement, gridColumns),
     ...(canvasBg != null
       ? ({ "--course-diagram-canvas-bg": canvasBg } as CSSProperties)
       : {}),
@@ -116,7 +123,7 @@ export function CoursePageGridBlockCell({
       onClick={(event) => event.stopPropagation()}
     >
       <div
-        className={`course-page-grid__cell-body h-full min-h-0 ${courseGridCellBodyOverflow(block.kind)} ${
+        className={`course-page-grid__cell-body h-full min-h-0 min-w-0 ${courseGridCellBodyOverflow(block.kind)} ${
           courseGridCellBodyPointerPassthrough(block.kind, selected) ? "pointer-events-none" : ""
         } ${previewing ? "opacity-80" : ""}`}
       >

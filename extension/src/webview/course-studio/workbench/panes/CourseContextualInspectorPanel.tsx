@@ -1,4 +1,13 @@
-import { Box, CodeXml, FileText, LayoutGrid, PenLine, SlidersHorizontal, SquareStack } from "lucide-react";
+import {
+  Box,
+  CodeXml,
+  FileText,
+  LayoutDashboard,
+  LayoutGrid,
+  PenLine,
+  SlidersHorizontal,
+  SquareStack,
+} from "lucide-react";
 import { CourseMaintainerInspectorPanel } from "../../maintainer/CourseMaintainerInspectorPanel";
 import { CourseBlockInspector } from "../../maintainer/CourseBlockInspector";
 import { CourseBlockPropertiesPane } from "../../maintainer/CourseBlockPropertiesPane";
@@ -7,6 +16,7 @@ import { useCoursePageEditorStore } from "../../maintainer/useCoursePageEditorSt
 import { useCourseWorkbenchFocusStore } from "../course-workbench-focus.store";
 import { CourseDiagramInspectorPanel } from "./CourseDiagramInspectorPanel";
 import { CourseScene3dInspectorPanel } from "./CourseScene3dInspectorPanel";
+import { CourseWidgetBoardInspectorPanel } from "../../maintainer/widget-board/CourseWidgetBoardInspectorPanel";
 import { COURSE_WORKBENCH_PANE_SCROLL_PAD_CLASS } from "../courseWorkbenchPaneBody";
 
 function InspectorContextHeader({
@@ -104,6 +114,32 @@ export function CourseContextualInspectorPanel() {
           </div>
         </div>
       );
+    case "widget-board": {
+      const widgetBoardBlock =
+        selectedBlock?.kind === "widget-board" ? selectedBlock : null;
+      return (
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <InspectorContextHeader
+            icon={LayoutDashboard}
+            title="Widget board inspector"
+            subtitle="Theme, shell copy, and selected widget bindings"
+            accentClassName="text-cyan-400/90"
+          />
+          <div className={COURSE_WORKBENCH_PANE_SCROLL_PAD_CLASS}>
+            {widgetBoardBlock != null ? (
+              <CourseWidgetBoardInspectorPanel
+                block={widgetBoardBlock}
+                staleMs={page?.meta?.staleMs}
+              />
+            ) : (
+              <p className="text-[10px] leading-snug text-[var(--text-muted)]">
+                Select a widget board block on the page to edit its theme and widgets.
+              </p>
+            )}
+          </div>
+        </div>
+      );
+    }
     case "content":
       if (genericBlockSelected && selectedBlock != null) {
         return (

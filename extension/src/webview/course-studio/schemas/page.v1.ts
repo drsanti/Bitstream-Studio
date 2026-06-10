@@ -16,6 +16,11 @@ import {
 } from "./sensorTelemetryCardPreset";
 import { sensorTelemetryCardAppearanceSchema } from "./sensorTelemetryCardAppearance";
 import { pageGridChromeSchema } from "./pageGridChrome";
+import {
+  widgetBoardAppearanceSchemaExport as widgetBoardAppearanceSchema,
+  widgetBoardEntrySchema,
+  widgetBoardInnerGridSchemaExport as widgetBoardInnerGridSchema,
+} from "./widgetBoard.v1";
 
 const dashboardWidgetKindSchema = z.enum(courseDashboardWidgetKindSchema);
 
@@ -211,6 +216,20 @@ const iframeBlockSchema = z.object({
   readHeightPx: z.number().int().min(192).max(4000).optional(),
 });
 
+const widgetBoardBlockSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("widget-board"),
+  placement: placementSchema,
+  appearance: widgetBoardAppearanceSchema.default({ themePresetId: "ev-compact" }),
+  grid: widgetBoardInnerGridSchema.default({
+    columns: 6,
+    rowHeightPx: 40,
+    gapPx: 8,
+    paddingPx: 16,
+  }),
+  widgets: z.array(widgetBoardEntrySchema).min(1),
+});
+
 const htmlPageBlockSchema = z
   .object({
     id: z.string().min(1),
@@ -244,6 +263,7 @@ export const pageBlockSchema = z.discriminatedUnion("kind", [
   cardBlockSchema,
   liveMetricBlockSchema,
   dashboardWidgetBlockSchema,
+  widgetBoardBlockSchema,
   sensorTelemetryCardBlockSchema,
   diagram2dBlockSchema,
   scene3dBlockSchema,

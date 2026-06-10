@@ -15,7 +15,7 @@ export function createTopicPageTemplate(options: {
       {
         id: "heading-1",
         kind: "heading",
-        placement: { column: 1, row: 1, columnSpan: 16, rowSpan: 2 },
+        placement: { column: 1, row: 1, columnSpan: 12, rowSpan: 2 },
         eyebrow: "Topic",
         title: options.title,
         subtitle: "Edit this page in the Page Editor.",

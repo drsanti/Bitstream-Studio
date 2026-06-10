@@ -12,9 +12,12 @@
  *******************************************************************************/
 
 import { markBmi270StreamModeColdSynced } from "../bmi270/bmi270StreamModeColdSync.js";
+import { SENSOR_SOURCE_ID_BMI270 } from "../constants/sensorSourceIds.js";
 import { BMI270_MODE_COMMAND_TIMEOUT_MS } from "../constants/sensorConfigPipeline.js";
+import { inferBmi270StreamModeFromMask } from "../lib/bmi270OutputProfiles.js";
 import { withTimeout } from "../utils/withTimeout.js";
 import type { Bmi270StreamModeUi } from "../state/bitstreamConfig.store.js";
+import { useBitstreamDeviceSensorConfigStore } from "../state/bitstreamDeviceSensorConfig.store.js";
 import {
   clampBmi270FusionFeedIntervalMs,
   useBitstreamConfigStore,
@@ -49,27 +52,43 @@ export async function syncBmi270FirmwareExtrasFromDevice(
 ): Promise<Bmi270FirmwareExtrasSyncResult>
 {
   const modeRes = await transport.getStreamMode(BMI270_MODE_COMMAND_TIMEOUT_MS);
-  if (!modeRes.ok || modeRes.mode == null)
+  let resolvedMode = modeRes.ok ? modeRes.mode : null;
+  if (resolvedMode == null)
   {
-    return { ok: false, error: modeRes.error ?? "BMI270 mode GET failed" };
+    const deviceStore = useBitstreamDeviceSensorConfigStore.getState();
+    const bmi270Row =
+      deviceStore.baselineBySourceId[SENSOR_SOURCE_ID_BMI270] ??
+      deviceStore.bySourceId[SENSOR_SOURCE_ID_BMI270];
+    resolvedMode =
+      bmi270Row != null ? inferBmi270StreamModeFromMask(bmi270Row.mask) : null;
+    if (resolvedMode == null)
+    {
+      return { ok: false, error: modeRes.error ?? "BMI270 mode GET failed" };
+    }
+  }
+
+  const cfg = useBitstreamConfigStore.getState();
+  const draftStore = useBmi270FirmwareExtrasDraftStore.getState();
+
+  /* Always record firmware truth as baseline; only overwrite the UI draft when
+     the user has not edited while the GETs were in flight. */
+  draftStore.commitStreamModeBaseline(resolvedMode);
+  if (!useBmi270FirmwareExtrasDraftStore.getState().extrasUserEdited)
+  {
+    cfg.setBmi270StreamMode(resolvedMode);
+    markBmi270StreamModeColdSynced(resolvedMode);
   }
 
   const feedRes = await transport.getFusionFeedIntervalMs(BMI270_MODE_COMMAND_TIMEOUT_MS);
-  if (!feedRes.ok || feedRes.intervalMs == null)
+  if (feedRes.ok && feedRes.intervalMs != null)
   {
-    return { ok: false, error: feedRes.error ?? "BMI270 fusion feed GET failed" };
+    const feedMs = clampBmi270FusionFeedIntervalMs(feedRes.intervalMs);
+    draftStore.commitFusionFeedBaseline(feedMs);
+    if (!useBmi270FirmwareExtrasDraftStore.getState().extrasUserEdited)
+    {
+      cfg.setBmi270FusionFeedIntervalMs(feedMs);
+    }
   }
-
-  const feedMs = clampBmi270FusionFeedIntervalMs(feedRes.intervalMs);
-  const cfg = useBitstreamConfigStore.getState();
-  cfg.setBmi270StreamMode(modeRes.mode);
-  cfg.setBmi270FusionFeedIntervalMs(feedMs);
-
-  const draftStore = useBmi270FirmwareExtrasDraftStore.getState();
-  draftStore.commitStreamModeBaseline(modeRes.mode);
-  draftStore.commitFusionFeedBaseline(feedMs);
-  draftStore.clearExtrasUserEdited();
-  markBmi270StreamModeColdSynced(modeRes.mode);
 
   return { ok: true };
 }

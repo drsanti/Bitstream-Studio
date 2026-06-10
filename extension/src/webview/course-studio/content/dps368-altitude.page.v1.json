@@ -57,6 +57,13 @@
       "widgetKind": "led",
       "style": { "label": "P valid", "threshold": 0.5, "blink": false, "showStatusBar": true },
       "binding": { "path": "dps368.pressureValid", "fallback": 0 }
+    },
+    {
+      "id": "pressure-diagram",
+      "kind": "diagram-2d",
+      "placement": { "column": 1, "row": 11, "columnSpan": 12, "rowSpan": 4 },
+      "diagramId": "dps368-pressure-bar",
+      "caption": "Pressure column & altitude readout"
     }
   ]
 }

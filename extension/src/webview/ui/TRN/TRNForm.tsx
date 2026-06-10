@@ -61,6 +61,8 @@ type TRNFormFieldProps = {
   error?: string;
   /** Hover tooltip on the label — not inline helper copy. */
   hint?: string;
+  /** Inline content after the label (e.g. status badge). */
+  labelTrailing?: ReactNode;
   required?: boolean;
   className?: string;
   children: ReactNode;
@@ -70,9 +72,10 @@ function TRNFormFieldLabel(props: {
   label: string;
   hint?: string;
   htmlFor?: string;
+  labelTrailing?: ReactNode;
   required?: boolean;
 }) {
-  const { label, hint, htmlFor, required = false } = props;
+  const { label, hint, htmlFor, labelTrailing, required = false } = props;
   const labelBody = (
     <>
       {label}
@@ -81,8 +84,8 @@ function TRNFormFieldLabel(props: {
   );
   const labelClassName = "block w-fit text-[11px] font-medium text-zinc-100";
 
-  if (hint != null && hint.length > 0) {
-    return (
+  const labelNode =
+    hint != null && hint.length > 0 ? (
       <TRNHintTooltip
         trigger={
           <label htmlFor={htmlFor} className={labelClassName}>
@@ -96,13 +99,21 @@ function TRNFormFieldLabel(props: {
         triggerClassName="w-fit"
         wide={hint.length > 120}
       />
+    ) : (
+      <label htmlFor={htmlFor} className={labelClassName}>
+        {labelBody}
+      </label>
     );
+
+  if (labelTrailing == null) {
+    return labelNode;
   }
 
   return (
-    <label htmlFor={htmlFor} className={labelClassName}>
-      {labelBody}
-    </label>
+    <div className="flex min-w-0 items-center gap-1.5">
+      {labelNode}
+      {labelTrailing}
+    </div>
   );
 }
 
@@ -116,6 +127,7 @@ export function TRNFormField(props: TRNFormFieldProps) {
     htmlFor,
     error,
     hint,
+    labelTrailing,
     required = false,
     className = "",
     children,
@@ -127,6 +139,7 @@ export function TRNFormField(props: TRNFormFieldProps) {
         label={label}
         hint={error ? undefined : hint}
         htmlFor={fieldId}
+        labelTrailing={labelTrailing}
         required={required}
       />
       {children}

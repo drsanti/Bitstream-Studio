@@ -91,6 +91,7 @@ The **Course Outline** workbench pane is the primary navigation surface for auth
 | Delete | Right-click → **Delete** |
 | Breadcrumb | Outline header shows `Chapter › Topic` for the active node |
 | Unsaved state | Amber dot on active node when the page is dirty; outline title shows **Unsaved outline** when the manifest changed |
+| Reorder | Drag the **grip** on a row to reorder siblings (chapters, topics, subtopics) |
 | Save | Top bar **Save** writes both dirty page JSON and dirty course manifest (dev API) |
 | Browser refresh | Unsaved outline + pages restore from **localStorage session draft** (same tab); use **Save** for permanent repo storage |
 
@@ -147,6 +148,6 @@ Paths must live under `src/webview/course-studio/content/` with the correct suff
 - [x] BMI270 chapter: topical pages (overview, MEMS, live viz, host protocol)
 - [x] Topical markdown per page (`bmi270-overview.theory.md`, …)
 - [x] Session draft: persist/restore course manifest + active outline node (+ runtime pages; merge bundled chapters on restore)
-- [ ] Pack export: include `*.course.v1.json` and validate all referenced pages
+- [x] Pack export: include `*.course.v1.json` and validate all referenced pages (`npm run presentation:pack:export -- --course tesaiot-embedded`)
 - [ ] Reader: prev/next footer, in-book search
-- [ ] Move up/down, drag-reorder outline nodes
+- [x] Drag-reorder outline siblings (grip handle; same parent only)

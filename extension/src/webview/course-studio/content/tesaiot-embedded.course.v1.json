@@ -40,27 +40,6 @@
         ]
       },
       {
-        "id": "chapter-1",
-        "kind": "chapter",
-        "title": "Tesring",
-        "children": [
-          {
-            "id": "topic-2",
-            "kind": "topic",
-            "title": "New topic",
-            "pageId": "new-topic-2",
-            "children": []
-          },
-          {
-            "id": "topic-1",
-            "kind": "topic",
-            "title": "3D Scene Block",
-            "pageId": "new-topic",
-            "children": []
-          }
-        ]
-      },
-      {
         "id": "chapter-sht40",
         "kind": "chapter",
         "title": "SHT40 — humidity & temperature",
@@ -150,6 +129,34 @@
             "kind": "topic",
             "title": "Applications & dashboards",
             "pageId": "dps368-applications"
+          }
+        ]
+      },
+      {
+        "id": "chapter-1",
+        "kind": "chapter",
+        "title": "Tesring",
+        "children": [
+          {
+            "id": "topic-1",
+            "kind": "topic",
+            "title": "3D Scene Block",
+            "pageId": "new-topic",
+            "children": []
+          },
+          {
+            "id": "topic-2",
+            "kind": "topic",
+            "title": "New topic",
+            "pageId": "new-topic-2",
+            "children": []
+          },
+          {
+            "id": "topic-3",
+            "kind": "topic",
+            "title": "New topic",
+            "pageId": "new-topic-3",
+            "children": []
           }
         ]
       }

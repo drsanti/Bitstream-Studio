@@ -177,17 +177,17 @@ export function catalogCategoriesForSensor(
   return Array.from(categories);
 }
 
-/** Display unit: catalog display kinds honor binding preferences; else catalog default or override. */
+/** Display unit: angular/temperature/altitude prefs; else binding override; else catalog default. */
 export function resolveBindingDisplayUnit(binding: DiagramBindingV1): string {
   const displayKind = catalogBindingDisplayUnitKind(binding.path);
   if (displayKind != null) {
     return resolveBindingDisplayUnitForBinding(binding);
   }
-  const catalogUnit = catalogEntryForPath(binding.path)?.unit;
-  if (catalogUnit != null) {
-    return catalogUnit;
+  const unitOverride = binding.unit?.trim();
+  if (unitOverride != null && unitOverride.length > 0) {
+    return unitOverride;
   }
-  return binding.unit ?? "";
+  return catalogEntryForPath(binding.path)?.unit ?? "";
 }
 
 export function bindingForCatalogPath(

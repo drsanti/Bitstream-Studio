@@ -2,7 +2,7 @@
  * Shared wiring for SENSOR_CFG control panels (Telemetry pane, Inspector, modals).
  ******************************************************************************/
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { syncBmi270FirmwareExtrasFromDevice, applyBmi270FirmwareExtrasIfDirty } from "../../bitstream-app/bridge/bmi270FirmwareExtrasSync.js";
 import { acquireBmi270DeferFirmwareApplySession } from "./bmi270DeferFirmwareApplySession.js";
 import { useBitstreamAppControl } from "../../bitstream-app/control/bitstreamAppControl.context.js";
@@ -90,24 +90,38 @@ export function useSensorCfgPanelHost(options?: {
 
   const shouldSyncBmi270Baselines =
     focusSourceId == null || focusSourceId === SENSOR_SOURCE_ID_BMI270;
+  const bmi270BaselineSyncInFlightRef = useRef(false);
 
   useEffect(() => {
-    if (!canControl || !shouldSyncBmi270Baselines) {
+    if (!canControl || !shouldSyncBmi270Baselines || !truthReady) {
       return;
     }
     const draft = useBmi270FirmwareExtrasDraftStore.getState();
+    if (draft.extrasUserEdited) {
+      return;
+    }
+    /* Sync only while baselines are missing — a render-driven GET storm here
+       would clobber in-progress user edits when each sync resolves. */
     if (draft.streamModeBaseline != null && draft.fusionFeedBaselineMs != null) {
       return;
     }
-    void syncBmi270FirmwareExtrasFromDevice(bmi270Transport).then((res) => {
-      if (!res.ok) {
-        onActivity?.(
-          `BMI270 mode/feed baseline read failed: ${res.error}`,
-          "warning",
-        );
-      }
-    });
-  }, [bmi270Transport, canControl, onActivity, shouldSyncBmi270Baselines]);
+    if (bmi270BaselineSyncInFlightRef.current) {
+      return;
+    }
+    bmi270BaselineSyncInFlightRef.current = true;
+    void syncBmi270FirmwareExtrasFromDevice(bmi270Transport)
+      .then((res) => {
+        if (!res.ok) {
+          onActivity?.(
+            `BMI270 mode/feed baseline read failed: ${res.error}`,
+            "warning",
+          );
+        }
+      })
+      .finally(() => {
+        bmi270BaselineSyncInFlightRef.current = false;
+      });
+  }, [bmi270Transport, canControl, onActivity, shouldSyncBmi270Baselines, truthReady]);
 
   const runApplyScope = useCallback(
     (scope: SensorCfgApplyScope) => {
@@ -206,6 +220,8 @@ export function useSensorCfgPanelHost(options?: {
           onActivity?.(lockReason?.message ?? "Sensor config refresh failed", "error");
           return;
         }
+        /* Explicit refresh discards local BMI270 extras drafts in favor of board truth. */
+        useBmi270FirmwareExtrasDraftStore.getState().clearExtrasUserEdited();
         const extras = await syncBmi270FirmwareExtrasFromDevice(bmi270Transport);
         if (!extras.ok) {
           onActivity?.(

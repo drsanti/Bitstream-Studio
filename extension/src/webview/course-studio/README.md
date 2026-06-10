@@ -71,6 +71,7 @@ npx tsx --test --test-force-exit tests/course-studio/*.test.ts
 npm run test:course-studio
 npm run presentation:validate
 npm run presentation:validate -- --golden
+npm run presentation:pack:export -- --course tesaiot-embedded --out dist/tesaiot-embedded.pack.json
 npm run presentation:pack:export -- --page bmi-accel-theory --out dist/pilot.pack.json
 npm run presentation:pack:import -- --pack dist/pilot.pack.json
 ```
