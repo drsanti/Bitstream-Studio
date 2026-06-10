@@ -1,5 +1,6 @@
 import {
   Box,
+  CodeXml,
   FileText,
   LayoutGrid,
   ListTree,
@@ -11,6 +12,7 @@ import { CourseContentWorkbenchPane } from "./panes/CourseContentWorkbenchPane";
 import { CourseOutlineWorkbenchPane } from "./panes/CourseOutlineWorkbenchPane";
 import { CourseDiagramWorkbenchPane } from "./panes/CourseDiagramWorkbenchPane";
 import { CourseInspectorWorkbenchPane } from "./panes/CourseInspectorWorkbenchPane";
+import { CourseHtmlPageWorkbenchPane } from "./panes/CourseHtmlPageWorkbenchPane";
 import { CourseMarkdownWorkbenchPane } from "./panes/CourseMarkdownWorkbenchPane";
 import { CourseScene3dWorkbenchPane } from "./panes/CourseScene3dWorkbenchPane";
 import { COURSE_WORKBENCH_PANE_LABELS } from "./course-workbench-pane-labels";
@@ -40,6 +42,11 @@ export const COURSE_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
     icon: <FileText className="size-3.5" aria-hidden />,
     label: COURSE_WORKBENCH_PANE_LABELS.markdown,
     component: CourseMarkdownWorkbenchPane,
+  },
+  "html-page": {
+    icon: <CodeXml className="size-3.5" aria-hidden />,
+    label: COURSE_WORKBENCH_PANE_LABELS["html-page"],
+    component: CourseHtmlPageWorkbenchPane,
   },
   "scene-3d": {
     icon: <Box className="size-3.5" aria-hidden />,

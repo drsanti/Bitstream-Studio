@@ -13,7 +13,12 @@ import {
   parsePresentationPackAssets,
   setActiveCoursePackOverlay,
 } from "../../src/webview/course-studio/content/presentationPackLoad";
-import { loadCoursePage } from "../../src/webview/course-studio/content/pageRegistry";
+import {
+  getCoursePageSourcePath,
+  loadCoursePage,
+  mergeContentFolderPages,
+} from "../../src/webview/course-studio/content/pageRegistry";
+import { parsePageV1 } from "../../src/webview/course-studio/schemas/page.v1";
 
 const contentDir = join(process.cwd(), "src/webview/course-studio/content");
 
@@ -64,6 +69,23 @@ test("applyPresentationPackRuntime uses content paths in dev mode", () => {
   assert.equal(
     sourcePath,
     contentSourcePathForFileName("pilot-bmi-accel-theory.page.v1.json"),
+  );
+});
+
+test("mergeContentFolderPages registers on-disk pages referenced by course outline", () => {
+  const newTopicJson = readFileSync(join(contentDir, "new-topic.page.v1.json"), "utf8");
+  const page = parsePageV1(JSON.parse(newTopicJson));
+  mergeContentFolderPages({
+    [page.id]: {
+      page,
+      sourcePath: contentSourcePathForFileName("new-topic.page.v1.json"),
+    },
+  });
+
+  assert.equal(loadCoursePage("new-topic")?.id, "new-topic");
+  assert.equal(
+    getCoursePageSourcePath("new-topic"),
+    contentSourcePathForFileName("new-topic.page.v1.json"),
   );
 });
 

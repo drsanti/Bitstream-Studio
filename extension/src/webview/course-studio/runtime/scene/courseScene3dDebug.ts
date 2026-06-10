@@ -31,24 +31,48 @@ export type CourseScene3dDebugSnapshot = {
   canvasOpacity: string;
 };
 
-let snapshot: CourseScene3dDebugSnapshot | null = null;
-const listeners = new Set<() => void>();
+const snapshots = new Map<string, CourseScene3dDebugSnapshot>();
+const listenersByScene = new Map<string, Set<() => void>>();
 
-export function setCourseScene3dDebugSnapshot(next: CourseScene3dDebugSnapshot): void {
-  snapshot = next;
+function notifySceneListeners(sceneId: string): void {
+  const listeners = listenersByScene.get(sceneId);
+  if (listeners == null) {
+    return;
+  }
   for (const listener of listeners) {
     listener();
   }
 }
 
-export function getCourseScene3dDebugSnapshot(): CourseScene3dDebugSnapshot | null {
-  return snapshot;
+export function setCourseScene3dDebugSnapshot(
+  sceneId: string,
+  next: CourseScene3dDebugSnapshot,
+): void {
+  snapshots.set(sceneId, next);
+  notifySceneListeners(sceneId);
 }
 
-export function subscribeCourseScene3dDebug(listener: () => void): () => void {
+export function clearCourseScene3dDebugSnapshot(sceneId: string): void {
+  snapshots.delete(sceneId);
+  notifySceneListeners(sceneId);
+}
+
+export function getCourseScene3dDebugSnapshot(sceneId: string): CourseScene3dDebugSnapshot | null {
+  return snapshots.get(sceneId) ?? null;
+}
+
+export function subscribeCourseScene3dDebug(sceneId: string, listener: () => void): () => void {
+  let listeners = listenersByScene.get(sceneId);
+  if (listeners == null) {
+    listeners = new Set();
+    listenersByScene.set(sceneId, listeners);
+  }
   listeners.add(listener);
   return () => {
-    listeners.delete(listener);
+    listeners!.delete(listener);
+    if (listeners!.size === 0) {
+      listenersByScene.delete(sceneId);
+    }
   };
 }
 

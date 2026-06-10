@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-06-08 (Course Studio — four-sensor book, outline authoring, maintainer persistence)  
+**Last updated:** 2026-06-10 (Bitstream Telemetry Provider shipped + Course HTML blocks)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -11,18 +11,26 @@
 
 ## 0. Continue on another machine (checklist)
 
-1. **Clone / pull** `Bitstream-Studio` and ensure **`extension/`** is the npm root.
-2. **Read this file** → **`extension/docs/DEVELOPMENT_TRACKER.md`** (current focus) → **`extension/HOW_TO_RUN.md`**.
+1. **Clone / pull** `Bitstream-Studio` from https://github.com/drsanti/Bitstream-Studio (`git pull origin main`).
+2. **Read this file** → **`extension/docs/DEVELOPMENT_TRACKER.md`** (backlog + recently completed) → **`extension/HOW_TO_RUN.md`**.
 3. **Install deps:** `cd extension && npm install`
-4. **Dev stack (two terminals):**
-   - Terminal 1: `npm run start:bridge`
-   - Terminal 2: `npm run dev:webview`
-5. **After bridge or host changes:** restart **`start:bridge`**. After webview-only edits, Vite HMR is enough.
+4. **Dev stack (recommended — one command):**
+   ```bash
+   cd extension
+   npm start
+   ```
+   Starts **broker :9998**, **telemetry provider :9997**, Vite **:5173**, extension watch, AI bridge.  
+   **Or two terminals:** `npm run start:bridge` + `npm run dev:webview`.
+5. **After bridge or host changes:** restart **`start:bridge`** (provider :9997 starts inside it). Webview-only edits: Vite HMR.
 6. **VSIX:** `npm run compile && npm run package` → install `bitstream-studio-0.1.0.vsix` → reload window.
-7. **Tests:** `npm run test:bitstream2` (BS2); **Course Studio:** `npx tsx --test --test-force-exit tests/course-studio/*.test.ts` (**441** tests).
-8. **External repos** (not in tree): **bitstream-simulator** (Simulator mode), **TESAIoT_Firmware** (MCU BS2 truth).
+7. **Tests:**
+   - `npm run test:bitstream2` (includes telemetry-provider tests)
+   - Course Studio: `npx tsx --test --test-force-exit tests/course-studio/*.test.ts`
+8. **External repos** (not in tree): **bitstream-simulator** (Simulator toolbar mode), **TESAIoT_Firmware** (MCU BS2 truth).
 
-**Course Studio (current focus):** `http://localhost:5173/?workspace=course-studio` — read **`extension/src/webview/course-studio/README.md`** first, then **`course-studio/docs/COURSE_OUTLINE.md`** + **`course-studio/docs/ARCHITECTURE.md`**. Maintainer is **dev-only** (`import.meta.env.DEV`). Presentation v1 frozen: **`extension/src/webview/presentation/V1_FROZEN.md`**.
+**Bitstream Telemetry Provider (shipped 2026-06-10):** Portable kit for developers / AI agents: **`extension/docs/bitstream-telemetry-provider/`** — start with **`SKILL.md`** (connect live first, mock fallback, plain **Bitstream** / **Simulator** language). Public API: **`ws://127.0.0.1:9997`**. Course iframes use **`CourseTelemetryPostMessageBridge`** (`bitstream:ready` → `postMessage`). Regenerate kit: `npm run bitstream2:telemetry-catalog:gen`.
+
+**Course Studio (current focus):** `http://localhost:5173/?workspace=course-studio` — read **`extension/src/webview/course-studio/README.md`**, then **`course-studio/docs/COURSE_OUTLINE.md`**. **HTML page blocks** + live telemetry demos on SHT40/DPS368/BMI270 **Live visualization** topics. Maintainer is **dev-only** (`import.meta.env.DEV`). Presentation v1 frozen: **`extension/src/webview/presentation/V1_FROZEN.md`**.
 
 **Course authoring → VSIX:** Edit in dev with Maintainer on → top-bar **Save** writes `content/*.page.v1.json` + `tesaiot-embedded.course.v1.json` (diagram/scene/markdown use per-pane Save). **Commit** those JSON/md files → **`npm run compile && npm run package`**. Installed VSIX is read-only (no Save APIs). Unsaved work survives browser refresh via **localStorage session draft** only until Save + commit.
 
@@ -71,6 +79,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | **`extension/docs/README.md`** | Docs index (BS2, bridge, assets, Sensor Studio) |
 | **`extension/docs/ASSETS_ONLINE_REPO.md`** | GitHub free pack — **`main/assets`** base URL, sync, publish (read before any online asset work) |
 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** | Bitstream vs Simulator exclusivity (A+B) |
+| **`extension/docs/bitstream-telemetry-provider/`** | **Telemetry Provider kit** — AI **`SKILL.md`**, EXAMPLES, catalog JSON |
+| **`extension/docs/BITSTREAM_TELEMETRY_PROVIDER.md`** | Pointer to portable kit |
 | **`AGENT_HANDOFF.md`** | This file |
 
 **External (not in tree):**
@@ -102,7 +112,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 |------|---------------------|
 | T3D decoupling | **Done** |
 | Jolt removed; VSIX ~**40.48 MB** (was 66.5 MB) | **Done** |
-| `npm run compile` / `test:bitstream2` (50/50) | **Done** |
+| `npm run compile` / `test:bitstream2` (63/63) | **Done** |
 | Dev: `start:bridge` + `dev:webview` | **User verified** |
 | VSIX install + panels (A in HOW_TO_RUN) | **User verified** |
 | Simulator dual-runtime (B) | **User verified** |
@@ -124,6 +134,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 6 | **`extension/src/webview/shared/webgl/README.md`** |
 | 7 | **`extension/docs/BS2_PROTOCOL_INDEX.md`** |
 | 8 | **`extension/docs/TELEMETRY_MODE_LIFECYCLE.md`** |
+| 8b | **`extension/docs/bitstream-telemetry-provider/SKILL.md`** — external dashboards / AI agents (WS :9997, iframe postMessage) |
 | 9 | **`extension/src/webview/course-studio/README.md`** — Course Studio agent onboarding (read for v2 work) |
 | 10 | **`extension/src/webview/course-studio/docs/ARCHITECTURE.md`** — layout, phases, maintainer |
 | 11 | **`presentation/docs/DEVELOPMENT_PLAN.md`** — v2 roadmap §16–17 |
@@ -135,7 +146,26 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 ---
 
-## 6. Key implementation map (2026-06-08)
+## 6. Key implementation map (2026-06-10)
+
+### Bitstream Telemetry Provider (shipped)
+
+| Layer | Path |
+|-------|------|
+| Portable kit (upload to AI / devs) | `extension/docs/bitstream-telemetry-provider/` — **`SKILL.md`** first |
+| TypeScript catalog (source of truth) | `extension/src/bitstream2/telemetry-provider/catalog/` |
+| Public gateway (:9997) | `extension/src/bitstream2/telemetry-provider/TelemetryProviderGateway.ts` |
+| VSIX / dev bridge entry | `extension/src/combined-bridge-entry.ts` (auto-starts provider; `BITSTREAM_TELEMETRY_PROVIDER_DISABLE=1` to skip) |
+| Sample mapper | `extension/src/bitstream2/telemetry-provider/map-provider-sample.ts` |
+| R1 commands | `extension/src/bitstream2/telemetry-provider/provider-command-handlers.ts` |
+| SDK client | `extension/src/bitstream2/telemetry-provider/client/BitstreamTelemetryClient.ts` |
+| Course iframe bridge | `extension/src/webview/course-studio/runtime/CourseTelemetryPostMessageBridge.tsx` |
+| Bundled course examples | `extension/src/webview/course-studio/content/telemetry-examples/` (synced on catalog gen) |
+| Unit tests | `extension/tests/bitstream2/telemetry-provider-*.test.ts` |
+| Regenerate kit + course HTML | `npm run bitstream2:telemetry-catalog:gen` |
+| Hardware smoke (contributors) | `npm run bitstream2:provider-uart-smoke -- --path=…` |
+
+**AI agents:** connect **`ws://127.0.0.1:9997`** or iframe **`postMessage`** first; **mock fallback** if unavailable — see kit **`SKILL.md`**.
 
 ### Course Studio v2 (current focus)
 
@@ -153,7 +183,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 | 3D block scenes | `extension/src/webview/course-studio/ui/catalog/CourseDiagram3DCard.tsx` |
 | Dev save APIs | `extension/vite.config.ts` → `save-page`, `save-diagram`, `save-markdown` |
 | Lazy workspace load | `extension/src/webview/bitstream-app/BitstreamWorkspacePanel.tsx` |
-| Unit tests | `extension/tests/course-studio/*.test.ts` (**441** tests) |
+| HTML page blocks + telemetry demos | `maintainer/html-editor/`, `CourseHtmlPageCard`, live-topic loaders in `content/load*ChapterPages.ts` |
+| Unit tests | `extension/tests/course-studio/*.test.ts` |
 | v2 roadmap | `presentation/docs/DEVELOPMENT_PLAN.md` §16–17 |
 
 **Dev URL:** `http://localhost:5173/?workspace=course-studio` — Maintainer toggle + inspector (**Ctrl+\\**).  
@@ -216,6 +247,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-10 | **Bitstream Telemetry Provider (P0–P4 shipped):** catalog + gateway **:9997** (in `combined-bridge-entry` / VSIX); Course **`CourseTelemetryPostMessageBridge`**; R1 commands + SDK; EXAMPLES (gyro, humidity, pressure); kit **`docs/bitstream-telemetry-provider/`** + AI **SKILL** (WS first, mock fallback); iframe origin hardening; per-sensor **`staleAfterMs`**; Course **HTML page blocks**; live-topic embedded demos; tests |
 | 2026-06-08 | **Course Studio — four-sensor book + outline authoring:** TESAIoT Embedded manifest ships **BMI270**, **BMM350**, **DPS368**, **SHT40** (four topics each); outline Add defers disk write (no Vite full reload); session draft persists outline + runtime pages; `mergeCourseOutlineWithBundled` on restore; multi-subtopic under one topic; GitHub `/blob/` image URLs resolve via raw fetch; BMI270 pages refined; **441** course-studio tests |
 | 2026-06-09 | **Course Studio 3D Scene editor:** Split workbench pane (preset `diagram-3d` vs design `diagram-2d` 3D layer); gizmo + outliner + default camera + **Save view**; Quick add on blank page; auto-enable 3D layer; focus routing tests |
 | 2026-06-08 | **Course Studio v2 (Phases 0, 7a–7d, 7f slice, 7g–7i):** new `course-studio/` workspace — page grid, markdown theory, `diagram.v1` + maintainer canvas (undo, z-order, curves, snap), bindings + MapOp chain, `diagram-3d` block; lazy workspace chunks + landing routing; TRN maintainer inspector; 54 unit tests; **`course-studio/README.md`** + tracker/architecture docs |
@@ -257,7 +289,8 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Priority | Work | Notes |
 |----------|------|--------|
-| 1 | **Course Studio — VSIX smoke** | `npm run package` → open Course Studio in VSIX; verify four chapters, live cards (Simulator), diagram/scene blocks, reader View mode — **`HOW_TO_RUN.md`** |
+| 1 | **Course Studio — VSIX smoke** | `npm run package` → verify four chapters, **HTML telemetry bars** on live topics, provider **:9997** in bridge log — **`HOW_TO_RUN.md`** § B4, C3–C4 |
+| 1b | **Telemetry provider — hardware pass** | Toolbar **Bitstream** → COM; `npm run bitstream2:provider-uart-smoke`; Course iframe bars move |
 | 2 | **Course Studio — content polish** | Diagram/scene assets per chapter; pack export includes course manifest; outline drag-reorder |
 | 3 | **Course Studio — 7e** | Optional embed diagrams in Presentation v1 theory slides |
 | 4 | **Verify landing ↔ sim on VSIX** | Click E84 / ABB / Vehicle from landing; Ctrl+/ back to landing |
@@ -290,6 +323,13 @@ Mirror copies under **`extension/.cursor/rules/`** where present.
 | **`bitstream-studio-dev`** | compile, bridge, dev:webview, package |
 | **`bs2-uart-bringup`** | Real COM, uart-probe, MCU |
 | **`bitstream-simulator-app`** | External sim VSIX |
+| **`bitstream-telemetry-provider`** | External dashboards, Course HTML, `bitstream:sample` kit |
+
+### Cursor rules (telemetry)
+
+| Rule | Purpose |
+|------|---------|
+| **`bitstream-telemetry-provider.mdc`** | Kit path, AI workflow pointers |
 
 ### Other
 

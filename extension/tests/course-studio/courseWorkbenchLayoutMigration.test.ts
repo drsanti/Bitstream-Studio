@@ -45,12 +45,13 @@ function mockLocalStorage(): Storage {
 }
 
 describe("course workbench layout default + migration", () => {
-  it("uses course outline + 2×2 editor grid + inspector", () => {
+  it("uses course outline + editor grid with HTML Editor pane + inspector", () => {
     const fingerprint = defaultCourseAuthorWorkbenchLayoutFingerprint();
     assert.match(fingerprint, /e:outline/);
     assert.match(fingerprint, /editors-quadrant/);
     assert.match(fingerprint, /editors-top-row/);
     assert.match(fingerprint, /editors-bottom-row/);
+    assert.match(fingerprint, /e:html-page/);
     assert.match(fingerprint, /e:inspector/);
     assert.doesNotMatch(fingerprint, /e:block-inspector/);
     assert.doesNotMatch(fingerprint, /inspector-column/);
@@ -76,7 +77,7 @@ describe("course workbench layout default + migration", () => {
     assert.equal(isV3CourseAuthorWorkbenchLayout(DEFAULT_COURSE_AUTHOR_WORKBENCH_LAYOUT), false);
   });
 
-  it("migrates a persisted legacy layout to the v5 default on validate", () => {
+  it("migrates a persisted legacy layout to the v6 default on validate", () => {
     const storage = mockLocalStorage();
     (globalThis as { localStorage?: Storage }).localStorage = storage;
 
@@ -90,10 +91,10 @@ describe("course workbench layout default + migration", () => {
       workbenchLayoutFingerprint(migrated),
       defaultCourseAuthorWorkbenchLayoutFingerprint(),
     );
-    assert.equal(readCourseWorkbenchLayoutRevision(), 5);
+    assert.equal(readCourseWorkbenchLayoutRevision(), 6);
   });
 
-  it("migrates a persisted v3 dual-inspector layout to the v5 default on validate", () => {
+  it("migrates a persisted v3 dual-inspector layout to the v6 default on validate", () => {
     const storage = mockLocalStorage();
     (globalThis as { localStorage?: Storage }).localStorage = storage;
 
@@ -108,7 +109,7 @@ describe("course workbench layout default + migration", () => {
       workbenchLayoutFingerprint(migrated),
       defaultCourseAuthorWorkbenchLayoutFingerprint(),
     );
-    assert.equal(readCourseWorkbenchLayoutRevision(), 5);
+    assert.equal(readCourseWorkbenchLayoutRevision(), 6);
   });
 
   it("keeps a customized persisted layout during migration", () => {
@@ -117,7 +118,7 @@ describe("course workbench layout default + migration", () => {
 
     clearPersistedLayout("course-studio");
     storage.removeItem(REVISION_KEY);
-    writeCourseWorkbenchLayoutRevision(5);
+    writeCourseWorkbenchLayoutRevision(6);
 
     const custom = structuredClone(DEFAULT_COURSE_AUTHOR_WORKBENCH_LAYOUT);
     if (custom.type === "split") {
@@ -130,7 +131,7 @@ describe("course workbench layout default + migration", () => {
     if (validated.type === "split") {
       assert.equal(validated.ratio, 0.62);
     }
-    assert.equal(readCourseWorkbenchLayoutRevision(), 5);
+    assert.equal(readCourseWorkbenchLayoutRevision(), 6);
   });
 
   it("remaps legacy block-inspector panes to inspector", () => {

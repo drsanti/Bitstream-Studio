@@ -1,8 +1,13 @@
 import { parsePageV1, type PageV1 } from "../schemas/page.v1";
+import {
+  htmlPageTelemetryProviderExampleBlock,
+  withTelemetryProviderHtmlExample,
+} from "./courseTelemetryProviderExampleBlock";
 import bmi270ApplicationsPageJson from "./bmi270-applications.page.v1.json";
 import bmi270LiveVisualizationPageJson from "./bmi270-live-visualization.page.v1.json";
 import bmi270MemsDesignPageJson from "./bmi270-mems-design.page.v1.json";
 import bmi270OverviewPageJson from "./bmi270-overview.page.v1.json";
+import { TELEMETRY_EXAMPLE_HTML } from "./telemetryExampleHtml.generated";
 
 export const BMI270_OVERVIEW_PAGE_ID = "bmi270-overview";
 export const BMI270_MEMS_DESIGN_PAGE_ID = "bmi270-mems-design";
@@ -67,7 +72,17 @@ export function loadBmi270MemsDesignPage(): PageV1 {
 }
 
 export function loadBmi270LiveVisualizationPage(): PageV1 {
-  return parsePageV1(bmi270LiveVisualizationPageJson);
+  const page = parsePageV1(bmi270LiveVisualizationPageJson);
+  return withTelemetryProviderHtmlExample(
+    page,
+    htmlPageTelemetryProviderExampleBlock({
+      id: "telemetry-bmi270-gyro-bar",
+      title: "Provider API · gyro X bar",
+      caption: "HTML page block — gyroX via postMessage (auto-enables gyro on UART)",
+      placement: { column: 1, row: 22, columnSpan: 4, rowSpan: 5 },
+      html: TELEMETRY_EXAMPLE_HTML.bmi270GyroX,
+    }),
+  );
 }
 
 export function loadBmi270ApplicationsPage(): PageV1 {

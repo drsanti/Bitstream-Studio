@@ -27,6 +27,8 @@ export function coursePageBlockSelectionLabel(block: PageBlockV1): string {
       return block.caption?.trim() || "YouTube";
     case "iframe":
       return block.caption?.trim() || block.title?.trim() || "iFrame";
+    case "html-page":
+      return block.caption?.trim() || block.title?.trim() || "HTML page";
     default:
       if (block.kind.startsWith("callout-")) {
         return block.title?.trim() || "Callout";

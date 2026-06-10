@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://bitstream-studio.local/schemas/telemetry-provider/v1/envelope.json",
+  "title": "Bitstream Telemetry Provider envelope (v1)",
+  "type": "object",
+  "required": ["type", "v", "payload"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "bitstream:catalog",
+        "bitstream:config",
+        "bitstream:sample",
+        "bitstream:hello",
+        "bitstream:connection",
+        "bitstream:stale",
+        "bitstream:ready",
+        "bitstream:request",
+        "bitstream:command",
+        "bitstream:response"
+      ]
+    },
+    "v": { "const": 1 },
+    "payload": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "type": { "const": "bitstream:sample" } } },
+      "then": {
+        "properties": {
+          "payload": { "$ref": "#/$defs/samplePayload" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "bitstream:config" } } },
+      "then": {
+        "properties": {
+          "payload": { "$ref": "#/$defs/configPayload" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "bitstream:connection" } } },
+      "then": {
+        "properties": {
+          "payload": { "$ref": "#/$defs/connectionPayload" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "sensorId": {
+      "type": "string",
+      "enum": ["bmi270", "bmm350", "sht40", "dps368"]
+    },
+    "origin": {
+      "type": "string",
+      "enum": ["uart", "sim"]
+    },
+    "samplePayload": {
+      "type": "object",
+      "required": [
+        "sensor",
+        "sensorId",
+        "counter",
+        "deviceMs",
+        "hostMs",
+        "origin",
+        "mask",
+        "fields",
+        "units"
+      ],
+      "properties": {
+        "sensor": { "$ref": "#/$defs/sensorId" },
+        "sensorId": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "counter": { "type": "integer", "minimum": 0 },
+        "deviceMs": { "type": "integer", "minimum": 0 },
+        "hostMs": { "type": "integer", "minimum": 0 },
+        "origin": { "$ref": "#/$defs/origin" },
+        "mask": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "fields": {
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "units": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "configSensorEntry": {
+      "type": "object",
+      "required": [
+        "enabled",
+        "publishMode",
+        "mask",
+        "maskLabels",
+        "samplingIntervalMs",
+        "publishIntervalMs",
+        "deltaX100",
+        "minPublishIntervalMs"
+      ],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "publishMode": {
+          "type": "string",
+          "enum": ["periodic", "on_change", "hybrid"]
+        },
+        "mask": { "type": "integer", "minimum": 0, "maximum": 255 },
+        "maskLabels": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "samplingIntervalMs": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "publishIntervalMs": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "deltaX100": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "minPublishIntervalMs": { "type": "integer", "minimum": 0, "maximum": 65535 },
+        "expectedRateHz": { "type": "number", "minimum": 0 },
+        "bmi270StreamMode": {
+          "type": "string",
+          "enum": ["raw", "fusion"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "configPayload": {
+      "type": "object",
+      "required": ["hostMs", "source", "sensors"],
+      "properties": {
+        "hostMs": { "type": "integer", "minimum": 0 },
+        "source": {
+          "type": "string",
+          "enum": ["firmware", "simulator", "draft"]
+        },
+        "sensors": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/configSensorEntry" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "connectionPayload": {
+      "type": "object",
+      "required": ["state", "route", "comOpen", "providerReady"],
+      "properties": {
+        "state": {
+          "type": "string",
+          "enum": ["connected", "disconnected", "connecting", "error"]
+        },
+        "route": {
+          "type": "string",
+          "enum": ["uart", "simulator"]
+        },
+        "comOpen": { "type": "boolean" },
+        "providerReady": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -30,7 +30,7 @@ flowchart LR
 | **VSIX-like** | `npm run watch:all` + **F5** → Open Bitstream Studio | VS Code panel — **no** `npm start` at the same time |
 | **Two terminals** | `npm run start:bridge` · `npm run dev:webview` | Same browser URLs |
 
-`npm start` = **bridge (:9998)** + **Vite (:5173)** + **extension watch** + **AI bridge (:9987)**.  
+`npm start` = **bridge (:9998)** + **telemetry provider (:9997)** + **Vite (:5173)** + **extension watch** + **AI bridge (:9987)**.  
 `npm run watch:all` **alone** only rebuilds — it does **not** run the app.
 
 Ports stuck? `npm run dev:clean` then `npm start` again.
@@ -68,6 +68,9 @@ flowchart LR
   UART["Real serial optional"]
 
   Browser -->|bitstream2 JSON| Broker
+  Provider["Telemetry provider :9997"]
+  Browser -.->|standalone HTML| Provider
+  Provider --> Broker
   Broker --> Bridge
   Bridge -->|sim/host-tx| ExtSim
   ExtSim -->|dev/inject-rx| Bridge
@@ -77,6 +80,7 @@ flowchart LR
 | Piece | Default | Role |
 |--------|---------|------|
 | WebSocket broker | `ws://127.0.0.1:9998` | Pub/sub between webview, bridge, and external sim |
+| Telemetry provider | `ws://127.0.0.1:9997` | Public `bitstream:*` API (started with `start:bridge` / VSIX combined bridge) |
 | Vite webview | `http://localhost:5173` | Sensor Telemetry / Studio UI |
 | Bridge | `npm run start:bridge` | UART I/O, BS decode, routes to external sim when detected |
 | **Bitstream Simulator** | VS Code extension in **`bitstream-simulator/`** | Software MCU (HELLO, REQ/RES, sensor streams) via WS |
@@ -345,6 +349,7 @@ Start **Bitstream Simulator** (external extension) → **Streaming**.
 | B1 | Open Sensor Telemetry panel | Toolbar **Simulator** + **Link** |
 | B2 | Connect | WS connected; **Samples** increase (~sine on masked channels) |
 | B3 | Sensor config deck | Unlocks after HELLO / readiness (not stuck greyed) |
+| B4 | `ws://127.0.0.1:9997` (optional) | Combined bridge logs `[telemetry-provider] public API`; standalone HTML examples can connect |
 
 ### C — UART path (optional, hardware)
 
@@ -358,6 +363,8 @@ npm run bitstream2:uart-probe -- --path COM3 --baud 921600
 |------|--------|---------|
 | C1 | Probe CLI | **PROBE PASSED** |
 | C2 | Sensor Telemetry, source **Bitstream** | Live EVT after CLI/COM bring-up (webview COM session TBD) |
+| C3 | `npm run bitstream2:provider-uart-smoke -- --path=COMx` | Provider receives `origin: uart` samples on **:9997** |
+| C4 | Course Studio HTML block + `gyro-x-progress-bar.html` | Iframe shows live **gyroX** (auto-enables gyro mask on UART) |
 
 ### D — Automated gate
 

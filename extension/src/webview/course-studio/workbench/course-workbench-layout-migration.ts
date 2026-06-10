@@ -7,7 +7,7 @@ import {
   V3_COURSE_AUTHOR_WORKBENCH_LAYOUT,
 } from "./default-course-workbench-layout";
 
-export const COURSE_WORKBENCH_LAYOUT_REVISION = 5 as const;
+export const COURSE_WORKBENCH_LAYOUT_REVISION = 6 as const;
 const REVISION_STORAGE_KEY = "course-studio:workbench-layout-revision.v1";
 
 function layoutShapeFingerprint(layout: LayoutNode): string {
@@ -115,6 +115,7 @@ export function shouldResetCourseWorkbenchLayoutToDefault(layout: LayoutNode): b
     isV2CourseAuthorWorkbenchLayout(layout) ||
     isV3CourseAuthorWorkbenchLayout(layout) ||
     layoutContainsEditorType(layout, "block-inspector") ||
-    !layoutContainsEditorType(layout, "outline")
+    !layoutContainsEditorType(layout, "outline") ||
+    !layoutContainsEditorType(layout, "html-page")
   );
 }

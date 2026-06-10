@@ -8,11 +8,13 @@ import { isCourseScene3dDebugHudEnabled } from "./courseScene3dDebug";
 
 /** Optional dev-only R3F extras — kept out of the production viewport path. */
 export function CourseScene3dDevSceneExtras({
+  sceneId,
   modelCount,
   rootCount,
   projection,
   designTime,
 }: {
+  sceneId: string;
   modelCount: number;
   rootCount: number;
   projection: string;
@@ -30,6 +32,7 @@ export function CourseScene3dDevSceneExtras({
       <Diagram3dDevSceneMarker />
       {hudEnabled ? (
         <Diagram3dSceneDebugProbe
+          sceneId={sceneId}
           modelCount={modelCount}
           rootCount={rootCount}
           projection={projection}
@@ -40,11 +43,11 @@ export function CourseScene3dDevSceneExtras({
   );
 }
 
-export function CourseScene3dDevHudOverlay() {
+export function CourseScene3dDevHudOverlay({ sceneId }: { sceneId: string }) {
   if (!isCourseScene3dDebugHudEnabled()) {
     return null;
   }
-  return <CourseScene3dDebugHud />;
+  return <CourseScene3dDebugHud sceneId={sceneId} />;
 }
 
 export { isCourseScene3dDebugHudEnabled };

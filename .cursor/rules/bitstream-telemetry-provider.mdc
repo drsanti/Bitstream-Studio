@@ -1,0 +1,51 @@
+# Bitstream Telemetry Provider (external apps)
+
+When the user or task builds **external telemetry consumers** (Course HTML blocks, React localhost dashboards, third-party live UI):
+
+## Portable developer kit (canonical)
+
+**Upload folder:** `extension/docs/bitstream-telemetry-provider/`
+
+| File | Role |
+|------|------|
+| `SKILL.md` | AI agent checklist (start here) |
+| `RECIPES.md` | Progress bars, gauge mapping, aliases |
+| `EXAMPLES/gyro-x-progress-bar.html` | Single-file HTML reference |
+| `README.md` | Human overview |
+| `EVENTS.md`, `IFRAME.md`, `SDK.md`, `ADVANCED.md` | Consumer docs |
+| `sensor-catalog.v1.json`, `SCHEMA.v1.json` | Machine-readable specs |
+
+Cursor discovery skill: `.cursor/skills/bitstream-telemetry-provider/SKILL.md` → points to kit `SKILL.md`.
+
+## Contract
+
+- Public events: `bitstream:*` envelope `{ type, v: 1, payload }`
+- Live values: **`bitstream:sample`** → `payload.fields` (human-scale)
+- Specs: **`bitstream:catalog`** + **`sensor-catalog.v1.json`**
+- Config: **`bitstream:config`** (push on change only)
+- **Do not** parse BS2 UART in app code
+
+## Transports
+
+| Consumer | Use |
+|----------|-----|
+| Course iframe | `postMessage` — `IFRAME.md` in kit |
+| localhost React | SDK → **`ws://127.0.0.1:9997`** — `SDK.md` in kit |
+| Expert / Node | R2 raw broker 9998 — `ADVANCED.md` in kit |
+
+## Catalog changes (repo contributors)
+
+Edit `src/bitstream2/telemetry-provider/catalog/sensor-catalog-source.ts`, then:
+
+```bash
+npm run bitstream2:telemetry-catalog:gen
+npm run test:bitstream2
+```
+
+Regenerates JSON in the kit folder and `src/bitstream2/telemetry-provider/`.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — **`communication-language.mdc`**.
+
+Keep **`extension/.cursor/rules/bitstream-telemetry-provider.mdc`** in sync when editing this file.

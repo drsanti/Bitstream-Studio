@@ -31,6 +31,15 @@ export const COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS = BITSTREAM_SHELL_STATUS_CHIP_
 
 export const COURSE_STUDIO_TOPBAR_ACTION_CLASS = `course-studio-topbar-control ${COURSE_STUDIO_TOPBAR_CHIP_CLASS}`;
 
+/** One-shot mount when unsaved edits appear (Save + Discard pair). */
+export const COURSE_STUDIO_TOPBAR_ACTION_ENTER_CLASS = "course-studio-topbar-action-enter";
+
+/** Emerald breathe — page/outline dirty and save is actionable. */
+export const COURSE_STUDIO_TOPBAR_SAVE_READY_CLASS = "course-studio-topbar-save--ready";
+
+/** Static emerald while the dev save request is in flight. */
+export const COURSE_STUDIO_TOPBAR_SAVE_SAVING_CLASS = "course-studio-topbar-save--saving";
+
 export const COURSE_STUDIO_TOPBAR_ICON_BTN_CLASS =
   "course-studio-topbar-control inline-flex h-[21px] w-[21px] shrink-0 items-center justify-center rounded-full border";
 

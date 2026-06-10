@@ -12,6 +12,7 @@ import {
   COURSE_YOUTUBE_DEFAULT_CROP_TOP_PX,
   COURSE_YOUTUBE_MAX_CROP_PX,
 } from "../schemas/embedBlocks";
+import { CourseBlockReadHeightField } from "./CourseBlockReadHeightField";
 import { CourseInspectorCard, COURSE_INSPECTOR_CARD_ICON_CLASS } from "./CourseInspectorCard";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
 
@@ -261,6 +262,12 @@ export function CourseYoutubeBlockInspectorFields({
           </TRNFormField>
         </div>
       </CourseInspectorCard>
+
+      <CourseBlockReadHeightField
+        blockId={block.id}
+        readHeight={block.readHeight}
+        variant="embed"
+      />
     </>
   );
 }

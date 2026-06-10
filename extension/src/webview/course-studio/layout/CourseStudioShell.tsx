@@ -28,14 +28,18 @@ import { courseBreadcrumbForNode, collectCoursePageIds } from "../runtime/course
 import { saveCourseDev } from "../maintainer/saveCourseDev";
 import { CourseMotionController } from "../motion/CourseMotionController";
 import { Bmi270FrameRefSync } from "../../presentation/app/Bmi270FrameRefSync";
+import { CourseTelemetryPostMessageBridge } from "../runtime/CourseTelemetryPostMessageBridge";
 import { CourseStudioModePill } from "./CourseStudioModePill";
 import {
   COURSE_STUDIO_TOPBAR_ACTION_CLASS,
+  COURSE_STUDIO_TOPBAR_ACTION_ENTER_CLASS,
   COURSE_STUDIO_TOPBAR_BRAND_ICON_CLASS,
   COURSE_STUDIO_TOPBAR_BRAND_ICON_PX,
   COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS,
   COURSE_STUDIO_TOPBAR_ICON_BTN_CLASS,
   COURSE_STUDIO_TOPBAR_LAYOUT_MENU_CLASS,
+  COURSE_STUDIO_TOPBAR_SAVE_READY_CLASS,
+  COURSE_STUDIO_TOPBAR_SAVE_SAVING_CLASS,
   COURSE_STUDIO_TOPBAR_SUBTITLE_CLASS,
   COURSE_STUDIO_TOPBAR_TITLE_CLASS,
   COURSE_STUDIO_TOPBAR_TITLE_STACK_CLASS,
@@ -70,6 +74,8 @@ export function CourseStudioShell() {
 
   const [saving, setSaving] = useState(false);
   const [layoutMenuProps, setLayoutMenuProps] = useState<WorkbenchLayoutMenuProps | null>(null);
+  const hasUnsavedEdits = dirty || courseDirty;
+  const saveReady = maintainerEnabled && hasUnsavedEdits && !saving;
 
   const handleSave = useCallback(async () => {
     if (!dirty && !courseDirty) {
@@ -162,6 +168,7 @@ export function CourseStudioShell() {
       }`}
     >
       <Bmi270FrameRefSync />
+      <CourseTelemetryPostMessageBridge />
       <CourseMotionController>
         <header className="course-studio-topbar relative flex h-11 shrink-0 items-center border-b px-4">
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -182,7 +189,7 @@ export function CourseStudioShell() {
             </div>
           ) : null}
           <div className="course-studio-topbar-actions flex flex-1 items-center justify-end">
-            {maintainerEnabled && (dirty || courseDirty) ? (
+            {maintainerEnabled && hasUnsavedEdits ? (
               <>
                 <TRNTooltip
                   content="Discard unsaved edits"
@@ -193,7 +200,7 @@ export function CourseStudioShell() {
                   trigger={
                     <button
                       type="button"
-                      className={`${COURSE_STUDIO_TOPBAR_ACTION_CLASS} gap-1 hover:bg-[var(--surface-hover)]`}
+                      className={`${COURSE_STUDIO_TOPBAR_ACTION_CLASS} ${COURSE_STUDIO_TOPBAR_ACTION_ENTER_CLASS} gap-1 hover:bg-[var(--surface-hover)]`}
                       onClick={handleDiscard}
                     >
                       <Undo2 className={COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS} strokeWidth={2} aria-hidden />
@@ -202,7 +209,11 @@ export function CourseStudioShell() {
                   }
                 />
                 <TRNTooltip
-                  content="Save page and course outline to repo (dev only)"
+                  content={
+                    saving
+                      ? "Saving page and course outline to repo…"
+                      : "Save page and course outline to repo (dev only)"
+                  }
                   openDelayMs={TRN_HINT_HOVER_DELAY_MS}
                   disableHoverFx
                   triggerWrapper="span"
@@ -211,7 +222,14 @@ export function CourseStudioShell() {
                     <button
                       type="button"
                       disabled={saving}
-                      className={`${COURSE_STUDIO_TOPBAR_ACTION_CLASS} gap-1 border-amber-500/40 bg-amber-500/15 text-amber-100 hover:bg-amber-500/25 disabled:opacity-60`}
+                      aria-busy={saving}
+                      className={`${COURSE_STUDIO_TOPBAR_ACTION_CLASS} ${COURSE_STUDIO_TOPBAR_ACTION_ENTER_CLASS} gap-1 disabled:opacity-70 ${
+                        saving
+                          ? COURSE_STUDIO_TOPBAR_SAVE_SAVING_CLASS
+                          : saveReady
+                            ? COURSE_STUDIO_TOPBAR_SAVE_READY_CLASS
+                            : ""
+                      }`}
                       onClick={() => void handleSave()}
                     >
                       <Save className={COURSE_STUDIO_TOPBAR_CHIP_ICON_CLASS} strokeWidth={2} aria-hidden />

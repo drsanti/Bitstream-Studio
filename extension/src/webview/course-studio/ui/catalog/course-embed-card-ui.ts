@@ -1,11 +1,36 @@
+import { twMerge } from "tailwind-merge";
 import type { CourseEmbedCaptionPlacement } from "../../schemas/page.v1";
 
-/** Shared layout classes for YouTube / iFrame grid embed cards. */
+export type CourseEmbedShellHeight = "fill" | "content";
+
+/** Shared layout classes for YouTube / iFrame grid embed cards (no h-full — applied only in fill mode). */
 export const COURSE_EMBED_CARD_CLASS =
-  "course-embed-card relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)]";
+  "course-embed-card relative flex w-full min-h-0 flex-col overflow-hidden rounded-xl border border-[var(--surface-border)] bg-[var(--surface-card)]";
+
+export const COURSE_EMBED_CARD_FILL_CLASS = "course-embed-card--fill h-full";
+
+export const COURSE_EMBED_CARD_READ_CONTENT_CLASS = "course-embed-card--read-content";
 
 export const COURSE_EMBED_CARD_MEDIA_CLASS =
-  "course-embed-card__media relative isolate min-h-[12rem] w-full flex-1 basis-0 overflow-hidden bg-zinc-950/60";
+  "course-embed-card__media relative isolate min-h-[12rem] w-full overflow-hidden bg-zinc-950/60";
+
+export function courseEmbedCardClassName(
+  shellHeight: CourseEmbedShellHeight,
+  extra?: string,
+): string {
+  return twMerge(
+    COURSE_EMBED_CARD_CLASS,
+    shellHeight === "fill" ? COURSE_EMBED_CARD_FILL_CLASS : COURSE_EMBED_CARD_READ_CONTENT_CLASS,
+    extra,
+  );
+}
+
+export function courseEmbedCardMediaClassName(shellHeight: CourseEmbedShellHeight): string {
+  return twMerge(
+    COURSE_EMBED_CARD_MEDIA_CLASS,
+    shellHeight === "fill" ? "flex-1 basis-0" : undefined,
+  );
+}
 
 export const COURSE_EMBED_CARD_IFRAME_LAYER_CLASS = "course-embed-card__iframe-layer";
 

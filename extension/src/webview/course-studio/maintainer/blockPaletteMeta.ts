@@ -2,6 +2,8 @@ import type { PageBlockKind } from "./blockFactory";
 
 export type CourseBlockPaletteCategory = "structure" | "content" | "live" | "visual" | "embed";
 
+export type CourseBlockPaletteTier = "default" | "more";
+
 export type CourseBlockPaletteIconId =
   | "heading"
   | "callout"
@@ -15,7 +17,9 @@ export type CourseBlockPaletteIconId =
   | "image"
   | "code"
   | "youtube"
-  | "iframe";
+  | "iframe"
+  | "html-page"
+  | "embed";
 
 export type CourseBlockPaletteEntry = {
   kind: PageBlockKind;
@@ -25,6 +29,9 @@ export type CourseBlockPaletteEntry = {
   icon: CourseBlockPaletteIconId;
   defaultSpan: { columnSpan: number; rowSpan: number };
   accentClassName?: string;
+  tier: CourseBlockPaletteTier;
+  /** Omit from palette rows — merged under the embed group tile. */
+  paletteHidden?: boolean;
 };
 
 export const COURSE_BLOCK_PALETTE_CATEGORY_LABELS: Record<CourseBlockPaletteCategory, string> = {
@@ -43,6 +50,17 @@ export const COURSE_BLOCK_PALETTE_CATEGORY_ORDER: readonly CourseBlockPaletteCat
   "embed",
 ];
 
+export const COURSE_BLOCK_EMBED_PALETTE_KINDS = ["youtube", "iframe"] as const satisfies readonly PageBlockKind[];
+
+export const COURSE_BLOCK_PALETTE_EMBED_GROUP = {
+  label: "Embed",
+  description: "Video or external page",
+  category: "embed" as const,
+  icon: "embed" as const,
+  tier: "more" as const,
+  accentClassName: "text-rose-400/90",
+};
+
 export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
   {
     kind: "heading",
@@ -51,6 +69,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     category: "structure",
     icon: "heading",
     defaultSpan: { columnSpan: 12, rowSpan: 2 },
+    tier: "default",
   },
   {
     kind: "markdown",
@@ -59,6 +78,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     category: "content",
     icon: "markdown",
     defaultSpan: { columnSpan: 6, rowSpan: 4 },
+    tier: "default",
   },
   {
     kind: "card",
@@ -67,6 +87,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     category: "content",
     icon: "card",
     defaultSpan: { columnSpan: 4, rowSpan: 2 },
+    tier: "default",
   },
   {
     kind: "callout-info",
@@ -76,6 +97,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "callout",
     defaultSpan: { columnSpan: 6, rowSpan: 2 },
     accentClassName: "text-sky-400/90",
+    tier: "default",
   },
   {
     kind: "code",
@@ -84,6 +106,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     category: "content",
     icon: "code",
     defaultSpan: { columnSpan: 6, rowSpan: 3 },
+    tier: "more",
   },
   {
     kind: "image",
@@ -92,6 +115,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     category: "content",
     icon: "image",
     defaultSpan: { columnSpan: 6, rowSpan: 4 },
+    tier: "more",
   },
   {
     kind: "live-metric",
@@ -101,6 +125,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "live-metric",
     defaultSpan: { columnSpan: 4, rowSpan: 3 },
     accentClassName: "text-amber-400/90",
+    tier: "more",
   },
   {
     kind: "dashboard-widget",
@@ -110,6 +135,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "dashboard-widget",
     defaultSpan: { columnSpan: 3, rowSpan: 3 },
     accentClassName: "text-cyan-400/90",
+    tier: "default",
   },
   {
     kind: "sensor-telemetry-card",
@@ -119,6 +145,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "sensor-telemetry-card",
     defaultSpan: { columnSpan: 5, rowSpan: 3 },
     accentClassName: "text-emerald-400/90",
+    tier: "default",
   },
   {
     kind: "diagram-2d",
@@ -128,6 +155,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "diagram",
     defaultSpan: { columnSpan: 5, rowSpan: 3 },
     accentClassName: "text-cyan-400/90",
+    tier: "default",
   },
   {
     kind: "scene-3d",
@@ -137,6 +165,7 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "scene-3d",
     defaultSpan: { columnSpan: 5, rowSpan: 4 },
     accentClassName: "text-violet-400/90",
+    tier: "default",
   },
   {
     kind: "youtube",
@@ -146,6 +175,8 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "youtube",
     defaultSpan: { columnSpan: 6, rowSpan: 4 },
     accentClassName: "text-rose-400/90",
+    tier: "more",
+    paletteHidden: true,
   },
   {
     kind: "iframe",
@@ -155,5 +186,34 @@ export const PAGE_BLOCK_PALETTE: readonly CourseBlockPaletteEntry[] = [
     icon: "iframe",
     defaultSpan: { columnSpan: 6, rowSpan: 4 },
     accentClassName: "text-emerald-400/90",
+    tier: "more",
+    paletteHidden: true,
+  },
+  {
+    kind: "html-page",
+    label: "HTML page",
+    description: "Single-file HTML/CSS/JS demo",
+    category: "embed",
+    icon: "html-page",
+    defaultSpan: { columnSpan: 6, rowSpan: 6 },
+    accentClassName: "text-emerald-400/90",
+    tier: "more",
   },
 ];
+
+export function courseBlockPaletteVisibleEntries(
+  tier: CourseBlockPaletteTier,
+): CourseBlockPaletteEntry[] {
+  return PAGE_BLOCK_PALETTE.filter((entry) => entry.tier === tier && entry.paletteHidden !== true);
+}
+
+export function courseBlockEmbedPaletteEntries(): CourseBlockPaletteEntry[] {
+  return PAGE_BLOCK_PALETTE.filter((entry) =>
+    (COURSE_BLOCK_EMBED_PALETTE_KINDS as readonly string[]).includes(entry.kind),
+  );
+}
+
+/** Rows shown under the collapsed “More blocks” section (includes the embed group). */
+export function courseBlockPaletteMoreRowCount(): number {
+  return courseBlockPaletteVisibleEntries("more").length + 1;
+}

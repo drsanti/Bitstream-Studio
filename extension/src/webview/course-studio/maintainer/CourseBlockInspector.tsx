@@ -9,12 +9,15 @@ import { TRNTextarea } from "../../ui/TRN/TRNTextarea";
 import { CourseDiagramBlockInspectorFields } from "../workbench/panes/CourseDiagramBlockInspectorFields";
 import { CourseScene3dBlockInspectorFields } from "./CourseScene3dBlockFields";
 import { CourseInspectorCard, COURSE_INSPECTOR_CARD_ICON_CLASS } from "./CourseInspectorCard";
+import { CourseBlockReadHeightField } from "./CourseBlockReadHeightField";
 import { CourseCardBlockInspectorFields } from "./CourseCardBlockInspectorFields";
 import { CourseDashboardWidgetBlockInspectorFields } from "./CourseDashboardWidgetBlockInspectorFields";
 import { CourseLiveMetricBlockInspectorFields } from "./CourseLiveMetricBlockInspectorFields";
 import { CourseSensorTelemetryCardBlockInspectorFields } from "./CourseSensorTelemetryCardBlockInspectorFields";
 import { CourseEmojiTextField } from "./CourseEmojiTextField";
 import { CourseMarkdownBlockInspectorFields } from "./CourseMarkdownBlockInspectorFields";
+import { CourseHtmlPageBlockInspectorFields } from "./CourseHtmlPageBlockInspectorFields";
+import { CourseIframeBlockInspectorFields } from "./CourseIframeBlockInspectorFields";
 import { CourseYoutubeBlockInspectorFields } from "./CourseYoutubeBlockInspectorFields";
 import { CourseBlockPlacementInspectorCard } from "./CourseBlockPlacementStrip";
 import { calloutVariantFromBlockKind } from "../ui/catalog/callout-tokens";
@@ -237,35 +240,9 @@ function BlockFields({ block }: { block: PageBlockV1 }) {
     case "youtube":
       return <CourseYoutubeBlockInspectorFields block={block} />;
     case "iframe":
-      return (
-        <div className="flex flex-col gap-3">
-          <TRNFormField id={`${block.id}-src`} label="Embed URL">
-            <TRNInput
-              id={`${block.id}-src`}
-              variant="outlined"
-              size="sm"
-              className="w-full"
-              value={block.src}
-              onChange={(e) => updateBlock(block.id, { src: e.target.value })}
-            />
-          </TRNFormField>
-          <CourseEmojiTextField
-            id={`${block.id}-title`}
-            label="Accessible title"
-            value={block.title ?? ""}
-            onChange={(title) => updateBlock(block.id, { title })}
-          />
-          <CourseEmojiTextField
-            id={`${block.id}-caption`}
-            label="Caption"
-            value={block.caption ?? ""}
-            onChange={(caption) => updateBlock(block.id, { caption })}
-          />
-          <TRNHintText>
-            Embedded pages run in a sandboxed iframe. Some sites block embedding via X-Frame-Options.
-          </TRNHintText>
-        </div>
-      );
+      return <CourseIframeBlockInspectorFields block={block} />;
+    case "html-page":
+      return <CourseHtmlPageBlockInspectorFields block={block} />;
     default:
       return null;
   }
@@ -276,6 +253,8 @@ export function CourseBlockContentFields({ block }: { block: PageBlockV1 }) {
 
   if (
     block.kind === "youtube" ||
+    block.kind === "iframe" ||
+    block.kind === "html-page" ||
     block.kind === "markdown" ||
     block.kind === "card" ||
     block.kind === "scene-3d" ||

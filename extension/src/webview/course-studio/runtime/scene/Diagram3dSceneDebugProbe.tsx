@@ -1,8 +1,11 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { setCourseScene3dDebugSnapshot } from "./courseScene3dDebug";
+import {
+  clearCourseScene3dDebugSnapshot,
+  setCourseScene3dDebugSnapshot,
+} from "./courseScene3dDebug";
 
 function formatVec3(v: THREE.Vector3): string {
   return `${v.x.toFixed(2)}, ${v.y.toFixed(2)}, ${v.z.toFixed(2)}`;
@@ -46,11 +49,13 @@ function countSceneLights(scene: THREE.Scene): number {
 
 /** Dev-only: samples R3F / Three state for the viewport debug HUD. */
 export function Diagram3dSceneDebugProbe({
+  sceneId,
   modelCount,
   rootCount,
   projection,
   designTime,
 }: {
+  sceneId: string;
   modelCount: number;
   rootCount: number;
   projection: string;
@@ -58,6 +63,12 @@ export function Diagram3dSceneDebugProbe({
 }) {
   const { camera, scene, gl, size, frameloop, controls } = useThree();
   const frameCountRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      clearCourseScene3dDebugSnapshot(sceneId);
+    };
+  }, [sceneId]);
 
   useFrame(() => {
     frameCountRef.current += 1;
@@ -82,7 +93,7 @@ export function Diagram3dSceneDebugProbe({
           ? `zoom ${camera.zoom.toFixed(3)}`
           : "—";
 
-    setCourseScene3dDebugSnapshot({
+    setCourseScene3dDebugSnapshot(sceneId, {
       updatedAtMs: Date.now(),
       hostW,
       hostH,

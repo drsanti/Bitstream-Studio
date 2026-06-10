@@ -12,6 +12,8 @@ English-only committed docs for the **`bitstream-studio`** VS Code extension (`e
 | [`BITSTREAM_TELEMETRY_OPERATIONS.md`](./BITSTREAM_TELEMETRY_OPERATIONS.md) | Operator diagnostics |
 | [`BITSTREAM_TELEMETRY_STALE_PIPELINE.md`](./BITSTREAM_TELEMETRY_STALE_PIPELINE.md) | Stale decode troubleshooting |
 | [`BRIDGE.md`](./BRIDGE.md) | Serial / model WebSocket brokers |
+| [`bitstream-telemetry-provider/`](./bitstream-telemetry-provider/README.md) | **Developer / AI kit** — public API `:9997`, `bitstream:sample`, EXAMPLES, **SKILL.md** |
+| [`BITSTREAM_TELEMETRY_PROVIDER.md`](./BITSTREAM_TELEMETRY_PROVIDER.md) | Pointer to portable kit folder |
 
 Also under **`../src/bitstream2/docs/`** (SENSOR_CFG, HOST_UART_LINK, UART probes).
 

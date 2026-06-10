@@ -14,12 +14,12 @@ function DebugHudLine({ label, value }: { label: string; value: string | number 
   );
 }
 
-export function CourseScene3dDebugHud() {
+export function CourseScene3dDebugHud({ sceneId }: { sceneId: string }) {
   const enabled = isCourseScene3dDebugHudEnabled();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const snapshot = useSyncExternalStore(
-    subscribeCourseScene3dDebug,
-    getCourseScene3dDebugSnapshot,
+    (listener) => subscribeCourseScene3dDebug(sceneId, listener),
+    () => getCourseScene3dDebugSnapshot(sceneId),
     () => null,
   );
 

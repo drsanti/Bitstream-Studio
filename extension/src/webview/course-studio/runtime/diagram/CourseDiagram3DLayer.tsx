@@ -33,7 +33,6 @@ import { resolveDiagramRenderSnapshot } from "./diagramLinkHealth";
 import {
   CourseScene3dDevHudOverlay,
   CourseScene3dDevSceneExtras,
-  isCourseScene3dDebugHudEnabled,
 } from "../scene/CourseScene3dDevKit";
 import { CourseScene3dViewport } from "../scene/CourseScene3dViewport";
 import {
@@ -880,8 +879,6 @@ export function CourseDiagram3DLayer({
   );
   const selectionAppearance = useCourseDiagram3dViewportPrefs((s) => s.selectionAppearance);
   const projection = useCourseDiagram3dViewportPrefs((s) => s.projection);
-  const showDebugHud = isCourseScene3dDebugHudEnabled();
-
   const resolvedCamera = readDiagram3dCamera(diagram);
   const cameraPosition = resolvedCamera.position;
   const cameraFov = resolvedCamera.fov;
@@ -904,7 +901,7 @@ export function CourseDiagram3DLayer({
       className={className}
       inactive={inactive}
       dataDiagramLink={inactive ? "stale" : "live"}
-      overlay={<CourseScene3dDevHudOverlay />}
+      overlay={<CourseScene3dDevHudOverlay sceneId={diagramKey} />}
     >
       <Diagram3dViewportControlsProvider>
         <Diagram3dMultiGizmoPreviewProvider>
@@ -938,6 +935,7 @@ export function CourseDiagram3DLayer({
             environmentSettings={environmentSettings}
           />
           <CourseScene3dDevSceneExtras
+            sceneId={diagramKey}
             modelCount={modelCount}
             rootCount={resolved.roots.length}
             projection={projection}

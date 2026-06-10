@@ -102,6 +102,7 @@ On `deactivate`, the extension clears bridge roots, stops the embedded broker, a
    - Creates a serial/bitstream broker (default `ws://0.0.0.0:9998`) and a model broker (default `ws://0.0.0.0:9999`; configurable).
    - `startBridge({ wsUrl })` → **SerialPortWebSocketBridge** connects to the serial broker.
    - `startModelDownloaderBridge({ wsUrl })` → **ModelDownloaderWebSocketBridge** connects to the model broker and subscribes to command topics (see below).
+   - **TelemetryProviderGateway** on `ws://127.0.0.1:9997` (public `bitstream:*` API for standalone HTML/SDK). Disable with `BITSTREAM_TELEMETRY_PROVIDER_DISABLE=1`.
 4. When stdout contains the broker listening markers (`[t3d-ws-serial]` or legacy `[t3d-ws]`), bridge-handle notifies the webview (`serial-bridge-status-changed`).
 5. The UI uses **T3DWebSocketClient** to publish requests with `requestId` and subscribe to `*-response` / progress topics.
 

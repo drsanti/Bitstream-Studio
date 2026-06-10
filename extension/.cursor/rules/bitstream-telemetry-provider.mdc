@@ -1,0 +1,12 @@
+# Bitstream Telemetry Provider (external apps)
+
+Repo root copy: **`.cursor/rules/bitstream-telemetry-provider.mdc`**
+
+**Portable kit (upload one folder):** `extension/docs/bitstream-telemetry-provider/`  
+Includes **SKILL.md**, **RECIPES.md**, **EXAMPLES/gyro-x-progress-bar.html**, README, docs, `sensor-catalog.v1.json`, `SCHEMA.v1.json`.
+
+Iframe → postMessage; localhost → `ws://127.0.0.1:9997`. Catalog: `npm run bitstream2:telemetry-catalog:gen`
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — repo root **`communication-language.mdc`**.

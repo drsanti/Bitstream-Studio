@@ -116,13 +116,14 @@ export const useCourseOutlineStore = create<CourseOutlineState>((set, get) => ({
       return false;
     }
     const pageId = pageIdForCourseNode(course.root, nodeId);
-    set({ activeNodeId: nodeId });
     get().expandNode(nodeId);
     if (pageId == null) {
+      set({ activeNodeId: nodeId });
       return true;
     }
     const ok = navigateCoursePage(pageId);
     if (ok) {
+      set({ activeNodeId: nodeId });
       useCourseWorkbenchFocusStore.getState().setActiveEditorType("content");
     }
     return ok;

@@ -45,6 +45,13 @@
         "title": "Tesring",
         "children": [
           {
+            "id": "topic-2",
+            "kind": "topic",
+            "title": "New topic",
+            "pageId": "new-topic-2",
+            "children": []
+          },
+          {
             "id": "topic-1",
             "kind": "topic",
             "title": "3D Scene Block",

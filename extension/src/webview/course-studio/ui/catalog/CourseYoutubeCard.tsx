@@ -11,13 +11,14 @@ import {
   COURSE_EMBED_CARD_CAPTION_CLASS,
   COURSE_EMBED_CARD_CAPTION_ABOVE_CLASS,
   COURSE_EMBED_CARD_CAPTION_OVERLAY_CLASS,
-  COURSE_EMBED_CARD_CLASS,
   COURSE_EMBED_CARD_IFRAME_CLASS,
   COURSE_EMBED_CARD_IFRAME_CROPPED_CLASS,
   COURSE_EMBED_CARD_IFRAME_LAYER_CLASS,
-  COURSE_EMBED_CARD_MEDIA_CLASS,
   COURSE_EMBED_CARD_MEDIA_CROPPED_CLASS,
+  courseEmbedCardClassName,
+  courseEmbedCardMediaClassName,
   resolveEmbedCaptionDisplay,
+  type CourseEmbedShellHeight,
 } from "./course-embed-card-ui";
 
 export function CourseYoutubeCard({
@@ -25,11 +26,13 @@ export function CourseYoutubeCard({
   caption,
   captionPlacement,
   embed,
+  shellHeight = "fill",
 }: {
   url: string;
   caption?: string;
   captionPlacement?: CourseEmbedCaptionPlacement;
   embed?: YoutubeEmbedOptions;
+  shellHeight?: CourseEmbedShellHeight;
 }) {
   const crop = resolveYoutubeCropInsets(embed);
   const captionDisplay = resolveEmbedCaptionDisplay(caption, captionPlacement);
@@ -45,13 +48,13 @@ export function CourseYoutubeCard({
     : undefined;
 
   return (
-    <figure className={COURSE_EMBED_CARD_CLASS}>
+    <figure className={courseEmbedCardClassName(shellHeight)}>
       {captionDisplay?.mode === "above" ? (
         <figcaption className={COURSE_EMBED_CARD_CAPTION_ABOVE_CLASS}>{captionDisplay.text}</figcaption>
       ) : null}
       <div
         className={twMerge(
-          COURSE_EMBED_CARD_MEDIA_CLASS,
+          courseEmbedCardMediaClassName(shellHeight),
           crop.active && COURSE_EMBED_CARD_MEDIA_CROPPED_CLASS,
         )}
         style={cropStyle}

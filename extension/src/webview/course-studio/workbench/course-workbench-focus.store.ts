@@ -6,6 +6,7 @@ export const COURSE_WORKBENCH_EDITOR_TYPES = [
   "inspector",
   "diagram",
   "markdown",
+  "html-page",
   "scene-3d",
 ] as const;
 

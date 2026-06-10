@@ -177,9 +177,30 @@ export function createPageBlock(
         id,
         kind,
         placement,
-        src: "https://example.com",
-        title: "Embedded page",
-        caption: "Embed caption",
+        src: "https://tesaiot.dev/",
+      };
+    case "html-page":
+      return {
+        id,
+        kind,
+        placement,
+        html: `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 1.25rem; color: #e4e4e7; background: #18181b; }
+    h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+    p { margin: 0; color: #a1a1aa; }
+  </style>
+</head>
+<body>
+  <h1>HTML page</h1>
+  <p>Edit in the HTML Editor workbench pane.</p>
+</body>
+</html>`,
       };
     default:
       return {

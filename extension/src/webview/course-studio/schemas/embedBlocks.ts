@@ -1,4 +1,9 @@
 import type { PageBlockV1 } from "./page.v1";
+import {
+  markdownShellHeightForRead,
+  resolveMarkdownReadHeight,
+  type MarkdownReadHeightMode,
+} from "./markdownReadHeight";
 
 /** Parse a YouTube video id from a share URL or bare 11-character id. */
 export function parseYoutubeVideoId(input: string): string | null {
@@ -141,6 +146,99 @@ export function buildYoutubeEmbedUrl(videoId: string, options?: YoutubeEmbedOpti
   return `https://www.youtube.com/embed/${videoId}${query.length > 0 ? `?${query}` : ""}`;
 }
 
+export type CourseEmbedShellHeight = "fill" | "content";
+
+export function resolveEmbedReadHeight(block: {
+  readHeight?: MarkdownReadHeightMode;
+}): MarkdownReadHeightMode {
+  return resolveMarkdownReadHeight(block);
+}
+
+export function embedShellHeightForRead(block: {
+  readHeight?: MarkdownReadHeightMode;
+}): CourseEmbedShellHeight {
+  return markdownShellHeightForRead(resolveEmbedReadHeight(block));
+}
+
+export function embedUsesReadContentHeight(block: PageBlockV1): boolean {
+  if (block.kind !== "iframe" && block.kind !== "youtube") {
+    return false;
+  }
+  return embedShellHeightForRead(block) === "content";
+}
+
+export function iframeUsesReadContentHeight(block: PageBlockV1): boolean {
+  return block.kind === "iframe" && embedShellHeightForRead(block) === "content";
+}
+
+export const IFRAME_READ_HEIGHT_MIN_PX = 192;
+export const IFRAME_READ_HEIGHT_MAX_PX = 4000;
+export const IFRAME_READ_HEIGHT_DEFAULT_FIXED_PX = 480;
+
+export type IframeReadHeightUiMode = "auto" | "fixed" | "grid";
+
+export function resolveIframeReadHeightUiMode(block: {
+  readHeight?: MarkdownReadHeightMode;
+  readHeightPx?: number;
+}): IframeReadHeightUiMode {
+  if (block.readHeight === "grid") {
+    return "grid";
+  }
+  if (block.readHeightPx != null) {
+    return "fixed";
+  }
+  return "auto";
+}
+
+/** Read-mode fixed height in px. Auto mode fetches/measures embed document height. */
+export function iframeReadContentHeightPx(
+  block: Extract<PageBlockV1, { kind: "iframe" }>,
+): number | undefined {
+  return block.readHeightPx ?? undefined;
+}
+
 export function formatGridSpanLabel(columnSpan: number, rowSpan: number): string {
   return `${columnSpan} × ${rowSpan}`;
+}
+
+/** Normalize user-entered iframe src for display and navigation. */
+export function normalizeIframeEmbedSrc(input: string): string {
+  const trimmed = input.trim();
+  if (trimmed.length === 0) {
+    return "";
+  }
+  try {
+    return new URL(trimmed).href;
+  } catch {
+    return trimmed;
+  }
+}
+
+const IFRAME_EMBED_BLOCKED_HOST_SUFFIXES = [
+  "google.com",
+  "facebook.com",
+  "instagram.com",
+  "twitter.com",
+  "x.com",
+  "linkedin.com",
+] as const;
+
+/** Hosts that commonly refuse framing — show a friendly fallback instead of a blank iframe. */
+export function iframeEmbedBlockedMessage(src: string): string | null {
+  const normalized = normalizeIframeEmbedSrc(src);
+  if (normalized.length === 0) {
+    return null;
+  }
+  try {
+    const host = new URL(normalized).hostname.toLowerCase().replace(/^www\./, "");
+    const blocked = IFRAME_EMBED_BLOCKED_HOST_SUFFIXES.some(
+      (suffix) => host === suffix || host.endsWith(`.${suffix}`),
+    );
+    if (!blocked) {
+      return null;
+    }
+    return `${host} blocks embedding in iframes (X-Frame-Options). Use a frame-friendly URL or open the page in a new tab.`;
+  } catch {
+    return null;
+  }
 }

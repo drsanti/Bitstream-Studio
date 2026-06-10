@@ -8,6 +8,9 @@ All blocks consume the **same live BMI270 stream** and share link-health behavio
 | **3D Scene** | PCB mesh attitude from fusion |
 | **Diagram** (MEMS) | Proof-mass offset and spring highlight |
 | **Diagram** (3D layer) | Live PCB graphic in the diagram canvas |
+| **HTML page block** | Provider API gyro X progress bar (`gyroX` via `postMessage`) |
+
+In **Bitstream** mode, the HTML demo auto-enables BMI270 **raw gyro** when the active mask omits `gyroX`.
 
 ## Bench procedure
 

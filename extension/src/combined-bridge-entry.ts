@@ -1,3 +1,4 @@
+import { TelemetryProviderGateway } from './bitstream2/telemetry-provider/TelemetryProviderGateway';
 import { T3DWebSocketServer } from './websocket/T3DWebSocketServer';
 import { startBridge, stopBridge } from './serialport-bridge/SerialPortWebSocketBridge';
 import { startModelDownloaderBridge, stopModelDownloaderBridge } from './model-downloader/ModelDownloaderWebSocketBridge';
@@ -85,8 +86,24 @@ async function main() {
     console.error('[model-downloader-bridge] failed to start:', err);
   }
 
+  let telemetryGateway: TelemetryProviderGateway | null = null;
+  if (!envTruthy('BITSTREAM_TELEMETRY_PROVIDER_DISABLE')) {
+    try {
+      telemetryGateway = new TelemetryProviderGateway({ brokerUrl: serialWsUrl });
+      await telemetryGateway.start();
+    } catch (err) {
+      console.error(
+        '[telemetry-provider] failed to start (standalone HTML on :9997 unavailable):',
+        err,
+      );
+    }
+  } else {
+    console.log('[telemetry-provider] disabled (BITSTREAM_TELEMETRY_PROVIDER_DISABLE=1)');
+  }
+
   const shutdown = async () => {
     console.log('\n🛑 Shutting down bridges...');
+    await telemetryGateway?.stop();
     await stopBridge();
     await stopModelDownloaderBridge();
     serialServer.stop();

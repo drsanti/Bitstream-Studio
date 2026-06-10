@@ -1,4 +1,5 @@
 import { bootstrapCourseStudioContent } from "./bootstrapCourseStudioContent";
+import { registerContentFolderPages } from "./registerContentFolderPages";
 import { readCourseStudioBootstrapModeFromLocation } from "./bootstrapCourseStudioBlank";
 import {
   loadCourseStudioSessionDraft,
@@ -28,6 +29,8 @@ export function initializeCourseStudioWorkspace(): void {
     return;
   }
   courseStudioWorkspaceBootstrapped = true;
+
+  registerContentFolderPages();
 
   const mode = readCourseStudioBootstrapModeFromLocation();
 

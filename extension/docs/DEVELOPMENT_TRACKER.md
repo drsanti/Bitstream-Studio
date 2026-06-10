@@ -72,6 +72,16 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-10** — **Telemetry provider kit docs (AI agents):** SKILL + README refresh — WebSocket/postMessage first, mock fallback, avoid UART/baud in generated copy; shipped-phase table; per-sensor stale in SKILL.
+- **2026-06-10** — **Course Studio telemetry provider demos:** SHT40 / DPS368 / BMI270 **Live visualization** pages embed kit `EXAMPLES/*.html` as html-page blocks (`telemetry-examples/` synced on `bitstream2:telemetry-catalog:gen`); theory markdown updated.
+- **2026-06-10** — **Bitstream Telemetry Provider hardening:** Course iframe `postMessage` origin registry (handshake-only clients, targeted `targetOrigin`); per-sensor `staleAfterMs` in catalog (~3× publish interval).
+- **2026-06-10** — **Bitstream Telemetry Provider VSIX parity + gyro UART:** `TelemetryProviderGateway` auto-starts in `combined-bridge-entry` (:9997); gyro example auto `bmi270.mode.set` + `sensor.cfg.set` on UART; `npm run bitstream2:provider-uart-smoke`; `npm start` no longer spawns duplicate provider process.
+- **2026-06-10** — **Bitstream Telemetry Provider examples + R2 docs:** SHT40 humidity + DPS368 pressure single-file HTML in kit `EXAMPLES/`; expanded [ADVANCED.md](./bitstream-telemetry-provider/ADVANCED.md) (broker 9998 subscribe/publish, topics, REQ/RES, tier summary).
+- **2026-06-10** — **Bitstream Telemetry Provider kit sync:** `bitstream:stale` (gateway + Course iframe); standalone `client/BitstreamTelemetryClient.ts` copied on `bitstream2:telemetry-catalog:gen`; README/SKILL updated to shipped status; UART `SENSOR_CFG_GET` on HELLO in Course bridge.
+- **2026-06-10** — **Bitstream Telemetry Provider P2 + P3:** R1 `bitstream:command` / `bitstream:response` (gateway + Course iframe forward); live `bitstream:config` from `DEV_SIM_STATE` / `SENSOR_CFG_GET`; `BitstreamTelemetryClient` + `useBitstreamTelemetry`; `npm start` includes provider on **:9997**.
+- **2026-06-10** — **Bitstream Telemetry Provider P1 + P4:** Course Studio `CourseTelemetryPostMessageBridge` (iframe `bitstream:ready` → catalog/config/connection/samples); public gateway `TelemetryProviderGateway` on **ws://127.0.0.1:9997** (`npm run start:telemetry-provider`); `mapBs2ToProviderSample` + unit tests; example HTML dual-mode (postMessage + WS, mock fallback).
+- **2026-06-10** — **Bitstream Telemetry Provider P0.5:** kit adds `RECIPES.md`, field aliases + range types in `SENSOR_CATALOG.md`, gauge checklist in `SKILL.md`, `EXAMPLES/gyro-x-progress-bar.html` (BMI270 `gyroX` → 0–100% bar).
+- **2026-06-10** — **Bitstream Telemetry Provider P0:** TypeScript sensor catalog (`telemetry-provider/catalog/`), generator `npm run bitstream2:telemetry-catalog:gen`, portable kit folder **`docs/bitstream-telemetry-provider/`** (README, SKILL, EVENTS, IFRAME, SDK, ADVANCED, `sensor-catalog.v1.json`, `SCHEMA.v1.json`) for developer / AI upload; cursor rule; public WS port **9997** documented (runtime P1–P4 backlog).
 - **2026-06-08** — **Course Studio outline authoring persistence:** Add topic/subtopic registers pages in memory (no immediate disk write — avoids Vite full reload); session draft persists course manifest + runtime pages + active node; `mergeCourseOutlineWithBundled` appends missing bundled chapters on restore; top-bar Save flushes runtime pages + course manifest; topics allow multiple subtopics; **441** course-studio tests.
 - **2026-06-08** — **Course Studio BMI270 content refinement:** all four topic pages + theory markdown updated — clearer prose, explicit `bmi270.*` bindings, sensor telemetry cards on live/applications topics.
 - **2026-06-08** — **Course Studio remote image URLs:** `CourseImageCard` resolves GitHub `/blob/` links via `resolveRemoteMarkdownFetchUrl` (same as markdown blocks); hint in block inspector.
@@ -731,7 +741,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## In progress
 
-- **Course Studio — VSIX smoke + content polish** — four-sensor book bundled; next: packaged Course Studio verification, per-chapter diagram/scene assets, outline drag-reorder.
+- **Course Studio — VSIX smoke + content polish** — four-sensor book bundled; telemetry provider HTML demos on live topics; next: packaged verification (provider :9997, iframe bars), per-chapter diagram/scene assets, outline drag-reorder.
 - **Sensor Studio — Stage viewport B2+** — multi-model, orbit toolbar, Rapier on Stage; see **`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`**.
 - **Sensor Studio — flow domains Phase 5** — material v1 complete; Phase 6 shader backlog.
 
@@ -739,6 +749,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
+- **Bitstream Telemetry Provider follow-ups** — npm package export (deferred).
 - **Course Studio v2 (`extension/src/webview/course-studio/`)** — Phases **0**, **7a–7e**, **7f**, **7g–7i**, **validate + packs** + maintainer UX polish shipped; **TESAIoT Embedded** book (**BMI270**, **BMM350**, **DPS368**, **SHT40**). Next: **VSIX smoke**; diagram/Konva inspector refactor to `CourseLiveBindingField`; outline drag-reorder; pack export includes course manifest. Plan: **`course-studio/docs/SCENE_3D_EDITOR.md`**, **`course-studio/docs/COURSE_OUTLINE.md`**, **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)** §16–17.
 - **Presentation workspace (`extension/src/webview/presentation/`)** — **Frozen for features** (`V1_FROZEN.md`); platform chapter complete; **7e bridge** ships live Course diagrams on theory slides. Plan: **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)**.
 - **Sensor Studio — Audio Machine v0.4** — Optional hybrid sample layers + filter-cutoff modulation. Design: **[`AUDIO_MACHINE_SOUND_DESIGN.md`](../src/webview/sensor-studio/docs/AUDIO_MACHINE_SOUND_DESIGN.md)**.

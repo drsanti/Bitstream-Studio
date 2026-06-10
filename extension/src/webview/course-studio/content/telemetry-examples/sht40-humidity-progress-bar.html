@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SHT40 Humidity — progress bar</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2820;
+      --accent: #5ee89a;
+      --text: #eaf7ff;
+      --muted: #8ca4b8;
+      --track: #243044;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(94, 232, 154, 0.25);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+    .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 11px; }
+    .value { font-size: 13px; color: var(--accent); }
+    .track { height: 14px; background: var(--track); border-radius: 999px; overflow: hidden; }
+    .fill {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, #2a8f6a, var(--accent));
+      border-radius: 999px;
+      transition: width 80ms linear;
+    }
+    .scale { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--muted); }
+    .status { margin-top: 14px; font-size: 10px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Humidity (SHT40)</h1>
+    <p class="meta">
+      Catalog field <strong>humidityPct</strong> · %RH · bar maps
+      <span id="range-label">0 … 100</span> (physical % = bar %)
+    </p>
+
+    <div class="row">
+      <span>humidityPct</span>
+      <span class="value" id="humidity-value">—</span>
+    </div>
+
+    <div class="track" aria-hidden="true">
+      <div class="fill" id="bar-fill"></div>
+    </div>
+    <div class="scale">
+      <span>0%</span>
+      <span id="bar-pct">—</span>
+      <span>100%</span>
+    </div>
+
+    <p class="status" id="status">Waiting for telemetry…</p>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const CLIENT_ID = "sht40-humidity-progress-bar";
+      let displayMin = 0;
+      let displayMax = 100;
+
+      const barFill = document.getElementById("bar-fill");
+      const barPct = document.getElementById("bar-pct");
+      const humidityValue = document.getElementById("humidity-value");
+      const rangeLabel = document.getElementById("range-label");
+      const statusEl = document.getElementById("status");
+
+      function clamp(n, lo, hi) {
+        return Math.min(hi, Math.max(lo, n));
+      }
+
+      function valueToPercent(value, min, max) {
+        if (max <= min) return 0;
+        return clamp(((value - min) / (max - min)) * 100, 0, 100);
+      }
+
+      function updateRangeLabel() {
+        rangeLabel.textContent = displayMin + " … " + displayMax;
+      }
+
+      function applyCatalog(catalogPayload) {
+        const sensors = catalogPayload && catalogPayload.sensors;
+        if (!Array.isArray(sensors)) return;
+        const sht = sensors.find(function (s) { return s.id === "sht40"; });
+        const field = sht && sht.fields && sht.fields.find(function (f) {
+          return f.key === "humidityPct";
+        });
+        if (field && typeof field.min === "number" && typeof field.max === "number") {
+          displayMin = field.min;
+          displayMax = field.max;
+          updateRangeLabel();
+        }
+      }
+
+      function onSample(payload) {
+        if (!payload || payload.sensor !== "sht40") return;
+        var hum = payload.fields && payload.fields.humidityPct;
+        if (typeof hum !== "number" || !Number.isFinite(hum)) return;
+
+        var pct = valueToPercent(hum, displayMin, displayMax);
+        barFill.style.width = pct.toFixed(1) + "%";
+        barPct.textContent = pct.toFixed(0) + "%";
+        humidityValue.textContent = hum.toFixed(1) + " %RH";
+        statusEl.textContent = "Live · counter " + payload.counter;
+      }
+
+      function onConnection(payload) {
+        if (!payload) return;
+        statusEl.textContent = "Connection: " + payload.state + " · route " + payload.route;
+      }
+
+      window.addEventListener("message", function (event) {
+        var msg = event.data;
+        if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+        if (msg.type.indexOf("bitstream:") !== 0) return;
+        switch (msg.type) {
+          case "bitstream:catalog": applyCatalog(msg.payload); break;
+          case "bitstream:sample": onSample(msg.payload); break;
+          case "bitstream:connection": onConnection(msg.payload); break;
+          default: break;
+        }
+      });
+
+      var mockTimer = null;
+
+      function startMock() {
+        if (mockTimer != null) return;
+        statusEl.textContent = "Mock data (start npm start for live WS)";
+        var t0 = Date.now();
+        mockTimer = window.setInterval(function () {
+          var t = (Date.now() - t0) / 1000;
+          var mock = 50 + Math.sin(t * 0.5) * 25;
+          onSample({
+            sensor: "sht40",
+            sensorId: 2,
+            counter: Math.floor(t * 2),
+            fields: { humidityPct: mock },
+            units: { humidityPct: "%RH" },
+          });
+        }, 500);
+      }
+
+      function stopMock() {
+        if (mockTimer == null) return;
+        window.clearInterval(mockTimer);
+        mockTimer = null;
+      }
+
+      function connectProviderWs() {
+        var ws;
+        try {
+          ws = new WebSocket("ws://127.0.0.1:9997");
+        } catch (err) {
+          startMock();
+          return;
+        }
+        statusEl.textContent = "Connecting to telemetry provider…";
+        ws.addEventListener("open", function () {
+          stopMock();
+          statusEl.textContent = "Provider connected — waiting for samples…";
+        });
+        ws.addEventListener("message", function (event) {
+          var msg;
+          try { msg = JSON.parse(event.data); } catch (e) { return; }
+          if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+          if (msg.type === "bitstream:catalog") applyCatalog(msg.payload);
+          if (msg.type === "bitstream:sample") onSample(msg.payload);
+          if (msg.type === "bitstream:connection") onConnection(msg.payload);
+        });
+        ws.addEventListener("close", function () {
+          startMock();
+          window.setTimeout(connectProviderWs, 2000);
+        });
+        ws.addEventListener("error", function () { ws.close(); });
+      }
+
+      if (window.parent && window.parent !== window) {
+        statusEl.textContent = "Handshake sent — waiting for parent…";
+        window.parent.postMessage(
+          { type: "bitstream:ready", v: 1, payload: { clientId: CLIENT_ID } },
+          "*"
+        );
+      } else {
+        connectProviderWs();
+      }
+    })();
+  </script>
+</body>
+</html>

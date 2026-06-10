@@ -1,4 +1,4 @@
-import { Box, FileText, LayoutGrid, PenLine, SlidersHorizontal, SquareStack } from "lucide-react";
+import { Box, CodeXml, FileText, LayoutGrid, PenLine, SlidersHorizontal, SquareStack } from "lucide-react";
 import { CourseMaintainerInspectorPanel } from "../../maintainer/CourseMaintainerInspectorPanel";
 import { CourseBlockInspector } from "../../maintainer/CourseBlockInspector";
 import { CourseBlockPropertiesPane } from "../../maintainer/CourseBlockPropertiesPane";
@@ -70,6 +70,20 @@ export function CourseContextualInspectorPanel() {
             title="Markdown inspector"
             subtitle="Block fields and placement"
             accentClassName="text-amber-400/90"
+          />
+          <div className={COURSE_WORKBENCH_PANE_SCROLL_PAD_CLASS}>
+            <CourseBlockInspector variant="block" />
+          </div>
+        </div>
+      );
+    case "html-page":
+      return (
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <InspectorContextHeader
+            icon={CodeXml}
+            title="HTML page inspector"
+            subtitle="Source, caption, and placement"
+            accentClassName="text-emerald-400/90"
           />
           <div className={COURSE_WORKBENCH_PANE_SCROLL_PAD_CLASS}>
             <CourseBlockInspector variant="block" />

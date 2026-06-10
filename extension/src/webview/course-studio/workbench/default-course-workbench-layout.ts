@@ -74,6 +74,7 @@ export const V3_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
 
 /**
  * Maintainer author layout (v5): course outline + 2×2 editor grid + inspector.
+ * Kept for layout migration fingerprinting only.
  */
 export const V5_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
   createEditorPane("outline", { id: "pane-outline" }),
@@ -107,11 +108,52 @@ export const V5_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
   "course-root",
 );
 
+/**
+ * Maintainer author layout (v6): outline + editor grid with HTML Editor pane + inspector.
+ */
+export const V6_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(
+  createEditorPane("outline", { id: "pane-outline" }),
+  createSplit(
+    createSplit(
+      createSplit(
+        createEditorPane("content", { id: "pane-content" }),
+        createEditorPane("diagram", { id: "pane-diagram" }),
+        "horizontal",
+        0.5,
+        "editors-top-row",
+      ),
+      createSplit(
+        createEditorPane("markdown", { id: "pane-markdown" }),
+        createSplit(
+          createEditorPane("html-page", { id: "pane-html-page" }),
+          createEditorPane("scene-3d", { id: "pane-scene-3d" }),
+          "horizontal",
+          0.5,
+          "editors-bottom-right",
+        ),
+        "horizontal",
+        0.34,
+        "editors-bottom-row",
+      ),
+      "vertical",
+      0.52,
+      "editors-quadrant",
+    ),
+    createEditorPane("inspector", { id: "pane-inspector" }),
+    "horizontal",
+    0.76,
+    "course-root-inner",
+  ),
+  "horizontal",
+  0.17,
+  "course-root",
+);
+
 /** v4 default: 2×2 editor grid + single contextual Inspector side panel. */
 export const V4_COURSE_AUTHOR_WORKBENCH_LAYOUT = V2_COURSE_AUTHOR_WORKBENCH_LAYOUT;
 
-/** v5 default: outline tree + v4 author grid. */
-export const DEFAULT_COURSE_AUTHOR_WORKBENCH_LAYOUT = V5_COURSE_AUTHOR_WORKBENCH_LAYOUT;
+/** v6 default: outline tree + editor grid including HTML Editor pane. */
+export const DEFAULT_COURSE_AUTHOR_WORKBENCH_LAYOUT = V6_COURSE_AUTHOR_WORKBENCH_LAYOUT;
 
 /** v1 author layout: Content | (Inspector | Diagram / Markdown / 3D Scene). */
 export const LEGACY_COURSE_AUTHOR_WORKBENCH_LAYOUT: LayoutNode = createSplit(

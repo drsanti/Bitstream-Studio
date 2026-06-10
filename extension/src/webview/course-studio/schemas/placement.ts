@@ -44,3 +44,32 @@ export function placementGridStyle(placement: GridPlacementV1): {
     gridRow: `${placement.row} / span ${placement.rowSpan}`,
   };
 }
+
+/** Pixel height of a placement's row span (row tracks + inter-row gaps). */
+export function placementSpanHeightPx(
+  placement: GridPlacementV1,
+  grid: { rowHeightPx: number; gapPx: number },
+): number {
+  const rowSpan = Math.max(1, placement.rowSpan);
+  return rowSpan * grid.rowHeightPx + (rowSpan - 1) * grid.gapPx;
+}
+
+/**
+ * Read-mode auto-height blocks (markdown article, 16:9 embeds) size to content instead of
+ * reserving the edit-mode row span on the published grid.
+ */
+export function placementGridStyleForReadMode(
+  placement: GridPlacementV1,
+  autoHeight: boolean,
+): {
+  gridColumn: string;
+  gridRow: string;
+} {
+  if (!autoHeight) {
+    return placementGridStyle(placement);
+  }
+  return {
+    gridColumn: `${placement.column} / span ${placement.columnSpan}`,
+    gridRow: `${placement.row} / span 1`,
+  };
+}

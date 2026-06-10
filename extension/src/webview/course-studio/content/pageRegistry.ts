@@ -59,6 +59,20 @@ import { BLANK_PAGE_SOURCE_PATH, loadBlankCoursePage } from "./loadBlankPage";
 import { getActiveCoursePackOverlay } from "./presentationPackLoad";
 import { loadPilotBmiAccelTheoryPage, PILOT_PAGE_SOURCE_PATH } from "./loadPilotPage";
 
+/** Pages discovered from `content/*.page.v1.json` at Vite bootstrap (see registerContentFolderPages). */
+const contentFolderPages: Record<string, { page: PageV1; sourcePath: string }> = {};
+
+export function mergeContentFolderPages(
+  entries: Record<string, { page: PageV1; sourcePath: string }>,
+): void {
+  for (const [pageId, entry] of Object.entries(entries)) {
+    contentFolderPages[pageId] = {
+      page: parsePageV1(structuredClone(entry.page)),
+      sourcePath: entry.sourcePath,
+    };
+  }
+}
+
 const BUNDLED_PAGES: Record<string, { page: PageV1; sourcePath: string }> = {
   [BMI270_OVERVIEW_PAGE_ID]: {
     page: loadBmi270OverviewPage(),
@@ -138,7 +152,15 @@ const BUNDLED_PAGES: Record<string, { page: PageV1; sourcePath: string }> = {
   },
 };
 
+function resolveBundledPageEntry(pageId: string): { page: PageV1; sourcePath: string } | undefined {
+  return BUNDLED_PAGES[pageId] ?? contentFolderPages[pageId];
+}
+
 export const BUNDLED_COURSE_PAGE_IDS = Object.keys(BUNDLED_PAGES);
+
+export function listRegisteredContentFolderPageIds(): string[] {
+  return Object.keys(contentFolderPages).sort();
+}
 
 const runtimePageOverlay: Record<string, { page: PageV1; sourcePath: string }> = {};
 
@@ -194,7 +216,7 @@ export function loadCoursePage(pageId: string): PageV1 | null {
   if (runtimePage != null) {
     return runtimePage.page;
   }
-  return BUNDLED_PAGES[pageId]?.page ?? null;
+  return resolveBundledPageEntry(pageId)?.page ?? null;
 }
 
 export function getCoursePageSourcePath(pageId: string): string | null {
@@ -207,12 +229,15 @@ export function getCoursePageSourcePath(pageId: string): string | null {
   if (runtimePage != null) {
     return runtimePage.sourcePath;
   }
-  return BUNDLED_PAGES[pageId]?.sourcePath ?? null;
+  return resolveBundledPageEntry(pageId)?.sourcePath ?? null;
 }
 
 export function listCoursePageIds(): string[] {
   const overlay = getActiveCoursePackOverlay();
   const ids = new Set<string>(BUNDLED_COURSE_PAGE_IDS);
+  for (const pageId of Object.keys(runtimePageOverlay)) {
+    ids.add(pageId);
+  }
   if (overlay != null) {
     for (const pageId of overlay.pageIds) {
       ids.add(pageId);

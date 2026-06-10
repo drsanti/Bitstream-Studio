@@ -28,6 +28,7 @@ export * from "./runtime/uart-decode";
 export * from "./util/base64";
 
 export * from "./device";
+export * from "./telemetry-provider";
 export * from "./dev/mock-firmware";
 export * from "./dev/dev-write";
 export * from "./dev/wire-frames";

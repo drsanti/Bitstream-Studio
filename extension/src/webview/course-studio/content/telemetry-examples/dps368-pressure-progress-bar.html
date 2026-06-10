@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DPS368 Pressure — progress bar</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #2a2218;
+      --accent: #f5b942;
+      --text: #eaf7ff;
+      --muted: #8ca4b8;
+      --track: #243044;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(245, 185, 66, 0.25);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+    .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 11px; }
+    .value { font-size: 13px; color: var(--accent); }
+    .track { height: 14px; background: var(--track); border-radius: 999px; overflow: hidden; }
+    .fill {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, #a67c1a, var(--accent));
+      border-radius: 999px;
+      transition: width 80ms linear;
+    }
+    .scale { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10px; color: var(--muted); }
+    .status { margin-top: 14px; font-size: 10px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Barometric pressure (DPS368)</h1>
+    <p class="meta">
+      Catalog field <strong>pressureHpa</strong> · hPa · bar maps
+      <span id="range-label">900 … 1100</span> (sea-level band) → 0–100%
+    </p>
+
+    <div class="row">
+      <span>pressureHpa</span>
+      <span class="value" id="pressure-value">—</span>
+    </div>
+
+    <div class="track" aria-hidden="true">
+      <div class="fill" id="bar-fill"></div>
+    </div>
+    <div class="scale">
+      <span id="scale-min">0%</span>
+      <span id="bar-pct">50%</span>
+      <span id="scale-max">100%</span>
+    </div>
+
+    <p class="status" id="status">Waiting for telemetry…</p>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const CLIENT_ID = "dps368-pressure-progress-bar";
+      // Defaults: gaugeHints.pressureSeaLevel from sensor-catalog.v1.json
+      let displayMin = 900;
+      let displayMax = 1100;
+
+      const barFill = document.getElementById("bar-fill");
+      const barPct = document.getElementById("bar-pct");
+      const pressureValue = document.getElementById("pressure-value");
+      const rangeLabel = document.getElementById("range-label");
+      const statusEl = document.getElementById("status");
+
+      function clamp(n, lo, hi) {
+        return Math.min(hi, Math.max(lo, n));
+      }
+
+      function valueToPercent(value, min, max) {
+        if (max <= min) return 0;
+        return clamp(((value - min) / (max - min)) * 100, 0, 100);
+      }
+
+      function updateRangeLabel() {
+        rangeLabel.textContent = displayMin + " … " + displayMax;
+      }
+
+      function applyCatalog(catalogPayload) {
+        const sensors = catalogPayload && catalogPayload.sensors;
+        if (!Array.isArray(sensors)) return;
+        const dps = sensors.find(function (s) { return s.id === "dps368"; });
+        if (!dps) return;
+
+        var hint = dps.gaugeHints && dps.gaugeHints.pressureSeaLevel;
+        if (hint && typeof hint.min === "number" && typeof hint.max === "number") {
+          displayMin = hint.min;
+          displayMax = hint.max;
+          updateRangeLabel();
+          return;
+        }
+
+        var field = dps.fields && dps.fields.find(function (f) {
+          return f.key === "pressureHpa";
+        });
+        if (field && typeof field.min === "number" && typeof field.max === "number") {
+          displayMin = field.min;
+          displayMax = field.max;
+          updateRangeLabel();
+        }
+      }
+
+      function onSample(payload) {
+        if (!payload || payload.sensor !== "dps368") return;
+        var p = payload.fields && payload.fields.pressureHpa;
+        if (typeof p !== "number" || !Number.isFinite(p)) return;
+
+        var pct = valueToPercent(p, displayMin, displayMax);
+        barFill.style.width = pct.toFixed(1) + "%";
+        barPct.textContent = pct.toFixed(0) + "%";
+        pressureValue.textContent = p.toFixed(1) + " hPa";
+        statusEl.textContent = "Live · counter " + payload.counter;
+      }
+
+      function onConnection(payload) {
+        if (!payload) return;
+        statusEl.textContent = "Connection: " + payload.state + " · route " + payload.route;
+      }
+
+      window.addEventListener("message", function (event) {
+        var msg = event.data;
+        if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+        if (msg.type.indexOf("bitstream:") !== 0) return;
+        switch (msg.type) {
+          case "bitstream:catalog": applyCatalog(msg.payload); break;
+          case "bitstream:sample": onSample(msg.payload); break;
+          case "bitstream:connection": onConnection(msg.payload); break;
+          default: break;
+        }
+      });
+
+      var mockTimer = null;
+
+      function startMock() {
+        if (mockTimer != null) return;
+        statusEl.textContent = "Mock data (start npm start for live WS)";
+        var t0 = Date.now();
+        mockTimer = window.setInterval(function () {
+          var t = (Date.now() - t0) / 1000;
+          var mock = 1013 + Math.sin(t * 0.3) * 8;
+          onSample({
+            sensor: "dps368",
+            sensorId: 3,
+            counter: Math.floor(t * 2),
+            fields: { pressureHpa: mock },
+            units: { pressureHpa: "hPa" },
+          });
+        }, 500);
+      }
+
+      function stopMock() {
+        if (mockTimer == null) return;
+        window.clearInterval(mockTimer);
+        mockTimer = null;
+      }
+
+      function connectProviderWs() {
+        var ws;
+        try {
+          ws = new WebSocket("ws://127.0.0.1:9997");
+        } catch (err) {
+          startMock();
+          return;
+        }
+        statusEl.textContent = "Connecting to telemetry provider…";
+        ws.addEventListener("open", function () {
+          stopMock();
+          statusEl.textContent = "Provider connected — waiting for samples…";
+        });
+        ws.addEventListener("message", function (event) {
+          var msg;
+          try { msg = JSON.parse(event.data); } catch (e) { return; }
+          if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+          if (msg.type === "bitstream:catalog") applyCatalog(msg.payload);
+          if (msg.type === "bitstream:sample") onSample(msg.payload);
+          if (msg.type === "bitstream:connection") onConnection(msg.payload);
+        });
+        ws.addEventListener("close", function () {
+          startMock();
+          window.setTimeout(connectProviderWs, 2000);
+        });
+        ws.addEventListener("error", function () { ws.close(); });
+      }
+
+      if (window.parent && window.parent !== window) {
+        statusEl.textContent = "Handshake sent — waiting for parent…";
+        window.parent.postMessage(
+          { type: "bitstream:ready", v: 1, payload: { clientId: CLIENT_ID } },
+          "*"
+        );
+      } else {
+        connectProviderWs();
+      }
+    })();
+  </script>
+</body>
+</html>

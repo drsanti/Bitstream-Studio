@@ -1,8 +1,13 @@
 import { parsePageV1, type PageV1 } from "../schemas/page.v1";
+import {
+  htmlPageTelemetryProviderExampleBlock,
+  withTelemetryProviderHtmlExample,
+} from "./courseTelemetryProviderExampleBlock";
 import dps368ApplicationsPageJson from "./dps368-applications.page.v1.json";
 import dps368AltitudePageJson from "./dps368-altitude.page.v1.json";
 import dps368LivePageJson from "./dps368-live.page.v1.json";
 import dps368OverviewPageJson from "./dps368-overview.page.v1.json";
+import { TELEMETRY_EXAMPLE_HTML } from "./telemetryExampleHtml.generated";
 
 export const DPS368_OVERVIEW_PAGE_ID = "dps368-overview";
 export const DPS368_ALTITUDE_PAGE_ID = "dps368-altitude";
@@ -41,7 +46,17 @@ export function loadDps368AltitudePage(): PageV1 {
 }
 
 export function loadDps368LivePage(): PageV1 {
-  return parsePageV1(dps368LivePageJson);
+  const page = parsePageV1(dps368LivePageJson);
+  return withTelemetryProviderHtmlExample(
+    page,
+    htmlPageTelemetryProviderExampleBlock({
+      id: "telemetry-dps368-pressure-bar",
+      title: "Provider API · pressure bar",
+      caption: "HTML page block — live pressureHpa via postMessage",
+      placement: { column: 1, row: 15, columnSpan: 6, rowSpan: 5 },
+      html: TELEMETRY_EXAMPLE_HTML.dps368Pressure,
+    }),
+  );
 }
 
 export function loadDps368ApplicationsPage(): PageV1 {

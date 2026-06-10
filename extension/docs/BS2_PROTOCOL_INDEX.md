@@ -1,7 +1,7 @@
 # BS2 protocol documentation index
 
 **Repository:** Bitstream-Studio  
-**Last updated:** 2026-05-30  
+**Last updated:** 2026-06-10  
 **Purpose:** Single map for wire spec, host broker topics, implementation, and firmware alignment.
 
 Develop **BS2 host-side** protocol (TypeScript, bridge, webview, tests, markdown specs) in **this repo**. Firmware encoders/decoders live in **TESAIoT_Library** (see §Firmware below).
@@ -16,7 +16,8 @@ Develop **BS2 host-side** protocol (TypeScript, bridge, webview, tests, markdown
 | 2 | **[`../src/bitstream2/docs/SENSOR_CFG_V2.md`](../src/bitstream2/docs/SENSOR_CFG_V2.md)** | **SENSOR_CFG** body v2 / v2.1 — caps bits, publish modes, mask, `publishIntervalMs` |
 | 3 | **[`../src/bitstream2/docs/HOST_UART_LINK.md`](../src/bitstream2/docs/HOST_UART_LINK.md)** | Host COM refresh, hotplug, Simulator↔Bitstream routing (companion to spec §13) |
 | 4 | **[`TELEMETRY_MODE_LIFECYCLE.md`](./TELEMETRY_MODE_LIFECYCLE.md)** | **Host broker only** — `bitstream2/telemetry/route`, `origin` on JSON samples (not UART bytes) |
-| 5 | **[`../src/bitstream2/dev/UART_TEST_COMMANDS.md`](../src/bitstream2/dev/UART_TEST_COMMANDS.md)** | CLI probe steps (`bitstream2:uart-probe`, matrix harness) |
+| 5 | **[`bitstream-telemetry-provider/README.md`](./bitstream-telemetry-provider/README.md)** | **Developer / AI kit** — public `bitstream:*` API on **:9997** (decoded samples; not wire format) |
+| 6 | **[`../src/bitstream2/dev/UART_TEST_COMMANDS.md`](../src/bitstream2/dev/UART_TEST_COMMANDS.md)** | CLI probe steps (`bitstream2:uart-probe`, matrix harness) |
 
 **Stub index (points to #1):** [`../src/bitstream2/docs/SPEC.md`](../src/bitstream2/docs/SPEC.md)
 
@@ -57,6 +58,7 @@ npm run bitstream2:golden:gen
 |----------|--------|
 | [`BITSTREAM_TELEMETRY_OPERATIONS.md`](./BITSTREAM_TELEMETRY_OPERATIONS.md) | Operator diagnostics, stale pipeline |
 | [`BITSTREAM_TELEMETRY_STALE_PIPELINE.md`](./BITSTREAM_TELEMETRY_STALE_PIPELINE.md) | Decode stall troubleshooting |
+| [`bitstream-telemetry-provider/`](./bitstream-telemetry-provider/README.md) | **External apps** — portable kit (SKILL + docs + catalog); decoded live data API (`bitstream:*` events) |
 | `extension/src/bitstream/docs/FRAME_PROTOCOL_SPECIFICATION.md` | **Legacy v1** (`0xAA55` magic) — historical only |
 
 ---

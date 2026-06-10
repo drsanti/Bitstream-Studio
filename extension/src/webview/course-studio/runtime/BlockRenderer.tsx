@@ -13,7 +13,9 @@ import { CourseCard } from "../ui/catalog/CourseCard";
 import { CourseCodeCard } from "../ui/catalog/CourseCodeCard";
 import { CourseDiagramCard } from "../ui/catalog/CourseDiagramCard";
 import { CourseSceneBlockCard } from "../ui/catalog/CourseSceneBlockCard";
+import { CourseHtmlPageCard } from "../ui/catalog/CourseHtmlPageCard";
 import { CourseIframeCard } from "../ui/catalog/CourseIframeCard";
+import { useRemoteHtml } from "../content/useRemoteHtml";
 import { CourseImageCard } from "../ui/catalog/CourseImageCard";
 import { CourseDashboardWidgetCard } from "../ui/catalog/CourseDashboardWidgetCard";
 import { CourseLiveMetricCard } from "../ui/catalog/CourseLiveMetricCard";
@@ -26,7 +28,7 @@ import {
 } from "../ui/catalog/CourseMarkdownBlockShell";
 import { useCourseMarkdown } from "../content/markdownRegistry";
 import { useRemoteMarkdown } from "../content/useRemoteMarkdown";
-import { youtubeEmbedOptionsFromBlock } from "../schemas/embedBlocks";
+import { youtubeEmbedOptionsFromBlock, type CourseEmbedShellHeight } from "../schemas/embedBlocks";
 import { resolveMarkdownBlockContent } from "./resolveMarkdownBlockContent";
 import type { CourseMarkdownShellHeight } from "../ui/catalog/CourseMarkdownBlockShell";
 
@@ -99,6 +101,60 @@ function MarkdownBlockRenderer({
   );
 }
 
+function HtmlPageBlockRenderer({
+  block,
+  embedShellHeight = "fill",
+  embedReadContentHeightPx,
+}: {
+  block: Extract<PageBlockV1, { kind: "html-page" }>;
+  embedShellHeight?: CourseEmbedShellHeight;
+  embedReadContentHeightPx?: number;
+}) {
+  const remoteUrl = block.url?.trim();
+  const remote = useRemoteHtml(remoteUrl);
+
+  if (remoteUrl != null && remoteUrl.length > 0) {
+    if (remote.loading) {
+      return (
+        <div className="course-block-html-page flex h-full items-center justify-center rounded-xl border border-dashed border-[var(--surface-border)] bg-[var(--surface-card)] px-4 py-3 text-sm text-[var(--text-muted)]">
+          Loading HTML…
+        </div>
+      );
+    }
+    if (remote.error != null) {
+      return (
+        <div className="course-block-html-page flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-rose-500/35 bg-[var(--surface-card)] px-4 py-3 text-center text-sm text-rose-200/90">
+          <p>Could not load remote HTML.</p>
+          <p className="text-xs text-[var(--text-muted)] break-all">{remote.error}</p>
+        </div>
+      );
+    }
+    return (
+      <CourseHtmlPageCard
+        html={remote.html ?? block.html ?? ""}
+        title={block.title}
+        caption={block.caption}
+        captionPlacement={block.captionPlacement}
+        shellHeight={embedShellHeight}
+        readContentHeightPx={embedReadContentHeightPx}
+        sandboxSameOrigin={block.sandboxSameOrigin}
+      />
+    );
+  }
+
+  return (
+    <CourseHtmlPageCard
+      html={block.html ?? ""}
+      title={block.title}
+      caption={block.caption}
+      captionPlacement={block.captionPlacement}
+      shellHeight={embedShellHeight}
+      readContentHeightPx={embedReadContentHeightPx}
+      sandboxSameOrigin={block.sandboxSameOrigin}
+    />
+  );
+}
+
 export function BlockRenderer({
   block,
   pageMeta,
@@ -106,6 +162,8 @@ export function BlockRenderer({
   pageLinkHealth,
   pageStaleMs,
   markdownShellHeight = "fill",
+  embedShellHeight = "fill",
+  embedReadContentHeightPx,
 }: {
   block: PageBlockV1;
   pageMeta?: PageV1["meta"];
@@ -114,6 +172,10 @@ export function BlockRenderer({
   pageStaleMs?: number;
   /** Markdown shell only — other blocks always fill the grid cell. */
   markdownShellHeight?: CourseMarkdownShellHeight;
+  /** YouTube / iFrame embed shell in Read mode. */
+  embedShellHeight?: CourseEmbedShellHeight;
+  /** iFrame / HTML page Read fixed height in px; auto mode measures document height. */
+  embedReadContentHeightPx?: number;
 }) {
   switch (block.kind) {
     case "heading":
@@ -244,11 +306,27 @@ export function BlockRenderer({
           caption={block.caption}
           captionPlacement={block.captionPlacement}
           embed={youtubeEmbedOptionsFromBlock(block)}
+          shellHeight={embedShellHeight}
         />
       );
     case "iframe":
       return (
-        <CourseIframeCard src={block.src} title={block.title} caption={block.caption} />
+        <CourseIframeCard
+          src={block.src}
+          title={block.title}
+          caption={block.caption}
+          captionPlacement={block.captionPlacement}
+          shellHeight={embedShellHeight}
+          readContentHeightPx={embedReadContentHeightPx}
+        />
+      );
+    case "html-page":
+      return (
+        <HtmlPageBlockRenderer
+          block={block}
+          embedShellHeight={embedShellHeight}
+          embedReadContentHeightPx={embedReadContentHeightPx}
+        />
       );
     default:
       return null;

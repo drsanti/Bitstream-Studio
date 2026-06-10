@@ -190,6 +190,8 @@ const youtubeBlockSchema = z.object({
   cropBottomPx: z.number().int().min(0).max(160).optional(),
   /** @deprecated Use cropChrome. Kept for older saved pages. */
   minimalChrome: z.boolean().optional(),
+  /** Read mode height — default auto (16:9). Edit mode always uses the grid cell. */
+  readHeight: markdownReadHeightSchema.optional(),
 });
 
 const iframeBlockSchema = z.object({
@@ -199,7 +201,41 @@ const iframeBlockSchema = z.object({
   src: z.string().min(1),
   title: z.string().optional(),
   caption: z.string().optional(),
+  /** Where to render caption text. Default: below when caption is set. */
+  captionPlacement: courseEmbedCaptionPlacementSchema.optional(),
+  /**
+   * Read mode layout: default auto (authored grid row span). `grid` locks the edit cell with inner scroll.
+   */
+  readHeight: markdownReadHeightSchema.optional(),
+  /** Read mode fixed height in px when set (auto layout, explicit size). */
+  readHeightPx: z.number().int().min(192).max(4000).optional(),
 });
+
+const htmlPageBlockSchema = z
+  .object({
+    id: z.string().min(1),
+    kind: z.literal("html-page"),
+    placement: placementSchema,
+    /** Inline single-file HTML document (paste in HTML Editor). */
+    html: z.string().optional(),
+    /** Public HTTP(S) URL to an HTML file (GitHub blob/raw, gist, etc.). */
+    url: z.string().url().optional(),
+    title: z.string().optional(),
+    caption: z.string().optional(),
+    captionPlacement: courseEmbedCaptionPlacementSchema.optional(),
+    /** Advanced: allow same-origin sandbox for localStorage and similar APIs. */
+    sandboxSameOrigin: z.boolean().optional(),
+    /**
+     * Read mode layout: default auto (authored grid row span). `grid` locks the edit cell with inner scroll.
+     */
+    readHeight: markdownReadHeightSchema.optional(),
+    /** Read mode fixed height in px when set (auto layout, explicit size). */
+    readHeightPx: z.number().int().min(192).max(4000).optional(),
+  })
+  .refine(
+    (data) => (data.html != null && data.html.trim().length > 0) || (data.url != null && data.url.length > 0),
+    { message: "html-page block requires inline html or url" },
+  );
 
 export const pageBlockSchema = z.discriminatedUnion("kind", [
   headingBlockSchema,
@@ -215,6 +251,7 @@ export const pageBlockSchema = z.discriminatedUnion("kind", [
   codeBlockSchema,
   youtubeBlockSchema,
   iframeBlockSchema,
+  htmlPageBlockSchema,
 ]);
 
 export type PageBlockV1 = z.infer<typeof pageBlockSchema>;

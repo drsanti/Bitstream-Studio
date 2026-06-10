@@ -1,0 +1,4 @@
+{
+  "$comment": "Moved to bitstream-telemetry-provider/SCHEMA.v1.json — upload that folder for the portable developer kit.",
+  "$ref": "./bitstream-telemetry-provider/SCHEMA.v1.json"
+}

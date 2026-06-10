@@ -6,6 +6,13 @@ import { PAGE_BLOCK_PALETTE } from "../../src/webview/course-studio/maintainer/b
 import { parsePageV1 } from "../../src/webview/course-studio/schemas/page.v1";
 import {
   buildYoutubeEmbedUrl,
+  embedShellHeightForRead,
+  embedUsesReadContentHeight,
+  iframeEmbedBlockedMessage,
+  iframeReadContentHeightPx,
+  iframeUsesReadContentHeight,
+  resolveIframeReadHeightUiMode,
+  normalizeIframeEmbedSrc,
   parseYoutubeVideoId,
   resolveYoutubeCropInsets,
   youtubeEmbedOptionsFromBlock,
@@ -96,6 +103,41 @@ test("resolveEmbedCaptionDisplay renders above mode when placement is above", ()
   assert.deepEqual(display, { text: "Hello caption", mode: "above" });
 });
 
+test("parsePageV1 accepts iframe captionPlacement", () => {
+  const page = parsePageV1({
+    version: 1,
+    id: "iframe-caption-placement",
+    title: "Iframe",
+    grid: { columns: 12, rowHeightPx: 48, gapPx: 12, paddingPx: 32 },
+    blocks: [
+      {
+        id: "iframe-1",
+        kind: "iframe",
+        placement: { column: 1, row: 1, columnSpan: 6, rowSpan: 4 },
+        src: "https://tesaiot.dev/",
+        caption: "Hello",
+        captionPlacement: "hidden",
+      },
+    ],
+  });
+  const block = page.blocks[0];
+  assert.equal(block.kind, "iframe");
+  if (block.kind === "iframe") {
+    assert.equal(block.captionPlacement, "hidden");
+  }
+});
+
+test("createPageBlock iframe has no default caption or title", () => {
+  const page = createBlankCoursePage();
+  const block = createPageBlock("iframe", page);
+  assert.equal(block.kind, "iframe");
+  if (block.kind === "iframe") {
+    assert.equal(block.caption, undefined);
+    assert.equal(block.title, undefined);
+    assert.equal(block.captionPlacement, undefined);
+  }
+});
+
 test("parsePageV1 accepts youtube captionPlacement above", () => {
   const page = parsePageV1({
     version: 1,
@@ -154,8 +196,119 @@ test("PAGE_BLOCK_PALETTE includes embed and media blocks in grouped categories",
   assert.ok(kinds.includes("code"));
   assert.ok(kinds.includes("youtube"));
   assert.ok(kinds.includes("iframe"));
+  assert.ok(kinds.includes("html-page"));
   assert.equal(
     PAGE_BLOCK_PALETTE.filter((entry) => entry.category === "embed").length,
-    2,
+    3,
+  );
+});
+
+test("placementGridStyleForReadMode collapses row span for auto-height read blocks", async () => {
+  const { placementGridStyleForReadMode } = await import(
+    "../../src/webview/course-studio/schemas/placement"
+  );
+  const placement = { column: 1, row: 3, columnSpan: 12, rowSpan: 10 };
+  assert.deepEqual(placementGridStyleForReadMode(placement, true), {
+    gridColumn: "1 / span 12",
+    gridRow: "3 / span 1",
+  });
+  assert.deepEqual(placementGridStyleForReadMode(placement, false), {
+    gridColumn: "1 / span 12",
+    gridRow: "3 / span 10",
+  });
+});
+
+test("iframe and youtube readHeight defaults to auto in read mode", () => {
+  const page = createBlankCoursePage();
+  const iframe = createPageBlock("iframe", page);
+  const youtube = createPageBlock("youtube", page);
+  assert.equal(embedShellHeightForRead(iframe), "content");
+  assert.equal(embedShellHeightForRead(youtube), "content");
+  assert.equal(embedUsesReadContentHeight(iframe), true);
+  const gridIframe = { ...iframe, readHeight: "grid" as const };
+  assert.equal(embedShellHeightForRead(gridIframe), "fill");
+  assert.equal(embedUsesReadContentHeight(gridIframe), false);
+  const parsed = parsePageV1({
+    version: 1,
+    id: "embed-read",
+    title: "Embed",
+    grid: { columns: 12, rowHeightPx: 48, gapPx: 12, paddingPx: 32 },
+    blocks: [
+      {
+        id: "if-1",
+        kind: "iframe",
+        placement: { column: 1, row: 1, columnSpan: 12, rowSpan: 4 },
+        src: "https://tesaiot.dev/",
+        readHeight: "grid",
+      },
+    ],
+  });
+  assert.equal(parsed.blocks[0]?.kind === "iframe" ? parsed.blocks[0].readHeight : null, "grid");
+});
+
+test("iframe read auto height defers to content measurement (no grid span px)", () => {
+  const page = createBlankCoursePage();
+  const iframe = createPageBlock("iframe", page);
+  assert.equal(iframeUsesReadContentHeight(iframe), true);
+  assert.equal(resolveIframeReadHeightUiMode(iframe), "auto");
+  const tallIframe = {
+    ...iframe,
+    placement: { ...iframe.placement, rowSpan: 17 },
+  };
+  assert.equal(iframeReadContentHeightPx(tallIframe), undefined);
+});
+
+test("iframe read fixed height uses readHeightPx when set", () => {
+  const page = createBlankCoursePage();
+  const iframe = createPageBlock("iframe", page);
+  const fixedIframe = { ...iframe, readHeightPx: 720 };
+  assert.equal(resolveIframeReadHeightUiMode(fixedIframe), "fixed");
+  assert.equal(iframeReadContentHeightPx(fixedIframe), 720);
+  const parsed = parsePageV1({
+    version: 1,
+    id: "iframe-fixed",
+    title: "Fixed",
+    grid: page.grid,
+    blocks: [
+      {
+        id: "if-1",
+        kind: "iframe",
+        placement: { column: 1, row: 1, columnSpan: 12, rowSpan: 4 },
+        src: "https://tesaiot.dev/",
+        readHeightPx: 600,
+      },
+    ],
+  });
+  const block = parsed.blocks[0];
+  assert.equal(block?.kind === "iframe" ? block.readHeightPx : null, 600);
+});
+
+test("normalizeIframeEmbedSrc and iframeEmbedBlockedMessage", () => {
+  assert.equal(normalizeIframeEmbedSrc("  https://example.com/path  "), "https://example.com/path");
+  assert.match(
+    iframeEmbedBlockedMessage("https://www.google.com/") ?? "",
+    /google\.com blocks embedding/,
+  );
+  assert.equal(iframeEmbedBlockedMessage("https://developer.mozilla.org/"), null);
+});
+
+test("PAGE_BLOCK_PALETTE tiers default vs more palette rows", async () => {
+  const {
+    courseBlockPaletteMoreRowCount,
+    courseBlockPaletteVisibleEntries,
+  } = await import("../../src/webview/course-studio/maintainer/blockPaletteMeta");
+
+  assert.equal(courseBlockPaletteVisibleEntries("default").length, 8);
+  assert.equal(courseBlockPaletteVisibleEntries("more").length, 4);
+  assert.equal(courseBlockPaletteMoreRowCount(), 5);
+  assert.ok(
+    PAGE_BLOCK_PALETTE.filter((entry) => entry.kind === "live-metric").every(
+      (entry) => entry.tier === "more",
+    ),
+  );
+  assert.ok(
+    PAGE_BLOCK_PALETTE.filter((entry) => entry.kind === "youtube" || entry.kind === "iframe").every(
+      (entry) => entry.paletteHidden === true,
+    ),
   );
 });

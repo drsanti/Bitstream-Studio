@@ -23,6 +23,10 @@ const ELEMENT_TEST_ORDER: ReadonlyArray<{
   { kind: "code", note: "Code snippet with language label." },
   { kind: "youtube", note: "YouTube embed — playback + player options in block inspector." },
   { kind: "iframe", note: "External page in a sandboxed iframe." },
+  {
+    kind: "html-page",
+    note: `Inline HTML or GitHub URL — edit in ${COURSE_WORKBENCH_PANE_LABELS["html-page"]}.`,
+  },
 ];
 
 function pageHasBlockKind(blocks: PageBlockV1[], kind: PageBlockV1["kind"]): boolean {

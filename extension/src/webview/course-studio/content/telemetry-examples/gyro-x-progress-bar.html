@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BMI270 Gyro X — progress bar</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --accent: #42e8ff;
+      --text: #eaf7ff;
+      --muted: #8ca4b8;
+      --track: #243044;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(66, 232, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 8px;
+      font-size: 11px;
+    }
+
+    .value {
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .track {
+      height: 14px;
+      background: var(--track);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .fill {
+      height: 100%;
+      width: 50%;
+      background: linear-gradient(90deg, #2a8fa0, var(--accent));
+      border-radius: 999px;
+      transition: width 80ms linear;
+    }
+
+    .scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+
+    .status {
+      margin-top: 14px;
+      font-size: 10px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Gyroscope X (BMI270)</h1>
+    <p class="meta">
+      Catalog field <strong>gyroX</strong> · unit rad/s · bar maps
+      <span id="range-label">-5 … +5</span> → 0–100%
+    </p>
+
+    <div class="row">
+      <span>gyroX</span>
+      <span class="value" id="gyro-value">—</span>
+    </div>
+
+    <div class="track" aria-hidden="true">
+      <div class="fill" id="bar-fill"></div>
+    </div>
+    <div class="scale">
+      <span id="scale-min">0%</span>
+      <span id="bar-pct">50%</span>
+      <span id="scale-max">100%</span>
+    </div>
+
+    <p class="status" id="status">Waiting for telemetry…</p>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      const CLIENT_ID = "gyro-x-progress-bar";
+      const GYRO_MASK = 2; // BMI270_MASK.GYR — gyro X/Y/Z on wire
+
+      // Defaults from sensor-catalog.v1.json (bmi270 → gyroX). Overridden by bitstream:catalog.
+      let displayMin = -5;
+      let displayMax = 5;
+      var currentRoute = "simulator";
+      var comOpen = false;
+      var ensureGyroStarted = false;
+      var pendingGyroCfg = false;
+      var providerWs = null;
+
+      const barFill = document.getElementById("bar-fill");
+      const barPct = document.getElementById("bar-pct");
+      const gyroValue = document.getElementById("gyro-value");
+      const rangeLabel = document.getElementById("range-label");
+      const statusEl = document.getElementById("status");
+
+      function clamp(n, lo, hi) {
+        return Math.min(hi, Math.max(lo, n));
+      }
+
+      /** Map catalog [displayMin, displayMax] → bar 0–100%. */
+      function valueToPercent(value, min, max) {
+        if (max <= min) return 0;
+        const t = (value - min) / (max - min);
+        return clamp(t * 100, 0, 100);
+      }
+
+      function updateRangeLabel() {
+        rangeLabel.textContent = displayMin + " … " + displayMax;
+      }
+
+      function applyCatalog(catalogPayload) {
+        const sensors = catalogPayload && catalogPayload.sensors;
+        if (!Array.isArray(sensors)) return;
+        const bmi = sensors.find(function (s) { return s.id === "bmi270"; });
+        const field = bmi && bmi.fields && bmi.fields.find(function (f) {
+          return f.key === "gyroX";
+        });
+        if (field && typeof field.min === "number" && typeof field.max === "number") {
+          displayMin = field.min;
+          displayMax = field.max;
+          updateRangeLabel();
+        }
+      }
+
+      function onSample(payload) {
+        if (!payload || payload.sensor !== "bmi270") return;
+        var gx = payload.fields && payload.fields.gyroX;
+        if (typeof gx !== "number" || !Number.isFinite(gx)) return;
+
+        var pct = valueToPercent(gx, displayMin, displayMax);
+        barFill.style.width = pct.toFixed(1) + "%";
+        barPct.textContent = pct.toFixed(0) + "%";
+        gyroValue.textContent = gx.toFixed(2) + " rad/s";
+        statusEl.textContent = "Live · counter " + payload.counter;
+      }
+
+      function onConnection(payload) {
+        if (!payload) return;
+        if (typeof payload.route === "string") {
+          currentRoute = payload.route;
+        }
+        if (typeof payload.comOpen === "boolean") {
+          comOpen = payload.comOpen;
+        }
+        statusEl.textContent = "Connection: " + payload.state + " · route " + payload.route;
+        maybeEnsureGyro();
+      }
+
+      function bmi270RowHasGyro(configPayload) {
+        var row = configPayload && configPayload.sensors && configPayload.sensors.bmi270;
+        if (!row || !Array.isArray(row.maskLabels)) {
+          return false;
+        }
+        return row.maskLabels.indexOf("gyroX") >= 0;
+      }
+
+      function sendProviderCommand(command, args, requestId) {
+        var envelope = {
+          type: "bitstream:command",
+          v: 1,
+          payload: { requestId: requestId, command: command, args: args },
+        };
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(envelope, "*");
+          return;
+        }
+        if (providerWs && providerWs.readyState === WebSocket.OPEN) {
+          providerWs.send(JSON.stringify(envelope));
+        }
+      }
+
+      function maybeEnsureGyro() {
+        if (ensureGyroStarted) return;
+        if (currentRoute !== "uart" || !comOpen) return;
+        ensureGyroStarted = true;
+        pendingGyroCfg = true;
+        statusEl.textContent = "UART connected — enabling BMI270 gyro…";
+        sendProviderCommand(
+          "bmi270.mode.set",
+          { mode: "raw" },
+          "gyro-mode-" + Date.now()
+        );
+      }
+
+      function onConfig(configPayload) {
+        if (bmi270RowHasGyro(configPayload)) {
+          return;
+        }
+        maybeEnsureGyro();
+      }
+
+      function onCommandResponse(payload) {
+        if (!payload) return;
+        if (!payload.ok) {
+          if (
+            payload.command === "bmi270.mode.set" ||
+            payload.command === "sensor.cfg.set"
+          ) {
+            statusEl.textContent =
+              "Gyro setup failed: " + (payload.error || "unknown");
+          }
+          return;
+        }
+        if (payload.command === "bmi270.mode.set" && pendingGyroCfg) {
+          pendingGyroCfg = false;
+          sendProviderCommand(
+            "sensor.cfg.set",
+            {
+              sensor: "bmi270",
+              mask: GYRO_MASK,
+              publishMode: "periodic",
+              samplingIntervalMs: 50,
+            },
+            "gyro-cfg-" + Date.now()
+          );
+          return;
+        }
+        if (payload.command === "sensor.cfg.set") {
+          statusEl.textContent = "BMI270 gyro enabled — waiting for samples…";
+        }
+      }
+
+      window.addEventListener("message", function (event) {
+        var msg = event.data;
+        if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+        if (msg.type.indexOf("bitstream:") !== 0) return;
+
+        switch (msg.type) {
+          case "bitstream:catalog":
+            applyCatalog(msg.payload);
+            break;
+          case "bitstream:config":
+            onConfig(msg.payload);
+            break;
+          case "bitstream:response":
+            onCommandResponse(msg.payload);
+            break;
+          case "bitstream:sample":
+            onSample(msg.payload);
+            break;
+          case "bitstream:connection":
+            onConnection(msg.payload);
+            break;
+          default:
+            break;
+        }
+      });
+
+      var mockTimer = null;
+
+      function startMock() {
+        if (mockTimer != null) return;
+        statusEl.textContent = "Mock data (start bridge + telemetry provider for live WS)";
+        var t0 = Date.now();
+        mockTimer = window.setInterval(function () {
+          var t = (Date.now() - t0) / 1000;
+          var mock = Math.sin(t * 0.8) * displayMax;
+          onSample({
+            sensor: "bmi270",
+            sensorId: 0,
+            counter: Math.floor(t * 40),
+            deviceMs: Date.now() % 100000,
+            hostMs: Date.now(),
+            origin: "sim",
+            mask: 2,
+            fields: { gyroX: mock },
+            units: { gyroX: "rad/s" },
+          });
+        }, 50);
+      }
+
+      function stopMock() {
+        if (mockTimer == null) return;
+        window.clearInterval(mockTimer);
+        mockTimer = null;
+      }
+
+      function connectProviderWs() {
+        try {
+          providerWs = new WebSocket("ws://127.0.0.1:9997");
+        } catch (err) {
+          startMock();
+          return;
+        }
+
+        statusEl.textContent = "Connecting to telemetry provider…";
+
+        providerWs.addEventListener("open", function () {
+          stopMock();
+          statusEl.textContent = "Provider connected — waiting for samples…";
+        });
+
+        providerWs.addEventListener("message", function (event) {
+          var msg;
+          try {
+            msg = JSON.parse(event.data);
+          } catch (e) {
+            return;
+          }
+          if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+          if (msg.type.indexOf("bitstream:") !== 0) return;
+
+          switch (msg.type) {
+            case "bitstream:catalog":
+              applyCatalog(msg.payload);
+              break;
+            case "bitstream:config":
+              onConfig(msg.payload);
+              break;
+            case "bitstream:response":
+              onCommandResponse(msg.payload);
+              break;
+            case "bitstream:sample":
+              onSample(msg.payload);
+              break;
+            case "bitstream:connection":
+              onConnection(msg.payload);
+              break;
+            default:
+              break;
+          }
+        });
+
+        providerWs.addEventListener("close", function () {
+          providerWs = null;
+          statusEl.textContent = "Provider disconnected — retrying mock…";
+          startMock();
+          window.setTimeout(connectProviderWs, 2000);
+        });
+
+        providerWs.addEventListener("error", function () {
+          providerWs.close();
+        });
+      }
+
+      // Course Studio iframe: parent postMessage bridge.
+      if (window.parent && window.parent !== window) {
+        statusEl.textContent = "Handshake sent — waiting for parent…";
+        window.parent.postMessage(
+          { type: "bitstream:ready", v: 1, payload: { clientId: CLIENT_ID } },
+          "*"
+        );
+      } else {
+        // Standalone: WebSocket to public provider (ws://127.0.0.1:9997), mock fallback.
+        connectProviderWs();
+      }
+    })();
+  </script>
+</body>
+</html>

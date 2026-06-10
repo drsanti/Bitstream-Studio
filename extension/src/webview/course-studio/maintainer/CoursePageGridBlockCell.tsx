@@ -20,7 +20,12 @@ function courseGridCellBodyPointerPassthrough(
   blockKind: PageBlockV1["kind"],
   selected: boolean,
 ): boolean {
-  return selected || blockKind === "youtube" || blockKind === "iframe";
+  return (
+    selected ||
+    blockKind === "youtube" ||
+    blockKind === "iframe" ||
+    blockKind === "html-page"
+  );
 }
 
 function courseGridCellClassName(
