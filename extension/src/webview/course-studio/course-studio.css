@@ -1331,6 +1331,118 @@
   );
 }
 
+.course-studio-root .course-numeric-readout-card {
+  container-type: size;
+  border-radius: 14px;
+  background-color: var(--course-wb-metric-panel-bg, rgb(255 255 255 / 0.04));
+  border: 1px solid var(--course-wb-metric-panel-border, rgb(255 255 255 / 0.08));
+}
+
+.course-studio-root .course-numeric-readout-card__label {
+  font-size: clamp(8px, 14cqmin, 10px);
+}
+
+.course-studio-root .course-numeric-readout-card__value--standard {
+  font-size: clamp(14px, 22cqmin, 20px);
+}
+
+.course-studio-root .course-numeric-readout-card__value--large {
+  font-size: clamp(18px, 30cqmin, 28px);
+}
+
+.course-studio-root .course-numeric-readout-card__value--hero {
+  font-size: clamp(22px, 38cqmin, 36px);
+}
+
+.course-studio-root .course-numeric-readout-card__unit {
+  font-size: clamp(8px, 14cqmin, 11px);
+}
+
+.course-studio-root .course-vertical-bar-card {
+  container-type: size;
+  border-radius: 14px;
+  background-color: var(--course-wb-metric-panel-bg, rgb(255 255 255 / 0.04));
+  border: 1px solid var(--course-wb-metric-panel-border, rgb(255 255 255 / 0.08));
+}
+
+.course-studio-root .course-vertical-bar-card__label {
+  font-size: clamp(8px, 14cqmin, 10px);
+}
+
+.course-studio-root .course-vertical-bar-card__value {
+  font-size: clamp(12px, 20cqmin, 16px);
+}
+
+.course-studio-root .course-vertical-bar-card__unit {
+  font-size: clamp(8px, 14cqmin, 11px);
+}
+
+.course-studio-root .course-status-pill-card {
+  container-type: size;
+  border-radius: 14px;
+  background-color: var(--course-wb-metric-panel-bg, rgb(255 255 255 / 0.04));
+  border: 1px solid var(--course-wb-metric-panel-border, rgb(255 255 255 / 0.08));
+}
+
+.course-studio-root .course-status-pill-card__label {
+  font-size: clamp(8px, 14cqmin, 10px);
+}
+
+.course-studio-root .course-status-pill-card__pill {
+  font-size: clamp(9px, 16cqmin, 11px);
+}
+
+.course-studio-root .course-led-indicator-card {
+  container-type: size;
+  border-radius: 14px;
+  background-color: var(--course-wb-metric-panel-bg, rgb(255 255 255 / 0.04));
+  border: 1px solid var(--course-wb-metric-panel-border, rgb(255 255 255 / 0.08));
+}
+
+.course-studio-root .course-led-indicator-card__label {
+  font-size: clamp(8px, 14cqmin, 10px);
+}
+
+.course-studio-root .course-led-indicator-card__lamp--sm {
+  width: clamp(10px, 18cqmin, 14px);
+  height: clamp(10px, 18cqmin, 14px);
+}
+
+.course-studio-root .course-led-indicator-card__lamp--md {
+  width: clamp(14px, 24cqmin, 20px);
+  height: clamp(14px, 24cqmin, 20px);
+}
+
+.course-studio-root .course-led-indicator-card__lamp--lg {
+  width: clamp(18px, 30cqmin, 28px);
+  height: clamp(18px, 30cqmin, 28px);
+}
+
+.course-studio-root .course-led-indicator-card__lamp--glow {
+  filter: saturate(1.15);
+}
+
+.course-studio-root .course-infographic-widget {
+  container-type: size;
+  min-height: 0;
+  min-width: 0;
+}
+
+.course-studio-root .course-infographic-thermometer,
+.course-studio-root .course-infographic-battery,
+.course-studio-root .course-infographic-droplet,
+.course-studio-root .course-infographic-manometer,
+.course-studio-root .course-infographic-compass,
+.course-studio-root .course-infographic-seven-segment {
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.course-studio-root .course-widget-board-grid--editor .course-infographic-widget {
+  border-radius: 4px;
+}
+
 .course-studio-root .course-hero-radial-gauge {
   container-type: size;
 }
@@ -1465,7 +1577,11 @@
   flex: 1 1 auto;
 }
 
-.course-studio-root .course-widget-board-grid--editor .course-metric-bar-card {
+.course-studio-root .course-widget-board-grid--editor .course-metric-bar-card,
+.course-studio-root .course-widget-board-grid--editor .course-numeric-readout-card,
+.course-studio-root .course-widget-board-grid--editor .course-vertical-bar-card,
+.course-studio-root .course-widget-board-grid--editor .course-status-pill-card,
+.course-studio-root .course-widget-board-grid--editor .course-led-indicator-card {
   border-radius: 4px;
 }
 

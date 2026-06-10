@@ -1,8 +1,14 @@
 import type { WidgetBoardEntryV1 } from "../../../schemas/widgetBoard.v1";
 import { useCourseLiveBinding } from "../../../runtime/useCourseLiveBinding";
 import { CourseHeroRadialGauge } from "./CourseHeroRadialGauge";
+import { CourseLedIndicatorCard } from "./CourseLedIndicatorCard";
 import { CourseMetricBarCard } from "./CourseMetricBarCard";
+import { CourseNumericReadoutCard } from "./CourseNumericReadoutCard";
+import { CourseStatusPillCard } from "./CourseStatusPillCard";
+import { CourseVerticalBarCard } from "./CourseVerticalBarCard";
+import { resolveWidgetBoardBooleanActive } from "./widgetBoardActiveState";
 import { resolveWidgetBoardDisplayUnit } from "./widgetBoardLayout";
+import { tryRenderWidgetBoardInfographic } from "./widgetBoardInfographicEntry";
 
 export function CourseWidgetBoardEntry({
   widget,
@@ -17,7 +23,9 @@ export function CourseWidgetBoardEntry({
   const resolvedValue =
     live.displayValue != null && Number.isFinite(live.displayValue)
       ? live.displayValue
-      : widget.demoValue ?? null;
+      : widget.kind !== "status-pill" && widget.kind !== "led-indicator"
+        ? (widget.demoValue ?? null)
+        : null;
 
   const unit = resolveWidgetBoardDisplayUnit({
     widget,
@@ -25,7 +33,21 @@ export function CourseWidgetBoardEntry({
     liveUnit: live.unit,
   });
 
+  const hasLiveSample =
+    binding?.path != null &&
+    binding.path.length > 0 &&
+    (live.rawValue != null || live.displayValue != null);
+
   if (widget.kind === "metric-bar") {
+    const infographic = tryRenderWidgetBoardInfographic({
+      widget,
+      value: resolvedValue,
+      unit,
+      health: binding != null ? live.health : undefined,
+    });
+    if (infographic != null) {
+      return infographic;
+    }
     return (
       <CourseMetricBarCard
         label={widget.label}
@@ -34,6 +56,119 @@ export function CourseWidgetBoardEntry({
         min={widget.min}
         max={widget.max}
         decimals={widget.decimals}
+        health={binding != null ? live.health : undefined}
+        typography={widget.typography}
+        showLabel={widget.showLabel}
+        showValue={widget.showValue}
+        showUnit={widget.showUnit}
+        trackColor={widget.trackColor}
+        fillColor={widget.fillColor}
+      />
+    );
+  }
+
+  if (widget.kind === "numeric-readout") {
+    const infographic = tryRenderWidgetBoardInfographic({
+      widget,
+      value: resolvedValue,
+      unit,
+      health: binding != null ? live.health : undefined,
+    });
+    if (infographic != null) {
+      return infographic;
+    }
+    return (
+      <CourseNumericReadoutCard
+        label={widget.label}
+        value={resolvedValue}
+        unit={unit}
+        decimals={widget.decimals}
+        health={binding != null ? live.health : undefined}
+        typography={widget.typography}
+        showLabel={widget.showLabel}
+        showValue={widget.showValue}
+        showUnit={widget.showUnit}
+        valueAlign={widget.valueAlign}
+        valueScale={widget.valueScale}
+      />
+    );
+  }
+
+  if (widget.kind === "vertical-bar") {
+    const infographic = tryRenderWidgetBoardInfographic({
+      widget,
+      value: resolvedValue,
+      unit,
+      health: binding != null ? live.health : undefined,
+    });
+    if (infographic != null) {
+      return infographic;
+    }
+    return (
+      <CourseVerticalBarCard
+        label={widget.label}
+        value={resolvedValue}
+        unit={unit}
+        min={widget.min}
+        max={widget.max}
+        decimals={widget.decimals}
+        health={binding != null ? live.health : undefined}
+        typography={widget.typography}
+        showLabel={widget.showLabel}
+        showValue={widget.showValue}
+        showUnit={widget.showUnit}
+        fillFrom={widget.fillFrom}
+        fillSmoothingMs={widget.fillSmoothingMs}
+        trackWidthPercent={widget.trackWidthPercent}
+        trackColor={widget.trackColor}
+        fillColor={widget.fillColor}
+      />
+    );
+  }
+
+  if (widget.kind === "status-pill") {
+    const active = resolveWidgetBoardBooleanActive({
+      binding,
+      rawValue: live.rawValue,
+      displayValue: live.displayValue,
+      condition: { compareOp: widget.compareOp, compareValue: widget.compareValue },
+      demoActive: widget.demoActive,
+      hasLiveSample,
+    });
+    return (
+      <CourseStatusPillCard
+        label={widget.label}
+        active={active}
+        onLabel={widget.onLabel}
+        offLabel={widget.offLabel}
+        widget={widget}
+        health={binding != null ? live.health : undefined}
+        typography={widget.typography}
+        showLabel={widget.showLabel}
+      />
+    );
+  }
+
+  if (widget.kind === "led-indicator") {
+    const active = resolveWidgetBoardBooleanActive({
+      binding,
+      rawValue: live.rawValue,
+      displayValue: live.displayValue,
+      condition: { compareOp: widget.compareOp, compareValue: widget.compareValue },
+      demoActive: widget.demoActive,
+      hasLiveSample,
+    });
+    return (
+      <CourseLedIndicatorCard
+        label={widget.label}
+        active={active}
+        onColor={widget.onColor}
+        offColor={widget.offColor}
+        ledSize={widget.ledSize}
+        showLabel={widget.showLabel}
+        glowWhenOn={widget.glowWhenOn}
+        blink={widget.blink}
+        blinkPeriodMs={widget.blinkPeriodMs}
         health={binding != null ? live.health : undefined}
         typography={widget.typography}
       />

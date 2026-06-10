@@ -8,7 +8,7 @@ import {
   type WidgetBoardInnerGridV1,
   type WidgetBoardWidgetKind,
 } from "../../schemas/widgetBoard.v1";
-import { HERO_RADIAL_GAUGE_DEFAULTS } from "../../ui/catalog/widget-board/heroRadialGaugeConfig";
+import { buildDefaultWidgetBoardEntry } from "../../ui/catalog/widget-board/widgetBoardWidgetDefaults";
 import { WIDGET_BOARD_EDITOR_MIN_VISIBLE_ROWS } from "../../ui/catalog/widget-board/widgetBoardLayout";
 import { nextUniquePageBlockId } from "../blockFactory";
 
@@ -168,31 +168,7 @@ export function createWidgetBoardEntryAtPlacement(
 ): WidgetBoardEntryV1 {
   const id = nextUniquePageBlockId(kind, widgets);
   const fitted = ensureWidgetBoardWidgetPlacement(placement, kind);
-
-  if (kind === "metric-bar") {
-    return {
-      id,
-      kind,
-      placement: fitted,
-      label: "Metric",
-      min: 0,
-      max: 100,
-      decimals: 0,
-      demoValue: 50,
-    };
-  }
-
-  return {
-    id,
-    kind,
-    placement: fitted,
-    min: 0,
-    max: 180,
-    decimals: 0,
-    unit: "km/h",
-    demoValue: 0,
-    ...HERO_RADIAL_GAUGE_DEFAULTS,
-  };
+  return buildDefaultWidgetBoardEntry(kind, id, fitted);
 }
 
 export function createWidgetBoardEntry(
@@ -203,31 +179,7 @@ export function createWidgetBoardEntry(
   const min = WIDGET_BOARD_WIDGET_MIN_SPAN[kind];
   const placement = findOpenWidgetBoardPlacement(widgets, columns, min);
   const id = nextUniquePageBlockId(kind, widgets);
-
-  if (kind === "metric-bar") {
-    return {
-      id,
-      kind,
-      placement,
-      label: "Metric",
-      min: 0,
-      max: 100,
-      decimals: 0,
-      demoValue: 50,
-    };
-  }
-
-  return {
-    id,
-    kind,
-    placement,
-    min: 0,
-    max: 180,
-    decimals: 0,
-    unit: "km/h",
-    demoValue: 0,
-    ...HERO_RADIAL_GAUGE_DEFAULTS,
-  };
+  return buildDefaultWidgetBoardEntry(kind, id, placement);
 }
 
 export function updateWidgetBoardWidgets(
@@ -257,49 +209,7 @@ export function patchWidgetBoardWidgetKind(
     );
   }
 
-  const shared = {
-    id: widget.id,
-    kind,
-    placement,
-    min: widget.min,
-    max: widget.max,
-    decimals: widget.decimals,
-    demoValue: widget.demoValue,
-    binding: widget.binding,
-    typography: widget.typography,
-  };
-
-  if (kind === "metric-bar") {
-    return {
-      ...shared,
-      kind: "metric-bar",
-      label: widget.kind === "metric-bar" ? widget.label : "Metric",
-    };
-  }
-
-  const heroDefaults =
-    widget.kind === "hero-radial-gauge"
-      ? {
-          label: widget.label,
-          unit: widget.unit,
-          heroArcPreset: widget.heroArcPreset,
-          showValue: widget.showValue,
-          showUnit: widget.showUnit,
-          fillSmoothingMs: widget.fillSmoothingMs,
-          holeSizePercent: widget.holeSizePercent,
-          zoneTint: widget.zoneTint,
-          showGlow: widget.showGlow,
-          arcCap: widget.arcCap,
-        }
-      : {
-          unit: "km/h" as const,
-        };
-
-  return {
-    ...shared,
-    kind: "hero-radial-gauge",
-    ...heroDefaults,
-  };
+  return buildDefaultWidgetBoardEntry(kind, widget.id, placement);
 }
 
 export function patchWidgetBoardWidget(

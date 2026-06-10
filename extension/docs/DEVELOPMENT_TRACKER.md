@@ -72,6 +72,8 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-10** — **Course Studio infographic widgets (I0–I1):** shared `CourseInfographicWidget` SVG skins (thermometer, battery, 7-segment, compass, droplet, manometer) on **dashboard-widget** and **widget-board** via `visualPreset`; inspector skin card + path-based suggestions; no 3D in this phase.
+- **2026-06-10** — **Course Studio widget board (six kinds):** numeric readout, vertical bar, status pill, and LED indicator widgets with full inspector customization (readout toggles, colors, condition rules, typography); palette + runtime wired for all six kinds alongside metric bar and hero gauge.
 - **2026-06-10** — **Course Studio Widget Editor (phase 2):** workbench pane + inner grid composer (drag/resize), widget palette (metric bar, hero gauge), per-widget binding inspector, v7 maintainer layout migration; builds on `widget-board` block + five theme presets.
 - **2026-06-10** — **Course Studio widget board (phase 1):** `widget-board` page block with inner grid, `metric-bar` + `hero-radial-gauge` widgets, five theme presets (`ev-compact`, `course-amber`, `industrial`, `telemetry-cyan`, `sci-fi`), semantic `--course-wb-*` tokens, EV compact template, palette add, inspector theme/meta/caption.
 - **2026-06-10** — **Course Studio content polish (four-sensor diagrams/scenes):** BMM350 compass diagram + heading scene; DPS368 pressure bar + altitude scene; SHT40 comfort gauge + RH sphere scene; live/field topic pages wired; **462** course-studio tests; `presentation:validate` clean.

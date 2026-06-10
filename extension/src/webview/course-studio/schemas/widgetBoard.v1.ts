@@ -5,6 +5,7 @@ import {
   heroRadialGaugeZoneTintSchema,
 } from "../ui/catalog/widget-board/heroRadialGaugeConfig";
 import { courseBlockColorHexSchema } from "./blockColorHex";
+import { infographicVisualPresetSchema } from "./infographicVisualPreset.v1";
 import { diagramBindingSchema } from "./diagramBindingSchemas";
 import {
   widgetBoardThemePresetIdSchema,
@@ -12,9 +13,51 @@ import {
   type WidgetBoardThemePresetId,
 } from "./widgetBoardTheme.v1";
 
-export const widgetBoardWidgetKindSchema = z.enum(["metric-bar", "hero-radial-gauge"]);
+export const widgetBoardWidgetKindSchema = z.enum([
+  "metric-bar",
+  "hero-radial-gauge",
+  "numeric-readout",
+  "vertical-bar",
+  "status-pill",
+  "led-indicator",
+]);
 
 export type WidgetBoardWidgetKind = z.infer<typeof widgetBoardWidgetKindSchema>;
+
+export const widgetBoardCompareOpSchema = z.enum([">", "<", ">=", "<=", "==", "!="]);
+
+export type WidgetBoardCompareOp = z.infer<typeof widgetBoardCompareOpSchema>;
+
+export const widgetBoardValueAlignSchema = z.enum(["left", "center", "right"]);
+
+export type WidgetBoardValueAlign = z.infer<typeof widgetBoardValueAlignSchema>;
+
+export const widgetBoardValueScaleSchema = z.enum(["standard", "large", "hero"]);
+
+export type WidgetBoardValueScale = z.infer<typeof widgetBoardValueScaleSchema>;
+
+export const widgetBoardFillOriginSchema = z.enum(["bottom", "top"]);
+
+export type WidgetBoardFillOrigin = z.infer<typeof widgetBoardFillOriginSchema>;
+
+export const widgetBoardStatusToneSchema = z.enum([
+  "success",
+  "warning",
+  "danger",
+  "neutral",
+  "info",
+  "custom",
+]);
+
+export type WidgetBoardStatusToneId = z.infer<typeof widgetBoardStatusToneSchema>;
+
+export const widgetBoardPillStyleSchema = z.enum(["filled", "outline"]);
+
+export type WidgetBoardPillStyle = z.infer<typeof widgetBoardPillStyleSchema>;
+
+export const widgetBoardLedSizeSchema = z.enum(["sm", "md", "lg"]);
+
+export type WidgetBoardLedSize = z.infer<typeof widgetBoardLedSizeSchema>;
 
 const widgetBoardInnerGridSchema = z.object({
   columns: z.number().int().min(1).max(24).default(6),
@@ -43,7 +86,6 @@ const widgetBoardPlacementSchema = z.object({
   rowSpan: z.number().int().min(1).max(200),
 });
 
-/** Per-widget label / value / unit typography overrides (theme defaults when unset). */
 export const widgetBoardWidgetTypographySchema = z.object({
   labelFontSizePx: z.number().int().min(8).max(32).optional(),
   labelColor: courseBlockColorHexSchema.optional(),
@@ -55,17 +97,45 @@ export const widgetBoardWidgetTypographySchema = z.object({
 
 export type WidgetBoardWidgetTypographyV1 = z.infer<typeof widgetBoardWidgetTypographySchema>;
 
+const widgetBoardConditionSchema = z.object({
+  compareOp: widgetBoardCompareOpSchema.default(">="),
+  compareValue: z.number().default(0.5),
+  demoActive: z.boolean().default(false),
+});
+
+const widgetBoardScalarFields = {
+  binding: diagramBindingSchema.optional(),
+  min: z.number().default(0),
+  max: z.number().default(100),
+  decimals: z.number().int().min(0).max(6).default(0),
+  demoValue: z.number().optional(),
+  unit: z.string().optional(),
+  typography: widgetBoardWidgetTypographySchema.optional(),
+  visualPreset: infographicVisualPresetSchema.default("abstract"),
+  segmentCount: z.number().int().min(3).max(8).optional(),
+  tubeWidthPercent: z.number().int().min(10).max(32).optional(),
+  bulbSizePercent: z.number().int().min(18).max(40).optional(),
+  trackWidthPercent: z.number().int().min(10).max(36).optional(),
+  showScaleTicks: z.boolean().optional(),
+  roseStyle: z.enum(["aviation", "minimal"]).optional(),
+  showCardinals: z.boolean().optional(),
+  showDigitalHeading: z.boolean().optional(),
+  needleColor: courseBlockColorHexSchema.optional(),
+};
+
+const widgetBoardReadoutFields = {
+  showLabel: z.boolean().default(true),
+  showValue: z.boolean().default(true),
+  showUnit: z.boolean().default(true),
+};
+
 export const WIDGET_BOARD_TYPOGRAPHY_DEFAULTS = {
-  metricBar: {
-    labelFontSizePx: 10,
-    valueFontSizePx: 18,
-    unitFontSizePx: 13,
-  },
-  heroRadialGauge: {
-    labelFontSizePx: 10,
-    valueFontSizePx: 42,
-    unitFontSizePx: 11,
-  },
+  metricBar: { labelFontSizePx: 10, valueFontSizePx: 18, unitFontSizePx: 13 },
+  heroRadialGauge: { labelFontSizePx: 10, valueFontSizePx: 42, unitFontSizePx: 11 },
+  numericReadout: { labelFontSizePx: 10, valueFontSizePx: 28, unitFontSizePx: 11 },
+  verticalBar: { labelFontSizePx: 10, valueFontSizePx: 16, unitFontSizePx: 11 },
+  statusPill: { labelFontSizePx: 10, valueFontSizePx: 11, unitFontSizePx: 11 },
+  ledIndicator: { labelFontSizePx: 10, valueFontSizePx: 11, unitFontSizePx: 11 },
 } as const;
 
 const metricBarWidgetSchema = z.object({
@@ -73,13 +143,10 @@ const metricBarWidgetSchema = z.object({
   kind: z.literal("metric-bar"),
   placement: widgetBoardPlacementSchema,
   label: z.string().default("Value"),
-  binding: diagramBindingSchema.optional(),
-  min: z.number().default(0),
-  max: z.number().default(100),
-  decimals: z.number().int().min(0).max(6).default(0),
-  /** Shown when live binding has no sample (maintainer preview / decorative). */
-  demoValue: z.number().optional(),
-  typography: widgetBoardWidgetTypographySchema.optional(),
+  ...widgetBoardScalarFields,
+  ...widgetBoardReadoutFields,
+  trackColor: courseBlockColorHexSchema.optional(),
+  fillColor: courseBlockColorHexSchema.optional(),
 });
 
 const heroRadialGaugeWidgetSchema = z.object({
@@ -104,12 +171,84 @@ const heroRadialGaugeWidgetSchema = z.object({
   typography: widgetBoardWidgetTypographySchema.optional(),
 });
 
+const numericReadoutWidgetSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("numeric-readout"),
+  placement: widgetBoardPlacementSchema,
+  label: z.string().default("Value"),
+  ...widgetBoardScalarFields,
+  ...widgetBoardReadoutFields,
+  valueAlign: widgetBoardValueAlignSchema.default("center"),
+  valueScale: widgetBoardValueScaleSchema.default("large"),
+});
+
+const verticalBarWidgetSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("vertical-bar"),
+  placement: widgetBoardPlacementSchema,
+  label: z.string().default("Level"),
+  ...widgetBoardScalarFields,
+  ...widgetBoardReadoutFields,
+  fillFrom: widgetBoardFillOriginSchema.default("bottom"),
+  fillSmoothingMs: z.number().int().min(0).max(5000).default(0),
+  trackWidthPercent: z.number().int().min(8).max(40).default(14),
+  trackColor: courseBlockColorHexSchema.optional(),
+  fillColor: courseBlockColorHexSchema.optional(),
+});
+
+const statusPillWidgetSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("status-pill"),
+  placement: widgetBoardPlacementSchema,
+  label: z.string().default("Status"),
+  binding: diagramBindingSchema.optional(),
+  typography: widgetBoardWidgetTypographySchema.optional(),
+  onLabel: z.string().default("OK"),
+  offLabel: z.string().default("Fault"),
+  onTone: widgetBoardStatusToneSchema.default("success"),
+  offTone: widgetBoardStatusToneSchema.default("danger"),
+  onBackgroundColor: courseBlockColorHexSchema.optional(),
+  onTextColor: courseBlockColorHexSchema.optional(),
+  onBorderColor: courseBlockColorHexSchema.optional(),
+  offBackgroundColor: courseBlockColorHexSchema.optional(),
+  offTextColor: courseBlockColorHexSchema.optional(),
+  offBorderColor: courseBlockColorHexSchema.optional(),
+  pillStyle: widgetBoardPillStyleSchema.default("filled"),
+  showLabel: z.boolean().default(true),
+  compareOp: widgetBoardCompareOpSchema.default(">="),
+  compareValue: z.number().default(0.5),
+  demoActive: z.boolean().default(false),
+});
+
+const ledIndicatorWidgetSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("led-indicator"),
+  placement: widgetBoardPlacementSchema,
+  label: z.string().default("Status"),
+  binding: diagramBindingSchema.optional(),
+  typography: widgetBoardWidgetTypographySchema.optional(),
+  onColor: courseBlockColorHexSchema.default("#22c55e"),
+  offColor: courseBlockColorHexSchema.default("#27272a"),
+  ledSize: widgetBoardLedSizeSchema.default("md"),
+  showLabel: z.boolean().default(true),
+  glowWhenOn: z.boolean().default(true),
+  blink: z.boolean().default(false),
+  blinkPeriodMs: z.number().int().min(200).max(3000).default(800),
+  compareOp: widgetBoardCompareOpSchema.default(">="),
+  compareValue: z.number().default(0.5),
+  demoActive: z.boolean().default(false),
+});
+
 export { heroRadialGaugeArcPresetSchema };
 export type { HeroRadialGaugeArcPresetId } from "../ui/catalog/widget-board/heroRadialGaugeConfig";
 
 export const widgetBoardEntrySchema = z.discriminatedUnion("kind", [
   metricBarWidgetSchema,
   heroRadialGaugeWidgetSchema,
+  numericReadoutWidgetSchema,
+  verticalBarWidgetSchema,
+  statusPillWidgetSchema,
+  ledIndicatorWidgetSchema,
 ]);
 
 export type WidgetBoardEntryV1 = z.infer<typeof widgetBoardEntrySchema>;
@@ -118,6 +257,13 @@ export type WidgetBoardHeroRadialGaugeV1 = Extract<
   WidgetBoardEntryV1,
   { kind: "hero-radial-gauge" }
 >;
+export type WidgetBoardNumericReadoutV1 = Extract<
+  WidgetBoardEntryV1,
+  { kind: "numeric-readout" }
+>;
+export type WidgetBoardVerticalBarV1 = Extract<WidgetBoardEntryV1, { kind: "vertical-bar" }>;
+export type WidgetBoardStatusPillV1 = Extract<WidgetBoardEntryV1, { kind: "status-pill" }>;
+export type WidgetBoardLedIndicatorV1 = Extract<WidgetBoardEntryV1, { kind: "led-indicator" }>;
 
 export const WIDGET_BOARD_WIDGET_MIN_SPAN: Record<
   WidgetBoardWidgetKind,
@@ -125,7 +271,23 @@ export const WIDGET_BOARD_WIDGET_MIN_SPAN: Record<
 > = {
   "metric-bar": { columnSpan: 2, rowSpan: 2 },
   "hero-radial-gauge": { columnSpan: 3, rowSpan: 3 },
+  "numeric-readout": { columnSpan: 2, rowSpan: 2 },
+  "vertical-bar": { columnSpan: 2, rowSpan: 3 },
+  "status-pill": { columnSpan: 3, rowSpan: 1 },
+  "led-indicator": { columnSpan: 2, rowSpan: 2 },
 };
+
+export const WIDGET_BOARD_SCALAR_WIDGET_KINDS = new Set<WidgetBoardWidgetKind>([
+  "metric-bar",
+  "numeric-readout",
+  "vertical-bar",
+  "hero-radial-gauge",
+]);
+
+export const WIDGET_BOARD_BOOLEAN_WIDGET_KINDS = new Set<WidgetBoardWidgetKind>([
+  "status-pill",
+  "led-indicator",
+]);
 
 export const WIDGET_BOARD_DEFAULT_INNER_GRID: WidgetBoardInnerGridV1 = {
   columns: 6,
@@ -145,6 +307,9 @@ export function createEvCompactWidgetBoardWidgets(): WidgetBoardEntryV1[] {
       max: 250,
       decimals: 0,
       demoValue: 192,
+      showLabel: true,
+      showValue: true,
+      showUnit: true,
     },
     {
       id: "battery",
@@ -155,6 +320,9 @@ export function createEvCompactWidgetBoardWidgets(): WidgetBoardEntryV1[] {
       max: 100,
       decimals: 0,
       demoValue: 78,
+      showLabel: true,
+      showValue: true,
+      showUnit: true,
     },
     {
       id: "speed",

@@ -22,6 +22,11 @@ export function CourseMetricBarCard({
   decimals,
   health,
   typography,
+  showLabel = true,
+  showValue = true,
+  showUnit = true,
+  trackColor,
+  fillColor,
 }: {
   label: string;
   value: number | null;
@@ -31,6 +36,11 @@ export function CourseMetricBarCard({
   decimals: number;
   health?: CourseBindingHealthStatus;
   typography?: WidgetBoardWidgetTypographyV1;
+  showLabel?: boolean;
+  showValue?: boolean;
+  showUnit?: boolean;
+  trackColor?: string;
+  fillColor?: string;
 }) {
   const normalized = normalizeWidgetBoardScalar(value, min, max);
   const fillPercent = normalized == null ? 0 : normalized * 100;
@@ -50,50 +60,60 @@ export function CourseMetricBarCard({
       }`}
       data-course-widget-kind="metric-bar"
     >
-      <p
-        className={`font-medium uppercase tracking-widest${
-          hasWidgetBoardLabelTypography(typography)
-            ? ""
-            : " course-metric-bar-card__label text-[var(--course-wb-label)]"
-        }`}
-        style={labelStyle}
-      >
-        {label}
-      </p>
-      <p
-        className={`mt-1 font-bold leading-tight${
-          hasWidgetBoardValueTypography(typography)
-            ? ""
-            : " course-metric-bar-card__value text-[var(--course-wb-value)]"
-        }`}
-        style={
-          {
-            ...valueStyle,
-            textShadow: typography?.valueColor != null ? "none" : "var(--course-wb-value-shadow, none)",
-          } as CSSProperties
-        }
-      >
-        {formatWidgetBoardValue(value, decimals)}
-        {value != null ? (
-          <span
-            className={`font-semibold${
-              hasWidgetBoardUnitTypography(typography)
-                ? ""
-                : " course-metric-bar-card__unit text-[var(--course-wb-unit)]"
-            }`}
-            style={unitStyle}
-          >
-            {unitSuffix}
-          </span>
-        ) : null}
-      </p>
+      {showLabel ? (
+        <p
+          className={`font-medium uppercase tracking-widest${
+            hasWidgetBoardLabelTypography(typography)
+              ? ""
+              : " course-metric-bar-card__label text-[var(--course-wb-label)]"
+          }`}
+          style={labelStyle}
+        >
+          {label}
+        </p>
+      ) : null}
+      {showValue ? (
+        <p
+          className={`mt-1 font-bold leading-tight${
+            hasWidgetBoardValueTypography(typography)
+              ? ""
+              : " course-metric-bar-card__value text-[var(--course-wb-value)]"
+          }`}
+          style={
+            {
+              ...valueStyle,
+              textShadow: typography?.valueColor != null ? "none" : "var(--course-wb-value-shadow, none)",
+            } as CSSProperties
+          }
+        >
+          {formatWidgetBoardValue(value, decimals)}
+          {showUnit && value != null ? (
+            <span
+              className={`font-semibold${
+                hasWidgetBoardUnitTypography(typography)
+                  ? ""
+                  : " course-metric-bar-card__unit text-[var(--course-wb-unit)]"
+              }`}
+              style={unitStyle}
+            >
+              {unitSuffix}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
       <div
         className="course-metric-bar-card__track mt-2 h-1.5 w-full overflow-hidden rounded-full"
+        style={{ backgroundColor: trackColor ?? undefined }}
         aria-hidden
       >
         <span
           className="course-metric-bar-card__fill block h-full rounded-full transition-[width] duration-200"
-          style={{ width: `${fillPercent}%` }}
+          style={{
+            width: `${fillPercent}%`,
+            background: fillColor
+              ? fillColor
+              : "linear-gradient(90deg, var(--course-wb-gradient-from), var(--course-wb-gradient-to))",
+          }}
         />
       </div>
     </div>

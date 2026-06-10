@@ -25,6 +25,8 @@ import { DashboardWidgetColorsCard } from "./CourseDashboardWidgetBlockColorsCar
 import { CourseLiveBindingField } from "./binding/CourseLiveBindingField";
 import { catalogEntryForPath } from "../runtime/diagram/diagramBindingCatalog";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
+import { CourseInfographicInspectorFields } from "./infographics/CourseInfographicInspectorFields";
+import { coerceInfographicVisualPreset } from "../schemas/infographicVisualPreset.v1";
 
 function readTextStyle(style: Record<string, unknown>) {
   return {
@@ -313,6 +315,18 @@ export function CourseDashboardWidgetBlockInspectorFields({
         <CourseRadialGaugeInspectorFields
           blockId={block.id}
           style={style}
+          onPatch={patchStyle}
+        />
+      ) : null}
+
+      {block.widgetKind === "text" ||
+      block.widgetKind === "bar" ||
+      block.widgetKind === "gauge" ? (
+        <CourseInfographicInspectorFields
+          idPrefix={block.id}
+          visualPreset={coerceInfographicVisualPreset(style.visualPreset)}
+          configSource={style}
+          bindingPath={binding.path}
           onPatch={patchStyle}
         />
       ) : null}

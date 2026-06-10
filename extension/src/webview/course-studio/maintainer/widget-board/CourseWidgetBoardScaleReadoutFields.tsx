@@ -1,6 +1,7 @@
 import { TRNFormField } from "../../../ui/TRN/TRNForm";
 import { TRNInput } from "../../../ui/TRN/TRNInput";
 import type { WidgetBoardEntryV1 } from "../../schemas/widgetBoard.v1";
+import { WIDGET_BOARD_SCALAR_WIDGET_KINDS } from "../../schemas/widgetBoard.v1";
 import {
   CourseInspectorFieldGrid,
   CourseInspectorFieldGridControls,
@@ -20,8 +21,16 @@ export function CourseWidgetBoardScaleReadoutFields({
   widget: WidgetBoardEntryV1;
   onPatch: (patch: Partial<WidgetBoardEntryV1>) => void;
 }) {
+  if (!WIDGET_BOARD_SCALAR_WIDGET_KINDS.has(widget.kind)) {
+    return null;
+  }
+
   const labelPrefix = widgetBoardWidgetKindLabel(widget.kind);
   const bound = widgetHasBoundPath(widget);
+  const showUnitField =
+    widget.kind === "hero-radial-gauge" ||
+    widget.kind === "numeric-readout" ||
+    widget.kind === "vertical-bar";
 
   return (
     <div className="flex flex-col gap-2">
@@ -54,112 +63,53 @@ export function CourseWidgetBoardScaleReadoutFields({
         />
       </CourseInspectorFieldGrid>
 
-      {widget.kind === "hero-radial-gauge" ? (
-        bound ? (
-          <CourseInspectorFieldGrid>
-            <CourseInspectorFieldGridLabels
-              left={{ label: "Decimals" }}
-              right={{
-                label: "Demo value",
-                description: "Shown when live binding has no sample.",
-              }}
-            />
-            <CourseInspectorFieldGridControls
-              left={
-                <CourseMaintainerScrubNumberField
-                  ariaLabel={`${labelPrefix} decimal places`}
-                  value={widget.decimals}
-                  min={0}
-                  max={6}
-                  step={1}
-                  fractionDigits={0}
-                  onChange={(decimals) => onPatch({ decimals: Math.round(decimals) })}
-                />
-              }
-              right={
-                <CourseMaintainerScrubNumberField
-                  ariaLabel={`${labelPrefix} demo value`}
-                  value={widget.demoValue ?? 0}
-                  onChange={(demoValue) => onPatch({ demoValue })}
-                />
-              }
-            />
-          </CourseInspectorFieldGrid>
-        ) : (
-          <>
-            <CourseInspectorFieldGrid>
-              <CourseInspectorFieldGridLabels
-                left={{
-                  label: "Unit label",
-                  description: "Suffix under the gauge when no live binding is set.",
-                }}
-                right={{ label: "Decimals" }}
-              />
-              <CourseInspectorFieldGridControls
-                left={
-                  <TRNInput
-                    variant="outlined"
-                    size="sm"
-                    className="w-full"
-                    aria-label={`${labelPrefix} unit label`}
-                    value={widget.unit ?? ""}
-                    placeholder="e.g. km/h"
-                    onChange={(event) => onPatch({ unit: event.target.value })}
-                  />
-                }
-                right={
-                  <CourseMaintainerScrubNumberField
-                    ariaLabel={`${labelPrefix} decimal places`}
-                    value={widget.decimals}
-                    min={0}
-                    max={6}
-                    step={1}
-                    fractionDigits={0}
-                    onChange={(decimals) => onPatch({ decimals: Math.round(decimals) })}
-                  />
-                }
-              />
-            </CourseInspectorFieldGrid>
-            <TRNFormField id={`${widget.id}-demo`} label="Demo value">
-              <CourseMaintainerScrubNumberField
-                ariaLabel={`${labelPrefix} demo value`}
-                value={widget.demoValue ?? 0}
-                onChange={(demoValue) => onPatch({ demoValue })}
-              />
-            </TRNFormField>
-          </>
-        )
-      ) : (
-        <CourseInspectorFieldGrid>
-          <CourseInspectorFieldGridLabels
-            left={{ label: "Decimals" }}
-            right={{
-              label: "Demo value",
-              description: "Shown when live binding has no sample.",
-            }}
+      {showUnitField && !bound ? (
+        <TRNFormField
+          id={`${widget.id}-unit`}
+          label="Unit label"
+          hint="Suffix when no live binding is set."
+        >
+          <TRNInput
+            variant="outlined"
+            size="sm"
+            className="w-full"
+            aria-label={`${labelPrefix} unit label`}
+            value={widget.unit ?? ""}
+            placeholder="e.g. %"
+            onChange={(event) => onPatch({ unit: event.target.value })}
           />
-          <CourseInspectorFieldGridControls
-            left={
-              <CourseMaintainerScrubNumberField
-                ariaLabel={`${labelPrefix} decimal places`}
-                value={widget.decimals}
-                min={0}
-                max={6}
-                step={1}
-                fractionDigits={0}
-                onChange={(decimals) => onPatch({ decimals: Math.round(decimals) })}
-              />
-            }
-            right={
-              <CourseMaintainerScrubNumberField
-                ariaLabel={`${labelPrefix} demo value`}
-                value={widget.demoValue ?? 0}
-                onChange={(demoValue) => onPatch({ demoValue })}
-              />
-            }
-          />
-        </CourseInspectorFieldGrid>
-      )}
+        </TRNFormField>
+      ) : null}
+
+      <CourseInspectorFieldGrid>
+        <CourseInspectorFieldGridLabels
+          left={{ label: "Decimals" }}
+          right={{
+            label: "Demo value",
+            description: "Shown when live binding has no sample.",
+          }}
+        />
+        <CourseInspectorFieldGridControls
+          left={
+            <CourseMaintainerScrubNumberField
+              ariaLabel={`${labelPrefix} decimal places`}
+              value={widget.decimals}
+              min={0}
+              max={6}
+              step={1}
+              fractionDigits={0}
+              onChange={(decimals) => onPatch({ decimals: Math.round(decimals) })}
+            />
+          }
+          right={
+            <CourseMaintainerScrubNumberField
+              ariaLabel={`${labelPrefix} demo value`}
+              value={widget.demoValue ?? 0}
+              onChange={(demoValue) => onPatch({ demoValue })}
+            />
+          }
+        />
+      </CourseInspectorFieldGrid>
     </div>
   );
 }

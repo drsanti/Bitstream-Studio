@@ -120,8 +120,12 @@ export function resolveWidgetBoardDisplayUnit(args: {
   const bindingUnit = binding?.unit?.trim() ?? "";
   const liveUnit = args.liveUnit.trim();
 
-  if (args.widget.kind === "metric-bar") {
-    return liveUnit || bindingUnit;
+  if (
+    args.widget.kind === "metric-bar" ||
+    args.widget.kind === "numeric-readout" ||
+    args.widget.kind === "vertical-bar"
+  ) {
+    return liveUnit || bindingUnit || widgetUnit;
   }
   if (hasLiveBinding) {
     return liveUnit || widgetUnit;

@@ -1,6 +1,10 @@
 import { Gauge, Link2, SlidersHorizontal } from "lucide-react";
 import type { PageBlockV1 } from "../../schemas/page.v1";
 import type { WidgetBoardEntryV1 } from "../../schemas/widgetBoard.v1";
+import {
+  WIDGET_BOARD_BOOLEAN_WIDGET_KINDS,
+  WIDGET_BOARD_SCALAR_WIDGET_KINDS,
+} from "../../schemas/widgetBoard.v1";
 import { TRNFormField } from "../../../ui/TRN/TRNForm";
 import { TRNHintText } from "../../../ui/TRN/TRNHintText";
 import { TRNInput } from "../../../ui/TRN/TRNInput";
@@ -22,6 +26,17 @@ import { CourseWidgetBoardTypographyInspectorFields } from "./CourseWidgetBoardT
 import { CourseWidgetBoardScaleReadoutFields } from "./CourseWidgetBoardScaleReadoutFields";
 import { CourseWidgetBoardMapRangeInspectorFields } from "./CourseWidgetBoardMapRangeInspectorFields";
 import { CourseWidgetBoardHeroGaugeInspectorFields } from "./CourseWidgetBoardHeroGaugeInspectorFields";
+import { CourseWidgetBoardAppearanceInspectorFields } from "./CourseWidgetBoardAppearanceInspectorFields";
+import { CourseWidgetBoardConditionInspectorFields } from "./CourseWidgetBoardConditionInspectorFields";
+import { CourseInfographicInspectorFields } from "../infographics/CourseInfographicInspectorFields";
+import { coerceInfographicVisualPreset } from "../../schemas/infographicVisualPreset.v1";
+
+function widgetLabelValue(widget: WidgetBoardEntryV1): string {
+  if (widget.kind === "hero-radial-gauge") {
+    return widget.label ?? "";
+  }
+  return widget.label;
+}
 
 export function CourseWidgetBoardWidgetInspectorFields({
   block,
@@ -38,6 +53,11 @@ export function CourseWidgetBoardWidgetInspectorFields({
     const next = patchWidgetBoardWidget(block, widget.id, patch);
     updateBlock(block.id, { widgets: next.widgets });
   };
+
+  const labelHint =
+    widget.kind === "hero-radial-gauge"
+      ? "Optional caption above the ring. Leave empty to hide."
+      : undefined;
 
   return (
     <div className="flex flex-col gap-3">
@@ -75,33 +95,23 @@ export function CourseWidgetBoardWidgetInspectorFields({
             />
           </TRNFormField>
 
-          {widget.kind === "metric-bar" || widget.kind === "hero-radial-gauge" ? (
-            <TRNFormField
+          <TRNFormField id={`${widget.id}-label`} label="Label" hint={labelHint}>
+            <TRNInput
               id={`${widget.id}-label`}
-              label="Label"
-              hint={
-                widget.kind === "hero-radial-gauge"
-                  ? "Optional caption above the ring. Leave empty to hide."
-                  : undefined
-              }
-            >
-              <TRNInput
-                id={`${widget.id}-label`}
-                variant="outlined"
-                size="sm"
-                className="w-full"
-                value={widget.kind === "metric-bar" ? widget.label : (widget.label ?? "")}
-                onChange={(e) => {
-                  const next = e.target.value;
-                  if (widget.kind === "metric-bar") {
-                    patchWidget({ label: next });
-                    return;
-                  }
+              variant="outlined"
+              size="sm"
+              className="w-full"
+              value={widgetLabelValue(widget)}
+              onChange={(e) => {
+                const next = e.target.value;
+                if (widget.kind === "hero-radial-gauge") {
                   patchWidget({ label: next.length > 0 ? next : undefined });
-                }}
-              />
-            </TRNFormField>
-          ) : null}
+                  return;
+                }
+                patchWidget({ label: next });
+              }}
+            />
+          </TRNFormField>
         </div>
       </CourseInspectorCard>
 
@@ -127,18 +137,42 @@ export function CourseWidgetBoardWidgetInspectorFields({
         onPatchBinding={(binding) => patchWidget({ binding })}
       />
 
-      <CourseInspectorCard
-        title="Scale & readout"
-        hint={
-          widget.binding?.path != null && widget.binding.path.length > 0
-            ? "Visual range and demo value. Unit label is set under Data binding."
-            : "Visual bar/gauge range, formatting, and demo value (after map range)."
-        }
-        titleIcon={<Gauge className={COURSE_INSPECTOR_CARD_ICON_CLASS} aria-hidden />}
-        defaultCollapsed={false}
-      >
-        <CourseWidgetBoardScaleReadoutFields widget={widget} onPatch={patchWidget} />
-      </CourseInspectorCard>
+      {WIDGET_BOARD_SCALAR_WIDGET_KINDS.has(widget.kind) ? (
+        <CourseInspectorCard
+          title="Scale & readout"
+          hint={
+            widget.binding?.path != null && widget.binding.path.length > 0
+              ? "Visual range and demo value. Unit label is set under Data binding when bound."
+              : "Visual bar/gauge range, formatting, and demo value (after map range)."
+          }
+          titleIcon={<Gauge className={COURSE_INSPECTOR_CARD_ICON_CLASS} aria-hidden />}
+          defaultCollapsed={false}
+        >
+          <CourseWidgetBoardScaleReadoutFields widget={widget} onPatch={patchWidget} />
+        </CourseInspectorCard>
+      ) : null}
+
+      {WIDGET_BOARD_BOOLEAN_WIDGET_KINDS.has(widget.kind) ? (
+        <CourseWidgetBoardConditionInspectorFields
+          widget={widget}
+          staleMs={staleMs}
+          onPatch={patchWidget}
+        />
+      ) : null}
+
+      <CourseWidgetBoardAppearanceInspectorFields widget={widget} onPatch={patchWidget} />
+
+      {widget.kind === "metric-bar" ||
+      widget.kind === "numeric-readout" ||
+      widget.kind === "vertical-bar" ? (
+        <CourseInfographicInspectorFields
+          idPrefix={widget.id}
+          visualPreset={coerceInfographicVisualPreset(widget.visualPreset)}
+          configSource={widget as unknown as Record<string, unknown>}
+          bindingPath={widget.binding?.path}
+          onPatch={(patch) => patchWidget(patch as Partial<WidgetBoardEntryV1>)}
+        />
+      ) : null}
 
       {widget.kind === "hero-radial-gauge" ? (
         <CourseWidgetBoardHeroGaugeInspectorFields widget={widget} onPatch={patchWidget} />

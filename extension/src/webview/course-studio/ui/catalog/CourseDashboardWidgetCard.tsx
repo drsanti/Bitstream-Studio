@@ -17,6 +17,7 @@ import {
 import { resolveCourseDashboardWidgetActive, readCourseDashboardWidgetCondition } from "../../schemas/courseDashboardWidgetKinds";
 import { resolveBindingDisplayUnit } from "../../runtime/diagram/diagramBindingCatalog";
 import { useCourseLiveBinding } from "../../runtime/useCourseLiveBinding";
+import { tryRenderDashboardInfographic } from "./infographics/dashboardInfographicEntry";
 
 function readStatusLabel(style: Record<string, unknown>): string {
   if (typeof style.label === "string" && style.label.trim().length > 0) {
@@ -94,6 +95,52 @@ export function CourseDashboardWidgetCard({
     bindingValueKind,
   });
 
+  const infographicLabel =
+    typeof style.label === "string" && style.label.length > 0
+      ? style.label
+      : block.title ?? "Value";
+
+  const infographicBody =
+    block.widgetKind === "text" ||
+    block.widgetKind === "bar" ||
+    block.widgetKind === "gauge"
+      ? tryRenderDashboardInfographic({
+          style,
+          label: infographicLabel,
+          value: numericValue,
+          unit:
+            block.widgetKind === "text"
+              ? textStyle.unit
+              : block.widgetKind === "bar"
+                ? barStyle.unit
+                : gaugeStyle.unit,
+          min:
+            block.widgetKind === "bar"
+              ? barStyle.min
+              : block.widgetKind === "gauge"
+                ? gaugeStyle.min
+                : typeof style.min === "number"
+                  ? style.min
+                  : 0,
+          max:
+            block.widgetKind === "bar"
+              ? barStyle.max
+              : block.widgetKind === "gauge"
+                ? gaugeStyle.max
+                : typeof style.max === "number"
+                  ? style.max
+                  : 100,
+          decimals:
+            block.widgetKind === "text"
+              ? textStyle.decimals
+              : block.widgetKind === "bar"
+                ? barStyle.decimals
+                : gaugeStyle.decimals,
+          health: live.sensorHealth,
+          className: DASHBOARD_WIDGET_PANEL_CLASS,
+        })
+      : null;
+
   return (
     <div
       data-course-dashboard-widget=""
@@ -108,7 +155,9 @@ export function CourseDashboardWidgetCard({
         </div>
       ) : null}
       <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-[var(--course-dashboard-widget-bg,var(--surface-card))]">
-        {block.widgetKind === "led" ? (
+        {infographicBody != null ? (
+          infographicBody
+        ) : block.widgetKind === "led" ? (
           <LedIndicatorNodePanel
             value={widgetActive}
             defaultConfig={ledStyle}
