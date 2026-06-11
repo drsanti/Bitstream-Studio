@@ -72,6 +72,7 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-11** — **Physics Lab P1:** multi/box select, undo/redo, collider wireframes, spawn palette (box/sphere/capsule), data-driven bodies store.
 - **2026-06-11** — **Physics Lab P0 (boot):** `physics-lab` catalog entry — Rapier floor + dynamic box, Edit/Simulate toolbar, flat outliner, inspector; `@react-three/rapier` in simulation hub.
 - **2026-06-11** — **Physics Lab professional catalog (design):** `physics-lab/docs/PHYSICS_LAB_PROFESSIONAL_FEATURES.md` — authoring modes, collision matrix/layers, compound editor, validation, debug HUDs, phases P0–P8; schema collision layers + CCD on `PhysicsSceneV1`.
 - **2026-06-11** — **Physics Lab scene editor (design):** `physics-lab/docs/PHYSICS_LAB_SCENE_EDITOR.md` — outliner tree, DnD reparent, multi/box select, wireframe highlights, `PhysicsSceneNodeV1`; reuse Course 3D patterns.

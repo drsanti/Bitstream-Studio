@@ -1,19 +1,18 @@
-import { usePhysicsLabStore } from "../store/physicsLabStore.js";
+import { usePhysicsLabStore, physicsLabBodyById } from "../store/physicsLabStore.js";
+import { physicsLabBodySummary } from "../types/physicsLabBody.js";
 
 export function PhysicsLabInspector() {
   const workbenchMode = usePhysicsLabStore((s) => s.workbenchMode);
   const isPlaying = usePhysicsLabStore((s) => s.isPlaying);
-  const selectedObjectId = usePhysicsLabStore((s) => s.selectedObjectId);
+  const selectedIds = usePhysicsLabStore((s) => s.selectedIds);
+  const activeId = usePhysicsLabStore((s) => s.activeId);
+  const bodies = usePhysicsLabStore((s) => s.bodies);
+  const showColliderWireframes = usePhysicsLabStore((s) => s.showColliderWireframes);
 
-  const selectionLabel =
-    selectedObjectId === "floor"
-      ? "Floor"
-      : selectedObjectId === "dynamic-box"
-        ? "Dynamic Box"
-        : "None";
+  const activeBody = activeId != null ? physicsLabBodyById(bodies, activeId) : undefined;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-2">
+    <div className="flex h-full min-h-0 flex-col gap-3 p-2" data-physics-lab-chrome>
       <section className="rounded-lg border border-zinc-800/90 bg-zinc-950/50 p-2">
         <h3 className="text-[11px] font-semibold text-zinc-200">World</h3>
         <dl className="mt-2 space-y-1 text-[10px] text-zinc-400">
@@ -35,28 +34,35 @@ export function PhysicsLabInspector() {
               <dd className="text-zinc-300">{isPlaying ? "Playing" : "Paused"}</dd>
             </div>
           ) : null}
+          <div className="flex justify-between gap-2">
+            <dt>Collider wire</dt>
+            <dd className="text-zinc-300">{showColliderWireframes ? "On" : "Off"}</dd>
+          </div>
         </dl>
       </section>
 
       <section className="rounded-lg border border-zinc-800/90 bg-zinc-950/50 p-2">
         <h3 className="text-[11px] font-semibold text-zinc-200">Selection</h3>
-        <p className="mt-2 text-[11px] text-zinc-300">{selectionLabel}</p>
-        {selectedObjectId === "dynamic-box" ? (
+        {selectedIds.length === 0 ? (
+          <p className="mt-2 text-[11px] text-zinc-500">None</p>
+        ) : selectedIds.length > 1 ? (
+          <p className="mt-2 text-[11px] text-zinc-300">{selectedIds.length} objects</p>
+        ) : (
+          <p className="mt-2 text-[11px] text-zinc-300">{activeBody?.label ?? selectedIds[0]}</p>
+        )}
+        {activeBody != null ? (
           <dl className="mt-2 space-y-1 text-[10px] text-zinc-400">
             <div className="flex justify-between gap-2">
-              <dt>Motion</dt>
-              <dd className="text-zinc-300">Dynamic</dd>
+              <dt>Shape</dt>
+              <dd className="text-zinc-300">{activeBody.shape}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <dt>Mass</dt>
-              <dd className="text-zinc-300">Default density</dd>
-            </div>
-          </dl>
-        ) : selectedObjectId === "floor" ? (
-          <dl className="mt-2 space-y-1 text-[10px] text-zinc-400">
-            <div className="flex justify-between gap-2">
               <dt>Motion</dt>
-              <dd className="text-zinc-300">Fixed</dd>
+              <dd className="text-zinc-300">{activeBody.motion}</dd>
+            </div>
+            <div className="flex justify-between gap-2">
+              <dt>Summary</dt>
+              <dd className="text-right text-zinc-300">{physicsLabBodySummary(activeBody)}</dd>
             </div>
           </dl>
         ) : null}
