@@ -14,7 +14,7 @@ import type { LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
 import type { SimulationId } from "./simulationIds.js";
 
-export type SimulationAccent = "sky" | "emerald" | "violet";
+export type SimulationAccent = "sky" | "emerald" | "violet" | "amber";
 
 export type SimulationMeta = {
   id: SimulationId;
@@ -25,7 +25,7 @@ export type SimulationMeta = {
   accent: SimulationAccent;
   icon: LucideIcon;
   /** Relative model path under asset roots (see ASSETS_LOCATION_SYSTEM.md). */
-  modelPath: string;
+  modelPath?: string;
 };
 
 export type SimulationAppModule = {

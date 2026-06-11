@@ -1,6 +1,8 @@
 /**
  * Vehicle Configuration Utilities
  * Helper functions for extracting and converting vehicle configuration
+ *
+ * GLB object naming for artists: `../docs/VEHICLE_GLB_AUTHORING.md`
  */
 
 import * as THREE from 'three';

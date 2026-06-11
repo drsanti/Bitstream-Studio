@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Twin — Point Cloud Human</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
+  #c { display: block; }
+
+  /* HUD overlay */
+  #hud {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none; z-index: 10;
+  }
+  .hud-corner {
+    position: absolute; color: #00f7ff; font-size: 11px; opacity: 0.7;
+    text-transform: uppercase; letter-spacing: 0.12em; line-height: 1.8;
+  }
+  .hud-tl { top: 24px; left: 24px; }
+  .hud-tr { top: 24px; right: 24px; text-align: right; }
+  .hud-bl { bottom: 24px; left: 24px; }
+  .hud-br { bottom: 24px; right: 24px; text-align: right; }
+
+  .hud-bar {
+    display: inline-block; width: 80px; height: 4px;
+    background: linear-gradient(90deg, #00f7ff, #0033ff);
+    border-radius: 2px; margin-left: 8px; vertical-align: middle;
+    animation: pulse-bar 2s ease-in-out infinite;
+  }
+  @keyframes pulse-bar { 0%,100%{opacity:0.5} 50%{opacity:1} }
+
+  .scanline {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,247,255,0.015) 2px, rgba(0,247,255,0.015) 4px
+    );
+    pointer-events: none;
+  }
+
+  /* Corner bracket decorations */
+  .bracket { position: absolute; width: 40px; height: 40px; }
+  .bracket-tl { top: 12px; left: 12px; border-top: 2px solid #00f7ff; border-left: 2px solid #00f7ff; opacity: 0.6; }
+  .bracket-tr { top: 12px; right: 12px; border-top: 2px solid #00f7ff; border-right: 2px solid #00f7ff; opacity: 0.6; }
+  .bracket-bl { bottom: 12px; left: 12px; border-bottom: 2px solid #00f7ff; border-left: 2px solid #00f7ff; opacity: 0.6; }
+  .bracket-br { bottom: 12px; right: 12px; border-bottom: 2px solid #00f7ff; border-right: 2px solid #00f7ff; opacity: 0.6; }
+
+  /* Center reticle */
+  .reticle {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 60px;
+    border: 1px solid rgba(0,247,255,0.3);
+    border-radius: 50%;
+    animation: spin-reticle 8s linear infinite;
+  }
+  .reticle::before {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    width: 6px; height: 6px;
+    background: #00f7ff; border-radius: 50%;
+    box-shadow: 0 0 12px #00f7ff;
+  }
+  @keyframes spin-reticle { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+  #status-val { animation: blink 1.2s step-start infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="hud">
+  <div class="scanline"></div>
+  <div class="bracket bracket-tl"></div>
+  <div class="bracket bracket-tr"></div>
+  <div class="bracket bracket-bl"></div>
+  <div class="bracket bracket-br"></div>
+
+  <div class="hud-corner hud-tl">
+    <div>TESA IoT · Bitstream Studio</div>
+    <div>MODE: Digital Twin v2.4</div>
+    <div>SUBJECT: HUMAN ENTITY <span id="status-val">●</span></div>
+    <div>PARTICLES <span class="hud-bar"></span></div>
+  </div>
+
+  <div class="hud-corner hud-tr">
+    <div id="fps-display">FPS: --</div>
+    <div id="pts-display">PTS: --</div>
+    <div>SYNC: ACTIVE</div>
+    <div>ΔT <span id="dt-display">--</span> ms</div>
+  </div>
+
+  <div class="hud-corner hud-bl">
+    <div>DRAG · ROTATE</div>
+    <div>SCROLL · ZOOM</div>
+  </div>
+
+  <div class="hud-corner hud-br">
+    <div id="coord-display">X:0.00 Y:0.00 Z:0.00</div>
+    <div>SCAN: <span style="color:#00ff88">COMPLETE</span></div>
+  </div>
+
+  <div class="reticle"></div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ─────────────────────────────────────────────────────────────────
+   CONFIG
+───────────────────────────────────────────────────────────────── */
+const CFG = {
+  // Body point counts
+  headPts:      2200,
+  neckPts:       400,
+  torsoUpperPts: 3600,
+  torsoLowerPts: 2800,
+  upperArmPts:   900,
+  lowerArmPts:   800,
+  handPts:       500,
+  upperLegPts:  1200,
+  lowerLegPts:   900,
+  footPts:       400,
+
+  // Storm particles
+  stormPts:    12000,
+
+  // Colors
+  coreColor:   0x00f7ff,
+  edgeColor:   0x0044ff,
+  stormColor:  0x003388,
+  accentColor: 0x00ff88,
+
+  // Scale
+  bodyScale:  1.0,
+
+  // Animation speeds
+  breatheSpeed: 0.6,
+  waveSpeed:    1.2,
+  stormSpeed:   0.4,
+  autoRotate:   0.003,
+};
+
+/* ─────────────────────────────────────────────────────────────────
+   SCENE SETUP
+───────────────────────────────────────────────────────────────── */
+const W = window.innerWidth, H = window.innerHeight;
+const scene    = new THREE.Scene();
+scene.background = new THREE.Color(0x000508);
+scene.fog = new THREE.FogExp2(0x000508, 0.04);
+
+const camera   = new THREE.PerspectiveCamera(55, W / H, 0.01, 200);
+camera.position.set(0, 1.6, 6.5);
+camera.lookAt(0, 1.6, 0);
+
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(W, H);
+
+/* ─────────────────────────────────────────────────────────────────
+   ORBIT CONTROLS (inline, no import)
+───────────────────────────────────────────────────────────────── */
+let isDragging = false, lastMX = 0, lastMY = 0;
+let theta = 0, phi = Math.PI / 2, radius = 6.5;
+const target = new THREE.Vector3(0, 1.6, 0);
+
+document.addEventListener('mousedown', e => { isDragging = true; lastMX = e.clientX; lastMY = e.clientY; });
+document.addEventListener('mouseup',   () => isDragging = false);
+document.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = (e.clientX - lastMX) * 0.008;
+  const dy = (e.clientY - lastMY) * 0.006;
+  theta += dx;
+  phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi + dy));
+  lastMX = e.clientX; lastMY = e.clientY;
+});
+document.addEventListener('wheel', e => {
+  radius = Math.max(2, Math.min(18, radius + e.deltaY * 0.01));
+}, { passive: true });
+// Touch
+let touchStart = null;
+document.addEventListener('touchstart', e => { touchStart = e.touches[0]; isDragging = true; lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY; });
+document.addEventListener('touchend',   () => { isDragging = false; touchStart = null; });
+document.addEventListener('touchmove',  e => {
+  if (!isDragging) return;
+  const dx = (e.touches[0].clientX - lastMX) * 0.01;
+  const dy = (e.touches[0].clientY - lastMY) * 0.008;
+  theta += dx; phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi + dy));
+  lastMX = e.touches[0].clientX; lastMY = e.touches[0].clientY;
+});
+
+function updateCamera() {
+  if (!isDragging) theta += CFG.autoRotate;
+  camera.position.set(
+    target.x + radius * Math.sin(phi) * Math.sin(theta),
+    target.y + radius * Math.cos(phi),
+    target.z + radius * Math.sin(phi) * Math.cos(theta)
+  );
+  camera.lookAt(target);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   POINT SAMPLERS
+───────────────────────────────────────────────────────────────── */
+const rng = () => Math.random();
+const randn = () => { // Box-Muller
+  let u = 0, v = 0;
+  while (!u) u = rng(); while (!v) v = rng();
+  return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+};
+
+// Sample surface of a cylinder (open)
+function sampleCylinder(cx, cy, cz, rx, rz, h, n, noiseScale = 0.04) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const angle = rng() * Math.PI * 2;
+    const y     = (rng() - 0.5) * h;
+    const nx    = (rng() - 0.5) * noiseScale;
+    const ny    = (rng() - 0.5) * noiseScale;
+    const nz    = (rng() - 0.5) * noiseScale;
+    pts.push(cx + Math.cos(angle) * rx + nx, cy + y + ny, cz + Math.sin(angle) * rz + nz);
+  }
+  return pts;
+}
+
+// Sample surface of a sphere
+function sampleSphere(cx, cy, cz, r, n, noiseScale = 0.03) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const u = rng(), v = rng();
+    const phi2   = Math.acos(2 * u - 1);
+    const lambda = 2 * Math.PI * v;
+    const nx = (rng() - 0.5) * noiseScale;
+    const ny = (rng() - 0.5) * noiseScale;
+    const nz = (rng() - 0.5) * noiseScale;
+    pts.push(
+      cx + r * Math.sin(phi2) * Math.cos(lambda) + nx,
+      cy + r * Math.cos(phi2) + ny,
+      cz + r * Math.sin(phi2) * Math.sin(lambda) + nz
+    );
+  }
+  return pts;
+}
+
+// Sample an ellipsoid volume (for dense regions)
+function sampleEllipsoidVol(cx, cy, cz, rx, ry, rz, n) {
+  const pts = [];
+  let count = 0;
+  while (count < n) {
+    const x = (rng() * 2 - 1) * rx;
+    const y = (rng() * 2 - 1) * ry;
+    const z = (rng() * 2 - 1) * rz;
+    if ((x*x)/(rx*rx) + (y*y)/(ry*ry) + (z*z)/(rz*rz) <= 1) {
+      pts.push(cx + x, cy + y, cz + z);
+      count++;
+    }
+  }
+  return pts;
+}
+
+// Tapered cylinder (limbs taper from r1 to r2)
+function sampleTaperedCylinder(cx, cy, cz, r1, r2, h, n, noiseScale = 0.035) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const t     = rng();
+    const angle = rng() * Math.PI * 2;
+    const y     = (t - 0.5) * h;
+    const r     = r1 + (r2 - r1) * t;
+    const nx = (rng() - 0.5) * noiseScale;
+    const nz = (rng() - 0.5) * noiseScale;
+    pts.push(cx + Math.cos(angle) * r + nx, cy + y, cz + Math.sin(angle) * r + nz);
+  }
+  return pts;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   BUILD HUMAN BODY POINTS
+   Coordinate system: Y = up, standing, feet at Y=0, top ~Y=3.3
+───────────────────────────────────────────────────────────────── */
+function buildHumanPoints() {
+  const all = [];
+
+  const S = CFG.bodyScale;
+
+  // HEAD  (sphere, center Y=3.05)
+  all.push(...sampleSphere(0, 3.05*S, 0, 0.24*S, CFG.headPts, 0.015));
+
+  // NECK
+  all.push(...sampleTaperedCylinder(0, 2.72*S, 0, 0.10*S, 0.12*S, 0.22*S, CFG.neckPts, 0.018));
+
+  // UPPER TORSO (chest — wider, taper to waist)
+  for (let i = 0; i < CFG.torsoUpperPts; i++) {
+    const t = rng();
+    const angle = rng() * Math.PI * 2;
+    const y = 2.1*S + t * 0.7*S;
+    // width tapers: chest widest at top, narrower toward waist
+    const rx = (0.32 - t * 0.06) * S;
+    const rz = (0.20 - t * 0.04) * S;
+    const nx = randn() * 0.022 * S;
+    const nz = randn() * 0.022 * S;
+    all.push(Math.cos(angle)*rx + nx, y, Math.sin(angle)*rz + nz);
+  }
+
+  // LOWER TORSO (waist to hips — widens again)
+  for (let i = 0; i < CFG.torsoLowerPts; i++) {
+    const t = rng();
+    const angle = rng() * Math.PI * 2;
+    const y = 1.45*S + t * 0.65*S;
+    const rx = (0.26 + t * 0.09) * S;
+    const rz = (0.17 + t * 0.07) * S;
+    const nx = randn() * 0.022 * S;
+    const nz = randn() * 0.022 * S;
+    all.push(Math.cos(angle)*rx + nx, y, Math.sin(angle)*rz + nz);
+  }
+
+  // SHOULDERS  (small spheres each side)
+  for (const side of [-1, 1]) {
+    all.push(...sampleSphere(side * 0.42*S, 2.74*S, 0, 0.115*S, 280, 0.020));
+  }
+
+  // UPPER ARMS
+  for (const side of [-1, 1]) {
+    // angle arms slightly out & down
+    const pts = sampleTaperedCylinder(0, 0, 0, 0.10*S, 0.085*S, 0.58*S, CFG.upperArmPts, 0.020);
+    for (let i = 0; i < pts.length; i += 3) {
+      // rotate -30° from shoulder
+      const y0 = pts[i+1];
+      all.push(side * (0.42 + 0.1 + y0 * 0.18) * S, 2.74*S - 0.18*S - y0 * 0.65, pts[i+2]);
+    }
+  }
+
+  // ELBOWS
+  for (const side of [-1, 1]) {
+    all.push(...sampleSphere(side * 0.62*S, 2.22*S, 0, 0.075*S, 250, 0.015));
+  }
+
+  // LOWER ARMS
+  for (const side of [-1, 1]) {
+    const pts = sampleTaperedCylinder(0, 0, 0, 0.085*S, 0.06*S, 0.52*S, CFG.lowerArmPts, 0.018);
+    for (let i = 0; i < pts.length; i += 3) {
+      const y0 = pts[i+1];
+      all.push(side * (0.62 + 0.06 + y0 * 0.12) * S, 2.22*S - 0.12*S - y0 * 0.72, pts[i+2]);
+    }
+  }
+
+  // HANDS
+  for (const side of [-1, 1]) {
+    all.push(...sampleEllipsoidVol(side * 0.74*S, 1.58*S, 0.02*S, 0.09*S, 0.115*S, 0.055*S, CFG.handPts));
+  }
+
+  // UPPER LEGS
+  for (const side of [-1, 1]) {
+    const pts = sampleTaperedCylinder(0, 0, 0, 0.155*S, 0.11*S, 0.65*S, CFG.upperLegPts, 0.022);
+    for (let i = 0; i < pts.length; i += 3) {
+      const y0 = pts[i+1];
+      all.push(side * 0.18*S + pts[i]*0.92, 1.35*S + y0, pts[i+2]);
+    }
+  }
+
+  // KNEES
+  for (const side of [-1, 1]) {
+    all.push(...sampleSphere(side * 0.18*S, 0.75*S, 0.04*S, 0.095*S, 280, 0.015));
+  }
+
+  // LOWER LEGS
+  for (const side of [-1, 1]) {
+    const pts = sampleTaperedCylinder(0, 0, 0, 0.10*S, 0.065*S, 0.60*S, CFG.lowerLegPts, 0.018);
+    for (let i = 0; i < pts.length; i += 3) {
+      const y0 = pts[i+1];
+      all.push(side * 0.18*S + pts[i]*0.9, 0.74*S + y0, pts[i+2] + 0.02*S);
+    }
+  }
+
+  // FEET
+  for (const side of [-1, 1]) {
+    all.push(...sampleEllipsoidVol(side * 0.18*S, 0.10*S, 0.1*S, 0.09*S, 0.09*S, 0.20*S, CFG.footPts));
+  }
+
+  return all;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   BUILD STORM PARTICLES
+───────────────────────────────────────────────────────────────── */
+function buildStormPoints() {
+  const pts = [];
+  const n = CFG.stormPts;
+  for (let i = 0; i < n; i++) {
+    // Distributed in a wide cylinder around the body
+    const r = 1.2 + rng() * 3.5;
+    const a = rng() * Math.PI * 2;
+    const y = -0.5 + rng() * 4.5;
+    pts.push(Math.cos(a) * r, y, Math.sin(a) * r);
+  }
+  return pts;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   CREATE GEOMETRIES
+───────────────────────────────────────────────────────────────── */
+const humanRaw  = buildHumanPoints();
+const stormRaw  = buildStormPoints();
+const totalBody = humanRaw.length / 3;
+const totalStorm = stormRaw.length / 3;
+
+// Body geometry
+const bodyGeo = new THREE.BufferGeometry();
+const bodyPos = new Float32Array(humanRaw);
+const bodyColors = new Float32Array(totalBody * 3);
+const bodyOrigins = new Float32Array(humanRaw); // rest position copy
+
+// Color each point based on height (Y) — cyan at core, blue at extremities
+for (let i = 0; i < totalBody; i++) {
+  const y = humanRaw[i * 3 + 1];
+  const t = Math.min(1, Math.max(0, y / (3.3 * CFG.bodyScale)));
+  // Cyan (0,0.97,1) → blue-purple (0.1,0.3,1) with accent flash chance
+  const flash = rng() < 0.04; // 4% accent (green-cyan accent)
+  if (flash) {
+    bodyColors[i*3+0] = 0.0;
+    bodyColors[i*3+1] = 1.0;
+    bodyColors[i*3+2] = 0.53;
+  } else {
+    bodyColors[i*3+0] = 0.0 + (1.0 - t) * 0.05;
+    bodyColors[i*3+1] = 0.3 + t * 0.67;
+    bodyColors[i*3+2] = 0.8 + t * 0.2;
+  }
+}
+
+bodyGeo.setAttribute('position', new THREE.BufferAttribute(bodyPos, 3));
+bodyGeo.setAttribute('color',    new THREE.BufferAttribute(bodyColors, 3));
+
+// Storm geometry
+const stormGeo  = new THREE.BufferGeometry();
+const stormPos  = new Float32Array(stormRaw);
+const stormOrigins = new Float32Array(stormRaw);
+const stormColors = new Float32Array(totalStorm * 3);
+
+for (let i = 0; i < totalStorm; i++) {
+  const r = rng();
+  stormColors[i*3+0] = 0.0;
+  stormColors[i*3+1] = r * 0.4;
+  stormColors[i*3+2] = 0.3 + r * 0.5;
+}
+
+stormGeo.setAttribute('position', new THREE.BufferAttribute(stormPos, 3));
+stormGeo.setAttribute('color',    new THREE.BufferAttribute(stormColors, 3));
+
+/* ─────────────────────────────────────────────────────────────────
+   SPRITE TEXTURE (glowing dot)
+───────────────────────────────────────────────────────────────── */
+function makeSpriteTex(size = 64) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const cx = c.getContext('2d');
+  const r = size / 2;
+  const g = cx.createRadialGradient(r, r, 0, r, r, r);
+  g.addColorStop(0,   'rgba(255,255,255,1.0)');
+  g.addColorStop(0.25,'rgba(200,240,255,0.8)');
+  g.addColorStop(0.6, 'rgba(0,180,255,0.3)');
+  g.addColorStop(1.0, 'rgba(0,0,0,0)');
+  cx.fillStyle = g;
+  cx.fillRect(0, 0, size, size);
+  return new THREE.CanvasTexture(c);
+}
+
+const spriteTex = makeSpriteTex(64);
+
+/* ─────────────────────────────────────────────────────────────────
+   MATERIALS
+───────────────────────────────────────────────────────────────── */
+const bodyMat = new THREE.PointsMaterial({
+  size: 0.022,
+  map: spriteTex,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.92,
+  sizeAttenuation: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+const stormMat = new THREE.PointsMaterial({
+  size: 0.016,
+  map: spriteTex,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.55,
+  sizeAttenuation: true,
+  depthWrite: false,
+  blending: THREE.AdditiveBlending,
+});
+
+/* ─────────────────────────────────────────────────────────────────
+   MESHES
+───────────────────────────────────────────────────────────────── */
+const bodyMesh  = new THREE.Points(bodyGeo, bodyMat);
+const stormMesh = new THREE.Points(stormGeo, stormMat);
+scene.add(bodyMesh, stormMesh);
+
+/* Ground glow ring */
+const ringGeo = new THREE.RingGeometry(0.3, 2.2, 64);
+const ringMat = new THREE.MeshBasicMaterial({
+  color: 0x00f7ff, side: THREE.DoubleSide, transparent: true, opacity: 0.06,
+  blending: THREE.AdditiveBlending, depthWrite: false,
+});
+const ring = new THREE.Mesh(ringGeo, ringMat);
+ring.rotation.x = -Math.PI / 2;
+ring.position.y = 0.01;
+scene.add(ring);
+
+/* Vertical scan bar */
+const scanGeo = new THREE.PlaneGeometry(0.06, 4.0);
+const scanMat = new THREE.MeshBasicMaterial({
+  color: 0x00f7ff, transparent: true, opacity: 0.07,
+  blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+});
+const scanBar = new THREE.Mesh(scanGeo, scanMat);
+scanBar.position.set(0, 1.8, 0);
+scene.add(scanBar);
+
+/* ─────────────────────────────────────────────────────────────────
+   PER-PARTICLE PHASE / VELOCITY (for storm)
+───────────────────────────────────────────────────────────────── */
+const stormPhase = new Float32Array(totalStorm);
+const stormVx    = new Float32Array(totalStorm);
+const stormVy    = new Float32Array(totalStorm);
+const stormVz    = new Float32Array(totalStorm);
+for (let i = 0; i < totalStorm; i++) {
+  stormPhase[i] = rng() * Math.PI * 2;
+  stormVx[i] = (rng() - 0.5) * 0.004;
+  stormVy[i] = (rng() - 0.5) * 0.003;
+  stormVz[i] = (rng() - 0.5) * 0.004;
+}
+
+// Body noise phases
+const bodyPhase = new Float32Array(totalBody);
+for (let i = 0; i < totalBody; i++) bodyPhase[i] = rng() * Math.PI * 2;
+
+/* ─────────────────────────────────────────────────────────────────
+   HUD UPDATE
+───────────────────────────────────────────────────────────────── */
+const fpsDisplay   = document.getElementById('fps-display');
+const ptsDisplay   = document.getElementById('pts-display');
+const dtDisplay    = document.getElementById('dt-display');
+const coordDisplay = document.getElementById('coord-display');
+ptsDisplay.textContent = `PTS: ${(totalBody + totalStorm).toLocaleString()}`;
+
+let lastTime = 0, frameTimes = [];
+
+/* ─────────────────────────────────────────────────────────────────
+   ANIMATION LOOP
+───────────────────────────────────────────────────────────────── */
+let t = 0;
+function animate(now) {
+  requestAnimationFrame(animate);
+
+  const dt = now - lastTime;
+  lastTime = now;
+  frameTimes.push(dt);
+  if (frameTimes.length > 30) frameTimes.shift();
+  const avgDt = frameTimes.reduce((a,b) => a+b, 0) / frameTimes.length;
+  if (Math.floor(now / 500) !== Math.floor((now - dt) / 500)) { // update every 0.5s
+    fpsDisplay.textContent = `FPS: ${Math.round(1000 / avgDt)}`;
+    dtDisplay.textContent  = avgDt.toFixed(1);
+    coordDisplay.textContent = `X:${camera.position.x.toFixed(2)} Y:${camera.position.y.toFixed(2)} Z:${camera.position.z.toFixed(2)}`;
+  }
+
+  t += 0.016;
+
+  /* ── Animate body points ── */
+  const bPos = bodyGeo.attributes.position.array;
+  const breathe = Math.sin(t * CFG.breatheSpeed) * 0.018;
+  const breatheY = Math.sin(t * CFG.breatheSpeed) * 0.012;
+
+  for (let i = 0; i < totalBody; i++) {
+    const ox = bodyOrigins[i*3+0];
+    const oy = bodyOrigins[i*3+1];
+    const oz = bodyOrigins[i*3+2];
+
+    // Wave propagating up the body (ripple)
+    const normalizedY = oy / (3.3 * CFG.bodyScale);
+    const wave = Math.sin(t * CFG.waveSpeed + normalizedY * 5.0 + bodyPhase[i]) * 0.008;
+
+    // Breathing — expand outward from center
+    const distFromCenter = Math.sqrt(ox*ox + oz*oz) + 0.001;
+    const breatheExpand  = breathe * (distFromCenter / (0.35 * CFG.bodyScale));
+
+    // Subtle shimmer noise
+    const shimmer = Math.sin(t * 3.4 + bodyPhase[i] * 7.1) * 0.004;
+
+    bPos[i*3+0] = ox + (ox / Math.max(distFromCenter, 0.05)) * breatheExpand + wave * 0.5 + shimmer;
+    bPos[i*3+1] = oy + breatheY * normalizedY + wave;
+    bPos[i*3+2] = oz + (oz / Math.max(distFromCenter, 0.05)) * breatheExpand + shimmer;
+  }
+  bodyGeo.attributes.position.needsUpdate = true;
+
+  /* ── Animate storm particles ── */
+  const sPos = stormGeo.attributes.position.array;
+  for (let i = 0; i < totalStorm; i++) {
+    const ox = stormOrigins[i*3+0];
+    const oy = stormOrigins[i*3+1];
+    const oz = stormOrigins[i*3+2];
+
+    // Spiral orbit around Y axis
+    const phase   = stormPhase[i] + t * CFG.stormSpeed;
+    const r       = Math.sqrt(ox*ox + oz*oz);
+    const baseAng = Math.atan2(oz, ox);
+    const spiralAng = baseAng + phase * 0.08 * (1.5 / Math.max(r, 0.5));
+    const radialPulse = 1.0 + Math.sin(t * 1.1 + stormPhase[i]) * 0.12;
+
+    // Drift toward body occasionally then repel
+    const attract = Math.sin(t * 0.3 + stormPhase[i]) * 0.06;
+    const newR = (r + attract) * radialPulse;
+
+    sPos[i*3+0] = Math.cos(spiralAng) * newR + stormVx[i] * t * 0.15;
+    sPos[i*3+1] = oy + Math.sin(t * 0.8 + stormPhase[i]) * 0.18 + stormVy[i] * t * 0.08;
+    sPos[i*3+2] = Math.sin(spiralAng) * newR + stormVz[i] * t * 0.15;
+
+    // Wrap Y
+    if (sPos[i*3+1] > 5.0)  sPos[i*3+1] -= 5.5;
+    if (sPos[i*3+1] < -1.0) sPos[i*3+1] += 5.5;
+  }
+  stormGeo.attributes.position.needsUpdate = true;
+
+  /* ── Scan bar ── */
+  const scanY = 1.8 + Math.sin(t * 0.7) * 1.6;
+  scanBar.position.y = scanY;
+  scanMat.opacity = 0.04 + Math.abs(Math.sin(t * 0.7)) * 0.05;
+
+  /* ── Ground ring pulse ── */
+  ringMat.opacity = 0.04 + Math.sin(t * 1.5) * 0.025;
+  ring.scale.setScalar(1.0 + Math.sin(t * 1.5) * 0.05);
+
+  /* ── Camera ── */
+  updateCamera();
+
+  renderer.render(scene, camera);
+}
+
+requestAnimationFrame(animate);
+
+/* ─────────────────────────────────────────────────────────────────
+   RESIZE
+───────────────────────────────────────────────────────────────── */
+window.addEventListener('resize', () => {
+  const w = window.innerWidth, h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h);
+});
+
+</script>
+</body>
+</html>

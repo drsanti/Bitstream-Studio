@@ -14,6 +14,7 @@ export const SIMULATION_IDS = [
   "e84-rotation",
   "abb-robot",
   "vehicle-physics",
+  "physics-lab",
 ] as const;
 
 export type SimulationId = (typeof SIMULATION_IDS)[number];

@@ -45,6 +45,7 @@ Sensor Studio **does not** ship a physics engine in the flow canvas today. Digit
 | **D2** | `physics-world` + static colliders; **Rapier** in Stage preview (**2026-06-02** partial — `@dimforge/rapier3d-compat`, ground + graph colliders; Model Viewer **`phys`** port backlog) | `flow-wire-physics-scene.ts`, `stage-physics-colliders.ts`, `studio-viewport-physics-runtime.ts` |
 | **D3** | Rigid bodies, spawner, joints | `physics-domain-eval.ts`, fixed-step tick in `useSensorStudioFlowTickScheduler` |
 | **D4** | IK + animation blend; hub integration | `studio-glb-preview-runtime.ts`, `simulations/vehicle-physics/` shared collider schema |
+| **D5** | **Physics Lab** hub app — professional authoring (layers, modes, validation); round-trip `PhysicsSceneV1` ↔ graph | [`PHYSICS_LAB.md`](../../simulations/physics-lab/docs/PHYSICS_LAB.md), [`PHYSICS_LAB_PROFESSIONAL_FEATURES.md`](../../simulations/physics-lab/docs/PHYSICS_LAB_PROFESSIONAL_FEATURES.md), [`PHYSICS_SCENE_V1.md`](../../../docs/PHYSICS_SCENE_V1.md) |
 
 ### D1 checklist (first coding slice)
 
@@ -102,5 +103,7 @@ Preview consumer: new `studio-viewport-physics-runtime.ts` stepping **Rapier** a
 
 - node-animator physics evaluators: `apps/node-animator/src/engine/nodeEvaluators/physics*.ts`
 - Bitstream simulation hub: `extension/src/webview/simulations/**`
+- **Physics Lab (planned):** [`physics-lab/docs/PHYSICS_LAB.md`](../../simulations/physics-lab/docs/PHYSICS_LAB.md)
+- **Shared scene schema:** [`PHYSICS_SCENE_V1.md`](../../../docs/PHYSICS_SCENE_V1.md)
 - Vehicle / Jolt hub: `APPLICATION_MIGRATION_PLAN.md` Phase 3
 - Rapier deps: `extension/package.json` — `@dimforge/rapier3d`, `@react-three/rapier`

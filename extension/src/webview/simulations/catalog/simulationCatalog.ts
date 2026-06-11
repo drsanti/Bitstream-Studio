@@ -10,7 +10,7 @@
  *
  *******************************************************************************/
 
-import { Bot, Car, Cpu } from "lucide-react";
+import { Atom, Bot, Car, Cpu } from "lucide-react";
 import type { SimulationAppModule, SimulationMeta } from "./types.js";
 import type { SimulationId } from "./simulationIds.js";
 
@@ -48,6 +48,16 @@ export const SIMULATION_CATALOG: readonly SimulationMeta[] = [
     icon: Car,
     modelPath: "models/car-cam-physics/car-cam-physics.glb",
   },
+  {
+    id: "physics-lab",
+    title: "Physics Lab",
+    subtitle: "Rapier · Edit · Simulate",
+    description:
+      "Professional rigid-body editor — outliner, collision layers, compound colliders; export to the node graph.",
+    tags: ["Physics", "Rapier", "Colliders", "Graph"],
+    accent: "amber",
+    icon: Atom,
+  },
 ] as const;
 
 /**
@@ -73,6 +83,8 @@ export function loadSimulationApp(
       return import("../abb-robot/index.js") as Promise<SimulationAppModule>;
     case "vehicle-physics":
       return import("../vehicle-physics/index.js") as Promise<SimulationAppModule>;
+    case "physics-lab":
+      return import("../physics-lab/index.js") as Promise<SimulationAppModule>;
     default:
     {
       const _exhaustive: never = id;

@@ -24,6 +24,7 @@ const ACCENT_RING: Record<SimulationMeta["accent"], string> = {
   sky: "from-sky-400/50 via-cyan-300/25 to-blue-600/40",
   emerald: "from-emerald-400/50 via-teal-300/25 to-cyan-600/40",
   violet: "from-violet-400/50 via-purple-300/25 to-fuchsia-600/40",
+  amber: "from-amber-400/50 via-orange-300/25 to-yellow-600/40",
 };
 
 const ACCENT_GLOW: Record<SimulationMeta["accent"], string> = {
@@ -32,18 +33,22 @@ const ACCENT_GLOW: Record<SimulationMeta["accent"], string> = {
     "group-hover:shadow-[0_0_40px_rgba(52,211,153,0.22)] group-hover:border-emerald-400/45",
   violet:
     "group-hover:shadow-[0_0_40px_rgba(167,139,250,0.22)] group-hover:border-violet-400/45",
+  amber:
+    "group-hover:shadow-[0_0_40px_rgba(251,191,36,0.22)] group-hover:border-amber-400/45",
 };
 
 const ACCENT_TAG: Record<SimulationMeta["accent"], string> = {
   sky: "border-sky-500/25 bg-sky-950/50 text-sky-200/90",
   emerald: "border-emerald-500/25 bg-emerald-950/50 text-emerald-200/90",
   violet: "border-violet-500/25 bg-violet-950/50 text-violet-200/90",
+  amber: "border-amber-500/25 bg-amber-950/50 text-amber-200/90",
 };
 
 const ACCENT_CTA: Record<SimulationMeta["accent"], string> = {
   sky: "text-sky-300/80 group-hover:text-sky-200",
   emerald: "text-emerald-300/80 group-hover:text-emerald-200",
   violet: "text-violet-300/80 group-hover:text-violet-200",
+  amber: "text-amber-300/80 group-hover:text-amber-200",
 };
 
 export function SimulationLandingOptionCard({

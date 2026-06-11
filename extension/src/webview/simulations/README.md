@@ -4,7 +4,7 @@ Isolated, self-contained 3D simulation apps ported from `ternion-t3d` without `@
 
 ## Rules
 
-- **No imports** between `e84-rotation/`, `abb-robot/`, and `vehicle-physics/`.
+- **No imports** between `e84-rotation/`, `abb-robot/`, `vehicle-physics/`, and `physics-lab/`.
 - **No imports** from `sensor-studio/` or `bitstream-app/` state (BS2, telemetry, workspace).
 - Use **`shared/`** only for generic shell, canvas, and thin asset/MQTT helpers.
 - Use **`catalog/`** for metadata and `import()` loaders only.
@@ -38,13 +38,14 @@ flowchart TD
 | `simulationHub.store.ts` | `activeSimulationId`, URL sync (`?sim=`) |
 | `catalog/simulationCatalog.ts` | Metadata + per-sim `import()` |
 
-## Simulations (2026-05-30)
+## Simulations
 
 | Id | Status | Notes |
 |----|--------|-------|
 | `e84-rotation` | MVP | GLB rotation, MQTT panel, transform controls |
 | `abb-robot` | MVP | Arm controller, GSAP, MQTT |
 | `vehicle-physics` | Partial | Jolt four-wheel, config panel, driving keys |
+| `physics-lab` | **P0 boot** | Rapier floor + dynamic box, Edit/Simulate, outliner — [`PHYSICS_LAB.md`](./physics-lab/docs/PHYSICS_LAB.md) |
 
 ## WebGL / build (required reading)
 

@@ -72,6 +72,12 @@ Use this before **`npm run package`** / **`vsce publish`**. Deeper detail lives 
 
 Prefix each line with **`YYYY-MM-DD`** — the day you **record** the completion (or the ship date if you know it).
 
+- **2026-06-11** — **Physics Lab P0 (boot):** `physics-lab` catalog entry — Rapier floor + dynamic box, Edit/Simulate toolbar, flat outliner, inspector; `@react-three/rapier` in simulation hub.
+- **2026-06-11** — **Physics Lab professional catalog (design):** `physics-lab/docs/PHYSICS_LAB_PROFESSIONAL_FEATURES.md` — authoring modes, collision matrix/layers, compound editor, validation, debug HUDs, phases P0–P8; schema collision layers + CCD on `PhysicsSceneV1`.
+- **2026-06-11** — **Physics Lab scene editor (design):** `physics-lab/docs/PHYSICS_LAB_SCENE_EDITOR.md` — outliner tree, DnD reparent, multi/box select, wireframe highlights, `PhysicsSceneNodeV1`; reuse Course 3D patterns.
+- **2026-06-11** — **Physics Lab factories (design):** `physics-lab/docs/PHYSICS_LAB_FACTORIES.md` — sub-editors (Primitive, Car, Drone, Robot arm, Environment); `factory` / `mechanisms` on `PhysicsSceneV1`.
+- **2026-06-11** — **Physics Lab + scene schema (design):** `physics-lab/docs/PHYSICS_LAB.md` — Rapier game-engine editor, graph round-trip; `extension/docs/PHYSICS_SCENE_V1.md` shared `PhysicsSceneV1` contract for Lab + `physics-world` graph.
+- **2026-06-11** — **Vehicle GLB authoring guide:** `vehicle-physics/docs/VEHICLE_GLB_AUTHORING.md` — part/collider naming for artists (`car_body`, `wheel_{left|right}_{front|rear}`, `*_collider`); reference `car_colliders.glb`.
 - **2026-06-11** — **Course Studio Widget Editor polish:** hero radial gauge true circle (`__ring-host`) + round cap sizing; multi-select union frame portals to editor canvas (toolbar z-index); flat selection chrome (no outer bloom); hero gauge `showGlow` default off; empty-slot marquee passthrough.
 - **2026-06-11** — **Course Studio Page Editor multi-select:** Shift/Ctrl+click, marquee box select, multi-drag/nudge, union multi-resize, Delete/Escape/arrow keys; fluid `1fr` columns preserved; empty-cell add-block menu.
 - **2026-06-11** — **Course Studio Widget Editor multi-select:** dashboard parity — square grid cells, Shift/Ctrl+click, marquee, multi-drag/nudge, union multi-resize, Delete/Escape/arrow keys; empty-slot pointer-events fix for marquee.
@@ -791,6 +797,7 @@ You may use bullets or a two-column table (`Done YYYY-MM-DD` | Summary).
 
 ## Planned / next
 
+- **Physics Lab (simulation hub)** — Professional Rapier editor (`physics-lab`); authoring modes, **collision matrix**, compound/VHACD colliders, validation; factories (Car, Drone, …); graph round-trip via **`PhysicsSceneV1`** — [`PHYSICS_LAB.md`](../src/webview/simulations/physics-lab/docs/PHYSICS_LAB.md), [`PHYSICS_LAB_PROFESSIONAL_FEATURES.md`](../src/webview/simulations/physics-lab/docs/PHYSICS_LAB_PROFESSIONAL_FEATURES.md), [`PHYSICS_LAB_FACTORIES.md`](../src/webview/simulations/physics-lab/docs/PHYSICS_LAB_FACTORIES.md). Phases **P0–P8**. **Jolt vehicle hub unchanged.**
 - **Bitstream Telemetry Provider follow-ups** — npm package export (deferred).
 - **Course Studio v2 (`extension/src/webview/course-studio/`)** — Phases **0**, **7a–7e**, **7f**, **7g–7i**, **validate + packs** + maintainer UX polish shipped; **TESAIoT Embedded** book (**BMI270**, **BMM350**, **DPS368**, **SHT40**). Next: **VSIX smoke**; diagram/Konva inspector refactor to `CourseLiveBindingField`; outline drag-reorder; pack export includes course manifest. Plan: **`course-studio/docs/SCENE_3D_EDITOR.md`**, **`course-studio/docs/COURSE_OUTLINE.md`**, **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)** §16–17.
 - **Presentation workspace (`extension/src/webview/presentation/`)** — **Frozen for features** (`V1_FROZEN.md`); platform chapter complete; **7e bridge** ships live Course diagrams on theory slides. Plan: **[`presentation/docs/DEVELOPMENT_PLAN.md`](../../presentation/docs/DEVELOPMENT_PLAN.md)**.
