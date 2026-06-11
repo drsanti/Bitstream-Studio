@@ -1,5 +1,10 @@
 import type { Edge } from "@xyflow/react";
 import type { FlowGraphNode } from "../../features/editor/store/flow-graph-types";
+import type { FlowWirePhysicsJointV1 } from "../../features/editor/nodes/physics/flow-wire-physics-joint";
+import {
+  flowWirePhysicsSpawnerFromConfig,
+  type FlowWirePhysicsSpawnerV1,
+} from "../../features/editor/nodes/physics/flow-wire-physics-spawner";
 import {
   flowWirePhysicsColliderFromStage,
   isFlowWirePhysicsColliderV1,
@@ -100,6 +105,89 @@ export function collectPhysicsRigidBodiesForWorld(args: {
     }
   }
   return bodies;
+}
+
+export function evaluatePhysicsJointNode(
+  node: FlowGraphNode,
+  readPort: (port: "bodyA" | "bodyB") => unknown,
+): FlowWirePhysicsJointV1 | null {
+  const nodeId = node.data.nodeId;
+  if (nodeId !== "fixed-joint" && nodeId !== "hinge-joint") {
+    return null;
+  }
+  const bodyA = readPort("bodyA");
+  const bodyB = readPort("bodyB");
+  if (!isFlowWirePhysicsRigidBodyV1(bodyA) || !isFlowWirePhysicsRigidBodyV1(bodyB)) {
+    return null;
+  }
+  const label =
+    typeof node.data.label === "string" && node.data.label.trim().length > 0
+      ? node.data.label.trim()
+      : nodeId;
+  const cfg = node.data.defaultConfig as Record<string, unknown>;
+  const axisRaw = cfg.axis;
+  const axis =
+    axisRaw === "x" || axisRaw === "z" ? axisRaw : ("y" as const);
+  return {
+    kindWire: "physicsJoint",
+    version: 1,
+    sourceNodeId: node.id,
+    label,
+    jointKind: nodeId === "hinge-joint" ? "hinge" : "fixed",
+    bodyASourceNodeId: bodyA.sourceNodeId,
+    bodyBSourceNodeId: bodyB.sourceNodeId,
+    axis,
+  };
+}
+
+export function collectPhysicsJointsFromGraph(args: {
+  nodes: readonly FlowGraphNode[];
+  readIncoming: (nodeId: string, port: string) => unknown;
+}): FlowWirePhysicsJointV1[] {
+  const joints: FlowWirePhysicsJointV1[] = [];
+  for (const node of args.nodes) {
+    const joint = evaluatePhysicsJointNode(node, (port) =>
+      args.readIncoming(node.id, port),
+    );
+    if (joint != null) {
+      joints.push(joint);
+    }
+  }
+  return joints;
+}
+
+export function evaluatePhysicsSpawnerNode(
+  node: FlowGraphNode,
+  readPort: (port: "rate" | "trigger") => unknown,
+): FlowWirePhysicsSpawnerV1 | null {
+  if (node.data.nodeId !== "object-spawner") {
+    return null;
+  }
+  const cfg = node.data.defaultConfig as Record<string, unknown>;
+  const label =
+    typeof node.data.label === "string" && node.data.label.trim().length > 0
+      ? node.data.label.trim()
+      : "object-spawner";
+  const rateIn = readPort("rate");
+  const rateOverride =
+    typeof rateIn === "number" && Number.isFinite(rateIn) ? rateIn : undefined;
+  return flowWirePhysicsSpawnerFromConfig(node.id, label, cfg, rateOverride);
+}
+
+export function collectPhysicsSpawnersFromGraph(args: {
+  nodes: readonly FlowGraphNode[];
+  readIncoming: (nodeId: string, port: string) => unknown;
+}): FlowWirePhysicsSpawnerV1[] {
+  const spawners: FlowWirePhysicsSpawnerV1[] = [];
+  for (const node of args.nodes) {
+    const spawner = evaluatePhysicsSpawnerNode(node, (port) =>
+      args.readIncoming(node.id, port),
+    );
+    if (spawner != null) {
+      spawners.push(spawner);
+    }
+  }
+  return spawners;
 }
 
 export function evaluateBoxColliderOutput(node: FlowGraphNode): FlowWirePhysicsColliderV1 {

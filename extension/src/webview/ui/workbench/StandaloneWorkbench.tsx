@@ -78,6 +78,7 @@ export type StandaloneWorkbenchHandle = {
   exportLayoutSnapshot: (name?: string) => WorkbenchLayoutSnapshotV1 | null;
   applyImportedLayoutSnapshot: (
     snapshot: Pick<WorkbenchLayoutSnapshotV1, "layout" | "dockMemory">,
+    focusEditorType?: string,
   ) => void;
 };
 
@@ -299,8 +300,12 @@ export const StandaloneWorkbench = memo(
             dockMemory: managed.dockMemory,
           });
         },
-        applyImportedLayoutSnapshot: (snapshot) => {
-          managed.applyLayoutSnapshot(snapshot.layout, snapshot.dockMemory ?? {});
+        applyImportedLayoutSnapshot: (snapshot, focusEditorType) => {
+          managed.applyLayoutSnapshot(
+            snapshot.layout,
+            snapshot.dockMemory ?? {},
+            focusEditorType,
+          );
         },
       }),
       [managed, persistenceKey],

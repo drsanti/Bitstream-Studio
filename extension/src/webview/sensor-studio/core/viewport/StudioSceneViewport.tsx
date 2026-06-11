@@ -194,6 +194,10 @@ import {
   syncPreviewPhysicsRuntime,
   type PreviewPhysicsRuntimeState,
 } from "./studio-viewport-physics-runtime";
+import {
+  applyStageOutlinerVisibilityToGlbRoot,
+  applyStageOutlinerVisibilityToProceduralGroup,
+} from "../stage/stage-outliner-visibility";
 import { applyFirmwareOrientationMapping } from "../../../bitstream-app/components/3d-rotation/shared/firmwareOrientationMapping.js";
 import { fusionWireEulerHundredthsToThreeEulerRadComponents } from "../../../bitstream-app/components/3d-rotation/shared/fusionEulerWireToThreeEulerRad.js";
 import type { FusionEulerHundredths } from "../../../bitstream-app/components/3d-rotation/shared/bmi270FusionExtract.js";
@@ -852,6 +856,7 @@ export const StudioSceneViewport = forwardRef<
     stageModelInstances?: StageViewportModelInstance[];
     stagePrimaryModelIndex?: number;
     stageProceduralMeshes?: StageMeshEntryV1[];
+    stageOutlinerHiddenKeys?: readonly string[];
   };
   const stageModelsRef = useRef(stageSceneProps.stageModelInstances);
   const stagePrimaryIndexRef = useRef(
@@ -882,6 +887,9 @@ export const StudioSceneViewport = forwardRef<
 
   const stageProceduralMeshesRef = useRef(stageSceneProps.stageProceduralMeshes);
   stageProceduralMeshesRef.current = stageSceneProps.stageProceduralMeshes;
+
+  const stageOutlinerHiddenKeysRef = useRef<ReadonlySet<string>>(new Set());
+  stageOutlinerHiddenKeysRef.current = new Set(stageSceneProps.stageOutlinerHiddenKeys ?? []);
 
   const onStagePickRef = useRef(props.onStagePick);
   onStagePickRef.current = props.onStagePick;
@@ -2346,6 +2354,29 @@ export const StudioSceneViewport = forwardRef<
           glbPartsRef.current,
           partVisibilityDriveState,
         );
+        const outlinerHiddenKeys = stageOutlinerHiddenKeysRef.current;
+        applyStageOutlinerVisibilityToProceduralGroup(
+          proceduralMeshRuntime.group,
+          outlinerHiddenKeys,
+        );
+        const stageModelInstances = stageModelsRef.current ?? [];
+        if (useStageMulti) {
+          stageMultiRoots.forEach((modelRootEntry, modelIndex) => {
+            applyStageOutlinerVisibilityToGlbRoot(
+              modelRootEntry,
+              stageModelInstances[modelIndex]?.sourceNodeId ?? "",
+              modelIndex,
+              outlinerHiddenKeys,
+            );
+          });
+        } else if (modelRoot != null) {
+          applyStageOutlinerVisibilityToGlbRoot(
+            modelRoot,
+            stageModelInstances[0]?.sourceNodeId ?? "",
+            0,
+            outlinerHiddenKeys,
+          );
+        }
         applyGlbMorphWeightsToModelRoot(driveRoot, glbMorphRef.current);
         applyGlbMaterialPbrByName(
           driveRoot,
@@ -2658,6 +2689,12 @@ export const StudioSceneViewport = forwardRef<
       };
       if (renderLoopActiveRef.current) {
         scheduleRenderLoop();
+      } else {
+        requestAnimationFrame(() => {
+          if (!disposed && renderLoopActiveRef.current) {
+            scheduleRenderLoop();
+          }
+        });
       }
 
       const onContextLost = (event: Event) => {

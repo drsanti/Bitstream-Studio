@@ -16,8 +16,9 @@ import {
   loadCourse,
   readCourseIdFromLocation,
 } from "./courseRegistry";
+import { buildBundledCourseLibrary } from "./courseLibrary";
 import {
-  bootstrapCourseOutlineFromRegistry,
+  bootstrapCourseOutlineLibrary,
   useCourseOutlineStore,
 } from "../maintainer/useCourseOutlineStore";
 import { findCourseNodeIdForPageId } from "../runtime/course/courseOutlineTree";
@@ -54,6 +55,7 @@ export function initializeCourseStudioWorkspace(): void {
         const activeNodeId =
           findCourseNodeIdForPageId(course.root, session.page.id) ??
           undefined;
+        useCourseOutlineStore.setState({ library: buildBundledCourseLibrary() });
         useCourseOutlineStore.getState().initCourse(
           courseId,
           cloneCourseDocument(course),
@@ -69,5 +71,5 @@ export function initializeCourseStudioWorkspace(): void {
   }
 
   bootstrapCourseStudioContent({ mode });
-  bootstrapCourseOutlineFromRegistry(readCourseIdFromLocation());
+  bootstrapCourseOutlineLibrary(readCourseIdFromLocation());
 }

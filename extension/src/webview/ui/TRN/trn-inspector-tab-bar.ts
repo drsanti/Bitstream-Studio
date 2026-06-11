@@ -1,4 +1,7 @@
-/** Horizontal tab bar shared by Node Inspector and Telemetry deck pane. */
+/**
+ * Horizontal tab bar shared by inspector panels (Sensor Studio, Course Studio, Telemetry).
+ * Pair with {@link TRNInspectorContextBar} below tabs — see `trn-inspector-panel-shell.ts`.
+ */
 
 export const TRN_INSPECTOR_TAB_BAR_WRAP_CLASS =
   "nodrag nopan nowheel min-w-0 w-full shrink-0 pt-0 pb-0";

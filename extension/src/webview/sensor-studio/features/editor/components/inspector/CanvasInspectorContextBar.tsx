@@ -1,7 +1,7 @@
 import type { Viewport } from "@xyflow/react";
 import { Activity, Cable, FileStack, LayoutGrid, type LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import { twMerge } from "tailwind-merge";
+import { TRNInspectorContextBar } from "../../../../../ui/TRN";
 import type { StudioDemoTemplateId } from "../../store/flow-editor.store";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 import type { FlowCanvasPreferences } from "../flow-canvas-ui-persistence";
@@ -30,10 +30,7 @@ function HealthPill(props: { label: string; count: number; toneClass: string }) 
   }
   return (
     <span
-      className={twMerge(
-        "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] leading-none",
-        toneClass,
-      )}
+      className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] leading-none ${toneClass}`}
     >
       <span className="opacity-80">{label}</span>
       <span>{count}</span>
@@ -102,80 +99,43 @@ function buildFlowContext(args: {
 }): TabContextModel {
   const { nodeCount, edgeCount, selectionCount, undoDepth, templateId } = args;
   const templateLabel =
-    CANVAS_DEMO_TEMPLATE_OPTIONS.find((o) => o.value === templateId)?.label ??
-    "Custom graph";
-
-  const graphLine =
-    selectionCount > 0
-      ? `${nodeCount} nodes · ${edgeCount} edges · ${selectionCount} selected`
-      : `${nodeCount} nodes · ${edgeCount} edges`;
-
+    CANVAS_DEMO_TEMPLATE_OPTIONS.find((o) => o.id === templateId)?.label ?? "Custom";
+  const parts = [
+    `${nodeCount} nodes · ${edgeCount} edges`,
+    templateLabel,
+    `${undoDepth} undo`,
+  ];
+  if (selectionCount > 0) {
+    parts.push(`${selectionCount} selected`);
+  }
   return {
     title: "Flow",
-    subtitle: `${graphLine} · ${undoDepth} undo · ${templateLabel}`,
+    subtitle: parts.join(" · "),
     Icon: FileStack,
-    iconShellClass: "border-zinc-600/45 bg-zinc-900/55 text-zinc-300/95",
-    trailing:
-      selectionCount > 0 ? (
-        <span className="shrink-0 rounded-full border border-zinc-600/45 bg-zinc-900/60 px-1.5 py-0.5 text-[10px] text-zinc-300/90">
-          {selectionCount} sel
-        </span>
-      ) : null,
+    iconShellClass: "border-emerald-500/30 bg-emerald-950/25 text-emerald-300/95",
   };
 }
 
-function renderSensorHealthTrailing(health: CanvasSensorHealthSummary): ReactNode {
-  if (health.linked <= 0) {
-    return null;
-  }
-
-  const hasAnyHealth =
-    health.live + health.stale + health.offline + health.sim > 0;
-
-  if (!hasAnyHealth) {
-    return (
-      <span className="shrink-0 text-[10px] leading-none text-zinc-600">awaiting stream</span>
-    );
-  }
-
-  return (
-    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1">
-      <HealthPill
-        label="live"
-        count={health.live}
-        toneClass="border-emerald-500/35 bg-emerald-950/35 text-emerald-200/95"
-      />
-      <HealthPill
-        label="sim"
-        count={health.sim}
-        toneClass="border-violet-500/35 bg-violet-950/30 text-violet-200/95"
-      />
-      <HealthPill
-        label="stale"
-        count={health.stale}
-        toneClass="border-amber-500/35 bg-amber-950/30 text-amber-100/95"
-      />
-      <HealthPill
-        label="offline"
-        count={health.offline}
-        toneClass="border-zinc-600/50 bg-zinc-900/60 text-zinc-400"
-      />
-    </div>
-  );
-}
-
 function buildSensorsContext(health: CanvasSensorHealthSummary): TabContextModel {
-  const subtitle =
-    health.linked > 0
-      ? `${health.linked} hardware-linked node${health.linked === 1 ? "" : "s"} on canvas`
-      : "No hardware-linked sensor nodes on canvas";
+  const { linked, live, stale, offline, sim } = health;
+  const trailing =
+    live > 0 || stale > 0 || offline > 0 ? (
+      <span className="flex shrink-0 flex-wrap justify-end gap-1">
+        <HealthPill label="live" count={live} toneClass="border-emerald-500/35 bg-emerald-950/30 text-emerald-200/90" />
+        <HealthPill label="stale" count={stale} toneClass="border-amber-500/35 bg-amber-950/30 text-amber-200/90" />
+        <HealthPill label="off" count={offline} toneClass="border-zinc-600/50 bg-zinc-900/50 text-zinc-300/90" />
+      </span>
+    ) : null;
 
   return {
     title: "Sensors",
-    subtitle,
+    subtitle:
+      linked === 0
+        ? "No hardware-linked sensor nodes on canvas"
+        : `${linked} hardware-linked · ${sim} sim`,
     Icon: Activity,
-    iconShellClass: "border-emerald-500/30 bg-emerald-950/25 text-emerald-300/95",
-    trailing: renderSensorHealthTrailing(health),
+    iconShellClass: "border-cyan-500/30 bg-cyan-950/25 text-cyan-300/95",
+    trailing,
   };
 }
 
@@ -221,27 +181,12 @@ export function CanvasInspectorContextBar(props: CanvasInspectorContextBarProps)
   const { title, subtitle, Icon, iconShellClass, trailing } = model;
 
   return (
-    <div className="shrink-0 border-b border-zinc-800/70 px-2.5 py-2">
-      <div className="flex min-w-0 items-start gap-2">
-        <span
-          className={twMerge(
-            "inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
-            iconShellClass,
-          )}
-          aria-hidden
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex min-w-0 items-baseline justify-between gap-2">
-            <div className="truncate text-[11px] font-semibold tracking-wide text-zinc-100/95">
-              {title}
-            </div>
-            {trailing}
-          </div>
-          <p className="truncate text-[10px] leading-snug text-zinc-500">{subtitle}</p>
-        </div>
-      </div>
-    </div>
+    <TRNInspectorContextBar
+      title={title}
+      subtitle={subtitle}
+      icon={Icon}
+      iconShellClass={iconShellClass}
+      trailing={trailing}
+    />
   );
 }

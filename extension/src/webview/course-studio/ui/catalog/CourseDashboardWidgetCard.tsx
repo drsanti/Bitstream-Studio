@@ -50,6 +50,7 @@ export function CourseDashboardWidgetCard({
   const textStyle = {
     ...COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT,
     ...style,
+    ...(hasTitle ? { label: "" } : {}),
     unit:
       resolveBindingDisplayUnit(binding) ||
       (typeof style.unit === "string" ? style.unit : COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT.unit),
@@ -96,9 +97,11 @@ export function CourseDashboardWidgetCard({
   });
 
   const infographicLabel =
-    typeof style.label === "string" && style.label.length > 0
-      ? style.label
-      : block.title ?? "Value";
+    hasTitle && style.showLabel !== true
+      ? ""
+      : typeof style.label === "string" && style.label.length > 0
+        ? style.label
+        : (block.title ?? "Value");
 
   const infographicBody =
     block.widgetKind === "text" ||

@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSS3D + Embedded WebGL Demo</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0d1117;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  color: #e6edf3;
+}
+
+/* CSS3D container — full screen, renders HTML elements in 3D */
+#css3d-container {
+  position: fixed; inset: 0;
+  z-index: 1;
+}
+
+/* ── CARD STYLES (these become CSS3DObjects) ── */
+.card3d {
+  width: 540px;
+  background: rgba(14, 19, 28, 0.95);
+  border: 1px solid rgba(48, 54, 61, 0.85);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(66,232,255,0.06), 0 24px 60px rgba(0,0,0,0.6);
+  /* top shimmer */
+  position: relative;
+}
+.card3d::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(66,232,255,0.4), transparent);
+}
+
+.card-header {
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid rgba(48,54,61,0.7);
+  display: flex; align-items: center; gap: 10px;
+}
+.card-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.card-title { font-size: 13px; font-weight: 700; letter-spacing: .04em; }
+.card-sub   { font-size: 11px; color: #8b949e; margin-top: 2px; }
+
+/* The WebGL canvas lives inside the card */
+.card-canvas {
+  display: block;
+  width: 540px !important;
+  height: 300px !important;
+}
+
+.card-footer {
+  padding: 10px 18px;
+  font-size: 11px; color: #8b949e;
+  border-top: 1px solid rgba(48,54,61,0.6);
+  display: flex; justify-content: space-between;
+}
+.card-footer span { display: flex; align-items: center; gap: 5px; }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #5ee89a;
+  animation: livepulse 1.5s ease-in-out infinite;
+}
+@keyframes livepulse { 0%,100%{opacity:.4;} 50%{opacity:1;} }
+
+/* ── HUD OVERLAY ── */
+#hud {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(22,27,34,.88);
+  border: 1px solid rgba(48,54,61,.8);
+  border-radius: 999px;
+  padding: 9px 22px;
+  font-size: 13px; color: #8b949e;
+  backdrop-filter: blur(12px);
+  display: flex; align-items: center; gap: 14px;
+}
+#hud kbd {
+  background: rgba(48,54,61,.8); border: 1px solid rgba(66,232,255,.2);
+  border-radius: 4px; padding: 2px 7px; font-size: 11px;
+  color: #42e8ff; font-family: inherit;
+}
+
+#badge {
+  position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(22,27,34,.88); border: 1px solid rgba(48,54,61,.8);
+  border-radius: 10px; padding: 12px 22px;
+  backdrop-filter: blur(12px); text-align: center;
+}
+#badge .t1 { font-size: 15px; font-weight: 800; color: #e6edf3; margin-bottom: 3px; }
+#badge .t2 { font-size: 12px; color: #8b949e; }
+#badge .t2 strong { color: #42e8ff; }
+</style>
+</head>
+<body>
+
+<!-- CSS3D renderer will inject its canvas here -->
+<div id="css3d-container"></div>
+
+<!-- Info badge -->
+<div id="badge">
+  <div class="t1">CSS3D + Embedded WebGL</div>
+  <div class="t2">Each card is a <strong>CSS3DObject</strong> — the Three.js scene runs inside the card's <strong>&lt;canvas&gt;</strong></div>
+</div>
+
+<div id="hud">
+  <span>Drag to orbit</span>
+  <kbd>Scroll</kbd> zoom
+  <span style="color:#42e8ff;font-weight:600;">3 × live WebGL scenes embedded in CSS3D cards</span>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+'use strict';
+
+const W = innerWidth, H = innerHeight;
+const CARD_W = 540, CARD_H = 300; // inner canvas size
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN CSS3D SCENE  — positions the cards in 3D space
+═══════════════════════════════════════════════════════════════ */
+const css3dRenderer = new THREE.CSS3DRenderer();
+css3dRenderer.setSize(W, H);
+document.getElementById('css3d-container').appendChild(css3dRenderer.domElement);
+
+const css3dScene  = new THREE.Scene();
+const mainCamera  = new THREE.PerspectiveCamera(50, W/H, 1, 6000);
+mainCamera.position.set(0, 80, 1300);
+
+// OrbitControls on the CSS3D dom element — this is what the user interacts with
+const controls = new THREE.OrbitControls(mainCamera, css3dRenderer.domElement);
+controls.enableDamping  = true;
+controls.dampingFactor  = 0.06;
+controls.minDistance    = 300;
+controls.maxDistance    = 4000;
+controls.target.set(0, 0, 0);
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD FACTORY
+   Creates an HTML card div with an embedded <canvas>,
+   wraps it in a CSS3DObject, and sets up an inner WebGL renderer.
+═══════════════════════════════════════════════════════════════ */
+function makeCard({ title, sub, dotColor, footerLeft, footerRight, position, rotation }) {
+
+  /* ── HTML structure ── */
+  const card = document.createElement('div');
+  card.className = 'card3d';
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-dot" style="background:${dotColor};box-shadow:0 0 8px ${dotColor}88"></div>
+      <div>
+        <div class="card-title">${title}</div>
+        <div class="card-sub">${sub}</div>
+      </div>
+    </div>`;
+
+  // The key: a <canvas> inside the card
+  const canvas = document.createElement('canvas');
+  canvas.className = 'card-canvas';
+  canvas.width  = CARD_W;
+  canvas.height = CARD_H;
+  card.appendChild(canvas);
+
+  card.innerHTML += `
+    <div class="card-footer">
+      <span><div class="live-dot"></div>${footerLeft}</span>
+      <span>${footerRight}</span>
+    </div>`;
+  // Note: innerHTML resets, so re-query canvas after
+  const realCanvas = card.querySelector('.card-canvas') || canvas;
+
+  /* ── CSS3D object ── */
+  const css3dObj = new THREE.CSS3DObject(card);
+  css3dObj.position.set(...position);
+  css3dObj.rotation.set(...rotation);
+  css3dScene.add(css3dObj);
+
+  /* ── Inner WebGL renderer targeting the canvas inside the card ── */
+  const renderer = new THREE.WebGLRenderer({ canvas: realCanvas, antialias: true });
+  renderer.setPixelRatio(devicePixelRatio);
+  renderer.setSize(CARD_W, CARD_H);
+  renderer.setClearColor(0x080d14, 1);    // dark inner background
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(55, CARD_W / CARD_H, 0.1, 500);
+  camera.position.z = 4;
+
+  return { renderer, scene, camera, canvas: realCanvas };
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD 1 — Rotating Icosahedron + orbiting particles
+   Position: left, angled outward
+═══════════════════════════════════════════════════════════════ */
+const card1 = makeCard({
+  title: 'Scene 1 · Icosahedron',
+  sub: 'MeshStandardMaterial · PointLight · rotating geometry',
+  dotColor: '#42e8ff',
+  footerLeft: 'WebGL live',
+  footerRight: 'Three.js r128',
+  position: [-620, 0, -80],
+  rotation: [0,  0.38, 0],
+});
+
+// Lights
+card1.scene.add(new THREE.AmbientLight(0xffffff, 0.3));
+const c1l1 = new THREE.PointLight(0x42e8ff, 3, 20); c1l1.position.set(3, 2, 3); card1.scene.add(c1l1);
+const c1l2 = new THREE.PointLight(0xb88cff, 2, 15); c1l2.position.set(-3,-2, 2); card1.scene.add(c1l2);
+
+// Icosahedron (solid)
+const icoMesh = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1.1, 1),
+  new THREE.MeshStandardMaterial({ color:0x42e8ff, emissive:0x1a4455, roughness:.3, metalness:.7 })
+);
+card1.scene.add(icoMesh);
+
+// Wireframe overlay
+const icoWire = new THREE.Mesh(
+  new THREE.IcosahedronGeometry(1.12, 1),
+  new THREE.MeshBasicMaterial({ color:0x42e8ff, wireframe:true, transparent:true, opacity:.25 })
+);
+card1.scene.add(icoWire);
+
+// Orbiting particles ring
+const ringCount = 80;
+const ringPos = new Float32Array(ringCount * 3);
+for(let i=0;i<ringCount;i++){
+  const a = (i/ringCount)*Math.PI*2;
+  const r = 2.0 + (Math.random()-.5)*.4;
+  ringPos[i*3]   = Math.cos(a)*r;
+  ringPos[i*3+1] = (Math.random()-.5)*.5;
+  ringPos[i*3+2] = Math.sin(a)*r;
+}
+const ringGeo = new THREE.BufferGeometry();
+ringGeo.setAttribute('position', new THREE.BufferAttribute(ringPos,3));
+const ringPts = new THREE.Points(ringGeo, new THREE.PointsMaterial({color:0x42e8ff,size:.04,transparent:true,opacity:.7}));
+card1.scene.add(ringPts);
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD 2 — Torus Knot with neon glow
+   Position: center, facing forward
+═══════════════════════════════════════════════════════════════ */
+const card2 = makeCard({
+  title: 'Scene 2 · Torus Knot',
+  sub: 'Dynamic lighting · emissive material · multi-color point lights',
+  dotColor: '#5ee89a',
+  footerLeft: 'WebGL live',
+  footerRight: 'Three.js r128',
+  position: [0, 0, 0],
+  rotation: [0, 0, 0],
+});
+
+card2.scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+const c2l1 = new THREE.PointLight(0x5ee89a, 3.5, 18); c2l1.position.set(4, 3, 3);  card2.scene.add(c2l1);
+const c2l2 = new THREE.PointLight(0xf0a84a, 2.5, 14); c2l2.position.set(-4,-2, 2); card2.scene.add(c2l2);
+const c2l3 = new THREE.PointLight(0x42e8ff, 2.0, 14); c2l3.position.set(0, 4,-2);  card2.scene.add(c2l3);
+
+const tkMesh = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(0.9, 0.28, 120, 16),
+  new THREE.MeshStandardMaterial({
+    color: 0x5ee89a, emissive: 0x0d3320,
+    roughness: 0.2, metalness: 0.85,
+  })
+);
+card2.scene.add(tkMesh);
+
+// Thin wireframe overlay
+const tkWire = new THREE.Mesh(
+  new THREE.TorusKnotGeometry(0.92, 0.285, 80, 10),
+  new THREE.MeshBasicMaterial({color:0x5ee89a, wireframe:true, transparent:true, opacity:.15})
+);
+card2.scene.add(tkWire);
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD 3 — Orbiting solar system style
+   Position: right, angled outward
+═══════════════════════════════════════════════════════════════ */
+const card3 = makeCard({
+  title: 'Scene 3 · Orbital System',
+  sub: 'Hierarchical objects · pivot groups · multiple meshes',
+  dotColor: '#b88cff',
+  footerLeft: 'WebGL live',
+  footerRight: 'Three.js r128',
+  position: [620, 0, -80],
+  rotation: [0, -0.38, 0],
+});
+
+card3.scene.add(new THREE.AmbientLight(0xffffff, 0.25));
+const c3l1 = new THREE.PointLight(0xffffff, 4, 20); c3l1.position.set(0,0,0); card3.scene.add(c3l1);
+const c3l2 = new THREE.PointLight(0xb88cff, 2, 15); c3l2.position.set(4,3,3); card3.scene.add(c3l2);
+
+// Central star
+const star = new THREE.Mesh(
+  new THREE.SphereGeometry(0.45, 24, 24),
+  new THREE.MeshStandardMaterial({color:0xffd080, emissive:0xffa020, emissiveIntensity:.8, roughness:.3})
+);
+card3.scene.add(star);
+
+// Helper: create an orbit pivot + planet
+function makePlanet(orbitRadius, planetSize, color, tilt=0) {
+  const pivot = new THREE.Object3D();
+  pivot.rotation.z = tilt;
+  card3.scene.add(pivot);
+
+  // Orbit ring
+  const orbitRing = new THREE.Mesh(
+    new THREE.TorusGeometry(orbitRadius, 0.012, 2, 80),
+    new THREE.MeshBasicMaterial({color, transparent:true, opacity:.22})
+  );
+  pivot.add(orbitRing);
+
+  // Planet
+  const planet = new THREE.Mesh(
+    new THREE.SphereGeometry(planetSize, 16, 16),
+    new THREE.MeshStandardMaterial({color, emissive:new THREE.Color(color).multiplyScalar(.15), roughness:.5, metalness:.4})
+  );
+  planet.position.x = orbitRadius;
+  pivot.add(planet);
+
+  return { pivot, planet };
+}
+
+const planets = [
+  makePlanet(1.0, 0.14, 0x5eb8f5,  0.1),
+  makePlanet(1.5, 0.20, 0x5ee89a,  0.3),
+  makePlanet(2.1, 0.16, 0xb88cff, -0.2),
+  makePlanet(2.7, 0.12, 0xf0a84a,  0.15),
+];
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATION LOOP
+═══════════════════════════════════════════════════════════════ */
+const clock = new THREE.Clock();
+
+(function loop() {
+  requestAnimationFrame(loop);
+  const t = clock.getElapsedTime();
+
+  controls.update();
+
+  /* ── Card 1: icosahedron spin + ring orbit ── */
+  icoMesh.rotation.x  = t * 0.42;
+  icoMesh.rotation.y  = t * 0.55;
+  icoWire.rotation.x  = t * 0.42;
+  icoWire.rotation.y  = t * 0.55;
+  ringPts.rotation.y  = t * 0.30;
+  // light orbit
+  c1l1.position.x = Math.sin(t*0.8)*3.5;
+  c1l1.position.z = Math.cos(t*0.8)*3.5;
+  card1.renderer.render(card1.scene, card1.camera);
+
+  /* ── Card 2: torus knot spin + light orbit ── */
+  tkMesh.rotation.x = t * 0.28;
+  tkMesh.rotation.y = t * 0.40;
+  tkWire.rotation.x = t * 0.28;
+  tkWire.rotation.y = t * 0.40;
+  c2l1.position.x = Math.sin(t*0.6)*4;
+  c2l1.position.z = Math.cos(t*0.6)*4;
+  c2l2.position.x = Math.cos(t*0.5)*4;
+  c2l2.position.z = Math.sin(t*0.5)*4;
+  card2.renderer.render(card2.scene, card2.camera);
+
+  /* ── Card 3: planets orbit ── */
+  star.rotation.y = t * 0.3;
+  planets[0].pivot.rotation.y = t * 1.20;
+  planets[1].pivot.rotation.y = t * 0.80;
+  planets[2].pivot.rotation.y = t * 0.50;
+  planets[3].pivot.rotation.y = t * 0.30;
+  planets.forEach(p => { p.planet.rotation.y = t*2; });
+  card3.renderer.render(card3.scene, card3.camera);
+
+  /* ── CSS3D: render the card positions in 3D space ── */
+  css3dRenderer.render(css3dScene, mainCamera);
+})();
+
+/* ═══════════════════════════════════════════════════════════════
+   RESIZE
+═══════════════════════════════════════════════════════════════ */
+window.addEventListener('resize', () => {
+  const w = innerWidth, h = innerHeight;
+  css3dRenderer.setSize(w, h);
+  mainCamera.aspect = w / h;
+  mainCamera.updateProjectionMatrix();
+  // Note: inner card canvases keep their fixed size (540×300)
+});
+</script>
+</body>
+</html>

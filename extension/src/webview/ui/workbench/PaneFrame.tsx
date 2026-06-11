@@ -128,7 +128,7 @@ export function PaneFrame({
           </span>
         </div>
 
-        <div className="text-[10px] font-bold text-tertiary uppercase tracking-widest">
+        <div className="min-w-0 shrink truncate text-[10px] font-bold text-tertiary uppercase tracking-widest">
           {currentInfo.label}
         </div>
 

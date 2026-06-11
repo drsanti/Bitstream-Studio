@@ -65,6 +65,16 @@ export const CANVAS_DEMO_TEMPLATE_OPTIONS: readonly CanvasDemoTemplateOption[] =
       hint: "Two **Dashboard Tab** pages wired to **Tabs** on **Dashboard Output** — **Overview** (button + text) and **Trends** (published sparkline). Open **Dashboard** pane to switch tabs.",
     },
     {
+      value: "teaching-twin-demo",
+      label: "Teaching 2D+3D",
+      hint: "Sine → **Dashboard Text** + **Gauge** and **Model Source** → **Scene Output** — one graph, two commit nodes. Apply **Teaching 2D+3D** desk (Dashboard toolbar) or **2D+3D** work mode; use **Stage objects** outliner for picks.",
+    },
+    {
+      value: "stage-physics-demo",
+      label: "Stage physics (Rapier)",
+      hint: "**Physics World** with floor **Box Collider** + dynamic **Rigid Body** wired to **Scene Output** **Physics**. Open **Stage** — Rapier preview shows colliders and a falling box.",
+    },
+    {
       value: "stage-scene-output",
       label: "Stage + Scene Output",
       hint: "Model Source (PSoC E84 pack model) → **Scene Output** (+ optional **Environment**). Open the **Stage** workbench pane to preview the full viewport; use **Model Viewer** separately for in-graph authoring.",

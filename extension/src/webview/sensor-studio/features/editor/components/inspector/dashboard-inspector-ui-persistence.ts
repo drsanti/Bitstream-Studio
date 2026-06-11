@@ -2,18 +2,31 @@ const PREFIX = "ternion.sensor-studio.dashboardInspector.";
 
 const ACTIVE_TAB_KEY = `${PREFIX}activeTab.v1`;
 
-export type DashboardInspectorTab = "overview" | "widgets" | "controls" | "layout";
+/** Two-tab dashboard inspector: widgets (operator + list + controls) and layout. */
+export type DashboardInspectorTab = "widgets" | "layout";
+
+const LEGACY_WIDGET_TABS = new Set(["overview", "widgets", "controls"]);
+
+export function normalizeDashboardInspectorTab(value: unknown): DashboardInspectorTab {
+  if (value === "layout") {
+    return "layout";
+  }
+  if (value === "widgets" || LEGACY_WIDGET_TABS.has(String(value))) {
+    return "widgets";
+  }
+  return "widgets";
+}
 
 export function readStoredDashboardInspectorTab(): DashboardInspectorTab {
   try {
     const raw = localStorage.getItem(ACTIVE_TAB_KEY);
-    if (raw === "overview" || raw === "widgets" || raw === "controls" || raw === "layout") {
-      return raw;
+    if (raw != null) {
+      return normalizeDashboardInspectorTab(raw);
     }
   } catch {
     /* ignore */
   }
-  return "overview";
+  return "widgets";
 }
 
 export function writeStoredDashboardInspectorTab(tab: DashboardInspectorTab): void {

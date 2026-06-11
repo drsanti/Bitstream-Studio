@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "id": "st-bmm350-overview",
+  "title": "Overview & physical principles",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-bmm350-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMM350 · Sensor Theory",
+      "title": "Magnetic field vector & Earth band",
+      "subtitle": "What the BMM350 measures in µT along X, Y, and Z — and how live readouts validate compass-style rotation labs on the bench."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator. Enable BMM350 with MAG (and optional TMP) in sensor configuration, then Apply before working through this topic.",
+      "icon": "Info"
+    },
+    {
+      "id": "dash-bmm-magnitude",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Field |B|",
+      "widgetKind": "text",
+      "style": { "label": "", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-bmm-bx",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Mag X",
+      "widgetKind": "text",
+      "style": { "label": "", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.bx", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-bmm-mag-graphic",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 7, "columnSpan": 6, "rowSpan": 3 },
+      "title": "Earth field band",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "manometer-column",
+        "min": 0,
+        "max": 100,
+        "unit": "µT",
+        "decimals": 1,
+        "showLabel": false,
+        "showScaleTicks": true,
+        "fillGradientFrom": "#b88cff",
+        "fillGradientMid": "#a78bfa",
+        "fillGradientTo": "#e9d5ff"
+      },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-bmm-compass-graphic",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 7, "columnSpan": 6, "rowSpan": 3 },
+      "title": "Level heading",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "compass-rose",
+        "min": 0,
+        "max": 360,
+        "unit": "°",
+        "decimals": 0,
+        "showLabel": false,
+        "showCardinals": true,
+        "showDigitalHeading": true,
+        "needleColor": "#b88cff"
+      },
+      "binding": { "path": "bmm350.headingDeg", "fallback": 0, "unit": "°", "format": "0f" }
+    },
+    {
+      "id": "card-st-bmm350-overview",
+      "kind": "card",
+      "placement": { "column": 1, "row": 10, "columnSpan": 12, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "MAG mask bit enabled.\n|B| often 25–65 µT indoors (Earth field).\nSlow rotate flat → heading sweeps; X/Y trade dominance.\nKeep phone magnets and steel legs away."
+    },
+    {
+      "id": "md-st-bmm350-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-bmm350-overview.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

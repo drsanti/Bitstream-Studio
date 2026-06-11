@@ -1,6 +1,6 @@
 # Scene Editor mode (proposed)
 
-**Status:** **Partial** — VN0–VN1 + **SE1–SE5** + **Edit | Simulate** shipped (procedural + **GLB part** gizmo/inspector via **`glb-part-transform`**); **SE6** Stage outliner still planned.  
+**Status:** **Partial** — VN0–VN1 + **SE1–SE6** + **Edit | Simulate** shipped (procedural + **GLB part** gizmo/inspector via **`glb-part-transform`**); Stage **Scene Outliner** pane (`stage-outliner`) lists committed models/meshes with **nested GLB hierarchy** per model.  
 **Related:** [`STAGE_VIEWPORT_AND_SCENE_OUTPUT.md`](./STAGE_VIEWPORT_AND_SCENE_OUTPUT.md), [`PRIMITIVES_AND_MATERIALS_NODES.md`](./PRIMITIVES_AND_MATERIALS_NODES.md), [`MODEL_OUTLINER.md`](./MODEL_OUTLINER.md), [`FLOW_DOMAINS.md`](./FLOW_DOMAINS.md).
 
 ## Product idea
@@ -73,7 +73,7 @@ Maps to existing pick paths (`proc:…`, GLB hierarchy paths) and to **Inspector
 | **SE3** | Material quick-edit (TRN color / roughness) → upstream material node |
 | **SE4** | **Shipped** — Stage toolbar **Box / Sphere / Plane** arms placement; LMB on a mesh or model surface spawns `mesh-material-standard` + `object-transform` + primitive wired to Scene Output **Meshes** at raycast hit; **Esc** cancels |
 | **SE5** | **Shipped** — GLB instance selection + part-level transforms via **`glb-part-transform`** nodes (Stage gizmo auto-spawn, Object inspector, Model Viewer / Stage runtime) |
-| **SE6** | Optional **Scene Outliner** pane (Stage objects, not only GLB catalog) |
+| **SE6** | **Scene Outliner** pane (`stage-outliner`) — committed Stage models + procedural meshes; syncs with viewport selection — **done** |
 
 ## UI placement
 

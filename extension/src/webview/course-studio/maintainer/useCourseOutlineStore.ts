@@ -8,7 +8,15 @@ import {
   cloneCourseDocument,
   getCourseSourcePath,
   loadCourse,
+  readCourseIdFromLocation,
 } from "../content/courseRegistry";
+import {
+  buildBundledCourseLibrary,
+  defaultExpandedForLibrary,
+  findCourseIdForOutlineNode,
+  type CourseLibraryMap,
+  writeCourseIdToLocation,
+} from "../content/courseLibrary";
 import {
   duplicateCourseNode,
   findCourseNode,
@@ -19,6 +27,7 @@ import {
   parentIdForCourseNode,
   renameCourseNode,
   reorderCourseSiblings,
+  sanitizeCourseOutline,
 } from "../runtime/course/courseOutlineTree";
 import { loadCoursePage, registerRuntimeCoursePage } from "../content/pageRegistry";
 import { parsePageV1 } from "../schemas/page.v1";
@@ -36,6 +45,8 @@ type CourseOutlineState = {
   sourcePath: string;
   baseline: CourseV1 | null;
   course: CourseV1 | null;
+  /** All bundled course manifests — powers multi-book reader outline. */
+  library: CourseLibraryMap;
   activeNodeId: string | null;
   expandedNodeIds: Record<string, boolean>;
   dirty: boolean;
@@ -46,6 +57,10 @@ type CourseOutlineState = {
     sourcePath: string,
     options?: { activeNodeId?: string | null; navigate?: boolean },
   ) => void;
+  switchToCourse: (
+    courseId: string,
+    options?: { activeNodeId?: string | null; navigate?: boolean },
+  ) => boolean;
   selectNode: (nodeId: string) => boolean;
   setRenamingNodeId: (nodeId: string | null) => void;
   toggleExpanded: (nodeId: string) => void;
@@ -78,30 +93,57 @@ function defaultExpandedForCourse(course: CourseV1): Record<string, boolean> {
   return expanded;
 }
 
+function persistActiveCourseInLibrary(
+  library: CourseLibraryMap,
+  courseId: string,
+  course: CourseV1,
+  sourcePath: string,
+): CourseLibraryMap {
+  return {
+    ...library,
+    [courseId]: {
+      course: cloneCourse(sanitizeCourseOutline(course)),
+      sourcePath,
+    },
+  };
+}
+
 export const useCourseOutlineStore = create<CourseOutlineState>((set, get) => ({
   courseId: "",
   sourcePath: "",
   baseline: null,
   course: null,
+  library: {},
   activeNodeId: null,
   expandedNodeIds: {},
   dirty: false,
   renamingNodeId: null,
 
   initCourse: (courseId, course, sourcePath, options) => {
-    const snapshot = cloneCourse(course);
+    const snapshot = cloneCourse(sanitizeCourseOutline(course));
     const activeNodeId =
       options?.activeNodeId ??
       findFirstNavigableNodeId(snapshot.root) ??
       snapshot.root.id;
     const shouldNavigate = options?.navigate !== false;
+    let library = get().library;
+    if (Object.keys(library).length === 0) {
+      library = buildBundledCourseLibrary();
+    }
+    library = persistActiveCourseInLibrary(library, courseId, snapshot, sourcePath);
+    const expandedNodeIds = {
+      ...defaultExpandedForLibrary(library),
+      ...get().expandedNodeIds,
+      ...defaultExpandedForCourse(snapshot),
+    };
     set({
       courseId,
       sourcePath,
       baseline: snapshot,
       course: cloneCourse(snapshot),
+      library,
       activeNodeId,
-      expandedNodeIds: defaultExpandedForCourse(snapshot),
+      expandedNodeIds,
       dirty: false,
       renamingNodeId: null,
     });
@@ -113,8 +155,66 @@ export const useCourseOutlineStore = create<CourseOutlineState>((set, get) => ({
     }
   },
 
+  switchToCourse: (courseId, options) => {
+    const state = get();
+    let library = state.library;
+    if (Object.keys(library).length === 0) {
+      library = buildBundledCourseLibrary();
+    }
+    if (state.course != null && state.courseId.length > 0) {
+      library = persistActiveCourseInLibrary(
+        library,
+        state.courseId,
+        state.course,
+        state.sourcePath,
+      );
+    }
+    const entry = library[courseId];
+    if (entry == null) {
+      return false;
+    }
+    const snapshot = cloneCourse(entry.course);
+    const activeNodeId =
+      options?.activeNodeId ??
+      findFirstNavigableNodeId(snapshot.root) ??
+      snapshot.root.id;
+    const shouldNavigate = options?.navigate !== false;
+    set({
+      courseId,
+      sourcePath: entry.sourcePath,
+      baseline: cloneCourse(snapshot),
+      course: snapshot,
+      library,
+      activeNodeId,
+      dirty: false,
+      renamingNodeId: null,
+    });
+    writeCourseIdToLocation(courseId);
+    get().expandNode(activeNodeId);
+    if (shouldNavigate && activeNodeId != null) {
+      const pageId = pageIdForCourseNode(snapshot.root, activeNodeId);
+      if (pageId != null) {
+        const ok = navigateCoursePage(pageId);
+        if (ok) {
+          useCourseWorkbenchFocusStore.getState().setActiveEditorType("content");
+        }
+        return ok;
+      }
+    }
+    return true;
+  },
+
   selectNode: (nodeId) => {
-    const course = get().course;
+    const state = get();
+    const owningCourseId =
+      findCourseIdForOutlineNode(state.library, nodeId) ?? state.courseId;
+    if (owningCourseId !== state.courseId) {
+      return state.switchToCourse(owningCourseId, {
+        activeNodeId: nodeId,
+        navigate: true,
+      });
+    }
+    const course = state.course;
     if (course == null) {
       return false;
     }
@@ -383,11 +483,19 @@ export const useCourseOutlineStore = create<CourseOutlineState>((set, get) => ({
 }));
 
 export function bootstrapCourseOutlineFromRegistry(courseId?: string): void {
-  const resolvedId = courseId ?? "tesaiot-embedded";
-  const course = loadCourse(resolvedId);
-  const sourcePath = getCourseSourcePath(resolvedId);
+  bootstrapCourseOutlineLibrary(courseId);
+}
+
+export function bootstrapCourseOutlineLibrary(courseId?: string): void {
+  const resolvedId = courseId ?? readCourseIdFromLocation();
+  const library = buildBundledCourseLibrary();
+  const course = library[resolvedId]?.course ?? loadCourse(resolvedId);
+  const sourcePath = library[resolvedId]?.sourcePath ?? getCourseSourcePath(resolvedId);
   if (course == null || sourcePath == null) {
     return;
   }
-  useCourseOutlineStore.getState().initCourse(resolvedId, cloneCourseDocument(course), sourcePath);
+  useCourseOutlineStore.setState({ library });
+  useCourseOutlineStore
+    .getState()
+    .initCourse(resolvedId, cloneCourseDocument(course), sourcePath);
 }

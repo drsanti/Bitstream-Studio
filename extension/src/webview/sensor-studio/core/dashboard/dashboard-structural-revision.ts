@@ -14,6 +14,9 @@ const DASHBOARD_WIDGET_CATALOG_IDS = new Set([
   "dashboard-gauge",
   "dashboard-knob",
   "dashboard-switch",
+  "dashboard-select",
+  "dashboard-formatted-text",
+  "dashboard-image",
   "dashboard-slider",
   "dashboard-status",
 ]);

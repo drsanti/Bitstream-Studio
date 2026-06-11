@@ -78,6 +78,32 @@ The same diagram asset (e.g. `pilot-bmi-accel-mems`) may appear on more than one
 - **Diagram / scene** blocks reference documents by id — create or duplicate diagrams in the Diagram/3D editors, then wire `diagramId` / `documentId` on the block.
 - Prefer **markdown files** under `content/` for long prose; use **inline markdown** only for short callouts on the page.
 
+### Default page template (all Course Studio books)
+
+**Canonical reference:** `content/st-intro-core-ideas.page.v1.json` (Sensor Theory · Core ideas).
+
+Duplicate starters:
+
+| File | Use |
+|------|-----|
+| `template-live-article.page.v1.json` | Heading + callout + live strip + full-width markdown |
+| `template-prose-only.page.v1.json` | Markdown-only (engineering / reference) |
+
+TypeScript builders: `content/courseStudioPageTemplates.ts` — `createCourseStudioLiveArticlePage`, `createCourseStudioProseOnlyPage`.
+
+**Stack (top → bottom):**
+
+1. **Heading** — `columnSpan: 12`, rows 1–2  
+2. **Callout** — `columnSpan: 12`, rows 3–4  
+3. **Live widgets / cards** — own row(s) from row 5 — **never** beside markdown in a side column  
+4. **Markdown** — `columnSpan: 12`, `readHeight: "content"`, row 9+ (after live strip)
+
+Live pages: `meta.telemetryPreference: "auto"`, `staleMs: 2000`, `defaultLinkHealth: "freeze-gray"`.
+
+### Sensor Theory book (`tesaiot-sensor-theory`)
+
+Follow the default template above for every live topic. Prose-only topics (engineering, reference) use `template-prose-only` or markdown-only blocks.
+
 ## Maintainer (Edit) UX
 
 The **Course Outline** workbench pane is the primary navigation surface for authors.

@@ -13,7 +13,7 @@ export function CourseWidgetBoardEditorToolbar({
   canDeleteSelected: boolean;
 }) {
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[var(--surface-border)] px-2 py-1.5">
+    <div className="relative z-10 flex shrink-0 flex-wrap items-center gap-1.5 border-b border-[var(--surface-border)] bg-[var(--surface-bg)] px-2 py-1.5">
       <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
         Add widget
       </span>

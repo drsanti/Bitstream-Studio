@@ -18,6 +18,12 @@ import { InfographicDropletFillSkin } from "./skins/svg/InfographicDropletFillSk
 import { InfographicManometerColumnSkin } from "./skins/svg/InfographicManometerColumnSkin";
 import { InfographicSevenSegmentSkin } from "./skins/svg/InfographicSevenSegmentSkin";
 import { InfographicThermometerMercurySkin } from "./skins/svg/InfographicThermometerMercurySkin";
+import {
+  pickWidgetBoardTileShellProps,
+  type WidgetBoardReadoutLayoutConfig,
+  type WidgetBoardTileLayoutConfig,
+} from "../widget-board/widgetBoardReadoutLayout";
+import { WidgetBoardTileShell } from "../widget-board/WidgetBoardTileShell";
 
 export type CourseInfographicWidgetProps = {
   preset: Exclude<InfographicVisualPresetId, "abstract">;
@@ -33,6 +39,7 @@ export type CourseInfographicWidgetProps = {
   health?: CourseBindingHealthStatus;
   configSource?: Record<string, unknown>;
   typography?: WidgetBoardWidgetTypographyV1;
+  readoutLayout?: WidgetBoardReadoutLayoutConfig & WidgetBoardTileLayoutConfig;
   className?: string;
 };
 
@@ -49,9 +56,11 @@ export function CourseInfographicWidget({
   showUnit = true,
   health,
   configSource,
+  readoutLayout,
   className,
 }: CourseInfographicWidgetProps) {
   const config = readInfographicSkinConfig(configSource);
+  const layoutConfig = readoutLayout ?? {};
   const valueMode = resolveInfographicValueMode(preset);
   const targetRatio = normalizeInfographicRatio(value, min, max) ?? 0;
   const displayRatio = useWidgetBoardSmoothedRatio(targetRatio, config.fillSmoothingMs);
@@ -70,16 +79,20 @@ export function CourseInfographicWidget({
     showValue,
     showUnit,
     config,
+    readoutConfig: layoutConfig,
   };
 
   return (
-    <div
-      className={`course-infographic-widget h-full min-h-0 w-full min-w-0 ${
-        stale ? "course-widget-board-entry--stale" : ""
-      } ${className ?? ""}`}
-      data-infographic-preset={preset}
-      data-infographic-value-mode={valueMode}
+    <WidgetBoardTileShell
+      {...pickWidgetBoardTileShellProps(layoutConfig)}
+      stale={stale}
+      className={`course-infographic-widget ${className ?? ""}`.trim()}
     >
+      <div
+        className="h-full min-h-0 w-full min-w-0"
+        data-infographic-preset={preset}
+        data-infographic-value-mode={valueMode}
+      >
       {preset === "thermometer-mercury" ? (
         <InfographicThermometerMercurySkin {...shared} ratio={displayRatio} />
       ) : null}
@@ -98,6 +111,7 @@ export function CourseInfographicWidget({
       {preset === "seven-segment" ? (
         <InfographicSevenSegmentSkin {...shared} />
       ) : null}
-    </div>
+      </div>
+    </WidgetBoardTileShell>
   );
 }

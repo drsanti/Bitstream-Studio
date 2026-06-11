@@ -31,6 +31,7 @@ import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
 export function CoursePageInspectorCards() {
   const page = useCoursePageEditorStore((s) => s.page);
   const selectedBlockId = useCoursePageEditorStore((s) => s.selectedBlockId);
+  const selectedBlockIds = useCoursePageEditorStore((s) => s.selectedBlockIds);
   const selectedBlock =
     page?.blocks.find((block) => block.id === selectedBlockId) ?? null;
 
@@ -191,7 +192,11 @@ export function CoursePageInspectorCards() {
       collapsed={outlineCollapsed}
       onCollapsedChange={setOutlineCollapsed}
     >
-      <CoursePageBlockOutline blocks={page.blocks} selectedBlockId={selectedBlockId} />
+      <CoursePageBlockOutline
+        blocks={page.blocks}
+        selectedBlockId={selectedBlockId}
+        selectedBlockIds={selectedBlockIds}
+      />
     </CourseInspectorCard>
   );
 

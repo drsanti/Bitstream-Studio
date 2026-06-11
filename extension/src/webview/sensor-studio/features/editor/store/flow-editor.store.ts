@@ -113,8 +113,12 @@ import {
 } from "../../../core/flow/scene-fx-operations";
 import {
   collectPhysicsCollidersForWorld,
+  collectPhysicsJointsFromGraph,
   collectPhysicsRigidBodiesForWorld,
+  collectPhysicsSpawnersFromGraph,
   evaluateBoxColliderOutput,
+  evaluatePhysicsJointNode,
+  evaluatePhysicsSpawnerNode,
   evaluateSphereColliderOutput,
 } from "../../../core/flow/collect-physics-scene-graph";
 import {
@@ -131,6 +135,11 @@ import {
   coerceDashboardPlacementV1,
   type DashboardPlacementV1,
 } from "../../../core/dashboard/dashboard-placement";
+import {
+  coerceDashboardSelectOptions,
+  readDashboardSelectValue,
+} from "../../../core/dashboard/dashboard-select-options";
+import { readDashboardImageUrl } from "../../../core/dashboard/dashboard-image-fit";
 import type { DashboardSnapshotItemV1 } from "../../../core/dashboard/dashboard-snapshot";
 import {
   coerceFlowWireDashboardThemeV1,
@@ -143,8 +152,19 @@ import {
   glbPartTransformSpawnDefaultConfig,
 } from "../../../core/stage/stage-scene-glb-transform-write";
 import { graphHasDashboardOutputNode } from "../../../core/dashboard/dashboard-structural-revision";
-import { evaluateDashboardSnapshot } from "../../../core/dashboard/evaluate-dashboard-snapshot";
+import { findDashboardPlacementAtAnchor } from "../../../core/dashboard/dashboard-grid-editor-ops";
+import {
+  DASHBOARD_OUTPUT_NODE_ID,
+  DASHBOARD_TAB_NODE_ID,
+  evaluateDashboardSnapshot,
+} from "../../../core/dashboard/evaluate-dashboard-snapshot";
+import { resolveDashboardWidgetDeletionIds } from "../../../core/dashboard/dashboard-widget-delete";
+import {
+  DASHBOARD_PLACEABLE_CATALOG_IDS,
+  DASHBOARD_WIDGET_PALETTE,
+} from "../../dashboard/dashboard-widget-palette";
 import { evaluateStageSceneSnapshot } from "../../../core/stage/evaluate-stage-scene-snapshot";
+import { refreshStageSceneSnapshotFromFlowState } from "../../../core/stage/refresh-stage-scene-snapshot";
 import {
   GLB_PART_TRANSFORM_NODE_ID,
   glbPartTransformFieldsForNodeConfigPatch,
@@ -295,6 +315,7 @@ import {
   initialSubgraphStoreSlice,
   persistActiveGraphBuffer,
   resolveEvaluationGraph,
+  resolveRootGraphBuffer,
   type StudioSubgraphStoreSlice,
 } from "../subgraphs/studio-subgraph-store-sync";
 import {
@@ -968,7 +989,9 @@ export type StudioDemoTemplateId =
   | "dashboard-button-led"
   | "dashboard-controls-demo"
   | "dashboard-publish-demo"
-  | "dashboard-tabs-demo";
+  | "dashboard-tabs-demo"
+  | "teaching-twin-demo"
+  | "stage-physics-demo";
 
 export type FlowSnapshot = {
   nodes: FlowGraphNode[];
@@ -1182,25 +1205,33 @@ function replaceDemoTemplateGraph(
   );
   set({
     ...committed,
-    ...initialSubgraphStoreSlice(),
-    nodes: attachedNodes,
-    edges: templateEdges,
     ...selectionFromIds(selectedNodeIds),
   });
   flushFlowSimulationPins(get);
 }
 
-function resolveRootGraphBuffer(state: StudioSubgraphStoreSlice): {
-  rootNodes: FlowGraphNode[];
-  rootEdges: Edge[];
-} {
-  if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
-    return { rootNodes: state.nodes, rootEdges: state.edges };
-  }
-  if (state.rootNodes.length > 0) {
-    return { rootNodes: state.rootNodes, rootEdges: state.rootEdges };
-  }
-  return { rootNodes: state.nodes, rootEdges: state.edges };
+function mapDashboardRootGraphNodes(
+  state: StudioSubgraphStoreSlice,
+  mapRootNodes: (rootNodes: FlowGraphNode[]) => FlowGraphNode[],
+  mapRootEdges?: (rootEdges: Edge[]) => Edge[],
+): Partial<FlowEditorState> | null {
+  const { rootNodes, rootEdges } = resolveRootGraphBuffer(state);
+  const nextRootNodes = mapRootNodes(rootNodes);
+  const nextRootEdges = mapRootEdges != null ? mapRootEdges(rootEdges) : rootEdges;
+  const atRoot = state.activeGraphId === STUDIO_ROOT_GRAPH_ID;
+  const nextActiveNodes = atRoot ? nextRootNodes : state.nodes;
+  const nextActiveEdges = atRoot ? nextRootEdges : state.edges;
+  const attachedNodes = attachConfigErrorsWithModelChildRegistry(
+    nextActiveNodes,
+    nextActiveEdges,
+  );
+  return {
+    ...commitActiveGraphMutation(state, attachedNodes, nextActiveEdges),
+    rootNodes: nextRootNodes,
+    rootEdges: nextRootEdges,
+    nodes: attachedNodes,
+    edges: nextActiveEdges,
+  };
 }
 
 function applyGroupHostDuplicateToStore(
@@ -1640,6 +1671,8 @@ type FlowEditorState = {
   dispatchDashboardKnobValue: (event: { sourceNodeId: string; value: number }) => void;
   /** Dashboard switch toggle → update boolean config value and re-tick simulation. */
   dispatchDashboardSwitchValue: (event: { sourceNodeId: string; value: boolean }) => void;
+  /** Dashboard select change → update string config value and re-tick simulation. */
+  dispatchDashboardSelectValue: (event: { sourceNodeId: string; value: string }) => void;
   /** Edit mode — move a widget or group to a grid cell (grid layout only). */
   moveDashboardWidgetToGridCell: (args: {
     sourceNodeId: string;
@@ -1659,6 +1692,22 @@ type FlowEditorState = {
     sourceNodeId: string;
     placement: DashboardPlacementV1;
   }) => void;
+  /** Edit mode — batch grid placement updates (single undo step). */
+  moveDashboardWidgetsGridPlacements: (
+    updates: ReadonlyArray<{ sourceNodeId: string; placement: DashboardPlacementV1 }>,
+  ) => void;
+  /** Edit mode — delete dashboard widgets/groups from the canvas (single undo step). */
+  deleteDashboardWidgetsBySourceIds: (sourceNodeIds: readonly string[]) => void;
+  /** Edit mode — spawn a dashboard widget node, wire it, and place on the grid. */
+  addDashboardWidgetAtGridCell: (args: {
+    catalogNodeId: string;
+    column: number;
+    row: number;
+    /** When tabs mode is active, wire into this **dashboard-tab** node. */
+    tabTargetNodeId?: string | null;
+    existingPlacements: readonly DashboardPlacementV1[];
+    gridColumns: number;
+  }) => string | null;
 };
 
 function inferPortTypes(entry: NodeCatalogEntry): {
@@ -3678,15 +3727,45 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       redoStack: [],
     });
     useFlowNodeLiveStore.getState().hydrateFromGraphNodes(hydratedNodes);
-    if (graphHasDashboardOutputNode(hydratedNodes)) {
-      const snapshot = evaluateDashboardSnapshot({
-        nodes: mergeFlowGraphNodesWithLive(hydratedNodes),
+    const { rootNodes: hydratedRootNodes, rootEdges: hydratedRootEdges } =
+      resolveRootGraphBuffer({
+        nodes: hydratedNodes,
         edges: canvasView.edges,
+        subgraphs,
+        activeGraphId: canvasView.activeGraphId,
+        graphStack: canvasView.graphStack,
+        rootNodes,
+        rootEdges,
+      });
+    if (graphHasDashboardOutputNode(hydratedRootNodes)) {
+      const evalGraph = resolveEvaluationGraph({
+        nodes: hydratedNodes,
+        edges: canvasView.edges,
+        subgraphs,
+        activeGraphId: canvasView.activeGraphId,
+        graphStack: canvasView.graphStack,
+        rootNodes: hydratedRootNodes,
+        rootEdges: hydratedRootEdges,
+      });
+      const snapshot = evaluateDashboardSnapshot({
+        nodes: mergeFlowGraphNodesWithLive(evalGraph.nodes),
+        edges: evalGraph.edges,
       });
       useDashboardSceneStore.getState().setSnapshot(snapshot);
     } else {
       useDashboardSceneStore.getState().resetSnapshot();
     }
+    refreshStageSceneSnapshotFromFlowState({
+      ...get(),
+      nodes: hydratedNodes,
+      edges: canvasView.edges,
+      subgraphs,
+      activeGraphId: canvasView.activeGraphId,
+      graphStack: canvasView.graphStack,
+      rootNodes: hydratedRootNodes,
+      rootEdges: hydratedRootEdges,
+      studioAssetDescriptors: get().studioAssetDescriptors,
+    });
     flushFlowSimulationPins(get);
   },
   exportFlowGraphJson: (options) => {
@@ -7128,6 +7207,288 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           targetHandle: STUDIO_HANDLE_IN,
           animated: true,
           label: "number",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [outputNode.id]);
+      return;
+    }
+
+    if (templateId === "teaching-twin-demo") {
+      const sineEntry = catalog.find((entry) => entry.id === "sine-wave");
+      const dashOutputEntry = catalog.find((entry) => entry.id === "dashboard-output");
+      const textEntry = catalog.find((entry) => entry.id === "dashboard-text");
+      const gaugeEntry = catalog.find((entry) => entry.id === "dashboard-gauge");
+      const modelEntry = catalog.find((entry) => entry.id === "model-select");
+      const sceneOutputEntry = catalog.find((entry) => entry.id === "scene-output");
+      const envEntry = catalog.find((entry) => entry.id === "environment");
+      if (
+        sineEntry == null ||
+        dashOutputEntry == null ||
+        textEntry == null ||
+        gaugeEntry == null ||
+        modelEntry == null ||
+        sceneOutputEntry == null
+      ) {
+        return;
+      }
+
+      const sineNode = makeNode(sineEntry, "demo-teach-sine", 60, 80);
+      sineNode.data.label = "Sine Wave";
+
+      const textNode = makeNode(textEntry, "demo-teach-text", 320, 60);
+      textNode.data.label = "Live value";
+      textNode.data.defaultConfig = {
+        ...textNode.data.defaultConfig,
+        placement: { column: 1, row: 1, columnSpan: 5, rowSpan: 1 },
+      };
+      const gaugeNode = makeNode(gaugeEntry, "demo-teach-gauge", 320, 180);
+      gaugeNode.data.defaultConfig = {
+        ...gaugeNode.data.defaultConfig,
+        placement: { column: 6, row: 1, columnSpan: 6, rowSpan: 3 },
+      };
+      const dashOutputNode = makeNode(dashOutputEntry, "demo-teach-dash-out", 620, 120);
+      dashOutputNode.data.label = "Dashboard Output";
+
+      const modelNode = makeNode(modelEntry, "demo-teach-model", 60, 280);
+      modelNode.data.label = "Model Source (PSoC E84)";
+      modelNode.data.defaultConfig = {
+        ...modelNode.data.defaultConfig,
+        selectedStudioAssetId: DEFAULT_STUDIO_PACK_MODEL_ASSET_ID,
+        selectedModelUrl: DEFAULT_STUDIO_PACK_MODEL_RELATIVE_PATH,
+      };
+      const sceneOutputNode = makeNode(sceneOutputEntry, "demo-teach-scene-out", 620, 360);
+      sceneOutputNode.data.label = "Scene Output";
+      sceneOutputNode.data.defaultConfig = {
+        ...sceneOutputNode.data.defaultConfig,
+        showGrid: STAGE_DEFAULT_SHOW_GRID,
+        scene3d: stageSceneOutputDefaultScene3d(),
+      };
+
+      const templateNodes: StudioNode[] = [
+        sineNode,
+        textNode,
+        gaugeNode,
+        dashOutputNode,
+        modelNode,
+        sceneOutputNode,
+      ];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-teach-e1",
+          source: sineNode.id,
+          target: textNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-teach-e2",
+          source: sineNode.id,
+          target: gaugeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_IN,
+          animated: true,
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-teach-e3",
+          source: textNode.id,
+          target: dashOutputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-teach-e4",
+          source: gaugeNode.id,
+          target: dashOutputNode.id,
+          sourceHandle: STUDIO_HANDLE_WIDGET,
+          targetHandle: STUDIO_HANDLE_WIDGETS,
+          animated: true,
+          label: "dashboardWidget",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-teach-e5",
+          source: modelNode.id,
+          target: sceneOutputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_MODELS,
+          animated: true,
+          label: getSourcePortType(modelNode, STUDIO_HANDLE_OUT) ?? "string",
+          style: { strokeWidth: 2 },
+        },
+      ];
+
+      if (envEntry != null) {
+        const envNode = makeNode(envEntry, "demo-teach-environment", 60, 420);
+        envNode.data.label = "Environment (Park)";
+        envNode.data.defaultConfig = {
+          ...envNode.data.defaultConfig,
+          ...stageEnvironmentNodeDefaultConfig(),
+        };
+        templateNodes.push(envNode);
+        templateEdges.push({
+          id: "demo-teach-e6",
+          source: envNode.id,
+          target: sceneOutputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_ENV,
+          animated: true,
+          label: getSourcePortType(envNode, STUDIO_HANDLE_OUT) ?? "environment",
+          style: { strokeWidth: 2 },
+        });
+      }
+
+      replaceDemoTemplateGraph(get, set, templateNodes, templateEdges, [
+        dashOutputNode.id,
+        sceneOutputNode.id,
+      ]);
+      return;
+    }
+
+    if (templateId === "stage-physics-demo") {
+      const worldEntry = catalog.find((entry) => entry.id === "physics-world");
+      const boxEntry = catalog.find((entry) => entry.id === "box-collider");
+      const bodyEntry = catalog.find((entry) => entry.id === "rigid-body");
+      const hingeEntry = catalog.find((entry) => entry.id === "hinge-joint");
+      const spawnerEntry = catalog.find((entry) => entry.id === "object-spawner");
+      const outputEntry = catalog.find((entry) => entry.id === "scene-output");
+      if (
+        worldEntry == null ||
+        boxEntry == null ||
+        bodyEntry == null ||
+        hingeEntry == null ||
+        spawnerEntry == null ||
+        outputEntry == null
+      ) {
+        return;
+      }
+
+      const worldNode = makeNode(worldEntry, "demo-phys-world", 80, 120);
+      worldNode.data.label = "Physics World";
+
+      const floorCollider = makeNode(boxEntry, "demo-phys-floor", 80, 300);
+      floorCollider.data.label = "Floor collider";
+      floorCollider.data.defaultConfig = {
+        ...floorCollider.data.defaultConfig,
+        positionY: 0,
+        halfExtentsX: 4,
+        halfExtentsY: 0.25,
+        halfExtentsZ: 4,
+      };
+
+      const bodyNodeA = makeNode(bodyEntry, "demo-phys-body-a", 80, 480);
+      bodyNodeA.data.label = "Hinge body A";
+      bodyNodeA.data.defaultConfig = {
+        ...bodyNodeA.data.defaultConfig,
+        positionX: -0.6,
+        positionY: 3,
+        halfExtents: 0.3,
+      };
+
+      const bodyNodeB = makeNode(bodyEntry, "demo-phys-body-b", 80, 620);
+      bodyNodeB.data.label = "Hinge body B";
+      bodyNodeB.data.defaultConfig = {
+        ...bodyNodeB.data.defaultConfig,
+        positionX: 0.6,
+        positionY: 3,
+        halfExtents: 0.3,
+      };
+
+      const hingeNode = makeNode(hingeEntry, "demo-phys-hinge", 80, 760);
+      hingeNode.data.label = "Hinge";
+
+      const spawnerNode = makeNode(spawnerEntry, "demo-phys-spawner", 80, 900);
+      spawnerNode.data.label = "Rain spawner";
+      spawnerNode.data.defaultConfig = {
+        ...spawnerNode.data.defaultConfig,
+        rate: 0.8,
+        maxCount: 6,
+        spawnPositionY: 5,
+      };
+
+      const outputNode = makeNode(outputEntry, "demo-phys-scene-out", 520, 240);
+      outputNode.data.label = "Scene Output";
+      outputNode.data.defaultConfig = {
+        ...outputNode.data.defaultConfig,
+        showGrid: STAGE_DEFAULT_SHOW_GRID,
+        scene3d: stageSceneOutputDefaultScene3d(),
+      };
+
+      const templateNodes: StudioNode[] = [
+        worldNode,
+        floorCollider,
+        bodyNodeA,
+        bodyNodeB,
+        hingeNode,
+        spawnerNode,
+        outputNode,
+      ];
+      const templateEdges: Edge[] = [
+        {
+          id: "demo-phys-e1",
+          source: floorCollider.id,
+          target: worldNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "shapes",
+          animated: true,
+          label: "physicsCollider",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-phys-e2a",
+          source: bodyNodeA.id,
+          target: worldNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "bodies",
+          animated: true,
+          label: "physicsBody",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-phys-e2b",
+          source: bodyNodeB.id,
+          target: worldNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "bodies",
+          animated: true,
+          label: "physicsBody",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-phys-e3",
+          source: bodyNodeA.id,
+          target: hingeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "bodyA",
+          animated: true,
+          label: "physicsBody",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-phys-e4",
+          source: bodyNodeB.id,
+          target: hingeNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: "bodyB",
+          animated: true,
+          label: "physicsBody",
+          style: { strokeWidth: 2 },
+        },
+        {
+          id: "demo-phys-e5",
+          source: worldNode.id,
+          target: outputNode.id,
+          sourceHandle: STUDIO_HANDLE_OUT,
+          targetHandle: STUDIO_HANDLE_PHYS,
+          animated: true,
+          label: "physicsScene",
           style: { strokeWidth: 2 },
         },
       ];
@@ -11403,6 +11764,26 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           continue;
         }
 
+        if (node.data.nodeId === "fixed-joint" || node.data.nodeId === "hinge-joint") {
+          const joint = evaluatePhysicsJointNode(node, (port) =>
+            readIncoming(node.id, port),
+          );
+          if (joint != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), joint);
+          }
+          continue;
+        }
+
+        if (node.data.nodeId === "object-spawner") {
+          const spawner = evaluatePhysicsSpawnerNode(node, (port) =>
+            readIncoming(node.id, port),
+          );
+          if (spawner != null) {
+            pinValues.set(studioFlowPinKey(node.id, STUDIO_HANDLE_OUT), spawner);
+          }
+          continue;
+        }
+
         if (node.data.nodeId === "physics-world") {
           const cfg = node.data.defaultConfig as Record<string, unknown>;
           const colliders = collectPhysicsCollidersForWorld({
@@ -11418,9 +11799,17 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             physicsWorldNodeId: node.id,
             pinValues,
           });
+          const joints = collectPhysicsJointsFromGraph({
+            nodes,
+            readIncoming,
+          });
+          const spawners = collectPhysicsSpawnersFromGraph({
+            nodes,
+            readIncoming,
+          });
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
-            evaluatePhysicsWorldOutput(cfg, colliders, rigidBodies),
+            evaluatePhysicsWorldOutput(cfg, colliders, rigidBodies, joints, spawners),
           );
           continue;
         }
@@ -11537,6 +11926,16 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           pinValues.set(
             studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
             typeof raw === "boolean" ? raw : false,
+          );
+          continue;
+        }
+
+        if (node.data.nodeId === "dashboard-select") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const options = coerceDashboardSelectOptions(dc.options);
+          pinValues.set(
+            studioFlowPinKey(node.id, STUDIO_HANDLE_OUT),
+            readDashboardSelectValue(dc, options),
           );
           continue;
         }
@@ -13366,6 +13765,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (
           node.data.nodeId === "dashboard-led" ||
           node.data.nodeId === "dashboard-text" ||
+          node.data.nodeId === "dashboard-formatted-text" ||
           node.data.nodeId === "dashboard-gauge" ||
           node.data.nodeId === "dashboard-status"
         ) {
@@ -13377,6 +13777,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
           } else {
             base.liveValue = null;
           }
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "dashboard-image") {
+          const wired = readIncoming(node.id, STUDIO_HANDLE_IN);
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          base.liveValue = readDashboardImageUrl(dc, wired);
           base.liveHistory = [];
         }
 
@@ -13394,6 +13801,13 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         if (node.data.nodeId === "dashboard-switch") {
           const dc = node.data.defaultConfig as Record<string, unknown>;
           base.liveValue = typeof dc.value === "boolean" ? dc.value : false;
+          base.liveHistory = [];
+        }
+
+        if (node.data.nodeId === "dashboard-select") {
+          const dc = node.data.defaultConfig as Record<string, unknown>;
+          const options = coerceDashboardSelectOptions(dc.options);
+          base.liveValue = readDashboardSelectValue(dc, options);
           base.liveHistory = [];
         }
 
@@ -13518,7 +13932,38 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       });
     const graphTickMutated = useFlowNodeLiveStore.getState().applyTickPatches(livePatches);
     tickedNodes = evalNodes;
+
+    const refreshStageSnapshotFromTick = () => {
+      const stageNodes = tickedNodes.map((node) => {
+        if (node.data.nodeId !== "scene-output") {
+          return node;
+        }
+        const base: StudioNodeData = { ...node.data };
+        patchSceneOutputLiveWires(base, node.id);
+        return { ...node, data: base };
+      });
+      const stageSceneState = useStageSceneStore.getState();
+      if (
+        shouldRefreshStageSnapshotAfterTick({
+          workbenchMode: stageSceneState.workbenchMode,
+          forceStageSnapshot: options?.forceStageSnapshot,
+          snapshotHasSceneOutput: stageSceneState.snapshot.sceneOutputNodeId != null,
+        })
+      ) {
+        stageSceneState.setSnapshot(
+          evaluateStageSceneSnapshot({
+            nodes: stageNodes,
+            edges,
+            catalog: get().studioAssetDescriptors,
+          }),
+        );
+      }
+    };
+
     if (!graphTickMutated) {
+      if (options?.forceStageSnapshot === true) {
+        refreshStageSnapshotFromTick();
+      }
       return true;
     }
 
@@ -13530,29 +13975,7 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
         "trigger",
       );
     }
-    const stageNodes = tickedNodes.map((node) => {
-      if (node.data.nodeId !== "scene-output") {
-        return node;
-      }
-      const base: StudioNodeData = { ...node.data };
-      patchSceneOutputLiveWires(base, node.id);
-      return { ...node, data: base };
-    });
-    const stageSceneState = useStageSceneStore.getState();
-    if (
-      shouldRefreshStageSnapshotAfterTick({
-        workbenchMode: stageSceneState.workbenchMode,
-        forceStageSnapshot: options?.forceStageSnapshot,
-        snapshotHasSceneOutput: stageSceneState.snapshot.sceneOutputNodeId != null,
-      })
-    ) {
-      stageSceneState.setSnapshot(
-        evaluateStageSceneSnapshot({
-          nodes: stageNodes,
-          edges,
-        }),
-      );
-    }
+    refreshStageSnapshotFromTick();
     // Dashboard layout snapshot refreshes on structural graph edits (see useDashboardStructuralSnapshot).
     // Live widget values stream from flow-node-live.store into dashboard cells and flow node cards.
     return true;
@@ -13579,17 +14002,21 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
   dispatchDashboardSwitchValue: (event) => {
     get().updateNodeConfigFieldByNodeId(event.sourceNodeId, "value", event.value);
   },
+  dispatchDashboardSelectValue: (event) => {
+    get().updateNodeConfigFieldByNodeId(event.sourceNodeId, "value", event.value);
+  },
   moveDashboardWidgetToGridCell: ({ sourceNodeId, row, column }) => {
-    const node = get().nodes.find((n) => n.id === sourceNodeId);
+    const { rootNodes } = resolveRootGraphBuffer(get());
+    const node = rootNodes.find((n) => n.id === sourceNodeId);
     if (node == null) {
       return;
     }
     const dc = node.data.defaultConfig as Record<string, unknown>;
     const placement = coerceDashboardPlacementV1(dc.placement);
     get().pushUndoSnapshot();
-    set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(
-        state.nodes.map((n) =>
+    set((state) => {
+      const patch = mapDashboardRootGraphNodes(state, (nodes) =>
+        nodes.map((n) =>
           n.id === sourceNodeId
             ? {
                 ...n,
@@ -13607,10 +14034,73 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               }
             : n,
         ),
-        state.edges,
-      ),
-    }));
+      );
+      return patch ?? state;
+    });
     flushFlowSimulationPins(get);
+  },
+  moveDashboardWidgetsGridPlacements: (updates) => {
+    if (updates.length === 0) {
+      return;
+    }
+    const { rootNodes } = resolveRootGraphBuffer(get());
+    const pending = new Map<string, DashboardPlacementV1>();
+    for (const update of updates) {
+      const node = rootNodes.find((n) => n.id === update.sourceNodeId);
+      if (node == null) {
+        continue;
+      }
+      const dc = node.data.defaultConfig as Record<string, unknown>;
+      const current = coerceDashboardPlacementV1(dc.placement);
+      const next = coerceDashboardPlacementV1(update.placement);
+      if (
+        current.column === next.column &&
+        current.row === next.row &&
+        current.columnSpan === next.columnSpan &&
+        current.rowSpan === next.rowSpan
+      ) {
+        continue;
+      }
+      pending.set(update.sourceNodeId, next);
+    }
+    if (pending.size === 0) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    set((state) => {
+      const patch = mapDashboardRootGraphNodes(state, (nodes) =>
+        nodes.map((n) => {
+          const nextPlacement = pending.get(n.id);
+          if (nextPlacement == null) {
+            return n;
+          }
+          return {
+            ...n,
+            data: {
+              ...n.data,
+              defaultConfig: {
+                ...n.data.defaultConfig,
+                placement: nextPlacement,
+              },
+            },
+          };
+        }),
+      );
+      return patch ?? state;
+    });
+    flushFlowSimulationPins(get);
+  },
+  deleteDashboardWidgetsBySourceIds: (sourceNodeIds) => {
+    const st = get();
+    const ids = resolveDashboardWidgetDeletionIds({
+      nodes: st.nodes,
+      edges: st.edges,
+      selectedSourceNodeIds: sourceNodeIds,
+    });
+    if (ids.length === 0) {
+      return;
+    }
+    get().deleteFlowNodesByIds(ids);
   },
   resizeDashboardWidgetPlacement: ({ sourceNodeId, columnSpan, rowSpan }) => {
     const node = get().nodes.find((n) => n.id === sourceNodeId);
@@ -13629,7 +14119,8 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     });
   },
   setDashboardWidgetGridPlacement: ({ sourceNodeId, placement }) => {
-    const node = get().nodes.find((n) => n.id === sourceNodeId);
+    const { rootNodes } = resolveRootGraphBuffer(get());
+    const node = rootNodes.find((n) => n.id === sourceNodeId);
     if (node == null) {
       return;
     }
@@ -13645,9 +14136,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
       return;
     }
     get().pushUndoSnapshot();
-    set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(
-        state.nodes.map((n) =>
+    set((state) => {
+      const patch = mapDashboardRootGraphNodes(state, (nodes) =>
+        nodes.map((n) =>
           n.id === sourceNodeId
             ? {
                 ...n,
@@ -13661,10 +14152,133 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
               }
             : n,
         ),
-        state.edges,
-      ),
-    }));
+      );
+      return patch ?? state;
+    });
     flushFlowSimulationPins(get);
+  },
+  addDashboardWidgetAtGridCell: ({
+    catalogNodeId,
+    column,
+    row,
+    tabTargetNodeId,
+    existingPlacements,
+    gridColumns,
+  }) => {
+    if (!DASHBOARD_PLACEABLE_CATALOG_IDS.has(catalogNodeId)) {
+      return null;
+    }
+    const paletteEntry = DASHBOARD_WIDGET_PALETTE.find(
+      (row) => row.catalogNodeId === catalogNodeId,
+    );
+    const catalog = NODE_CATALOG_DEFAULTS.payload.nodes;
+    const entry = catalog.find((row) => row.id === catalogNodeId);
+    if (entry == null) {
+      return null;
+    }
+    const isTabPage = paletteEntry?.isTabPage === true;
+    const publishToDashboard = paletteEntry?.publishToDashboard === true;
+    const state = get();
+    const { rootNodes, rootEdges } = resolveRootGraphBuffer(state);
+    const outputNode = rootNodes.find(
+      (node) => node.type === "studio" && node.data.nodeId === DASHBOARD_OUTPUT_NODE_ID,
+    );
+    if (outputNode == null) {
+      return null;
+    }
+    let wireTargetId = outputNode.id;
+    let sourceHandle = STUDIO_HANDLE_WIDGET;
+    let targetHandle = STUDIO_HANDLE_WIDGETS;
+    if (isTabPage) {
+      sourceHandle = STUDIO_HANDLE_TAB;
+      targetHandle = STUDIO_HANDLE_TABS;
+    } else if (tabTargetNodeId != null && tabTargetNodeId.trim().length > 0) {
+      const tabNode = rootNodes.find(
+        (node) =>
+          node.id === tabTargetNodeId &&
+          node.type === "studio" &&
+          node.data.nodeId === DASHBOARD_TAB_NODE_ID,
+      );
+      if (tabNode == null) {
+        return null;
+      }
+      wireTargetId = tabNode.id;
+    }
+    const placement =
+      isTabPage
+        ? null
+        : findDashboardPlacementAtAnchor(
+            column,
+            row,
+            catalogNodeId,
+            existingPlacements,
+            gridColumns,
+          );
+    const widgetWireCount = rootEdges.filter(
+      (edge) =>
+        edge.target === wireTargetId &&
+        (edge.targetHandle ?? targetHandle) === targetHandle &&
+        (edge.sourceHandle ?? sourceHandle) === sourceHandle,
+    ).length;
+    const flowX = outputNode.position.x - 420;
+    const flowY = outputNode.position.y + widgetWireCount * 96;
+
+    get().pushUndoSnapshot();
+    const nextNode = createStudioNodeFromCatalogEntry(entry, { x: flowX, y: flowY });
+    nextNode.selected = true;
+    const tabWireCount = isTabPage
+      ? rootEdges.filter(
+          (edge) =>
+            edge.target === outputNode.id &&
+            (edge.targetHandle ?? STUDIO_HANDLE_TABS) === STUDIO_HANDLE_TABS,
+        ).length
+      : 0;
+    nextNode.data.defaultConfig = {
+      ...nextNode.data.defaultConfig,
+      ...(placement != null ? { placement } : {}),
+      ...(publishToDashboard ? { publishToDashboard: true } : {}),
+      ...(isTabPage
+        ? {
+            title: entry.title ?? "Tab",
+            order: tabWireCount,
+          }
+        : {}),
+    };
+    const nextEdge: Edge = {
+      id: `dash-add-${nextNode.id}-${wireTargetId}`,
+      source: nextNode.id,
+      target: wireTargetId,
+      sourceHandle,
+      targetHandle,
+      animated: true,
+      label: "dashboardWidget",
+      style: { strokeWidth: 2 },
+    };
+    set((current) => {
+      const patch = mapDashboardRootGraphNodes(
+        current,
+        (nodes) => [...nodes, nextNode],
+        (edges) => [...edges, nextEdge],
+      );
+      if (patch == null) {
+        return current;
+      }
+      const atRoot = current.activeGraphId === STUDIO_ROOT_GRAPH_ID;
+      const nextNodes = attachConfigErrorsWithModelChildRegistry(
+        applyStudioFlowSelection(
+          atRoot ? (patch.rootNodes as StudioNode[]) : (current.nodes as StudioNode[]),
+          [nextNode.id],
+        ),
+        patch.edges ?? current.edges,
+      );
+      return {
+        ...patch,
+        nodes: nextNodes,
+        ...selectionFromIds([nextNode.id]),
+      };
+    });
+    flushFlowSimulationPins(get);
+    return nextNode.id;
   },
   arrangeDashboardWidgetsStacked: (items) => {
     const patches = buildDashboardStackPlacements(items);
@@ -13673,9 +14287,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
     }
     const patchById = new Map(patches.map((row) => [row.sourceNodeId, row.placement]));
     get().pushUndoSnapshot();
-    set((state) => ({
-      nodes: attachConfigErrorsWithModelChildRegistry(
-        state.nodes.map((node) => {
+    set((state) => {
+      const patch = mapDashboardRootGraphNodes(state, (nodes) =>
+        nodes.map((node) => {
           const placement = patchById.get(node.id);
           if (placement == null) {
             return node;
@@ -13691,9 +14305,9 @@ export const useFlowEditorStore = create<FlowEditorState>((set, get) => ({
             },
           };
         }),
-        state.edges,
-      ),
-    }));
+      );
+      return patch ?? state;
+    });
     flushFlowSimulationPins(get);
   },
   dispatchFlowKeyboardEvent: (event) => {

@@ -85,7 +85,7 @@ export const HERO_RADIAL_GAUGE_DEFAULTS = {
   fillSmoothingMs: 0,
   holeSizePercent: 10,
   zoneTint: "off" as const,
-  showGlow: true,
+  showGlow: false,
   arcCap: "round" as const,
 };
 
@@ -164,8 +164,8 @@ export function heroGaugeConicBackground(
   const activeDeg = Math.max(0, Math.min(1, fillRatio)) * sweepDeg;
   const arcTo = options?.arcToColor ?? THEME_ARC_TO;
   const arcVia = options?.arcToColor != null && options.arcToColor !== THEME_ARC_TO ? arcTo : THEME_ARC_VIA;
-  const arcCap = options?.arcCap ?? HERO_RADIAL_GAUGE_DEFAULTS.arcCap;
-  const inactiveGap = arcCap === "butt" ? 0.5 : 1.5;
+  // Round tips use a sized overlay cap in CourseHeroRadialGauge; keep the inactive wedge tight.
+  const inactiveGap = 0.5;
   const inactiveStart = activeDeg + inactiveGap;
   const inactiveEnd = sweepDeg + 1;
   return `conic-gradient(from ${startDeg}deg, var(--course-wb-gauge-arc-from) 0deg, ${arcVia} ${activeDeg * 0.55}deg, ${arcTo} ${activeDeg}deg, rgba(255,255,255,0.08) ${inactiveStart}deg, transparent ${inactiveEnd}deg)`;

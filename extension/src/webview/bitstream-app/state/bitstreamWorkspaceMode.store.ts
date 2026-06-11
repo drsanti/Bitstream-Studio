@@ -19,6 +19,15 @@ export type BitstreamWorkspaceId =
   | "presentation"
   | "course-studio";
 
+/** Shell toolbar workspaces — dev keep-alive mounts all of these once loaded. */
+export const BITSTREAM_TOOLBAR_WORKSPACE_IDS = [
+  "sensor-telemetry",
+  "sensor-studio",
+  "course-studio",
+] as const satisfies readonly BitstreamWorkspaceId[];
+
+export type BitstreamToolbarWorkspaceId = (typeof BITSTREAM_TOOLBAR_WORKSPACE_IDS)[number];
+
 const STORAGE_KEY = "bitstream-studio.workspace.v1";
 
 /** Map host / legacy ids to store workspace ids. */

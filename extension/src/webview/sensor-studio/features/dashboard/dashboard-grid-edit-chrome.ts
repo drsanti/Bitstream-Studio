@@ -32,11 +32,7 @@ export function dashboardGridEditChromeClass(
     return `${base} ${dashboardPreviewRadiusClass(editMode, options)}`.trim();
   }
   const dragCursor =
-    options?.gridLayout === true
-      ? options.dragging
-        ? "cursor-grabbing"
-        : "cursor-grab"
-      : "";
+    options?.gridLayout === true && options.dragging ? "cursor-grabbing" : "";
   if (highlighted) {
     return `${base} rounded-none bg-cyan-500/[0.06] shadow-[inset_0_0_0_2px_rgba(34,211,238,0.75)] ${
       options?.dragging ? "opacity-90" : ""
@@ -55,11 +51,7 @@ export function dashboardGroupEditChromeClass(
   const base = "relative flex min-h-0 min-w-0 flex-col overflow-hidden touch-none";
   const border = showBorder ? "border border-zinc-700/60" : "";
   const dragCursor =
-    layoutMode === "grid"
-      ? options?.dragging
-        ? "cursor-grabbing"
-        : "cursor-grab"
-      : "";
+    layoutMode === "grid" && options?.dragging ? "cursor-grabbing" : "";
   if (!editMode) {
     return `${base} rounded-lg ${border}`.trim();
   }

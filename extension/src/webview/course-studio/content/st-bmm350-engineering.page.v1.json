@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "st-bmm350-engineering",
+  "title": "Hardware, firmware & BS2 wire",
+  "meta": {
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "md-st-bmm350-engineering",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-bmm350-engineering.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

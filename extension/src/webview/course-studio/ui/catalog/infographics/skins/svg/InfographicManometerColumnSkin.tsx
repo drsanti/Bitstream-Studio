@@ -1,5 +1,7 @@
 import type { InfographicSkinConfig } from "../../infographicVisualPreset";
+import type { WidgetBoardReadoutLayoutConfig } from "../../../widget-board/widgetBoardReadoutLayout";
 import { formatInfographicValue } from "../../infographicGeometry";
+import { InfographicReadoutPanel } from "../../InfographicReadoutPanel";
 
 export function InfographicManometerColumnSkin({
   label,
@@ -11,6 +13,7 @@ export function InfographicManometerColumnSkin({
   showValue,
   showUnit,
   config,
+  readoutConfig = {},
 }: {
   label: string;
   value: number | null;
@@ -21,6 +24,7 @@ export function InfographicManometerColumnSkin({
   showValue: boolean;
   showUnit: boolean;
   config: InfographicSkinConfig;
+  readoutConfig?: WidgetBoardReadoutLayoutConfig;
 }) {
   const fillPercent = Math.max(0, Math.min(100, ratio * 100));
   const trackW = config.trackWidthPercent;
@@ -52,19 +56,21 @@ export function InfographicManometerColumnSkin({
         ) : null}
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-center">
-        {showLabel ? (
-          <p className="text-[10px] font-medium uppercase tracking-widest text-[var(--course-wb-label)]">
-            {label}
-          </p>
-        ) : null}
-        {showValue ? (
-          <p className="mt-0.5 text-[15px] font-bold leading-tight text-[var(--course-wb-value)]">
-            {formatInfographicValue(value, decimals)}
-            {showUnit && unit ? (
-              <span className="ml-1 text-[10px] font-semibold text-[var(--course-wb-unit)]">{unit}</span>
-            ) : null}
-          </p>
-        ) : null}
+        <InfographicReadoutPanel
+          config={readoutConfig}
+          showLabel={showLabel}
+          showValue={showValue}
+          label={label}
+          value={
+            <>
+              {formatInfographicValue(value, decimals)}
+              {showUnit && unit ? (
+                <span className="ml-1 text-[10px] font-semibold text-[var(--course-wb-unit)]">{unit}</span>
+              ) : null}
+            </>
+          }
+          stackClassName="w-full"
+        />
       </div>
     </div>
   );

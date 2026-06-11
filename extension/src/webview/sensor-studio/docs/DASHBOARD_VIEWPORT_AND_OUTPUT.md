@@ -54,6 +54,9 @@ Catalog id: **`dashboard-output`** (category **dashboard**).
 | **`dashboard-gauge`** | `in` (number) | `widget` | Radial gauge (reuses radial-gauge config) |
 | **`dashboard-knob`** | — | `widget`, `out` (number) | Interactive knob (reuses knob config) |
 | **`dashboard-switch`** | — | `widget`, `out` (boolean) | Boolean toggle (`TRNToggleSwitch`) |
+| **`dashboard-select`** | — | `widget`, `out` (string) | Dropdown (`TRNSelect`) with configurable options |
+| **`dashboard-formatted-text`** | `in` (number) | `widget` | Template readout (`{{value}}`, `{{unit}}`) |
+| **`dashboard-image`** | `in` (string) | `widget` | Image tile (wired or static URL) |
 | **`dashboard-slider`** | — | `widget`, `out` (number) | Horizontal slider + numeric readout |
 | **`dashboard-status`** | `in` (boolean) | `widget` | Labeled status pill (configurable on/off labels + tones) |
 | **`dashboard-group`** | `widgets` | `widget` | Nested grid container for child widgets |
@@ -148,13 +151,22 @@ When **`publishToDashboard`** is true and a **`dashboard-output`** node exists, 
 | **F10** | Grid resize handles; **`dashboard-status`** + publish compare/indicator/threshold; **`dashboard-controls-demo`** — **done** |
 | **F11** | Dashboard Inspector (Overview / Widgets / Controls / Layout); 8-handle resize; edit UX; widget corner radius; plotter in Controls; tab switcher; overlap warnings in inspector; **Esc** deselect — **done** |
 
+## Builder tier 1 (2026-06-11)
+
+| Item | Status |
+| ---- | ------ |
+| Scoped flow **lens auto-fit** | **Shipped** — `FlowCanvas` frames upstream nodes when lens changes |
+| **Frame nodes in lens** | **Shipped** — `expandFlowLensScopeWithFrameAncestors` |
+| Dashboard **arrow-key nudge** | **Shipped** — Edit + grid mode, selected widget |
+| **`teaching-twin`** desk preset | **Shipped** — Twin + wide inspector (`studio-workbench-presets.ts`) |
+
 ## Backlog (post-F11)
 
 | Item | Notes |
 | ---- | ----- |
 | Flow-preset parity for dashboard layouts | Deferred — use Export/Import + local library for now |
-| More HMI kinds | dropdown, image tile, formatted template text |
-| Dashboard keyboard | Arrow keys nudge placement (Edit mode) |
+| More HMI kinds | ~~dropdown~~, ~~image tile~~, ~~formatted template text~~ — **done** (select, image, formatted-text) |
+| Dashboard keyboard | Arrow keys nudge placement (Edit mode) — **shipped** |
 
 ## Layout import / library (F8)
 

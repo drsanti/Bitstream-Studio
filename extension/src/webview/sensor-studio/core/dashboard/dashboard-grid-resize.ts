@@ -1,4 +1,5 @@
 import type { DashboardPlacementV1 } from "./dashboard-placement";
+import { dashboardSquareCellSizePx } from "./dashboard-square-grid";
 
 export type DashboardGridMetricsV1 = {
   columns: number;
@@ -58,8 +59,7 @@ export function pointerToDashboardGridCell(args: {
     }
   }
 
-  const innerWidth = Math.max(1, gridRect.width - paddingPx - paddingRightPx);
-  const colWidth = (innerWidth - gapPx * Math.max(0, columns - 1)) / columns;
+  const colWidth = dashboardSquareCellSizePx({ rowHeightPx });
   const stepX = colWidth + gapPx;
   const stepY = rowHeightPx + rowGapPx;
   const x = clientX - gridRect.left - paddingPx;

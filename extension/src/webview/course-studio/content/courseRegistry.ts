@@ -1,16 +1,26 @@
 import { parseCourseV1, type CourseV1 } from "../schemas/course.v1";
+import { ensureCourseGlobalDocumentThemes } from "../schemas/courseStudioGlobalDocumentTheme";
 import tesaiotEmbeddedCourseJson from "./tesaiot-embedded.course.v1.json";
+import tesaiotSensorTheoryCourseJson from "./tesaiot-sensor-theory.course.v1.json";
+import { SENSOR_THEORY_COURSE_ID } from "./loadSensorTheoryCoursePages";
 
 export const TESAIOT_EMBEDDED_COURSE_ID = "tesaiot-embedded";
+export const TESAIOT_SENSOR_THEORY_COURSE_ID = SENSOR_THEORY_COURSE_ID;
 
 export const TESAIOT_EMBEDDED_COURSE_SOURCE_PATH =
   "src/webview/course-studio/content/tesaiot-embedded.course.v1.json";
+export const TESAIOT_SENSOR_THEORY_COURSE_SOURCE_PATH =
+  "src/webview/course-studio/content/tesaiot-sensor-theory.course.v1.json";
 
 /** @deprecated Use `TESAIOT_EMBEDDED_COURSE_ID` — kept for URL alias `?course=bmi270`. */
 export const BMI270_COURSE_ID = "bmi270";
 
+function loadBundledCourse(raw: unknown): CourseV1 {
+  return ensureCourseGlobalDocumentThemes(parseCourseV1(raw));
+}
+
 const DEFAULT_COURSE_ENTRY = {
-  course: parseCourseV1(tesaiotEmbeddedCourseJson),
+  course: loadBundledCourse(tesaiotEmbeddedCourseJson),
   sourcePath: TESAIOT_EMBEDDED_COURSE_SOURCE_PATH,
 };
 
@@ -18,9 +28,13 @@ const BUNDLED_COURSES: Record<string, { course: CourseV1; sourcePath: string }> 
   [TESAIOT_EMBEDDED_COURSE_ID]: DEFAULT_COURSE_ENTRY,
   /** Legacy query param — same manifest as `tesaiot-embedded`. */
   [BMI270_COURSE_ID]: DEFAULT_COURSE_ENTRY,
+  [TESAIOT_SENSOR_THEORY_COURSE_ID]: {
+    course: loadBundledCourse(tesaiotSensorTheoryCourseJson),
+    sourcePath: TESAIOT_SENSOR_THEORY_COURSE_SOURCE_PATH,
+  },
 };
 
-export const BUNDLED_COURSE_IDS = [TESAIOT_EMBEDDED_COURSE_ID];
+export const BUNDLED_COURSE_IDS = [TESAIOT_EMBEDDED_COURSE_ID, TESAIOT_SENSOR_THEORY_COURSE_ID];
 
 export const DEFAULT_COURSE_ID = TESAIOT_EMBEDDED_COURSE_ID;
 

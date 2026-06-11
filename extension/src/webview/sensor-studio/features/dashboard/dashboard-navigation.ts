@@ -22,11 +22,20 @@ export function openDashboard(
 }
 
 export const DASHBOARD_OPERATOR_WORKBENCH_PRESET_ID = "dashboard-operator";
+export const TEACHING_TWIN_WORKBENCH_PRESET_ID = "teaching-twin";
 
 export function openDashboardOperatorLayout(
   applyWorkbenchPreset: (presetId: string) => boolean,
   focusWorkbenchPane: (editorType: string) => void,
 ): void {
   applyWorkbenchPreset(DASHBOARD_OPERATOR_WORKBENCH_PRESET_ID);
+  focusDashboardPane(focusWorkbenchPane);
+}
+
+export function openTeachingTwinLayout(
+  applyWorkbenchPreset: (presetId: string) => boolean,
+  focusWorkbenchPane: (editorType: string) => void,
+): void {
+  applyWorkbenchPreset(TEACHING_TWIN_WORKBENCH_PRESET_ID);
   focusDashboardPane(focusWorkbenchPane);
 }

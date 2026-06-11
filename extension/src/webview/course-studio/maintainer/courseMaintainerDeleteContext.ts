@@ -82,8 +82,8 @@ export function resolveCourseMaintainerDeleteScope(
 
   if (COURSE_MAINTAINER_OWN_DELETE_EDITORS.has(effectiveEditor)) {
     if (effectiveEditor === "widget-board" || isWidgetBoardEditorTarget(target)) {
-      const selectedWidgetId = useCourseWidgetBoardEditorStore.getState().selectedWidgetId;
-      if (selectedWidgetId != null && selectedWidgetBoardBlock() != null) {
+      const { selectedWidgetIds } = useCourseWidgetBoardEditorStore.getState();
+      if (selectedWidgetIds.length > 0 && selectedWidgetBoardBlock() != null) {
         return "widget-board-widget";
       }
       return null;

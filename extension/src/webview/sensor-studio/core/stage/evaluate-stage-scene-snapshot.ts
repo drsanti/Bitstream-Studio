@@ -6,6 +6,11 @@ import {
 } from "../../features/editor/studio-handle-ids";
 import { collectFlowMeshEntries } from "./collect-flow-mesh-entries";
 import type { FlowGraphNode } from "../../features/editor/store/flow-graph-types";
+import type { StudioAssetDescriptor } from "../../features/asset-browser/studio-asset.types";
+import {
+  getStudioModelDescriptorById,
+  persistedModelUrlFromStudioDescriptor,
+} from "../../features/asset-browser/studio-model-scene-bindings";
 import { resolveStudioSourceModelGlbUrl } from "../../features/editor/model/model-generated-bindings";
 import { mergeFlowWireEnvironmentIntoScene3d } from "../../features/editor/nodes/environment/flow-wire-environment";
 import { mergeFlowWireCameraIntoScene3d } from "../../features/editor/nodes/camera-view/flow-wire-camera";
@@ -48,12 +53,30 @@ function readBoolean(cfg: Record<string, unknown>, key: string, fallback: boolea
   return typeof v === "boolean" ? v : fallback;
 }
 
-function resolveModelUrlFromSourceNode(node: FlowGraphNode): string | null {
+function resolveModelUrlFromSourceNode(
+  node: FlowGraphNode,
+  catalog?: readonly StudioAssetDescriptor[],
+): string | null {
   if (node.data.nodeId === "model-select") {
     const dc = node.data.defaultConfig as Record<string, unknown>;
     const direct = dc.selectedModelUrl;
     if (typeof direct === "string" && direct.trim().length > 0) {
       return direct.trim();
+    }
+    const assetId =
+      typeof dc.selectedStudioAssetId === "string" ? dc.selectedStudioAssetId.trim() : "";
+    if (assetId.length > 0 && catalog != null && catalog.length > 0) {
+      const descriptor = getStudioModelDescriptorById(assetId, catalog);
+      if (descriptor != null) {
+        const persisted = persistedModelUrlFromStudioDescriptor(descriptor);
+        if (persisted.trim().length > 0) {
+          return persisted.trim();
+        }
+      }
+    }
+    const live = node.data.liveValue;
+    if (typeof live === "string" && live.trim().length > 0) {
+      return live.trim();
     }
     return resolveStudioSourceModelGlbUrl([node], node.id);
   }
@@ -78,6 +101,7 @@ function collectModelsForSceneOutput(
   nodes: readonly FlowGraphNode[],
   edges: readonly Edge[],
   outputNodeId: string,
+  catalog?: readonly StudioAssetDescriptor[],
 ): StageSceneModelEntryV1[] {
   const modelEdges = edges.filter(
     (e) =>
@@ -90,7 +114,7 @@ function collectModelsForSceneOutput(
     if (src == null) {
       continue;
     }
-    const modelUrl = resolveModelUrlFromSourceNode(src);
+    const modelUrl = resolveModelUrlFromSourceNode(src, catalog);
     if (modelUrl == null) {
       continue;
     }
@@ -120,8 +144,9 @@ function collectModelsForSceneOutput(
 export function evaluateStageSceneSnapshot(args: {
   nodes: readonly FlowGraphNode[];
   edges: readonly Edge[];
+  catalog?: readonly StudioAssetDescriptor[];
 }): StageSceneSnapshotV1 {
-  const { nodes, edges } = args;
+  const { nodes, edges, catalog } = args;
   const outputNode = nodes.find((n) => n.data.nodeId === SCENE_OUTPUT_NODE_ID);
   const nowMs = Date.now();
 
@@ -150,7 +175,7 @@ export function evaluateStageSceneSnapshot(args: {
       ? coerceScene3DConfigV1(dc.scene3d)
       : stageSceneOutputDefaultScene3d();
 
-  const models = collectModelsForSceneOutput(nodes, edges, outputNode.id);
+  const models = collectModelsForSceneOutput(nodes, edges, outputNode.id, catalog);
   const meshes = collectFlowMeshEntries({
     nodes,
     edges,

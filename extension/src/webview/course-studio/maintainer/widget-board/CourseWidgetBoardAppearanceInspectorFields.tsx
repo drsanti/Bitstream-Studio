@@ -9,7 +9,6 @@ import type {
 } from "../../schemas/widgetBoard.v1";
 import { TRNFormField } from "../../../ui/TRN/TRNForm";
 import { TRNInlineToggleRow } from "../../../ui/TRN/TRNInlineToggleRow";
-import { TRNInput } from "../../../ui/TRN/TRNInput";
 import { TRNSelect } from "../../../ui/TRN/TRNSelect";
 import {
   COURSE_INSPECTOR_CARD_ICON_CLASS,
@@ -18,7 +17,8 @@ import {
 import { CourseBlockColorRow } from "../inspector/CourseBlockColorRow";
 import { CourseMaintainerScrubNumberField } from "../CourseMaintainerScrubNumberField";
 import { WIDGET_BOARD_VERTICAL_BAR_DEFAULTS } from "../../ui/catalog/widget-board/widgetBoardWidgetDefaults";
-import { WIDGET_BOARD_STATUS_TONE_OPTIONS } from "../../ui/catalog/widget-board/widgetBoardStatusTone";
+import { WIDGET_BOARD_STATUS_TONE_HEX_DEFAULTS, WIDGET_BOARD_STATUS_TONE_OPTIONS } from "../../ui/catalog/widget-board/widgetBoardStatusTone";
+import { TRNInput } from "../../../ui/TRN/TRNInput";
 
 function ScalarReadoutToggles({
   widget,
@@ -58,6 +58,9 @@ function StatusPillToneFields({
   widget: WidgetBoardStatusPillV1;
   onPatch: (patch: Partial<WidgetBoardStatusPillV1>) => void;
 }) {
+  const onToneDefaults = WIDGET_BOARD_STATUS_TONE_HEX_DEFAULTS.custom;
+  const offToneDefaults = WIDGET_BOARD_STATUS_TONE_HEX_DEFAULTS.custom;
+
   return (
     <>
       <p className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">ON state</p>
@@ -91,16 +94,19 @@ function StatusPillToneFields({
               <CourseBlockColorRow
                 label="Background"
                 value={widget.onBackgroundColor}
+                defaultHex={onToneDefaults.background}
                 onChange={(onBackgroundColor) => onPatch({ onBackgroundColor })}
               />
               <CourseBlockColorRow
                 label="Text"
                 value={widget.onTextColor}
+                defaultHex={onToneDefaults.text}
                 onChange={(onTextColor) => onPatch({ onTextColor })}
               />
               <CourseBlockColorRow
                 label="Border"
                 value={widget.onBorderColor}
+                defaultHex={onToneDefaults.border}
                 onChange={(onBorderColor) => onPatch({ onBorderColor })}
               />
             </>
@@ -137,16 +143,19 @@ function StatusPillToneFields({
               <CourseBlockColorRow
                 label="Background"
                 value={widget.offBackgroundColor}
+                defaultHex={offToneDefaults.background}
                 onChange={(offBackgroundColor) => onPatch({ offBackgroundColor })}
               />
               <CourseBlockColorRow
                 label="Text"
                 value={widget.offTextColor}
+                defaultHex={offToneDefaults.text}
                 onChange={(offTextColor) => onPatch({ offTextColor })}
               />
               <CourseBlockColorRow
                 label="Border"
                 value={widget.offBorderColor}
+                defaultHex={offToneDefaults.border}
                 onChange={(offBorderColor) => onPatch({ offBorderColor })}
               />
             </>
@@ -169,11 +178,35 @@ function StatusPillToneFields({
           }}
         />
       </TRNFormField>
+      <TRNFormField id={`${widget.id}-pill-size`} label="Pill size">
+        <TRNSelect
+          value={widget.pillSize}
+          ariaLabel="Status pill size"
+          variant="field"
+          size="sm"
+          options={[
+            { value: "sm", label: "Small" },
+            { value: "md", label: "Medium" },
+            { value: "lg", label: "Large" },
+          ]}
+          onValueChange={(value) => {
+            if (value === "sm" || value === "md" || value === "lg") {
+              onPatch({ pillSize: value });
+            }
+          }}
+        />
+      </TRNFormField>
       <TRNInlineToggleRow
-        label="Show label"
+        label="Show section label"
         checked={widget.showLabel}
         onCheckedChange={(showLabel) => onPatch({ showLabel })}
         ariaLabel="Show status pill section label"
+      />
+      <TRNInlineToggleRow
+        label="Show status pill"
+        checked={widget.showStatusPill}
+        onCheckedChange={(showStatusPill) => onPatch({ showStatusPill })}
+        ariaLabel="Show status pill badge"
       />
     </>
   );
@@ -288,11 +321,13 @@ export function CourseWidgetBoardAppearanceInspectorFields({
             <CourseBlockColorRow
               label="Track color"
               value={widget.trackColor}
+              defaultHex="#27272a"
               onChange={(trackColor) => onPatch({ trackColor })}
             />
             <CourseBlockColorRow
               label="Fill color"
               value={widget.fillColor}
+              defaultHex="#54ff9d"
               onChange={(fillColor) => onPatch({ fillColor })}
             />
           </>
@@ -301,24 +336,6 @@ export function CourseWidgetBoardAppearanceInspectorFields({
         {widget.kind === "numeric-readout" ? (
           <>
             <ScalarReadoutToggles widget={widget} onPatch={onPatch} />
-            <TRNFormField id={`${widget.id}-value-align`} label="Value align">
-              <TRNSelect
-                value={widget.valueAlign}
-                ariaLabel="Numeric readout value alignment"
-                variant="field"
-                size="sm"
-                options={[
-                  { value: "left", label: "Left" },
-                  { value: "center", label: "Center" },
-                  { value: "right", label: "Right" },
-                ]}
-                onValueChange={(value) => {
-                  if (value === "left" || value === "center" || value === "right") {
-                    onPatch({ valueAlign: value });
-                  }
-                }}
-              />
-            </TRNFormField>
             <TRNFormField id={`${widget.id}-value-scale`} label="Value scale">
               <TRNSelect
                 value={widget.valueScale}
@@ -395,11 +412,13 @@ export function CourseWidgetBoardAppearanceInspectorFields({
             <CourseBlockColorRow
               label="Track color"
               value={widget.trackColor}
+              defaultHex="#27272a"
               onChange={(trackColor) => onPatch({ trackColor })}
             />
             <CourseBlockColorRow
               label="Fill color"
               value={widget.fillColor}
+              defaultHex="#54ff9d"
               onChange={(fillColor) => onPatch({ fillColor })}
             />
           </>

@@ -6,7 +6,9 @@ import {
   LayoutGrid,
   ListTree,
   MonitorPlay,
+  Pin,
   SlidersHorizontal,
+  Boxes,
 } from "lucide-react";
 import type { WorkbenchRegistry } from "../../../../ui/workbench";
 import { AssetBrowsePanel } from "../../../../assets-manager/browse/AssetBrowsePanel.js";
@@ -23,6 +25,11 @@ const LazyNodeInspector = lazy(() =>
 const LazyDashboardViewport = lazy(() =>
   import("../../dashboard/DashboardViewport").then((m) => ({
     default: m.DashboardViewport,
+  })),
+);
+const LazyStageSceneOutlinerPanel = lazy(() =>
+  import("../../stage/StageSceneOutlinerPanel").then((m) => ({
+    default: m.StageSceneOutlinerPanel,
   })),
 );
 const LazyStageViewport = lazy(() =>
@@ -52,8 +59,9 @@ export function WorkbenchModelOutlinerPanel() {
   return <ModelOutlinerPanel />;
 }
 
-export function WorkbenchFlowPanel() {
+function WorkbenchFlowCanvasPane(props: { compactLensChrome?: boolean }) {
   const p = useStudioWorkbenchShell();
+  const { compactLensChrome = false } = props;
   return (
     <WorkbenchPaneSuspense>
     <LazyFlowCanvas
@@ -94,9 +102,14 @@ export function WorkbenchFlowPanel() {
       flowCanvasPreferences={p.flowCanvasPreferences}
       onFlowCanvasPreferencesChange={p.onFlowCanvasPreferencesChange}
       onFlowPanePointerEvent={p.onFlowPanePointerEvent}
+      compactLensChrome={compactLensChrome}
     />
     </WorkbenchPaneSuspense>
   );
+}
+
+export function WorkbenchFlowPanel() {
+  return <WorkbenchFlowCanvasPane />;
 }
 
 export function WorkbenchAssetsPanel() {
@@ -111,11 +124,14 @@ export function WorkbenchAssetsPanel() {
   );
 }
 
-export function WorkbenchInspectorPanel() {
+function WorkbenchInspectorPanelInner(props: { inspectorSlot: "active" | "pinned" }) {
+  const { inspectorSlot } = props;
   const p = useStudioWorkbenchShell();
   return (
     <WorkbenchPaneSuspense>
     <LazyNodeInspector
+      variant="workbench"
+      inspectorSlot={inspectorSlot}
       borderColor={p.borderColor}
       panelColor={p.panelBackgroundColor}
       selectedNode={p.selectedNode}
@@ -154,10 +170,26 @@ export function WorkbenchInspectorPanel() {
   );
 }
 
+export function WorkbenchInspectorPanel() {
+  return <WorkbenchInspectorPanelInner inspectorSlot="active" />;
+}
+
+export function WorkbenchInspectorPinnedPanel() {
+  return <WorkbenchInspectorPanelInner inspectorSlot="pinned" />;
+}
+
 export function WorkbenchStagePanel() {
   return (
     <WorkbenchPaneSuspense>
       <LazyStageViewport />
+    </WorkbenchPaneSuspense>
+  );
+}
+
+export function WorkbenchStageOutlinerPanel() {
+  return (
+    <WorkbenchPaneSuspense>
+      <LazyStageSceneOutlinerPanel />
     </WorkbenchPaneSuspense>
   );
 }
@@ -191,6 +223,11 @@ export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
     label: "Stage",
     component: WorkbenchStagePanel,
   },
+  "stage-outliner": {
+    icon: <Boxes className="size-3.5" aria-hidden />,
+    label: "Stage objects",
+    component: WorkbenchStageOutlinerPanel,
+  },
   dashboard: {
     icon: <LayoutGrid className="size-3.5" aria-hidden />,
     label: "Dashboard",
@@ -205,5 +242,10 @@ export const SENSOR_STUDIO_WORKBENCH_REGISTRY: WorkbenchRegistry = {
     icon: <SlidersHorizontal className="size-3.5" aria-hidden />,
     label: "Inspector",
     component: WorkbenchInspectorPanel,
+  },
+  "inspector-pinned": {
+    icon: <Pin className="size-3.5 text-amber-400/90" aria-hidden />,
+    label: "Pinned inspector",
+    component: WorkbenchInspectorPinnedPanel,
   },
 };

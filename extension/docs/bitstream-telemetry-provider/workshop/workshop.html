@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bitstream Studio — IoT & Industry 4.0 Hands-On Workshop</title>
+<style>
+:root {
+  --bg:           #111111;
+  --surface:      #141414;
+  --panel:        #1a1a1a;
+  --raised:       #202020;
+  --track:        #2e2e2e;
+  --code-bg:      #080808;
+  --border:       rgba(255,255,255,0.08);
+  --accent:       #16826e;
+  --accent-light: #1fb899;
+  --secondary:    #7a56e3;
+  --secondary-lt: #a080ff;
+  --success:      #05b562;
+  --warning:      #ffb400;
+  --error:        #ff5252;
+  --text-hi:      #ececec;
+  --text-lo:      #b0b0b0;
+  --text-muted:   #888888;
+  --nav-h:        52px;
+  --subnav-h:     40px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text-hi);font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.6;min-height:100vh}
+a{color:var(--accent-light);text-decoration:none}
+code,pre{font-family:'JetBrains Mono',ui-monospace,monospace}
+
+/* ── NAV ── */
+#topnav{position:sticky;top:0;z-index:100;height:var(--nav-h);background:#0a0a0a;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px}
+.nav-logo{font-size:13px;font-weight:700;color:#4a9e8a;letter-spacing:0.02em;white-space:nowrap}
+.nav-logo span{color:var(--text-muted);font-weight:400}
+.nav-chapters{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.nav-chapters::-webkit-scrollbar{display:none}
+.ch-btn{background:transparent;border:none;color:var(--text-muted);font-size:12px;font-weight:500;padding:5px 10px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:color .15s,background .15s}
+.ch-btn:hover{color:var(--text-lo);background:var(--raised)}
+.ch-btn.active{color:#fff;background:var(--accent)}
+.ch-btn.active.sec{background:var(--secondary)}
+.nav-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);white-space:nowrap}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--track)}
+.status-dot.live{background:var(--success);box-shadow:0 0 6px rgba(5,181,98,.5)}
+.status-dot.mock{background:var(--warning)}
+.status-dot.err{background:var(--error)}
+
+/* ── SUBNAV ── */
+#subnav{position:sticky;top:var(--nav-h);z-index:90;height:var(--subnav-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:2px}
+.sec-btn{background:transparent;border:none;color:var(--text-muted);font-size:12px;padding:5px 12px;border-radius:4px;cursor:pointer;transition:color .15s,background .15s}
+.sec-btn:hover{color:var(--text-lo);background:var(--raised)}
+.sec-btn.active{color:var(--accent-light);background:rgba(22,130,110,0.12)}
+.ch-dur{margin-left:auto;font-size:11px;color:var(--text-muted)}
+
+/* ── LAYOUT ── */
+#main{max-width:900px;margin:0 auto;padding:32px 24px 80px}
+.chapter{display:none}
+.chapter.active{display:block}
+.section-panel{display:none}
+.section-panel.active{display:block}
+
+/* ── TYPOGRAPHY ── */
+.ch-heading{font-size:22px;font-weight:700;color:var(--text-hi);margin-bottom:6px}
+.ch-sub{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+h3{font-size:16px;font-weight:600;color:var(--text-hi);margin:24px 0 10px}
+h3:first-child{margin-top:0}
+h4{font-size:13px;font-weight:600;color:var(--accent-light);text-transform:uppercase;letter-spacing:.05em;margin:20px 0 8px}
+p{color:var(--text-lo);margin-bottom:12px}
+p:last-child{margin-bottom:0}
+ul,ol{color:var(--text-lo);padding-left:20px;margin-bottom:12px}
+li{margin-bottom:4px}
+strong{color:var(--text-hi);font-weight:600}
+
+/* ── CARDS ── */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px}
+.card.accent{border-color:rgba(22,130,110,.25);background:#0f1f1c}
+.card.sec{border-color:rgba(122,86,227,.25);background:#110f1e}
+.card.warn{border-color:rgba(255,180,0,.2);background:#1a1500}
+.card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-light);margin-bottom:8px}
+.card-label.sec{color:var(--secondary-lt)}
+.card-label.warn{color:var(--warning)}
+
+/* ── CODE ── */
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:16px;overflow-x:auto;margin:12px 0;font-size:12px;line-height:1.7;color:#c9d1d9}
+.kw{color:#ff7b72}.fn{color:#d2a8ff}.str{color:#a5d6ff}.cm{color:#555}.num{color:#79c0ff}.op{color:#ffa657}
+
+/* ── INFO / CALLOUT ── */
+.callout{display:flex;gap:12px;padding:14px 16px;border-radius:8px;margin:16px 0;background:var(--raised);border-left:3px solid var(--accent)}
+.callout.warn{border-color:var(--warning)}
+.callout.info{border-color:var(--secondary)}
+.callout-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.callout-body{font-size:13px;color:var(--text-lo)}
+.callout-body strong{color:var(--text-hi)}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;margin:12px 0}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--raised);color:var(--text-muted);font-weight:600;text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)}
+td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:var(--text-lo)}
+td code{color:var(--accent-light);font-size:11px}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── DEMO SHELL ── */
+.demo-shell{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.demo-topbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:var(--raised);border-bottom:1px solid var(--border)}
+.demo-title{font-size:12px;font-weight:600;color:var(--text-lo)}
+.demo-badge{font-size:10px;padding:2px 7px;border-radius:3px;font-weight:600}
+.badge-live{background:rgba(5,181,98,.15);color:var(--success)}
+.badge-mock{background:rgba(255,180,0,.15);color:var(--warning)}
+.badge-wait{background:var(--track);color:var(--text-muted)}
+.demo-body{padding:20px}
+
+/* ── GAUGE / BAR ── */
+.sensor-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:12px}
+.s-card{background:#161616;border:1px solid var(--border);border-radius:8px;padding:14px}
+.s-card.sec-card{background:#130f1e;border-color:rgba(122,86,227,.2)}
+.s-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:6px}
+.s-value{font-size:20px;font-weight:700;color:var(--accent-light);margin-bottom:2px}
+.s-value.sec{color:var(--secondary-lt)}
+.s-unit{font-size:10px;color:var(--text-muted);margin-bottom:10px}
+.bar-track{height:8px;background:#383838;border-radius:3px;overflow:hidden;margin-bottom:4px}
+.bar-fill{height:100%;border-radius:3px;transition:width 80ms linear}
+.fill-acc{background:linear-gradient(90deg,#093028,#16826e)}
+.fill-sec{background:linear-gradient(90deg,#22105a,#7a56e3)}
+.bar-pct{font-size:10px;color:var(--text-muted)}
+
+/* ── EVENT LOG ── */
+.event-log{background:var(--code-bg);border-radius:8px;height:200px;overflow-y:auto;padding:10px;font-size:11px;font-family:'JetBrains Mono',monospace;scrollbar-width:thin;scrollbar-color:var(--track) transparent}
+.ev-row{padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04);display:flex;gap:8px}
+.ev-time{color:var(--text-muted);flex-shrink:0}
+.ev-type{color:var(--accent-light);flex-shrink:0}
+.ev-type.sec{color:var(--secondary-lt)}
+.ev-payload{color:#7a8a9a;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* ── CONFIG PANEL ── */
+.cfg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cfg-row{background:var(--raised);border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center}
+.cfg-key{font-size:12px;color:var(--text-muted)}
+.cfg-val{font-size:12px;font-weight:600;color:var(--accent-light)}
+
+/* ── NODE DIAGRAM ── */
+.node-canvas{background:#0c0c0c;border-radius:8px;overflow:hidden;margin-bottom:12px}
+
+/* ── STEPS ── */
+.steps{counter-reset:step;display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.step{display:flex;gap:14px;align-items:flex-start}
+.step::before{counter-increment:step;content:counter(step);flex-shrink:0;width:24px;height:24px;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;margin-top:1px}
+.step p{margin:0;font-size:13px;color:var(--text-lo)}
+.step p strong{color:var(--text-hi)}
+
+/* ── FORMULA BOX ── */
+.formula{background:var(--code-bg);border:1px solid rgba(22,130,110,.2);border-radius:8px;padding:14px 18px;font-family:'JetBrains Mono',monospace;font-size:13px;color:#1fb899;margin:12px 0;text-align:center}
+
+/* ── COMPASS ── */
+.compass-wrap{display:flex;justify-content:center;margin:12px 0}
+
+/* ── SUMMARY CHECKLIST ── */
+.checklist{list-style:none;padding:0;margin:0}
+.checklist li{padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;gap:10px;align-items:flex-start;color:var(--text-lo);font-size:13px}
+.checklist li::before{content:"✓";color:var(--accent-light);font-weight:700;flex-shrink:0}
+
+/* ── PROGRESS FOOTER ── */
+#footer-prog{position:fixed;bottom:0;left:0;right:0;height:3px;background:var(--track)}
+#footer-fill{height:100%;background:var(--accent);transition:width .3s;width:0%}
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px){
+  .sensor-grid{grid-template-columns:1fr 1fr}
+  .cfg-grid{grid-template-columns:1fr}
+  #main{padding:20px 16px 80px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <div class="nav-logo">Bitstream Studio <span>Workshop</span></div>
+  <div class="nav-chapters" id="nav-chapters">
+    <button class="ch-btn active" onclick="showChapter(0)">Ch 1 · Intro</button>
+    <button class="ch-btn" onclick="showChapter(1)">Ch 2 · Telemetry</button>
+    <button class="ch-btn" onclick="showChapter(2)">Ch 3 · Config</button>
+    <button class="ch-btn" onclick="showChapter(3)">Ch 4 · Node Editor</button>
+    <button class="ch-btn" onclick="showChapter(4)">Ch 5 · Pipelines</button>
+    <button class="ch-btn sec" onclick="showChapter(5)">Ch 6 · Dashboard</button>
+  </div>
+  <div class="nav-status">
+    <div class="status-dot" id="ws-dot"></div>
+    <span id="ws-label">Connecting…</span>
+  </div>
+</nav>
+
+<!-- SUBNAV -->
+<div id="subnav">
+  <button class="sec-btn active" onclick="showSection(0)">Intro</button>
+  <button class="sec-btn" onclick="showSection(1)">Theory</button>
+  <button class="sec-btn" onclick="showSection(2)">Demo</button>
+  <button class="sec-btn" onclick="showSection(3)">Use Cases</button>
+  <button class="sec-btn" onclick="showSection(4)">Summary</button>
+  <span class="ch-dur" id="ch-dur-label">45 min</span>
+</div>
+
+<div id="main">
+<!-- ═══════════════════════════════════════════════
+     CHAPTER 1 — Introduction & Architecture
+═══════════════════════════════════════════════ -->
+<div class="chapter active" id="ch-0">
+
+  <!-- INTRO -->
+  <div class="section-panel active" id="ch0-s0">
+    <div class="ch-heading">Introduction &amp; Architecture</div>
+    <div class="ch-sub">Chapter 1 · 45 min · Build your mental model of the Bitstream data pipeline</div>
+
+    <div class="card accent">
+      <div class="card-label">Welcome</div>
+      <p>This hands-on workshop teaches you to read live sensor data, configure sensors, build visual pipelines in Sensor Studio, and create custom HTML dashboards — all using <strong>Bitstream Studio</strong>.</p>
+      <p>By the end of today you will have built six working demos connected to real (or simulated) hardware sensors.</p>
+    </div>
+
+    <h3>What you will build</h3>
+    <ul>
+      <li>A <strong>live event log</strong> showing raw telemetry events in real time</li>
+      <li><strong>Progress bar gauges</strong> for temperature, humidity, and pressure</li>
+      <li>A <strong>sensor config panel</strong> with live publish-mode and rate display</li>
+      <li><strong>Node editor flows</strong> — math transforms, threshold alerts, compass</li>
+      <li>A <strong>4-sensor dashboard</strong> (BMI270 · SHT40 · DPS368 · BMM350) with mock fallback</li>
+    </ul>
+
+    <h3>Tools used in this workshop</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Tool</th><th>Purpose</th></tr>
+        <tr><td><strong>Sensor Telemetry</strong></td><td>Configure sensors, view live field values and rates</td></tr>
+        <tr><td><strong>Sensor Studio</strong></td><td>Node-based visual editor — build data pipelines without code</td></tr>
+        <tr><td><strong>Custom HTML block</strong></td><td>Single-file HTML dashboard connecting via WebSocket or iframe</td></tr>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">⚠</span>
+      <div class="callout-body"><strong>No hardware needed to start.</strong> All demos run against the built-in simulator. A live board will be connected in Ch 3 onwards if available.</div>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="section-panel" id="ch0-s1">
+    <div class="ch-heading">Theory — IoT Data Pipeline</div>
+    <div class="ch-sub">How sensor readings travel from hardware to your browser</div>
+
+    <h3>The Bitstream data pipeline</h3>
+    <p>Every sensor reading follows the same path:</p>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:0;flex-wrap:wrap;font-size:12px;color:var(--text-muted)">
+        <span style="background:var(--raised);padding:6px 10px;border-radius:5px;color:var(--text-lo)">Sensor<br><small style="color:var(--text-muted)">BMI270 etc.</small></span>
+        <span style="padding:0 8px;color:var(--accent)">→</span>
+        <span style="background:var(--raised);padding:6px 10px;border-radius:5px;color:var(--text-lo)">Firmware<br><small style="color:var(--text-muted)">UART frames</small></span>
+        <span style="padding:0 8px;color:var(--accent)">→</span>
+        <span style="background:var(--raised);padding:6px 10px;border-radius:5px;color:var(--text-lo)">Bridge<br><small style="color:var(--text-muted)">USB serial</small></span>
+        <span style="padding:0 8px;color:var(--accent)">→</span>
+        <span style="background:#0e2520;padding:6px 10px;border-radius:5px;color:var(--accent-light);border:1px solid rgba(22,130,110,.3)">Telemetry Provider<br><small>ws://127.0.0.1:9997</small></span>
+        <span style="padding:0 8px;color:var(--accent)">→</span>
+        <span style="background:var(--raised);padding:6px 10px;border-radius:5px;color:var(--text-lo)">Your UI<br><small style="color:var(--text-muted)">HTML / Studio</small></span>
+      </div>
+    </div>
+
+    <h3>The event envelope</h3>
+    <p>Every message from the provider uses the same JSON envelope:</p>
+    <pre><span class="op">{</span>
+  <span class="str">"type"</span><span class="op">:</span> <span class="str">"bitstream:sample"</span><span class="cm">  // event type string</span>
+  <span class="str">"v"</span><span class="op">:</span>    <span class="num">1</span><span class="cm">                  // protocol version — always 1</span>
+  <span class="str">"payload"</span><span class="op">:</span> <span class="op">{ ... }</span>      <span class="cm">// event-specific data</span>
+<span class="op">}</span></pre>
+
+    <h3>Event types</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Event</th><th>Direction</th><th>When fired</th></tr>
+        <tr><td><code>bitstream:catalog</code></td><td>provider → you</td><td>On connect; contains all sensor field specs</td></tr>
+        <tr><td><code>bitstream:config</code></td><td>provider → you</td><td>On connect + after any config change</td></tr>
+        <tr><td><code>bitstream:sample</code></td><td>provider → you</td><td>Each decoded sensor measurement</td></tr>
+        <tr><td><code>bitstream:connection</code></td><td>provider → you</td><td>Board connect/disconnect events</td></tr>
+        <tr><td><code>bitstream:stale</code></td><td>provider → you</td><td>Sensor has stopped publishing data</td></tr>
+        <tr><td><code>bitstream:hello</code></td><td>provider → you</td><td>Provider ready + capabilities</td></tr>
+        <tr><td><code>bitstream:command</code></td><td>you → provider</td><td>R1: send a command to a sensor</td></tr>
+        <tr><td><code>bitstream:response</code></td><td>provider → you</td><td>R1: command acknowledgement</td></tr>
+      </table>
+    </div>
+
+    <h3>R0 vs R1 access tiers</h3>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div class="card-label">R0 — Read</div><p style="font-size:13px">Subscribe to events. No special permissions needed. All demos in this workshop can run on R0.</p></div>
+        <div><div class="card-label sec">R1 — Command</div><p style="font-size:13px">Send <code>bitstream:command</code> to change sensor config or mode. Ch 3 uses R1.</p></div>
+      </div>
+    </div>
+
+    <h3>Transport: WebSocket vs postMessage</h3>
+    <p>Your HTML page connects to the provider in one of two ways:</p>
+    <ul>
+      <li><strong>Standalone</strong> — <code>new WebSocket("ws://127.0.0.1:9997")</code>. Use when opening HTML directly in a browser.</li>
+      <li><strong>Course Studio iframe</strong> — events arrive via <code>window.addEventListener("message", …)</code>. Send <code>bitstream:ready</code> to trigger the handshake.</li>
+    </ul>
+    <p>All demos in this workshop support both transports automatically.</p>
+  </div>
+
+  <!-- DEMO -->
+  <div class="section-panel" id="ch0-s2">
+    <div class="ch-heading">Demo — Live Event Log</div>
+    <div class="ch-sub">Watch raw bitstream events arrive in real time</div>
+
+    <div class="callout">
+      <span class="callout-icon">🎯</span>
+      <div class="callout-body"><strong>Goal:</strong> Connect to the Bitstream provider and observe the event stream. Identify event types, payload structure, and sensor field keys.</div>
+    </div>
+
+    <div class="demo-shell">
+      <div class="demo-topbar">
+        <span class="demo-title">Live Event Log</span>
+        <span class="demo-badge" id="d1-badge">● WAIT</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-muted)" id="d1-count">0 events</span>
+        <button onclick="clearLog()" style="margin-left:8px;background:var(--track);border:none;color:var(--text-muted);padding:3px 8px;border-radius:4px;font-size:11px;cursor:pointer">Clear</button>
+      </div>
+      <div class="demo-body">
+        <div class="event-log" id="event-log"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer"><input type="checkbox" id="filter-sample" checked onchange="applyFilters()"> samples</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer"><input type="checkbox" id="filter-config" checked onchange="applyFilters()"> config</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer"><input type="checkbox" id="filter-catalog" checked onchange="applyFilters()"> catalog</label>
+          <label style="display:flex;align-items:center;gap=5px;font-size:12px;color:var(--text-muted);cursor:pointer"><input type="checkbox" id="filter-connection" checked onchange="applyFilters()"> connection</label>
+        </div>
+      </div>
+    </div>
+
+    <h3>What to observe</h3>
+    <div class="steps">
+      <div class="step"><p>When the page loads, the first events are <strong>bitstream:catalog</strong> and <strong>bitstream:config</strong> — static specs and current sensor settings.</p></div>
+      <div class="step"><p><strong>bitstream:sample</strong> events arrive continuously. Expand the payload — find <code>sensor</code>, <code>fields</code>, and <code>counter</code>.</p></div>
+      <div class="step"><p>Uncheck <strong>samples</strong> to see only config/connection events. These fire when the board state changes.</p></div>
+      <div class="step"><p>If running on a live board: disconnect the USB cable and watch for a <strong>bitstream:connection</strong> event with <code>state: "disconnected"</code>.</p></div>
+    </div>
+  </div>
+
+  <!-- USE CASES -->
+  <div class="section-panel" id="ch0-s3">
+    <div class="ch-heading">Use Cases &amp; Guidelines</div>
+    <div class="ch-sub">Where this architecture fits in real Industry 4.0 systems</div>
+
+    <h3>Industry 4.0 applications</h3>
+    <div class="card">
+      <div class="card-label">Condition Monitoring</div>
+      <p>Attach IMU and pressure sensors to rotating machinery. The event-driven WebSocket push model ensures anomalies reach the dashboard with &lt;50 ms latency — no polling delay.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Predictive Maintenance</div>
+      <p>Combine vibration (BMI270 accel), temperature (SHT40/DPS368), and magnetic signature (BMM350) to detect bearing wear before failure.</p>
+    </div>
+    <div class="card">
+      <div class="card-label">Remote Environmental Monitoring</div>
+      <p>Deploy boards in server rooms, greenhouses, or warehouses. Custom HTML dashboards run in any modern browser — no app install required.</p>
+    </div>
+
+    <h3>Design guidelines</h3>
+    <ul>
+      <li>Always handle the <strong>mock/offline state</strong> — never show stale values as live.</li>
+      <li>Read field names from <strong>bitstream:catalog</strong> at runtime — never hardcode min/max.</li>
+      <li>Use <strong>bitstream:stale</strong> to grey out gauges when a sensor stops publishing.</li>
+      <li>Keep R1 commands (<code>sensor.cfg.set</code>) in dedicated UI — don't fire them silently.</li>
+      <li>Design for <strong>both transports</strong> (WS standalone + postMessage iframe) from the start.</li>
+    </ul>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="section-panel" id="ch0-s4">
+    <div class="ch-heading">Summary &amp; Checklist</div>
+    <div class="ch-sub">Key concepts from Chapter 1</div>
+
+    <h3>Key vocabulary</h3>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Term</th><th>Meaning</th></tr>
+        <tr><td><code>bitstream:catalog</code></td><td>Static sensor specs: field keys, units, min/max, mask bits</td></tr>
+        <tr><td><code>bitstream:config</code></td><td>Live sensor configuration: rates, publish mode, active mask</td></tr>
+        <tr><td><code>bitstream:sample</code></td><td>One decoded sensor reading — arrives for every EVT_SENSOR frame</td></tr>
+        <tr><td><code>bitstream:stale</code></td><td>Sensor has not published within its staleAfterMs window</td></tr>
+        <tr><td>R0 / R1</td><td>Read-only events (R0) vs commands that change sensor state (R1)</td></tr>
+      </table>
+    </div>
+
+    <h3>Setup checklist before Ch 2</h3>
+    <ul class="checklist">
+      <li>Bitstream Studio is running and simulator is active</li>
+      <li>You can see <code>bitstream:sample</code> events in the log above</li>
+      <li>You understand the event envelope: type / v / payload</li>
+      <li>You know the difference between R0 (read) and R1 (command) tier</li>
+    </ul>
+  </div>
+</div><!-- /ch-0 -->
+<!-- ═══════════════════════════════════════════════
+     CHAPTER 2 — Sensor Telemetry
+═══════════════════════════════════════════════ -->
+<div class="chapter" id="ch-1">
+
+  <!-- INTRO -->
+  <div class="section-panel active" id="ch1-s0">
+    <div class="ch-heading">Sensor Telemetry — Reading &amp; Visualizing Live Data</div>
+    <div class="ch-sub">Chapter 2 · 75 min · Build catalog-driven progress bars for SHT40 temperature and humidity</div>
+    <div class="card accent">
+      <div class="card-label">Chapter goal</div>
+      <p>By the end of this chapter you will understand how to read sensor fields from live <code>bitstream:sample</code> events, map physical values to 0–100% using the catalog's min/max range, and build a dual-field visualization with proper mock fallback and stale detection.</p>
+    </div>
+    <h3>The SHT40 sensor</h3>
+    <p>The <strong>SHT40</strong> is a precision temperature and humidity sensor with two fields:</p>
+    <div class="tbl-wrap"><table>
+      <tr><th>Field key</th><th>Unit</th><th>Min</th><th>Max</th><th>Notes</th></tr>
+      <tr><td><code>temperatureC</code></td><td>°C</td><td>-40</td><td>125</td><td>Full sensor range</td></tr>
+      <tr><td><code>humidityPct</code></td><td>%RH</td><td>0</td><td>100</td><td>Bar fill = field value directly</td></tr>
+    </table></div>
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <div class="callout-body"><strong>humidityPct</strong> is the only field where bar fill equals the value — because the physical range is already 0–100 %RH. All other sensors require range mapping.</div>
+    </div>
+  </div>
+
+  <!-- THEORY -->
+  <div class="section-panel" id="ch1-s1">
+    <div class="ch-heading">Theory — Catalog-Driven Range Mapping</div>
+    <div class="ch-sub">How to turn any sensor value into a 0–100% display percentage</div>
+
+    <h3>Three range types — never mix them</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Type</th><th>Source</th><th>Use for</th></tr>
+      <tr><td>Physical / catalog</td><td><code>fields[].min</code>, <code>fields[].max</code></td><td>Default bars and gauges</td></tr>
+      <tr><td>Gauge hint</td><td><code>gaugeHints</code> on sensor entry</td><td>Narrower "typical motion" bands (e.g. gyro ±1 rad/s)</td></tr>
+      <tr><td>User display range</td><td>User specifies values + units</td><td>Only when user explicitly requests a custom scale</td></tr>
+    </table></div>
+
+    <h3>The range mapping formula</h3>
+    <div class="formula">pct = clamp( (value − min) / (max − min) × 100,  0,  100 )</div>
+    <pre><span class="kw">function</span> <span class="fn">clamp</span>(n, lo, hi) {
+  <span class="kw">return</span> Math.<span class="fn">min</span>(hi, Math.<span class="fn">max</span>(lo, n));
+}
+
+<span class="kw">function</span> <span class="fn">valueToPercent</span>(value, min, max) {
+  <span class="kw">if</span> (max &lt;= min) <span class="kw">return</span> <span class="num">0</span>;
+  <span class="kw">const</span> t = (value - min) / (max - min);
+  <span class="kw">return</span> <span class="fn">clamp</span>(t * <span class="num">100</span>, <span class="num">0</span>, <span class="num">100</span>);
+}
+
+<span class="cm">// temperatureC = 25°C, range −40…125</span>
+<span class="cm">// pct = (25 − (−40)) / (125 − (−40)) × 100 = 39.4%</span></pre>
+
+    <h3>Reading from bitstream:catalog at runtime</h3>
+    <p>Always read min/max from the catalog event — don't hardcode values. Catalog arrives on connect:</p>
+    <pre><span class="kw">let</span> tempMin = <span class="op">-</span><span class="num">40</span>, tempMax = <span class="num">125</span>; <span class="cm">// safe defaults</span>
+
+<span class="kw">function</span> <span class="fn">applyCatalog</span>(payload) {
+  <span class="kw">const</span> sht = payload.sensors.<span class="fn">find</span>(s => s.id === <span class="str">"sht40"</span>);
+  <span class="kw">const</span> f   = sht?.fields.<span class="fn">find</span>(f => f.key === <span class="str">"temperatureC"</span>);
+  <span class="kw">if</span> (f) { tempMin = f.min; tempMax = f.max; }
+}</pre>
+
+    <h3>Mock fallback pattern</h3>
+    <p>Every demo in this workshop starts a mock timer on load and stops it when the WebSocket connects successfully. This ensures the UI is always responsive:</p>
+    <pre><span class="kw">let</span> mockTimer = <span class="kw">null</span>;
+
+<span class="kw">function</span> <span class="fn">startMock</span>() {
+  <span class="kw">if</span> (mockTimer) <span class="kw">return</span>;
+  mockTimer = <span class="fn">setInterval</span>(() => {
+    <span class="fn">onSample</span>({ sensor: <span class="str">"sht40"</span>, fields: {
+      temperatureC: <span class="num">22</span> + Math.<span class="fn">sin</span>(Date.now() / <span class="num">3000</span>) * <span class="num">5</span>,
+      humidityPct:  <span class="num">55</span> + Math.<span class="fn">sin</span>(Date.now() / <span class="num">5000</span>) * <span class="num">20</span>
+    }});
+  }, <span class="num">200</span>);
+}
+
+<span class="kw">function</span> <span class="fn">stopMock</span>() {
+  <span class="kw">if</span> (mockTimer) { <span class="fn">clearInterval</span>(mockTimer); mockTimer = <span class="kw">null</span>; }
+}</pre>
+
+    <h3>Stale detection</h3>
+    <p>When a sensor stops publishing, the provider sends <code>bitstream:stale</code>. Always handle this to grey out the gauge and show a warning:</p>
+    <pre><span class="cm">// bitstream:stale payload example:</span>
+<span class="op">{</span> sensor: <span class="str">"sht40"</span>, lastHostMs: <span class="num">1718034123456</span>, staleAfterMs: <span class="num">1500</span> <span class="op">}</span>
+
+<span class="cm">// Handle it:</span>
+<span class="kw">case</span> <span class="str">"bitstream:stale"</span>:
+  <span class="kw">if</span> (msg.payload.sensor === <span class="str">"sht40"</span>) markStale();
+  <span class="kw">break</span>;</pre>
+  </div>
+
+  <!-- DEMO -->
+  <div class="section-panel" id="ch1-s2">
+    <div class="ch-heading">Demo — SHT40 Temperature &amp; Humidity</div>
+    <div class="ch-sub">Live dual-field progress bars with catalog range mapping</div>
+
+    <div class="callout">
+      <span class="callout-icon">🎯</span>
+      <div class="callout-body"><strong>Goal:</strong> Observe temperature and humidity updating in real time. Note the percentage calculation for temperature vs humidity.</div>
+    </div>
+
+    <div class="demo-shell">
+      <div class="demo-topbar">
+        <span class="demo-title">SHT40 — Temperature &amp; Humidity</span>
+        <span class="demo-badge badge-wait" id="d2-badge">● WAIT</span>
+      </div>
+      <div class="demo-body">
+        <div class="sensor-grid">
+          <div class="s-card">
+            <div class="s-label">Temperature</div>
+            <div class="s-value" id="sht-temp-val">—</div>
+            <div class="s-unit">°C · range −40…125</div>
+            <div class="bar-track"><div class="bar-fill fill-acc" id="sht-temp-bar" style="width:50%"></div></div>
+            <div class="bar-pct" id="sht-temp-pct">—</div>
+          </div>
+          <div class="s-card">
+            <div class="s-label">Humidity</div>
+            <div class="s-value" id="sht-hum-val">—</div>
+            <div class="s-unit">%RH · range 0…100</div>
+            <div class="bar-track"><div class="bar-fill fill-acc" id="sht-hum-bar" style="width:50%"></div></div>
+            <div class="bar-pct" id="sht-hum-pct">—</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted)" id="sht-status">Initializing…</div>
+      </div>
+    </div>
+
+    <h3>Try it yourself</h3>
+    <div class="steps">
+      <div class="step"><p>Observe that <strong>temperature bar</strong> fills to ~39% at room temperature (25°C) — because 25°C is 39% of the −40…125°C range.</p></div>
+      <div class="step"><p>Observe that <strong>humidity bar</strong> fill equals the %RH value directly — 55%RH → 55% bar fill.</p></div>
+      <div class="step"><p>Open browser DevTools → Console and type <code>window._sht</code> to inspect the live values object.</p></div>
+      <div class="step"><p>In Bitstream Studio, change the SHT40 sampling rate to 2000 ms. Observe the bar updating more slowly.</p></div>
+    </div>
+  </div>
+
+  <!-- USE CASES -->
+  <div class="section-panel" id="ch1-s3">
+    <div class="ch-heading">Use Cases &amp; Guidelines</div>
+    <div class="ch-sub">Real Industry 4.0 applications for temperature and humidity monitoring</div>
+
+    <h3>Applications</h3>
+    <div class="card"><div class="card-label">HVAC &amp; Building Automation</div><p>Monitor temperature and humidity across zones. Trigger alerts when values leave comfort bands (18–26°C, 30–60%RH). The event-driven model means alerts are immediate — no polling delay.</p></div>
+    <div class="card"><div class="card-label">Cold-Chain Logistics</div><p>Pharmaceutical and food transport requires temperature logging with timestamp. Use <code>payload.hostMs</code> for timestamping — it is synchronized to host system time.</p></div>
+    <div class="card"><div class="card-label">Cleanroom Monitoring</div><p>Semiconductor fabs require &lt;45%RH. Connect the stale event to an alarm — if the sensor stops reporting, treat that as a fault condition, not silence.</p></div>
+
+    <h3>Guidelines</h3>
+    <ul>
+      <li>Always display the <strong>physical unit</strong> alongside the bar percentage — "39% (25.2°C)" is more useful than just "39%".</li>
+      <li>Use a <strong>color shift</strong> for out-of-range values (red/yellow) rather than just a number change.</li>
+      <li>Implement <strong>stale detection</strong> — a frozen gauge at 50% is dangerous if it is stale.</li>
+      <li>Never infer "good" or "bad" from raw value — that depends on application context, not sensor physics.</li>
+    </ul>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="section-panel" id="ch1-s4">
+    <div class="ch-heading">Summary — Chapter 2</div>
+    <div class="ch-sub">Catalog-driven telemetry patterns</div>
+    <ul class="checklist">
+      <li>Range mapping formula: <code>pct = clamp((v−min)/(max−min)×100, 0, 100)</code></li>
+      <li>Read min/max from <code>bitstream:catalog</code> at runtime — never hardcode</li>
+      <li>Mock fallback runs immediately on load; stops when WS connects</li>
+      <li>Always handle <code>bitstream:stale</code> to grey out stale gauges</li>
+      <li>Label every gauge with its physical unit alongside the percentage</li>
+      <li><code>humidityPct</code> is the only field where fill = value (0–100 %RH range)</li>
+    </ul>
+  </div>
+</div><!-- /ch-1 -->
+<!-- ═══════════════════════════════════════════════
+     CHAPTER 3 — Sensor Configuration
+═══════════════════════════════════════════════ -->
+<div class="chapter" id="ch-2">
+  <div class="section-panel active" id="ch2-s0">
+    <div class="ch-heading">Sensor Configuration</div>
+    <div class="ch-sub">Chapter 3 · 60 min · Understand and observe live sensor configuration via R1 commands</div>
+    <div class="card accent">
+      <div class="card-label">Chapter goal</div>
+      <p>Learn how sensors are configured — sampling rate, publish mode, and channel mask — and observe configuration changes in real time using the <code>bitstream:config</code> event.</p>
+    </div>
+    <h3>The four sensors and their IDs</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Sensor ID</th><th>sensorId</th><th>Description</th><th>Key fields</th></tr>
+      <tr><td><code>bmi270</code></td><td>0</td><td>IMU — 6-axis inertial + fusion</td><td>gyroX/Y/Z, accelX/Y/Z, euler, quat</td></tr>
+      <tr><td><code>bmm350</code></td><td>1</td><td>Magnetometer</td><td>magX, magY, magZ, temperatureC</td></tr>
+      <tr><td><code>sht40</code></td><td>2</td><td>Temperature &amp; Humidity</td><td>temperatureC, humidityPct</td></tr>
+      <tr><td><code>dps368</code></td><td>3</td><td>Barometric pressure</td><td>pressureHpa, temperatureC</td></tr>
+    </table></div>
+  </div>
+
+  <div class="section-panel" id="ch2-s1">
+    <div class="ch-heading">Theory — bitstream:config &amp; R1 Commands</div>
+    <div class="ch-sub">How sensor configuration works and how to change it</div>
+    <h3>The bitstream:config payload</h3>
+    <pre><span class="op">{</span>
+  <span class="str">"type"</span>: <span class="str">"bitstream:config"</span>, <span class="str">"v"</span>: <span class="num">1</span>,
+  <span class="str">"payload"</span>: <span class="op">{</span>
+    <span class="str">"hostMs"</span>: <span class="num">1718034123456</span>,
+    <span class="str">"source"</span>: <span class="str">"firmware"</span>, <span class="cm">// "firmware" | "simulator" | "draft"</span>
+    <span class="str">"sensors"</span>: <span class="op">{</span>
+      <span class="str">"sht40"</span>: <span class="op">{</span>
+        <span class="str">"enabled"</span>: <span class="kw">true</span>,
+        <span class="str">"publishMode"</span>: <span class="str">"hybrid"</span>,  <span class="cm">// "periodic"|"on_change"|"hybrid"</span>
+        <span class="str">"mask"</span>: <span class="num">3</span>,              <span class="cm">// bitmask of active channels</span>
+        <span class="str">"maskLabels"</span>: [<span class="str">"temperatureC"</span>, <span class="str">"humidityPct"</span>],
+        <span class="str">"samplingIntervalMs"</span>: <span class="num">500</span>,
+        <span class="str">"publishIntervalMs"</span>: <span class="num">0</span>,
+        <span class="str">"deltaX100"</span>: <span class="num">50</span>,
+        <span class="str">"expectedRateHz"</span>: <span class="num">2.0</span>
+      <span class="op">}</span>
+    <span class="op">}</span>
+  <span class="op">}</span>
+<span class="op">}</span></pre>
+
+    <h3>Publish modes</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Mode</th><th>Behaviour</th><th>Best for</th></tr>
+      <tr><td><code>periodic</code></td><td>Publish every <code>samplingIntervalMs</code></td><td>High-rate sensors, dashboards needing constant refresh</td></tr>
+      <tr><td><code>on_change</code></td><td>Publish only when value changes by ≥ <code>deltaX100 × 0.01</code></td><td>Slow-drift sensors, battery-powered nodes</td></tr>
+      <tr><td><code>hybrid</code></td><td>Periodic floor + on-change bursts</td><td>Balanced — ensures heartbeat even when value is stable</td></tr>
+    </table></div>
+
+    <h3>R1 commands for configuration</h3>
+    <pre><span class="cm">// Change sampling rate of SHT40 to 1000ms, periodic mode:</span>
+<span class="fn">sendCommand</span>(<span class="str">"sensor.cfg.set"</span>, {
+  sensor: <span class="str">"sht40"</span>,
+  publishMode: <span class="str">"periodic"</span>,
+  samplingIntervalMs: <span class="num">1000</span>
+}, <span class="str">"cfg-sht40-1"</span>);
+
+<span class="cm">// Enable BMI270 gyroscope (mask bit 2 = gyro channels):</span>
+<span class="fn">sendCommand</span>(<span class="str">"bmi270.mode.set"</span>, { mode: <span class="str">"raw"</span> }, <span class="str">"mode-1"</span>);
+<span class="cm">// then after response.ok:</span>
+<span class="fn">sendCommand</span>(<span class="str">"sensor.cfg.set"</span>, {
+  sensor: <span class="str">"bmi270"</span>, mask: <span class="num">2</span>,
+  publishMode: <span class="str">"periodic"</span>, samplingIntervalMs: <span class="num">50</span>
+}, <span class="str">"cfg-bmi-gyro-1"</span>);</pre>
+
+    <h3>Command/response flow</h3>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px">
+        <span style="background:var(--raised);padding:5px 10px;border-radius:5px">You send<br><code style="color:var(--accent-light)">bitstream:command</code></span>
+        <span style="color:var(--accent)">→</span>
+        <span style="background:var(--raised);padding:5px 10px;border-radius:5px">Provider<br>sends back</span>
+        <span style="color:var(--accent)">→</span>
+        <span style="background:var(--raised);padding:5px 10px;border-radius:5px"><code style="color:var(--accent-light)">bitstream:response</code><br>ok: true/false</span>
+        <span style="color:var(--accent)">→</span>
+        <span style="background:#0e2520;border:1px solid rgba(22,130,110,.3);padding:5px 10px;border-radius:5px;color:var(--accent-light)">New<br><code>bitstream:config</code></span>
+      </div>
+    </div>
+    <p>Always match <code>requestId</code> in the response to know which command succeeded.</p>
+  </div>
+
+  <div class="section-panel" id="ch2-s2">
+    <div class="ch-heading">Demo — Live Config Viewer</div>
+    <div class="ch-sub">Observe live configuration for all four sensors</div>
+    <div class="callout">
+      <span class="callout-icon">🎯</span>
+      <div class="callout-body"><strong>Goal:</strong> Read and display the current config for all sensors. Watch it update after changes in Bitstream Studio's Sensor Telemetry panel.</div>
+    </div>
+    <div class="demo-shell">
+      <div class="demo-topbar">
+        <span class="demo-title">Sensor Config Viewer</span>
+        <span class="demo-badge badge-wait" id="d3-badge">● WAIT</span>
+      </div>
+      <div class="demo-body">
+        <div id="cfg-panels" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div id="cfg-bmi270" class="card" style="margin:0"><div class="card-label">BMI270</div><div class="cfg-grid" id="cfg-bmi270-rows"><div class="cfg-row"><span class="cfg-key">status</span><span class="cfg-val" style="color:var(--text-muted)">—</span></div></div></div>
+          <div id="cfg-sht40" class="card" style="margin:0"><div class="card-label">SHT40</div><div class="cfg-grid" id="cfg-sht40-rows"><div class="cfg-row"><span class="cfg-key">status</span><span class="cfg-val" style="color:var(--text-muted)">—</span></div></div></div>
+          <div id="cfg-dps368" class="card" style="margin:0"><div class="card-label">DPS368</div><div class="cfg-grid" id="cfg-dps368-rows"><div class="cfg-row"><span class="cfg-key">status</span><span class="cfg-val" style="color:var(--text-muted)">—</span></div></div></div>
+          <div id="cfg-bmm350" class="card sec" style="margin:0"><div class="card-label sec">BMM350</div><div class="cfg-grid" id="cfg-bmm350-rows"><div class="cfg-row"><span class="cfg-key">status</span><span class="cfg-val" style="color:var(--text-muted)">—</span></div></div></div>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:10px" id="cfg-status">Waiting for bitstream:config…</p>
+      </div>
+    </div>
+    <h3>Try it yourself</h3>
+    <div class="steps">
+      <div class="step"><p>In <strong>Sensor Telemetry</strong>, change SHT40 sampling interval from 500 ms to 2000 ms. Watch the <code>samplingIntervalMs</code> field above update.</p></div>
+      <div class="step"><p>Switch SHT40 publish mode to <code>on_change</code>. Note that <code>deltaX100</code> becomes relevant — the sensor only publishes when the value changes enough.</p></div>
+      <div class="step"><p>Enable or disable the BMM350 sensor and observe the <code>enabled</code> flag changing.</p></div>
+    </div>
+  </div>
+
+  <div class="section-panel" id="ch2-s3">
+    <div class="ch-heading">Use Cases &amp; Guidelines</div>
+    <div class="ch-sub">Configuration strategies for real IoT deployments</div>
+    <div class="card"><div class="card-label">Battery-Powered Edge Nodes</div><p>Use <code>on_change</code> mode with a generous <code>deltaX100</code> threshold. A temperature sensor checking for &gt;0.5°C change before publishing reduces UART traffic by 10×.</p></div>
+    <div class="card"><div class="card-label">High-Rate Vibration Analysis</div><p>BMI270 in <code>periodic</code> mode at 50 ms (20 Hz) captures machinery vibration. Use mask bit 1 (accel only) to halve the data volume if gyro is not needed.</p></div>
+    <div class="card"><div class="card-label">Hybrid Mode for Dashboards</div><p>Use <code>hybrid</code> for live dashboards — a periodic heartbeat (every 5 s) keeps the display alive even when value is stable, while on-change events provide responsive updates.</p></div>
+    <h3>Guidelines</h3>
+    <ul>
+      <li>Use <code>maskLabels</code> (not <code>mask</code>) to check which fields are active — it is human-readable.</li>
+      <li>Wait for <code>bitstream:response</code> with <code>ok: true</code> before assuming a command succeeded.</li>
+      <li>After a successful command, a new <code>bitstream:config</code> event will arrive — do not cache old values.</li>
+      <li>Never modify sensor config from background timers — only in response to explicit user actions.</li>
+    </ul>
+  </div>
+
+  <div class="section-panel" id="ch2-s4">
+    <div class="ch-heading">Summary — Chapter 3</div>
+    <div class="ch-sub">Sensor configuration patterns</div>
+    <ul class="checklist">
+      <li><code>bitstream:config</code> arrives on connect and after every config change — always handle it</li>
+      <li>Three publish modes: <code>periodic</code>, <code>on_change</code>, <code>hybrid</code></li>
+      <li>R1 command flow: send command → wait for response → handle new config event</li>
+      <li>Always use <code>maskLabels</code> array to check active sensor channels</li>
+      <li>Match <code>requestId</code> in response to identify which command completed</li>
+    </ul>
+  </div>
+</div><!-- /ch-2 -->
+<!-- ═══════════════════════════════════════════════
+     CHAPTER 4 — Node Editor Basics
+═══════════════════════════════════════════════ -->
+<div class="chapter" id="ch-3">
+  <div class="section-panel active" id="ch3-s0">
+    <div class="ch-heading">Sensor Studio — Node Editor Basics</div>
+    <div class="ch-sub">Chapter 4 · 75 min · Visual programming for sensor data pipelines</div>
+    <div class="card accent">
+      <div class="card-label">Chapter goal</div>
+      <p>Learn to build <strong>Sensor Studio flows</strong> — connect sensor source nodes to math transform nodes and visualization sink nodes. By the end, you will have built a temperature unit-converter flow and a pressure gauge.</p>
+    </div>
+    <h3>What is a node editor?</h3>
+    <p>A node editor lets you build data pipelines <em>visually</em> — without writing code. Each node performs one operation. You connect output ports to input ports to route data through the pipeline.</p>
+    <div class="callout info">
+      <span class="callout-icon">ℹ</span>
+      <div class="callout-body"><strong>Sensor Studio</strong> is the node editor built into Bitstream Studio. Open it from the main toolbar. Each node in the canvas represents one step in your data pipeline.</div>
+    </div>
+  </div>
+
+  <div class="section-panel" id="ch3-s1">
+    <div class="ch-heading">Theory — Nodes, Ports &amp; Data Flow</div>
+    <div class="ch-sub">The core concepts of visual sensor data processing</div>
+    <h3>Node categories</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Category</th><th>Role</th><th>Examples</th></tr>
+      <tr><td><strong>Sensor nodes</strong></td><td>Source — emit live sensor field values</td><td>BMI270, SHT40, DPS368, BMM350</td></tr>
+      <tr><td><strong>Math nodes</strong></td><td>Transform — compute on incoming values</td><td>Scale, Add, Multiply, Abs, Sqrt, Moving Average</td></tr>
+      <tr><td><strong>Logic nodes</strong></td><td>Decision — boolean operations and comparators</td><td>Threshold, AND/OR, Latch, Timer</td></tr>
+      <tr><td><strong>Visualization nodes</strong></td><td>Sink — display values</td><td>Gauge, Numeric, Progress Bar, Alert, Chart</td></tr>
+    </table></div>
+
+    <h3>Data flow model</h3>
+    <p>Sensor Studio uses an <strong>event-driven push model</strong>: when a new <code>bitstream:sample</code> arrives, all nodes connected downstream receive updated values immediately. There is no polling.</p>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px">
+        <div style="background:#0e2520;border:1px solid rgba(22,130,110,.3);padding:8px 12px;border-radius:6px;text-align:center"><div style="color:var(--accent-light);font-weight:600">SHT40</div><div style="color:var(--text-muted);font-size:10px">Sensor node</div></div>
+        <span style="color:var(--accent)">──temperatureC──▶</span>
+        <div style="background:var(--raised);padding:8px 12px;border-radius:6px;text-align:center"><div style="color:#ffb400;font-weight:600">Scale ×9/5+32</div><div style="color:var(--text-muted);font-size:10px">Math node</div></div>
+        <span style="color:var(--accent)">──▶</span>
+        <div style="background:var(--raised);padding:8px 12px;border-radius:6px;text-align:center"><div style="color:var(--text-lo);font-weight:600">Gauge</div><div style="color:var(--text-muted);font-size:10px">Viz node</div></div>
+      </div>
+    </div>
+
+    <h3>Port types</h3>
+    <ul>
+      <li><strong>Numeric scalar</strong> — single float value (most common: temperature, pressure, one axis)</li>
+      <li><strong>Numeric vector</strong> — array of floats (e.g. accel XYZ as one port)</li>
+      <li><strong>Boolean</strong> — true/false (threshold comparator output, logic gates)</li>
+    </ul>
+    <p>You can only connect ports of matching types. The editor highlights valid targets in green when dragging a connection.</p>
+
+    <h3>Execution model</h3>
+    <p>Nodes execute in <strong>topological order</strong> — upstream nodes always run before downstream nodes. Cycles are not allowed. The entire graph updates each time any source node receives new data.</p>
+  </div>
+
+  <div class="section-panel" id="ch3-s2">
+    <div class="ch-heading">Demo — Build Your First Flow</div>
+    <div class="ch-sub">SHT40 temperature → °F converter → gauge</div>
+    <div class="callout">
+      <span class="callout-icon">🎯</span>
+      <div class="callout-body"><strong>Goal:</strong> Build a flow in Sensor Studio that reads SHT40 temperature in °C, converts it to °F, and displays it on a gauge. The live result is previewed below.</div>
+    </div>
+
+    <h3>Step-by-step: build this flow in Sensor Studio</h3>
+    <div class="steps">
+      <div class="step"><p>Open <strong>Sensor Studio</strong> from the main toolbar. Right-click the canvas → <strong>Add Node → Sensor → SHT40</strong>.</p></div>
+      <div class="step"><p>Right-click → <strong>Add Node → Math → Scale/Offset</strong>. Set <strong>scale = 1.8</strong>, <strong>offset = 32</strong>. This converts °C → °F.</p></div>
+      <div class="step"><p>Drag from the SHT40 node's <strong>temperatureC output port</strong> to the Scale node's <strong>input port</strong>.</p></div>
+      <div class="step"><p>Right-click → <strong>Add Node → Visualization → Gauge</strong>. Set label to "Temperature °F", min = 32, max = 212. Connect Scale output to Gauge input.</p></div>
+      <div class="step"><p>Press <strong>Run</strong>. The gauge should display live °F temperature. Compare with the raw °C value below.</p></div>
+    </div>
+
+    <div class="demo-shell">
+      <div class="demo-topbar">
+        <span class="demo-title">SHT40 °C → °F (what your flow produces)</span>
+        <span class="demo-badge badge-wait" id="d4-badge">● WAIT</span>
+      </div>
+      <div class="demo-body">
+        <div class="sensor-grid">
+          <div class="s-card">
+            <div class="s-label">Temperature (raw)</div>
+            <div class="s-value" id="sht-c-val">—</div>
+            <div class="s-unit">°C · sensor output</div>
+          </div>
+          <div class="s-card">
+            <div class="s-label">Temperature (converted)</div>
+            <div class="s-value" id="sht-f-val">—</div>
+            <div class="s-unit">°F · after ×1.8 + 32</div>
+            <div class="bar-track" style="margin-top:8px"><div class="bar-fill fill-acc" id="sht-f-bar" style="width:50%"></div></div>
+            <div class="bar-pct" id="sht-f-pct">—% of 32…212°F</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-panel" id="ch3-s3">
+    <div class="ch-heading">Use Cases &amp; Guidelines</div>
+    <div class="ch-sub">When to use Sensor Studio vs custom HTML</div>
+    <div class="card"><div class="card-label">Rapid Prototyping</div><p>Use Sensor Studio to explore and validate a pipeline idea in minutes. Once the concept works, graduate to custom HTML for production deployment or custom styling.</p></div>
+    <div class="card"><div class="card-label">Training &amp; Education</div><p>Node editors make the data transformation visible. Students can see exactly what happens between sensor reading and dashboard display — ideal for learning signal processing concepts.</p></div>
+    <div class="card warn"><div class="card-label warn">When to use custom HTML instead</div><p>If you need precise layout control, custom branding, integration with external APIs, or deployment to devices without Bitstream Studio installed — build a custom HTML dashboard (Ch 6).</p></div>
+    <h3>Guidelines</h3>
+    <ul>
+      <li>Name every node — use the node label field. "Scale ×1.8+32" is better than "Math 3".</li>
+      <li>Keep flows focused — one flow per concern. A temperature display flow and a threshold alert flow should be separate graphs.</li>
+      <li>Test incrementally — add one node at a time and verify the output before connecting the next.</li>
+    </ul>
+  </div>
+
+  <div class="section-panel" id="ch3-s4">
+    <div class="ch-heading">Summary — Chapter 4</div>
+    <div class="ch-sub">Node editor patterns</div>
+    <ul class="checklist">
+      <li>Three node categories: Sensor (source) → Math/Logic (transform) → Visualization (sink)</li>
+      <li>Event-driven push model — nodes execute when upstream data changes</li>
+      <li>Port types must match: scalar, vector, or boolean</li>
+      <li>Name your nodes and test one step at a time</li>
+      <li>Sensor Studio = rapid prototyping; custom HTML = production control</li>
+    </ul>
+  </div>
+</div><!-- /ch-3 -->
+
+<!-- ═══════════════════════════════════════════════
+     CHAPTER 5 — Pipelines
+═══════════════════════════════════════════════ -->
+<div class="chapter" id="ch-4">
+  <div class="section-panel active" id="ch4-s0">
+    <div class="ch-heading">Building Pipelines — Math, Logic &amp; Multi-Sensor Flows</div>
+    <div class="ch-sub">Chapter 5 · 75 min · Combine multiple sensors into processing pipelines</div>
+    <div class="card accent">
+      <div class="card-label">Chapter goal</div>
+      <p>Build two Sensor Studio pipelines: an <strong>acceleration magnitude alert</strong> (BMI270) and a <strong>3-axis magnetic compass</strong> (BMM350). Learn to combine async sensor streams and apply math transforms.</p>
+    </div>
+    <h3>Vector magnitude — the key math operation</h3>
+    <div class="formula">|a| = √(x² + y² + z²)</div>
+    <p>Use this to reduce a 3-axis vector to a single scalar magnitude. Essential for vibration analysis, fall detection, and orientation-independent motion detection.</p>
+  </div>
+
+  <div class="section-panel" id="ch4-s1">
+    <div class="ch-heading">Theory — Signal Processing Concepts</div>
+    <div class="ch-sub">Math nodes, signal conditioning, and multi-sensor synchronisation</div>
+    <h3>Math node operations</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Node</th><th>Operation</th><th>Use for</th></tr>
+      <tr><td>Scale/Offset</td><td>y = x·a + b</td><td>Unit conversion, normalisation</td></tr>
+      <tr><td>Abs</td><td>y = |x|</td><td>Removing sign from signed sensors</td></tr>
+      <tr><td>Sqrt</td><td>y = √x</td><td>Final step of magnitude: √(x²+y²+z²)</td></tr>
+      <tr><td>Power</td><td>y = xⁿ</td><td>Squaring for magnitude, energy</td></tr>
+      <tr><td>Add/Sum</td><td>y = x₁+x₂+…</td><td>Summing squared components for magnitude</td></tr>
+      <tr><td>Moving Average</td><td>ȳ = mean(last N)</td><td>Noise smoothing, trend extraction</td></tr>
+      <tr><td>Threshold</td><td>y = x &gt; T</td><td>Anomaly detection, alert trigger</td></tr>
+    </table></div>
+
+    <h3>Multi-sensor synchronisation</h3>
+    <p>Different sensors publish at different rates. BMI270 may publish at 20 Hz while SHT40 publishes at 2 Hz. When combining them in a flow, the downstream node fires whenever <em>either</em> upstream fires — using the last known value for the slower sensor.</p>
+    <div class="callout">
+      <span class="callout-icon">💡</span>
+      <div class="callout-body"><strong>Design principle:</strong> Build separate flows for sensors with very different rates. Combine them only at the visualization layer (e.g. display panel) not in the processing graph.</div>
+    </div>
+
+    <h3>Signal conditioning</h3>
+    <ul>
+      <li><strong>Filtering</strong> — Moving average removes high-frequency noise. Window size of 5–20 samples is typical.</li>
+      <li><strong>Deadband</strong> — The <code>on_change</code> publish mode + <code>deltaX100</code> acts as a hardware deadband filter.</li>
+      <li><strong>Threshold hysteresis</strong> — Use a Latch node to prevent rapid on/off toggling near the threshold.</li>
+    </ul>
+  </div>
+
+  <div class="section-panel" id="ch4-s2">
+    <div class="ch-heading">Demo — Magnitude Alert &amp; Compass</div>
+    <div class="ch-sub">BMI270 vibration detector + BMM350 3-axis magnetic field display</div>
+    <div class="callout">
+      <span class="callout-icon">🎯</span>
+      <div class="callout-body"><strong>Goal:</strong> Build the accel magnitude pipeline in Sensor Studio and compare with the live preview below.</div>
+    </div>
+
+    <div class="demo-shell">
+      <div class="demo-topbar">
+        <span class="demo-title">BMI270 Acceleration Magnitude</span>
+        <span class="demo-badge badge-wait" id="d5-badge">● WAIT</span>
+      </div>
+      <div class="demo-body">
+        <div class="sensor-grid">
+          <div class="s-card">
+            <div class="s-label">Accel X</div>
+            <div class="s-value" id="acc-x-val">—</div>
+            <div class="s-unit">m/s²</div>
+            <div class="bar-track"><div class="bar-fill fill-acc" id="acc-x-bar" style="width:50%"></div></div>
+          </div>
+          <div class="s-card">
+            <div class="s-label">Accel Y</div>
+            <div class="s-value" id="acc-y-val">—</div>
+            <div class="s-unit">m/s²</div>
+            <div class="bar-track"><div class="bar-fill fill-acc" id="acc-y-bar" style="width:50%"></div></div>
+          </div>
+          <div class="s-card">
+            <div class="s-label">Accel Z</div>
+            <div class="s-value" id="acc-z-val">—</div>
+            <div class="s-unit">m/s²</div>
+            <div class="bar-track"><div class="bar-fill fill-acc" id="acc-z-bar" style="width:50%"></div></div>
+          </div>
+          <div class="s-card">
+            <div class="s-label">Magnitude |a|</div>
+            <div class="s-value" id="acc-mag-val">—</div>
+            <div class="s-unit">m/s² · √(x²+y²+z²)</div>
+            <div class="bar-track"><div class="bar-fill" id="acc-mag-bar" style="width:50%;background:var(--warning)"></div></div>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600" id="mag-alert-box">—</div>
+      </div>
+    </div>
+
+    <div class="demo-shell" style="margin-top:16px">
+      <div class="demo-topbar">
+        <span class="demo-title">BMM350 Magnetic Field (3-axis)</span>
+        <span class="demo-badge badge-wait" id="d5b-badge">● WAIT</span>
+      </div>
+      <div class="demo-body">
+        <div class="sensor-grid">
+          <div class="s-card sec-card">
+            <div class="s-label" style="color:var(--secondary-lt)">Mag X</div>
+            <div class="s-value sec" id="mag-x-val">—</div>
+            <div class="s-unit">µT</div>
+            <div class="bar-track"><div class="bar-fill fill-sec" id="mag-x-bar" style="width:50%"></div></div>
+          </div>
+          <div class="s-card sec-card">
+            <div class="s-label" style="color:var(--secondary-lt)">Mag Y</div>
+            <div class="s-value sec" id="mag-y-val">—</div>
+            <div class="s-unit">µT</div>
+            <div class="bar-track"><div class="bar-fill fill-sec" id="mag-y-bar" style="width:50%"></div></div>
+          </div>
+          <div class="s-card sec-card">
+            <div class="s-label" style="color:var(--secondary-lt)">Mag Z</div>
+            <div class="s-value sec" id="mag-z-val">—</div>
+            <div class="s-unit">µT</div>
+            <div class="bar-track"><div class="bar-fill fill-sec" id="mag-z-bar" style="width:50%"></div></div>
+          </div>
+          <div class="s-card sec-card">
+            <div class="s-label" style="color:var(--secondary-lt)">Heading</div>
+            <div class="s-value sec" id="mag-head-val">—</div>
+            <div class="s-unit">° · atan2(Y, X)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-panel" id="ch4-s3">
+    <div class="ch-heading">Use Cases &amp; Guidelines</div>
+    <div class="ch-sub">Industry 4.0 pipeline applications</div>
+    <div class="card"><div class="card-label">Vibration Fault Detection</div><p>Acceleration magnitude spike &gt; 2g indicates bearing fault or imbalance. Use a 10-sample moving average to suppress transients, then a threshold node for alerting.</p></div>
+    <div class="card"><div class="card-label">Fall Detection</div><p>Free-fall produces |a| ≈ 0; hard landing produces |a| &gt; 30 m/s². A two-threshold latch (low → fall detected → high → impact) gives reliable fall events.</p></div>
+    <div class="card sec"><div class="card-label sec">Magnetic Anomaly Detection (BMM350)</div><p>Magnetic field disturbances indicate ferromagnetic objects nearby — useful for vehicle detection, metal part presence sensing, and compass-based orientation.</p></div>
+    <h3>Pipeline design principles</h3>
+    <ul>
+      <li>One concern per node — a "magnitude then threshold" pipeline should use separate nodes, not a combined custom node.</li>
+      <li>Test incrementally — verify each intermediate output before adding the next node.</li>
+      <li>For high-rate streams (BMI270 at 20 Hz), add a moving average <em>before</em> any threshold to reduce spurious triggers.</li>
+    </ul>
+  </div>
+
+  <div class="section-panel" id="ch4-s4">
+    <div class="ch-heading">Summary — Chapter 5</div>
+    <div class="ch-sub">Pipeline patterns for multi-sensor processing</div>
+    <ul class="checklist">
+      <li>Vector magnitude: <code>|a| = √(x² + y² + z²)</code> — reduces 3-axis to one scalar</li>
+      <li>Moving average before threshold — eliminates spurious triggers on noisy data</li>
+      <li>Build separate flows for sensors with very different publish rates</li>
+      <li>Math nodes: Scale/Offset, Abs, Sqrt, Power, Add, Moving Average, Threshold</li>
+      <li>BMM350 heading = <code>atan2(magY, magX)</code> in degrees</li>
+    </ul>
+  </div>
+</div><!-- /ch-4 -->
+<!-- ═══════════════════════════════════════════════
+     CHAPTER 6 — Custom HTML Dashboard
+═══════════════════════════════════════════════ -->
+<div class="chapter" id="ch-5">
+  <div class="section-panel active" id="ch5-s0">
+    <div class="ch-heading">Custom HTML Dashboard — All 4 Sensors</div>
+    <div class="ch-sub">Chapter 6 · 75 min · Build a production-ready dashboard for BMI270 · SHT40 · DPS368 · BMM350</div>
+    <div class="card" style="background:#130f1e;border-color:rgba(122,86,227,.3)">
+      <div class="card-label sec">Capstone chapter</div>
+      <p>Bring together everything from previous chapters. Build a fully-featured 4-sensor HTML dashboard with live WebSocket, mock fallback, stale detection, and proper color coding (teal = BMI270/SHT40/DPS368, violet = BMM350).</p>
+    </div>
+    <h3>What you will build</h3>
+    <ul>
+      <li><strong>BMI270</strong> — 6-axis progress bars (gyro X/Y/Z + accel X/Y/Z) + pitch/roll display</li>
+      <li><strong>SHT40</strong> — temperature and humidity cards with dual bars</li>
+      <li><strong>DPS368</strong> — barometric pressure ring gauge (sea-level band 900–1100 hPa)</li>
+      <li><strong>BMM350</strong> — 3-axis magnetic field bars + heading indicator (violet)</li>
+    </ul>
+  </div>
+
+  <div class="section-panel" id="ch5-s1">
+    <div class="ch-heading">Theory — Dual Transport &amp; All 4 Sensors</div>
+    <div class="ch-sub">Architecture for a production HTML dashboard</div>
+    <h3>Dual transport pattern</h3>
+    <pre><span class="cm">// Detect context: iframe vs standalone</span>
+<span class="kw">if</span> (window.parent !== window) {
+  <span class="cm">// Course Studio iframe — use postMessage</span>
+  window.<span class="fn">addEventListener</span>(<span class="str">"message"</span>, handleEnvelope);
+  window.parent.<span class="fn">postMessage</span>(
+    { type: <span class="str">"bitstream:ready"</span>, v: <span class="num">1</span>, payload: { clientId: <span class="str">"dashboard-1"</span> } }, <span class="str">"*"</span>
+  );
+} <span class="kw">else</span> {
+  <span class="cm">// Standalone — WebSocket to provider</span>
+  <span class="fn">connectWS</span>(); <span class="cm">// ws://127.0.0.1:9997</span>
+}</pre>
+
+    <h3>Sensor color coding (design system)</h3>
+    <div class="tbl-wrap"><table>
+      <tr><th>Sensor</th><th>Color family</th><th>Fill gradient</th><th>Text color</th></tr>
+      <tr><td>BMI270</td><td>Teal (accent)</td><td><code>#093028 → #16826e</code></td><td><code>#1fb899</code></td></tr>
+      <tr><td>SHT40</td><td>Teal (accent)</td><td><code>#093028 → #16826e</code></td><td><code>#1fb899</code></td></tr>
+      <tr><td>DPS368</td><td>Teal (accent)</td><td><code>#093028 → #16826e</code></td><td><code>#1fb899</code></td></tr>
+      <tr><td><strong>BMM350</strong></td><td><strong>Violet (secondary)</strong></td><td><code>#22105a → #7a56e3</code></td><td><code>#a080ff</code></td></tr>
+    </table></div>
+
+    <h3>Per-sensor stale detection</h3>
+    <pre><span class="kw">const</span> staleTimers = {};
+
+<span class="kw">function</span> <span class="fn">resetStale</span>(sensorId) {
+  <span class="fn">clearTimeout</span>(staleTimers[sensorId]);
+  <span class="fn">markFresh</span>(sensorId);
+  staleTimers[sensorId] = <span class="fn">setTimeout</span>(() => <span class="fn">markStale</span>(sensorId), <span class="num">3000</span>);
+}
+
+<span class="cm">// Call resetStale(sensor) on every bitstream:sample for that sensor</span></pre>
+
+    <h3>DPS368 sea-level pressure band</h3>
+    <p>DPS368 full sensor range is 300–1200 hPa — far too wide for a useful gauge. Use the <code>gaugeHints.pressureSeaLevel</code> band from the catalog:</p>
+    <pre><span class="cm">// From sensor-catalog.v1.json gaugeHints:</span>
+<span class="kw">let</span> pressMin = <span class="num">900</span>, pressMax = <span class="num">1100</span>; <span class="cm">// hPa</span>
+
+<span class="kw">function</span> <span class="fn">applyCatalog</span>(payload) {
+  <span class="kw">const</span> dps = payload.sensors.<span class="fn">find</span>(s => s.id === <span class="str">"dps368"</span>);
+  <span class="kw">const</span> hint = dps?.gaugeHints?.pressureSeaLevel;
+  <span class="kw">if</span> (hint) { pressMin = hint.min; pressMax = hint.max; }
+}</pre>
+  </div>
+
+  <div class="section-panel" id="ch5-s2">
+    <div class="ch-heading">Demo — 4-Sensor Dashboard</div>
+    <div class="ch-sub">Live dashboard: BMI270 · SHT40 · DPS368 · BMM350</div>
+
+    <div class="demo-shell">
+      <div class="demo-topbar">
+        <span class="demo-title">Full Sensor Dashboard</span>
+        <span class="demo-badge badge-wait" id="d6-badge">● WAIT</span>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-muted)" id="d6-sample-count">0 samples</span>
+      </div>
+      <div class="demo-body">
+
+        <!-- BMI270 -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#4a9e8a;margin-bottom:8px">BMI270 — IMU</div>
+          <div class="sensor-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="s-card"><div class="s-label">Gyro X</div><div class="s-value" id="d6-gx">—</div><div class="s-unit">rad/s</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-gx-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Gyro Y</div><div class="s-value" id="d6-gy">—</div><div class="s-unit">rad/s</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-gy-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Gyro Z</div><div class="s-value" id="d6-gz">—</div><div class="s-unit">rad/s</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-gz-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Accel X</div><div class="s-value" id="d6-ax">—</div><div class="s-unit">m/s²</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-ax-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Accel Y</div><div class="s-value" id="d6-ay">—</div><div class="s-unit">m/s²</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-ay-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Accel Z</div><div class="s-value" id="d6-az">—</div><div class="s-unit">m/s²</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-az-bar" style="width:50%"></div></div></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:4px">
+            <div class="s-card" style="flex:1;margin:0"><div class="s-label">Pitch</div><div class="s-value" id="d6-pitch">—</div><div class="s-unit">° (rollRad→deg)</div></div>
+            <div class="s-card" style="flex:1;margin:0"><div class="s-label">Roll</div><div class="s-value" id="d6-roll">—</div><div class="s-unit">°</div></div>
+          </div>
+        </div>
+
+        <!-- SHT40 -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#4a9e8a;margin-bottom:8px">SHT40 — Temp / Humidity</div>
+          <div class="sensor-grid">
+            <div class="s-card"><div class="s-label">Temperature</div><div class="s-value" id="d6-temp">—</div><div class="s-unit">°C</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-temp-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Humidity</div><div class="s-value" id="d6-hum">—</div><div class="s-unit">%RH</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-hum-bar" style="width:50%"></div></div></div>
+          </div>
+        </div>
+
+        <!-- DPS368 -->
+        <div style="margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#4a9e8a;margin-bottom:8px">DPS368 — Pressure / Temp</div>
+          <div class="sensor-grid">
+            <div class="s-card"><div class="s-label">Pressure</div><div class="s-value" id="d6-press">—</div><div class="s-unit">hPa (900–1100 band)</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-press-bar" style="width:50%"></div></div></div>
+            <div class="s-card"><div class="s-label">Temperature</div><div class="s-value" id="d6-dtemp">—</div><div class="s-unit">°C</div><div class="bar-track"><div class="bar-fill fill-acc" id="d6-dtemp-bar" style="width:50%"></div></div></div>
+          </div>
+        </div>
+
+        <!-- BMM350 (violet) -->
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--secondary-lt);margin-bottom:8px">BMM350 — Magnetometer</div>
+          <div class="sensor-grid" style="grid-template-columns:repeat(3,1fr)">
+            <div class="s-card sec-card"><div class="s-label" style="color:var(--secondary-lt)">Mag X</div><div class="s-value sec" id="d6-mx">—</div><div class="s-unit">µT</div><div class="bar-track"><div class="bar-fill fill-sec" id="d6-mx-bar" style="width:50%"></div></div></div>
+            <div class="s-card sec-card"><div class="s-label" style="color:var(--secondary-lt)">Mag Y</div><div class="s-value sec" id="d6-my">—</div><div class="s-unit">µT</div><div class="bar-track"><div class="bar-fill fill-sec" id="d6-my-bar" style="width:50%"></div></div></div>
+            <div class="s-card sec-card"><div class="s-label" style="color:var(--secondary-lt)">Mag Z</div><div class="s-value sec" id="d6-mz">—</div><div class="s-unit">µT</div><div class="bar-track"><div class="bar-fill fill-sec" id="d6-mz-bar" style="width:50%"></div></div></div>
+          </div>
+          <div class="s-card sec-card" style="margin-top:4px"><div class="s-label" style="color:var(--secondary-lt)">Heading (XY plane)</div><div class="s-value sec" id="d6-heading">—°</div><div class="s-unit">atan2(magY, magX) · 0° = magnetic north</div></div>
+        </div>
+
+        <div style="margin-top:12px;font-size:11px;color:var(--text-muted)" id="d6-status">Initializing…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-panel" id="ch5-s3">
+    <div class="ch-heading">Use Cases &amp; Guidelines</div>
+    <div class="ch-sub">Deploying custom HTML dashboards in industrial contexts</div>
+    <div class="card"><div class="card-label">Industrial HMI Panels</div><p>Embed this HTML in a Chromium-based HMI display on the factory floor. The WebSocket transport works without internet — the provider runs on localhost on the edge device.</p></div>
+    <div class="card"><div class="card-label">Remote Monitoring Dashboards</div><p>Host the HTML on a simple HTTP server. Operators can open the dashboard from any browser on the LAN. No native app installation required.</p></div>
+    <div class="card sec"><div class="card-label sec">Course Studio Integration</div><p>Embed this HTML as a Course Studio HTML block. The postMessage transport is activated automatically — trainees see live sensor data inside their learning environment.</p></div>
+    <h3>Production guidelines</h3>
+    <ul>
+      <li>Implement per-sensor stale timers — if a sensor stops, grey out its cards within 3 s.</li>
+      <li>Show a prominent connection status badge — mock/live/error states must be immediately visible.</li>
+      <li>Never show a stale value as current — add a "STALE" overlay or reduce opacity to 40%.</li>
+      <li>Use <code>bitstream:catalog</code> ranges — never hardcode min/max in production code.</li>
+    </ul>
+  </div>
+
+  <div class="section-panel" id="ch5-s4">
+    <div class="ch-heading">Summary — Workshop Recap</div>
+    <div class="ch-sub">All six chapters in one checklist</div>
+    <h3>Full workshop achievement checklist</h3>
+    <ul class="checklist">
+      <li>Understand the Bitstream event pipeline: sensor → firmware → bridge → provider → UI</li>
+      <li>Read and interpret <code>bitstream:catalog</code>, <code>:config</code>, <code>:sample</code>, <code>:stale</code>, <code>:connection</code></li>
+      <li>Implement catalog-driven range mapping: <code>pct = clamp((v-min)/(max-min)×100,0,100)</code></li>
+      <li>Handle mock fallback — always functional when provider is offline</li>
+      <li>Read live sensor configuration and understand publish modes</li>
+      <li>Send R1 commands and handle responses with <code>requestId</code></li>
+      <li>Build Sensor Studio flows with sensor, math, and visualization nodes</li>
+      <li>Implement vector magnitude for 3-axis sensors</li>
+      <li>Build a multi-sensor HTML dashboard with dual WS/postMessage transport</li>
+      <li>Apply BMM350 violet color coding; teal for all other sensors</li>
+    </ul>
+    <h3>Extending to new sensors</h3>
+    <p>Adding a new sensor follows the same pattern every time:</p>
+    <div class="steps">
+      <div class="step"><p>Find the sensor entry in <code>bitstream:catalog</code> — read field keys, units, min/max.</p></div>
+      <div class="step"><p>Add a <code>case</code> in the sample handler: <code>if (payload.sensor === "new_sensor") …</code></p></div>
+      <div class="step"><p>Apply range mapping and update the UI element.</p></div>
+      <div class="step"><p>Add a stale timer — call <code>resetStale("new_sensor")</code> on each sample.</p></div>
+    </div>
+  </div>
+</div><!-- /ch-5 -->
+
+</div><!-- /#main -->
+<div id="footer-prog"><div id="footer-fill"></div></div>
+<script>
+"use strict";
+
+/* ── NAV STATE ── */
+const CH_DURS = ["45 min","75 min","60 min","75 min","75 min","75 min"];
+let currentCh = 0, currentSec = 0;
+
+function showChapter(idx) {
+  document.querySelectorAll(".chapter").forEach((el,i) => el.classList.toggle("active", i===idx));
+  document.querySelectorAll(".ch-btn").forEach((el,i) => el.classList.toggle("active", i===idx));
+  document.getElementById("ch-dur-label").textContent = CH_DURS[idx];
+  currentCh = idx; currentSec = 0;
+  showSection(0);
+  updateProgress();
+  window.scrollTo(0,0);
+}
+
+function showSection(idx) {
+  const prefix = "ch" + currentCh + "-s";
+  document.querySelectorAll("#ch-" + currentCh + " .section-panel").forEach((el,i) => el.classList.toggle("active", i===idx));
+  document.querySelectorAll(".sec-btn").forEach((el,i) => el.classList.toggle("active", i===idx));
+  currentSec = idx;
+  updateProgress();
+}
+
+function updateProgress() {
+  const total = 6*5, done = currentCh*5 + currentSec;
+  document.getElementById("footer-fill").style.width = (done/total*100).toFixed(1)+"%";
+}
+
+/* ── TRANSPORT ── */
+let ws = null, mockTimer = null, wsConnected = false;
+let sampleCount = 0;
+const staleTimers = {};
+
+// Sensor state cache
+const state = {
+  sht: { tempMin:-40, tempMax:125, humMin:0, humMax:100 },
+  bmi: { gyroMin:-5, gyroMax:5, accelMin:-20, accelMax:20 },
+  dps: { pressMin:900, pressMax:1100, tempMin:-40, tempMax:85 },
+  bmm: { magMin:-300, magMax:300 }
+};
+window._sht = {};
+
+function setStatus(connected, label) {
+  const dot = document.getElementById("ws-dot");
+  const lbl = document.getElementById("ws-label");
+  dot.className = "status-dot " + (connected === "live" ? "live" : connected === "mock" ? "mock" : "err");
+  lbl.textContent = label;
+}
+
+function setBadge(id, mode) {
+  const el = document.getElementById(id); if (!el) return;
+  el.className = "demo-badge " + (mode==="live" ? "badge-live" : mode==="mock" ? "badge-mock" : "badge-wait");
+  el.textContent = mode==="live" ? "● LIVE" : mode==="mock" ? "◎ MOCK" : "● WAIT";
+}
+
+function allBadges(mode) {
+  ["d1-badge","d2-badge","d3-badge","d4-badge","d5-badge","d5b-badge","d6-badge"].forEach(id => setBadge(id, mode));
+}
+
+/* ── CATALOG ── */
+function applyCatalog(payload) {
+  if (!payload || !Array.isArray(payload.sensors)) return;
+  payload.sensors.forEach(s => {
+    const f = k => s.fields && s.fields.find(x => x.key === k);
+    if (s.id === "sht40") {
+      const t=f("temperatureC"), h=f("humidityPct");
+      if (t) { state.sht.tempMin=t.min; state.sht.tempMax=t.max; }
+      if (h) { state.sht.humMin=h.min; state.sht.humMax=h.max; }
+    }
+    if (s.id === "bmi270") {
+      const g=f("gyroX"), a=f("accelX");
+      if (g) { state.bmi.gyroMin=g.min; state.bmi.gyroMax=g.max; }
+      if (a) { state.bmi.accelMin=a.min; state.bmi.accelMax=a.max; }
+    }
+    if (s.id === "dps368") {
+      const hint = s.gaugeHints && s.gaugeHints.pressureSeaLevel;
+      if (hint) { state.dps.pressMin=hint.min; state.dps.pressMax=hint.max; }
+      const t=f("temperatureC"); if (t) { state.dps.tempMin=t.min; state.dps.tempMax=t.max; }
+    }
+    if (s.id === "bmm350") {
+      const mx=f("magX"); if (mx) { state.bmm.magMin=mx.min; state.bmm.magMax=mx.max; }
+    }
+  });
+}
+
+/* ── CONFIG VIEWER ── */
+function applyConfig(payload) {
+  if (!payload || !payload.sensors) return;
+  const src = payload.source || "";
+  document.getElementById("cfg-status").textContent =
+    "bitstream:config · source: " + src + " · " + new Date().toLocaleTimeString();
+  ["bmi270","sht40","dps368","bmm350"].forEach(id => {
+    const cfg = payload.sensors[id]; if (!cfg) return;
+    const rows = document.getElementById("cfg-"+id+"-rows"); if (!rows) return;
+    rows.innerHTML = [
+      ["enabled",     cfg.enabled ? "✓ yes" : "✗ no"],
+      ["publishMode", cfg.publishMode || "—"],
+      ["samplingMs",  cfg.samplingIntervalMs+"ms"],
+      ["channels",    (cfg.maskLabels||[]).join(", ") || "—"],
+      ["rate",        cfg.expectedRateHz ? cfg.expectedRateHz.toFixed(1)+" Hz" : "—"]
+    ].map(([k,v]) => `<div class="cfg-row"><span class="cfg-key">${k}</span><span class="cfg-val">${v}</span></div>`).join("");
+  });
+}
+
+/* ── HELPERS ── */
+function clamp(n,lo,hi) { return Math.min(hi,Math.max(lo,n)); }
+function v2p(val,mn,mx) { if(mx<=mn) return 50; return clamp((val-mn)/(mx-mn)*100,0,100); }
+function setBar(id,pct) { const el=document.getElementById(id); if(el) el.style.width=pct.toFixed(1)+"%"; }
+function setText(id,txt) { const el=document.getElementById(id); if(el) el.textContent=txt; }
+
+function resetStale(sensor) {
+  clearTimeout(staleTimers[sensor]);
+  staleTimers[sensor] = setTimeout(() => markStale(sensor), 3500);
+}
+function markStale(sensor) {
+  console.log("stale:", sensor);
+  // could grey out cards; for now just log
+}
+
+/* ── SAMPLE HANDLERS ── */
+function onSample(p) {
+  sampleCount++;
+  const f = p.fields || {};
+  resetStale(p.sensor);
+
+  if (p.sensor === "sht40") {
+    window._sht = f;
+    const t = f.temperatureC, h = f.humidityPct;
+    if (typeof t === "number") {
+      const tp = v2p(t, state.sht.tempMin, state.sht.tempMax);
+      setText("sht-temp-val", t.toFixed(1)); setText("sht-temp-pct", tp.toFixed(0)+"%"); setBar("sht-temp-bar", tp);
+      setText("sht-c-val", t.toFixed(1)+"°C");
+      const tf = t*1.8+32, fp = v2p(tf,32,212);
+      setText("sht-f-val", tf.toFixed(1)+"°F"); setText("sht-f-pct", fp.toFixed(0)+"% of 32–212°F"); setBar("sht-f-bar", fp);
+      setText("d6-temp", t.toFixed(1)); setBar("d6-temp-bar", tp);
+    }
+    if (typeof h === "number") {
+      const hp = clamp(h, 0, 100);
+      setText("sht-hum-val", h.toFixed(1)); setText("sht-hum-pct", hp.toFixed(0)+"%"); setBar("sht-hum-bar", hp);
+      setText("d6-hum", h.toFixed(1)); setBar("d6-hum-bar", hp);
+    }
+    const st = document.getElementById("sht-status");
+    if (st) st.textContent = "Live · counter " + p.counter;
+    setBadge("d2-badge", wsConnected ? "live" : "mock");
+    setBadge("d4-badge", wsConnected ? "live" : "mock");
+  }
+
+  if (p.sensor === "bmi270") {
+    const {gyroX,gyroY,gyroZ,accelX,accelY,accelZ,pitchRad,rollRad} = f;
+    const gn = v => v2p(v, state.bmi.gyroMin, state.bmi.gyroMax);
+    const an = v => v2p(v, state.bmi.accelMin, state.bmi.accelMax);
+    if (typeof gyroX==="number") { setText("d6-gx",gyroX.toFixed(3)); setBar("d6-gx-bar",gn(gyroX)); }
+    if (typeof gyroY==="number") { setText("d6-gy",gyroY.toFixed(3)); setBar("d6-gy-bar",gn(gyroY)); }
+    if (typeof gyroZ==="number") { setText("d6-gz",gyroZ.toFixed(3)); setBar("d6-gz-bar",gn(gyroZ)); }
+    if (typeof accelX==="number") {
+      setText("d6-ax",accelX.toFixed(2)); setBar("d6-ax-bar",an(accelX));
+      setText("acc-x-val",accelX.toFixed(2)+" m/s²"); setBar("acc-x-bar",an(accelX));
+    }
+    if (typeof accelY==="number") {
+      setText("d6-ay",accelY.toFixed(2)); setBar("d6-ay-bar",an(accelY));
+      setText("acc-y-val",accelY.toFixed(2)+" m/s²"); setBar("acc-y-bar",an(accelY));
+    }
+    if (typeof accelZ==="number") {
+      setText("d6-az",accelZ.toFixed(2)); setBar("d6-az-bar",an(accelZ));
+      setText("acc-z-val",accelZ.toFixed(2)+" m/s²"); setBar("acc-z-bar",an(accelZ));
+    }
+    if (typeof accelX==="number" && typeof accelY==="number" && typeof accelZ==="number") {
+      const mag = Math.sqrt(accelX*accelX + accelY*accelY + accelZ*accelZ);
+      setText("acc-mag-val", mag.toFixed(2)+" m/s²");
+      const mp = v2p(mag, 0, 30); setBar("acc-mag-bar", mp);
+      const box = document.getElementById("mag-alert-box");
+      if (box) {
+        const alert = mag > 12;
+        box.style.background = alert ? "rgba(255,82,82,.15)" : "rgba(5,181,98,.1)";
+        box.style.color = alert ? "#ff5252" : "#05b562";
+        box.textContent = alert ? "⚠ HIGH VIBRATION: |a| = "+mag.toFixed(2)+" m/s²" : "✓ Normal: |a| = "+mag.toFixed(2)+" m/s²";
+      }
+    }
+    if (typeof pitchRad==="number") setText("d6-pitch", (pitchRad*180/Math.PI).toFixed(1)+"°");
+    if (typeof rollRad==="number") setText("d6-roll", (rollRad*180/Math.PI).toFixed(1)+"°");
+    setBadge("d5-badge", wsConnected ? "live" : "mock");
+  }
+
+  if (p.sensor === "dps368") {
+    const pr = f.pressureHpa, dt = f.temperatureC;
+    if (typeof pr==="number") {
+      const pp = v2p(pr, state.dps.pressMin, state.dps.pressMax);
+      setText("d6-press", pr.toFixed(1)); setBar("d6-press-bar", pp);
+    }
+    if (typeof dt==="number") {
+      const dp = v2p(dt, state.dps.tempMin, state.dps.tempMax);
+      setText("d6-dtemp", dt.toFixed(1)); setBar("d6-dtemp-bar", dp);
+    }
+  }
+
+  if (p.sensor === "bmm350") {
+    const {magX,magY,magZ} = f;
+    const mn = v => v2p(v, state.bmm.magMin, state.bmm.magMax);
+    if (typeof magX==="number") { setText("mag-x-val",magX.toFixed(1)+" µT"); setBar("mag-x-bar",mn(magX)); setText("d6-mx",magX.toFixed(1)); setBar("d6-mx-bar",mn(magX)); }
+    if (typeof magY==="number") { setText("mag-y-val",magY.toFixed(1)+" µT"); setBar("mag-y-bar",mn(magY)); setText("d6-my",magY.toFixed(1)); setBar("d6-my-bar",mn(magY)); }
+    if (typeof magZ==="number") { setText("mag-z-val",magZ.toFixed(1)+" µT"); setBar("mag-z-bar",mn(magZ)); setText("d6-mz",magZ.toFixed(1)); setBar("d6-mz-bar",mn(magZ)); }
+    if (typeof magX==="number" && typeof magY==="number") {
+      const hdg = ((Math.atan2(magY,magX)*180/Math.PI)+360)%360;
+      setText("mag-head-val", hdg.toFixed(1)+"°"); setText("d6-heading", hdg.toFixed(1)+"°");
+    }
+    setBadge("d5b-badge", wsConnected ? "live" : "mock");
+  }
+
+  const sc = document.getElementById("d6-sample-count");
+  if (sc) sc.textContent = sampleCount + " samples";
+  const d6s = document.getElementById("d6-status");
+  if (d6s) d6s.textContent = "Last sample: "+p.sensor+" · "+new Date().toLocaleTimeString();
+  setBadge("d6-badge", wsConnected ? "live" : "mock");
+}
+
+/* ── EVENT LOG ── */
+const logBuf = [];
+let filterSample=true, filterConfig=true, filterCatalog=true, filterConnection=true;
+
+function logEvent(type, payload) {
+  const ts = new Date().toLocaleTimeString();
+  logBuf.push({ts, type, payload});
+  if (logBuf.length > 200) logBuf.shift();
+  renderLog();
+}
+
+function applyFilters() {
+  filterSample     = document.getElementById("filter-sample").checked;
+  filterConfig     = document.getElementById("filter-config").checked;
+  filterCatalog    = document.getElementById("filter-catalog").checked;
+  filterConnection = document.getElementById("filter-connection").checked;
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById("event-log"); if (!el) return;
+  const rows = logBuf.filter(e => {
+    if (e.type==="bitstream:sample" && !filterSample) return false;
+    if (e.type==="bitstream:config" && !filterConfig) return false;
+    if (e.type==="bitstream:catalog" && !filterCatalog) return false;
+    if (e.type==="bitstream:connection" && !filterConnection) return false;
+    return true;
+  }).slice(-80);
+  el.innerHTML = rows.map(e => {
+    const isSec = e.type==="bitstream:stale"||e.type==="bitstream:response";
+    const preview = JSON.stringify(e.payload).slice(0,80);
+    return `<div class="ev-row"><span class="ev-time">${e.ts}</span><span class="ev-type${isSec?" sec":""}">${e.type}</span><span class="ev-payload">${preview}</span></div>`;
+  }).join("");
+  el.scrollTop = el.scrollHeight;
+  const cnt = document.getElementById("d1-count");
+  if (cnt) cnt.textContent = logBuf.length + " events";
+}
+
+function clearLog() { logBuf.length=0; renderLog(); }
+
+/* ── MESSAGE HANDLER ── */
+function handleMsg(msg) {
+  if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+  if (!msg.type.startsWith("bitstream:")) return;
+  logEvent(msg.type, msg.payload);
+  switch(msg.type) {
+    case "bitstream:catalog":    applyCatalog(msg.payload); break;
+    case "bitstream:config":     applyConfig(msg.payload); break;
+    case "bitstream:sample":     onSample(msg.payload); break;
+    case "bitstream:connection":
+      const s = msg.payload && msg.payload.state;
+      setStatus(s==="connected"?"live":"err", s||"—");
+      break;
+    case "bitstream:stale":
+      if (msg.payload) markStale(msg.payload.sensor);
+      break;
+  }
+  setBadge("d1-badge", wsConnected ? "live" : "mock");
+}
+
+/* ── MOCK DATA ── */
+function startMock() {
+  if (mockTimer) return;
+  setStatus("mock","Mock data");
+  allBadges("mock");
+  const t0 = Date.now();
+  let counter = 0;
+  mockTimer = setInterval(() => {
+    const t = (Date.now()-t0)/1000;
+    counter++;
+
+    // SHT40
+    if (counter % 5 === 0) {
+      onSample({ sensor:"sht40", counter, fields:{
+        temperatureC: 23 + Math.sin(t*0.3)*4,
+        humidityPct: 55 + Math.sin(t*0.2)*18
+      }});
+    }
+    // BMI270
+    onSample({ sensor:"bmi270", counter, fields:{
+      gyroX: Math.sin(t*1.1)*1.2,
+      gyroY: Math.cos(t*0.8)*0.9,
+      gyroZ: Math.sin(t*0.5)*0.5,
+      accelX: Math.sin(t*0.7)*2 + 0.1,
+      accelY: Math.cos(t*0.9)*1.5,
+      accelZ: 9.8 + Math.sin(t*0.3)*0.2,
+      pitchRad: Math.sin(t*0.2)*0.15,
+      rollRad:  Math.cos(t*0.3)*0.1
+    }});
+    // DPS368
+    if (counter % 10 === 0) {
+      onSample({ sensor:"dps368", counter, fields:{
+        pressureHpa: 1013 + Math.sin(t*0.05)*5,
+        temperatureC: 22 + Math.sin(t*0.1)*2
+      }});
+    }
+    // BMM350
+    if (counter % 4 === 0) {
+      onSample({ sensor:"bmm350", counter, fields:{
+        magX: 25 + Math.sin(t*0.4)*15,
+        magY: -10 + Math.cos(t*0.4)*15,
+        magZ: 40 + Math.sin(t*0.1)*5,
+        temperatureC: 24
+      }});
+    }
+
+    // Fake config (first tick)
+    if (counter === 1) {
+      applyConfig({ source:"simulator", sensors:{
+        bmi270:{ enabled:true, publishMode:"periodic", samplingIntervalMs:50,  maskLabels:["gyroX","gyroY","gyroZ","accelX","accelY","accelZ"], expectedRateHz:20 },
+        sht40: { enabled:true, publishMode:"hybrid",   samplingIntervalMs:500, maskLabels:["temperatureC","humidityPct"], expectedRateHz:2 },
+        dps368:{ enabled:true, publishMode:"periodic", samplingIntervalMs:1000,maskLabels:["pressureHpa","temperatureC"], expectedRateHz:1 },
+        bmm350:{ enabled:true, publishMode:"periodic", samplingIntervalMs:250, maskLabels:["magX","magY","magZ","temperatureC"], expectedRateHz:4 }
+      }});
+      logEvent("bitstream:config", { source:"simulator", sensors:{} });
+      logEvent("bitstream:catalog", { sensors: [] });
+    }
+  }, 50);
+}
+
+function stopMock() {
+  if (!mockTimer) return;
+  clearInterval(mockTimer); mockTimer = null;
+}
+
+/* ── WEBSOCKET ── */
+function connectWS() {
+  let socket;
+  try { socket = new WebSocket("ws://127.0.0.1:9997"); }
+  catch(e) { startMock(); return; }
+  setStatus("", "Connecting…");
+  socket.onopen = () => {
+    ws = socket; wsConnected = true;
+    stopMock();
+    setStatus("live","Live · ws://127.0.0.1:9997");
+    allBadges("live");
+  };
+  socket.onmessage = e => {
+    let msg; try { msg=JSON.parse(e.data); } catch(ex) { return; }
+    handleMsg(msg);
+  };
+  socket.onclose = () => {
+    ws=null; wsConnected=false;
+    setStatus("mock","Disconnected — mock");
+    startMock();
+    setTimeout(connectWS, 3000);
+  };
+  socket.onerror = () => socket.close();
+  // Timeout: if no open in 2s, start mock
+  setTimeout(() => { if (!wsConnected) startMock(); }, 2000);
+}
+
+/* ── INIT ── */
+window.addEventListener("message", e => handleMsg(e.data));
+
+if (window.parent !== window) {
+  // iframe — send ready
+  window.parent.postMessage({ type:"bitstream:ready", v:1, payload:{ clientId:"bs-workshop" } }, "*");
+  setStatus("","Handshake sent…");
+  setTimeout(() => { if (!wsConnected) startMock(); }, 2000);
+} else {
+  connectWS();
+}
+
+updateProgress();
+</script>
+</body>
+</html>

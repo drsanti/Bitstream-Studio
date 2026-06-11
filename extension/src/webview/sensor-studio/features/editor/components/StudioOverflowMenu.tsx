@@ -68,7 +68,7 @@ export function StudioOverflowMenu(props: StudioOverflowMenuProps) {
   const menuItemCount = useMemo(() => {
     let count = 9;
     if (layoutMenuProps != null) {
-      count += layoutMenuProps.presets.length + layoutMenuProps.namedLayouts.length + 5;
+      count += layoutMenuProps.presets.length + layoutMenuProps.namedLayouts.length + 6;
     }
     return count;
   }, [layoutMenuProps]);
@@ -183,7 +183,12 @@ export function StudioOverflowMenu(props: StudioOverflowMenuProps) {
             </TRNMenuFilterableSection>
 
             {layoutMenuProps != null ? (
-              <WorkbenchLayoutMenuSections {...layoutMenuProps} />
+              <>
+                <div className="px-2 py-1.5 text-[10px] leading-snug text-zinc-500">
+                  Tip: save your desk via <span className="text-zinc-400">Layout → Save current layout as…</span>
+                </div>
+                <WorkbenchLayoutMenuSections {...layoutMenuProps} />
+              </>
             ) : null}
           </div>
         </TRNSearchableMenuShell>

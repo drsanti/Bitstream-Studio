@@ -4,6 +4,10 @@ import {
   createStudioLeftColumn,
   DEFAULT_STUDIO_WORKBENCH_LAYOUT,
 } from "./default-studio-workbench-layout";
+import {
+  STUDIO_TEACHING_TWIN_LAYOUT,
+  STUDIO_TWIN_FOCUS_LAYOUT,
+} from "./studio-workbench-layout-constants";
 import type { WorkbenchLayoutPreset } from "../../../../ui/workbench/workbench-layout-library";
 
 /** Wide flow canvas, compact library column, standard inspector stack. */
@@ -116,6 +120,18 @@ export const STUDIO_WORKBENCH_PRESETS: readonly WorkbenchLayoutPreset[] = [
     label: "Dashboard focus",
     description: "Large Dashboard pane over Flow (Dashboard Output HMI)",
     layout: STUDIO_DASHBOARD_FOCUS_LAYOUT,
+  },
+  {
+    id: "twin-focus",
+    label: "2D+3D focus",
+    description: "Dashboard and Stage side by side with object outliner and flow strip",
+    layout: STUDIO_TWIN_FOCUS_LAYOUT,
+  },
+  {
+    id: "teaching-twin",
+    label: "Teaching 2D+3D",
+    description: "2D+3D desk with shared flow strip and a wide inspector",
+    layout: STUDIO_TEACHING_TWIN_LAYOUT,
   },
   {
     id: "dashboard-operator",

@@ -9,6 +9,7 @@ import { FrameLayoutInspectorSection } from "./FrameLayoutInspectorSection";
 import { NoteLayoutInspectorSection } from "./NoteLayoutInspectorSection";
 import { resolveNodeGroupHostId } from "../../subgraphs/resolve-node-group-host";
 import { NodeGroupInspectorSection } from "./NodeGroupInspectorSection";
+import { TRN_INSPECTOR_PANEL_SHELL_CLASS } from "../../../../../ui/TRN";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
 
 type LayoutNodeInspectorPanelProps = {
@@ -17,8 +18,7 @@ type LayoutNodeInspectorPanelProps = {
   selectedNode: FlowGraphNode;
 };
 
-const LAYOUT_INSPECTOR_PANEL_CLASS =
-  "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45";
+const LAYOUT_INSPECTOR_PANEL_CLASS = TRN_INSPECTOR_PANEL_SHELL_CLASS;
 
 export function LayoutNodeInspectorPanel(props: LayoutNodeInspectorPanelProps) {
   const { selectedNode } = props;

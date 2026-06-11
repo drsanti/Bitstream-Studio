@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "st-bmi270-reference",
+  "title": "Reference & knowledge check",
+  "meta": {
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "md-st-bmi270-reference",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-bmi270-reference.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

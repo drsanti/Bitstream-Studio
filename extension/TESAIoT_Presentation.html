@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TESAIoT Bitstream Studio — Workshop Presentation</title>
+<style>
+/* ── RESET & BASE ── */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2330;
+  --border:#30363d;--text:#e6edf3;--muted:#8b949e;
+  --cyan:#42e8ff;--blue:#58a6ff;--green:#5ee89a;
+  --blue2:#5eb8f5;--purple:#b88cff;--amber:#f0a84a;--red:#f47067;
+}
+body{background:var(--bg);overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  color:var(--text);user-select:none;}
+
+/* ── CONTAINERS ── */
+#webgl-bg {position:fixed;inset:0;z-index:0;}
+#css3d-wrap{position:fixed;inset:0;z-index:1;pointer-events:none;}
+#webgl-fg {position:fixed;inset:0;z-index:2;pointer-events:none;}
+#webgl-fg.orbit-on{pointer-events:all;cursor:grab;}
+#webgl-fg.orbit-on:active{cursor:grabbing;}
+
+/* ── HUD ── */
+#hud-top{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  z-index:10;display:flex;align-items:center;gap:10px;
+}
+.hud-pill{
+  background:rgba(22,27,34,.82);border:1px solid rgba(48,54,61,.8);
+  border-radius:999px;padding:6px 16px;font-size:12px;color:var(--muted);
+  backdrop-filter:blur(12px);white-space:nowrap;letter-spacing:.04em;
+}
+#slide-name{color:var(--text);font-weight:600;}
+
+#hud-bot{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  z-index:10;display:flex;align-items:center;gap:16px;
+  background:rgba(22,27,34,.85);border:1px solid rgba(48,54,61,.8);
+  border-radius:999px;padding:8px 22px;backdrop-filter:blur(12px);
+}
+.nav-btn{
+  background:none;border:1px solid rgba(48,54,61,.9);color:var(--text);
+  width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:18px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .18s;pointer-events:all;
+}
+.nav-btn:hover{background:rgba(88,166,255,.15);border-color:var(--blue);color:var(--blue);}
+#counter{font-size:13px;color:var(--muted);min-width:48px;text-align:center;}
+
+#progress{
+  position:fixed;bottom:0;left:0;height:2px;
+  background:linear-gradient(90deg,var(--cyan),var(--blue));
+  z-index:10;transition:width .4s cubic-bezier(.4,0,.2,1);
+}
+
+/* ── ORBIT BUTTON ── */
+#orbit-btn{
+  position:fixed;bottom:24px;right:28px;z-index:10;
+  background:rgba(22,27,34,.85);border:1px solid rgba(48,54,61,.8);
+  color:var(--muted);width:40px;height:40px;border-radius:50%;
+  cursor:pointer;font-size:18px;backdrop-filter:blur(12px);
+  transition:all .2s;
+}
+#orbit-btn:hover{border-color:var(--cyan);color:var(--cyan);}
+#orbit-btn.active{border-color:var(--cyan);color:var(--cyan);
+  background:rgba(66,232,255,.12);box-shadow:0 0 16px rgba(66,232,255,.25);}
+
+/* ── KEY HINTS ── */
+#key-hints{
+  position:fixed;bottom:24px;right:28px;z-index:10;
+  font-size:11px;color:rgba(139,148,158,.5);
+  display:flex;flex-direction:column;gap:3px;text-align:right;
+  pointer-events:none;
+}
+
+/* ══════════════════════════════════════════════
+   SLIDE BASE
+══════════════════════════════════════════════ */
+.slide{
+  width:880px;height:555px;
+  background:rgba(14,19,28,.92);
+  border:1px solid rgba(48,54,61,.75);
+  border-radius:18px;padding:36px 44px;
+  backdrop-filter:blur(24px);
+  box-shadow:0 0 0 1px rgba(66,232,255,.04),0 40px 80px rgba(0,0,0,.6);
+  position:relative;overflow:hidden;
+  backface-visibility:hidden;
+  pointer-events:all;
+}
+/* top shimmer line */
+.slide::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(66,232,255,.28),transparent);
+}
+/* corner glow */
+.slide::after{
+  content:'';position:absolute;top:-80px;right:-80px;
+  width:220px;height:220px;
+  background:radial-gradient(circle,rgba(66,232,255,.05) 0%,transparent 70%);
+  pointer-events:none;
+}
+
+/* ── SLIDE TYPOGRAPHY ── */
+.s-tag{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--cyan);margin-bottom:6px;opacity:.8;}
+.s-title{font-size:27px;font-weight:800;letter-spacing:-.4px;line-height:1.2;margin-bottom:4px;}
+.s-sub{font-size:13px;color:var(--muted);margin-bottom:18px;}
+.sdiv{height:1px;background:linear-gradient(90deg,rgba(48,54,61,.9),transparent);margin:14px 0;}
+
+/* ── LAYOUT HELPERS ── */
+.cols{display:flex;gap:20px;}
+.col{flex:1;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.center{text-align:center;}
+
+/* ── CARDS ── */
+.card{
+  background:rgba(26,33,44,.85);border:1px solid rgba(48,54,61,.7);
+  border-radius:10px;padding:12px 14px;margin-bottom:9px;
+}
+.card-t{font-size:13px;font-weight:700;margin-bottom:3px;}
+.card-b{font-size:12px;color:var(--muted);line-height:1.5;}
+
+/* ── SENSOR TAGS ── */
+.stag{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+  padding:3px 9px;border-radius:999px;}
+.sht40 {background:rgba(94,232,154,.12);color:var(--green); border:1px solid rgba(94,232,154,.25);}
+.dps368{background:rgba(94,184,245,.12);color:var(--blue2);border:1px solid rgba(94,184,245,.25);}
+.bmi270{background:rgba(66,232,255,.12); color:var(--cyan); border:1px solid rgba(66,232,255,.25);}
+.bmm350{background:rgba(184,140,255,.12);color:var(--purple);border:1px solid rgba(184,140,255,.25);}
+
+/* ── BULLETS ── */
+.bl{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.bl li{font-size:13px;color:#c9d1d9;padding-left:15px;position:relative;line-height:1.5;}
+.bl li::before{content:'▸';position:absolute;left:0;color:var(--cyan);font-size:9px;top:4px;}
+.bl li b{color:var(--text);}
+code{font-family:'JetBrains Mono','Fira Code',monospace;font-size:11px;
+  background:rgba(26,33,44,.9);border:1px solid var(--border);
+  border-radius:3px;padding:1px 4px;color:var(--cyan);}
+
+/* ── HIGHLIGHT BOX ── */
+.hl{background:rgba(66,232,255,.06);border:1px solid rgba(66,232,255,.2);
+  border-radius:8px;padding:9px 13px;font-size:13px;color:var(--cyan);margin-top:11px;}
+.hl::before{content:'💡 ';}
+
+/* ── FLOW STEPS ── */
+.flow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0;}
+.fstep{background:rgba(26,33,44,.9);border:1px solid rgba(48,54,61,.8);
+  border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;}
+.farrow{color:var(--muted);font-size:13px;}
+
+/* ── NODE BOXES ── */
+.nf{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin:8px 0;}
+.nb{padding:5px 11px;border-radius:7px;font-size:12px;font-weight:600;white-space:nowrap;}
+.nb-s{background:rgba(94,232,154,.14);color:var(--green);border:1px solid rgba(94,232,154,.3);}
+.nb-m{background:rgba(240,168,74,.14);color:var(--amber);border:1px solid rgba(240,168,74,.3);}
+.nb-o{background:rgba(88,166,255,.14);color:var(--blue);border:1px solid rgba(88,166,255,.3);}
+.nw{width:18px;height:1px;background:rgba(139,148,158,.4);}
+
+/* ── MODE CHIPS ── */
+.mc{padding:4px 11px;border-radius:999px;font-size:12px;font-weight:700;}
+.mc-wire{background:rgba(94,232,154,.12);color:var(--green);border:1px solid rgba(94,232,154,.25);}
+.mc-2d  {background:rgba(88,166,255,.12);color:var(--blue); border:1px solid rgba(88,166,255,.25);}
+.mc-3d  {background:rgba(240,168,74,.12);color:var(--amber);border:1px solid rgba(240,168,74,.25);}
+.mc-tw  {background:rgba(184,140,255,.12);color:var(--purple);border:1px solid rgba(184,140,255,.25);}
+
+/* ── ARCH DIAGRAM ── */
+.arch{display:flex;align-items:center;justify-content:center;gap:0;margin:10px 0;}
+.abox{padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700;text-align:center;min-width:100px;}
+.a-host{background:rgba(88,166,255,.12);color:var(--blue);border:1px solid rgba(88,166,255,.25);}
+.a-cm55{background:rgba(66,232,255,.12);color:var(--cyan);border:1px solid rgba(66,232,255,.25);}
+.a-cm33{background:rgba(94,232,154,.12);color:var(--green);border:1px solid rgba(94,232,154,.25);}
+.aarr{display:flex;flex-direction:column;align-items:center;padding:0 8px;font-size:11px;color:var(--muted);}
+.aarr span{font-size:15px;}
+
+/* ── CHECKLIST ITEMS ── */
+.ck{display:flex;align-items:center;gap:9px;font-size:13px;color:#c9d1d9;
+  padding:7px 11px;background:rgba(26,33,44,.7);border:1px solid rgba(48,54,61,.7);
+  border-radius:8px;margin-bottom:6px;}
+.ck-b{width:15px;height:15px;border:2px solid rgba(48,54,61,.9);border-radius:4px;flex-shrink:0;}
+
+/* ── TITLE SLIDE ── */
+.hero{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;text-align:center;}
+.hero-icon{width:68px;height:68px;background:linear-gradient(135deg,var(--cyan),var(--blue));
+  border-radius:18px;display:flex;align-items:center;justify-content:center;
+  font-size:34px;margin-bottom:22px;box-shadow:0 0 44px rgba(66,232,255,.28);}
+.hero-t{font-size:36px;font-weight:900;letter-spacing:-.8px;margin-bottom:7px;}
+.hero-t em{color:var(--cyan);font-style:normal;}
+.hero-s{font-size:15px;color:var(--muted);margin-bottom:26px;}
+.mchips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:26px;}
+.mchip{background:rgba(26,33,44,.9);border:1px solid rgba(48,54,61,.8);
+  border-radius:999px;padding:5px 13px;font-size:12px;color:var(--muted);}
+.hint{font-size:12px;color:rgba(139,148,158,.5);animation:pulse 2.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.4;}50%{opacity:1;}}
+
+/* ── SMALL EXTRAS ── */
+.label-am{font-size:11px;font-weight:700;color:var(--amber);letter-spacing:.07em;margin-bottom:7px;}
+.label-pm{font-size:11px;font-weight:700;color:var(--blue);letter-spacing:.07em;margin-bottom:7px;}
+small{font-size:11px;color:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- HUD -->
+<div id="hud-top">
+  <div class="hud-pill">⚡ TESAIoT Bitstream Studio Workshop</div>
+  <div class="hud-pill" id="slide-name">Title</div>
+</div>
+<div id="progress" style="width:9.09%"></div>
+<div id="hud-bot">
+  <button class="nav-btn" onclick="go(-1)">‹</button>
+  <span id="counter">1 / 11</span>
+  <button class="nav-btn" onclick="go(1)">›</button>
+</div>
+<div id="key-hints">
+  <span>← → Arrow keys</span>
+  <span>Space to advance</span>
+</div>
+<button id="orbit-btn" onclick="toggleOrbit()" title="Toggle orbit / free-look">🔭</button>
+
+<!-- ═══════════════════════════ RENDERERS ═══════════════════════════ -->
+<div id="webgl-bg"></div>
+<div id="css3d-wrap"></div>
+<div id="webgl-fg"></div>
+
+<!-- ═══════════════════════════ SLIDES (hidden source) ═══════════════ -->
+<div id="slide-pool" style="display:none">
+
+<!-- ─── 0: TITLE ─── -->
+<div class="slide">
+  <div class="hero">
+    <div class="hero-icon">⚡</div>
+    <div class="hero-t">TESAIoT <em>Bitstream Studio</em></div>
+    <div class="hero-s">One-Day Workshop · Mixed Audience · Beginner + Engineer</div>
+    <div class="mchips">
+      <div class="mchip">📅 Date: _______________</div>
+      <div class="mchip">📍 Venue: _______________</div>
+      <div class="mchip">⏱ ~6 hrs 30 min</div>
+      <div class="mchip">🔌 TESAIoT DevKit per station</div>
+    </div>
+    <div class="hint">Press → or Space to continue</div>
+  </div>
+</div>
+
+<!-- ─── 1: DAY AT A GLANCE ─── -->
+<div class="slide">
+  <div class="s-tag">Overview</div>
+  <div class="s-title">Day at a Glance</div>
+  <div class="sdiv"></div>
+  <div class="cols">
+    <div class="col">
+      <div class="label-am">🌅 MORNING · 09:00–12:00</div>
+      <div class="card"><div class="card-t">1 · DevKit &amp; Firmware Stack</div><div class="card-b">09:00–09:30 · 30 min</div></div>
+      <div class="card"><div class="card-t">2 · PSoC Edge AI &amp; Sensors</div><div class="card-b">09:30–10:00 · 30 min</div></div>
+      <div class="card"><div class="card-t">3 · Bitstream Studio Intro</div><div class="card-b">10:00–10:30 · 30 min</div></div>
+      <div class="card" style="border-color:rgba(240,168,74,.2)"><div class="card-t">4 · Getting Started with DevKit</div><div class="card-b">10:45–11:30 · 45 min</div></div>
+      <div class="card"><div class="card-t">5 · Firmware Flasher</div><div class="card-b">11:30–12:00 · 30 min</div></div>
+    </div>
+    <div class="col">
+      <div class="label-pm">🔬 AFTERNOON · 13:00–16:00</div>
+      <div class="card"><div class="card-t">6 · Sensor Configurator</div><div class="card-b">13:00–13:45 · 45 min</div></div>
+      <div class="card"><div class="card-t">7 · Sensor Studio Node Editor</div><div class="card-b">13:45–14:30 · 45 min</div></div>
+      <div class="card" style="border-color:rgba(88,166,255,.2)"><div class="card-t">8 · Hands-on Labs (4 sensors)</div><div class="card-b">14:45–15:30 · 45 min</div></div>
+      <div class="card"><div class="card-t">9 · No-Code Dashboard Design</div><div class="card-b">15:30–15:50 · 20 min</div></div>
+      <div class="card"><div class="card-t">10 · IoT App Dev &amp; Wrap-up</div><div class="card-b">15:50–16:00 · 10 min</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 2: DEVKIT & FIRMWARE STACK ─── -->
+<div class="slide">
+  <div class="s-tag">Morning · Session 1 of 5</div>
+  <div class="s-title">TESAIoT DevKit &amp; Firmware Stack</div>
+  <div class="s-sub">09:00–09:30 · 30 min</div>
+  <div class="arch">
+    <div class="abox a-host">Host PC<br><small>Bitstream Studio</small></div>
+    <div class="aarr"><span>⇆</span><small>USB UART / BS2</small></div>
+    <div class="abox a-cm55">CM55<br><small>App + Protocol</small></div>
+    <div class="aarr"><span>⇆</span><small>IPC</small></div>
+    <div class="abox a-cm33">CM33<br><small>Wi-Fi / RTOS</small></div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="cols">
+    <div class="col">
+      <ul class="bl">
+        <li>Board tour: sensors, USB, indicator LEDs</li>
+        <li>Dual-core: CM55 (ML/app) + CM33 (connectivity)</li>
+        <li>BS2 framed protocol over USB UART</li>
+      </ul>
+    </div>
+    <div class="col">
+      <ul class="bl">
+        <li>Readings flow <b style="color:var(--cyan)">up</b> to Studio</li>
+        <li>Settings flow <b style="color:var(--amber)">down</b> to board</li>
+        <li>Simulator: same path, synthetic data</li>
+      </ul>
+    </div>
+  </div>
+  <div class="hl">DevKit is the source of truth — Simulator is the backup, not the default.</div>
+</div>
+
+<!-- ─── 3: PSOC EDGE AI & SENSORS ─── -->
+<div class="slide">
+  <div class="s-tag">Morning · Session 2 of 5</div>
+  <div class="s-title">PSoC Edge AI &amp; Four On-Board Sensors</div>
+  <div class="s-sub">09:30–10:00 · 30 min · Infineon PSoC™ Edge: CM55 (ML/inference) + CM33 (connectivity/RTOS)</div>
+  <div class="g2">
+    <div class="card" style="border-color:rgba(94,232,154,.25)">
+      <div class="card-t"><span class="stag sht40">SHT40</span></div>
+      <div class="card-b" style="margin-top:6px;">Air temperature (°C) + relative humidity (%RH)<br>I²C · scalar · slow update rate</div>
+    </div>
+    <div class="card" style="border-color:rgba(94,184,245,.25)">
+      <div class="card-t"><span class="stag dps368">DPS368</span></div>
+      <div class="card-b" style="margin-top:6px;">Barometric pressure (hPa) + chip temperature<br>Weather / altitude clue applications</div>
+    </div>
+    <div class="card" style="border-color:rgba(66,232,255,.25)">
+      <div class="card-t"><span class="stag bmi270">BMI270</span></div>
+      <div class="card-b" style="margin-top:6px;">6-axis IMU — accel (m/s²) + gyro (°/s)<br>Fused orientation: pitch · roll · yaw</div>
+    </div>
+    <div class="card" style="border-color:rgba(184,140,255,.25)">
+      <div class="card-t"><span class="stag bmm350">BMM350</span></div>
+      <div class="card-b" style="margin-top:6px;">3-axis magnetometer (µT) + chip temperature<br>Compass-style applications</div>
+    </div>
+  </div>
+  <div class="hl">Every reading = <b>name + number + unit</b>. Vector strength = √(x²+y²+z²).</div>
+</div>
+
+<!-- ─── 4: BITSTREAM STUDIO ─── -->
+<div class="slide">
+  <div class="s-tag">Morning · Session 3 of 5</div>
+  <div class="s-title">Bitstream Studio</div>
+  <div class="s-sub">10:00–10:30 · 30 min · VS Code extension — one workspace, four apps</div>
+  <div class="flow" style="margin-bottom:16px;">
+    <div class="fstep" style="color:var(--cyan)">① Connect</div><div class="farrow">→</div>
+    <div class="fstep" style="color:var(--green)">② Wire</div><div class="farrow">→</div>
+    <div class="fstep" style="color:var(--blue)">③ Show</div><div class="farrow">→</div>
+    <div class="fstep" style="color:var(--purple)">④ Teach</div>
+  </div>
+  <div class="g2">
+    <div class="card" style="border-color:rgba(66,232,255,.22)">
+      <div class="card-t" style="color:var(--cyan)">Sensor Telemetry</div>
+      <div class="card-b">Connect DevKit · live readings · configure sensors</div>
+    </div>
+    <div class="card" style="border-color:rgba(94,232,154,.22)">
+      <div class="card-t" style="color:var(--green)">Sensor Studio</div>
+      <div class="card-b">Visual node editor · wire sensors → math → dashboard/3D</div>
+    </div>
+    <div class="card" style="border-color:rgba(184,140,255,.22)">
+      <div class="card-t" style="color:var(--purple)">Course Studio</div>
+      <div class="card-b">Lesson pages with embedded live sensor widgets</div>
+    </div>
+    <div class="card" style="border-color:rgba(240,168,74,.22)">
+      <div class="card-t" style="color:var(--amber)">Applications / Examples</div>
+      <div class="card-b">Ready-made flows and dashboards to copy &amp; learn from</div>
+    </div>
+  </div>
+  <div class="hl">One connection, four views — not four separate programs.</div>
+</div>
+
+<!-- ─── 5: GETTING STARTED + FIRMWARE FLASHER ─── -->
+<div class="slide">
+  <div class="s-tag">Morning · Sessions 4 &amp; 5 of 5</div>
+  <div class="s-title">Getting Started &amp; Firmware Flasher</div>
+  <div class="s-sub">10:45–12:00 · 75 min total (45 + 30)</div>
+  <div class="cols">
+    <div class="col">
+      <div class="label-am">GETTING STARTED · 45 min</div>
+      <ul class="bl">
+        <li>USB → COM port detection → driver check</li>
+        <li>Toolbar → <b>Bitstream</b> → select port → <b>Link</b></li>
+        <li>Lab A: cup hands → SHT40 temp/RH rise</li>
+        <li>Lab B: tilt board → BMI270 X/Y/Z shift</li>
+        <li>Unplug USB → demonstrate <b style="color:var(--amber)">Stale</b> state</li>
+        <li>Simulator fallback for no-hardware seats</li>
+      </ul>
+      <div class="hl" style="font-size:12px;">Every trainee has a live reading by end of §4.</div>
+    </div>
+    <div class="col">
+      <div class="label-pm">FIRMWARE FLASHER · 30 min</div>
+      <ul class="bl">
+        <li>Standalone app — KitProg3 bridge detection</li>
+        <li>Drag-and-drop <code>app_combined.hex</code></li>
+        <li>Flashes CM33-S / CM33-NS / CM55 in one pass</li>
+        <li>Verify HELLO handshake in Bitstream Studio</li>
+        <li>Pitfall: wrong HEX or KitProg3 not detected</li>
+      </ul>
+      <div class="hl" style="font-size:12px;">Flash workshop image &amp; verify before lunch.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 6: SENSOR CONFIGURATOR ─── -->
+<div class="slide">
+  <div class="s-tag">Afternoon · Session 1 of 5</div>
+  <div class="s-title">Sensor Telemetry — Configurator</div>
+  <div class="s-sub">13:00–13:45 · 45 min</div>
+  <div class="cols">
+    <div class="col">
+      <div class="card"><div class="card-t">Enabled (on/off)</div><div class="card-b">Disable unused sensors to reduce stream noise</div></div>
+      <div class="card"><div class="card-t">Sampling rate</div><div class="card-b">Fast = responsive · Slow = battery-friendly</div></div>
+      <div class="card"><div class="card-t">Publish mode</div><div class="card-b">Periodic · On change · Hybrid</div></div>
+      <div class="card"><div class="card-t">Channel mask &amp; output profile</div><div class="card-b">BMI270: Raw · Fusion · All — select axes to stream</div></div>
+    </div>
+    <div class="col">
+      <div style="font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:.07em;margin-bottom:8px;">APPLY FLOW</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div class="fstep" style="font-size:12px;">1 · Adjust slider / toggle channel</div>
+        <div style="color:var(--muted);font-size:11px;padding-left:10px;">↓</div>
+        <div class="fstep" style="font-size:12px;">2 · Press <b style="color:var(--cyan)">Apply</b></div>
+        <div style="color:var(--muted);font-size:11px;padding-left:10px;">↓</div>
+        <div class="fstep" style="font-size:12px;">3 · Board acknowledges</div>
+        <div style="color:var(--muted);font-size:11px;padding-left:10px;">↓</div>
+        <div class="fstep" style="font-size:12px;color:var(--green);">4 · Live stream reflects change ✓</div>
+      </div>
+      <div class="hl" style="margin-top:10px;font-size:12px;">Change settings → Apply → confirm stream responded.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 7: SENSOR STUDIO NODE EDITOR ─── -->
+<div class="slide">
+  <div class="s-tag">Afternoon · Session 2 of 5</div>
+  <div class="s-title">Sensor Studio — Node-Based Editor</div>
+  <div class="s-sub">13:45–14:30 · 45 min · One graph, two faces (Dashboard + Stage)</div>
+  <div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:5px;">Flow graph (sensor → transform → output)</div>
+    <div class="nf">
+      <div class="nb nb-s">SHT40</div><div class="nw"></div>
+      <div class="nb nb-m">Math (°C→°F)</div><div class="nw"></div>
+      <div class="nb nb-o">Radial Gauge</div>
+      <div style="width:14px;"></div>
+      <div class="nb nb-s">BMI270</div><div class="nw"></div>
+      <div class="nb nb-m">Vector Length</div><div class="nw"></div>
+      <div class="nb nb-o">Dashboard</div>
+    </div>
+  </div>
+  <div class="sdiv"></div>
+  <div class="cols">
+    <div class="col">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:7px;">WORK MODES</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:8px;">
+        <div class="mc mc-wire">Wire</div>
+        <div class="mc mc-2d">2D</div>
+        <div class="mc mc-3d">3D</div>
+        <div class="mc mc-tw">Twin</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">One graph feeds Dashboard (2D) and Stage (3D) simultaneously</div>
+      <div style="margin-top:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:5px;">DESK PRESETS</div>
+        <div style="font-size:12px;color:var(--muted);">Graph Focus · Dashboard Focus · Stage Focus · Twin Focus — save your own layout</div>
+      </div>
+    </div>
+    <div class="col">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.07em;margin-bottom:7px;">HANDS-ON LAB</div>
+      <ul class="bl" style="font-size:12px;">
+        <li>Add SHT40 → wire <b>temperature</b> → Radial Gauge</li>
+        <li>Link DevKit → confirm live °C update</li>
+        <li>Insert Math node → convert °C → °F</li>
+        <li>Inspector <b>Pin</b>: lock widget while clicking elsewhere</li>
+        <li>Save flow; reload and verify it still runs</li>
+      </ul>
+      <div class="hl" style="font-size:12px;">One sensor, one wire, one gauge — then add more.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 8: HANDS-ON LABS ─── -->
+<div class="slide">
+  <div class="s-tag">Afternoon · Session 3 of 5</div>
+  <div class="s-title">Hands-on Labs — Four Sensors</div>
+  <div class="s-sub">14:45–15:30 · 45 min · Beginners: follow recipe · Engineers: add logic nodes</div>
+  <div class="g2" style="margin-top:10px;">
+    <div class="card" style="border-color:rgba(94,232,154,.28)">
+      <div class="card-t"><span class="stag sht40">Lab 1 · SHT40</span> <small>10 min</small></div>
+      <ul class="bl" style="margin-top:6px;font-size:12px;">
+        <li>Temp + humidity → two Radial Gauges</li>
+        <li>Map Range 18–28 °C → comfort zone fill</li>
+        <li>Breathe on board → watch values update</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:rgba(94,184,245,.28)">
+      <div class="card-t"><span class="stag dps368">Lab 2 · DPS368</span> <small>10 min</small></div>
+      <ul class="bl" style="margin-top:6px;font-size:12px;">
+        <li>Pressure → Readout + vertical Bar Meter</li>
+        <li>Map 900–1100 hPa → gauge fill</li>
+        <li>Altitude: ~1.2 hPa drop per 10 m rise</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:rgba(184,140,255,.28)">
+      <div class="card-t"><span class="stag bmm350">Lab 3 · BMM350</span> <small>10 min</small></div>
+      <ul class="bl" style="margin-top:6px;font-size:12px;">
+        <li>magX / magY / magZ → three Bar Meters</li>
+        <li>Vector Length node → field strength</li>
+        <li>Rotate board: axes shift, strength steady</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:rgba(66,232,255,.28)">
+      <div class="card-t"><span class="stag bmi270">Lab 4 · BMI270</span> <small>15 min</small></div>
+      <ul class="bl" style="margin-top:6px;font-size:12px;">
+        <li>Fusion: pitch + roll → two Radial Gauges</li>
+        <li>Accel Vector Length → magnitude display</li>
+        <li>Threshold &gt;15 m/s² → shake LED 🚨</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 9: DASHBOARD + APP DEV ─── -->
+<div class="slide">
+  <div class="s-tag">Afternoon · Sessions 4 &amp; 5 of 5</div>
+  <div class="s-title">No-Code Dashboard &amp; IoT App Dev</div>
+  <div class="s-sub">15:30–16:00 · 30 min total (20 + 10)</div>
+  <div class="cols">
+    <div class="col">
+      <div class="label-am">NO-CODE DASHBOARD · 20 min</div>
+      <ul class="bl" style="font-size:13px;">
+        <li>Course Studio pages + widget boards</li>
+        <li>5 themes: EV Compact · Industrial · Sci-Fi…</li>
+        <li>One color per sensor — always match brand colors</li>
+        <li>Live widgets auto-connect to same DevKit link</li>
+        <li>Hands-on: Four-sensor page, preview + stale demo</li>
+      </ul>
+      <div class="hl" style="font-size:12px;">Course Studio page = Sensor Studio graph with a lesson-ready face.</div>
+    </div>
+    <div class="col">
+      <div class="label-pm">IOT APP DEV · 10 min</div>
+      <ul class="bl" style="font-size:13px;">
+        <li>Telemetry Provider: WebSocket <code>:9997</code> or postMessage</li>
+        <li>External HTML subscribes to live sensor data</li>
+        <li>Optional Aedes MQTT broker for cloud forwarding</li>
+        <li>For engineers: BS2 protocol · IPC ref · custom nodes</li>
+      </ul>
+      <div class="card" style="margin-top:10px;border-color:rgba(88,166,255,.2)">
+        <div class="card-t" style="color:var(--blue);font-size:12px;">Starter HTML Examples</div>
+        <div class="card-b" style="font-size:11px;">sht40-climate-dashboard · bmi270-motion-dashboard · workshop-four-sensor-dashboard</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── 10: WRAP-UP ─── -->
+<div class="slide">
+  <div class="s-tag">Wrap-up</div>
+  <div class="s-title">Workshop Complete ✓</div>
+  <div class="s-sub">Capstone checklist — every trainee should leave with all of these</div>
+  <div class="cols" style="margin-top:10px;">
+    <div class="col">
+      <div class="ck"><div class="ck-b"></div>VS Code + Bitstream Studio .vsix installed</div>
+      <div class="ck"><div class="ck-b"></div>TESAIoT DevKit USB connected, COM visible</div>
+      <div class="ck"><div class="ck-b"></div>Firmware confirmed via Firmware Flasher</div>
+      <div class="ck"><div class="ck-b"></div>Bitstream → Link → live readings confirmed</div>
+    </div>
+    <div class="col">
+      <div class="ck"><div class="ck-b"></div>Simulator fallback tested at least once</div>
+      <div class="ck"><div class="ck-b"></div>Sensor Studio flow saved (SHT40 minimum)</div>
+      <div class="ck"><div class="ck-b"></div>Course Studio 4-sensor page saved</div>
+      <div class="ck"><div class="ck-b"></div>BMI270 shake threshold demo completed</div>
+    </div>
+  </div>
+  <div class="hl" style="text-align:center;font-size:14px;margin-top:14px;">
+    <b>Connect · Wire · Show · Teach</b> — one live world, four views.
+  </div>
+</div>
+
+</div><!-- /slide-pool -->
+
+<!-- ═══════════════════════════ THREE.JS ═══════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/renderers/CSS3DRenderer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+'use strict';
+/* ──────────────────────────────────────────────────────────────────
+   CONFIG
+────────────────────────────────────────────────────────────────── */
+const N      = 11;
+const SW     = 880;
+const SH     = 555;
+const GAP    = 180;
+const RADIUS = Math.round((SW + GAP) * N / (2 * Math.PI));
+const ASTEP  = (2 * Math.PI) / N;
+const CAM_Z  = RADIUS + 760;
+
+const TITLES = [
+  'TESAIoT Bitstream Studio Workshop','Day at a Glance',
+  'TESAIoT DevKit & Firmware Stack','PSoC Edge AI & Four Sensors',
+  'Bitstream Studio — Four Apps','Getting Started & Firmware Flasher',
+  'Sensor Configurator','Sensor Studio — Node Editor',
+  'Hands-on Labs — Four Sensors','No-Code Dashboard & IoT App Dev',
+  'Workshop Complete ✓',
+];
+
+/* ──────────────────────────────────────────────────────────────────
+   LAYER 0 — BACKGROUND WebGL (particles, grid)
+   Uses its own bgCam — stays fixed regardless of orbit
+────────────────────────────────────────────────────────────────── */
+const bgWrap = document.getElementById('webgl-bg');
+const bgGL   = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+bgGL.setPixelRatio(devicePixelRatio);
+bgGL.setSize(innerWidth, innerHeight);
+bgWrap.appendChild(bgGL.domElement);
+
+const bgScene = new THREE.Scene();
+const bgCam   = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 1, 8000);
+bgCam.position.set(0, 0, 1400);
+
+// Particles
+const PC   = 300;
+const pPos = new Float32Array(PC * 3);
+const pVel = [];
+for(let i=0;i<PC;i++){
+  pPos[i*3]  =(Math.random()-.5)*3200;
+  pPos[i*3+1]=(Math.random()-.5)*2000;
+  pPos[i*3+2]=(Math.random()-.5)*2400;
+  pVel.push({x:(Math.random()-.5)*.18,y:(Math.random()-.5)*.18,z:(Math.random()-.5)*.12});
+}
+const pGeo = new THREE.BufferGeometry();
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos,3));
+const pMat = new THREE.PointsMaterial({color:0x42e8ff,size:2.2,transparent:true,opacity:.30,sizeAttenuation:true});
+bgScene.add(new THREE.Points(pGeo, pMat));
+
+// Connection lines
+const lArr=[];
+for(let i=0;i<PC;i++) for(let j=i+1;j<PC;j++){
+  const dx=pPos[i*3]-pPos[j*3],dy=pPos[i*3+1]-pPos[j*3+1],dz=pPos[i*3+2]-pPos[j*3+2];
+  if(dx*dx+dy*dy+dz*dz<340*340)
+    lArr.push(pPos[i*3],pPos[i*3+1],pPos[i*3+2],pPos[j*3],pPos[j*3+1],pPos[j*3+2]);
+}
+const lGeo=new THREE.BufferGeometry();
+lGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(lArr),3));
+bgScene.add(new THREE.LineSegments(lGeo,new THREE.LineBasicMaterial({color:0x42e8ff,transparent:true,opacity:.05})));
+
+// Grid
+const grid=new THREE.GridHelper(5000,50,0x1c2535,0x1c2535);
+grid.position.y=-620; grid.material.transparent=true; grid.material.opacity=0.55;
+bgScene.add(grid);
+
+// Thin carousel ring (decorative)
+const ringGeo=new THREE.TorusGeometry(RADIUS*.92,1.5,2,120);
+bgScene.add(new THREE.Mesh(ringGeo,new THREE.MeshBasicMaterial({color:0x42e8ff,transparent:true,opacity:.05})));
+
+/* ──────────────────────────────────────────────────────────────────
+   SHARED CAMERA  (CSS3D slides + foreground 3D objects share this)
+────────────────────────────────────────────────────────────────── */
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 1, 8000);
+camera.position.z = CAM_Z;
+
+/* ──────────────────────────────────────────────────────────────────
+   LAYER 1 — CSS3D SLIDE CAROUSEL
+────────────────────────────────────────────────────────────────── */
+const c3dWrap = document.getElementById('css3d-wrap');
+const c3d     = new THREE.CSS3DRenderer();
+c3d.setSize(innerWidth, innerHeight);
+c3dWrap.appendChild(c3d.domElement);
+
+const slideScene = new THREE.Scene();
+const slideEls   = [...document.querySelectorAll('#slide-pool .slide')];
+slideEls.forEach((el,i)=>{
+  const obj = new THREE.CSS3DObject(el);
+  const a   = i * ASTEP;
+  obj.position.set(Math.sin(a)*RADIUS, 0, Math.cos(a)*RADIUS);
+  obj.rotation.y = a;
+  slideScene.add(obj);
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   LAYER 2 — FOREGROUND WebGL (transparent, 3D objects)
+   Shares `camera` with CSS3D layer — they orbit together
+────────────────────────────────────────────────────────────────── */
+const fgWrap = document.getElementById('webgl-fg');
+const fgGL   = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+fgGL.setPixelRatio(devicePixelRatio);
+fgGL.setSize(innerWidth, innerHeight);
+fgGL.setClearColor(0x000000, 0);           // fully transparent
+fgWrap.appendChild(fgGL.domElement);
+
+const fgScene = new THREE.Scene();
+
+// Lights
+fgScene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const pl1=new THREE.PointLight(0x42e8ff, 2.2, 4000); pl1.position.set( 800, 700,  500); fgScene.add(pl1);
+const pl2=new THREE.PointLight(0x5ee89a, 1.6, 3500); pl2.position.set(-700,-500,  700); fgScene.add(pl2);
+const pl3=new THREE.PointLight(0xb88cff, 1.4, 3500); pl3.position.set( 200, 600,-1000); fgScene.add(pl3);
+const pl4=new THREE.PointLight(0xf0a84a, 1.0, 3000); pl4.position.set(-800, 300, -600); fgScene.add(pl4);
+
+// Helper: create glowing mesh
+function mkMesh(geo, hexColor, pos, wireframe=true){
+  const col = new THREE.Color(hexColor);
+  const mat = new THREE.MeshStandardMaterial({
+    color: col,
+    emissive: col,
+    emissiveIntensity: wireframe ? 0.45 : 0.22,
+    wireframe,
+    transparent: true,
+    opacity: wireframe ? 0.82 : 0.65,
+    roughness: 0.4, metalness: 0.6,
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(...pos);
+  fgScene.add(m);
+  return m;
+}
+
+// 9 floating geometric objects spread around the carousel
+const floaters = [
+  { m: mkMesh(new THREE.IcosahedronGeometry(68,0),   0x42e8ff, [ 700, 340,-350]),  rx:.006,ry:.010,bA:28,bF:.42 },
+  { m: mkMesh(new THREE.TorusGeometry(55,18,8,18),   0x5ee89a, [-820,-270, 260]),  rx:.008,rz:.006,bA:22,bF:.50 },
+  { m: mkMesh(new THREE.OctahedronGeometry(82,0),    0xb88cff, [ 180, 520,-950]),  ry:.012,rx:.004,bA:38,bF:.33 },
+  { m: mkMesh(new THREE.TorusKnotGeometry(44,13,90,8),0xf0a84a,[-430, 420,-480]),  rx:.004,ry:.007,rz:.003,bA:18,bF:.58 },
+  { m: mkMesh(new THREE.IcosahedronGeometry(52,1),   0x5eb8f5, [ 960,-380,-720],false),ry:.008,rx:.005,bA:32,bF:.46 },
+  { m: mkMesh(new THREE.BoxGeometry(88,88,88),       0x58a6ff, [-720, 400,-820]),  rx:.009,ry:.007,rz:.005,bA:14,bF:.54 },
+  { m: mkMesh(new THREE.ConeGeometry(44,108,6),      0x42e8ff, [  0,-480,-580]),   ry:.010,bA:26,bF:.38 },
+  { m: mkMesh(new THREE.DodecahedronGeometry(62,0),  0xf47067, [-920, 160,-350]),  rx:.006,ry:.009,bA:22,bF:.47 },
+  { m: mkMesh(new THREE.TetrahedronGeometry(78,0),   0xb88cff, [ 380,-420,-180]),  rx:.011,ry:.008,bA:18,bF:.53 },
+];
+floaters.forEach(f=>{ f.baseY = f.m.position.y; });
+
+/* ──────────────────────────────────────────────────────────────────
+   ORBIT CONTROLS  (attached to fg canvas; enabled only in orbit mode)
+────────────────────────────────────────────────────────────────── */
+const controls = new THREE.OrbitControls(camera, fgGL.domElement);
+controls.enableDamping    = true;
+controls.dampingFactor    = 0.06;
+controls.rotateSpeed      = 0.55;
+controls.zoomSpeed        = 0.8;
+controls.minDistance      = 400;
+controls.maxDistance      = 6000;
+controls.enabled          = false;   // off by default
+
+let orbitMode = false;
+function toggleOrbit(){
+  orbitMode = !orbitMode;
+  controls.enabled = orbitMode;
+  fgWrap.classList.toggle('orbit-on', orbitMode);
+  // disable carousel pointer-events when orbiting (slide clicks conflict)
+  c3dWrap.style.pointerEvents = orbitMode ? 'none' : 'none'; // keep none always
+  document.getElementById('orbit-btn').classList.toggle('active', orbitMode);
+  // hint text
+  document.getElementById('key-hints').style.opacity = orbitMode ? '0' : '1';
+  if(orbitMode){
+    // reset camera to a nice start angle
+    controls.reset();
+    camera.position.set(0, 200, CAM_Z);
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   NAVIGATION STATE
+────────────────────────────────────────────────────────────────── */
+let cur = 0, tgtAngle = 0, curAngle = 0;
+
+function updateHUD(){
+  document.getElementById('counter').textContent = `${cur+1} / ${N}`;
+  document.getElementById('slide-name').textContent = TITLES[cur];
+  document.getElementById('progress').style.width = `${(cur+1)/N*100}%`;
+}
+
+function go(dir){
+  cur = ((cur+dir)%N+N)%N;
+  tgtAngle = -cur * ASTEP;
+  updateHUD();
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && orbitMode){ toggleOrbit(); return; }
+  if(e.key==='ArrowRight'||e.key===' '){ e.preventDefault(); go(1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); go(-1); }
+});
+
+// Click a background slide to navigate to it
+c3dWrap.addEventListener('click', e=>{
+  if(orbitMode) return;
+  const slide = e.target.closest('.slide');
+  if(!slide) return;
+  const idx = slideEls.indexOf(slide);
+  if(idx<0||idx===cur) return;
+  const fwd=((idx-cur)+N)%N, bwd=((cur-idx)+N)%N;
+  go(fwd<=bwd ? fwd : -bwd);
+});
+
+/* ──────────────────────────────────────────────────────────────────
+   ANIMATION LOOP
+────────────────────────────────────────────────────────────────── */
+const clock = new THREE.Clock();
+
+(function loop(){
+  requestAnimationFrame(loop);
+  const t = clock.getElapsedTime();
+
+  // Smooth carousel rotation (only affects slideScene, not camera)
+  curAngle += (tgtAngle - curAngle) * 0.072;
+  slideScene.rotation.y = curAngle;
+
+  // Orbit controls damping update
+  if(orbitMode) controls.update();
+
+  // Gentle camera bob when NOT in orbit mode
+  if(!orbitMode){
+    camera.position.y = Math.sin(t*0.28)*18;
+    bgCam.position.y  = Math.sin(t*0.28)*18;
+  }
+
+  // Animate 3D objects: self-rotation + Y bob
+  floaters.forEach(f=>{
+    if(f.rx) f.m.rotation.x += f.rx;
+    if(f.ry) f.m.rotation.y += f.ry;
+    if(f.rz) f.m.rotation.z += f.rz;
+    f.m.position.y = f.baseY + Math.sin(t*f.bF + f.m.id*0.8)*f.bA;
+  });
+
+  // Drift background particles
+  const pa = pGeo.attributes.position.array;
+  for(let i=0;i<PC;i++){
+    pa[i*3]   +=pVel[i].x; if(pa[i*3]  > 1600)pa[i*3]  =-1600; if(pa[i*3]  <-1600)pa[i*3]  = 1600;
+    pa[i*3+1] +=pVel[i].y; if(pa[i*3+1]> 1000)pa[i*3+1]=-1000; if(pa[i*3+1]<-1000)pa[i*3+1]= 1000;
+    pa[i*3+2] +=pVel[i].z; if(pa[i*3+2]> 1200)pa[i*3+2]=-1200; if(pa[i*3+2]<-1200)pa[i*3+2]= 1200;
+  }
+  pGeo.attributes.position.needsUpdate = true;
+  pMat.opacity = 0.24 + Math.sin(t*0.55)*0.07;
+
+  // Orbit point lights for dynamic scene lighting
+  pl1.position.x = Math.sin(t*0.22)*900; pl1.position.z = Math.cos(t*0.22)*900;
+  pl2.position.x = Math.cos(t*0.18)*800; pl2.position.z = Math.sin(t*0.18)*800;
+
+  // Render all three layers in order
+  bgGL.render(bgScene, bgCam);           // 1. background particles
+  c3d.render(slideScene, camera);         // 2. CSS3D slides (shared camera)
+  fgGL.render(fgScene, camera);           // 3. transparent 3D objects (shared camera)
+})();
+
+/* ──────────────────────────────────────────────────────────────────
+   RESIZE
+────────────────────────────────────────────────────────────────── */
+window.addEventListener('resize', ()=>{
+  const w=innerWidth, h=innerHeight;
+  bgGL.setSize(w,h);  bgCam.aspect=w/h;  bgCam.updateProjectionMatrix();
+  c3d.setSize(w,h);
+  fgGL.setSize(w,h);  camera.aspect=w/h; camera.updateProjectionMatrix();
+});
+
+updateHUD();
+</script>
+</body>
+</html>

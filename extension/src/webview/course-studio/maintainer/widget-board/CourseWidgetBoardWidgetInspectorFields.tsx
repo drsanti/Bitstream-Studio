@@ -27,6 +27,7 @@ import { CourseWidgetBoardScaleReadoutFields } from "./CourseWidgetBoardScaleRea
 import { CourseWidgetBoardMapRangeInspectorFields } from "./CourseWidgetBoardMapRangeInspectorFields";
 import { CourseWidgetBoardHeroGaugeInspectorFields } from "./CourseWidgetBoardHeroGaugeInspectorFields";
 import { CourseWidgetBoardAppearanceInspectorFields } from "./CourseWidgetBoardAppearanceInspectorFields";
+import { CourseWidgetBoardReadoutLayoutInspectorFields } from "./CourseWidgetBoardReadoutLayoutInspectorFields";
 import { CourseWidgetBoardConditionInspectorFields } from "./CourseWidgetBoardConditionInspectorFields";
 import { CourseInfographicInspectorFields } from "../infographics/CourseInfographicInspectorFields";
 import { coerceInfographicVisualPreset } from "../../schemas/infographicVisualPreset.v1";
@@ -161,6 +162,14 @@ export function CourseWidgetBoardWidgetInspectorFields({
       ) : null}
 
       <CourseWidgetBoardAppearanceInspectorFields widget={widget} onPatch={patchWidget} />
+
+      {widget.kind !== "hero-radial-gauge" ? (
+        <CourseWidgetBoardReadoutLayoutInspectorFields
+          widget={widget}
+          onPatch={patchWidget}
+          syncValueAlign={widget.kind === "numeric-readout"}
+        />
+      ) : null}
 
       {widget.kind === "metric-bar" ||
       widget.kind === "numeric-readout" ||

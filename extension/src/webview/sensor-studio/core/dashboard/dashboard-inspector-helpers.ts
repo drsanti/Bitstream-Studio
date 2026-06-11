@@ -9,6 +9,7 @@ import type {
 export const DASHBOARD_CONTROL_WIDGET_KINDS: ReadonlySet<DashboardWidgetKindV1> = new Set([
   "button",
   "switch",
+  "select",
   "slider",
   "knob",
 ]);
@@ -16,6 +17,8 @@ export const DASHBOARD_CONTROL_WIDGET_KINDS: ReadonlySet<DashboardWidgetKindV1> 
 export const DASHBOARD_DISPLAY_WIDGET_KINDS: ReadonlySet<DashboardWidgetKindV1> = new Set([
   "led",
   "text",
+  "formatted-text",
+  "image",
   "gauge",
   "bar",
   "status",
@@ -119,6 +122,10 @@ export function dashboardWidgetKindLabel(kind: DashboardWidgetKindV1): string {
       return "LED";
     case "text":
       return "Text";
+    case "formatted-text":
+      return "Formatted text";
+    case "image":
+      return "Image";
     case "gauge":
       return "Gauge";
     case "bar":
@@ -127,6 +134,8 @@ export function dashboardWidgetKindLabel(kind: DashboardWidgetKindV1): string {
       return "Knob";
     case "switch":
       return "Switch";
+    case "select":
+      return "Select";
     case "slider":
       return "Slider";
     case "status":
@@ -142,7 +151,28 @@ export function dashboardWidgetKindLabel(kind: DashboardWidgetKindV1): string {
 
 export function formatDashboardPlacementSummary(widget: DashboardWidgetEntryV1): string {
   const { column, row, columnSpan, rowSpan } = widget.placement;
-  return `col ${column}, row ${row} · ${columnSpan}×${rowSpan}`;
+  return `R${row} · C${column} · ${columnSpan}×${rowSpan}`;
+}
+
+/** Short live readout for dashboard inspector widget rows (not full widget chrome). */
+export function formatDashboardWidgetLivePreview(value: unknown): string | null {
+  if (value == null) {
+    return null;
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value.toFixed(4);
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+      return null;
+    }
+    return trimmed.length > 28 ? `${trimmed.slice(0, 25)}…` : trimmed;
+  }
+  return String(value);
 }
 
 /** Warnings for the active dashboard page (tab-scoped + global). */

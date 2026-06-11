@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "st-dps368-labs",
+  "title": "Hands-on labs & Bitstream Studio",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-dps368-labs",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "DPS368 · Labs",
+      "title": "Hands-on pressure labs",
+      "subtitle": "Sea-level baseline, weather strip with SHT40, and lift-test debunk — watch pressure cards while you follow the steps."
+    },
+    {
+      "id": "callout-enable-dps368",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable DPS368",
+      "body": "If cards stay gray, open Sensor Telemetry settings and confirm DPS368 is enabled with PRESS published.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "card-dps-pressure",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "pressure"
+    },
+    {
+      "id": "card-dps-temp",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "dps368Temperature"
+    },
+    {
+      "id": "dash-dps-pressure-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Pressure (scalar)",
+      "widgetKind": "text",
+      "style": { "label": "Pressure", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-dps-alt-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Altitude (derived)",
+      "widgetKind": "text",
+      "style": { "label": "Altitude", "unit": "m", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
+    },
+    {
+      "id": "md-st-dps368-labs",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-dps368-labs.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

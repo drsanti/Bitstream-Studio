@@ -21,6 +21,7 @@ Also under **`../src/bitstream2/docs/`** (SENSOR_CFG, HOST_UART_LINK, UART probe
 
 | Document | Purpose |
 |----------|---------|
+| [**`BITSTREAM_STUDIO_UNIFIED_UX.md`**](./BITSTREAM_STUDIO_UNIFIED_UX.md) | **All-in-one UX** — four-app journey, one graph / 2D+3D, work modes, desk layouts, inspector Pin |
 | [`DEVELOPMENT_TRACKER.md`](./DEVELOPMENT_TRACKER.md) | Backlog and shipped work |
 | [`APPLICATION_MIGRATION_PLAN.md`](./APPLICATION_MIGRATION_PLAN.md) | Port E84 / ABB / vehicle sims from `ternion-t3d` (R3F, no `@ternion/t3d`) |
 | [**`DEV_MODE_QUICKSTART.md`**](./DEV_MODE_QUICKSTART.md) | **Visual** dev paths — `npm start`, F5, URLs (start here) |
@@ -50,6 +51,7 @@ Runbook: **[`../HOW_TO_RUN.md`](../HOW_TO_RUN.md)**. Agent handoff: **[`../../AG
 
 | Document | Purpose |
 |----------|---------|
+| [`BITSTREAM_STUDIO_UNIFIED_UX.md`](./BITSTREAM_STUDIO_UNIFIED_UX.md) | Product UX north star (work modes, desk, inspector — see also Product section above) |
 | [`MVP1_NODE_EDITOR_TASK_BOARD.md`](./MVP1_NODE_EDITOR_TASK_BOARD.md) | Milestones |
 | [`MVP1_NODE_EDITOR_EXECUTION_CHECKLIST.md`](./MVP1_NODE_EDITOR_EXECUTION_CHECKLIST.md) | Execution checklist |
 | [`MVP1_CONFIG_SPEC.md`](./MVP1_CONFIG_SPEC.md) | Config contract |

@@ -1,11 +1,14 @@
 import { z } from "zod";
 import type { CSSProperties } from "react";
 import {
-  TRN_HIGHLIGHTED_JSON_DEFAULT_SYNTAX_THEME_ID,
   TRN_HIGHLIGHTED_JSON_SYNTAX_THEME_OPTIONS,
   isTrnHighlightedJsonSyntaxThemeId,
   type TRNHighlightedJsonSyntaxThemeId,
 } from "../../ui/TRN/trnHighlightedJsonSyntaxThemes";
+import {
+  COURSE_MARKDOWN_DEFAULT_CODE_SYNTAX_THEME,
+  PRESENTATION_DARK_TEXT_COLORS,
+} from "../../presentation/design/presentationTextColors";
 import {
   courseBlockColorHexSchema,
   formatCourseBlockColorDisplay,
@@ -48,14 +51,14 @@ export type MarkdownBlockColorKey = Exclude<keyof MarkdownBlockColors, "codeSynt
 /** Picker defaults when a field uses the theme (not persisted). */
 export const MARKDOWN_BLOCK_COLOR_THEME_DEFAULTS: Record<MarkdownBlockColorKey, string> = {
   background: "#18181b",
-  body: "#d4d4d8",
+  body: PRESENTATION_DARK_TEXT_COLORS.prose,
   h1: "#fafafa",
   h2: "#fafafa",
   h3: "#fafafa",
-  h4: "#a1a1aa",
+  h4: PRESENTATION_DARK_TEXT_COLORS.secondary,
   strong: "#fafafa",
-  link: "#22d3ee",
-  inlineCode: "#22d3ee",
+  link: PRESENTATION_DARK_TEXT_COLORS.link,
+  inlineCode: PRESENTATION_DARK_TEXT_COLORS.code,
   inlineCodeBackground: "#18181b",
   blockCode: "#fafafa",
   blockCodeBackground: "#18181b",
@@ -153,7 +156,7 @@ export function resolveMarkdownBlockCodeSyntaxTheme(
   if (theme != null && isTrnHighlightedJsonSyntaxThemeId(theme)) {
     return theme;
   }
-  return TRN_HIGHLIGHTED_JSON_DEFAULT_SYNTAX_THEME_ID;
+  return COURSE_MARKDOWN_DEFAULT_CODE_SYNTAX_THEME;
 }
 
 export type MarkdownBlockMermaidTheme = "dark" | "default" | "neutral";

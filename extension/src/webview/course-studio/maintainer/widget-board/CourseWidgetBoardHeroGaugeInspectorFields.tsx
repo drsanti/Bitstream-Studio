@@ -13,6 +13,7 @@ import {
   type HeroRadialGaugeArcPresetId,
   type HeroRadialGaugeZoneTintId,
 } from "../../ui/catalog/widget-board/heroRadialGaugeConfig";
+import { CourseWidgetBoardHeroTileLayoutInspectorFields } from "./CourseWidgetBoardReadoutLayoutInspectorFields";
 import {
   COURSE_INSPECTOR_CARD_ICON_CLASS,
   CourseInspectorCard,
@@ -38,6 +39,8 @@ export function CourseWidgetBoardHeroGaugeInspectorFields({
 
   return (
     <>
+      <CourseWidgetBoardHeroTileLayoutInspectorFields widget={widget} onPatch={onPatch} />
+
       <CourseInspectorCard
         title="Arc"
         hint="Ring geometry for the hero gauge."

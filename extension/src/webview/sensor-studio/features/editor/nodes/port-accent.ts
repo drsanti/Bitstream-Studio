@@ -38,6 +38,10 @@ export function studioPortAccent(portType: StudioPortType): string {
       return DT.physicsCollider;
     case "physicsBody":
       return DT.physicsBody;
+    case "physicsJoint":
+      return DT.physicsJoint;
+    case "physicsSpawner":
+      return DT.physicsSpawner;
     case "dashboardWidget":
       return DT.dashboardWidget;
     case "dashboardTheme":

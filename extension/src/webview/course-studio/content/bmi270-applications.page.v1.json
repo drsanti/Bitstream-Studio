@@ -59,7 +59,7 @@
       "placement": { "column": 4, "row": 11, "columnSpan": 3, "rowSpan": 2 },
       "title": "Accel |a|",
       "widgetKind": "text",
-      "style": { "label": "|a|", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "style": { "label": "Acceleration", "unit": "g", "decimals": 3, "showStatusBar": true },
       "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g", "format": "0.000f" }
     },
     {

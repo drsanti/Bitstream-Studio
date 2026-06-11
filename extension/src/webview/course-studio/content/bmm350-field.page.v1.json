@@ -37,7 +37,7 @@
       "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
       "title": "Bx",
       "widgetKind": "text",
-      "style": { "label": "Bx", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "style": { "label": "Field X", "unit": "µT", "decimals": 1, "showStatusBar": true },
       "binding": { "path": "bmm350.bx", "fallback": 0, "unit": "µT", "format": "0.0f" }
     },
     {
@@ -46,7 +46,7 @@
       "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
       "title": "By",
       "widgetKind": "text",
-      "style": { "label": "By", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "style": { "label": "Field Y", "unit": "µT", "decimals": 1, "showStatusBar": true },
       "binding": { "path": "bmm350.by", "fallback": 0, "unit": "µT", "format": "0.0f" }
     },
     {

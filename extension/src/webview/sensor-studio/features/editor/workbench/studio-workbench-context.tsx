@@ -20,3 +20,7 @@ export function useStudioWorkbenchShell(): StudioLayoutProps {
   }
   return ctx;
 }
+
+export function useOptionalStudioWorkbenchShell(): StudioLayoutProps | null {
+  return useContext(StudioWorkbenchShellContext);
+}

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "st-bmm350-labs",
+  "title": "Hands-on labs & Bitstream Studio",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-bmm350-labs",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMM350 · Labs",
+      "title": "Hands-on magnetic field labs",
+      "subtitle": "Baseline, slow rotate, steel interference, and field strength — watch mag cards and scalars while you follow the steps."
+    },
+    {
+      "id": "callout-enable-bmm350",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable BMM350",
+      "body": "If cards stay gray, open Sensor Telemetry settings, confirm BMM350 is enabled with MAG published, and Apply.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "card-bmm-mag",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "bmm350"
+    },
+    {
+      "id": "card-bmm-temp",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "bmm350Temperature"
+    },
+    {
+      "id": "dash-bmm-mag-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Field |B|",
+      "widgetKind": "text",
+      "style": { "label": "|B|", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "dash-bmm-bx-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Mag X",
+      "widgetKind": "text",
+      "style": { "label": "Mag X", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.bx", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "md-st-bmm350-labs",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-bmm350-labs.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

@@ -7,6 +7,7 @@ import {
 } from "./pageRegistry";
 import { useCourseOutlineStore } from "../maintainer/useCourseOutlineStore";
 import type { CourseStudioSessionOutlineDraftV1 } from "./courseStudioSessionDraft";
+import { buildBundledCourseLibrary } from "./courseLibrary";
 import { cloneCourseDocument, loadCourse } from "./courseRegistry";
 import { mergeCourseOutlineWithBundled } from "../runtime/course/courseOutlineTree";
 
@@ -40,11 +41,20 @@ export function restoreCourseOutlineSessionDraft(
   restoreRuntimeCoursePages(outline.runtimePages);
 
   const bundled = loadCourse(outline.courseId);
-  const course =
+  let course: CourseV1 =
     bundled != null
       ? mergeCourseOutlineWithBundled(outline.course, cloneCourseDocument(bundled))
       : outline.course;
 
+  try {
+    course = parseCourseV1(structuredClone(course));
+  } catch {
+    if (bundled != null) {
+      course = cloneCourseDocument(bundled);
+    }
+  }
+
+  useCourseOutlineStore.setState({ library: buildBundledCourseLibrary() });
   useCourseOutlineStore.getState().initCourse(
     outline.courseId,
     course,

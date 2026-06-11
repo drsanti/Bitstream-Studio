@@ -1,4 +1,5 @@
 import type { CSSProperties, PointerEvent } from "react";
+import type { DashboardWidgetSelectionModifiers } from "../../core/dashboard/dashboard-widget-selection";
 import type { DashboardLayoutModeV1 } from "../../core/dashboard/dashboard-layout";
 import { dashboardFlexPlacementStyle } from "../../core/dashboard/dashboard-flex-placement";
 import { dashboardGroupLayoutGridStyle } from "../../core/dashboard/dashboard-group-layout";
@@ -18,15 +19,29 @@ type DashboardGroupCellProps = {
   onButtonClick?: (sourceNodeId: string) => void;
   onKnobValueChange?: (sourceNodeId: string, value: number) => void;
   onSwitchValueChange?: (sourceNodeId: string, value: boolean) => void;
+  onSelectValueChange?: (sourceNodeId: string, value: string) => void;
   onSliderValueChange?: (sourceNodeId: string, value: number) => void;
-  onSelectWidget?: (sourceNodeId: string) => void;
-  onSelectGroup?: (sourceNodeId: string) => void;
+  onSelectWidget?: (
+    sourceNodeId: string,
+    modifiers?: DashboardWidgetSelectionModifiers,
+  ) => void;
+  onSelectGroup?: (
+    sourceNodeId: string,
+    modifiers?: DashboardWidgetSelectionModifiers,
+  ) => void;
   placementOverride?: Partial<DashboardPlacementV1>;
   onGridDragPointerDown?: (
     event: PointerEvent<HTMLDivElement>,
     placement: DashboardPlacementV1,
   ) => void;
+  onWidgetGridDragPointerDown?: (
+    sourceNodeId: string,
+    event: PointerEvent<HTMLDivElement>,
+    placement: DashboardPlacementV1,
+  ) => void;
+  widgetHighlightedIds?: ReadonlySet<string>;
   isGridDragging?: boolean;
+  isWidgetGridDragging?: (sourceNodeId: string) => boolean;
 };
 
 function groupPlacement(
@@ -58,12 +73,16 @@ export function DashboardGroupCell(props: DashboardGroupCellProps) {
     onButtonClick,
     onKnobValueChange,
     onSwitchValueChange,
+    onSelectValueChange,
     onSliderValueChange,
     onSelectWidget,
     onSelectGroup,
     placementOverride,
     onGridDragPointerDown,
+    onWidgetGridDragPointerDown,
+    widgetHighlightedIds,
     isGridDragging = false,
+    isWidgetGridDragging,
   } = props;
 
   const placement = groupPlacement(group, placementOverride);
@@ -97,7 +116,11 @@ export function DashboardGroupCell(props: DashboardGroupCellProps) {
           : editMode
             ? (event) => {
                 event.stopPropagation();
-                onSelectGroup?.(group.sourceNodeId);
+                onSelectGroup?.(group.sourceNodeId, {
+                  shiftKey: event.shiftKey,
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                });
               }
             : undefined
       }
@@ -110,22 +133,27 @@ export function DashboardGroupCell(props: DashboardGroupCellProps) {
           {group.label}
         </div>
       ) : null}
-      <div
-        className={`min-h-0 flex-1 ${editMode ? "pointer-events-none" : ""}`}
-        style={innerStyle}
-      >
+      <div className="min-h-0 flex-1" style={innerStyle}>
         {group.children.map((widget) => (
           <DashboardWidgetCell
             key={widget.sourceNodeId}
             widget={widget}
             layoutMode="grid"
             editMode={editMode}
-            highlighted={false}
+            highlighted={widgetHighlightedIds?.has(widget.sourceNodeId) ?? false}
             onButtonClick={onButtonClick}
             onKnobValueChange={onKnobValueChange}
             onSwitchValueChange={onSwitchValueChange}
+            onSelectValueChange={onSelectValueChange}
             onSliderValueChange={onSliderValueChange}
             onSelectWidget={onSelectWidget}
+            onGridDragPointerDown={
+              gridDragEnabled && onWidgetGridDragPointerDown != null
+                ? (event, childPlacement) =>
+                    onWidgetGridDragPointerDown(widget.sourceNodeId, event, childPlacement)
+                : undefined
+            }
+            isGridDragging={isWidgetGridDragging?.(widget.sourceNodeId) ?? false}
             nestedInGroup
           />
         ))}

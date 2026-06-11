@@ -25,6 +25,10 @@ export type BitstreamStudioLoadingScreenProps = {
   /** `fullscreen` — route / app shell; `embedded` — workspace Suspense pane */
   layout?: "fullscreen" | "embedded";
   workspace?: BitstreamWorkspaceId;
+  /** 0–100 download estimate; omit for indeterminate spinner only */
+  progressPercent?: number;
+  /** Short line under the bar — e.g. module count or bytes transferred */
+  progressDetail?: string;
   /**
    * Landing-style 2D nebula backdrop. Default on — unmounts with this screen so
    * canvas loops dispose when the workspace chunk is ready.
@@ -39,29 +43,42 @@ const WORKSPACE_LABEL: Record<BitstreamWorkspaceId, string> = {
   "course-studio": "Course Studio",
 };
 
+/** What the operator is waiting for — product language, same in dev and VSIX. */
+const WORKSPACE_HINT: Record<BitstreamWorkspaceId, string> = {
+  "sensor-telemetry":
+    "Sensor configuration, 3D orientation, and live telemetry decks.",
+  "sensor-studio": "Flow canvas, node inspector, dashboard, and stage preview.",
+  presentation: "Slide deck and chapter navigation.",
+  "course-studio": "Course pages, theory blocks, and live sensor bindings.",
+};
+
 const WORKSPACE_ACCENT: Record<
   BitstreamWorkspaceId,
-  { spinner: string; ring: string; glow: string }
+  { spinner: string; ring: string; glow: string; progress: string }
 > = {
   "sensor-telemetry": {
     spinner: "text-emerald-400/90",
     ring: "border-emerald-500/25",
     glow: "from-emerald-500/10",
+    progress: "bg-emerald-400/85",
   },
   "sensor-studio": {
     spinner: "text-violet-400/90",
     ring: "border-violet-500/25",
     glow: "from-violet-500/10",
+    progress: "bg-violet-400/85",
   },
   presentation: {
     spinner: "text-sky-400/90",
     ring: "border-sky-500/25",
     glow: "from-sky-500/10",
+    progress: "bg-sky-400/85",
   },
   "course-studio": {
     spinner: "text-amber-400/90",
     ring: "border-amber-500/25",
     glow: "from-amber-500/10",
+    progress: "bg-amber-400/85",
   },
 };
 
@@ -72,6 +89,8 @@ export function BitstreamStudioLoadingScreen({
   hint,
   layout = "embedded",
   workspace,
+  progressPercent,
+  progressDetail,
   animatedBackdrop = true,
 }: BitstreamStudioLoadingScreenProps) {
   const reducedMotion = useMemo(
@@ -86,10 +105,7 @@ export function BitstreamStudioLoadingScreen({
     label ??
     (workspace != null ? `Loading ${WORKSPACE_LABEL[workspace]}…` : "Loading studio…");
   const resolvedHint =
-    hint ??
-    (workspace != null
-      ? "Preparing panels and tools for this workspace."
-      : "Starting Bitstream Studio…");
+    hint ?? (workspace != null ? WORKSPACE_HINT[workspace] : "Starting Bitstream Studio…");
 
   const shellClass =
     layout === "fullscreen"
@@ -153,6 +169,28 @@ export function BitstreamStudioLoadingScreen({
             {resolvedHint}
           </span>
         </div>
+
+        {progressPercent != null ? (
+          <div className="w-full max-w-[16rem]" aria-hidden={false}>
+            <div className="mb-1.5 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
+              <span className="truncate">{progressDetail ?? "Downloading workspace…"}</span>
+              <span className="shrink-0">{Math.round(progressPercent)}%</span>
+            </div>
+            <div
+              className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/90"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(progressPercent)}
+              aria-label="Workspace download progress"
+            >
+              <div
+                className={twMerge("h-full rounded-full transition-[width] duration-200 ease-out", accent.progress)}
+                style={{ width: `${Math.max(0, Math.min(100, progressPercent))}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

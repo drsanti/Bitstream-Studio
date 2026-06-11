@@ -24,6 +24,8 @@ const studioPortTypeEnum = z.enum([
   "physicsScene",
   "physicsCollider",
   "physicsBody",
+  "physicsJoint",
+  "physicsSpawner",
   "dashboardWidget",
   "dashboardTheme",
   "dashboardTab",

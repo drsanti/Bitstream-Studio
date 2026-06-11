@@ -39,6 +39,8 @@ const STUDIO_PORT_TYPES: readonly StudioPortType[] = [
   "physicsScene",
   "physicsCollider",
   "physicsBody",
+  "physicsJoint",
+  "physicsSpawner",
   "dashboardWidget",
   "dashboardTheme",
   "dashboardTab",

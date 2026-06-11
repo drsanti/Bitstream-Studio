@@ -13,6 +13,7 @@ import {
   isStageSimulateMode,
 } from "../../core/stage/stage-workbench-mode";
 import { useStageSceneStore } from "../../state/stage-scene.store";
+import { useStageOutlinerVisibilityStore } from "../../state/stage-outliner-visibility.store";
 import { useStageViewportNavigationStore } from "../../state/stage-viewport-navigation.store";
 import { canDeleteStageSceneSelection } from "../../core/stage/stage-scene-selection-delete";
 import {
@@ -26,6 +27,7 @@ import {
 } from "../../core/viewport/StudioSceneViewport";
 import type { StudioViewportViewSnapId } from "../../core/viewport/studio-viewport-view-snaps";
 import { rotationPreviewOrientationFromTransformWire } from "../editor/nodes/transform/flow-wire-transform-preview-orientation";
+import { DashboardStageHudOverlay } from "../dashboard/DashboardStageHudOverlay";
 import { StageViewportToolbar } from "./StageViewportToolbar";
 import { SensorStudioPerformanceViewportOverlay } from "../shell/SensorStudioPerformanceViewportOverlay";
 import { useFlowEditorStore } from "../editor/store/flow-editor.store";
@@ -107,10 +109,15 @@ export function StageViewport() {
   const stage3dMaxFps = useSensorStudioPerformanceStore((s) => s.preferences.stage3dMaxFps);
   const { preferences: stagePresentationPreferences } = useStagePresentationPreferences();
 
+  const stageOutlinerHiddenKeys = useStageOutlinerVisibilityStore((s) => s.hiddenKeys);
+
   const hasSceneOutput = snapshot.sceneOutputNodeId != null;
   const hasModel = snapshot.models.some((m) => m.modelUrl.length > 0);
   const hasMeshes = snapshot.meshes.length > 0;
-  const hasStageContent = hasModel || hasMeshes;
+  const hasCommittedSceneModel =
+    (snapshot.scene3d.model.url?.trim().length ?? 0) > 0;
+  const hasStageContent =
+    hasModel || hasMeshes || (hasSceneOutput && hasCommittedSceneModel);
 
   const { nodes: flowNodes, edges: flowEdges } = useStageFlowEvaluationGraph();
 
@@ -153,8 +160,9 @@ export function StageViewport() {
       stagePhysicsWire: built.stagePhysicsWire,
       stagePhysicsColliders: built.stagePhysicsColliders,
       stageProceduralMeshes: built.stageProceduralMeshes,
+      stageOutlinerHiddenKeys: [...stageOutlinerHiddenKeys],
     };
-  }, [flowEdges, flowNodes, hasStageContent, primaryModelIndex, snapshot]);
+  }, [flowEdges, flowNodes, hasStageContent, primaryModelIndex, snapshot, stageOutlinerHiddenKeys]);
 
   const visionHudNodes = useMemo(
     () => (graphHasVisionHudNodes(flowNodes) ? flowNodes : []),
@@ -531,6 +539,7 @@ export function StageViewport() {
         variant="stage3d"
         className="bottom-14"
       />
+      <DashboardStageHudOverlay />
       <StudioSceneViewport
         ref={viewportRef}
         key={`stage-viewport:${snapshot.sceneOutputNodeId ?? "none"}`}

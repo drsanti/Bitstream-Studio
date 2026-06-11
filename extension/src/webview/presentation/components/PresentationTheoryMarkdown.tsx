@@ -164,7 +164,7 @@ function createMarkdownComponents(
         {...props}
         href={href}
         className={twMerge(
-          "text-[var(--course-md-link,var(--accent-cyan))] underline decoration-[var(--course-md-link,var(--accent-cyan))]/40 underline-offset-2 hover:decoration-[var(--course-md-link,var(--accent-cyan))]",
+          "text-[var(--course-md-link,var(--text-link))] underline decoration-[var(--course-md-link,var(--text-link))]/40 underline-offset-2 hover:decoration-[var(--course-md-link,var(--text-link))]",
           className,
         )}
         target="_blank"
@@ -234,7 +234,7 @@ function createMarkdownComponents(
         <code
           {...props}
           className={twMerge(
-            "rounded border border-[var(--surface-border)] px-1 py-0.5 text-xs text-[var(--course-md-inline-code,var(--accent-cyan))] bg-[var(--course-md-inline-code-bg,var(--surface-card))]",
+            "rounded border border-[var(--surface-border)] px-1 py-0.5 text-xs text-[var(--course-md-inline-code,var(--text-code))] bg-[var(--course-md-inline-code-bg,var(--surface-card))]",
             className,
           )}
         >

@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "id": "st-sht40-labs",
+  "title": "Hands-on labs & Bitstream Studio",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-sht40-labs",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "SHT40 · Labs",
+      "title": "Hands-on climate labs",
+      "subtitle": "Warm-up, dry-air, and channel-mask exercises — watch temperature and humidity cards while you follow the steps."
+    },
+    {
+      "id": "callout-enable-sht40",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable SHT40",
+      "body": "If cards stay gray, open Sensor Telemetry settings and confirm SHT40 is enabled with TEMP and HUM published.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "card-sht40-humidity",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "sht40Humidity"
+    },
+    {
+      "id": "card-sht40-temperature",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "sht40Temperature"
+    },
+    {
+      "id": "dash-sht-temp-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Temp (scalar)",
+      "widgetKind": "text",
+      "style": { "label": "Temperature", "unit": "°C", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.temp", "fallback": 0, "unit": "°C", "format": "0.0f" }
+    },
+    {
+      "id": "dash-sht-rh-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Humidity (scalar)",
+      "widgetKind": "text",
+      "style": { "label": "Humidity", "unit": "%RH", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.rh", "fallback": 0, "unit": "%RH", "format": "0.0f" }
+    },
+    {
+      "id": "md-st-sht40-labs",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-sht40-labs.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "st-bmi270-overview",
+  "title": "Overview & physical principles",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-bmi270-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMI270 · Sensor Theory",
+      "title": "Motion, rotation & orientation",
+      "subtitle": "What the BMI270 measures — accelerometer, gyroscope, and fusion — and how live readouts validate IMU behavior on the bench."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator. Enable BMI270 and select Raw or Fusion output profile in Sensor Telemetry, then Apply before working through this topic.",
+      "icon": "Info"
+    },
+    {
+      "id": "dash-bmi-acc-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Accel |a|",
+      "widgetKind": "text",
+      "style": { "label": "|a|", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-bmi-pitch",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Pitch (fusion)",
+      "widgetKind": "text",
+      "style": { "label": "Pitch", "unit": "°", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmi270.pitch", "fallback": 0, "unit": "°", "format": "0.0f" }
+    },
+    {
+      "id": "card-st-bmi270-overview",
+      "kind": "card",
+      "placement": { "column": 1, "row": 7, "columnSpan": 12, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "Board flat → |a| ≈ 1 g.\nFusion profile + Apply for pitch/roll.\nTwist board → gyro spikes (Raw profile).\nShake → |a| well above 1 g."
+    },
+    {
+      "id": "md-st-bmi270-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 9, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-bmi270-overview.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

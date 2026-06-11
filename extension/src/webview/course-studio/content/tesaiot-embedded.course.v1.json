@@ -155,8 +155,20 @@
             "id": "topic-3",
             "kind": "topic",
             "title": "New topic",
-            "pageId": "new-topic-3",
-            "children": []
+            "children": [
+              {
+                "id": "subtopic-workshop-live-html",
+                "kind": "subtopic",
+                "title": "Live sensor dashboards",
+                "pageId": "workshop-live-html"
+              }
+            ]
+          },
+          {
+            "id": "subtopic-1",
+            "kind": "subtopic",
+            "title": "New subtopic",
+            "pageId": "new-subtopic"
           }
         ]
       }

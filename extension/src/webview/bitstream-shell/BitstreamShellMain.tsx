@@ -3,7 +3,7 @@ import { GlobalShellOverlays } from "../GlobalShellOverlays";
 import { TelemetryRxMetricsProvider } from "../bitstream-app/components/telemetry/TelemetryRxMetricsContext.js";
 import { Bmi270StreamModeSyncEffect } from "../bitstream-app/sync-effects/Bmi270StreamModeSyncEffect";
 import { BitstreamShellRoot } from "./BitstreamShellRoot";
-import { BitstreamWorkspacePanel } from "./BitstreamWorkspacePanel";
+import { BitstreamWorkspaceMount } from "./BitstreamWorkspacePanel";
 import { useBitstreamConfigStore } from "../bitstream-app/state/bitstreamConfig.store";
 import {
   suppressFreeLoaderAutoOpen,
@@ -65,9 +65,7 @@ export function BitstreamShellMain()
         <>
           <BitstreamShellRoot>
             <Bmi270StreamModeSyncEffect mode={bmi270StreamMode} />
-            <div key={workspace} className="flex min-h-0 min-w-0 flex-1 flex-col">
-              <BitstreamWorkspacePanel workspace={workspace} />
-            </div>
+            <BitstreamWorkspaceMount workspace={workspace} />
           </BitstreamShellRoot>
 
           <PreviewMeshStatusDialog

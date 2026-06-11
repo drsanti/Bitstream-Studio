@@ -1,3 +1,4 @@
+import { PRESENTATION_DARK_TEXT_LIVE_VALUE } from "../../presentation/design/presentationTextColors";
 import type { DiagramBindingV1 } from "./diagram.v1";
 
 export const COURSE_LIVE_METRIC_AXIS_DEFAULTS = {
@@ -17,6 +18,7 @@ export const COURSE_DASHBOARD_WIDGET_TEXT_STYLE_DEFAULT = {
   unit: "g",
   decimals: 2,
   showStatusBar: true,
+  zones: [{ from: -1e12, to: 1e12, color: PRESENTATION_DARK_TEXT_LIVE_VALUE }],
 } as const;
 
 export const COURSE_DASHBOARD_WIDGET_LED_STYLE_DEFAULT = {

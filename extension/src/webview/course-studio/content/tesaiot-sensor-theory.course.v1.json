@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "id": "tesaiot-sensor-theory",
+  "title": "TESAIoT DevKit — Sensor Theory",
+  "description": "How the four on-board sensors work — workshop labs, Bitstream Studio UI, and embedded depth (I²C, firmware, BS2 wire).",
+  "root": {
+    "id": "book-tesaiot-sensor-theory",
+    "kind": "book",
+    "title": "TESAIoT DevKit — Sensor Theory",
+    "children": [
+      {
+        "id": "chapter-st-intro",
+        "kind": "chapter",
+        "title": "Before you start",
+        "children": [
+          {
+            "id": "topic-st-intro-core-ideas",
+            "kind": "topic",
+            "title": "Core ideas",
+            "pageId": "st-intro-core-ideas"
+          }
+        ]
+      },
+      {
+        "id": "chapter-st-sht40",
+        "kind": "chapter",
+        "title": "SHT40 — temperature & humidity",
+        "children": [
+          {
+            "id": "topic-st-sht40-overview",
+            "kind": "topic",
+            "title": "Overview & physical principles",
+            "pageId": "st-sht40-overview"
+          },
+          {
+            "id": "topic-st-sht40-engineering",
+            "kind": "topic",
+            "title": "Hardware, firmware & BS2 wire",
+            "pageId": "st-sht40-engineering"
+          },
+          {
+            "id": "topic-st-sht40-labs",
+            "kind": "topic",
+            "title": "Hands-on labs & Bitstream Studio",
+            "pageId": "st-sht40-labs"
+          },
+          {
+            "id": "topic-st-sht40-reference",
+            "kind": "topic",
+            "title": "Reference & knowledge check",
+            "pageId": "st-sht40-reference"
+          }
+        ]
+      },
+      {
+        "id": "chapter-st-dps368",
+        "kind": "chapter",
+        "title": "DPS368 — barometric pressure",
+        "children": [
+          {
+            "id": "topic-st-dps368-overview",
+            "kind": "topic",
+            "title": "Overview & physical principles",
+            "pageId": "st-dps368-overview"
+          },
+          {
+            "id": "topic-st-dps368-engineering",
+            "kind": "topic",
+            "title": "Hardware, firmware & BS2 wire",
+            "pageId": "st-dps368-engineering"
+          },
+          {
+            "id": "topic-st-dps368-labs",
+            "kind": "topic",
+            "title": "Hands-on labs & Bitstream Studio",
+            "pageId": "st-dps368-labs"
+          },
+          {
+            "id": "topic-st-dps368-reference",
+            "kind": "topic",
+            "title": "Reference & knowledge check",
+            "pageId": "st-dps368-reference"
+          }
+        ]
+      },
+      {
+        "id": "chapter-st-bmi270",
+        "kind": "chapter",
+        "title": "BMI270 — IMU (accel, gyro, fusion)",
+        "children": [
+          {
+            "id": "topic-st-bmi270-overview",
+            "kind": "topic",
+            "title": "Overview & physical principles",
+            "pageId": "st-bmi270-overview"
+          },
+          {
+            "id": "topic-st-bmi270-engineering",
+            "kind": "topic",
+            "title": "Hardware, firmware & BS2 wire",
+            "pageId": "st-bmi270-engineering"
+          },
+          {
+            "id": "topic-st-bmi270-labs",
+            "kind": "topic",
+            "title": "Hands-on labs & Bitstream Studio",
+            "pageId": "st-bmi270-labs"
+          },
+          {
+            "id": "topic-st-bmi270-reference",
+            "kind": "topic",
+            "title": "Reference & knowledge check",
+            "pageId": "st-bmi270-reference"
+          }
+        ]
+      },
+      {
+        "id": "chapter-st-bmm350",
+        "kind": "chapter",
+        "title": "BMM350 — magnetometer",
+        "children": [
+          {
+            "id": "topic-st-bmm350-overview",
+            "kind": "topic",
+            "title": "Overview & physical principles",
+            "pageId": "st-bmm350-overview"
+          },
+          {
+            "id": "topic-st-bmm350-engineering",
+            "kind": "topic",
+            "title": "Hardware, firmware & BS2 wire",
+            "pageId": "st-bmm350-engineering"
+          },
+          {
+            "id": "topic-st-bmm350-labs",
+            "kind": "topic",
+            "title": "Hands-on labs & Bitstream Studio",
+            "pageId": "st-bmm350-labs"
+          },
+          {
+            "id": "topic-st-bmm350-reference",
+            "kind": "topic",
+            "title": "Reference & knowledge check",
+            "pageId": "st-bmm350-reference"
+          }
+        ]
+      },
+      {
+        "id": "chapter-st-capstone",
+        "kind": "chapter",
+        "title": "Workshop capstone",
+        "children": [
+          {
+            "id": "topic-st-four-sensor-dashboard",
+            "kind": "topic",
+            "title": "Four-sensor dashboard (Ch6)",
+            "pageId": "st-four-sensor-dashboard"
+          }
+        ]
+      }
+    ]
+  }
+}

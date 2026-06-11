@@ -2,7 +2,6 @@ import { AlignVerticalJustifyCenter } from "lucide-react";
 import { TRNButton, TRNHintText } from "../../../../../ui/TRN";
 import {
   coerceDashboardLayoutV1,
-  dashboardOutputDefaultLayout,
   type DashboardLayoutModeV1,
 } from "../../../../core/dashboard/dashboard-layout";
 import {
@@ -123,7 +122,7 @@ export function DashboardInspectorLayoutTab(props: DashboardInspectorLayoutTabPr
               onCommit={(v) => patchGrid({ columns: v })}
             />
             <InspectorNumericField
-              label="Row height (px)"
+              label="Cell size (px)"
               value={rowHeightPx}
               min={24}
               max={200}
@@ -215,10 +214,6 @@ export function DashboardInspectorLayoutTab(props: DashboardInspectorLayoutTabPr
             </div>
           </div>
         )}
-        <p className="mt-2 text-[10px] leading-snug text-zinc-600">
-          Default grid: {dashboardOutputDefaultLayout().grid.columns} columns. Changes apply to the
-          wired Dashboard Output node.
-        </p>
       </InspectorSettingsSectionFrame>
 
       <InspectorSettingsSectionFrame title="Theme" collapsible defaultExpanded>
@@ -265,9 +260,6 @@ export function DashboardInspectorLayoutTab(props: DashboardInspectorLayoutTabPr
             Import
           </TRNButton>
         </div>
-        <p className="mt-2 text-[10px] text-zinc-600">
-          Import updates matching flow nodes. Use the Dashboard toolbar for Save-to-library.
-        </p>
       </InspectorSettingsSectionFrame>
     </div>
   );

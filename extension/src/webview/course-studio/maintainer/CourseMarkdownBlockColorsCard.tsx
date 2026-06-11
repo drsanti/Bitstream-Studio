@@ -19,10 +19,8 @@ import {
   stripEmptyMarkdownBlockColors,
   type MarkdownBlockColorKey,
 } from "../schemas/markdownBlockColors";
-import {
-  TRN_HIGHLIGHTED_JSON_DEFAULT_SYNTAX_THEME_ID,
-  type TRNHighlightedJsonSyntaxThemeId,
-} from "../../ui/TRN/trnHighlightedJsonSyntaxThemes";
+import { COURSE_MARKDOWN_DEFAULT_CODE_SYNTAX_THEME } from "../../presentation/design/presentationTextColors";
+import type { TRNHighlightedJsonSyntaxThemeId } from "../../ui/TRN/trnHighlightedJsonSyntaxThemes";
 import { CourseInspectorCard, COURSE_INSPECTOR_CARD_ICON_CLASS } from "./CourseInspectorCard";
 import {
   buildMarkdownPresetSelectOptions,
@@ -46,7 +44,7 @@ function MarkdownCodeSyntaxThemeRow({
   value: TRNHighlightedJsonSyntaxThemeId | undefined;
   onChange: (next: TRNHighlightedJsonSyntaxThemeId | undefined) => void;
 }) {
-  const resolved = value ?? TRN_HIGHLIGHTED_JSON_DEFAULT_SYNTAX_THEME_ID;
+  const resolved = value ?? COURSE_MARKDOWN_DEFAULT_CODE_SYNTAX_THEME;
   const overridden = value != null;
 
   return (
@@ -58,7 +56,7 @@ function MarkdownCodeSyntaxThemeRow({
           ariaLabel="Code block syntax theme"
           options={MARKDOWN_BLOCK_CODE_SYNTAX_THEME_SELECT_OPTIONS}
           onValueChange={(next) => {
-            if (next === TRN_HIGHLIGHTED_JSON_DEFAULT_SYNTAX_THEME_ID) {
+            if (next === COURSE_MARKDOWN_DEFAULT_CODE_SYNTAX_THEME) {
               onChange(undefined);
               return;
             }

@@ -1,5 +1,7 @@
 import type { InfographicSkinConfig } from "../../infographicVisualPreset";
+import type { WidgetBoardReadoutLayoutConfig } from "../../../widget-board/widgetBoardReadoutLayout";
 import { formatInfographicValue } from "../../infographicGeometry";
+import { InfographicReadoutPanel } from "../../InfographicReadoutPanel";
 
 export function InfographicCompassRoseSkin({
   label,
@@ -11,6 +13,7 @@ export function InfographicCompassRoseSkin({
   showValue,
   showUnit,
   config,
+  readoutConfig = {},
 }: {
   label: string;
   value: number | null;
@@ -21,20 +24,31 @@ export function InfographicCompassRoseSkin({
   showValue: boolean;
   showUnit: boolean;
   config: InfographicSkinConfig;
+  readoutConfig?: WidgetBoardReadoutLayoutConfig;
 }) {
   const needle = angleDeg ?? 0;
   const needleColor = config.needleColor ?? "var(--course-wb-gradient-from, #38bdf8)";
 
   return (
     <div
-      className="course-infographic-compass flex h-full min-h-0 w-full flex-col items-center justify-center gap-1 px-2 py-2"
+      className="course-infographic-compass flex h-full min-h-0 w-full flex-col items-center gap-1 px-2 py-2"
       data-infographic-skin="compass-rose"
     >
-      {showLabel ? (
-        <p className="truncate text-[10px] font-medium uppercase tracking-widest text-[var(--course-wb-label)]">
-          {label}
-        </p>
-      ) : null}
+      <InfographicReadoutPanel
+        config={readoutConfig}
+        showLabel={showLabel}
+        showValue={config.showDigitalHeading === true && showValue}
+        label={label}
+        value={
+          <>
+            {formatInfographicValue(value, decimals)}
+            {showUnit && unit ? (
+              <span className="ml-1 text-[10px] font-semibold text-[var(--course-wb-unit)]">{unit}</span>
+            ) : null}
+          </>
+        }
+        stackClassName="w-full"
+      />
       <div className="relative aspect-square h-full max-h-[72%] w-auto max-w-full">
         <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden>
           <circle cx="50" cy="50" r="46" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" strokeWidth="1.5" />
@@ -53,14 +67,6 @@ export function InfographicCompassRoseSkin({
           <circle cx="50" cy="50" r="4" fill="rgba(0,0,0,0.35)" stroke="rgba(255,255,255,0.2)" />
         </svg>
       </div>
-      {config.showDigitalHeading && showValue ? (
-        <p className="text-[13px] font-bold text-[var(--course-wb-value)]">
-          {formatInfographicValue(value, decimals)}
-          {showUnit && unit ? (
-            <span className="ml-1 text-[10px] font-semibold text-[var(--course-wb-unit)]">{unit}</span>
-          ) : null}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -16,7 +16,7 @@ export type CourseBlockColorRowProps = {
   label: string;
   value: string | undefined;
   /** Shown in the picker when `value` is unset (theme default). */
-  defaultHex: string;
+  defaultHex?: string;
   onChange: (next: string | undefined) => void;
   onCopy?: () => void;
   onPaste?: () => void | Promise<void>;
@@ -32,9 +32,10 @@ export function CourseBlockColorRow({
   onPaste,
 }: CourseBlockColorRowProps) {
   const [pasteBusy, setPasteBusy] = useState(false);
-  const pickerValue = value ?? defaultHex;
+  const effectiveDefault = defaultHex ?? "#808080";
+  const pickerValue = value ?? effectiveDefault;
   const overridden =
-    value != null && !courseBlockColorHexEquivalent(value, defaultHex);
+    value != null && !courseBlockColorHexEquivalent(value, effectiveDefault);
   const showClipboard = onCopy != null || onPaste != null;
 
   const handlePaste = () => {
@@ -55,7 +56,7 @@ export function CourseBlockColorRow({
         triggerVariant="swatch"
         size="sm"
         onValueHexChange={(hex) =>
-          onChange(courseBlockColorHexEquivalent(hex, defaultHex) ? undefined : hex)
+          onChange(courseBlockColorHexEquivalent(hex, effectiveDefault) ? undefined : hex)
         }
       />
       <span

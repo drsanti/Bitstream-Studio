@@ -44,7 +44,7 @@
       "title": "Temperature",
       "widgetKind": "text",
       "style": {
-        "label": "Temp",
+        "label": "Temperature",
         "unit": "°C",
         "decimals": 1,
         "showStatusBar": true
@@ -63,7 +63,7 @@
       "title": "Humidity",
       "widgetKind": "text",
       "style": {
-        "label": "%RH",
+        "label": "Humidity",
         "unit": "%RH",
         "decimals": 1,
         "showStatusBar": true

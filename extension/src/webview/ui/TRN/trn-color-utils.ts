@@ -67,6 +67,9 @@ export function hslToHex(h: number, s: number, l: number, alphaPercent = 100): s
 }
 
 export function hexToHsla(hexColor: string, fallback: TrnHsla): TrnHsla {
+  if (typeof hexColor !== "string" || hexColor.length === 0) {
+    return fallback;
+  }
   const raw = hexColor.replace("#", "").trim();
   if (raw.length !== 6 && raw.length !== 8) {
     return fallback;

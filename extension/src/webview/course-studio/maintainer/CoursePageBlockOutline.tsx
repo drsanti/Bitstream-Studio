@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { PAGE_BLOCK_PALETTE } from "./blockFactory";
 import type { PageBlockV1 } from "../schemas/page.v1";
 import { useCoursePageEditorStore } from "./useCoursePageEditorStore";
@@ -9,10 +10,16 @@ function blockKindLabel(kind: string): string {
 export function CoursePageBlockOutline({
   blocks,
   selectedBlockId,
+  selectedBlockIds,
 }: {
   blocks: readonly PageBlockV1[];
   selectedBlockId: string | null;
+  selectedBlockIds?: readonly string[];
 }) {
+  const selectedIdSet = useMemo(
+    () => new Set(selectedBlockIds ?? (selectedBlockId == null ? [] : [selectedBlockId])),
+    [selectedBlockId, selectedBlockIds],
+  );
   const selectBlock = useCoursePageEditorStore((s) => s.selectBlock);
 
   if (blocks.length === 0) {
@@ -24,7 +31,7 @@ export function CoursePageBlockOutline({
   return (
     <ul className="flex flex-col gap-0.5" role="listbox" aria-label="Page blocks">
       {blocks.map((block) => {
-        const selected = block.id === selectedBlockId;
+        const selected = selectedIdSet.has(block.id);
         const { placement } = block;
         return (
           <li key={block.id}>

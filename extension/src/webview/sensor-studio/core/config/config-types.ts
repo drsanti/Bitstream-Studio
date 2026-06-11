@@ -48,6 +48,8 @@ export type DataTypeColorsPayload = {
   physicsScene: string;
   physicsCollider: string;
   physicsBody: string;
+  physicsJoint: string;
+  physicsSpawner: string;
   dashboardWidget: string;
   dashboardTheme: string;
   dashboardTab: string;
@@ -80,6 +82,8 @@ export type NodeCatalogOutputPort = {
     | "physicsScene"
     | "physicsCollider"
     | "physicsBody"
+    | "physicsJoint"
+    | "physicsSpawner"
     | "dashboardWidget"
     | "dashboardTheme"
     | "dashboardTab"

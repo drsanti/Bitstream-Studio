@@ -8,11 +8,15 @@ import {
   TRNTabs,
   TRNTabsList,
   TRNTabsTrigger,
+  TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS,
+  TRN_INSPECTOR_PANEL_SHELL_CLASS,
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
   TRN_INSPECTOR_TAB_ACTIVE_CLASS,
 } from "../../../../../ui/TRN";
+import { useStageSceneStore } from "../../../../state/stage-scene.store";
+import { StageWorkbenchInspectorContextBar } from "./StageWorkbenchInspectorContextBar";
 import type { StagePresentationPreferences } from "../../../stage/stage-presentation-preferences";
 import type { FlowGraphNode, StudioNode } from "../../store/flow-editor.store";
 import { isScene3dInspectorNodeId } from "../../nodes/scene3d/scene3d-inspector-node-ids";
@@ -142,15 +146,7 @@ export function StageWorkbenchInspectorPanel(props: StageWorkbenchInspectorPanel
     return null;
   }, [boundNode, selectedSceneObject]);
 
-  const secondaryHint = useMemo(() => {
-    if (showObjectPane && objectLabels != null) {
-      return `Transform, material, and geometry for ${objectLabels.objectTitle}.`;
-    }
-    if (flowPaneNode == null) {
-      return "Pick an object on Stage, or select a flow node on the graph.";
-    }
-    return "Flow node inspector — graph wiring and node chrome.";
-  }, [flowPaneNode, objectLabels, showObjectPane]);
+  const stageSnapshot = useStageSceneStore((s) => s.snapshot);
 
   const stageTabs = (
     <TRNTabs
@@ -170,7 +166,17 @@ export function StageWorkbenchInspectorPanel(props: StageWorkbenchInspectorPanel
         </TRNTabsList>
       </div>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className={TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS}>
+        <StageWorkbenchInspectorContextBar
+          activeTab={activeTab}
+          selectionTitle={objectLabels?.objectTitle ?? null}
+          flowNodeLabel={
+            flowPaneNode != null
+              ? flowPaneNode.data.label || flowPaneNode.data.nodeId
+              : null
+          }
+          modelCount={stageSnapshot.models.length}
+        />
         {activeTab === "selection" ? (
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {selectedSceneObject != null ? (
@@ -209,9 +215,6 @@ export function StageWorkbenchInspectorPanel(props: StageWorkbenchInspectorPanel
 
   const secondaryPane = showObjectPane ? (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <p className="shrink-0 border-b border-zinc-800/70 px-2.5 py-1.5 text-[10px] leading-snug text-zinc-500">
-        {secondaryHint}
-      </p>
       <div className="scrollbar-hide flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-1">
         <StageObjectInspectorPanel
           selection={selectedSceneObject!}
@@ -225,9 +228,6 @@ export function StageWorkbenchInspectorPanel(props: StageWorkbenchInspectorPanel
     </div>
   ) : (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <p className="shrink-0 border-b border-zinc-800/70 px-2.5 py-1.5 text-[10px] leading-snug text-zinc-500">
-        {secondaryHint}
-      </p>
       {flowPaneNode != null ? (
         <div className="scrollbar-hide flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-1">
           <NodeInspectorNodeTab
@@ -276,17 +276,7 @@ export function StageWorkbenchInspectorPanel(props: StageWorkbenchInspectorPanel
   );
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-      <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2">
-        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-200/95">
-          <MonitorPlay className="h-3.5 w-3.5 shrink-0 text-violet-400/90" aria-hidden />
-          3D Scene
-        </div>
-        <p className="mt-1 text-[10px] leading-snug text-zinc-500">
-          Stage selection above; object properties or flow wiring below (drag the splitter).
-        </p>
-      </div>
-
+    <div className={TRN_INSPECTOR_PANEL_SHELL_CLASS}>
       <WorkbenchVerticalSplit
         readPrimaryRatio={readStoredStageWorkbenchFlowSplitRatio}
         writePrimaryRatio={writeStoredStageWorkbenchFlowSplitRatio}

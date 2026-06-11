@@ -190,6 +190,128 @@ export function gaugeZoneColor(
   return c;
 }
 
+function gaugeZoneSpan(zones: readonly GaugeDisplayZone[]): { lo: number; hi: number } {
+  if (zones.length === 0) {
+    return { lo: 0, hi: 100 };
+  }
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const z of zones) {
+    lo = Math.min(lo, z.from, z.to);
+    hi = Math.max(hi, z.from, z.to);
+  }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo === hi) {
+    return { lo: 0, hi: 100 };
+  }
+  return { lo, hi };
+}
+
+/** Left-to-right gradient across gauge zones (cyan → amber → red, etc.). */
+export function gaugeZoneSpectrumGradient(zones: readonly GaugeDisplayZone[]): string {
+  const sorted = [...zones].sort((a, b) => a.from - b.from);
+  if (sorted.length === 0) {
+    return "linear-gradient(to right, #f5f5f5, #22d3ee)";
+  }
+  if (sorted.length === 1) {
+    return `linear-gradient(to right, #f5f5f5, ${sorted[0]!.color})`;
+  }
+  const { lo, hi } = gaugeZoneSpan(sorted);
+  const span = hi - lo || 1;
+  const stops: string[] = [];
+  for (const z of sorted) {
+    const startPct = ((Math.max(z.from, lo) - lo) / span) * 100;
+    const endPct = ((Math.min(z.to, hi) - lo) / span) * 100;
+    stops.push(`${z.color} ${startPct.toFixed(1)}%`, `${z.color} ${endPct.toFixed(1)}%`);
+  }
+  return `linear-gradient(to right, ${stops.join(", ")})`;
+}
+
+const GAUGE_STATUS_BAR_LEFT = "#f5f5f5";
+const GAUGE_STATUS_BAR_ACCENT_FALLBACK = "#22d3ee";
+const GAUGE_STATUS_BAR_ACCENT_END_FALLBACK = "#818cf8";
+
+const GAUGE_STATUS_BAR_REASONABLE_SPAN_MAX = 1e8;
+
+/** Infer a display scale when zones are flat or unbounded (Course dashboard text widgets). */
+export function inferNumericDisplayScaleFromUnit(unit: string): { min: number; max: number } {
+  const u = unit.trim().toLowerCase();
+  if (u.includes("%rh") || u === "%" || u.endsWith("%")) {
+    return { min: 0, max: 100 };
+  }
+  if (u.includes("°c") || u === "c" || u.includes("degc")) {
+    return { min: -20, max: 60 };
+  }
+  if (u.includes("hpa") || u.includes("kpa")) {
+    return { min: 950, max: 1050 };
+  }
+  if (u === "m" || u.includes("meter")) {
+    return { min: -500, max: 3000 };
+  }
+  if (u.includes("µt") || u.includes("ut")) {
+    return { min: 0, max: 100 };
+  }
+  if (u === "°" || u.includes("deg")) {
+    return { min: -90, max: 90 };
+  }
+  if (u === "g") {
+    return { min: -2, max: 2 };
+  }
+  return { min: 0, max: 100 };
+}
+
+export function gaugeStatusBarFillRatio(value: number, min: number, max: number): number {
+  const lo = Math.min(min, max);
+  const hi = Math.max(min, max);
+  const span = hi - lo;
+  if (!Number.isFinite(span) || span <= 0 || !Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(1, (value - lo) / span));
+}
+
+/**
+ * Gradient painted on the filled portion of the status bar (not the full track).
+ * Multi-zone configs show the full zone spectrum; flat zones use Course widget-board
+ * gradient tokens when present (`--course-wb-gradient-from` / `--course-wb-gradient-to`).
+ */
+export function gaugeStatusBarFillBackground(
+  zones: GaugeDisplayZone[],
+  value: number | null,
+  options?: {
+    trackFallback?: string;
+  },
+): string {
+  const sorted = [...zones].sort((a, b) => a.from - b.from);
+  const distinctColors = new Set(sorted.map((z) => z.color.trim().toLowerCase()));
+
+  if (sorted.length >= 2 && distinctColors.size >= 2) {
+    return gaugeZoneSpectrumGradient(sorted);
+  }
+
+  const accent =
+    value != null && Number.isFinite(value)
+      ? gaugeZoneColor(zones, value, options?.trackFallback ?? GAUGE_STATUS_BAR_ACCENT_FALLBACK)
+      : options?.trackFallback ?? GAUGE_STATUS_BAR_ACCENT_FALLBACK;
+
+  if (sorted.length <= 1 || distinctColors.size === 1) {
+    return `linear-gradient(to right, ${GAUGE_STATUS_BAR_LEFT} 0%, var(--course-wb-gradient-from, ${accent}) 52%, var(--course-wb-gradient-to, ${GAUGE_STATUS_BAR_ACCENT_END_FALLBACK}) 100%)`;
+  }
+
+  return `linear-gradient(to right, ${GAUGE_STATUS_BAR_LEFT}, ${accent})`;
+}
+
+/** @deprecated Use {@link gaugeStatusBarFillBackground} — kept for tests migrating to fill track. */
+export function gaugeStatusBarBackground(
+  zones: GaugeDisplayZone[],
+  value: number | null,
+  options?: {
+    trackFallback?: string;
+    emptyBackground?: string;
+  },
+): string {
+  return gaugeStatusBarFillBackground(zones, value, options);
+}
+
 export function readGaugeBoolean(raw: unknown, defaultValue: boolean): boolean {
   return typeof raw === "boolean" ? raw : defaultValue;
 }
@@ -319,33 +441,54 @@ export type NumericDisplayConfig = {
   unit: string;
   decimals: number;
   showStatusBar: boolean;
+  min: number;
+  max: number;
   zones: GaugeDisplayZone[];
 };
 
 export function coerceNumericDisplayConfig(dc: Record<string, unknown>): NumericDisplayConfig {
   const decimalsRaw = readGaugeFiniteNumber(dc.decimals, 2);
-  const zones = coerceGaugeDisplayZones(dc.zones);
+  const zones =
+    coerceGaugeDisplayZones(dc.zones).length > 0
+      ? coerceGaugeDisplayZones(dc.zones)
+      : gaugeZonesFromPreset("traffic", 0, 100);
+  const unit = typeof dc.unit === "string" ? dc.unit : "";
+  const hasExplicitMin = dc.min !== undefined && dc.min !== null;
+  const hasExplicitMax = dc.max !== undefined && dc.max !== null;
+  const zoneBounds = numericDisplayZonePresetBoundsFromZones(zones);
+  const zoneSpan = zoneBounds.max - zoneBounds.min;
+  const inferred = inferNumericDisplayScaleFromUnit(unit);
+  const min = hasExplicitMin
+    ? readGaugeFiniteNumber(dc.min, inferred.min)
+    : zoneSpan > 0 && zoneSpan < GAUGE_STATUS_BAR_REASONABLE_SPAN_MAX
+      ? zoneBounds.min
+      : inferred.min;
+  const max = hasExplicitMax
+    ? readGaugeFiniteNumber(dc.max, inferred.max)
+    : zoneSpan > 0 && zoneSpan < GAUGE_STATUS_BAR_REASONABLE_SPAN_MAX
+      ? zoneBounds.max
+      : inferred.max;
   return {
     label: typeof dc.label === "string" ? dc.label : "",
-    unit: typeof dc.unit === "string" ? dc.unit : "",
+    unit,
     decimals: Math.max(0, Math.min(6, Math.round(decimalsRaw))),
     showStatusBar: readGaugeBoolean(dc.showStatusBar, true),
-    zones:
-      zones.length > 0 ? zones : gaugeZonesFromPreset("traffic", 0, 100),
+    min: Math.min(min, max),
+    max: Math.max(min, max),
+    zones,
   };
 }
 
-/** Bounds used when applying zone presets on numeric displays (absolute thresholds). */
-export function numericDisplayZonePresetBounds(cfg: NumericDisplayConfig): {
+function numericDisplayZonePresetBoundsFromZones(zones: readonly GaugeDisplayZone[]): {
   min: number;
   max: number;
 } {
-  if (cfg.zones.length === 0) {
+  if (zones.length === 0) {
     return { min: 0, max: 100 };
   }
   let min = Infinity;
   let max = -Infinity;
-  for (const z of cfg.zones) {
+  for (const z of zones) {
     min = Math.min(min, z.from, z.to);
     max = Math.max(max, z.from, z.to);
   }
@@ -353,6 +496,14 @@ export function numericDisplayZonePresetBounds(cfg: NumericDisplayConfig): {
     return { min: 0, max: 100 };
   }
   return { min, max };
+}
+
+/** Bounds used when applying zone presets on numeric displays (absolute thresholds). */
+export function numericDisplayZonePresetBounds(cfg: NumericDisplayConfig): {
+  min: number;
+  max: number;
+} {
+  return { min: cfg.min, max: cfg.max };
 }
 
 export type KnobConfig = GaugeScaleReadoutConfig & {

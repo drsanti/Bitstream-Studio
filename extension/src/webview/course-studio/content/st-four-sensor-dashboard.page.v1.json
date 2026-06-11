@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "id": "st-four-sensor-dashboard",
+  "title": "Four-sensor dashboard (Workshop Ch6)",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-four-sensor",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "Workshop Ch6 · Capstone",
+      "title": "Four-sensor dashboard",
+      "subtitle": "Climate, pressure, motion, and magnetic field in one live layout — the Course Studio finale after all four sensor chapters."
+    },
+    {
+      "id": "callout-four-sensor",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable all four sensors",
+      "body": "Bitstream or Simulator + Link. Sensor Telemetry: enable SHT40, DPS368, BMI270 (Fusion profile for pitch), and BMM350 MAG — then Apply. Finale demo: move board, then unplug once to show stale styling.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "dash-cap-sht-temp",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 3, "rowSpan": 4 },
+      "title": "SHT40 · Temperature",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "thermometer-mercury",
+        "min": -20,
+        "max": 50,
+        "unit": "°C",
+        "decimals": 1,
+        "showLabel": false,
+        "fillGradientFrom": "#5ee89a",
+        "fillGradientMid": "#34d399",
+        "fillGradientTo": "#fbbf24"
+      },
+      "binding": { "path": "sht40.temp", "fallback": 0, "unit": "°C", "format": "0.0f" }
+    },
+    {
+      "id": "dash-cap-sht-rh",
+      "kind": "dashboard-widget",
+      "placement": { "column": 4, "row": 5, "columnSpan": 3, "rowSpan": 4 },
+      "title": "SHT40 · Humidity",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "droplet-fill",
+        "min": 0,
+        "max": 100,
+        "unit": "%RH",
+        "decimals": 1,
+        "showLabel": false,
+        "fillGradientFrom": "#5ee89a",
+        "fillGradientMid": "#3b82f6",
+        "fillGradientTo": "#f5f5f5"
+      },
+      "binding": { "path": "sht40.rh", "fallback": 0, "unit": "%RH", "format": "0.0f" }
+    },
+    {
+      "id": "dash-cap-dps-pressure",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 4 },
+      "title": "DPS368 · Pressure",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "manometer-column",
+        "min": 900,
+        "max": 1100,
+        "unit": "hPa",
+        "decimals": 2,
+        "showLabel": false,
+        "showScaleTicks": true,
+        "fillGradientFrom": "#5eb8f5",
+        "fillGradientMid": "#38bdf8",
+        "fillGradientTo": "#e0f2fe"
+      },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-cap-bmi-acc",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 9, "columnSpan": 3, "rowSpan": 4 },
+      "title": "BMI270 · |a|",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "battery-segmented",
+        "min": 0,
+        "max": 2,
+        "unit": "g",
+        "decimals": 2,
+        "showLabel": false,
+        "segmentCount": 5,
+        "fillGradientFrom": "#42e8ff",
+        "fillGradientMid": "#22d3ee",
+        "fillGradientTo": "#0891b2"
+      },
+      "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g", "format": "0.00f" }
+    },
+    {
+      "id": "dash-cap-bmi-pitch",
+      "kind": "dashboard-widget",
+      "placement": { "column": 4, "row": 9, "columnSpan": 3, "rowSpan": 4 },
+      "title": "BMI270 · Pitch",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "seven-segment",
+        "min": -90,
+        "max": 90,
+        "unit": "°",
+        "decimals": 1,
+        "showLabel": false
+      },
+      "binding": { "path": "bmi270.pitch", "fallback": 0, "unit": "°", "format": "0.0f" }
+    },
+    {
+      "id": "dash-cap-bmm-compass",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 9, "columnSpan": 3, "rowSpan": 4 },
+      "title": "BMM350 · Heading",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "compass-rose",
+        "min": 0,
+        "max": 360,
+        "unit": "°",
+        "decimals": 0,
+        "showLabel": false,
+        "showCardinals": true,
+        "showDigitalHeading": true,
+        "needleColor": "#b88cff"
+      },
+      "binding": { "path": "bmm350.headingDeg", "fallback": 0, "unit": "°", "format": "0f" }
+    },
+    {
+      "id": "dash-cap-bmm-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 10, "row": 9, "columnSpan": 3, "rowSpan": 4 },
+      "title": "BMM350 · |B|",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "manometer-column",
+        "min": 0,
+        "max": 100,
+        "unit": "µT",
+        "decimals": 1,
+        "showLabel": false,
+        "showScaleTicks": true,
+        "fillGradientFrom": "#b88cff",
+        "fillGradientMid": "#a78bfa",
+        "fillGradientTo": "#e9d5ff"
+      },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "card-st-four-sensor-capstone",
+      "kind": "card",
+      "placement": { "column": 1, "row": 13, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Capstone checklist",
+      "body": "Four sensor labels with correct units.\nConnection state honest (live vs stale).\nTilt board → pitch + |a| respond.\nRotate flat → mag heading / |B| shift.\nCaption: relative mag demo — not calibrated north."
+    },
+    {
+      "id": "md-st-four-sensor-dashboard",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 15, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-four-sensor-dashboard.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

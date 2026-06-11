@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TESAIoT Bitstream Studio — One-Day Training Outline</title>
+<style>
+  :root {
+    --bg:         #0d1117;
+    --bg2:        #161b22;
+    --bg3:        #1c2330;
+    --border:     #30363d;
+    --text:       #e6edf3;
+    --muted:      #8b949e;
+    --accent:     #58a6ff;
+    --accent2:    #79c0ff;
+    --green:      #5ee89a;
+    --blue:       #5eb8f5;
+    --cyan:       #42e8ff;
+    --purple:     #b88cff;
+    --amber:      #f0a84a;
+    --red:        #f47067;
+    --morning:    #f0a84a;
+    --afternoon:  #58a6ff;
+    --tag-bg:     #21262d;
+    --radius:     10px;
+    --radius-sm:  6px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    font-size: 15px;
+  }
+
+  /* ── HEADER ── */
+  .page-header {
+    background: linear-gradient(135deg, #0d1117 0%, #1a2236 50%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 32px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .page-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(88,166,255,.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .logo-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 14px; margin-bottom: 20px;
+  }
+  .logo-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--cyan), var(--accent));
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+    box-shadow: 0 0 24px rgba(66,232,255,.25);
+  }
+  .logo-text { text-align: left; }
+  .logo-text .brand { font-size: 13px; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .logo-text .title { font-size: 22px; font-weight: 700; color: var(--text); line-height: 1.2; }
+
+  h1 { font-size: clamp(24px, 4vw, 36px); font-weight: 800; letter-spacing: -.5px; margin-bottom: 10px; }
+  h1 span { color: var(--cyan); }
+
+  .subtitle { font-size: 16px; color: var(--muted); margin-bottom: 28px; }
+
+  .meta-row {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    justify-content: center; margin-bottom: 0;
+  }
+  .meta-chip {
+    background: var(--tag-bg);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .meta-chip .icon { font-size: 14px; }
+
+  /* ── LAYOUT ── */
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ── SUMMARY TIMELINE ── */
+  .summary-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 40px;
+  }
+  .summary-card h2 {
+    font-size: 14px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 20px;
+  }
+  .timeline { display: flex; flex-direction: column; gap: 0; }
+  .tl-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tl-row:last-child { border-bottom: none; }
+  .tl-time { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tl-label { font-size: 14px; color: var(--text); }
+  .tl-label.break { color: var(--muted); font-style: italic; }
+  .tl-label.lunch { color: var(--amber); }
+  .tl-dur {
+    font-size: 12px; color: var(--muted);
+    background: var(--tag-bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px 10px; white-space: nowrap;
+  }
+  .tl-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    display: inline-block; margin-right: 8px; vertical-align: middle;
+  }
+  .dot-morning { background: var(--morning); box-shadow: 0 0 6px var(--morning); }
+  .dot-afternoon { background: var(--afternoon); box-shadow: 0 0 6px var(--afternoon); }
+  .dot-break { background: var(--border); }
+  .dot-lunch { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .tl-total td { font-weight: 700; color: var(--cyan); padding-top: 8px; }
+
+  /* ── SESSION BANNERS ── */
+  .session-header {
+    display: flex; align-items: center; gap: 16px;
+    padding: 20px 24px; border-radius: var(--radius);
+    margin-bottom: 24px; margin-top: 40px;
+  }
+  .session-header.morning {
+    background: linear-gradient(90deg, rgba(240,168,74,.12) 0%, transparent 100%);
+    border: 1px solid rgba(240,168,74,.25);
+  }
+  .session-header.afternoon {
+    background: linear-gradient(90deg, rgba(88,166,255,.12) 0%, transparent 100%);
+    border: 1px solid rgba(88,166,255,.25);
+  }
+  .session-icon { font-size: 28px; flex-shrink: 0; }
+  .session-info {}
+  .session-info h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .session-info h2.morning-title { color: var(--morning); }
+  .session-info h2.afternoon-title { color: var(--afternoon); }
+  .session-info p { font-size: 14px; color: var(--muted); }
+
+  /* ── SECTION CARDS ── */
+  .section-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .section-header:hover { background: rgba(255,255,255,.03); }
+  .section-num {
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .morning .section-num { background: rgba(240,168,74,.15); color: var(--morning); }
+  .afternoon .section-num { background: rgba(88,166,255,.15); color: var(--afternoon); }
+  .section-title-group { flex: 1; }
+  .section-title { font-size: 16px; font-weight: 700; }
+  .section-time { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .section-badge {
+    font-size: 12px; padding: 3px 10px; border-radius: 999px;
+    background: var(--tag-bg); border: 1px solid var(--border); color: var(--muted);
+    white-space: nowrap;
+  }
+  .chevron { color: var(--muted); font-size: 12px; transition: transform .2s; margin-left: 4px; }
+  .section-card.open .chevron { transform: rotate(90deg); }
+  .section-body { display: none; padding: 20px; }
+  .section-card.open .section-body { display: block; }
+
+  /* ── CONTENT TABLE ── */
+  .content-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .content-table tr { border-bottom: 1px solid var(--border); }
+  .content-table tr:last-child { border-bottom: none; }
+  .content-table td { padding: 10px 12px; vertical-align: top; }
+  .content-table td:first-child {
+    width: 160px; white-space: nowrap;
+    font-weight: 600; color: var(--accent2); font-size: 13px;
+  }
+  .content-table td:last-child { color: var(--text); }
+  .content-table td:last-child code {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 12px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 4px; padding: 1px 5px; color: var(--cyan);
+  }
+
+  /* ── TAKEAWAY BOX ── */
+  .takeaway {
+    margin-top: 14px;
+    background: rgba(66,232,255,.06);
+    border: 1px solid rgba(66,232,255,.2);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-size: 14px; color: var(--cyan);
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .takeaway::before { content: '💡'; font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── LAB BLOCKS ── */
+  .labs-grid { display: flex; flex-direction: column; gap: 14px; }
+  .lab {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  .lab-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .lab-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; padding: 2px 8px; border-radius: 4px;
+  }
+  .lab-sht40  { background: rgba(94,232,154,.15); color: var(--green); border: 1px solid rgba(94,232,154,.3); }
+  .lab-dps368 { background: rgba(94,184,245,.15); color: var(--blue);  border: 1px solid rgba(94,184,245,.3); }
+  .lab-bmm350 { background: rgba(184,140,255,.15); color: var(--purple);border: 1px solid rgba(184,140,255,.3); }
+  .lab-bmi270 { background: rgba(66,232,255,.15);  color: var(--cyan);  border: 1px solid rgba(66,232,255,.3);  }
+  .lab-title { font-size: 14px; font-weight: 600; }
+  .lab-dur { margin-left: auto; font-size: 12px; color: var(--muted);
+    background: var(--tag-bg); border: 1px solid var(--border);
+    border-radius: 999px; padding: 2px 10px; }
+  .lab ul { list-style: none; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .lab li { font-size: 13px; color: var(--muted); padding-left: 16px; position: relative; }
+  .lab li::before { content: '→'; position: absolute; left: 0; color: var(--border); }
+  .lab li strong { color: var(--text); font-weight: 600; }
+  .lab li code {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 1px 5px; color: var(--cyan);
+  }
+
+  /* ── BREAK / LUNCH DIVIDERS ── */
+  .break-divider {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0; margin: 8px 0;
+  }
+  .break-divider .line { flex: 1; height: 1px; background: var(--border); }
+  .break-divider .label {
+    font-size: 13px; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .lunch-divider {
+    background: linear-gradient(90deg, transparent, rgba(240,168,74,.08), transparent);
+    border: 1px solid rgba(240,168,74,.2);
+    border-radius: var(--radius);
+    padding: 14px 24px; text-align: center;
+    margin: 32px 0;
+  }
+  .lunch-divider .title { font-size: 16px; font-weight: 700; color: var(--amber); }
+  .lunch-divider .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+  /* ── SENSOR PILLS ── */
+  .sensor-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .sensor-pill {
+    font-size: 12px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .pill-sht40  { background: rgba(94,232,154,.12); color: var(--green);  border: 1px solid rgba(94,232,154,.25); }
+  .pill-dps368 { background: rgba(94,184,245,.12); color: var(--blue);   border: 1px solid rgba(94,184,245,.25); }
+  .pill-bmi270 { background: rgba(66,232,255,.12);  color: var(--cyan);  border: 1px solid rgba(66,232,255,.25); }
+  .pill-bmm350 { background: rgba(184,140,255,.12); color: var(--purple);border: 1px solid rgba(184,140,255,.25); }
+
+  /* ── CHECKLIST ── */
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .checklist li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14px; color: var(--text); padding: 8px 12px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  }
+  .checklist li .cb {
+    width: 18px; height: 18px; border: 2px solid var(--border); border-radius: 4px;
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* ── INSTRUCTOR NOTES ── */
+  .instructor-notes {
+    background: rgba(240,168,74,.06);
+    border: 1px solid rgba(240,168,74,.2);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-top: 40px;
+  }
+  .instructor-notes h3 {
+    font-size: 13px; font-weight: 700; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--amber); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .instructor-notes ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .instructor-notes li {
+    font-size: 14px; color: var(--muted);
+    padding-left: 16px; position: relative;
+  }
+  .instructor-notes li::before { content: '•'; position: absolute; left: 0; color: var(--amber); }
+  .instructor-notes li strong { color: var(--text); }
+
+  /* ── FOOTER ── */
+  footer {
+    text-align: center; padding: 24px;
+    border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--muted);
+    margin-top: 40px;
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; color: #111; font-size: 13px; }
+    .page-header { background: #f5f7fa; border-color: #ddd; }
+    .section-body { display: block !important; }
+    .chevron { display: none; }
+    .section-header { cursor: default; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    .tl-row { grid-template-columns: 90px 1fr; }
+    .tl-dur { display: none; }
+    .content-table td:first-child { width: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="page-header">
+  <div class="logo-row">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">
+      <div class="brand">TESAIoT · Bitstream Studio</div>
+      <div class="title">One-Day Training Outline</div>
+    </div>
+  </div>
+  <div class="meta-row">
+    <div class="meta-chip"><span class="icon">📅</span> Date: _______________</div>
+    <div class="meta-chip"><span class="icon">📍</span> Venue: _______________</div>
+    <div class="meta-chip"><span class="icon">👥</span> Mixed audience (beginners + engineers)</div>
+    <div class="meta-chip"><span class="icon">⏱</span> ~6 hrs 30 min</div>
+    <div class="meta-chip"><span class="icon">🔌</span> TESAIoT DevKit per station</div>
+  </div>
+</header>
+
+<!-- ═══════════════ CONTAINER ═══════════════ -->
+<main class="container">
+
+  <!-- DAY AT A GLANCE -->
+  <div class="summary-card">
+    <h2>📋 Day at a Glance</h2>
+    <div class="timeline">
+
+      <!-- Morning -->
+      <div class="tl-row">
+        <span class="tl-time">09:00–09:30</span>
+        <span class="tl-label"><span class="tl-dot dot-morning"></span>TESAIoT DevKit &amp; Firmware Stack</span>
+        <span class="tl-dur">30 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">09:30–10:00</span>
+        <span class="tl-label"><span class="tl-dot dot-morning"></span>PSoC Edge AI &amp; Sensors</span>
+        <span class="tl-dur">30 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">10:00–10:30</span>
+        <span class="tl-label"><span class="tl-dot dot-morning"></span>Bitstream Studio Introduction</span>
+        <span class="tl-dur">30 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">10:30–10:45</span>
+        <span class="tl-label break">☕ Break</span>
+        <span class="tl-dur">15 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">10:45–11:30</span>
+        <span class="tl-label"><span class="tl-dot dot-morning"></span>Getting Started with the DevKit</span>
+        <span class="tl-dur">45 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">11:30–12:00</span>
+        <span class="tl-label"><span class="tl-dot dot-morning"></span>TESAIoT Firmware Flasher</span>
+        <span class="tl-dur">30 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">12:00–13:00</span>
+        <span class="tl-label lunch">🍽 Lunch Break</span>
+        <span class="tl-dur">60 min</span>
+      </div>
+
+      <!-- Afternoon -->
+      <div class="tl-row">
+        <span class="tl-time">13:00–13:45</span>
+        <span class="tl-label"><span class="tl-dot dot-afternoon"></span>Sensor Telemetry — Configurator</span>
+        <span class="tl-dur">45 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">13:45–14:30</span>
+        <span class="tl-label"><span class="tl-dot dot-afternoon"></span>Sensor Studio — Node Editor</span>
+        <span class="tl-dur">45 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">14:30–14:45</span>
+        <span class="tl-label break">☕ Break</span>
+        <span class="tl-dur">15 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">14:45–15:30</span>
+        <span class="tl-label"><span class="tl-dot dot-afternoon"></span>Hands-on Labs (SHT40 · DPS368 · BMM350 · BMI270)</span>
+        <span class="tl-dur">45 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">15:30–15:50</span>
+        <span class="tl-label"><span class="tl-dot dot-afternoon"></span>No-Code Dashboard Design</span>
+        <span class="tl-dur">20 min</span>
+      </div>
+      <div class="tl-row">
+        <span class="tl-time">15:50–16:00</span>
+        <span class="tl-label"><span class="tl-dot dot-afternoon"></span>IoT Application Development &amp; Wrap-up</span>
+        <span class="tl-dur">10 min</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ MORNING SESSION ═══ -->
+  <div class="session-header morning">
+    <div class="session-icon">🌅</div>
+    <div class="session-info">
+      <h2 class="morning-title">Morning Session — 09:00–12:00</h2>
+      <p>Goal: Understand the hardware, firmware stack, and tool ecosystem — then get a live connection running with the TESAIoT DevKit.</p>
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <div class="section-card morning open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">1</div>
+      <div class="section-title-group">
+        <div class="section-title">Introduction to TESAIoT DevKit and Firmware Stack</div>
+        <div class="section-time">09:00–09:30</div>
+      </div>
+      <span class="section-badge">30 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>Overview</td><td>What is the TESAIoT DevKit? Board tour: sensors, USB connector, indicator LEDs</td></tr>
+        <tr><td>Firmware stack</td><td>CM55 (application + bitstream protocol) and CM33 (Wi-Fi / RTOS) dual-core architecture; how they communicate over IPC</td></tr>
+        <tr><td>Data path</td><td>On-board sensors → firmware pipeline → BS2 framed protocol → USB UART → host PC</td></tr>
+        <tr><td>Two-way link</td><td>Live readings flow <strong>up</strong>; sensor settings (rate, mode, channel mask) flow <strong>down</strong> on the same link</td></tr>
+        <tr><td>Simulator</td><td>Practice mode for seats without hardware — same four sensors, synthetic motion</td></tr>
+      </table>
+      <div class="takeaway">"The DevKit is always the source of truth. Simulator is the backup, not the default."</div>
+    </div>
+  </div>
+
+  <!-- Section 2 -->
+  <div class="section-card morning open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">2</div>
+      <div class="section-title-group">
+        <div class="section-title">Introduction to PSoC Edge AI and Sensors</div>
+        <div class="section-time">09:30–10:00</div>
+      </div>
+      <span class="section-badge">30 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>PSoC Edge AI</td><td>Infineon PSoC™ Edge: CM55 (ML/inference) + CM33 (connectivity/RTOS) on one die; why dual-core matters for IoT AI applications</td></tr>
+        <tr><td>Four sensors</td><td>
+          <div class="sensor-row">
+            <span class="sensor-pill pill-sht40">SHT40</span>
+            <span class="sensor-pill pill-dps368">DPS368</span>
+            <span class="sensor-pill pill-bmi270">BMI270</span>
+            <span class="sensor-pill pill-bmm350">BMM350</span>
+          </div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)">
+            <div><strong style="color:var(--green)">SHT40</strong> — air temperature (°C) + relative humidity (%RH); I²C slow scalar sensor</div>
+            <div><strong style="color:var(--blue)">DPS368</strong> — barometric pressure (hPa) + chip temperature; weather / altitude applications</div>
+            <div><strong style="color:var(--cyan)">BMI270</strong> — 6-axis IMU: acceleration (m/s²), gyroscope (°/s), fused orientation (pitch/roll/yaw)</div>
+            <div><strong style="color:var(--purple)">BMM350</strong> — 3-axis magnetometer (µT) + chip temperature; compass-style applications</div>
+          </div>
+        </td></tr>
+        <tr><td>Scalar vs vector</td><td>Single-value (SHT40, DPS368) vs three-axis (BMI270, BMM350); vector magnitude <code>√(x²+y²+z²)</code></td></tr>
+        <tr><td>Units and ranges</td><td>Name + number + unit — trainees should always read all three aloud</td></tr>
+      </table>
+      <div class="takeaway">Know which sensor produces which quantity before touching any software.</div>
+    </div>
+  </div>
+
+  <!-- Section 3 -->
+  <div class="section-card morning open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">3</div>
+      <div class="section-title-group">
+        <div class="section-title">Introduction to Bitstream Studio</div>
+        <div class="section-time">10:00–10:30</div>
+      </div>
+      <span class="section-badge">30 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>What it is</td><td>VS Code extension — one workspace, four apps</td></tr>
+        <tr><td>Four apps</td><td>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;font-size:13px;">
+            <div style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+              <strong style="color:var(--cyan)">Sensor Telemetry</strong> — connect the DevKit, view live readings, configure sensors
+            </div>
+            <div style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+              <strong style="color:var(--green)">Sensor Studio</strong> — visual node-based editor: wire sensors → math → dashboard/3D
+            </div>
+            <div style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+              <strong style="color:var(--purple)">Course Studio</strong> — build lesson pages with embedded live widgets
+            </div>
+            <div style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;">
+              <strong style="color:var(--amber)">Applications / Examples</strong> — ready-made flows and dashboards to copy and learn from
+            </div>
+          </div>
+        </td></tr>
+        <tr><td>The journey</td><td><strong style="color:var(--muted)">Connect</strong> → <strong style="color:var(--muted)">Wire</strong> → <strong style="color:var(--muted)">Show</strong> → <strong style="color:var(--muted)">Teach</strong> (trainees may enter at any step)</td></tr>
+        <tr><td>Toolbar</td><td><strong>Bitstream</strong> (DevKit) vs <strong>Simulator</strong> — mutually exclusive; <strong>Link</strong> = live stream on/off</td></tr>
+        <tr><td>Demo</td><td>Open Bitstream Studio, identify each app tab, show the toolbar source selector</td></tr>
+      </table>
+      <div class="takeaway">"One connection, four views — not four separate programs."</div>
+    </div>
+  </div>
+
+  <!-- Break -->
+  <div class="break-divider">
+    <div class="line"></div>
+    <div class="label">☕ Break — 10:30–10:45 (15 min)</div>
+    <div class="line"></div>
+  </div>
+
+  <!-- Section 4 -->
+  <div class="section-card morning open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">4</div>
+      <div class="section-title-group">
+        <div class="section-title">Getting Started with the TESAIoT DevKit</div>
+        <div class="section-time">10:45–11:30</div>
+      </div>
+      <span class="section-badge">45 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>Hardware setup</td><td>USB connection, COM port detection, driver check</td></tr>
+        <tr><td>Connecting</td><td>Toolbar → <strong>Bitstream</strong> → select COM port → <strong>Link</strong></td></tr>
+        <tr><td>First look</td><td>Live deck: four sensor cards updating in real time</td></tr>
+        <tr><td>Lab A</td><td>Cup hands over board — watch SHT40 temperature and humidity rise</td></tr>
+        <tr><td>Lab B</td><td>Tilt the board — watch BMI270 acceleration X/Y/Z shift</td></tr>
+        <tr><td>Connection states</td><td><strong style="color:var(--green)">Live</strong> (streaming) · <strong style="color:var(--amber)">Stale</strong> (frozen, link lost) · <strong style="color:var(--red)">Offline</strong> (not connected) — unplug USB to demonstrate stale</td></tr>
+        <tr><td>Simulator</td><td>Switch to Simulator for any station without hardware — same UI, synthetic data</td></tr>
+      </table>
+      <div class="takeaway">Every trainee has a live reading by the end of this section.</div>
+    </div>
+  </div>
+
+  <!-- Section 5 -->
+  <div class="section-card morning open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">5</div>
+      <div class="section-title-group">
+        <div class="section-title">TESAIoT Firmware Flasher</div>
+        <div class="section-time">11:30–12:00</div>
+      </div>
+      <span class="section-badge">30 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>Why update</td><td>Bug fixes, new sensor modes, protocol version alignment with Bitstream Studio</td></tr>
+        <tr><td>Flasher overview</td><td>Standalone desktop app (<strong>TESAIoT Firmware Flasher</strong>): KitProg3 bridge detection, pick or drag-and-drop <code>app_combined.hex</code>, flash all cores (CM33-S, CM33-NS, CM55) in one pass</td></tr>
+        <tr><td>Flash walkthrough</td><td>Connect DevKit via USB → confirm KitProg3 bridge → select workshop firmware image → <strong>Flash Firmware</strong> → watch per-core progress → review log on success</td></tr>
+        <tr><td>Version check</td><td>Confirm firmware version matches expected BS2 protocol handshake (HELLO in Bitstream Studio after flash)</td></tr>
+        <tr><td>Common pitfalls</td><td>KitProg3 bridge not detected · wrong or stale HEX file · flash aborted mid-program · USB/driver issue · version mismatch causing stale handshake</td></tr>
+        <tr><td>Demo</td><td>Instructor demonstrates one full flash cycle; trainees confirm board version in Sensor Telemetry</td></tr>
+      </table>
+      <div class="takeaway">Firmware and extension version must be aligned — always flash the workshop image and verify before lunch.</div>
+    </div>
+  </div>
+
+  <!-- LUNCH -->
+  <div class="lunch-divider">
+    <div class="title">🍽 Lunch Break</div>
+    <div class="sub">12:00 – 13:00 · 60 minutes</div>
+  </div>
+
+  <!-- ═══ AFTERNOON SESSION ═══ -->
+  <div class="session-header afternoon">
+    <div class="session-icon">🔬</div>
+    <div class="session-info">
+      <h2 class="afternoon-title">Afternoon Session — 13:00–16:00</h2>
+      <p>Goal: Build, wire, and display data — from raw sensor readings to a complete no-code IoT dashboard.</p>
+    </div>
+  </div>
+
+  <!-- Section 6 -->
+  <div class="section-card afternoon open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">6</div>
+      <div class="section-title-group">
+        <div class="section-title">Sensor Telemetry — Sensor Configurator</div>
+        <div class="section-time">13:00–13:45</div>
+      </div>
+      <span class="section-badge">45 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>What to configure</td><td>Enabled (on/off), sampling rate, publish mode (Periodic / On change / Hybrid), channel mask, sensitivity threshold</td></tr>
+        <tr><td>Apply flow</td><td>Change slider → press <strong>Apply</strong> → board acknowledges → live stream reflects new settings</td></tr>
+        <tr><td>BMI270 profiles</td><td><strong>Raw</strong> (accel + gyro axes) · <strong>Fusion</strong> (pitch/roll/yaw) · <strong>All</strong> (both) — switch and observe telemetry deck</td></tr>
+        <tr><td>Rate trade-offs</td><td>High rate = more responsive but more USB bandwidth; low rate + on-change = battery-friendly</td></tr>
+        <tr><td>Hands-on lab</td><td>Lower BMI270 sampling rate → switch to On-change → rotate board → observe burst behaviour; toggle one channel off and verify it disappears from deck</td></tr>
+        <tr><td>Cross-sensor tip</td><td>Disable DPS368 during a temperature-only exercise to reduce noise</td></tr>
+      </table>
+      <div class="takeaway">"Change settings on the card, always press Apply, then confirm the stream responded."</div>
+    </div>
+  </div>
+
+  <!-- Section 7 -->
+  <div class="section-card afternoon open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">7</div>
+      <div class="section-title-group">
+        <div class="section-title">Sensor Studio — Node-Based Editor</div>
+        <div class="section-time">13:45–14:30</div>
+      </div>
+      <span class="section-badge">45 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>Node editor</td><td>Three block types: <strong>Sensor</strong> (source) → <strong>Utility/Math</strong> (transform) → <strong>Output</strong> (display); data flows left to right</td></tr>
+        <tr><td>Work modes</td><td><strong>Wire</strong> (build graph) · <strong>2D</strong> (tune Dashboard HMI) · <strong>3D</strong> (tune Stage / digital twin) · <strong>Twin</strong> (both surfaces)</td></tr>
+        <tr><td>One graph, two faces</td><td>Dashboard Output (2D operator screen) and Stage Output (3D scene) both read from the same flow graph</td></tr>
+        <tr><td>Key nodes</td><td>Sensor input · Math · Map Range · Vector Length · Threshold · Radial Gauge · Dashboard Gauge · Numeric Readout</td></tr>
+        <tr><td>Inspector &amp; Pin</td><td>Click any node to inspect; use <strong>Pin</strong> to lock inspector on a widget while clicking elsewhere</td></tr>
+        <tr><td>Desk layouts</td><td>Named presets: Graph Focus · Dashboard Focus · Stage Focus · Twin Focus — save your own arrangement</td></tr>
+        <tr><td>Hands-on lab</td><td>Add SHT40 node → wire <strong>temperature</strong> to a Radial Gauge → Link the DevKit → confirm live °C update → insert Math node to convert °C → °F</td></tr>
+      </table>
+      <div class="takeaway">"One sensor, one wire, one gauge — get that working before adding anything else."</div>
+    </div>
+  </div>
+
+  <!-- Break -->
+  <div class="break-divider">
+    <div class="line"></div>
+    <div class="label">☕ Break — 14:30–14:45 (15 min)</div>
+    <div class="line"></div>
+  </div>
+
+  <!-- Section 8 -->
+  <div class="section-card afternoon open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">8</div>
+      <div class="section-title-group">
+        <div class="section-title">Working with Individual Sensors — Hands-on Labs</div>
+        <div class="section-time">14:45–15:30</div>
+      </div>
+      <span class="section-badge">45 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Four short paired labs — beginners follow the recipe; engineers add extra math or logic nodes.</p>
+      <div class="labs-grid">
+
+        <div class="lab">
+          <div class="lab-header">
+            <span class="lab-tag lab-sht40">Lab 1</span>
+            <span class="lab-title">Environment Sensor — SHT40</span>
+            <span class="lab-dur">10 min</span>
+          </div>
+          <ul>
+            <li>SHT40 node → <strong>temperature</strong> + <strong>humidity</strong> → two Radial Gauges side by side</li>
+            <li>Add comfort zone: Map Range <code>18–28 °C</code> → 0–100% fill</li>
+            <li>Breathe on the board; watch both values update</li>
+          </ul>
+        </div>
+
+        <div class="lab">
+          <div class="lab-header">
+            <span class="lab-tag lab-dps368">Lab 2</span>
+            <span class="lab-title">Pressure Sensor — DPS368</span>
+            <span class="lab-dur">10 min</span>
+          </div>
+          <ul>
+            <li>DPS368 node → <code>pressureHpa</code> → Numeric Readout + vertical Bar Meter</li>
+            <li>Map Range <code>900–1100 hPa</code> → 0–100% gauge fill (sea-level weather band)</li>
+            <li>Altitude clue: pressure drops ~1.2 hPa per 10 m of elevation</li>
+          </ul>
+        </div>
+
+        <div class="lab">
+          <div class="lab-header">
+            <span class="lab-tag lab-bmm350">Lab 3</span>
+            <span class="lab-title">Magnetometer — BMM350</span>
+            <span class="lab-dur">10 min</span>
+          </div>
+          <ul>
+            <li>BMM350 node → <code>magX / magY / magZ</code> → three Bar Meters (one per axis)</li>
+            <li>Add <strong>Vector Length</strong> node → magnetic field strength readout</li>
+            <li>Slowly rotate the board; axis values shift while strength stays roughly constant</li>
+          </ul>
+        </div>
+
+        <div class="lab">
+          <div class="lab-header">
+            <span class="lab-tag lab-bmi270">Lab 4</span>
+            <span class="lab-title">IMU — BMI270</span>
+            <span class="lab-dur">15 min</span>
+          </div>
+          <ul>
+            <li>BMI270 node (Fusion profile) → <strong>pitch</strong> + <strong>roll</strong> → two Radial Gauges</li>
+            <li>Add <strong>Vector Length</strong> on accel X/Y/Z → magnitude display</li>
+            <li>Insert <strong>Threshold</strong> node (magnitude > <code>15 m/s²</code>) → LED/Status Pill for shake detection</li>
+            <li>Shake the board to trip the threshold</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 9 -->
+  <div class="section-card afternoon open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">9</div>
+      <div class="section-title-group">
+        <div class="section-title">IoT Dashboard Design with No Code</div>
+        <div class="section-time">15:30–15:50</div>
+      </div>
+      <span class="section-badge">20 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>Course Studio</td><td>Pages, widget boards, block types: numeric readout · vertical bar · status pill · LED indicator · hero gauge · infographic skins</td></tr>
+        <tr><td>Theme presets</td><td>EV Compact · Course Amber · Industrial · Telemetry Cyan · Sci-Fi — apply in one click</td></tr>
+        <tr><td>Layout principles</td><td>
+          One color per sensor:
+          <div class="sensor-row" style="margin-top:8px;">
+            <span class="sensor-pill pill-sht40">SHT40 #5ee89a</span>
+            <span class="sensor-pill pill-dps368">DPS368 #5eb8f5</span>
+            <span class="sensor-pill pill-bmi270">BMI270 #42e8ff</span>
+            <span class="sensor-pill pill-bmm350">BMM350 #b88cff</span>
+          </div>
+          <div style="margin-top:6px;font-size:13px;color:var(--muted)">Always show value + unit + connection state</div>
+        </td></tr>
+        <tr><td>Live widgets</td><td>Widget board blocks auto-connect to the same DevKit link — same live stream, polished look</td></tr>
+        <tr><td>Hands-on</td><td>Create a <strong>Four-Sensor Dashboard</strong> page in Course Studio: one region per sensor, captions, units visible; preview with DevKit linked; unplug once to demonstrate stale styling</td></tr>
+      </table>
+      <div class="takeaway">"A Course Studio page is the Sensor Studio graph with a lesson-ready face."</div>
+    </div>
+  </div>
+
+  <!-- Section 10 -->
+  <div class="section-card afternoon open">
+    <div class="section-header" onclick="toggleCard(this)">
+      <div class="section-num">10</div>
+      <div class="section-title-group">
+        <div class="section-title">IoT Application Development &amp; Wrap-up</div>
+        <div class="section-time">15:50–16:00</div>
+      </div>
+      <span class="section-badge">10 min</span>
+      <span class="chevron">▶</span>
+    </div>
+    <div class="section-body">
+      <table class="content-table">
+        <tr><td>Telemetry Provider</td><td>External HTML apps subscribe to live sensor data via WebSocket (<code>ws://127.0.0.1:9997</code>) or postMessage (iframe) — no firmware knowledge required</td></tr>
+        <tr><td>Examples</td><td><code>sht40-climate-dashboard.html</code> · <code>bmi270-motion-dashboard.html</code> · <code>workshop-four-sensor-dashboard.html</code></td></tr>
+        <tr><td>MQTT broker</td><td>Optional local Aedes broker for multi-device or cloud forwarding scenarios</td></tr>
+        <tr><td>For engineers</td><td>BS2 framed protocol · CM55/CM33 IPC reference · Wi-Fi IPC commands · custom firmware nodes</td></tr>
+        <tr><td>Wrap-up</td><td>Capstone checklist: four sensors labeled, units visible, connection state shown, one saved Sensor Studio flow + one saved Course page per trainee</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ STATION CHECKLIST ═══ -->
+  <div class="summary-card" style="margin-top:40px;">
+    <h2>✅ Station Checklist (per trainee)</h2>
+    <ul class="checklist" style="margin-top:4px;">
+      <li><div class="cb"></div>VS Code installed with Bitstream Studio <code>.vsix</code></li>
+      <li><div class="cb"></div>TESAIoT DevKit USB connected, COM port visible</li>
+      <li><div class="cb"></div>Firmware version confirmed (TESAIoT Firmware Flasher)</li>
+      <li><div class="cb"></div>Toolbar → <strong>Bitstream</strong> → <strong>Link</strong> → live readings confirmed</li>
+      <li><div class="cb"></div>Simulator fallback tested (at least once)</li>
+      <li><div class="cb"></div>One Sensor Studio flow saved (SHT40 gauge minimum)</li>
+      <li><div class="cb"></div>One Course Studio dashboard page saved (four-sensor layout)</li>
+    </ul>
+  </div>
+
+  <!-- ═══ INSTRUCTOR NOTES ═══ -->
+  <div class="instructor-notes">
+    <h3>📋 Instructor Notes</h3>
+    <ul>
+      <li><strong>Board first, Simulator honest</strong> — always state which source is active on screen.</li>
+      <li><strong>Apply discipline</strong> — whenever sensors are configured, press Apply and confirm the deck responds before moving on.</li>
+      <li><strong>Mixed audience tip</strong> — beginners follow the recipe nodes; engineers can add Vector Length, Threshold, or Map Range nodes during the same lab time.</li>
+      <li><strong>If a board doesn't connect</strong> — switch to Simulator immediately rather than troubleshooting in front of the class; debug at break.</li>
+      <li><strong>Embedded parallel track</strong> — point engineers to firmware deep-dive sections in sensor theory docs (CH1–CH4 §3–§6) during free time; do not slow the room.</li>
+    </ul>
+  </div>
+
+</main>
+
+<footer>
+  TESAIoT · Bitstream Studio · One-Day Workshop &nbsp;·&nbsp; Mixed Audience &nbsp;·&nbsp; ~6 hrs 30 min
+</footer>
+
+<script>
+  function toggleCard(header) {
+    const card = header.closest('.section-card');
+    card.classList.toggle('open');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "id": "st-dps368-overview",
+  "title": "Overview & physical principles",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-dps368-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "DPS368 · Sensor Theory",
+      "title": "Barometric pressure and derived altitude",
+      "subtitle": "What the DPS368 measures, how hPa relates to height changes, and how live readouts validate barometer behavior."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator and enable DPS368 PRESS (+ optional TMP) in sensor configuration before working through this topic.",
+      "icon": "Info"
+    },
+    {
+      "id": "dash-dps-pressure",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Pressure",
+      "widgetKind": "text",
+      "style": { "label": "", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-dps-alt",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Altitude (derived)",
+      "widgetKind": "text",
+      "style": { "label": "", "unit": "m", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
+    },
+    {
+      "id": "dash-dps-pressure-graphic",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 7, "columnSpan": 6, "rowSpan": 3 },
+      "title": "Sea-level band",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "manometer-column",
+        "min": 900,
+        "max": 1100,
+        "unit": "hPa",
+        "decimals": 2,
+        "showLabel": false,
+        "showScaleTicks": true,
+        "fillGradientFrom": "#5eb8f5",
+        "fillGradientMid": "#38bdf8",
+        "fillGradientTo": "#e0f2fe"
+      },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-dps-alt-graphic",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 7, "columnSpan": 6, "rowSpan": 3 },
+      "title": "Altitude readout",
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "seven-segment",
+        "min": -100,
+        "max": 500,
+        "unit": "m",
+        "decimals": 1,
+        "showLabel": false
+      },
+      "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
+    },
+    {
+      "id": "card-st-dps368-overview",
+      "kind": "card",
+      "placement": { "column": 1, "row": 10, "columnSpan": 12, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "PRESS mask bit enabled.\nBaseline pressure near 1000–1020 hPa indoors.\nLift board ~50 cm — expect no obvious change.\nPressure valid when streaming."
+    },
+    {
+      "id": "md-st-dps368-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-dps368-overview.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

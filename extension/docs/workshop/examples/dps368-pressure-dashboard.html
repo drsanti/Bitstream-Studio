@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DPS368 — barometric pressure</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #152535;
+      --accent: #5eb8f5;
+      --text: #eaf7ff;
+      --muted: #8ca4b8;
+      --track: #243044;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .card {
+      width: min(480px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(94, 184, 245, 0.28);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 14px; line-height: 1.45; }
+    .section { margin-bottom: 14px; }
+    .section:last-of-type { margin-bottom: 0; }
+    .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 11px; }
+    .value { font-size: 13px; color: var(--accent); }
+    .track { height: 12px; background: var(--track); border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; width: 50%; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #000), var(--accent)); border-radius: 999px; transition: width 80ms linear; }
+    .scale { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: var(--muted); }
+    .status { margin-top: 12px; font-size: 10px; color: var(--muted); }
+    .hint { font-size: 10px; color: var(--muted); margin-top: 8px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(720px, 100%); }
+    .panel { background: var(--panel); border: 1px solid rgba(94, 184, 245, 0.22); border-radius: 12px; padding: 14px; }
+    .panel h2 { margin: 0 0 6px; font-size: 13px; }
+    .page-header { width: min(720px, 100%); margin-bottom: 10px; }
+    .page-header h1 { font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Air pressure (DPS368)</h1>
+    <p class="meta">Sea-level band 900–1100 hPa · typical room air ≈ 1013 hPa</p>
+    <div class="section">
+      <div class="row"><span>Pressure</span><span class="value" id="press-val">—</span></div>
+      <div class="track"><div class="fill" id="press-fill"></div></div>
+      <div class="scale"><span>900</span><span id="press-pct">—</span><span>1100 hPa</span></div>
+    </div>
+    <div class="section">
+      <div class="row"><span>Chip temperature</span><span class="value" id="chip-temp">—</span></div>
+    </div>
+    <p class="status" id="status">Waiting for telemetry…</p>
+  </div>
+  <script>
+    (function () {
+      "use strict";
+
+      function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+      function valueToPercent(value, min, max) {
+        if (max <= min) return 0;
+        return clamp(((value - min) / (max - min)) * 100, 0, 100);
+      }
+      function bindTransport(clientId, onEnvelope) {
+        window.addEventListener("message", function (event) {
+          var msg = event.data;
+          if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+          if (msg.type.indexOf("bitstream:") !== 0) return;
+          onEnvelope(msg);
+        });
+        var mockTimer = null;
+        function startMock(tick) {
+          if (mockTimer != null) return;
+          var t0 = Date.now();
+          mockTimer = window.setInterval(function () {
+            tick((Date.now() - t0) / 1000);
+          }, 500);
+        }
+        function stopMock() {
+          if (mockTimer == null) return;
+          window.clearInterval(mockTimer);
+          mockTimer = null;
+        }
+        function connectWs() {
+          var ws;
+          try { ws = new WebSocket("ws://127.0.0.1:9997"); } catch (e) { startMock(function () {}); return; }
+          ws.addEventListener("open", function () { stopMock(); });
+          ws.addEventListener("message", function (ev) {
+            var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+            if (!msg || msg.v !== 1) return;
+            onEnvelope(msg);
+          });
+          ws.addEventListener("close", function () {
+            window.setTimeout(connectWs, 2000);
+          });
+          ws.addEventListener("error", function () { ws.close(); });
+        }
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            { type: "bitstream:ready", v: 1, payload: { clientId: clientId } },
+            "*"
+          );
+        } else {
+          connectWs();
+        }
+        return { startMock: startMock, stopMock: stopMock };
+      }
+
+
+      var pMin = 900, pMax = 1100;
+      var statusEl = document.getElementById("status");
+      var live = false;
+      function paintPress(v) {
+        var pct = valueToPercent(v, pMin, pMax);
+        document.getElementById("press-fill").style.width = pct.toFixed(1) + "%";
+        document.getElementById("press-pct").textContent = pct.toFixed(0) + "%";
+        document.getElementById("press-val").textContent = v.toFixed(1) + " hPa";
+      }
+      function onSample(p) {
+        if (!p || p.sensor !== "dps368") return;
+        var pr = p.fields && p.fields.pressureHpa;
+        var tc = p.fields && p.fields.temperatureC;
+        if (typeof pr === "number") paintPress(pr);
+        if (typeof tc === "number") document.getElementById("chip-temp").textContent = tc.toFixed(1) + " °C";
+        live = true;
+        statusEl.textContent = "Live · TESAIoT DevKit or Simulator";
+      }
+      var transport = bindTransport("workshop-dps368-pressure", function (msg) {
+        if (msg.type === "bitstream:sample") onSample(msg.payload);
+      });
+      transport.startMock(function (t) {
+        if (live) return;
+        statusEl.textContent = "Mock · connect Bitstream + Link for live data";
+        paintPress(1013 + Math.sin(t * 0.25) * 6);
+        document.getElementById("chip-temp").textContent = (26 + Math.sin(t * 0.2)).toFixed(1) + " °C";
+      });
+
+    })();
+  </script>
+</body>
+</html>

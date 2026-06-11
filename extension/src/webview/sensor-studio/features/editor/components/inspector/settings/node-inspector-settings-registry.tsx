@@ -75,6 +75,9 @@ import { DashboardKnobSettingsSection } from "./sections/DashboardKnobSettingsSe
 import { DashboardSliderSettingsSection } from "./sections/DashboardSliderSettingsSection";
 import { DashboardStatusSettingsSection } from "./sections/DashboardStatusSettingsSection";
 import { DashboardSwitchSettingsSection } from "./sections/DashboardSwitchSettingsSection";
+import { DashboardSelectSettingsSection } from "./sections/DashboardSelectSettingsSection";
+import { DashboardFormattedTextSettingsSection } from "./sections/DashboardFormattedTextSettingsSection";
+import { DashboardImageSettingsSection } from "./sections/DashboardImageSettingsSection";
 import { IndicatorDashboardSettingsSection } from "./sections/IndicatorDashboardSettingsSection";
 import { DashboardThemeNodeSettingsSection } from "./sections/DashboardThemeNodeSettingsSection";
 import { DashboardLedSettingsSection } from "./sections/DashboardLedSettingsSection";
@@ -119,6 +122,9 @@ export const NODE_INSPECTOR_SETTINGS_SECTION_BY_NODE_ID: Partial<
   "dashboard-gauge": DashboardGaugeSettingsSection,
   "dashboard-knob": DashboardKnobSettingsSection,
   "dashboard-switch": DashboardSwitchSettingsSection,
+  "dashboard-select": DashboardSelectSettingsSection,
+  "dashboard-formatted-text": DashboardFormattedTextSettingsSection,
+  "dashboard-image": DashboardImageSettingsSection,
   "dashboard-slider": DashboardSliderSettingsSection,
   "dashboard-status": DashboardStatusSettingsSection,
   "dashboard-group": DashboardGroupSettingsSection,

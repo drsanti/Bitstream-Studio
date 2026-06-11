@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bitstream Workshop — Design System v3</title>
+  <style>
+    /* ══════════════════════════════════════════
+       BITSTREAM WORKSHOP — DESIGN SYSTEM v3
+       Theme: Blender gray + teal/violet accent
+
+       CHANGELOG v3.1:
+       - Nav dots: inactive #2e2e2e+border · done accent fill · active accent-light+glow
+       - Skeleton bars: normal #2a2a2a · accent highlight #1fb899 solid (Option D)
+       - Sensor cards: #333333 (teal) · BMM350 #2a2535 (dark violet tint)
+
+       CHANGELOG v3:
+       - Accent   #42e8ff → #16826e  (dark teal)
+       - Secondary #a080ff → #7a56e3  (violet)
+       - Success  #00e87a → #05b562  (green)
+       - Surface  #212121 → #303030
+       - Panel    #272727 → #404040
+       - Raised   #2e2e2e → #505050
+       - Track    #383838 → #606060
+       - text-lo upgraded to #b0b0b0 for legibility on darker panels
+       - Accent interactive tint uses lightened #1fb899 for text-on-dark
+    ══════════════════════════════════════════ */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: #0e0e0e;
+      color: #d8d8d8;
+      padding: 28px 20px;
+      line-height: 1.5;
+    }
+
+    /* ── Section labels ── */
+    .section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: #4a9e8a;
+      margin-bottom: 14px; margin-top: 32px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content:''; flex: 1; height: 1px; background: rgba(255,255,255,0.07); }
+    .section-label:first-child { margin-top: 0; }
+
+    /* ══════════════════════════════════════════
+       COLOR TOKENS
+
+       Background stack (near-black):
+         --bg        #0e0e0e   Page background
+         --surface   #141414   Main content area, wireframe body
+         --panel     #1a1a1a   Cards, panels
+         --raised    #202020   Nav bar, elevated elements
+         --track     #2e2e2e   Progress track, input bg
+         --code-bg   #080808   Code block background
+
+       Borders:
+         --border    rgba(255,255,255,0.08)
+
+       Accent:
+         --accent        #16826e   Primary teal (use lightened #1fb899 for text-on-dark)
+         --accent-light  #1fb899   Lighter tint — use for text/icons on dark bg
+         --secondary     #7a56e3   Violet
+         --secondary-lt  #a080ff   Lighter violet — for text on dark
+
+       Semantic:
+         --success   #05b562   Green — Live / OK
+         --warning   #ffb400   Amber — Mock / caution
+         --error     #ff5252   Red   — Error / stale
+
+       Text:
+         --text-hi   #ececec   High emphasis (~13:1 on --bg)
+         --text-lo   #b0b0b0   Low emphasis  (~6:1 on --bg)
+         --text-muted #888888  Disabled/meta (~4:1 on --bg)
+    ══════════════════════════════════════════ */
+    :root {
+      --bg:           #0e0e0e;
+      --surface:      #141414;
+      --panel:        #1a1a1a;
+      --raised:       #202020;
+      --track:        #2e2e2e;
+      --code-bg:      #080808;
+      --border:       rgba(255,255,255,0.08);
+
+      --accent:       #16826e;
+      --accent-light: #1fb899;
+      --secondary:    #7a56e3;
+      --secondary-lt: #a080ff;
+      --success:      #05b562;
+      --warning:      #ffb400;
+      --error:        #ff5252;
+
+      --text-hi:    #ececec;
+      --text-lo:    #b0b0b0;
+      --text-muted: #888888;
+    }
+
+    /* ── Palette showcase ── */
+    .palette { display: flex; gap: 10px; flex-wrap: wrap; }
+    .swatch { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 10px; color: #888; }
+    .swatch-block { width: 58px; height: 44px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.07); }
+    .swatch code { font-size: 9px; font-family: 'Fira Code', monospace; color: #aaa; }
+
+    /* ══════════════════════════════════════════
+       TYPOGRAPHY SCALE
+       Hero   28px / 800 / -0.02em
+       H1     20px / 700
+       H2     15px / 600
+       Body   13px / 400  — #b8b8b8
+       Code   11px / mono — var(--accent-light)
+       Caption 10px / 400 — #888
+    ══════════════════════════════════════════ */
+    .type-row {
+      display: flex; align-items: baseline; gap: 16px; margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 10px;
+    }
+    .type-label { font-size: 10px; color: #666; width: 80px; flex-shrink: 0; }
+    .t-hero    { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-hi); }
+    .t-h1      { font-size: 20px; font-weight: 700; color: var(--text-hi); }
+    .t-h2      { font-size: 15px; font-weight: 600; color: #ddd; }
+    .t-body    { font-size: 13px; color: #b8b8b8; }
+    .t-code    { font-size: 12px; font-family: 'Fira Code', monospace; color: var(--accent-light); }
+    .t-caption { font-size: 10px; color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════
+       BADGES  (border-radius: 4px — flat Blender style)
+
+       Accent text on dark bg: use --accent-light (#1fb899)
+       not --accent (#16826e) which lacks contrast on dark panels.
+    ══════════════════════════════════════════ */
+    .badge {
+      font-size: 9px; font-weight: 700; padding: 3px 9px;
+      border-radius: 4px; text-transform: uppercase; letter-spacing: 0.07em;
+    }
+    .badge-accent   { background: rgba(22,130,110,0.18); color: #1fb899;  border: 1px solid rgba(22,130,110,0.35); }
+    .badge-secondary{ background: rgba(122,86,227,0.18); color: #a080ff;  border: 1px solid rgba(122,86,227,0.35); }
+    .badge-live     { background: rgba(5,181,98,0.15);   color: #05e87a;  border: 1px solid rgba(5,181,98,0.30); }
+    .badge-mock     { background: rgba(255,180,0,0.12);  color: #ffb400;  border: 1px solid rgba(255,180,0,0.25); }
+    .badge-stale    { background: rgba(255,82,82,0.12);  color: #ff7070;  border: 1px solid rgba(255,82,82,0.25); }
+    .badge-sensor   { background: rgba(255,255,255,0.06); color: var(--text-lo); border: 1px solid rgba(255,255,255,0.10); }
+    .badge-row { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    /* ══════════════════════════════════════════
+       PAGE LAYOUT — THREE-PANEL
+       Nav bar     → --raised  #505050
+       Sidebar     → --bg      #1a1a1a
+       Content bg  → --surface #303030
+       Card/panel  → --panel   #404040
+       Footer      → --bg      #1a1a1a
+    ══════════════════════════════════════════ */
+    .wireframe {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; font-size: 11px;
+    }
+    .wf-nav {
+      background: var(--raised); border-bottom: 1px solid var(--border);
+      padding: 10px 18px; display: flex; align-items: center; gap: 12px;
+    }
+    .wf-logo { font-size: 13px; font-weight: 700; color: #4a9e8a; }
+    .wf-nav-dots { display: flex; gap: 5px; margin-left: auto; }
+    .wf-dot { width: 7px; height: 7px; border-radius: 50%; background: #252525; border: 1px solid rgba(255,255,255,0.08); }
+    .wf-dot.done { background: #0d4a3e; border-color: rgba(22,130,110,0.4); }
+    .wf-dot.active { background: var(--accent); border-color: var(--accent); }
+    .wf-body { display: flex; min-height: 260px; }
+    .wf-sidebar {
+      width: 160px; flex-shrink: 0; background: var(--bg);
+      border-right: 1px solid var(--border);
+      padding: 14px 10px; display: flex; flex-direction: column; gap: 3px;
+    }
+    .wf-chapter {
+      padding: 6px 10px; border-radius: 5px; color: var(--text-muted);
+      font-size: 10px; font-weight: 500; display: flex; align-items: center; gap: 7px; opacity: 0.6;
+    }
+    .wf-chapter.active { background: rgba(22,130,110,0.15); color: var(--accent-light); opacity: 1; }
+    .ch-num {
+      width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0;
+      background: rgba(255,255,255,0.08); color: var(--text-muted);
+      font-size: 9px; font-weight: 700; display: flex; align-items: center; justify-content: center;
+    }
+    .wf-chapter.active .ch-num { background: var(--accent); color: #fff; }
+    .wf-main { flex: 1; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+    .wf-tab-bar { display: flex; border-bottom: 1px solid var(--border); }
+    .wf-tab {
+      padding: 5px 12px; font-size: 10px; color: var(--text-muted);
+      border-bottom: 2px solid transparent; margin-bottom: -1px;
+    }
+    .wf-tab.active { color: var(--accent-light); border-bottom-color: var(--accent-light); }
+    .wf-content-block {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 6px; padding: 14px;
+    }
+    .wf-skeleton { height: 7px; border-radius: 3px; background: #1e1e1e; margin-bottom: 6px; }
+    .wf-skeleton.accent { background: rgba(31,184,153,0.25); }
+    .wf-demo-row { display: flex; gap: 8px; }
+    .wf-gauge {
+      flex: 1; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px; text-align: center; font-size: 9px; color: var(--text-muted);
+    }
+    .wf-gauge-bar { height: 5px; background: var(--track); border-radius: 3px; margin: 6px 0; overflow: hidden; }
+    .wf-gauge-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #093028, var(--accent)); }
+    .wf-footer {
+      background: var(--bg); border-top: 1px solid var(--border);
+      padding: 7px 18px; font-size: 9px; color: var(--text-muted);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .wf-progress { display: flex; gap: 3px; }
+    .wf-prog-seg { width: 18px; height: 3px; border-radius: 99px; background: rgba(255,255,255,0.08); }
+    .wf-prog-seg.done { background: var(--accent); }
+    .wf-prog-seg.curr { background: rgba(22,130,110,0.4); }
+
+    /* ══════════════════════════════════════════
+       SENSOR GAUGE CARD
+       Accent fill  → teal gradient (BMI270, SHT40, DPS368)
+       Secondary fill → violet gradient (BMM350)
+    ══════════════════════════════════════════ */
+    .demo-card {
+      background: #161616; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px; padding: 13px;
+    }
+    .demo-card.secondary {
+      background: #130f1e;
+    }
+    .card-tag {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 8px;
+    }
+    .sensor-label { font-size: 10px; color: var(--text-lo); margin-bottom: 5px; display: flex; justify-content: space-between; }
+    .track { height: 8px; background: #383838; border-radius: 3px; overflow: hidden; margin-bottom: 3px; }
+    .fill-accent { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #093028, #16826e); transition: width 80ms; }
+    .fill-secondary { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #22105a, #7a56e3); transition: width 80ms; }
+    .scale-row { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-muted); }
+
+    /* ══════════════════════════════════════════
+       CODE BLOCK
+         .kw  → --secondary-lt #a080ff  (keywords)
+         .fn  → --accent-light #1fb899  (functions/fields)
+         .str → #7ec994                 (strings)
+         .cmt → --text-muted  #888      (comments)
+         .num → --warning     #ffb400   (numbers)
+    ══════════════════════════════════════════ */
+    .code-block {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 14px; overflow: auto;
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 11px; line-height: 1.7;
+    }
+    .code-block .kw  { color: var(--secondary-lt); }
+    .code-block .fn  { color: var(--accent-light); }
+    .code-block .str { color: #7ec994; }
+    .code-block .cmt { color: var(--text-muted); }
+    .code-block .num { color: var(--warning); }
+
+    /* ══════════════════════════════════════════
+       ARCHITECTURE FLOW
+    ══════════════════════════════════════════ */
+    .arch-flow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .arch-node {
+      background: #141414; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 5px; padding: 7px 12px;
+      font-size: 10px; font-weight: 600; color: #909090; text-align: center;
+    }
+    .arch-node.accent { background: #0e2520; border-color: rgba(22,130,110,0.30); color: var(--accent-light); }
+    .arch-arrow { color: var(--text-muted); font-size: 14px; }
+
+    /* ══════════════════════════════════════════
+       WITHIN-CHAPTER TAB BAR
+       Active: white text on --accent background
+    ══════════════════════════════════════════ */
+    .tab-bar { display: flex; gap: 2px; background: var(--surface); padding: 4px; border-radius: 6px; }
+    .tab { padding: 5px 13px; border-radius: 4px; font-size: 10px; cursor: pointer; color: var(--text-muted); }
+    .tab.act { color: #fff; background: var(--accent); font-weight: 700; }
+
+    /* ══════════════════════════════════════════
+       CHAPTER NAVIGATION ITEM
+    ══════════════════════════════════════════ */
+    .chapter-badge {
+      display: flex; align-items: center; gap: 8px; padding: 9px 13px;
+      background: #141414; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 7px; font-size: 10px;
+    }
+    .chapter-badge .num {
+      width: 18px; height: 18px; border-radius: 3px; background: var(--accent);
+      color: #fff; font-size: 9px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .chapter-badge .name { font-weight: 600; color: #ccc; }
+    .chapter-badge .sub  { font-size: 9px; color: var(--text-muted); }
+    .chapters-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ COLOR PALETTE ══ -->
+<div class="section-label">Color Palette — v3</div>
+<div class="palette">
+  <div class="swatch"><div class="swatch-block" style="background:#161616"></div><code>#161616</code><span>Code BG</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#1a1a1a"></div><code>#1a1a1a</code><span>Background</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#242424"></div><code>#242424</code><span>Surface</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#2e2e2e"></div><code>#2e2e2e</code><span>Panel / Raised</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#606060"></div><code>#606060</code><span>Track</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#16826e"></div><code>#16826e</code><span>Accent</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#1fb899"></div><code>#1fb899</code><span>Accent Lt</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#7a56e3"></div><code>#7a56e3</code><span>Secondary</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#a080ff"></div><code>#a080ff</code><span>Second Lt</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#05b562"></div><code>#05b562</code><span>Success</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#ffb400"></div><code>#ffb400</code><span>Warning</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#ff5252"></div><code>#ff5252</code><span>Error</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#ececec"></div><code>#ececec</code><span>Text Hi</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#b0b0b0"></div><code>#b0b0b0</code><span>Text Lo</span></div>
+  <div class="swatch"><div class="swatch-block" style="background:#888888"></div><code>#888888</code><span>Muted</span></div>
+</div>
+
+<!-- ══ TYPOGRAPHY ══ -->
+<div class="section-label">Typography Scale</div>
+<div class="type-row"><span class="type-label">Hero / Title</span><span class="t-hero">Bitstream Telemetry</span></div>
+<div class="type-row"><span class="type-label">H1 / Chapter</span><span class="t-h1">Chapter 2 · Event Model</span></div>
+<div class="type-row"><span class="type-label">H2 / Section</span><span class="t-h2">Subscribing to bitstream:sample</span></div>
+<div class="type-row"><span class="type-label">Body</span><span class="t-body">Each decoded sensor frame arrives as a human-scale payload.</span></div>
+<div class="type-row"><span class="type-label">Code</span><span class="t-code">payload.fields.temperatureC</span></div>
+<div class="type-row" style="border:none"><span class="type-label">Caption</span><span class="t-caption">BMI270 · gyroX · rad/s · min −5 / max +5</span></div>
+
+<!-- ══ BADGES ══ -->
+<div class="section-label">Status Badges</div>
+<div class="badge-row">
+  <span class="badge badge-live">● Live</span>
+  <span class="badge badge-mock">◐ Mock</span>
+  <span class="badge badge-stale">⚠ Stale</span>
+  <span class="badge badge-accent">R0 Events</span>
+  <span class="badge badge-secondary">R1 Commands</span>
+  <span class="badge badge-sensor">BMI270</span>
+  <span class="badge badge-sensor">SHT40</span>
+  <span class="badge badge-sensor">DPS368</span>
+  <span class="badge badge-sensor">BMM350</span>
+</div>
+
+<!-- ══ LAYOUT WIREFRAME ══ -->
+<div class="section-label">Page Layout Wireframe</div>
+<div class="wireframe">
+  <div class="wf-nav">
+    <span class="wf-logo">⚡ Bitstream Workshop</span>
+    <span style="font-size:10px;color:#666;margin-left:8px">IoT &amp; Industry 4.0 · Hands-On</span>
+    <div class="wf-nav-dots">
+      <div class="wf-dot done"></div>
+      <div class="wf-dot active"></div>
+      <div class="wf-dot"></div><div class="wf-dot"></div><div class="wf-dot"></div>
+    </div>
+  </div>
+  <div class="wf-body">
+    <div class="wf-sidebar">
+      <div class="wf-chapter" style="opacity:1;color:#666">
+        <div class="ch-num" style="background:rgba(5,181,98,0.2);color:#05e87a">✓</div><span>Intro</span>
+      </div>
+      <div class="wf-chapter active"><div class="ch-num">2</div><span>Event Model</span></div>
+      <div class="wf-chapter"><div class="ch-num">3</div><span>Connect</span></div>
+      <div class="wf-chapter"><div class="ch-num">4</div><span>Node Editor</span></div>
+      <div class="wf-chapter"><div class="ch-num">5</div><span>Pipelines</span></div>
+      <div class="wf-chapter"><div class="ch-num">6</div><span>Dashboard</span></div>
+      <div style="margin-top:auto;padding:6px 4px;font-size:9px;color:#555">
+        <div style="background:#1a1a1a;border-radius:4px;padding:5px 8px;border:1px solid rgba(255,255,255,0.06)">
+          <div style="display:flex;justify-content:space-between"><span>Progress</span><span style="color:#4a9e8a">2/6</span></div>
+          <div style="height:3px;background:#0e0e0e;border-radius:99px;margin-top:5px;overflow:hidden">
+            <div style="height:100%;width:33%;background:#16826e;border-radius:99px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="wf-main">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge badge-accent">Chapter 2</span>
+        <span style="font-size:13px;font-weight:700;color:#eee">The Bitstream Event Model</span>
+        <span class="badge badge-secondary" style="margin-left:4px">Theory</span>
+      </div>
+      <div class="wf-tab-bar">
+        <div class="wf-tab">Intro</div>
+        <div class="wf-tab active">Theory</div>
+        <div class="wf-tab">Demo</div>
+        <div class="wf-tab">Use Cases</div>
+        <div class="wf-tab">Summary</div>
+      </div>
+      <div class="wf-content-block">
+        <div class="wf-skeleton" style="width:100%"></div>
+        <div class="wf-skeleton" style="width:78%"></div>
+        <div class="wf-skeleton accent" style="width:100%"></div>
+        <div class="wf-skeleton" style="width:55%"></div>
+        <div class="wf-skeleton" style="width:70%"></div>
+      </div>
+      <div class="wf-demo-row">
+        <div class="wf-gauge">
+          <div style="color:#1fb899;font-weight:700;font-size:10px;margin-bottom:3px">gyroX</div>
+          <div class="wf-gauge-bar"><div class="wf-gauge-fill" style="width:62%"></div></div>
+          <div>0.52 rad/s</div>
+        </div>
+        <div class="wf-gauge">
+          <div style="color:#1fb899;font-weight:700;font-size:10px;margin-bottom:3px">tempC</div>
+          <div class="wf-gauge-bar"><div class="wf-gauge-fill" style="width:78%"></div></div>
+          <div>24.6 °C</div>
+        </div>
+        <div class="wf-gauge">
+          <div style="color:#1fb899;font-weight:700;font-size:10px;margin-bottom:3px">humidity</div>
+          <div class="wf-gauge-bar"><div class="wf-gauge-fill" style="width:48%"></div></div>
+          <div>48.2 %RH</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wf-footer">
+    <span>ws://127.0.0.1:9997 · <span class="badge badge-live" style="font-size:8px;padding:1px 6px">● Live</span></span>
+    <div class="wf-progress">
+      <div class="wf-prog-seg done"></div>
+      <div class="wf-prog-seg curr"></div>
+      <div class="wf-prog-seg"></div><div class="wf-prog-seg"></div><div class="wf-prog-seg"></div>
+    </div>
+    <span>← Prev &nbsp; Next →</span>
+  </div>
+</div>
+
+<!-- ══ SENSOR GAUGE CARDS ══ -->
+<div class="section-label">Sensor Gauge Cards — All Four Sensors</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">
+  <div class="demo-card">
+    <div class="card-tag">BMI270 · Gyro X</div>
+    <div class="sensor-label"><span>gyroX</span><span style="color:#1fb899">0.52 rad/s</span></div>
+    <div class="track"><div class="fill-accent" style="width:55%"></div></div>
+    <div class="scale-row"><span>-5</span><span>55%</span><span>+5</span></div>
+  </div>
+  <div class="demo-card">
+    <div class="card-tag">SHT40 · Humidity</div>
+    <div class="sensor-label"><span>humidityPct</span><span style="color:#1fb899">48.2 %RH</span></div>
+    <div class="track"><div class="fill-accent" style="width:48%"></div></div>
+    <div class="scale-row"><span>0</span><span>48%</span><span>100</span></div>
+  </div>
+  <div class="demo-card">
+    <div class="card-tag">DPS368 · Pressure</div>
+    <div class="sensor-label"><span>pressureHpa</span><span style="color:#1fb899">1013 hPa</span></div>
+    <div class="track"><div class="fill-accent" style="width:65%"></div></div>
+    <div class="scale-row"><span>900</span><span>65%</span><span>1100</span></div>
+  </div>
+  <div class="demo-card secondary">
+    <div class="card-tag">BMM350 · Mag X</div>
+    <div class="sensor-label"><span>magX</span><span style="color:#a080ff">−18.4 µT</span></div>
+    <div class="track"><div class="fill-secondary" style="width:41%"></div></div>
+    <div class="scale-row"><span>-200</span><span>41%</span><span>200</span></div>
+  </div>
+</div>
+
+<!-- ══ CODE BLOCK ══ -->
+<div class="section-label">Code Block</div>
+<div class="code-block" style="max-width:560px">
+  <span class="cmt">// bitstream:sample — fields are human-scale</span><br>
+  <span class="kw">if</span> (payload.<span class="fn">sensor</span> === <span class="str">"sht40"</span>) {<br>
+  &nbsp;&nbsp;<span class="kw">const</span> pct = <span class="fn">clamp</span>(payload.fields.<span class="fn">humidityPct</span>, <span class="num">0</span>, <span class="num">100</span>);<br>
+  &nbsp;&nbsp;barEl.style.width = pct + <span class="str">"%"</span>;<br>
+  }
+</div>
+
+<!-- ══ ARCHITECTURE FLOW ══ -->
+<div class="section-label">Architecture Flow</div>
+<div class="arch-flow">
+  <div class="arch-node">Device / Simulator</div>
+  <div class="arch-arrow">→</div>
+  <div class="arch-node">Bridge (9998)</div>
+  <div class="arch-arrow">→</div>
+  <div class="arch-node accent">Telemetry Provider<br><span style="font-size:9px;opacity:0.6">ws://9997</span></div>
+  <div class="arch-arrow">→</div>
+  <div class="arch-node">postMessage<br><span style="font-size:9px;opacity:0.6">iframe</span></div>
+  <div class="arch-arrow">→</div>
+  <div class="arch-node">Your Dashboard</div>
+</div>
+
+<!-- ══ TAB BAR ══ -->
+<div class="section-label">Within-Chapter Tab Bar</div>
+<div class="tab-bar" style="max-width:480px">
+  <div class="tab">Intro</div>
+  <div class="tab act">Theory</div>
+  <div class="tab">Live Demo</div>
+  <div class="tab">Use Cases</div>
+  <div class="tab">Summary</div>
+</div>
+
+<!-- ══ CHAPTER NAVIGATION ══ -->
+<div class="section-label">Chapter Navigation Items</div>
+<div class="chapters-row">
+  <div class="chapter-badge"><div class="num">1</div><div><div class="name">Introduction &amp; Architecture</div><div class="sub">IoT context · Bitstream Studio overview</div></div></div>
+  <div class="chapter-badge"><div class="num">2</div><div><div class="name">Sensor Telemetry — Live Data</div><div class="sub">Read &amp; visualize all sensor streams</div></div></div>
+  <div class="chapter-badge"><div class="num">3</div><div><div class="name">Sensor Configuration</div><div class="sub">Sampling rate · publish mode · channels</div></div></div>
+  <div class="chapter-badge"><div class="num">4</div><div><div class="name">Sensor Studio — Node Editor</div><div class="sub">Nodes · wires · first pipeline</div></div></div>
+  <div class="chapter-badge"><div class="num">5</div><div><div class="name">Building Pipelines</div><div class="sub">Math nodes · multi-sensor flows · I4.0</div></div></div>
+  <div class="chapter-badge"><div class="num">6</div><div><div class="name">Custom HTML Dashboard</div><div class="sub">All 4 sensors · live gauges · mock fallback</div></div></div>
+</div>
+
+</body>
+</html>

@@ -27,6 +27,24 @@ export function cloneCourse(course: CourseV1): CourseV1 {
   };
 }
 
+/**
+ * Topics with subtopic children must not retain a leaf `pageId` (session merge / UI draft fixup).
+ */
+export function sanitizeCourseOutline(course: CourseV1): CourseV1 {
+  const next = cloneCourse(course);
+  walkCourseNodes(next.root, (node) => {
+    if (node.kind !== "topic") {
+      return;
+    }
+    const children = node.children ?? [];
+    const hasSubtopics = children.some((child) => child.kind === "subtopic");
+    if (hasSubtopics && node.pageId != null) {
+      delete node.pageId;
+    }
+  });
+  return next;
+}
+
 /** Append outline nodes from bundled course that are missing in the session draft (by node id). */
 function mergeChildNodes(
   draftChildren: CourseNodeV1[],
@@ -59,7 +77,7 @@ export function mergeCourseOutlineWithBundled(draft: CourseV1, bundled: CourseV1
     ...merged.root,
     children: mergeChildNodes(merged.root.children ?? [], bundled.root.children ?? []),
   };
-  return merged;
+  return sanitizeCourseOutline(merged);
 }
 
 export function courseBreadcrumbForNode(

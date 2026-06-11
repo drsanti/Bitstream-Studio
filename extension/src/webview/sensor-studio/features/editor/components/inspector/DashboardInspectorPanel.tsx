@@ -1,4 +1,4 @@
-import { Gamepad2, LayoutGrid, ListTree, SlidersHorizontal } from "lucide-react";
+import { ListTree, SlidersHorizontal } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import {
   TRNTabs,
@@ -8,22 +8,21 @@ import {
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
+  TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS,
+  TRN_INSPECTOR_PANEL_SCROLL_CLASS,
+  resolveInspectorPanelShellClass,
 } from "../../../../../ui/TRN";
+import { DashboardInspectorContextBar } from "./DashboardInspectorContextBar";
 import {
   resolveDashboardDisplayItems,
   resolveDashboardLayoutWarningsForPage,
-  summarizeDashboardInspectorInventory,
 } from "../../../../core/dashboard/dashboard-inspector-helpers";
-import {
-  writeDashboardActiveTabSourceNodeId,
-} from "../../../dashboard/dashboard-viewport-ui-persistence";
+import { writeDashboardActiveTabSourceNodeId } from "../../../dashboard/dashboard-viewport-ui-persistence";
 import { useDashboardSceneStore } from "../../../../state/dashboard-scene.store";
 import { useStudioWorkbenchFocusStore } from "../../../../state/studio-workbench-focus.store";
 import { readFlowGraphStoreStructuralRevision } from "../../flow-graph-store-revisions";
 import { useFlowEditorStore } from "../../store/flow-editor.store";
-import { DashboardInspectorControlsTab } from "./DashboardInspectorControlsTab";
 import { DashboardInspectorLayoutTab } from "./DashboardInspectorLayoutTab";
-import { DashboardInspectorOverviewTab } from "./DashboardInspectorOverviewTab";
 import { DashboardInspectorWidgetsTab } from "./DashboardInspectorWidgetsTab";
 import {
   readStoredDashboardInspectorTab,
@@ -34,30 +33,30 @@ import {
 const DASHBOARD_INSPECTOR_TABS: readonly {
   id: DashboardInspectorTab;
   label: string;
-  Icon: typeof LayoutGrid;
+  Icon: typeof ListTree;
 }[] = [
-  { id: "overview", label: "Overview", Icon: LayoutGrid },
   { id: "widgets", label: "Widgets", Icon: ListTree },
-  { id: "controls", label: "Controls", Icon: Gamepad2 },
   { id: "layout", label: "Layout", Icon: SlidersHorizontal },
 ];
 
 export type DashboardInspectorPanelProps = {
   onImportLayoutPick?: () => void;
+  /** Strip outer card chrome when hosted inside workbench INSPECTOR / dual-pane slot. */
+  embedded?: boolean;
 };
 
 export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
-  const { onImportLayoutPick } = props;
+  const { onImportLayoutPick, embedded = false } = props;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const snapshot = useDashboardSceneStore((s) => s.snapshot);
   const activeTabSourceNodeId = useDashboardSceneStore((s) => s.activeTabSourceNodeId);
-  const highlightedWidgetSourceNodeId = useDashboardSceneStore(
-    (s) => s.highlightedWidgetSourceNodeId,
+  const highlightedWidgetSourceNodeIds = useDashboardSceneStore(
+    (s) => s.highlightedWidgetSourceNodeIds,
   );
   const editModeEnabled = useDashboardSceneStore((s) => s.editModeEnabled);
-  const setHighlightedWidgetSourceNodeId = useDashboardSceneStore(
-    (s) => s.setHighlightedWidgetSourceNodeId,
+  const setHighlightedWidgetSelection = useDashboardSceneStore(
+    (s) => s.setHighlightedWidgetSelection,
   );
   const setEditModeEnabled = useDashboardSceneStore((s) => s.setEditModeEnabled);
   const setActiveTabSourceNodeId = useDashboardSceneStore((s) => s.setActiveTabSourceNodeId);
@@ -76,6 +75,7 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
   const dispatchDashboardWidgetEvent = useFlowEditorStore((s) => s.dispatchDashboardWidgetEvent);
   const dispatchDashboardKnobValue = useFlowEditorStore((s) => s.dispatchDashboardKnobValue);
   const dispatchDashboardSwitchValue = useFlowEditorStore((s) => s.dispatchDashboardSwitchValue);
+  const dispatchDashboardSelectValue = useFlowEditorStore((s) => s.dispatchDashboardSelectValue);
   const importDashboardLayoutJson = useFlowEditorStore((s) => s.importDashboardLayoutJson);
 
   const [activeTab, setActiveTab] = useState<DashboardInspectorTab>(() =>
@@ -94,11 +94,6 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
         activeTabSourceNodeId,
       }),
     [activeTabSourceNodeId, snapshot],
-  );
-
-  const inventory = useMemo(
-    () => summarizeDashboardInspectorInventory(displayItems),
-    [displayItems],
   );
 
   const dashboardOutputLabel = useMemo(() => {
@@ -122,10 +117,10 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
     (sourceNodeId: string) => {
       setActiveTabSourceNodeId(sourceNodeId);
       writeDashboardActiveTabSourceNodeId(sourceNodeId);
-      setHighlightedWidgetSourceNodeId(null);
+      setHighlightedWidgetSelection([]);
       onSelectionChange([]);
     },
-    [onSelectionChange, setActiveTabSourceNodeId, setHighlightedWidgetSourceNodeId],
+    [onSelectionChange, setActiveTabSourceNodeId, setHighlightedWidgetSelection],
   );
 
   const activePageLabel = useMemo(() => {
@@ -149,10 +144,10 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
 
   const onSelectWidget = useCallback(
     (sourceNodeId: string) => {
-      setHighlightedWidgetSourceNodeId(sourceNodeId);
+      setHighlightedWidgetSelection([sourceNodeId]);
       onSelectionChange([sourceNodeId]);
     },
-    [onSelectionChange, setHighlightedWidgetSourceNodeId],
+    [onSelectionChange, setHighlightedWidgetSelection],
   );
 
   const onInspectWidgetInGraph = useCallback(
@@ -179,18 +174,7 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
   }, [onImportLayoutPick]);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-      <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2">
-        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-200/95">
-          <LayoutGrid className="h-3.5 w-3.5 shrink-0 text-cyan-400/90" aria-hidden />
-          2D Dashboard
-        </div>
-        <p className="mt-1 text-[10px] leading-snug text-zinc-500">
-          Committed operator HMI from Dashboard Output. Widget flow settings stay on each node when
-          selected.
-        </p>
-      </div>
-
+    <div className={resolveInspectorPanelShellClass(embedded)}>
       <TRNTabs
         value={activeTab}
         onValueChange={(next) => setActiveTabPersisted(next as DashboardInspectorTab)}
@@ -208,42 +192,42 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
           </TRNTabsList>
         </div>
 
-        <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
-          {activeTab === "overview" ? (
-            <DashboardInspectorOverviewTab
+        <div className={TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS}>
+          <DashboardInspectorContextBar
+            activeTab={activeTab}
+            snapshot={snapshot}
+            displayItems={displayItems}
+            editModeEnabled={editModeEnabled}
+            activePageLabel={activePageLabel}
+            dashboardOutputLabel={dashboardOutputLabel}
+            pageLayoutWarningCount={pageLayoutWarnings.length}
+          />
+          <div className={TRN_INSPECTOR_PANEL_SCROLL_CLASS}>
+          {activeTab === "widgets" ? (
+            <DashboardInspectorWidgetsTab
               snapshot={snapshot}
               displayItems={displayItems}
-              inventory={inventory}
-              layoutMode={snapshot.layout.mode}
               activeTabLabel={activePageLabel}
               activeTabSourceNodeId={activeTabSourceNodeId}
               pageLayoutWarnings={pageLayoutWarnings}
               dashboardOutputLabel={dashboardOutputLabel}
               editModeEnabled={editModeEnabled}
+              highlightedWidgetSourceNodeIds={highlightedWidgetSourceNodeIds}
               onFocusOutputInGraph={onFocusOutputInGraph}
               onEditModeChange={setEditModeEnabled}
               onActiveDashboardTabChange={onActiveDashboardTabChange}
-            />
-          ) : null}
-          {activeTab === "widgets" ? (
-            <DashboardInspectorWidgetsTab
-              displayItems={displayItems}
-              highlightedWidgetSourceNodeId={highlightedWidgetSourceNodeId}
               onSelectWidget={onSelectWidget}
               onFocusWidgetInGraph={focusNodeInGraph}
               onInspectWidgetInGraph={onInspectWidgetInGraph}
-            />
-          ) : null}
-          {activeTab === "controls" ? (
-            <DashboardInspectorControlsTab
-              displayItems={displayItems}
-              editModeEnabled={editModeEnabled}
               onButtonClick={(sourceNodeId) => dispatchDashboardWidgetEvent({ sourceNodeId })}
               onKnobValueChange={(sourceNodeId, value) =>
                 dispatchDashboardKnobValue({ sourceNodeId, value })
               }
               onSwitchValueChange={(sourceNodeId, value) =>
                 dispatchDashboardSwitchValue({ sourceNodeId, value })
+              }
+              onSelectValueChange={(sourceNodeId, value) =>
+                dispatchDashboardSelectValue({ sourceNodeId, value })
               }
               onSliderValueChange={(sourceNodeId, value) =>
                 dispatchDashboardKnobValue({ sourceNodeId, value })
@@ -259,6 +243,7 @@ export function DashboardInspectorPanel(props: DashboardInspectorPanelProps) {
               onImportLayoutPick={triggerImport}
             />
           ) : null}
+          </div>
         </div>
       </TRNTabs>
 

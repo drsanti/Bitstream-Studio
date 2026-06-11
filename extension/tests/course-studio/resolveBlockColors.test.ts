@@ -94,4 +94,21 @@ describe("resolveBlockColors", () => {
   it("slugifyCourseThemePresetId", () => {
     assert.equal(slugifyCourseThemePresetId("BMI270 Reference Card"), "bmi270-reference-card");
   });
+
+  it("applies global document markdown defaults when course has no themes", () => {
+    const effective = resolveMarkdownBlockEffectiveColors(undefined, undefined, undefined);
+    assert.equal(effective?.link, "#4783ad");
+    assert.equal(effective?.inlineCode, "#95b1ca");
+    assert.equal(effective?.codeSyntaxTheme, "nord");
+  });
+
+  it("block color override wins over global preset", () => {
+    const effective = resolveMarkdownBlockEffectiveColors(
+      { link: "#ff0000" },
+      undefined,
+      undefined,
+    );
+    assert.equal(effective?.link, "#ff0000");
+    assert.equal(effective?.inlineCode, "#95b1ca");
+  });
 });

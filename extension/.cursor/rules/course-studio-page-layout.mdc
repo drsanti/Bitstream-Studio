@@ -1,0 +1,41 @@
+# Course Studio page layout (default template)
+
+When creating or editing `*.page.v1.json` under `extension/src/webview/course-studio/content/`:
+
+## Canonical reference
+
+**`st-intro-core-ideas.page.v1.json`** — approved live-article layout (2026-06-11).
+
+Starters: `template-live-article.page.v1.json`, `template-prose-only.page.v1.json`.  
+Builders: `courseStudioPageTemplates.ts`.
+
+## Live article stack (top → bottom)
+
+1. **Heading** — full width (`columnSpan: 12`, rows 1–2)
+2. **Callout** — full width (rows 3–4)
+3. **Live widgets** — own row(s) from row 5 (horizontal strip or cards)
+4. **Markdown** — full width below (`columnSpan: 12`, `readHeight: "content"`)
+
+**Never** place dashboard widgets, telemetry cards, or widget-boards in columns 9–12 while markdown uses columns 1–8.
+
+## Prose-only topics
+
+Engineering / reference: markdown only, `columnSpan: 12`, `readHeight: "content"`. Optional heading above.
+
+## Telemetry meta (live topics)
+
+```json
+"meta": {
+  "telemetryPreference": "auto",
+  "staleMs": 2000,
+  "defaultLinkHealth": "freeze-gray"
+}
+```
+
+## Docs
+
+`extension/src/webview/course-studio/docs/COURSE_OUTLINE.md` § Default page template.
+
+## Communication
+
+**Always DO NOT respond in Chinese.** Use **English** and/or **Thai** only — `communication-language.mdc`.

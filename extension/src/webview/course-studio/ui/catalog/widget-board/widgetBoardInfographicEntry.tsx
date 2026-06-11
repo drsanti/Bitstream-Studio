@@ -6,6 +6,7 @@ import type {
 import type { CourseBindingHealthStatus } from "../../../runtime/courseBindingHealth";
 import { isActiveInfographicPreset } from "../../../schemas/infographicVisualPreset.v1";
 import { CourseInfographicWidget } from "../infographics/CourseInfographicWidget";
+import { spreadWidgetBoardLayoutProps } from "./widgetBoardReadoutLayout";
 
 type InfographicWidgetBoardEntry =
   | WidgetBoardMetricBarV1
@@ -38,6 +39,7 @@ export function tryRenderWidgetBoardInfographic(args: {
       health={health}
       configSource={widget}
       typography={widget.typography}
+      readoutLayout={spreadWidgetBoardLayoutProps(widget)}
       className="rounded-[14px] border border-[var(--course-wb-metric-panel-border,rgb(255_255_255/0.08))] bg-[var(--course-wb-metric-panel-bg,rgb(255_255_255/0.04))]"
     />
   );

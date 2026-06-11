@@ -238,14 +238,20 @@ export function useManagedWorkbench({
   }, [dockMemory, persistLayout, persistenceKey]);
 
   const applyLayoutSnapshot = useCallback(
-    (nextLayout: LayoutNode, nextDockMemory: WorkbenchDockSizeMemory = {}) => {
+    (
+      nextLayout: LayoutNode,
+      nextDockMemory: WorkbenchDockSizeMemory = {},
+      focusEditorType?: string,
+    ) => {
       onClearFloatingPanes?.();
       clearPaneMaximize();
       runWithoutLayoutHistory(() => {
         const validated = validateLayout ? validateLayout(nextLayout) : nextLayout;
         setLayoutState(validated);
         setDockMemory(structuredClone(nextDockMemory));
-        setActivePaneId(null);
+        const focusPaneId =
+          focusEditorType != null ? findEditorPaneId(validated, focusEditorType) : null;
+        setActivePaneId(focusPaneId);
         setCollapsedRailFocusId(null);
       });
       syncHistoryFlags();

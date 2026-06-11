@@ -22,6 +22,8 @@ const PORT_TYPE_LABEL: Partial<Record<StudioPortType, string>> = {
   physicsScene: "Physics scene",
   physicsCollider: "Collider",
   physicsBody: "Rigid body",
+  physicsJoint: "Joint",
+  physicsSpawner: "Spawner",
   material: "Material",
   mesh: "Mesh",
 };

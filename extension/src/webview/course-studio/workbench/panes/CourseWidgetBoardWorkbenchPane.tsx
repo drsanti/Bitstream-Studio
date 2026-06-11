@@ -5,7 +5,7 @@ import { CourseWidgetBoardEditorToolbar } from "../../maintainer/widget-board/Co
 import { CourseWidgetBoardInnerComposer } from "../../maintainer/widget-board/CourseWidgetBoardInnerComposer";
 import {
   createWidgetBoardEntry,
-  removeWidgetBoardWidget,
+  removeWidgetBoardWidgets,
   updateWidgetBoardWidgets,
 } from "../../maintainer/widget-board/widgetBoardEditorOps";
 import { useCourseWidgetBoardEditorStore } from "../../maintainer/widget-board/useCourseWidgetBoardEditorStore";
@@ -35,8 +35,8 @@ export function CourseWidgetBoardWorkbenchPane() {
   const maintainerAvailable = isCourseStudioMaintainerModeAvailable();
   const addWidgetBoardBlock = useAddWidgetBoardBlock();
   const openWidgetBoardBlock = useOpenWidgetBoardBlockInEditor();
-  const selectedWidgetId = useCourseWidgetBoardEditorStore((s) => s.selectedWidgetId);
-  const selectWidget = useCourseWidgetBoardEditorStore((s) => s.selectWidget);
+  const selectedWidgetIds = useCourseWidgetBoardEditorStore((s) => s.selectedWidgetIds);
+  const setWidgetSelection = useCourseWidgetBoardEditorStore((s) => s.setWidgetSelection);
   const clearWidgetSelection = useCourseWidgetBoardEditorStore((s) => s.clearWidgetSelection);
 
   const block =
@@ -103,19 +103,19 @@ export function CourseWidgetBoardWorkbenchPane() {
     const entry = createWidgetBoardEntry(kind, block.widgets, block.grid.columns);
     const next = updateWidgetBoardWidgets(block, [...block.widgets, entry]);
     updateBlock(block.id, { widgets: next.widgets });
-    selectWidget(entry.id);
+    setWidgetSelection([entry.id]);
   };
 
   const onDeleteSelected = () => {
-    if (selectedWidgetId == null) {
+    if (selectedWidgetIds.length === 0) {
       return;
     }
-    const next = removeWidgetBoardWidget(block, selectedWidgetId);
+    const next = removeWidgetBoardWidgets(block, selectedWidgetIds);
     if (next == null) {
       return;
     }
     updateBlock(block.id, { widgets: next.widgets });
-    selectWidget(null);
+    clearWidgetSelection();
   };
 
   return (
@@ -123,9 +123,12 @@ export function CourseWidgetBoardWorkbenchPane() {
       <CourseWidgetBoardEditorToolbar
         onAddWidget={onAddWidget}
         onDeleteSelected={onDeleteSelected}
-        canDeleteSelected={selectedWidgetId != null && block.widgets.length > 1}
+        canDeleteSelected={
+          selectedWidgetIds.length > 0 &&
+          block.widgets.length - selectedWidgetIds.length >= 1
+        }
       />
-      <div className="course-widget-board-editor-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 scrollbar-hide">
+      <div className="course-widget-board-editor-scroll relative z-0 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3 scrollbar-hide">
         <CourseWidgetBoardInnerComposer
           block={block}
           staleMs={page.meta?.staleMs}

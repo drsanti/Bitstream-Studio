@@ -90,7 +90,7 @@ describe("markdownBlockColors", () => {
   });
 
   it("resolves and patches code syntax theme", () => {
-    assert.equal(resolveMarkdownBlockCodeSyntaxTheme(undefined), "oneDark");
+    assert.equal(resolveMarkdownBlockCodeSyntaxTheme(undefined), "nord");
     assert.equal(
       resolveMarkdownBlockCodeSyntaxTheme({ codeSyntaxTheme: "dracula" }),
       "dracula",

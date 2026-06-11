@@ -1,6 +1,6 @@
 import { shouldRouteDeleteToWidgetBoardWidget } from "../courseMaintainerDeleteContext";
 import { useCoursePageEditorStore } from "../useCoursePageEditorStore";
-import { removeWidgetBoardWidget } from "./widgetBoardEditorOps";
+import { removeWidgetBoardWidgets } from "./widgetBoardEditorOps";
 import { useCourseWidgetBoardEditorStore } from "./useCourseWidgetBoardEditorStore";
 
 type DeleteKeyEvent = Pick<
@@ -59,8 +59,8 @@ export function tryDeleteSelectedWidgetBoardWidget(event: DeleteKeyEvent): boole
     return false;
   }
 
-  const selectedWidgetId = useCourseWidgetBoardEditorStore.getState().selectedWidgetId;
-  if (selectedWidgetId == null) {
+  const { selectedWidgetIds } = useCourseWidgetBoardEditorStore.getState();
+  if (selectedWidgetIds.length === 0) {
     return false;
   }
 
@@ -76,13 +76,13 @@ export function tryDeleteSelectedWidgetBoardWidget(event: DeleteKeyEvent): boole
     return false;
   }
 
-  const next = removeWidgetBoardWidget(block, selectedWidgetId);
+  const next = removeWidgetBoardWidgets(block, selectedWidgetIds);
   stopDeleteKeyEvent(event);
   if (next == null) {
     return true;
   }
 
   updateBlock(block.id, { widgets: next.widgets });
-  useCourseWidgetBoardEditorStore.getState().selectWidget(null);
+  useCourseWidgetBoardEditorStore.getState().clearWidgetSelection();
   return true;
 }

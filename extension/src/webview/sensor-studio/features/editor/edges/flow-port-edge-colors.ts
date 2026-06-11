@@ -40,6 +40,8 @@ export type FlowPortThemeColors = {
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
+  physicsJointColor: string;
+  physicsSpawnerColor: string;
   dashboardWidgetColor: string;
   dashboardThemeColor: string;
   dashboardTabColor: string;
@@ -109,6 +111,8 @@ export function buildFlowPortColorMap(colors: FlowPortThemeColors): Record<Studi
     physicsScene: colors.physicsSceneColor,
     physicsCollider: colors.physicsColliderColor,
     physicsBody: colors.physicsBodyColor,
+    physicsJoint: colors.physicsJointColor,
+    physicsSpawner: colors.physicsSpawnerColor,
     dashboardWidget: colors.dashboardWidgetColor,
     dashboardTheme: colors.dashboardThemeColor,
     dashboardTab: colors.dashboardTabColor,

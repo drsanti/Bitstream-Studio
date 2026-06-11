@@ -48,10 +48,11 @@ export function dashboardGroupLayoutGridStyle(layout: DashboardGroupLayoutV1): {
   gap: string;
   padding: string;
 } {
+  const cell = layout.rowHeightPx;
   return {
     display: "grid",
-    gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
-    gridAutoRows: `minmax(${layout.rowHeightPx}px, auto)`,
+    gridTemplateColumns: `repeat(${layout.columns}, ${cell}px)`,
+    gridAutoRows: `${cell}px`,
     gap: `${layout.gapPx}px`,
     padding: `${layout.paddingPx}px`,
   };

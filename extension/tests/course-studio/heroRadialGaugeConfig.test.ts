@@ -48,10 +48,12 @@ test("heroGaugeArcEndDeg tracks fill ratio against preset sweep", () => {
   assert.equal(heroGaugeArcEndDeg(0.5, "hero140"), 225 + 70);
 });
 
-test("heroGaugeConicBackground uses tighter inactive gap for butt cap", () => {
+test("heroGaugeConicBackground accepts arc cap option without changing sweep geometry", () => {
   const butt = heroGaugeConicBackground(0.5, "hero140", { arcCap: "butt" });
   const round = heroGaugeConicBackground(0.5, "hero140", { arcCap: "round" });
-  assert.notEqual(butt, round);
+  assert.match(butt, /from 225deg/);
+  assert.match(round, /from 225deg/);
+  assert.equal(butt, round);
 });
 
 test("widgetBoardEntrySchema applies hero radial gauge defaults", () => {
@@ -70,6 +72,6 @@ test("widgetBoardEntrySchema applies hero radial gauge defaults", () => {
   assert.equal(parsed.fillSmoothingMs, 0);
   assert.equal(parsed.holeSizePercent, 10);
   assert.equal(parsed.zoneTint, "off");
-  assert.equal(parsed.showGlow, true);
+  assert.equal(parsed.showGlow, false);
   assert.equal(parsed.arcCap, "round");
 });

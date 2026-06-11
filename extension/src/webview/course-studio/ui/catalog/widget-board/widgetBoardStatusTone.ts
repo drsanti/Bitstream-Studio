@@ -46,6 +46,18 @@ export const WIDGET_BOARD_STATUS_TONE_OPTIONS = [
   { value: "custom", label: "Custom" },
 ] as const;
 
+export const WIDGET_BOARD_STATUS_TONE_HEX_DEFAULTS: Record<
+  WidgetBoardStatusToneId,
+  { background: string; text: string; border: string }
+> = {
+  success: { background: "#14532d", text: "#4ade80", border: "#22c55e" },
+  warning: { background: "#422006", text: "#fbbf24", border: "#f59e0b" },
+  danger: { background: "#450a0a", text: "#f87171", border: "#ef4444" },
+  neutral: { background: "#27272a", text: "#d4d4d8", border: "#8c8c8e" },
+  info: { background: "#0c4a6e", text: "#38bdf8", border: "#0ea5e9" },
+  custom: { background: "#27272a", text: "#fafafa", border: "#a1a1aa" },
+};
+
 export function resolveWidgetBoardStatusToneColors(args: {
   tone: WidgetBoardStatusToneId;
   backgroundColor?: string;

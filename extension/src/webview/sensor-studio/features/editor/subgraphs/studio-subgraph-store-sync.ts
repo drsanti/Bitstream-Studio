@@ -31,6 +31,19 @@ export function initialSubgraphStoreSlice(): Pick<
 }
 
 /** Persist the active edit buffer into root or the current subgraph document. */
+export function resolveRootGraphBuffer(state: StudioSubgraphStoreSlice): {
+  rootNodes: FlowGraphNode[];
+  rootEdges: Edge[];
+} {
+  if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
+    return { rootNodes: state.nodes, rootEdges: state.edges };
+  }
+  if (state.rootNodes.length > 0) {
+    return { rootNodes: state.rootNodes, rootEdges: state.rootEdges };
+  }
+  return { rootNodes: state.nodes, rootEdges: state.edges };
+}
+
 export function persistActiveGraphBuffer(state: StudioSubgraphStoreSlice): StudioSubgraphStoreSlice {
   if (state.activeGraphId === STUDIO_ROOT_GRAPH_ID) {
     return {

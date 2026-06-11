@@ -66,11 +66,8 @@ export function tryDeleteSelectedCoursePageBlock(
     return false;
   }
 
-  const { selectedBlockId, page, removeBlock } = useCoursePageEditorStore.getState();
-  if (selectedBlockId == null || page == null) {
-    return false;
-  }
-  if (!page.blocks.some((block) => block.id === selectedBlockId)) {
+  const { selectedBlockIds, page, removeBlocks } = useCoursePageEditorStore.getState();
+  if (selectedBlockIds.length === 0 || page == null) {
     return false;
   }
 
@@ -80,6 +77,6 @@ export function tryDeleteSelectedCoursePageBlock(
   } else {
     event.stopPropagation();
   }
-  removeBlock(selectedBlockId);
+  removeBlocks(selectedBlockIds);
   return true;
 }

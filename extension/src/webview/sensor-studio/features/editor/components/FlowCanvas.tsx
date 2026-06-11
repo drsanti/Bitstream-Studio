@@ -119,6 +119,13 @@ import { FlowEdgeContextMenu } from "./FlowEdgeContextMenu";
 import { collectDownstreamEdgeIds } from "../edges/flow-edge-downstream-path";
 import { resolveSelectedNodeGroupSubgraphId } from "../subgraphs/resolve-selected-node-group";
 import {
+  applyFlowOutputLensToGraph,
+  flowOutputLensAnchorTitle,
+  type FlowOutputLensKind,
+} from "../../../core/flow/flow-output-lens";
+import { FlowLensSwitcher } from "./flow-toolbar/FlowLensSwitcher";
+import { useStudioSplitFlowLensStore } from "../../../state/studio-split-flow-lens.store";
+import {
   isStudioNodeGroupNode,
   type StudioNodeGroupData,
 } from "../subgraphs/studio-subgraph.types";
@@ -168,6 +175,8 @@ type FlowCanvasProps = {
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
+  physicsJointColor: string;
+  physicsSpawnerColor: string;
   dashboardWidgetColor: string;
   dashboardThemeColor: string;
   dashboardTabColor: string;
@@ -215,6 +224,8 @@ type FlowCanvasProps = {
     patch: Partial<FlowCanvasPreferences>,
   ) => void;
   onFlowPanePointerEvent?: (event: { button: number }) => void;
+  /** Thin flow strip — auto when 2D / 3D / 2D+3D work modes. */
+  compactLensChrome?: boolean;
 };
 
 function flowCanvasPropsAreEqual(
@@ -238,6 +249,9 @@ function flowCanvasPropsAreEqual(
     return false;
   }
   if (prev.flowCanvasPreferences !== next.flowCanvasPreferences) {
+    return false;
+  }
+  if (prev.compactLensChrome !== next.compactLensChrome) {
     return false;
   }
   const prevVp = prev.applyViewport;
@@ -283,6 +297,8 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       physicsSceneColor,
       physicsColliderColor,
       physicsBodyColor,
+      physicsJointColor,
+      physicsSpawnerColor,
       dashboardWidgetColor,
       dashboardThemeColor,
       dashboardTabColor,
@@ -310,7 +326,33 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       flowCanvasPreferences,
       onFlowCanvasPreferencesChange,
       onFlowPanePointerEvent,
+      compactLensChrome: compactLensChromeProp = false,
     } = props;
+
+    const splitFlowLens = useStudioSplitFlowLensStore((s) => s.lens);
+    const setSplitFlowLens = useStudioSplitFlowLensStore((s) => s.setLens);
+    const compactLensChrome = compactLensChromeProp;
+    const effectiveFlowLens = useMemo((): FlowOutputLensKind | "full" => {
+      if (!compactLensChrome) {
+        return "full";
+      }
+      return splitFlowLens;
+    }, [compactLensChrome, splitFlowLens]);
+
+    const { nodes: lensNodes, edges: lensEdges, scope: lensScope } = useMemo(
+      () => applyFlowOutputLensToGraph(nodes, edges, effectiveFlowLens),
+      [nodes, edges, effectiveFlowLens],
+    );
+
+    const lensShowsEmptyAnchor =
+      effectiveFlowLens !== "full" && lensNodes.length === 0;
+
+    const lensAutoFitKey = useMemo(() => {
+      if (effectiveFlowLens === "full" || lensScope == null) {
+        return "";
+      }
+      return `${effectiveFlowLens}:${[...lensScope.nodeIds].sort().join("|")}`;
+    }, [effectiveFlowLens, lensScope]);
 
     const interactionMode = flowCanvasPreferences.interactionMode ?? "select";
     const isPanMode = interactionMode === "pan";
@@ -321,8 +363,8 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     renderNodesRef.current = renderNodes;
 
     const graphStructuralKey = useMemo(
-      () => readFlowGraphStructuralKey(nodes),
-      [nodes],
+      () => readFlowGraphStructuralKey(lensNodes),
+      [lensNodes],
     );
 
     useEffect(() => {
@@ -479,6 +521,8 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       physicsSceneColor,
       physicsColliderColor,
       physicsBodyColor,
+      physicsJointColor,
+      physicsSpawnerColor,
       dashboardWidgetColor,
       dashboardThemeColor,
       dashboardTabColor,
@@ -507,6 +551,8 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         physicsSceneColor,
         physicsColliderColor,
         physicsBodyColor,
+        physicsJointColor,
+        physicsSpawnerColor,
         dashboardWidgetColor,
         dashboardThemeColor,
         dashboardTabColor,
@@ -783,10 +829,17 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
       [],
     );
 
+    const lensNodeIdSet = useMemo(
+      () => new Set(lensNodes.map((node) => node.id)),
+      [lensNodes],
+    );
+
     const nodesForRender = useMemo(
       () =>
         sortFlowNodesParentFirst(
-          renderNodes.map((node) => {
+          renderNodes
+            .filter((node) => lensNodeIdSet.has(node.id))
+            .map((node) => {
             if (isStudioFrameNode(node)) {
               return node.dragHandle === ".studio-frame-node__header"
                 ? node
@@ -818,7 +871,7 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
             return node;
           }),
         ),
-      [renderNodes],
+      [lensNodeIdSet, renderNodes],
     );
 
     const onPickLayoutEntry = useCallback(
@@ -842,7 +895,7 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
 
     const coloredEdges = useMemo(() => {
       const selectedNodeIds = new Set(selectedNodeIdList);
-      return decorateFlowEdges(edges, portColorMap, flowCanvasPreferences, {
+      return decorateFlowEdges(lensEdges, portColorMap, flowCanvasPreferences, {
         selectedNodeIds,
         viewportZoom,
         hoveredEdgeId,
@@ -850,7 +903,7 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         highlightedPathEdgeIds: highlightedPathEdgeIds ?? undefined,
       });
     }, [
-      edges,
+      lensEdges,
       portColorMap,
       flowCanvasPreferences,
       selectedNodeIdList,
@@ -1207,6 +1260,25 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
     const bootViewportAppliedRef = useRef(false);
 
     useEffect(() => {
+      if (effectiveFlowLens === "full" || lensScope == null || lensScope.nodeIds.size === 0) {
+        return;
+      }
+      const instance = reactFlowRef.current;
+      if (instance == null) {
+        return;
+      }
+      const nodeIdList = [...lensScope.nodeIds];
+      const frame = requestAnimationFrame(() => {
+        instance.fitView({
+          nodes: nodeIdList.map((id) => ({ id })),
+          padding: compactLensChrome ? 0.32 : 0.22,
+          duration: 220,
+        });
+      });
+      return () => cancelAnimationFrame(frame);
+    }, [compactLensChrome, effectiveFlowLens, lensAutoFitKey, lensScope]);
+
+    useEffect(() => {
       if (fitViewVersion === 0) {
         return;
       }
@@ -1306,6 +1378,29 @@ const FlowCanvasInner = forwardRef<FlowCanvasGraphHandle, FlowCanvasProps>(
         >
           <FlowGraphBreadcrumbChrome />
           <SensorStudioPerformanceViewportOverlay variant="flow" />
+          {lensShowsEmptyAnchor ? (
+            <div className="pointer-events-none absolute inset-0 z-[15] flex items-center justify-center px-6">
+              <div className="max-w-sm rounded-md border border-zinc-700/70 bg-zinc-950/88 px-4 py-3 text-center shadow-lg backdrop-blur-sm">
+                <p className="text-[11px] font-semibold text-zinc-100">
+                  {flowOutputLensAnchorTitle(effectiveFlowLens)} not in this graph
+                </p>
+                <p className="mt-1.5 text-[10px] leading-relaxed text-zinc-500">
+                  This pane shows only wiring upstream of{" "}
+                  <span className="text-zinc-300">{flowOutputLensAnchorTitle(effectiveFlowLens)}</span>.
+                  Add that commit node here, or widen the Flow pane for the full canvas.
+                </p>
+              </div>
+            </div>
+          ) : null}
+          {compactLensChrome ? (
+            <div className="pointer-events-none absolute left-3 top-3 z-20 flex max-w-[min(calc(100%-1.5rem),420px)] flex-col items-start gap-2">
+              <FlowLensSwitcher
+                value={splitFlowLens}
+                onChange={setSplitFlowLens}
+                compact={compactLensChrome}
+              />
+            </div>
+          ) : null}
           <div className="pointer-events-none absolute right-3 top-3 z-20 flex max-w-[min(calc(100%-1.5rem),520px)] flex-col items-end gap-2">
             <FlowCanvasTopLeftChrome />
           </div>

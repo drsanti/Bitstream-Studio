@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "id": "st-sht40-overview",
+  "title": "Overview & physical principles",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-sht40-overview",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "SHT40 · Sensor Theory",
+      "title": "Temperature and relative humidity",
+      "subtitle": "What the SHT40 measures, how %RH relates to temperature, and how live readouts validate sensor behavior on the bench."
+    },
+    {
+      "id": "callout-telemetry",
+      "kind": "callout-info",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Live telemetry",
+      "body": "Connect Bitstream or Simulator and enable SHT40 TEMP + HUM in sensor configuration before working through this topic.",
+      "icon": "Info"
+    },
+    {
+      "id": "dash-sht-temp",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Temperature",
+      "widgetKind": "text",
+      "style": { "label": "", "unit": "°C", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.temp", "fallback": 0, "unit": "°C", "format": "0.0f" }
+    },
+    {
+      "id": "dash-sht-rh",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Humidity",
+      "widgetKind": "text",
+      "style": { "label": "", "unit": "%RH", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.rh", "fallback": 0, "unit": "%RH", "format": "0.0f" }
+    },
+    {
+      "id": "dash-sht-temp-graphic",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 7, "columnSpan": 6, "rowSpan": 3 },
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "thermometer-mercury",
+        "min": -20,
+        "max": 50,
+        "unit": "°C",
+        "decimals": 1,
+        "showLabel": false,
+        "fillGradientFrom": "#fbbf24",
+        "fillGradientMid": "#f97316",
+        "fillGradientTo": "#ef4444"
+      },
+      "binding": { "path": "sht40.temp", "fallback": 0, "unit": "°C", "format": "0.0f" }
+    },
+    {
+      "id": "dash-sht-rh-graphic",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 7, "columnSpan": 6, "rowSpan": 3 },
+      "widgetKind": "text",
+      "style": {
+        "visualPreset": "droplet-fill",
+        "min": 0,
+        "max": 100,
+        "unit": "%RH",
+        "decimals": 1,
+        "showLabel": false,
+        "fillGradientFrom": "#22d3ee",
+        "fillGradientMid": "#3b82f6",
+        "fillGradientTo": "#f5f5f5"
+      },
+      "binding": { "path": "sht40.rh", "fallback": 0, "unit": "%RH", "format": "0.0f" }
+    },
+    {
+      "id": "card-st-sht40-overview",
+      "kind": "card",
+      "placement": { "column": 1, "row": 10, "columnSpan": 12, "rowSpan": 2 },
+      "title": "At rest checklist",
+      "body": "Both TEMP and HUM mask bits enabled.\nValid flags true when streaming.\nRH responds to breath nearby.\nTemperature tracks ambient drift slowly."
+    },
+    {
+      "id": "md-st-sht40-overview",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-sht40-overview.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

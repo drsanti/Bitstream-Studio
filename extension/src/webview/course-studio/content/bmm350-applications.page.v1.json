@@ -47,7 +47,7 @@
       "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
       "title": "Field |B|",
       "widgetKind": "text",
-      "style": { "label": "|B|", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "style": { "label": "Magnetic field", "unit": "µT", "decimals": 1, "showStatusBar": true },
       "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
     },
     {

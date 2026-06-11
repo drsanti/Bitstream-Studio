@@ -8,6 +8,7 @@ import {
   canAddChildToNode,
   insertCourseChildNode,
   mergeCourseOutlineWithBundled,
+  sanitizeCourseOutline,
   removeCourseNode,
   renameCourseNode,
   reorderCourseSiblings,
@@ -195,6 +196,120 @@ test("reorderCourseSiblings moves topic within chapter", () => {
   );
   const titles = reordered.root.children?.[0]?.children?.map((node) => node.title) ?? [];
   assert.deepEqual(titles, ["Topic 2", "Topic 1"]);
+});
+
+test("sanitizeCourseOutline strips pageId when topic has subtopics", () => {
+  const invalid = {
+    version: 1,
+    id: "demo",
+    title: "Demo",
+    root: {
+      id: "book-1",
+      kind: "book",
+      title: "Book",
+      children: [
+        {
+          id: "chapter-1",
+          kind: "chapter",
+          title: "Chapter",
+          children: [
+            {
+              id: "topic-1",
+              kind: "topic",
+              title: "Workshop",
+              pageId: "new-topic-3",
+              children: [
+                {
+                  id: "sub-1",
+                  kind: "subtopic",
+                  title: "Live HTML",
+                  pageId: "workshop-live-html",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const fixed = parseCourseV1(sanitizeCourseOutline(invalid as never));
+  const topic = fixed.root.children?.[0]?.children?.[0];
+  assert.equal(topic?.pageId, undefined);
+  assert.equal(topic?.children?.[0]?.pageId, "workshop-live-html");
+});
+
+test("mergeCourseOutlineWithBundled sanitizes topic pageId after subtopic merge", () => {
+  const draft = {
+    version: 1,
+    id: "tesaiot-embedded",
+    title: "TESAIoT",
+    root: {
+      id: "book-1",
+      kind: "book",
+      title: "Book",
+      children: [
+        {
+          id: "chapter-1",
+          kind: "chapter",
+          title: "Tesring",
+          children: [
+            {
+              id: "topic-3",
+              kind: "topic",
+              title: "Workshop HTML",
+              pageId: "new-topic-3",
+              children: [
+                {
+                  id: "subtopic-user",
+                  kind: "subtopic",
+                  title: "New subtopic",
+                  pageId: "new-subtopic-page",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const bundled = parseCourseV1({
+    version: 1,
+    id: "tesaiot-embedded",
+    title: "TESAIoT",
+    root: {
+      id: "book-1",
+      kind: "book",
+      title: "Book",
+      children: [
+        {
+          id: "chapter-1",
+          kind: "chapter",
+          title: "Tesring",
+          children: [
+            {
+              id: "topic-3",
+              kind: "topic",
+              title: "Workshop HTML",
+              children: [
+                {
+                  id: "subtopic-workshop-live-html",
+                  kind: "subtopic",
+                  title: "Live sensor dashboards",
+                  pageId: "workshop-live-html",
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const merged = parseCourseV1(
+    mergeCourseOutlineWithBundled(draft as never, bundled),
+  );
+  const topic = merged.root.children?.[0]?.children?.[0];
+  assert.equal(topic?.pageId, undefined);
+  assert.ok((topic?.children?.length ?? 0) >= 1);
 });
 
 test("parseCourseV1 rejects topic without page or children", () => {

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { dashboardSquareGridTemplateColumns } from "../../core/dashboard/dashboard-square-grid";
 
 type DashboardGridPlacementEditorProps = {
   columns: number;
@@ -30,7 +31,7 @@ export function DashboardGridPlacementEditor(props: DashboardGridPlacementEditor
       position: "absolute" as const,
       inset: `${paddingPx}px`,
       display: "grid" as const,
-      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+      gridTemplateColumns: dashboardSquareGridTemplateColumns(columns, rowHeightPx),
       gridAutoRows: `${rowHeightPx}px`,
       gap: `${gapPx}px`,
       pointerEvents: interactive ? ("auto" as const) : ("none" as const),

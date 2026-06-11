@@ -37,7 +37,7 @@
       "placement": { "column": 9, "row": 5, "columnSpan": 4, "rowSpan": 2 },
       "title": "Pressure",
       "widgetKind": "text",
-      "style": { "label": "P", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "style": { "label": "Pressure", "unit": "hPa", "decimals": 2, "showStatusBar": true },
       "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
     },
     {
@@ -46,7 +46,7 @@
       "placement": { "column": 9, "row": 7, "columnSpan": 4, "rowSpan": 2 },
       "title": "Altitude",
       "widgetKind": "text",
-      "style": { "label": "Alt", "unit": "m", "decimals": 1, "showStatusBar": true },
+      "style": { "label": "Altitude", "unit": "m", "decimals": 1, "showStatusBar": true },
       "binding": { "path": "dps368.altitudeM", "fallback": 0, "unit": "m", "format": "0.0f" }
     },
     {

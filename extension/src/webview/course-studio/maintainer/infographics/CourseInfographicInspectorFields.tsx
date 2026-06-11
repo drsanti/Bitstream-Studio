@@ -91,11 +91,13 @@ export function CourseInfographicInspectorFields({
             <CourseBlockColorRow
               label="Fill color"
               value={typeof configSource.fillColor === "string" ? configSource.fillColor : undefined}
+              defaultHex="#54ff9d"
               onChange={(fillColor) => onPatch({ fillColor })}
             />
             <CourseBlockColorRow
               label="Track color"
               value={typeof configSource.trackColor === "string" ? configSource.trackColor : undefined}
+              defaultHex="#27272a"
               onChange={(trackColor) => onPatch({ trackColor })}
             />
 
@@ -187,6 +189,7 @@ export function CourseInfographicInspectorFields({
                   value={
                     typeof configSource.needleColor === "string" ? configSource.needleColor : undefined
                   }
+                  defaultHex="#38bdf8"
                   onChange={(needleColor) => onPatch({ needleColor })}
                 />
                 <TRNInlineToggleRow

@@ -6,6 +6,9 @@ import {
   TRNTabs,
   TRNTabsList,
   TRNTabsTrigger,
+  TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS,
+  TRN_INSPECTOR_PANEL_SCROLL_CLASS,
+  resolveInspectorPanelShellClass,
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
@@ -68,7 +71,14 @@ const CANVAS_INSPECTOR_TABS: readonly {
   { id: "telemetry", label: "Sensors", Icon: Activity },
 ];
 
-export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
+export type CanvasInspectorPanelOptions = {
+  /** Strip outer card chrome when hosted inside workbench INSPECTOR / dual-pane slot. */
+  embedded?: boolean;
+};
+
+export function CanvasInspectorPanel(
+  props: CanvasInspectorPanelProps & CanvasInspectorPanelOptions,
+) {
   const {
     nodes,
     edges,
@@ -91,6 +101,7 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
     onFlowCanvasPreferencesChange,
     stagePresentationPreferences,
     onStagePresentationPreferencesChange,
+    embedded = false,
   } = props;
 
   const [activeTab, setActiveTab] = useState<CanvasInspectorTab>(() =>
@@ -117,7 +128,7 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
   const health = useMemo(() => summarizeCanvasSensorHealth(nodes), [nodes]);
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
+    <div className={resolveInspectorPanelShellClass(embedded)}>
       <TRNTabs
         value={activeTab}
         onValueChange={(next) =>
@@ -141,7 +152,7 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
           </TRNTabsList>
         </div>
 
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className={TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS}>
           <CanvasInspectorContextBar
             activeTab={activeTab}
             nodeCount={nodes.length}
@@ -153,7 +164,7 @@ export function CanvasInspectorPanel(props: CanvasInspectorPanelProps) {
             templateId={templateId}
           />
 
-          <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
+          <div className={TRN_INSPECTOR_PANEL_SCROLL_CLASS}>
           {activeTab === "canvas" ? (
             <CanvasInspectorCanvasTab
               flowViewport={flowViewport}

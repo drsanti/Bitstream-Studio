@@ -1,6 +1,11 @@
 import { memo, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import type { DashboardWidgetSelectionModifiers } from "../../core/dashboard/dashboard-widget-selection";
 import { TRNButton } from "../../../ui/TRN/TRNButton";
-import { TRNToggleSwitch } from "../../../ui/TRN";
+import { TRNSelect, TRNToggleSwitch } from "../../../ui/TRN";
+import {
+  coerceDashboardSelectOptions,
+  readDashboardSelectValue,
+} from "../../core/dashboard/dashboard-select-options";
 import type { DashboardLayoutModeV1 } from "../../core/dashboard/dashboard-layout";
 import { dashboardFlexPlacementStyle } from "../../core/dashboard/dashboard-flex-placement";
 import {
@@ -22,6 +27,8 @@ import { DashboardSliderNodePanel } from "./DashboardSliderNodePanel";
 import { SparklineNodePanel } from "../editor/nodes/sparkline/SparklineNodePanel";
 import { BarMeterNodePanel } from "../editor/nodes/bar-meter/BarMeterNodePanel";
 import { RadialGaugeNodePanel } from "../editor/nodes/radial-gauge/RadialGaugeNodePanel";
+import { DashboardFormattedTextPanel } from "./DashboardFormattedTextPanel";
+import { DashboardImageTilePanel } from "./DashboardImageTilePanel";
 import { useDashboardWidgetLive } from "./use-dashboard-widget-live";
 
 type DashboardWidgetCellProps = {
@@ -32,8 +39,12 @@ type DashboardWidgetCellProps = {
   onButtonClick?: (sourceNodeId: string) => void;
   onKnobValueChange?: (sourceNodeId: string, value: number) => void;
   onSwitchValueChange?: (sourceNodeId: string, value: boolean) => void;
+  onSelectValueChange?: (sourceNodeId: string, value: string) => void;
   onSliderValueChange?: (sourceNodeId: string, value: number) => void;
-  onSelectWidget?: (sourceNodeId: string) => void;
+  onSelectWidget?: (
+    sourceNodeId: string,
+    modifiers?: DashboardWidgetSelectionModifiers,
+  ) => void;
   placementOverride?: Partial<DashboardPlacementV1>;
   onGridDragPointerDown?: (
     event: PointerEvent<HTMLDivElement>,
@@ -75,6 +86,7 @@ export const DashboardWidgetCell = memo(function DashboardWidgetCell(
     onButtonClick,
     onKnobValueChange,
     onSwitchValueChange,
+    onSelectValueChange,
     onSliderValueChange,
     onSelectWidget,
     placementOverride,
@@ -109,7 +121,11 @@ export const DashboardWidgetCell = memo(function DashboardWidgetCell(
           : editMode
             ? (event) => {
                 event.stopPropagation();
-                onSelectWidget?.(widget.sourceNodeId);
+                onSelectWidget?.(widget.sourceNodeId, {
+                  shiftKey: event.shiftKey,
+                  ctrlKey: event.ctrlKey,
+                  metaKey: event.metaKey,
+                });
               }
             : undefined
       }
@@ -167,6 +183,30 @@ export const DashboardWidgetCell = memo(function DashboardWidgetCell(
           defaultConfig={widget.style}
           sensorHealth={live.sensorHealth}
         />
+      </div>,
+    );
+  }
+
+  if (widget.widgetKind === "formatted-text") {
+    const numeric =
+      typeof live.liveValue === "number" && Number.isFinite(live.liveValue)
+        ? live.liveValue
+        : null;
+    return wrapEdit(
+      <div className={`flex items-stretch ${panelClass}`}>
+        <DashboardFormattedTextPanel
+          value={numeric}
+          defaultConfig={widget.style}
+          sensorHealth={live.sensorHealth}
+        />
+      </div>,
+    );
+  }
+
+  if (widget.widgetKind === "image") {
+    return wrapEdit(
+      <div className={`flex min-h-[var(--dashboard-row-height,96px)] ${panelClass}`}>
+        <DashboardImageTilePanel wiredUrl={live.liveValue} defaultConfig={widget.style} />
       </div>,
     );
   }
@@ -240,6 +280,31 @@ export const DashboardWidgetCell = memo(function DashboardWidgetCell(
           disabled={!widget.enabled || editMode}
           ariaLabel={`${widget.label} switch`}
           onCheckedChange={(next) => onSwitchValueChange?.(widget.sourceNodeId, next)}
+        />
+      </div>,
+    );
+  }
+
+  if (widget.widgetKind === "select") {
+    const options = coerceDashboardSelectOptions(widget.style.options);
+    const selected =
+      typeof live.liveValue === "string" && live.liveValue.length > 0
+        ? live.liveValue
+        : readDashboardSelectValue(widget.style, options);
+    return wrapEdit(
+      <div
+        className={`flex min-h-[var(--dashboard-row-height,48px)] flex-col justify-center gap-1.5 px-3 py-2 ${panelClass}`}
+      >
+        <span className="truncate text-[11px] font-medium text-zinc-400">{widget.label}</span>
+        <TRNSelect
+          variant="field"
+          size="sm"
+          ariaLabel={`${widget.label} select`}
+          value={selected}
+          options={options.map((opt) => ({ value: opt.value, label: opt.label }))}
+          disabled={!widget.enabled || editMode}
+          triggerClassName="w-full"
+          onValueChange={(next) => onSelectValueChange?.(widget.sourceNodeId, next)}
         />
       </div>,
     );

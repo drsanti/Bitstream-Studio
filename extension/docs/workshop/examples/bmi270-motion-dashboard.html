@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BMI270 — gyro & acceleration</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --accent: #42e8ff;
+      --text: #eaf7ff;
+      --muted: #8ca4b8;
+      --track: #243044;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .card {
+      width: min(480px, 100%);
+      background: var(--panel);
+      border: 1px solid rgba(66, 232, 255, 0.28);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    h1 { margin: 0 0 4px; font-size: 15px; font-weight: 600; }
+    .meta { font-size: 11px; color: var(--muted); margin-bottom: 14px; line-height: 1.45; }
+    .section { margin-bottom: 14px; }
+    .section:last-of-type { margin-bottom: 0; }
+    .row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 11px; }
+    .value { font-size: 13px; color: var(--accent); }
+    .track { height: 12px; background: var(--track); border-radius: 999px; overflow: hidden; }
+    .fill { height: 100%; width: 50%; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 55%, #000), var(--accent)); border-radius: 999px; transition: width 80ms linear; }
+    .scale { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; color: var(--muted); }
+    .status { margin-top: 12px; font-size: 10px; color: var(--muted); }
+    .hint { font-size: 10px; color: var(--muted); margin-top: 8px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(720px, 100%); }
+    .panel { background: var(--panel); border: 1px solid rgba(66, 232, 255, 0.22); border-radius: 12px; padding: 14px; }
+    .panel h2 { margin: 0 0 6px; font-size: 13px; }
+    .page-header { width: min(720px, 100%); margin-bottom: 10px; }
+    .page-header h1 { font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Motion (BMI270)</h1>
+    <p class="meta">Rotate the DevKit for gyro · shake for acceleration strength</p>
+    <div class="section">
+      <div class="row"><span>Gyro X</span><span class="value" id="gyro-val">—</span></div>
+      <div class="track"><div class="fill" id="gyro-fill"></div></div>
+      <div class="scale"><span>−1</span><span id="gyro-pct">—</span><span>+1 rad/s</span></div>
+    </div>
+    <div class="section">
+      <div class="row"><span>Accel strength</span><span class="value" id="accel-val">—</span></div>
+      <div class="track"><div class="fill" id="accel-fill"></div></div>
+      <div class="scale"><span>0</span><span id="accel-pct">—</span><span>20 m/s²</span></div>
+    </div>
+    <p class="status" id="status">Waiting for telemetry…</p>
+    <p class="hint" id="profile-hint" hidden>BMI270 Raw profile required — enable in Sensor Telemetry, then Apply.</p>
+  </div>
+  <script>
+    (function () {
+      "use strict";
+
+      function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+      function valueToPercent(value, min, max) {
+        if (max <= min) return 0;
+        return clamp(((value - min) / (max - min)) * 100, 0, 100);
+      }
+      function bindTransport(clientId, onEnvelope) {
+        window.addEventListener("message", function (event) {
+          var msg = event.data;
+          if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+          if (msg.type.indexOf("bitstream:") !== 0) return;
+          onEnvelope(msg);
+        });
+        var mockTimer = null;
+        function startMock(tick) {
+          if (mockTimer != null) return;
+          var t0 = Date.now();
+          mockTimer = window.setInterval(function () {
+            tick((Date.now() - t0) / 1000);
+          }, 500);
+        }
+        function stopMock() {
+          if (mockTimer == null) return;
+          window.clearInterval(mockTimer);
+          mockTimer = null;
+        }
+        function connectWs() {
+          var ws;
+          try { ws = new WebSocket("ws://127.0.0.1:9997"); } catch (e) { startMock(function () {}); return; }
+          ws.addEventListener("open", function () { stopMock(); });
+          ws.addEventListener("message", function (ev) {
+            var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+            if (!msg || msg.v !== 1) return;
+            onEnvelope(msg);
+          });
+          ws.addEventListener("close", function () {
+            window.setTimeout(connectWs, 2000);
+          });
+          ws.addEventListener("error", function () { ws.close(); });
+        }
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            { type: "bitstream:ready", v: 1, payload: { clientId: clientId } },
+            "*"
+          );
+        } else {
+          connectWs();
+        }
+        return { startMock: startMock, stopMock: stopMock };
+      }
+
+
+      var gMin = -1, gMax = 1, aMin = 0, aMax = 20;
+      var statusEl = document.getElementById("status");
+      var hintEl = document.getElementById("profile-hint");
+      var live = false;
+      var sawGyro = false;
+      function paintGyro(v) {
+        sawGyro = true;
+        hintEl.hidden = true;
+        var pct = valueToPercent(v, gMin, gMax);
+        document.getElementById("gyro-fill").style.width = pct.toFixed(1) + "%";
+        document.getElementById("gyro-pct").textContent = pct.toFixed(0) + "%";
+        document.getElementById("gyro-val").textContent = v.toFixed(2) + " rad/s";
+      }
+      function paintAccel(ax, ay, az) {
+        var s = Math.sqrt(ax * ax + ay * ay + az * az);
+        var pct = valueToPercent(s, aMin, aMax);
+        document.getElementById("accel-fill").style.width = pct.toFixed(1) + "%";
+        document.getElementById("accel-pct").textContent = pct.toFixed(0) + "%";
+        document.getElementById("accel-val").textContent = s.toFixed(2) + " m/s²";
+      }
+      function onSample(p) {
+        if (!p || p.sensor !== "bmi270") return;
+        var gx = p.fields && p.fields.gyroX;
+        var ax = p.fields && p.fields.accelX;
+        var ay = p.fields && p.fields.accelY;
+        var az = p.fields && p.fields.accelZ;
+        if (typeof gx === "number") paintGyro(gx);
+        if (typeof ax === "number" && typeof ay === "number" && typeof az === "number") paintAccel(ax, ay, az);
+        live = true;
+        statusEl.textContent = "Live · TESAIoT DevKit or Simulator";
+      }
+      var transport = bindTransport("workshop-bmi270-motion", function (msg) {
+        if (msg.type === "bitstream:sample") onSample(msg.payload);
+        if (msg.type === "bitstream:config" && !sawGyro) {
+          var row = msg.payload && msg.payload.sensors && msg.payload.sensors.bmi270;
+          if (row && row.maskLabels && row.maskLabels.indexOf("gyroX") < 0) hintEl.hidden = false;
+        }
+      });
+      transport.startMock(function (t) {
+        if (live) return;
+        statusEl.textContent = "Mock · connect Bitstream + Link for live data";
+        paintGyro(Math.sin(t * 1.2) * 0.6);
+        paintAccel(0.1, 0.15, 9.8 + Math.sin(t * 3) * 0.5);
+      });
+
+    })();
+  </script>
+</body>
+</html>

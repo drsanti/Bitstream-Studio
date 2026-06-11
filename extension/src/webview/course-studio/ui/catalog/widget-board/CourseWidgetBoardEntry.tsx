@@ -8,6 +8,7 @@ import { CourseStatusPillCard } from "./CourseStatusPillCard";
 import { CourseVerticalBarCard } from "./CourseVerticalBarCard";
 import { resolveWidgetBoardBooleanActive } from "./widgetBoardActiveState";
 import { resolveWidgetBoardDisplayUnit } from "./widgetBoardLayout";
+import { spreadWidgetBoardLayoutProps } from "./widgetBoardReadoutLayout";
 import { tryRenderWidgetBoardInfographic } from "./widgetBoardInfographicEntry";
 
 export function CourseWidgetBoardEntry({
@@ -38,6 +39,8 @@ export function CourseWidgetBoardEntry({
     binding.path.length > 0 &&
     (live.rawValue != null || live.displayValue != null);
 
+  const layoutProps = spreadWidgetBoardLayoutProps(widget);
+
   if (widget.kind === "metric-bar") {
     const infographic = tryRenderWidgetBoardInfographic({
       widget,
@@ -63,6 +66,7 @@ export function CourseWidgetBoardEntry({
         showUnit={widget.showUnit}
         trackColor={widget.trackColor}
         fillColor={widget.fillColor}
+        {...layoutProps}
       />
     );
   }
@@ -90,6 +94,7 @@ export function CourseWidgetBoardEntry({
         showUnit={widget.showUnit}
         valueAlign={widget.valueAlign}
         valueScale={widget.valueScale}
+        {...layoutProps}
       />
     );
   }
@@ -122,6 +127,7 @@ export function CourseWidgetBoardEntry({
         trackWidthPercent={widget.trackWidthPercent}
         trackColor={widget.trackColor}
         fillColor={widget.fillColor}
+        {...layoutProps}
       />
     );
   }
@@ -145,6 +151,9 @@ export function CourseWidgetBoardEntry({
         health={binding != null ? live.health : undefined}
         typography={widget.typography}
         showLabel={widget.showLabel}
+        showStatusPill={widget.showStatusPill}
+        pillSize={widget.pillSize}
+        {...layoutProps}
       />
     );
   }
@@ -171,6 +180,7 @@ export function CourseWidgetBoardEntry({
         blinkPeriodMs={widget.blinkPeriodMs}
         health={binding != null ? live.health : undefined}
         typography={widget.typography}
+        {...layoutProps}
       />
     );
   }
@@ -193,6 +203,10 @@ export function CourseWidgetBoardEntry({
       zoneTint={widget.zoneTint}
       showGlow={widget.showGlow}
       arcCap={widget.arcCap}
+      showLabel={widget.showLabel}
+      labelPosition={widget.labelPosition}
+      tileContentH={widget.tileContentH}
+      tileContentV={widget.tileContentV}
     />
   );
 }

@@ -9,6 +9,10 @@ import { InspectorSection } from "./InspectorSection";
 export type InspectorSettingsSectionFrameProps = {
   title: string;
   children: ReactNode;
+  /** Hover tooltip on the section title. */
+  hint?: ReactNode;
+  /** Icon before the section title (Lucide, h-3.5 w-3.5, muted). */
+  titleLeadingSlot?: ReactNode;
   /** Meaningful scope label; inferred from `title` when omitted. Pass `null` to hide. */
   scopeBadge?: InspectorScopeBadgeLabel | string | null;
   /** Extra classes on the outer chrome (border panel). */
@@ -27,6 +31,8 @@ export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFra
   const {
     title,
     children,
+    hint,
+    titleLeadingSlot,
     scopeBadge: scopeBadgeProp,
     className = "",
     collapsible = true,
@@ -46,6 +52,8 @@ export function InspectorSettingsSectionFrame(props: InspectorSettingsSectionFra
   return (
     <InspectorSection
       title={title}
+      hint={hint}
+      titleLeadingSlot={titleLeadingSlot}
       variant="compact"
       collapsible={collapsible}
       defaultExpanded={defaultExpanded}

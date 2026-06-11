@@ -59,6 +59,49 @@ export const widgetBoardLedSizeSchema = z.enum(["sm", "md", "lg"]);
 
 export type WidgetBoardLedSize = z.infer<typeof widgetBoardLedSizeSchema>;
 
+export const widgetBoardReadoutLayoutSchema = z.enum(["stacked", "inline"]);
+
+export type WidgetBoardReadoutLayout = z.infer<typeof widgetBoardReadoutLayoutSchema>;
+
+export const widgetBoardReadoutInlineAlignSchema = z.enum(["start", "center", "end", "between"]);
+
+export type WidgetBoardReadoutInlineAlign = z.infer<typeof widgetBoardReadoutInlineAlignSchema>;
+
+export const widgetBoardReadoutJustifySchema = z.enum([
+  "start",
+  "center",
+  "end",
+  "between",
+  "evenly",
+]);
+
+export type WidgetBoardReadoutJustify = z.infer<typeof widgetBoardReadoutJustifySchema>;
+
+export const widgetBoardReadoutCrossAlignSchema = z.enum(["start", "center", "end", "baseline"]);
+
+export type WidgetBoardReadoutCrossAlign = z.infer<typeof widgetBoardReadoutCrossAlignSchema>;
+
+export const widgetBoardReadoutOrderSchema = z.enum(["label-first", "value-first"]);
+
+export type WidgetBoardReadoutOrder = z.infer<typeof widgetBoardReadoutOrderSchema>;
+
+export const widgetBoardReadoutGapPxSchema = z.union([
+  z.literal(4),
+  z.literal(8),
+  z.literal(12),
+  z.literal(16),
+]);
+
+export type WidgetBoardReadoutGapPx = z.infer<typeof widgetBoardReadoutGapPxSchema>;
+
+export const widgetBoardTileContentAlignSchema = z.enum(["start", "center", "end"]);
+
+export type WidgetBoardTileContentAlign = z.infer<typeof widgetBoardTileContentAlignSchema>;
+
+export const widgetBoardPillSizeSchema = z.enum(["sm", "md", "lg"]);
+
+export type WidgetBoardPillSize = z.infer<typeof widgetBoardPillSizeSchema>;
+
 const widgetBoardInnerGridSchema = z.object({
   columns: z.number().int().min(1).max(24).default(6),
   rowHeightPx: z.number().int().min(16).max(120).default(40),
@@ -123,10 +166,31 @@ const widgetBoardScalarFields = {
   needleColor: courseBlockColorHexSchema.optional(),
 };
 
+const widgetBoardTileLayoutFields = {
+  tileContentH: widgetBoardTileContentAlignSchema.default("center"),
+  tileContentV: widgetBoardTileContentAlignSchema.default("center"),
+};
+
+const widgetBoardReadoutLayoutFields = {
+  readoutLayout: widgetBoardReadoutLayoutSchema.default("stacked"),
+  readoutInlineAlign: widgetBoardReadoutInlineAlignSchema.default("start"),
+  readoutJustify: widgetBoardReadoutJustifySchema.optional(),
+  readoutCrossAlign: widgetBoardReadoutCrossAlignSchema.optional(),
+  readoutOrder: widgetBoardReadoutOrderSchema.default("label-first"),
+  readoutGapPx: widgetBoardReadoutGapPxSchema.default(8),
+  readoutValueGrow: z.boolean().default(false),
+  ...widgetBoardTileLayoutFields,
+};
+
 const widgetBoardReadoutFields = {
   showLabel: z.boolean().default(true),
   showValue: z.boolean().default(true),
   showUnit: z.boolean().default(true),
+  ...widgetBoardReadoutLayoutFields,
+};
+
+const widgetBoardLabelLayoutFields = {
+  ...widgetBoardReadoutLayoutFields,
 };
 
 export const WIDGET_BOARD_TYPOGRAPHY_DEFAULTS = {
@@ -163,12 +227,15 @@ const heroRadialGaugeWidgetSchema = z.object({
   heroArcPreset: heroRadialGaugeArcPresetSchema.default("hero140"),
   showValue: z.boolean().default(true),
   showUnit: z.boolean().default(true),
+  showLabel: z.boolean().default(true),
   fillSmoothingMs: z.number().int().min(0).max(5000).default(0),
   holeSizePercent: z.number().int().min(8).max(20).default(10),
   zoneTint: heroRadialGaugeZoneTintSchema.default("off"),
-  showGlow: z.boolean().default(true),
+  showGlow: z.boolean().default(false),
   arcCap: heroRadialGaugeArcCapSchema.default("round"),
   typography: widgetBoardWidgetTypographySchema.optional(),
+  labelPosition: z.enum(["top", "bottom"]).default("top"),
+  ...widgetBoardTileLayoutFields,
 });
 
 const numericReadoutWidgetSchema = z.object({
@@ -214,7 +281,10 @@ const statusPillWidgetSchema = z.object({
   offTextColor: courseBlockColorHexSchema.optional(),
   offBorderColor: courseBlockColorHexSchema.optional(),
   pillStyle: widgetBoardPillStyleSchema.default("filled"),
+  pillSize: widgetBoardPillSizeSchema.default("md"),
   showLabel: z.boolean().default(true),
+  showStatusPill: z.boolean().default(true),
+  ...widgetBoardLabelLayoutFields,
   compareOp: widgetBoardCompareOpSchema.default(">="),
   compareValue: z.number().default(0.5),
   demoActive: z.boolean().default(false),
@@ -231,6 +301,7 @@ const ledIndicatorWidgetSchema = z.object({
   offColor: courseBlockColorHexSchema.default("#27272a"),
   ledSize: widgetBoardLedSizeSchema.default("md"),
   showLabel: z.boolean().default(true),
+  ...widgetBoardLabelLayoutFields,
   glowWhenOn: z.boolean().default(true),
   blink: z.boolean().default(false),
   blinkPeriodMs: z.number().int().min(200).max(3000).default(800),
@@ -340,7 +411,7 @@ export function createEvCompactWidgetBoardWidgets(): WidgetBoardEntryV1[] {
       fillSmoothingMs: 0,
       holeSizePercent: 10,
       zoneTint: "off",
-      showGlow: true,
+      showGlow: false,
       arcCap: "round",
     },
   ];

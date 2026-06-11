@@ -13,6 +13,7 @@ import { StudioWorkbenchShellProvider } from "../workbench/studio-workbench-cont
 import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
 import { useStudioRuntimeVisibilityStore } from "../../../state/studio-runtime-visibility.store";
 import type { LayoutNode } from "../../../../ui/workbench/types";
+import type { WorkbenchLayoutSnapshotV1 } from "../../../../ui/workbench/workbench-layout-library";
 import { SENSOR_STUDIO_WORKBENCH_REGISTRY } from "../workbench/studio-workbench-registry";
 import {
   getStudioWorkbenchPreset,
@@ -23,7 +24,10 @@ import {
   validateStudioWorkbenchLayout,
   type StudioWorkbenchEditorType,
 } from "../workbench/validate-studio-workbench-layout";
-
+import {
+  countStudioInspectorEditorPanes,
+  dedupeStudioInspectorEditorPanes,
+} from "../workbench/studio-inspector-pinned-pane-layout";
 export type { StudioLayoutProps } from "../studio-layout.props";
 
 const STUDIO_PANE_COMMANDS = [
@@ -35,6 +39,11 @@ const STUDIO_PANE_COMMANDS = [
   },
   { editorType: "assets", label: "Open Asset Browser", keywords: "assets models browser" },
   { editorType: "stage", label: "Open Stage", keywords: "stage 3d viewport scene output" },
+  {
+    editorType: "stage-outliner",
+    label: "Open Stage objects",
+    keywords: "stage outliner scene objects hierarchy selection",
+  },
   {
     editorType: "dashboard",
     label: "Open Dashboard",
@@ -76,9 +85,14 @@ export function StudioLayout(props: StudioLayoutProps) {
 
   const onWorkbenchLayoutChange = useCallback(
     (layout: LayoutNode) => {
+      const counts = countStudioInspectorEditorPanes(layout);
+      if (counts.inspector > 1 || counts.pinned > 1) {
+        workbenchRef.current?.setLayout(dedupeStudioInspectorEditorPanes(layout));
+        return;
+      }
       syncRuntimeVisibilityFromLayout(layout);
     },
-    [syncRuntimeVisibilityFromLayout],
+    [syncRuntimeVisibilityFromLayout, workbenchRef],
   );
 
   const flowCanvasChrome = useMemo((): StudioOverflowMenuProps => {
@@ -116,18 +130,39 @@ export function StudioLayout(props: StudioLayoutProps) {
   );
 
   const applyWorkbenchPreset = useCallback(
-    (presetId: string) => {
+    (presetId: string, focusEditorType?: string) => {
       const preset = getStudioWorkbenchPreset(presetId);
       if (preset == null) {
         return false;
       }
-      workbenchRef.current?.applyImportedLayoutSnapshot({
-        layout: preset.layout,
-        dockMemory: {},
-      });
+      workbenchRef.current?.applyImportedLayoutSnapshot(
+        {
+          layout: preset.layout,
+          dockMemory: {},
+        },
+        focusEditorType,
+      );
+      if (focusEditorType != null) {
+        setActiveEditorType(focusEditorType as StudioWorkbenchEditorType);
+      }
       return true;
     },
-    [workbenchRef],
+    [setActiveEditorType, workbenchRef],
+  );
+
+  const exportLayoutSnapshot = useCallback(() => {
+    return workbenchRef.current?.exportLayoutSnapshot("Studio desk") ?? null;
+  }, [workbenchRef]);
+
+  const applyLayoutSnapshot = useCallback(
+    (
+      snapshot: Pick<WorkbenchLayoutSnapshotV1, "layout" | "dockMemory">,
+      focusEditorType: string,
+    ) => {
+      workbenchRef.current?.applyImportedLayoutSnapshot(snapshot, focusEditorType);
+      setActiveEditorType(focusEditorType as StudioWorkbenchEditorType);
+    },
+    [setActiveEditorType, workbenchRef],
   );
 
   const toggleStudioPane = useCallback(
@@ -155,29 +190,34 @@ export function StudioLayout(props: StudioLayoutProps) {
         <StudioWorkbenchShellProvider
           value={{
             ...props,
+            workbenchRef,
             onResetWorkspaceLayout: resetWorkspaceLayout,
             onFocusWorkbenchPane: focusWorkbenchPane,
             onApplyWorkbenchPreset: applyWorkbenchPreset,
+            exportLayoutSnapshot,
+            applyLayoutSnapshot,
           }}
         >
           <StudioFlowCanvasChromeProvider value={flowCanvasChrome}>
-          <StandaloneWorkbench
-            ref={workbenchRef}
-            initialLayout={DEFAULT_STUDIO_WORKBENCH_LAYOUT}
-            registry={SENSOR_STUDIO_WORKBENCH_REGISTRY}
-            persistenceKey="sensor-studio"
-            validateLayout={validateStudioWorkbenchLayout}
-            sidePanelEditorTypes={STUDIO_SIDE_PANELS}
-            paneCommands={STUDIO_PANE_COMMANDS}
-            layoutPresets={STUDIO_WORKBENCH_PRESETS}
-            togglePaneByEditorType={toggleStudioPane}
-            onActiveEditorTypeChange={setActiveEditorType}
-            onWorkbenchLayoutChange={onWorkbenchLayoutChange}
-            onLayoutMenuPropsChange={setLayoutMenuProps}
-            onDetachRejected={() => {
-              // Last pane cannot float — ignore silently.
-            }}
-          />
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col">
+              <StandaloneWorkbench
+                ref={workbenchRef}
+                initialLayout={DEFAULT_STUDIO_WORKBENCH_LAYOUT}
+                registry={SENSOR_STUDIO_WORKBENCH_REGISTRY}
+                persistenceKey="sensor-studio"
+                validateLayout={validateStudioWorkbenchLayout}
+                sidePanelEditorTypes={STUDIO_SIDE_PANELS}
+                paneCommands={STUDIO_PANE_COMMANDS}
+                layoutPresets={STUDIO_WORKBENCH_PRESETS}
+                togglePaneByEditorType={toggleStudioPane}
+                onActiveEditorTypeChange={setActiveEditorType}
+                onWorkbenchLayoutChange={onWorkbenchLayoutChange}
+                onLayoutMenuPropsChange={setLayoutMenuProps}
+                onDetachRejected={() => {
+                  // Last pane cannot float — ignore silently.
+                }}
+              />
+            </div>
           </StudioFlowCanvasChromeProvider>
         </StudioWorkbenchShellProvider>
       </main>

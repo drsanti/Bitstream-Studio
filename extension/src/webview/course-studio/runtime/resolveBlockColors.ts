@@ -7,21 +7,26 @@ import type {
   DashboardWidgetBlockColors,
 } from "../schemas/dashboardWidgetBlockColors";
 import { stripEmptyDashboardWidgetBlockColors } from "../schemas/dashboardWidgetBlockColors";
-import { findCardThemePreset, findMarkdownThemePreset, type CourseThemesV1 } from "../schemas/courseThemes.v1";
+import type { CourseThemesV1 } from "../schemas/courseThemes.v1";
+import {
+  resolveGlobalCardThemePreset,
+  resolveGlobalMarkdownThemePreset,
+} from "../schemas/courseStudioGlobalDocumentTheme";
 import type { MarkdownBlockColorKey, MarkdownBlockColors } from "../schemas/markdownBlockColors";
 import {
   stripEmptyMarkdownBlockColors,
 } from "../schemas/markdownBlockColors";
 import type { PageMetaV1 } from "../schemas/pageMeta";
 
+/** Weakest → strongest layers; later layers override earlier ones per field. */
 function mergeHexColorLayers<K extends string>(
   keys: readonly K[],
   layers: ReadonlyArray<Partial<Record<K, string>> | undefined>,
 ): Partial<Record<K, string>> {
   const next: Partial<Record<K, string>> = {};
   for (const key of keys) {
-    for (const layer of layers) {
-      const value = layer?.[key];
+    for (let index = layers.length - 1; index >= 0; index -= 1) {
+      const value = layers[index]?.[key];
       if (value != null && value.length > 0) {
         next[key] = value;
         break;
@@ -56,7 +61,7 @@ const DASHBOARD_WIDGET_COLOR_KEYS = [
   "headerBorder",
 ] as const satisfies readonly DashboardWidgetBlockColorKey[];
 
-/** page default → block override (first match wins per field). */
+/** page default → block override (block wins per field). */
 export function resolveDashboardWidgetBlockEffectiveColors(
   blockColors: DashboardWidgetBlockColors | undefined,
   pageMeta: PageMetaV1 | undefined,
@@ -69,15 +74,15 @@ export function resolveDashboardWidgetBlockEffectiveColors(
   return stripEmptyDashboardWidgetBlockColors(merged as DashboardWidgetBlockColors);
 }
 
-/** course preset → page default → block override (first match wins per field). */
+/** global/course preset → page default → block override (block wins per field). */
 export function resolveCardBlockEffectiveColors(
   blockColors: CardBlockColors | undefined,
   pageMeta: PageMetaV1 | undefined,
   courseThemes: CourseThemesV1 | undefined,
 ): CardBlockColors | undefined {
-  const preset = findCardThemePreset(courseThemes, pageMeta?.cardThemePresetId);
+  const preset = resolveGlobalCardThemePreset(courseThemes, pageMeta?.cardThemePresetId);
   const merged = mergeHexColorLayers(CARD_COLOR_KEYS, [
-    preset?.colors,
+    preset.colors,
     pageMeta?.cardColors,
     blockColors,
   ]);
@@ -89,16 +94,19 @@ export function resolveMarkdownBlockEffectiveColors(
   pageMeta: PageMetaV1 | undefined,
   courseThemes: CourseThemesV1 | undefined,
 ): MarkdownBlockColors | undefined {
-  const preset = findMarkdownThemePreset(courseThemes, pageMeta?.markdownThemePresetId);
+  const preset = resolveGlobalMarkdownThemePreset(
+    courseThemes,
+    pageMeta?.markdownThemePresetId,
+  );
   const merged = mergeHexColorLayers(MARKDOWN_COLOR_KEYS, [
-    preset?.colors,
+    preset.colors,
     pageMeta?.markdownColors,
     blockColors,
   ]);
   const syntaxTheme =
     blockColors?.codeSyntaxTheme ??
     pageMeta?.markdownColors?.codeSyntaxTheme ??
-    preset?.colors?.codeSyntaxTheme;
+    preset.colors?.codeSyntaxTheme;
   const withSyntax =
     syntaxTheme != null
       ? { ...(merged as MarkdownBlockColors), codeSyntaxTheme: syntaxTheme }

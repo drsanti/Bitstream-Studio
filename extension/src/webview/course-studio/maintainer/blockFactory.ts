@@ -1,3 +1,4 @@
+import type { GridPlacementV1 } from "../schemas/placement";
 import type { PageBlockV1 } from "../schemas/page.v1";
 import type { PageV1 } from "../schemas/page.v1";
 import {
@@ -57,11 +58,11 @@ export function generatePageBlockId(
 export function createPageBlock(
   kind: PageBlockKind,
   page: PageV1,
-  options?: { diagramId?: string; documentId?: string },
+  options?: { diagramId?: string; documentId?: string; placement?: GridPlacementV1 },
 ): PageBlockV1 {
   const palette = PAGE_BLOCK_PALETTE.find((entry) => entry.kind === kind);
   const span = palette?.defaultSpan ?? { columnSpan: 4, rowSpan: 2 };
-  const placement = findOpenPlacement(page, span);
+  const placement = options?.placement ?? findOpenPlacement(page, span);
   const id = nextUniquePageBlockId(kind, page.blocks);
 
   switch (kind) {

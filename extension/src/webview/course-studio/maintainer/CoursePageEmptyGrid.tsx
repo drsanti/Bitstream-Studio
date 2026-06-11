@@ -1,15 +1,16 @@
 import { CoursePageEmptyState } from "../runtime/CoursePageEmptyState";
 import { placementGridStyle } from "../schemas/placement";
 import { coursePageEmptyStateCenterPlacement } from "./coursePageGridLayout";
+import { CoursePageGridEmptySlot } from "./CoursePageGridEmptySlot";
 
 export function CoursePageEmptyGrid({
   columns,
   visibleRows,
-  onActivate,
+  onEmptySlotClick,
 }: {
   columns: number;
   visibleRows: number;
-  onActivate?: () => void;
+  onEmptySlotClick: (column: number, row: number, anchor: HTMLElement) => void;
 }) {
   const messagePlacement = coursePageEmptyStateCenterPlacement(columns, visibleRows);
   const cellCount = columns * visibleRows;
@@ -20,20 +21,19 @@ export function CoursePageEmptyGrid({
         const column = (index % columns) + 1;
         const row = Math.floor(index / columns) + 1;
         return (
-          <div
+          <CoursePageGridEmptySlot
             key={`empty-cell-${column}-${row}`}
-            className="course-page-grid__cell course-page-grid__cell--idle min-h-0 cursor-default"
-            style={{ gridColumn: `${column} / span 1`, gridRow: `${row} / span 1` }}
-            onPointerDown={() => onActivate?.()}
+            column={column}
+            row={row}
+            onClick={onEmptySlotClick}
           />
         );
       })}
       <div
-        className="course-page-grid__cell relative z-[2] min-h-0 cursor-default"
+        className="course-page-grid__cell relative z-[2] min-h-0 pointer-events-none"
         style={placementGridStyle(messagePlacement)}
-        onPointerDown={() => onActivate?.()}
       >
-        <div className="course-page-grid__cell-body flex h-full min-h-0 items-center justify-center pointer-events-none">
+        <div className="course-page-grid__cell-body flex h-full min-h-0 items-center justify-center">
           <CoursePageEmptyState maintainer fit="grid" />
         </div>
       </div>

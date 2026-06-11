@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "id": "template-prose-only",
+  "title": "Template — prose only (duplicate me)",
+  "meta": {
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "md-template-prose",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 1 },
+      "src": "template-prose-only.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

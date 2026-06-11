@@ -11,6 +11,7 @@ import { flowValueAsDashboardTheme } from "../../features/editor/nodes/dashboard
 import { coerceDashboardFlexPlacementV1 } from "./dashboard-flex-placement";
 import { coerceDashboardGroupLayoutV1 } from "./dashboard-group-layout";
 import { coerceDashboardLayoutV1 } from "./dashboard-layout";
+import { coerceDashboardThemeV1 } from "./dashboard-theme";
 import {
   coerceDashboardPlacementV1,
   dashboardPlacementCellKeys,
@@ -22,7 +23,8 @@ import {
   readDashboardPublishTabId,
   readPublishToDashboardFlag,
 } from "./dashboard-publish";
-import { coerceDashboardThemeV1 } from "./dashboard-theme";
+import { coerceDashboardSelectOptions, readDashboardSelectValue } from "./dashboard-select-options";
+import { readDashboardImageUrl } from "./dashboard-image-fit";
 import type {
   DashboardGroupEntryV1,
   DashboardSnapshotItemV1,
@@ -68,6 +70,9 @@ const DASHBOARD_WIDGET_NODE_IDS: ReadonlySet<string> = new Set([
   "dashboard-gauge",
   "dashboard-knob",
   "dashboard-switch",
+  "dashboard-select",
+  "dashboard-formatted-text",
+  "dashboard-image",
   "dashboard-slider",
   "dashboard-status",
 ]);
@@ -90,6 +95,15 @@ function widgetKindFromNodeId(nodeId: string): DashboardWidgetKindV1 | null {
   }
   if (nodeId === "dashboard-switch") {
     return "switch";
+  }
+  if (nodeId === "dashboard-select") {
+    return "select";
+  }
+  if (nodeId === "dashboard-formatted-text") {
+    return "formatted-text";
+  }
+  if (nodeId === "dashboard-image") {
+    return "image";
   }
   if (nodeId === "dashboard-slider") {
     return "slider";
@@ -136,6 +150,13 @@ function readLiveValue(node: FlowGraphNode): number | boolean | string | null {
     if (typeof raw === "boolean") {
       return raw;
     }
+  }
+  if (node.data.nodeId === "dashboard-select") {
+    const options = coerceDashboardSelectOptions(dc.options);
+    return readDashboardSelectValue(dc, options);
+  }
+  if (node.data.nodeId === "dashboard-image") {
+    return readDashboardImageUrl(dc, node.data.liveValue);
   }
   if (
     node.data.nodeId === "compare" ||

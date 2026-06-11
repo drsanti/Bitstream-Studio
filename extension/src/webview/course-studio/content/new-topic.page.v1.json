@@ -21,6 +21,163 @@
       "eyebrow": "Topic",
       "title": "New topic",
       "subtitle": "Edit this page in the Page Editor."
+    },
+    {
+      "id": "widget-board-1",
+      "kind": "widget-board",
+      "placement": {
+        "column": 1,
+        "row": 3,
+        "columnSpan": 8,
+        "rowSpan": 8
+      },
+      "appearance": {
+        "themePresetId": "ev-compact",
+        "metaLine": "Decorative · no telemetry",
+        "caption": "Compact EV hero widget board. Select widgets in the editor, bind paths in the Inspector, or use demo values.",
+        "showMetaLine": true
+      },
+      "grid": {
+        "columns": 6,
+        "rowHeightPx": 48,
+        "gapPx": 8,
+        "paddingPx": 16
+      },
+      "widgets": [
+        {
+          "id": "power",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 1,
+            "columnSpan": 3,
+            "rowSpan": 2
+          },
+          "label": "Power",
+          "min": 0,
+          "max": 250,
+          "decimals": 0,
+          "demoValue": 192,
+          "visualPreset": "abstract",
+          "showLabel": true,
+          "showValue": true,
+          "showUnit": true,
+          "readoutLayout": "stacked",
+          "readoutInlineAlign": "start",
+          "readoutOrder": "label-first",
+          "readoutGapPx": 8,
+          "readoutValueGrow": false,
+          "tileContentH": "center",
+          "tileContentV": "center"
+        },
+        {
+          "id": "battery",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 3,
+            "columnSpan": 3,
+            "rowSpan": 2
+          },
+          "label": "Battery",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "demoValue": 78,
+          "visualPreset": "abstract",
+          "showLabel": true,
+          "showValue": true,
+          "showUnit": true,
+          "readoutLayout": "stacked",
+          "readoutInlineAlign": "start",
+          "readoutOrder": "label-first",
+          "readoutGapPx": 8,
+          "readoutValueGrow": false,
+          "tileContentH": "center",
+          "tileContentV": "center"
+        },
+        {
+          "id": "speed",
+          "kind": "hero-radial-gauge",
+          "placement": {
+            "column": 4,
+            "row": 1,
+            "columnSpan": 3,
+            "rowSpan": 4
+          },
+          "label": "Speed",
+          "min": 0,
+          "max": 180,
+          "decimals": 0,
+          "unit": "km/h",
+          "demoValue": 90,
+          "heroArcPreset": "hero140",
+          "showValue": true,
+          "showUnit": true,
+          "showLabel": true,
+          "fillSmoothingMs": 0,
+          "holeSizePercent": 10,
+          "zoneTint": "off",
+          "showGlow": false,
+          "arcCap": "round",
+          "labelPosition": "top",
+          "tileContentH": "center",
+          "tileContentV": "center"
+        },
+        {
+          "id": "metric-bar-1",
+          "kind": "metric-bar",
+          "placement": {
+            "column": 1,
+            "row": 5,
+            "columnSpan": 2,
+            "rowSpan": 2
+          },
+          "label": "Metric",
+          "min": 0,
+          "max": 100,
+          "decimals": 0,
+          "demoValue": 50,
+          "visualPreset": "abstract",
+          "showLabel": true,
+          "showValue": true,
+          "showUnit": true,
+          "readoutLayout": "stacked",
+          "readoutInlineAlign": "start",
+          "readoutOrder": "label-first",
+          "readoutGapPx": 8,
+          "readoutValueGrow": false,
+          "tileContentH": "center",
+          "tileContentV": "center"
+        },
+        {
+          "id": "hero-radial-gauge-1",
+          "kind": "hero-radial-gauge",
+          "placement": {
+            "column": 3,
+            "row": 5,
+            "columnSpan": 3,
+            "rowSpan": 3
+          },
+          "min": 0,
+          "max": 180,
+          "decimals": 0,
+          "unit": "km/h",
+          "demoValue": 0,
+          "heroArcPreset": "hero140",
+          "showValue": true,
+          "showUnit": true,
+          "showLabel": true,
+          "fillSmoothingMs": 0,
+          "holeSizePercent": 10,
+          "zoneTint": "off",
+          "showGlow": false,
+          "arcCap": "round",
+          "labelPosition": "top",
+          "tileContentH": "center",
+          "tileContentV": "center"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "id": "st-intro-core-ideas",
+  "title": "Core ideas",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-intro",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "Before you start",
+      "title": "Core ideas — four sensors on one DevKit",
+      "subtitle": "Shared concepts for SHT40, DPS368, BMI270, and BMM350 — with live readouts from one linked board or Simulator."
+    },
+    {
+      "id": "callout-link",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Link telemetry first",
+      "body": "Toolbar Bitstream + Link (DevKit) or Simulator + Link. Enable all four sensors in Sensor Telemetry settings. If widgets stay gray, check publish mode and channel masks.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "dash-sht-temp",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 3, "rowSpan": 2 },
+      "title": "SHT40 · Temp",
+      "widgetKind": "text",
+      "style": { "label": "Temperature", "unit": "°C", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.temp", "fallback": 0, "unit": "°C", "format": "0.0f" }
+    },
+    {
+      "id": "dash-sht-rh",
+      "kind": "dashboard-widget",
+      "placement": { "column": 4, "row": 5, "columnSpan": 3, "rowSpan": 2 },
+      "title": "SHT40 · Humidity",
+      "widgetKind": "text",
+      "style": { "label": "Humidity", "unit": "%RH", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.rh", "fallback": 0, "unit": "%RH", "format": "0.0f" }
+    },
+    {
+      "id": "dash-dps-pressure",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 3, "rowSpan": 2 },
+      "title": "DPS368 · Pressure",
+      "widgetKind": "text",
+      "style": { "label": "Pressure", "unit": "hPa", "decimals": 2, "showStatusBar": true },
+      "binding": { "path": "dps368.pressureHpa", "fallback": 0, "unit": "hPa", "format": "0.00f" }
+    },
+    {
+      "id": "dash-bmi-pitch",
+      "kind": "dashboard-widget",
+      "placement": { "column": 10, "row": 5, "columnSpan": 3, "rowSpan": 2 },
+      "title": "BMI270 · Pitch",
+      "widgetKind": "text",
+      "style": { "label": "Pitch angle", "unit": "°", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmi270.pitch", "fallback": 0, "unit": "°", "format": "0.0f" }
+    },
+    {
+      "id": "dash-bmm-mag",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 7, "columnSpan": 3, "rowSpan": 2 },
+      "title": "BMM350 · |B|",
+      "widgetKind": "text",
+      "style": { "label": "Magnetic field", "unit": "µT", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmm350.magnitude", "fallback": 0, "unit": "µT", "format": "0.0f" }
+    },
+    {
+      "id": "card-live-states",
+      "kind": "card",
+      "placement": { "column": 4, "row": 7, "columnSpan": 9, "rowSpan": 2 },
+      "title": "Live · Offline · Stale",
+      "body": "Live — values change when the board moves.\nOffline — no trustworthy stream.\nStale — last number may still show but is old.\nCup the board → SHT40 temp rises; tilt → pitch changes."
+    },
+    {
+      "id": "md-st-intro-core-ideas",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 9, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-intro-core-ideas.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

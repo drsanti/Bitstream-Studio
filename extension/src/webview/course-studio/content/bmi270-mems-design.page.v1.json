@@ -37,7 +37,7 @@
       "placement": { "column": 8, "row": 5, "columnSpan": 5, "rowSpan": 2 },
       "title": "Accel X",
       "widgetKind": "text",
-      "style": { "label": "Ax", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "style": { "label": "Accel X", "unit": "g", "decimals": 3, "showStatusBar": true },
       "binding": { "path": "bmi270.ax", "fallback": 0, "unit": "g", "format": "0.000f" }
     },
     {
@@ -46,7 +46,7 @@
       "placement": { "column": 8, "row": 7, "columnSpan": 5, "rowSpan": 2 },
       "title": "Accel Z",
       "widgetKind": "text",
-      "style": { "label": "Az", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "style": { "label": "Accel Z", "unit": "g", "decimals": 3, "showStatusBar": true },
       "binding": { "path": "bmi270.az", "fallback": 0, "unit": "g", "format": "0.000f" }
     },
     {
@@ -55,7 +55,7 @@
       "placement": { "column": 8, "row": 9, "columnSpan": 5, "rowSpan": 2 },
       "title": "Gyro |ω|",
       "widgetKind": "text",
-      "style": { "label": "|ω|", "unit": "°/s", "decimals": 1, "showStatusBar": true },
+      "style": { "label": "Rotation rate", "unit": "°/s", "decimals": 1, "showStatusBar": true },
       "binding": { "path": "bmi270.gyrMag", "fallback": 0, "unit": "°/s", "format": "0.0f" }
     },
     {

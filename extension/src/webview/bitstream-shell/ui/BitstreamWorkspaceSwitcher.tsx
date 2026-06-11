@@ -1,8 +1,9 @@
 import { Activity, Workflow, GraduationCap } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
+  BITSTREAM_TOOLBAR_WORKSPACE_IDS,
   useBitstreamWorkspaceModeStore,
-  type BitstreamWorkspaceId,
+  type BitstreamToolbarWorkspaceId,
 } from "../../bitstream-app/state/bitstreamWorkspaceMode.store";
 import {
   SHELL_CONTROL_DECK_ZONE_CLASS,
@@ -18,7 +19,7 @@ import { TRN_HINT_HOVER_DELAY_MS } from "../../ui/TRN/TRNHintText";
 import { TRNTooltip } from "../../ui/TRN/TRNTooltip";
 
 type WorkspaceTab = {
-  id: Exclude<BitstreamWorkspaceId, "presentation">;
+  id: BitstreamToolbarWorkspaceId;
   label: string;
   hint: string;
   Icon: LucideIcon;
@@ -30,10 +31,7 @@ const WORKSPACE_HOVER_CLASS = {
   "sensor-telemetry": SHELL_DECK_PILL_HOVER.workspaceTelemetry,
   "sensor-studio": SHELL_DECK_PILL_HOVER.workspaceStudio,
   "course-studio": SHELL_DECK_PILL_HOVER.workspaceCourseStudio,
-} as const satisfies Record<
-  Exclude<BitstreamWorkspaceId, "presentation">,
-  string
->;
+} as const satisfies Record<BitstreamToolbarWorkspaceId, string>;
 
 /** Shell toolbar workspaces (legacy Presentation v1 tab removed — use Course Studio). */
 const WORKSPACE_TABS: readonly WorkspaceTab[] = [

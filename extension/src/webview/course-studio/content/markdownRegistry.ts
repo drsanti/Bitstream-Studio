@@ -20,6 +20,24 @@ import {
   DPS368_LIVE_MD_SRC,
   DPS368_OVERVIEW_MD_SRC,
   NEW_TOPIC_2_SANDBOX_MD_SRC,
+  ST_INTRO_CORE_IDEAS_MD_SRC,
+  ST_SHT40_OVERVIEW_MD_SRC,
+  ST_SHT40_ENGINEERING_MD_SRC,
+  ST_SHT40_LABS_MD_SRC,
+  ST_SHT40_REFERENCE_MD_SRC,
+  ST_DPS368_OVERVIEW_MD_SRC,
+  ST_DPS368_ENGINEERING_MD_SRC,
+  ST_DPS368_LABS_MD_SRC,
+  ST_DPS368_REFERENCE_MD_SRC,
+  ST_BMI270_OVERVIEW_MD_SRC,
+  ST_BMI270_ENGINEERING_MD_SRC,
+  ST_BMI270_LABS_MD_SRC,
+  ST_BMI270_REFERENCE_MD_SRC,
+  ST_BMM350_OVERVIEW_MD_SRC,
+  ST_BMM350_ENGINEERING_MD_SRC,
+  ST_BMM350_LABS_MD_SRC,
+  ST_BMM350_REFERENCE_MD_SRC,
+  ST_FOUR_SENSOR_DASHBOARD_MD_SRC,
 } from "./courseMarkdownBundledSrcs";
 import bmi270ApplicationsMd from "./bmi270-applications.theory.md?raw";
 import bmi270LiveVisualizationMd from "./bmi270-live-visualization.theory.md?raw";
@@ -39,6 +57,24 @@ import sht40ComfortMd from "./sht40-comfort.theory.md?raw";
 import sht40LiveMd from "./sht40-live.theory.md?raw";
 import sht40OverviewMd from "./sht40-overview.theory.md?raw";
 import newTopic2SandboxMd from "./new-topic-2.sandbox.md?raw";
+import stIntroCoreIdeasMd from "./st-intro-core-ideas.theory.md?raw";
+import stSht40OverviewMd from "./st-sht40-overview.theory.md?raw";
+import stSht40EngineeringMd from "./st-sht40-engineering.theory.md?raw";
+import stSht40LabsMd from "./st-sht40-labs.theory.md?raw";
+import stSht40ReferenceMd from "./st-sht40-reference.theory.md?raw";
+import stDps368OverviewMd from "./st-dps368-overview.theory.md?raw";
+import stDps368EngineeringMd from "./st-dps368-engineering.theory.md?raw";
+import stDps368LabsMd from "./st-dps368-labs.theory.md?raw";
+import stDps368ReferenceMd from "./st-dps368-reference.theory.md?raw";
+import stBmi270OverviewMd from "./st-bmi270-overview.theory.md?raw";
+import stBmi270EngineeringMd from "./st-bmi270-engineering.theory.md?raw";
+import stBmi270LabsMd from "./st-bmi270-labs.theory.md?raw";
+import stBmi270ReferenceMd from "./st-bmi270-reference.theory.md?raw";
+import stBmm350OverviewMd from "./st-bmm350-overview.theory.md?raw";
+import stBmm350EngineeringMd from "./st-bmm350-engineering.theory.md?raw";
+import stBmm350LabsMd from "./st-bmm350-labs.theory.md?raw";
+import stBmm350ReferenceMd from "./st-bmm350-reference.theory.md?raw";
+import stFourSensorDashboardMd from "./st-four-sensor-dashboard.theory.md?raw";
 
 export { PILOT_ACCEL_THEORY_MD_SRC };
 
@@ -79,6 +115,42 @@ const SHT40_APPLICATIONS_MD_SOURCE_PATH =
   "src/webview/course-studio/content/sht40-applications.theory.md";
 const NEW_TOPIC_2_SANDBOX_MD_SOURCE_PATH =
   "src/webview/course-studio/content/new-topic-2.sandbox.md";
+const ST_INTRO_CORE_IDEAS_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-intro-core-ideas.theory.md";
+const ST_SHT40_OVERVIEW_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-sht40-overview.theory.md";
+const ST_SHT40_ENGINEERING_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-sht40-engineering.theory.md";
+const ST_SHT40_LABS_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-sht40-labs.theory.md";
+const ST_SHT40_REFERENCE_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-sht40-reference.theory.md";
+const ST_DPS368_OVERVIEW_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-dps368-overview.theory.md";
+const ST_DPS368_ENGINEERING_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-dps368-engineering.theory.md";
+const ST_DPS368_LABS_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-dps368-labs.theory.md";
+const ST_DPS368_REFERENCE_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-dps368-reference.theory.md";
+const ST_BMI270_OVERVIEW_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmi270-overview.theory.md";
+const ST_BMI270_ENGINEERING_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmi270-engineering.theory.md";
+const ST_BMI270_LABS_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmi270-labs.theory.md";
+const ST_BMI270_REFERENCE_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmi270-reference.theory.md";
+const ST_BMM350_OVERVIEW_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmm350-overview.theory.md";
+const ST_BMM350_ENGINEERING_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmm350-engineering.theory.md";
+const ST_BMM350_LABS_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmm350-labs.theory.md";
+const ST_BMM350_REFERENCE_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-bmm350-reference.theory.md";
+const ST_FOUR_SENSOR_DASHBOARD_MD_SOURCE_PATH =
+  "src/webview/course-studio/content/st-four-sensor-dashboard.theory.md";
 
 const BUNDLED_MARKDOWN: Record<string, string> = {
   [PILOT_ACCEL_THEORY_MD_SRC]: pilotTheoryMd,
@@ -99,6 +171,24 @@ const BUNDLED_MARKDOWN: Record<string, string> = {
   [SHT40_LIVE_MD_SRC]: sht40LiveMd,
   [SHT40_APPLICATIONS_MD_SRC]: sht40ApplicationsMd,
   [NEW_TOPIC_2_SANDBOX_MD_SRC]: newTopic2SandboxMd,
+  [ST_INTRO_CORE_IDEAS_MD_SRC]: stIntroCoreIdeasMd,
+  [ST_SHT40_OVERVIEW_MD_SRC]: stSht40OverviewMd,
+  [ST_SHT40_ENGINEERING_MD_SRC]: stSht40EngineeringMd,
+  [ST_SHT40_LABS_MD_SRC]: stSht40LabsMd,
+  [ST_SHT40_REFERENCE_MD_SRC]: stSht40ReferenceMd,
+  [ST_DPS368_OVERVIEW_MD_SRC]: stDps368OverviewMd,
+  [ST_DPS368_ENGINEERING_MD_SRC]: stDps368EngineeringMd,
+  [ST_DPS368_LABS_MD_SRC]: stDps368LabsMd,
+  [ST_DPS368_REFERENCE_MD_SRC]: stDps368ReferenceMd,
+  [ST_BMI270_OVERVIEW_MD_SRC]: stBmi270OverviewMd,
+  [ST_BMI270_ENGINEERING_MD_SRC]: stBmi270EngineeringMd,
+  [ST_BMI270_LABS_MD_SRC]: stBmi270LabsMd,
+  [ST_BMI270_REFERENCE_MD_SRC]: stBmi270ReferenceMd,
+  [ST_BMM350_OVERVIEW_MD_SRC]: stBmm350OverviewMd,
+  [ST_BMM350_ENGINEERING_MD_SRC]: stBmm350EngineeringMd,
+  [ST_BMM350_LABS_MD_SRC]: stBmm350LabsMd,
+  [ST_BMM350_REFERENCE_MD_SRC]: stBmm350ReferenceMd,
+  [ST_FOUR_SENSOR_DASHBOARD_MD_SRC]: stFourSensorDashboardMd,
 };
 
 const MARKDOWN_SOURCE_PATHS: Record<string, string> = {
@@ -120,6 +210,24 @@ const MARKDOWN_SOURCE_PATHS: Record<string, string> = {
   [SHT40_LIVE_MD_SRC]: SHT40_LIVE_MD_SOURCE_PATH,
   [SHT40_APPLICATIONS_MD_SRC]: SHT40_APPLICATIONS_MD_SOURCE_PATH,
   [NEW_TOPIC_2_SANDBOX_MD_SRC]: NEW_TOPIC_2_SANDBOX_MD_SOURCE_PATH,
+  [ST_INTRO_CORE_IDEAS_MD_SRC]: ST_INTRO_CORE_IDEAS_MD_SOURCE_PATH,
+  [ST_SHT40_OVERVIEW_MD_SRC]: ST_SHT40_OVERVIEW_MD_SOURCE_PATH,
+  [ST_SHT40_ENGINEERING_MD_SRC]: ST_SHT40_ENGINEERING_MD_SOURCE_PATH,
+  [ST_SHT40_LABS_MD_SRC]: ST_SHT40_LABS_MD_SOURCE_PATH,
+  [ST_SHT40_REFERENCE_MD_SRC]: ST_SHT40_REFERENCE_MD_SOURCE_PATH,
+  [ST_DPS368_OVERVIEW_MD_SRC]: ST_DPS368_OVERVIEW_MD_SOURCE_PATH,
+  [ST_DPS368_ENGINEERING_MD_SRC]: ST_DPS368_ENGINEERING_MD_SOURCE_PATH,
+  [ST_DPS368_LABS_MD_SRC]: ST_DPS368_LABS_MD_SOURCE_PATH,
+  [ST_DPS368_REFERENCE_MD_SRC]: ST_DPS368_REFERENCE_MD_SOURCE_PATH,
+  [ST_BMI270_OVERVIEW_MD_SRC]: ST_BMI270_OVERVIEW_MD_SOURCE_PATH,
+  [ST_BMI270_ENGINEERING_MD_SRC]: ST_BMI270_ENGINEERING_MD_SOURCE_PATH,
+  [ST_BMI270_LABS_MD_SRC]: ST_BMI270_LABS_MD_SOURCE_PATH,
+  [ST_BMI270_REFERENCE_MD_SRC]: ST_BMI270_REFERENCE_MD_SOURCE_PATH,
+  [ST_BMM350_OVERVIEW_MD_SRC]: ST_BMM350_OVERVIEW_MD_SOURCE_PATH,
+  [ST_BMM350_ENGINEERING_MD_SRC]: ST_BMM350_ENGINEERING_MD_SOURCE_PATH,
+  [ST_BMM350_LABS_MD_SRC]: ST_BMM350_LABS_MD_SOURCE_PATH,
+  [ST_BMM350_REFERENCE_MD_SRC]: ST_BMM350_REFERENCE_MD_SOURCE_PATH,
+  [ST_FOUR_SENSOR_DASHBOARD_MD_SRC]: ST_FOUR_SENSOR_DASHBOARD_MD_SOURCE_PATH,
 };
 
 function resolveBundledMarkdown(src: string): string | null {

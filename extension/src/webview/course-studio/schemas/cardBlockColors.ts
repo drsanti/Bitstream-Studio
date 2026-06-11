@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CSSProperties } from "react";
+import { PRESENTATION_DARK_TEXT_COLORS } from "../../presentation/design/presentationTextColors";
 import {
   courseBlockColorHexSchema,
   normalizeCourseBlockColorHex,
@@ -21,7 +22,7 @@ export const CARD_BLOCK_COLOR_THEME_DEFAULTS: Record<CardBlockColorKey, string> 
   border: "#3f3f46",
   title: "#fafafa",
   icon: "#fafafa",
-  body: "#a1a1aa",
+  body: PRESENTATION_DARK_TEXT_COLORS.secondary,
 };
 
 export const CARD_BLOCK_COLOR_CSS_VARS: Record<CardBlockColorKey, string> = {

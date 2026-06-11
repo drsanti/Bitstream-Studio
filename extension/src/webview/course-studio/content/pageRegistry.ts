@@ -63,6 +63,11 @@ import {
   NEW_TOPIC_2_PAGE_ID,
   NEW_TOPIC_2_PAGE_SOURCE_PATH,
 } from "./loadTestChapterPages";
+import {
+  loadWorkshopLiveHtmlPage,
+  WORKSHOP_LIVE_HTML_PAGE_ID,
+  WORKSHOP_LIVE_HTML_PAGE_SOURCE_PATH,
+} from "./loadWorkshopLiveHtmlPage";
 
 /** Pages discovered from `content/*.page.v1.json` at Vite bootstrap (see registerContentFolderPages). */
 const contentFolderPages: Record<string, { page: PageV1; sourcePath: string }> = {};
@@ -158,6 +163,10 @@ const BUNDLED_PAGES: Record<string, { page: PageV1; sourcePath: string }> = {
   [NEW_TOPIC_2_PAGE_ID]: {
     page: loadNewTopic2Page(),
     sourcePath: NEW_TOPIC_2_PAGE_SOURCE_PATH,
+  },
+  [WORKSHOP_LIVE_HTML_PAGE_ID]: {
+    page: loadWorkshopLiveHtmlPage(),
+    sourcePath: WORKSHOP_LIVE_HTML_PAGE_SOURCE_PATH,
   },
 };
 

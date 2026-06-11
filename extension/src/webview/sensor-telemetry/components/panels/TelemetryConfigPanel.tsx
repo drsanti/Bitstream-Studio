@@ -15,11 +15,13 @@ import {
   TRNTabs,
   TRNTabsContent,
   TRNTabsList,
+  TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS,
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
   trnInspectorTabActiveClassName,
 } from "../../../ui/TRN";
+import { TelemetryConfigInspectorContextBar } from "./telemetry-inspector-context.js";
 import { useBitstreamAppControl } from "../../../bitstream-app/control/bitstreamAppControl.context.js";
 import {
   SENSOR_SOURCE_ID_BMI270,
@@ -83,6 +85,15 @@ export function TelemetryConfigPanel() {
   const applyAck = sensorCfgApplyBarAck(sensorConfigAck);
 
   const tabContentClass = "mt-0 min-h-0 flex-1 overflow-y-auto px-1 pb-1";
+
+  const activeSourceId =
+    activeSensorTab === "bmi270"
+      ? SENSOR_SOURCE_ID_BMI270
+      : activeSensorTab === "bmm350"
+        ? SENSOR_SOURCE_ID_BMM350
+        : activeSensorTab === "sht40"
+          ? SENSOR_SOURCE_ID_SHT40
+          : SENSOR_SOURCE_ID_DPS368;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -151,6 +162,16 @@ export function TelemetryConfigPanel() {
             </TRNTabsList>
           </div>
 
+          <div className={TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS}>
+            <TelemetryConfigInspectorContextBar
+              activeTab={activeSensorTab}
+              dirty={isConfigPaneSensorTabDirty(
+                activeSourceId,
+                isSensorCfgDirty(activeSourceId),
+              )}
+              canControl={host.canControl}
+            />
+
           <TRNTabsContent value="bmi270" keepMounted={false} className={tabContentClass}>
             <SensorCfgDeck
               sourceId={SENSOR_SOURCE_ID_BMI270}
@@ -182,6 +203,7 @@ export function TelemetryConfigPanel() {
               draftUntilApply
             />
           </TRNTabsContent>
+          </div>
         </TRNTabs>
       </div>
 

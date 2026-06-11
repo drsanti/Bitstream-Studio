@@ -1,15 +1,20 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   AlignVerticalJustifyCenter,
+  Check,
   Download,
   FolderOpen,
-  Maximize2,
+  Layers,
+  Library,
+  MonitorPlay,
   Pencil,
   Play,
   Upload,
 } from "lucide-react";
 import type { DashboardLayoutModeV1 } from "../../core/dashboard/dashboard-layout";
-import { TRNButton, TRNFormField, TRNHintText, TRNSelect } from "../../../ui/TRN";
+import { TRNFormField, TRNHintText, TRNSelect } from "../../../ui/TRN";
+import { TRN_HINT_HOVER_DELAY_MS } from "../../../ui/TRN/TRNHintText";
+import { TRNTooltip } from "../../../ui/TRN/TRNTooltip";
 import type { DashboardSnapshotV1 } from "../../core/dashboard/dashboard-snapshot";
 import { downloadDashboardLayoutJson } from "../../core/dashboard/dashboard-layout-export";
 import {
@@ -18,25 +23,73 @@ import {
   saveDashboardLayoutToLibrary,
 } from "../../core/dashboard/dashboard-layout-library";
 import { useFlowEditorStore } from "../editor/store/flow-editor.store";
-import { useStudioWorkbenchShell } from "../editor/workbench/studio-workbench-context";
-import { openDashboardOperatorLayout } from "./dashboard-navigation";
+import {
+  FLOW_TOOLBAR_DIVIDER_CLASS,
+  FLOW_TOOLBAR_PILL_CLASS,
+  flowToolbarBtnClass,
+} from "../editor/components/flow-toolbar/flow-toolbar-tokens";
+import type { DashboardDisplayTarget } from "./dashboard-viewport-ui-persistence";
 
 type DashboardViewportToolbarProps = {
   editMode: boolean;
+  displayTarget: DashboardDisplayTarget;
   layoutMode: DashboardLayoutModeV1;
   snapshot: DashboardSnapshotV1;
   onEditModeChange: (next: boolean) => void;
+  onDisplayTargetChange: (target: DashboardDisplayTarget) => void;
   onStackLayout?: () => void;
 };
 
+function ToolbarIconButton(props: {
+  label: string;
+  hint: string;
+  active?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  const { label, hint, active = false, onClick, children } = props;
+  return (
+    <TRNTooltip
+      placement="bottom"
+      openDelayMs={TRN_HINT_HOVER_DELAY_MS}
+      disableHoverFx
+      triggerWrapper="span"
+      content={hint}
+      trigger={
+        <button
+          type="button"
+          className={flowToolbarBtnClass(false, active)}
+          aria-label={label}
+          aria-pressed={active}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
+            onClick();
+          }}
+        >
+          {children}
+        </button>
+      }
+    />
+  );
+}
+
 export function DashboardViewportToolbar(props: DashboardViewportToolbarProps) {
-  const { editMode, layoutMode, snapshot, onEditModeChange, onStackLayout } = props;
-  const { onFocusWorkbenchPane, onApplyWorkbenchPreset } = useStudioWorkbenchShell();
+  const {
+    editMode,
+    displayTarget,
+    layoutMode,
+    snapshot,
+    onEditModeChange,
+    onDisplayTargetChange,
+    onStackLayout,
+  } = props;
   const importDashboardLayoutJson = useFlowEditorStore((state) => state.importDashboardLayoutJson);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [saveName, setSaveName] = useState("");
   const [showSaveField, setShowSaveField] = useState(false);
+  const [showLibraryPicker, setShowLibraryPicker] = useState(false);
   const [libraryVersion, setLibraryVersion] = useState(0);
   const [selectedLibraryId, setSelectedLibraryId] = useState("");
 
@@ -64,11 +117,9 @@ export function DashboardViewportToolbar(props: DashboardViewportToolbarProps) {
         result.missingNodeIds.length > 0
           ? ` ${result.missingNodeIds.length} node id(s) not found on this canvas.`
           : "";
-      setFeedback(
-        `Applied layout to ${result.matchedNodes} node(s).${missing}`,
-      );
+      setFeedback(`Applied layout to ${result.matchedNodes} node(s).${missing}`);
     },
-    [],
+    [importDashboardLayoutJson],
   );
 
   const onImportFile = useCallback(
@@ -95,6 +146,7 @@ export function DashboardViewportToolbar(props: DashboardViewportToolbarProps) {
       return;
     }
     reportImportResult(importDashboardLayoutJson(JSON.stringify(entry.export)));
+    setShowLibraryPicker(false);
   }, [importDashboardLayoutJson, reportImportResult, selectedLibraryId]);
 
   const onSaveToLibrary = useCallback(() => {
@@ -107,109 +159,109 @@ export function DashboardViewportToolbar(props: DashboardViewportToolbarProps) {
   }, [saveName, snapshot]);
 
   return (
-    <div className="flex shrink-0 flex-col border-b border-zinc-800/80 bg-zinc-950/90">
-      <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 px-2 py-1.5">
-        <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
-          Dashboard
-        </span>
-        <div className="flex flex-wrap items-center justify-end gap-1">
-          <div className="flex items-center gap-0.5 rounded-md border border-zinc-700/70 bg-zinc-900/50 p-0.5">
-            <TRNButton
-              type="button"
-              size="compact"
-              selected={!editMode}
-              hint="Preview mode — interact with buttons, knobs, and switches."
-              onClick={() => onEditModeChange(false)}
-            >
-              <Play className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-              Preview
-            </TRNButton>
-            <TRNButton
-              type="button"
-              size="compact"
-              selected={editMode}
-              hint="Edit mode — select, drag, and resize widgets. Gauges and readouts still show live graph data; controls are disabled until Preview."
-              onClick={() => onEditModeChange(true)}
-            >
-              <Pencil className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-              Edit
-            </TRNButton>
-          </div>
-          {editMode && layoutMode === "grid" && onStackLayout != null ? (
-            <TRNButton
-              type="button"
-              size="compact"
+    <div
+      className="pointer-events-none absolute top-3 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-1.5"
+      role="toolbar"
+      aria-label="Dashboard controls"
+    >
+      <div
+        className={`${FLOW_TOOLBAR_PILL_CLASS} nodrag`}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <ToolbarIconButton
+          label="Preview mode"
+          hint="Preview mode — interact with buttons, knobs, and switches."
+          active={!editMode}
+          onClick={() => onEditModeChange(false)}
+        >
+          <Play size={14} />
+        </ToolbarIconButton>
+        <ToolbarIconButton
+          label="Edit mode"
+          hint="Edit mode — select, drag, and resize widgets. Controls are disabled until Preview."
+          active={editMode}
+          onClick={() => onEditModeChange(true)}
+        >
+          <Pencil size={14} />
+        </ToolbarIconButton>
+        {editMode && layoutMode === "grid" && onStackLayout != null ? (
+          <>
+            <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+            <ToolbarIconButton
+              label="Stack widgets"
               hint="Stack visible widgets in column 1 — top to bottom, preserving spans."
               onClick={onStackLayout}
             >
-              <AlignVerticalJustifyCenter className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-              Stack
-            </TRNButton>
-          ) : null}
-          <span className="mx-0.5 hidden h-4 w-px bg-zinc-700/80 sm:inline" aria-hidden />
-          {onApplyWorkbenchPreset != null && onFocusWorkbenchPane != null ? (
-            <TRNButton
-              type="button"
-              size="compact"
-              hint="Full-screen operator layout — Dashboard only, no flow or library panes."
-              onClick={() => {
-                openDashboardOperatorLayout(onApplyWorkbenchPreset, onFocusWorkbenchPane);
-              }}
+              <AlignVerticalJustifyCenter size={14} />
+            </ToolbarIconButton>
+          </>
+        ) : null}
+        {!editMode ? (
+          <>
+            <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+            <ToolbarIconButton
+              label="Dashboard pane"
+              hint="Preview on the Dashboard workbench pane."
+              active={displayTarget === "pane"}
+              onClick={() => onDisplayTargetChange("pane")}
             >
-              <Maximize2 className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-              Operator
-            </TRNButton>
-          ) : null}
-          <TRNButton
-            type="button"
-            size="compact"
-            hint="Download the committed dashboard layout snapshot as JSON."
-            onClick={() => downloadDashboardLayoutJson(snapshot)}
+              <Layers size={14} />
+            </ToolbarIconButton>
+            <ToolbarIconButton
+              label="Stage HUD"
+              hint="Preview as a HUD overlay on the Stage viewport (open Stage pane)."
+              active={displayTarget === "stage-hud"}
+              onClick={() => onDisplayTargetChange("stage-hud")}
+            >
+              <MonitorPlay size={14} />
+            </ToolbarIconButton>
+          </>
+        ) : null}
+        <div className={FLOW_TOOLBAR_DIVIDER_CLASS} />
+        <ToolbarIconButton
+          label="Export layout"
+          hint="Download the committed dashboard layout snapshot as JSON."
+          onClick={() => downloadDashboardLayoutJson(snapshot)}
+        >
+          <Download size={14} />
+        </ToolbarIconButton>
+        <ToolbarIconButton
+          label="Import layout"
+          hint="Import layout JSON — updates placement and publish flags on matching flow nodes."
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload size={14} />
+        </ToolbarIconButton>
+        <ToolbarIconButton
+          label="Save layout to library"
+          hint="Save the current committed layout to a local library (browser storage)."
+          active={showSaveField}
+          onClick={() => {
+            setShowSaveField((open) => !open);
+            if (showSaveField) {
+              return;
+            }
+            setShowLibraryPicker(false);
+          }}
+        >
+          <FolderOpen size={14} />
+        </ToolbarIconButton>
+        {libraryOptions.length > 0 ? (
+          <ToolbarIconButton
+            label="Saved layouts"
+            hint="Pick a saved layout from the library and apply it."
+            active={showLibraryPicker}
+            onClick={() => {
+              setShowLibraryPicker((open) => !open);
+              if (showLibraryPicker) {
+                return;
+              }
+              setShowSaveField(false);
+            }}
           >
-            <Download className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-            Export
-          </TRNButton>
-          <TRNButton
-            type="button"
-            size="compact"
-            hint="Import layout JSON — updates placement, flex, publish flags, and Dashboard Output grid on matching flow nodes."
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-            Import
-          </TRNButton>
-          <TRNButton
-            type="button"
-            size="compact"
-            selected={showSaveField}
-            hint="Save the current committed layout to a local library (browser storage)."
-            onClick={() => setShowSaveField((open) => !open)}
-          >
-            <FolderOpen className="mr-1 inline h-3 w-3 opacity-80" aria-hidden />
-            Save
-          </TRNButton>
-          {libraryOptions.length > 0 ? (
-            <>
-              <TRNSelect
-                size="sm"
-                className="min-w-[9rem]"
-                value={selectedLibraryId}
-                ariaLabel="Saved dashboard layout"
-                sectionTitle="Saved layouts"
-                options={libraryOptions}
-                onValueChange={(next) => setSelectedLibraryId(next)}
-              />
-              <TRNButton
-                type="button"
-                size="compact"
-                hint="Apply the selected saved layout to matching flow nodes."
-                onClick={onApplyLibraryEntry}
-              >
-                Apply
-              </TRNButton>
-            </>
-          ) : null}
-        </div>
+            <Library size={14} />
+          </ToolbarIconButton>
+        ) : null}
         <input
           ref={fileInputRef}
           type="file"
@@ -225,7 +277,7 @@ export function DashboardViewportToolbar(props: DashboardViewportToolbarProps) {
         />
       </div>
       {showSaveField ? (
-        <div className="flex items-end gap-2 border-t border-zinc-800/60 px-2 py-1.5">
+        <div className="pointer-events-auto nodrag flex w-full min-w-[min(96vw,20rem)] max-w-md items-end gap-2 rounded-xl border border-white/10 bg-zinc-950/92 px-2.5 py-2 shadow-lg ring-1 ring-white/5 backdrop-blur-md">
           <TRNFormField
             className="min-w-0 flex-1"
             label="Layout name"
@@ -242,13 +294,34 @@ export function DashboardViewportToolbar(props: DashboardViewportToolbarProps) {
               }}
             />
           </TRNFormField>
-          <TRNButton type="button" size="compact" onClick={onSaveToLibrary}>
-            Save layout
-          </TRNButton>
+          <ToolbarIconButton label="Confirm save" hint="Save layout to library" onClick={onSaveToLibrary}>
+            <Check size={14} />
+          </ToolbarIconButton>
+        </div>
+      ) : null}
+      {showLibraryPicker && libraryOptions.length > 0 ? (
+        <div className="pointer-events-auto nodrag flex w-full min-w-[min(96vw,20rem)] max-w-md items-end gap-2 rounded-xl border border-white/10 bg-zinc-950/92 px-2.5 py-2 shadow-lg ring-1 ring-white/5 backdrop-blur-md">
+          <TRNFormField className="min-w-0 flex-1" label="Saved layout">
+            <TRNSelect
+              size="sm"
+              value={selectedLibraryId}
+              ariaLabel="Saved dashboard layout"
+              sectionTitle="Saved layouts"
+              options={libraryOptions}
+              onValueChange={(next) => setSelectedLibraryId(next)}
+            />
+          </TRNFormField>
+          <ToolbarIconButton
+            label="Apply saved layout"
+            hint="Apply the selected saved layout to matching flow nodes."
+            onClick={onApplyLibraryEntry}
+          >
+            <Check size={14} />
+          </ToolbarIconButton>
         </div>
       ) : null}
       {feedback != null ? (
-        <TRNHintText className="border-t border-zinc-800/60 px-2 py-1 text-[11px] text-zinc-400">
+        <TRNHintText className="pointer-events-auto nodrag max-w-md rounded-lg border border-white/10 bg-zinc-950/92 px-2.5 py-1.5 text-[11px] text-zinc-400 shadow-md ring-1 ring-white/5 backdrop-blur-md">
           {feedback}
         </TRNHintText>
       ) : null}

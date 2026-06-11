@@ -88,6 +88,18 @@ export {
   TRN_INSPECTOR_TAB_ACTIVE_CLASS,
   trnInspectorTabActiveClassName,
 } from "./trn-inspector-tab-bar.js";
+export {
+  TRN_INSPECTOR_PANEL_SHELL_CLASS,
+  TRN_INSPECTOR_PANEL_EMBEDDED_SHELL_CLASS,
+  TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS,
+  TRN_INSPECTOR_PANEL_SCROLL_CLASS,
+  TRN_INSPECTOR_CONTEXT_BAR_WRAP_CLASS,
+  resolveInspectorPanelShellClass,
+} from "./trn-inspector-panel-shell.js";
+export { TRNInspectorContextBar } from "./TRNInspectorContextBar.js";
+export type { TRNInspectorContextBarProps } from "./TRNInspectorContextBar.js";
+export { TRNInspectorPanelShell } from "./TRNInspectorPanelShell.js";
+export type { TRNInspectorPanelShellProps } from "./TRNInspectorPanelShell.js";
 
 export { TRNSplitPane } from "./TRNSplitPane.js";
 export type { TRNSplitPaneProps } from "./TRNSplitPane.js";

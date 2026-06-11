@@ -1,74 +1,33 @@
-import {
-  Activity,
-  Box,
-  Clapperboard,
-  ClipboardList,
-  Cpu,
-  MonitorPlay,
-  SlidersHorizontal,
-  type LucideIcon,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { LayoutGrid, MonitorPlay, SlidersHorizontal } from "lucide-react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { NodeCatalogEntry } from "../../../core/config/config-types";
-import { resolveStudioNodeSourceId } from "../../../core/device/resolve-studio-node-source-id";
-import {
-  TRNTabs,
-  TRNTabsList,
-  TRNTabsTrigger,
-  TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
-  TRN_INSPECTOR_TAB_LIST_CLASS,
-  TRN_INSPECTOR_TAB_TRIGGER_CLASS,
-  TRN_INSPECTOR_TAB_ACTIVE_CLASS,
-} from "../../../../ui/TRN";
-import { isScene3dInspectorNodeId } from "../nodes/scene3d/scene3d-inspector-node-ids";
 import type { FlowGraphNode, StudioNode } from "../store/flow-editor.store";
 import { isStudioFlowNode } from "../layout/layout-port-resolution";
-import { LayoutNodeInspectorPanel } from "./inspector/LayoutNodeInspectorPanel";
-import { NodeInspectorDetailsTab } from "./inspector/NodeInspectorDetailsTab";
-import { NodeInspectorDeviceTab } from "./inspector/NodeInspectorDeviceTab";
-import { InspectorContextBar } from "./inspector/InspectorContextBar";
-import { NodeInspectorLiveTab } from "./inspector/NodeInspectorLiveTab";
-import { NodeInspectorMultiLiveReadouts } from "./inspector/NodeInspectorMultiLiveReadouts";
-import { GlbAnimationBundleAnimationInspectorTab } from "./inspector/GlbAnimationBundleAnimationInspectorTab";
-import { NodeInspectorNodeTab } from "./inspector/NodeInspectorNodeTab";
 import {
   CanvasInspectorPanel,
   type CanvasInspectorPanelProps,
 } from "./inspector/CanvasInspectorPanel";
-import { DashboardInspectorPanel } from "./inspector/DashboardInspectorPanel";
-import { DashboardSelectionInspectorStrip } from "./inspector/DashboardSelectionInspectorStrip";
-import { StageWorkbenchInspectorPanel } from "./inspector/StageWorkbenchInspectorPanel";
-import {
-  flattenDashboardInspectorWidgets,
-  resolveDashboardDisplayItems,
-} from "../../../core/dashboard/dashboard-inspector-helpers";
 import { useDashboardSceneStore } from "../../../state/dashboard-scene.store";
 import { useStudioWorkbenchFocusStore } from "../../../state/studio-workbench-focus.store";
 import { useStageSceneStore } from "../../../state/stage-scene.store";
 import { flowNodeIdsForSceneObjectRef } from "../../../core/stage/scene-object-ref";
 import { readFlowGraphInspectorStoreRevision } from "../flow-graph-store-revisions";
 import { useFlowEditorStore } from "../store/flow-editor.store";
+import { InspectorPaneOwnerChrome } from "./inspector/InspectorPaneOwnerChrome";
+import { InspectorPinToggle } from "./inspector/InspectorPinControls";
+import { InspectorViewPanel } from "./inspector/InspectorViewPanel";
+import { useOptionalStudioWorkbenchShell } from "../workbench/studio-workbench-context";
+import { normalizeStudioInspectorWorkbenchLayout } from "../workbench/studio-inspector-pinned-pane-layout";
 import {
-  readStoredInspectorActiveTab,
-  writeStoredInspectorActiveTab,
-  type InspectorMainTab,
-} from "./inspector/node-inspector-ui-persistence";
-
-const CORE_INSPECTOR_TABS: readonly {
-  id: InspectorMainTab;
-  label: string;
-  Icon: LucideIcon;
-}[] = [
-  { id: "node", label: "Node", Icon: Box },
-  { id: "details", label: "Details", Icon: ClipboardList },
-  { id: "live", label: "Live", Icon: Activity },
-];
-
-const DEVICE_INSPECTOR_TAB = {
-  id: "device" as const,
-  label: "Device",
-  Icon: Cpu,
-};
+  areInspectorPinTargetsEqual,
+  captureInspectorPinTarget,
+  formatInspectorPinLabel,
+  isInspectorPinTargetValid,
+  resolveEffectiveInspectorView,
+  resolveInspectorPaneOwnerLabel,
+  type InspectorFollowSnapshot,
+} from "./inspector/studio-inspector-pin";
+import { useStudioInspectorPinStore } from "../../../state/studio-inspector-pin.store";
 
 export type NodeInspectorProps = {
   borderColor: string;
@@ -94,12 +53,18 @@ export type NodeInspectorProps = {
   nodes?: CanvasInspectorPanelProps["nodes"];
   edges?: CanvasInspectorPanelProps["edges"];
   orderedSelectedNodesForCanvas?: CanvasInspectorPanelProps["orderedSelectedNodes"];
+  /** Workbench pane: no extra outer card — PaneFrame is the draggable shell. */
+  variant?: "default" | "workbench";
+  /** Active follow vs pinned target — each maps to its own workbench inspector pane. */
+  inspectorSlot?: "active" | "pinned";
 };
 
 export function NodeInspector(props: NodeInspectorProps) {
   const {
     borderColor,
     panelColor,
+    variant = "default",
+    inspectorSlot = "active",
     selectedNode: selectedNodeProp,
     orderedSelectedNodes: orderedSelectedNodesProp,
     catalogEntries,
@@ -144,197 +109,291 @@ export function NodeInspector(props: NodeInspectorProps) {
   const setHighlightedWidgetSourceNodeId = useDashboardSceneStore(
     (s) => s.setHighlightedWidgetSourceNodeId,
   );
+  const isInspectorPinned = useStudioInspectorPinStore((s) => s.isPinned);
+  const inspectorPinTarget = useStudioInspectorPinStore((s) => s.target);
+  const pinInspector = useStudioInspectorPinStore((s) => s.pin);
+  const unpinInspector = useStudioInspectorPinStore((s) => s.unpin);
 
-  const stageDerivedNode = useMemo(() => {
+  const followStageDerivedNode = useMemo(() => {
     if (selectedSceneObject == null) {
       return null;
     }
     return flowNodes.find((n) => n.id === selectedSceneObject.sourceNodeId) ?? null;
   }, [flowNodes, selectedSceneObject]);
 
-  const stageWorkbenchActive =
+  const followStageWorkbenchActive =
     activeEditorType === "stage" &&
     canvasInspector?.stagePresentationPreferences != null &&
     canvasInspector?.onStagePresentationPreferencesChange != null;
 
-  const flowPaneFromCanvasSelection =
-    stageWorkbenchActive &&
+  const followFlowPaneFromCanvasSelection =
+    followStageWorkbenchActive &&
     selectedNodeProp != null &&
     isStudioFlowNode(selectedNodeProp);
 
-  const flowPaneNode = useMemo((): StudioNode | null => {
-    if (!stageWorkbenchActive) {
+  const followFlowPaneNode = useMemo((): StudioNode | null => {
+    if (!followStageWorkbenchActive) {
       return null;
     }
     if (selectedNodeProp != null && isStudioFlowNode(selectedNodeProp)) {
       return selectedNodeProp;
     }
-    if (stageDerivedNode != null) {
-      return stageDerivedNode;
+    if (followStageDerivedNode != null) {
+      return followStageDerivedNode;
     }
     return null;
-  }, [selectedNodeProp, stageDerivedNode, stageWorkbenchActive]);
+  }, [followStageDerivedNode, followStageWorkbenchActive, selectedNodeProp]);
 
-  const orderedSelectedNodes = useMemo(() => {
-    if (stageWorkbenchActive) {
-      return stageDerivedNode != null ? [stageDerivedNode] : [];
+  const followOrderedSelectedNodes = useMemo(() => {
+    if (followStageWorkbenchActive) {
+      return followStageDerivedNode != null ? [followStageDerivedNode] : [];
     }
     if (orderedSelectedNodesProp != null && orderedSelectedNodesProp.length > 0) {
       return orderedSelectedNodesProp;
     }
     return selectedNodeProp != null ? [selectedNodeProp] : [];
   }, [
+    followStageDerivedNode,
+    followStageWorkbenchActive,
     orderedSelectedNodesProp,
     selectedNodeProp,
-    stageDerivedNode,
-    stageWorkbenchActive,
   ]);
 
-  const selectedNode = orderedSelectedNodes[0] ?? null;
-  const isMultiSelect = orderedSelectedNodes.length > 1;
-  const homogeneousMultiEdit = useMemo(() => {
-    if (!isMultiSelect) {
+  const followSelectedNode = followOrderedSelectedNodes[0] ?? null;
+  const followIsMultiSelect = followOrderedSelectedNodes.length > 1;
+  const followHomogeneousMultiEdit = useMemo(() => {
+    if (!followIsMultiSelect) {
       return false;
     }
-    const first = orderedSelectedNodes[0];
+    const first = followOrderedSelectedNodes[0];
     if (first == null || !isStudioFlowNode(first)) {
       return false;
     }
     const firstId = first.data.nodeId;
-    return orderedSelectedNodes.every(
+    return followOrderedSelectedNodes.every(
       (n) => isStudioFlowNode(n) && n.data.nodeId === firstId,
     );
-  }, [isMultiSelect, orderedSelectedNodes]);
-  const [jsonDraft, setJsonDraft] = useState("{}");
-  const [jsonError, setJsonError] = useState<string | null>(null);
-  const [sourceKeyDraft, setSourceKeyDraft] = useState("");
-  const [sourceKeyFieldError, setSourceKeyFieldError] = useState<string | null>(
-    null,
-  );
-  const [activeTab, setActiveTab] = useState<InspectorMainTab>(() =>
-    readStoredInspectorActiveTab(),
-  );
-  const selectedNodeId = selectedNode?.id ?? null;
-  const flowPaneNodeId = flowPaneNode?.id ?? null;
+  }, [followIsMultiSelect, followOrderedSelectedNodes]);
 
-  const setActiveTabPersisted = useCallback((next: InspectorMainTab) => {
-    setActiveTab(next);
-    writeStoredInspectorActiveTab(next);
-  }, []);
-  useEffect(() => {
-    const jsonNode = stageWorkbenchActive ? flowPaneNode : selectedNode;
-    if (jsonNode == null || !isStudioFlowNode(jsonNode)) {
-      setJsonDraft("{}");
-      setJsonError(null);
-      return;
-    }
-    setJsonDraft(JSON.stringify(jsonNode.data.defaultConfig, null, 2));
-    setJsonError(null);
-  }, [flowPaneNode, flowPaneNodeId, selectedNode, selectedNodeId, stageWorkbenchActive]);
+  const followShowDashboardInspector =
+    activeEditorType === "dashboard" &&
+    followSelectedNode == null &&
+    dashboardSnapshot.dashboardOutputNodeId != null;
 
-  const deviceSourceId = useMemo(
-    () => resolveStudioNodeSourceId(selectedNode),
-    [selectedNode],
-  );
-  const isGlbAnimationBundle =
-    selectedNode != null && selectedNode.data.nodeId === "glb-animation-bundle";
-
-  useEffect(() => {
-    if (deviceSourceId == null && activeTab === "device") {
-      setActiveTabPersisted("node");
-    }
-    if (!isGlbAnimationBundle && activeTab === "animation") {
-      setActiveTabPersisted("node");
-    }
-  }, [deviceSourceId, activeTab, isGlbAnimationBundle, setActiveTabPersisted]);
-
-  /** Selection defaults: GLB bundle → Animation; hardware-linked → Live. */
-  useEffect(() => {
-    if (selectedNode == null) {
-      return;
-    }
-    if (selectedNode.data.nodeId === "glb-animation-bundle") {
-      setActiveTabPersisted("animation");
-      return;
-    }
-    if (deviceSourceId != null) {
-      setActiveTabPersisted("live");
-    }
+  const followSnapshot = useMemo((): InspectorFollowSnapshot => {
+    return {
+      stageWorkbenchActive: followStageWorkbenchActive,
+      selectedSceneObject,
+      selectedNode: followSelectedNode,
+      orderedSelectedNodes: followOrderedSelectedNodes,
+      flowPaneNode: followFlowPaneNode,
+      flowPaneFromCanvasSelection: followFlowPaneFromCanvasSelection,
+      showDashboardInspector: followShowDashboardInspector,
+      highlightedWidgetSourceNodeId,
+      dashboardOutputNodeId: dashboardSnapshot.dashboardOutputNodeId,
+      canvasInspectorAvailable:
+        canvasInspector != null &&
+        canvasNodes != null &&
+        canvasEdges != null &&
+        orderedSelectedNodesForCanvas != null,
+      isMultiSelect: followIsMultiSelect,
+      homogeneousMultiEdit: followHomogeneousMultiEdit,
+    };
   }, [
-    selectedNodeId,
-    deviceSourceId,
-    selectedNode?.data.nodeId,
-    setActiveTabPersisted,
+    canvasEdges,
+    canvasInspector,
+    canvasNodes,
+    dashboardSnapshot.dashboardOutputNodeId,
+    followFlowPaneFromCanvasSelection,
+    followFlowPaneNode,
+    followHomogeneousMultiEdit,
+    followIsMultiSelect,
+    followOrderedSelectedNodes,
+    followSelectedNode,
+    followShowDashboardInspector,
+    followStageWorkbenchActive,
+    highlightedWidgetSourceNodeId,
+    orderedSelectedNodesForCanvas,
+    selectedSceneObject,
   ]);
 
-  const persistedSourceKey =
-    selectedNode != null && selectedNode.data.nodeId === "sensor-input"
-      ? String(selectedNode.data.defaultConfig.sourceKey ?? "bmi270.accel.x")
-      : "";
+  const canvasInspectorHasStage =
+    canvasInspector?.stagePresentationPreferences != null &&
+    canvasInspector?.onStagePresentationPreferencesChange != null;
+
+  const followView = useMemo(
+    () =>
+      resolveEffectiveInspectorView({
+        follow: followSnapshot,
+        pinTarget: null,
+        isPinned: false,
+        flowNodes,
+        selectedNodeProp,
+        canvasInspectorHasStage,
+      }),
+    [
+      canvasInspectorHasStage,
+      flowNodes,
+      followSnapshot,
+      selectedNodeProp,
+    ],
+  );
+
+  const pinnedView = useMemo(() => {
+    if (!isInspectorPinned || inspectorPinTarget == null) {
+      return null;
+    }
+    return resolveEffectiveInspectorView({
+      follow: followSnapshot,
+      pinTarget: inspectorPinTarget,
+      isPinned: true,
+      flowNodes,
+      selectedNodeProp,
+      canvasInspectorHasStage,
+    });
+  }, [
+    canvasInspectorHasStage,
+    flowNodes,
+    followSnapshot,
+    inspectorPinTarget,
+    isInspectorPinned,
+    selectedNodeProp,
+  ]);
+
+  const pinCaptureTarget = useMemo(
+    () => captureInspectorPinTarget(followSnapshot),
+    [followSnapshot],
+  );
+  const pinTargetLabel = useMemo(() => {
+    if (isInspectorPinned && inspectorPinTarget != null) {
+      return formatInspectorPinLabel(inspectorPinTarget);
+    }
+    if (pinCaptureTarget != null) {
+      return formatInspectorPinLabel(pinCaptureTarget);
+    }
+    return null;
+  }, [inspectorPinTarget, isInspectorPinned, pinCaptureTarget]);
 
   useEffect(() => {
-    if (selectedNode == null || selectedNode.data.nodeId !== "sensor-input") {
-      setSourceKeyFieldError(null);
+    if (!isInspectorPinned || inspectorPinTarget == null) {
       return;
     }
-    setSourceKeyDraft(persistedSourceKey);
-    setSourceKeyFieldError(null);
-  }, [selectedNode?.id, persistedSourceKey, selectedNode?.data.nodeId]);
-
-  const catalogEntry = useMemo((): NodeCatalogEntry | undefined => {
-    if (selectedNode == null) {
-      return undefined;
+    if (
+      !isInspectorPinTargetValid(
+        inspectorPinTarget,
+        flowNodes,
+        dashboardSnapshot.dashboardOutputNodeId,
+      )
+    ) {
+      unpinInspector();
     }
-    return catalogEntries.find((e) => e.id === selectedNode.data.nodeId);
-  }, [catalogEntries, selectedNode]);
+  }, [
+    dashboardSnapshot.dashboardOutputNodeId,
+    flowNodes,
+    inspectorPinTarget,
+    isInspectorPinned,
+    unpinInspector,
+  ]);
 
-  const flowCatalogEntry = useMemo((): NodeCatalogEntry | undefined => {
-    if (flowPaneNode == null) {
-      return undefined;
+  const onPinInspector = useCallback(() => {
+    const target = captureInspectorPinTarget(followSnapshot);
+    if (target != null) {
+      pinInspector(target);
     }
-    return catalogEntries.find((e) => e.id === flowPaneNode.data.nodeId);
-  }, [catalogEntries, flowPaneNode]);
+  }, [followSnapshot, pinInspector]);
 
-  const categoryTint =
-    selectedNode != null
-      ? (categoryColors[selectedNode.data.category] ?? "#a1a1aa")
-      : "#a1a1aa";
-  const hasScene3dInspector =
-    selectedNode != null && isScene3dInspectorNodeId(selectedNode.data.nodeId);
+  const onUnpinInspector = useCallback(() => {
+    unpinInspector();
+  }, [unpinInspector]);
 
-  const visibleTabs = useMemo(() => {
-    if (isGlbAnimationBundle) {
-      const tabs: { id: InspectorMainTab; label: string; Icon: LucideIcon }[] =
-        [
-          { id: "node", label: "Node", Icon: Box },
-          { id: "animation", label: "Animation", Icon: Clapperboard },
-          { id: "details", label: "Details", Icon: ClipboardList },
-          { id: "live", label: "Live", Icon: Activity },
-        ];
-      if (deviceSourceId != null) {
-        tabs.push(DEVICE_INSPECTOR_TAB);
-      }
-      return tabs;
-    }
-    if (deviceSourceId != null) {
-      return [...CORE_INSPECTOR_TABS, DEVICE_INSPECTOR_TAB];
-    }
-    return CORE_INSPECTOR_TABS;
-  }, [deviceSourceId, isGlbAnimationBundle]);
+  const needsPinnedWorkbenchPane =
+    isInspectorPinned &&
+    inspectorPinTarget != null &&
+    pinCaptureTarget != null &&
+    !areInspectorPinTargetsEqual(inspectorPinTarget, pinCaptureTarget);
 
-  const tabPanelClassName =
-    activeTab === "node" || activeTab === "device" || activeTab === "animation"
-      ? "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden px-2.5 pb-3 pt-2"
-      : "scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2";
+  const workbenchRef = useOptionalStudioWorkbenchShell()?.workbenchRef;
 
-  const onFocusStageSelectionInGraph = useCallback(() => {
-    if (selectedSceneObject == null) {
+  useEffect(() => {
+    if (variant !== "workbench" || inspectorSlot !== "active" || workbenchRef?.current == null) {
       return;
     }
-    const ids = flowNodeIdsForSceneObjectRef(selectedSceneObject);
-    selectStudioNodesByIds(ids);
-    fitFlowCanvasToNodeIds(ids);
-  }, [fitFlowCanvasToNodeIds, selectStudioNodesByIds, selectedSceneObject]);
+    workbenchRef.current.setLayout((layout) =>
+      normalizeStudioInspectorWorkbenchLayout(layout, needsPinnedWorkbenchPane),
+    );
+  }, [inspectorSlot, needsPinnedWorkbenchPane, variant, workbenchRef]);
+
+  const displayView =
+    inspectorSlot === "pinned"
+      ? pinnedView
+      : followView;
+
+  const inspectorPaneTitle = useMemo(() => {
+    const view = displayView ?? followView;
+    if (view.stageWorkbenchActive) {
+      return { label: "3D Scene", Icon: MonitorPlay, accent: "text-violet-400/90" };
+    }
+    if (view.showDashboardInspector) {
+      return { label: "2D Dashboard", Icon: LayoutGrid, accent: "text-cyan-400/90" };
+    }
+    if (view.selectedNode == null && canvasInspector != null && canvasNodes != null) {
+      return { label: "Flow canvas", Icon: LayoutGrid, accent: "text-sky-400/90" };
+    }
+    return { label: "Inspector", Icon: SlidersHorizontal, accent: "text-zinc-400" };
+  }, [canvasInspector, canvasNodes, displayView, followView]);
+
+  const ownerLabel = useMemo(
+    () =>
+      resolveInspectorPaneOwnerLabel({
+        view: displayView ?? followView,
+        slot: inspectorSlot,
+        pinTarget: inspectorPinTarget,
+        captureTarget: pinCaptureTarget,
+        showDualPaneRoles: needsPinnedWorkbenchPane,
+        fallbackPaneTitle: inspectorPaneTitle.label,
+        catalogEntries,
+      }),
+    [
+      catalogEntries,
+      displayView,
+      followView,
+      inspectorPaneTitle.label,
+      inspectorPinTarget,
+      inspectorSlot,
+      needsPinnedWorkbenchPane,
+      pinCaptureTarget,
+    ],
+  );
+
+  const pinToggle =
+    inspectorSlot === "active" ? (
+      <InspectorPinToggle
+        isPinned={isInspectorPinned}
+        canPin={pinCaptureTarget != null}
+        pinLabel={pinTargetLabel}
+        onPin={onPinInspector}
+        onUnpin={onUnpinInspector}
+      />
+    ) : (
+      <InspectorPinToggle
+        isPinned
+        canPin={false}
+        pinLabel={
+          inspectorPinTarget != null ? formatInspectorPinLabel(inspectorPinTarget) : null
+        }
+        onPin={() => {}}
+        onUnpin={onUnpinInspector}
+      />
+    );
+
+  const onFocusStageSelectionInGraph = useCallback(
+    (selection: Parameters<typeof flowNodeIdsForSceneObjectRef>[0]) => {
+      const ids = flowNodeIdsForSceneObjectRef(selection);
+      selectStudioNodesByIds(ids);
+      fitFlowCanvasToNodeIds(ids);
+    },
+    [fitFlowCanvasToNodeIds, selectStudioNodesByIds],
+  );
 
   const onSelectFlowNodeForStageInspector = useCallback(
     (nodeId: string) => {
@@ -349,279 +408,98 @@ export function NodeInspector(props: NodeInspectorProps) {
     selectStudioNodesByIds([]);
   }, [selectStudioNodesByIds, setSelectedSceneObject]);
 
-  const showDashboardInspector =
-    activeEditorType === "dashboard" &&
-    selectedNode == null &&
-    dashboardSnapshot.dashboardOutputNodeId != null;
-
-  const dashboardDisplayItems = useMemo(
-    () =>
-      resolveDashboardDisplayItems({
-        snapshot: dashboardSnapshot,
-        activeTabSourceNodeId: activeDashboardTabSourceNodeId,
-      }),
-    [activeDashboardTabSourceNodeId, dashboardSnapshot],
+  const onFocusDashboardSelectionInGraph = useCallback(
+    (sourceNodeId: string) => {
+      selectStudioNodesByIds([sourceNodeId]);
+      setActiveEditorType("flow");
+      fitFlowCanvasToNodeIds([sourceNodeId]);
+    },
+    [fitFlowCanvasToNodeIds, selectStudioNodesByIds, setActiveEditorType],
   );
-
-  const dashboardSelectionContext = useMemo(() => {
-    if (selectedNode == null || highlightedWidgetSourceNodeId !== selectedNode.id) {
-      return null;
-    }
-    for (const item of dashboardDisplayItems) {
-      if (item.kind === "group" && item.group.sourceNodeId === highlightedWidgetSourceNodeId) {
-        return {
-          widget: null,
-          group: item.group,
-          groupLabel: null as string | null,
-        };
-      }
-    }
-    const row =
-      flattenDashboardInspectorWidgets(dashboardDisplayItems).find(
-        (entry) => entry.widget.sourceNodeId === highlightedWidgetSourceNodeId,
-      ) ?? null;
-    if (row == null) {
-      return null;
-    }
-    return {
-      widget: row.widget,
-      group: null,
-      groupLabel: row.group?.label ?? null,
-    };
-  }, [dashboardDisplayItems, highlightedWidgetSourceNodeId, selectedNode]);
-
-  const onFocusDashboardSelectionInGraph = useCallback(() => {
-    if (selectedNode == null) {
-      return;
-    }
-    selectStudioNodesByIds([selectedNode.id]);
-    setActiveEditorType("flow");
-    fitFlowCanvasToNodeIds([selectedNode.id]);
-  }, [
-    fitFlowCanvasToNodeIds,
-    selectStudioNodesByIds,
-    selectedNode,
-    setActiveEditorType,
-  ]);
 
   const onClearDashboardSelection = useCallback(() => {
     setHighlightedWidgetSourceNodeId(null);
     selectStudioNodesByIds([]);
   }, [selectStudioNodesByIds, setHighlightedWidgetSourceNodeId]);
 
+  const embeddedShell = variant === "workbench";
+
+  const viewPanelProps = {
+    embeddedShell,
+    borderColor,
+    panelColor,
+    catalogEntries,
+    categoryColors,
+    flowNodes,
+    flowEdges,
+    dashboardSnapshot,
+    activeDashboardTabSourceNodeId,
+    canvasInspector,
+    canvasNodes,
+    canvasEdges,
+    orderedSelectedNodesForCanvas,
+    onUpdateLabel,
+    onUpdateNodeUiAllowBodyCollapse,
+    onUpdateConfigField,
+    onUpdateConfigJson,
+    onFocusStageSelectionInGraph,
+    onSelectFlowNodeForStageInspector,
+    onClearStageSelection,
+    onFocusDashboardSelectionInGraph,
+    onClearDashboardSelection,
+  };
+
+  const inspectorBody =
+    displayView != null ? (
+      <InspectorViewPanel
+        role={inspectorSlot}
+        view={displayView}
+        {...viewPanelProps}
+      />
+    ) : null;
+
+  if (inspectorSlot === "pinned" && (pinnedView == null || !isInspectorPinned)) {
+    return null;
+  }
+
   return (
     <section
-      className="flex min-h-0 w-full min-w-0 flex-1 flex-col rounded border p-2"
-      style={{
-        borderColor,
-        backgroundColor: panelColor,
-      }}
-    >
-      <div className="mb-2 shrink-0">
-        <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-100">
-          {stageWorkbenchActive ? (
-            <MonitorPlay
-              className="h-3.5 w-3.5 shrink-0 text-violet-400/90"
-              aria-hidden
-            />
-          ) : (
-            <SlidersHorizontal
-              className="h-3.5 w-3.5 shrink-0 text-zinc-400"
-              aria-hidden
-            />
-          )}
-          {stageWorkbenchActive ? "3D Scene" : "Inspector"}
-        </div>
-      </div>
-      {stageWorkbenchActive ? (
-        <StageWorkbenchInspectorPanel
-          selectedSceneObject={selectedSceneObject}
-          boundNode={stageDerivedNode}
-          flowPaneNode={flowPaneNode}
-          flowPaneFromCanvasSelection={flowPaneFromCanvasSelection}
-          catalogEntry={catalogEntry}
-          flowCatalogEntry={flowCatalogEntry}
-          flowNodes={flowNodes}
-          flowEdges={flowEdges}
-          stagePresentationPreferences={canvasInspector!.stagePresentationPreferences}
-          onStagePresentationPreferencesChange={
-            canvasInspector!.onStagePresentationPreferencesChange
-          }
-          onFocusSelectionInGraph={onFocusStageSelectionInGraph}
-          onSelectFlowNode={onSelectFlowNodeForStageInspector}
-          onClearSelection={onClearStageSelection}
-          onUpdateConfigField={onUpdateConfigField}
-          onUpdateLabel={onUpdateLabel}
-          onUpdateNodeUiAllowBodyCollapse={onUpdateNodeUiAllowBodyCollapse}
-          onUpdateConfigJson={onUpdateConfigJson}
-          jsonDraft={jsonDraft}
-          setJsonDraft={setJsonDraft}
-          jsonError={jsonError}
-          setJsonError={setJsonError}
-          sourceKeyDraft={sourceKeyDraft}
-          setSourceKeyDraft={setSourceKeyDraft}
-          sourceKeyFieldError={sourceKeyFieldError}
-          setSourceKeyFieldError={setSourceKeyFieldError}
-        />
-      ) : selectedNode == null ? (
-        showDashboardInspector ? (
-          <DashboardInspectorPanel />
-        ) : canvasInspector != null &&
-          canvasNodes != null &&
-          canvasEdges != null &&
-          orderedSelectedNodesForCanvas != null ? (
-          <CanvasInspectorPanel
-            nodes={canvasNodes}
-            edges={canvasEdges}
-            orderedSelectedNodes={orderedSelectedNodesForCanvas}
-            {...canvasInspector}
-          />
-        ) : (
-          <div className="min-h-0 flex-1 text-xs leading-relaxed text-zinc-400">
-            Select a flow node to inspect its ports, live readings, and
-            configuration.
-          </div>
-        )
-      ) : selectedNode != null && !isStudioFlowNode(selectedNode) ? (
-        <LayoutNodeInspectorPanel
-          borderColor={borderColor}
-          panelColor={panelColor}
-          selectedNode={selectedNode}
-        />
-      ) : isMultiSelect && !homogeneousMultiEdit ? (
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-          <div className="shrink-0 border-b border-zinc-800/70 px-2.5 pb-1.5 pt-2 text-[11px] font-semibold tracking-wide text-zinc-100/90">
-            Live — {orderedSelectedNodes.length} nodes
-          </div>
-          <div className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-2.5 pb-3 pt-2">
-            <NodeInspectorMultiLiveReadouts nodes={orderedSelectedNodes} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border border-zinc-700/55 bg-zinc-950/45">
-          {dashboardSelectionContext != null ? (
-            <div className="shrink-0 px-2.5 pt-2">
-              <DashboardSelectionInspectorStrip
-                widget={dashboardSelectionContext.widget}
-                group={dashboardSelectionContext.group}
-                groupLabel={dashboardSelectionContext.groupLabel}
-                nodeLabel={selectedNode?.data.label}
-                onFocusInGraph={onFocusDashboardSelectionInGraph}
-                onClearSelection={onClearDashboardSelection}
-              />
-            </div>
-          ) : null}
-          <TRNTabs
-            value={activeTab}
-            onValueChange={(next) =>
-              setActiveTabPersisted(next as InspectorMainTab)
+      className={
+        embeddedShell
+          ? "flex min-h-0 w-full min-w-0 flex-1 flex-col px-2 pb-2 pt-1"
+          : "flex min-h-0 w-full min-w-0 flex-1 flex-col rounded border p-2"
+      }
+      style={
+        embeddedShell
+          ? undefined
+          : {
+              borderColor,
+              backgroundColor: panelColor,
             }
-            className="flex min-h-0 min-w-0 flex-1 flex-col"
-            activeTriggerClassName={TRN_INSPECTOR_TAB_ACTIVE_CLASS}
-          >
-            <div className={TRN_INSPECTOR_TAB_BAR_WRAP_CLASS}>
-              <TRNTabsList className={TRN_INSPECTOR_TAB_LIST_CLASS}>
-                {visibleTabs.map(({ id, label, Icon }) => (
-                  <TRNTabsTrigger
-                    key={id}
-                    value={id}
-                    className={TRN_INSPECTOR_TAB_TRIGGER_CLASS}
-                  >
-                    <Icon
-                      className="h-3.5 w-3.5 shrink-0 opacity-85"
-                      aria-hidden
-                    />
-                    {label}
-                  </TRNTabsTrigger>
-                ))}
-              </TRNTabsList>
-            </div>
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-              {homogeneousMultiEdit ? (
-                <div className="shrink-0 border-b border-amber-900/30 bg-amber-950/20 px-2.5 py-1.5 text-[10px] leading-snug text-amber-100/90">
-                  Editing {orderedSelectedNodes.length} nodes — typed node
-                  settings apply to all selected (
-                  <span className="font-mono text-amber-50/95">
-                    {selectedNode.data.nodeId}
-                  </span>
-                  ). JSON edit is disabled; use a single selection for raw JSON.
-                </div>
-              ) : null}
-              <InspectorContextBar
-                label={selectedNode.data.label}
-                nodeId={selectedNode.data.nodeId}
-                catalogTitle={catalogEntry?.title}
-                catalogDescription={catalogEntry?.description}
-                catalogIconSlug={catalogEntry?.icon}
-                category={selectedNode.data.category}
-                categoryTint={categoryTint}
-                activeTab={activeTab}
-                lastUpdatedAt={selectedNode.data.lastUpdatedAt}
-                sensorStreamMode={selectedNode.data.sensorStreamMode}
-                sensorHealth={selectedNode.data.sensorHealth}
-              />
-              <div className={tabPanelClassName}>
-                {activeTab === "details" ? (
-                  <NodeInspectorDetailsTab
-                    selectedNode={selectedNode}
-                    catalogEntry={catalogEntry}
-                  />
-                ) : null}
-
-                {activeTab === "live" ? (
-                  homogeneousMultiEdit ? (
-                    <div className="space-y-2">
-                      <NodeInspectorMultiLiveReadouts
-                        nodes={orderedSelectedNodes}
-                      />
-                    </div>
-                  ) : (
-                    <NodeInspectorLiveTab selectedNode={selectedNode} />
-                  )
-                ) : null}
-
-                {activeTab === "animation" && isGlbAnimationBundle ? (
-                  <GlbAnimationBundleAnimationInspectorTab
-                    selectedNode={selectedNode}
-                    onUpdateConfigField={onUpdateConfigField}
-                    sourceKeyDraft={sourceKeyDraft}
-                    setSourceKeyDraft={setSourceKeyDraft}
-                    sourceKeyFieldError={sourceKeyFieldError}
-                    setSourceKeyFieldError={setSourceKeyFieldError}
-                  />
-                ) : null}
-
-                {activeTab === "node" ? (
-                  <NodeInspectorNodeTab
-                    selectedNode={selectedNode}
-                    catalogDefinitionTitle={catalogEntry?.title ?? ""}
-                    hasScene3dInspector={hasScene3dInspector}
-                    suppressDefaultConfigJson={homogeneousMultiEdit}
-                    onUpdateLabel={onUpdateLabel}
-                    onUpdateNodeUiAllowBodyCollapse={
-                      onUpdateNodeUiAllowBodyCollapse
-                    }
-                    onUpdateConfigField={onUpdateConfigField}
-                    onUpdateConfigJson={onUpdateConfigJson}
-                    jsonDraft={jsonDraft}
-                    setJsonDraft={setJsonDraft}
-                    jsonError={jsonError}
-                    setJsonError={setJsonError}
-                    sourceKeyDraft={sourceKeyDraft}
-                    setSourceKeyDraft={setSourceKeyDraft}
-                    sourceKeyFieldError={sourceKeyFieldError}
-                    setSourceKeyFieldError={setSourceKeyFieldError}
-                  />
-                ) : null}
-
-                {activeTab === "device" && deviceSourceId != null ? (
-                  <NodeInspectorDeviceTab sourceId={deviceSourceId} />
-                ) : null}
-              </div>
-            </div>
-          </TRNTabs>
+      }
+    >
+      {embeddedShell ? (
+        <InspectorPaneOwnerChrome
+          role={inspectorSlot}
+          showRoleBadge={needsPinnedWorkbenchPane}
+          label={ownerLabel}
+          icon={inspectorPaneTitle.Icon}
+          iconClassName={inspectorPaneTitle.accent}
+          pinToggle={pinToggle}
+        />
+      ) : (
+        <div className="mb-2 flex shrink-0 items-center justify-between gap-2">
+          <div className="inline-flex min-w-0 items-center gap-1.5 text-xs font-semibold text-zinc-100">
+            <inspectorPaneTitle.Icon
+              className={`h-3.5 w-3.5 shrink-0 ${inspectorPaneTitle.accent}`}
+              aria-hidden
+            />
+            <span className="truncate">{ownerLabel}</span>
+          </div>
+          {pinToggle}
         </div>
       )}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">{inspectorBody}</div>
     </section>
   );
 }

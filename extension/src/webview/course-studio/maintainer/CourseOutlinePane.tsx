@@ -24,6 +24,7 @@ import {
   CourseOutlineContextMenu,
   type CourseOutlineMenuAnchor,
 } from "./CourseOutlineContextMenu";
+import { CourseBookPicker } from "./CourseBookPicker";
 
 function nodeIcon(kind: CourseNodeV1["kind"]) {
   switch (kind) {
@@ -323,6 +324,7 @@ export function CourseOutlinePane() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <CourseBookPicker />
       <div className="shrink-0 border-b border-[var(--surface-border)] px-3 py-2">
         <div className="text-[11px] font-semibold text-[var(--text-primary)]">
           {course.title}

@@ -12,6 +12,8 @@ import {
   undoHistory,
   type HistoryStacks,
 } from "./historyStacks";
+import { dashboardPrimaryHighlightedWidgetId } from "../../sensor-studio/core/dashboard/dashboard-widget-selection";
+import type { GridPlacementV1 } from "../schemas/placement";
 
 function clonePage(page: PageV1): PageV1 {
   return parsePageV1(structuredClone(page));
@@ -25,16 +27,24 @@ type CoursePageEditorState = {
   sourcePath: string;
   baseline: PageV1 | null;
   page: PageV1 | null;
+  /** Ordered selection — last id is the primary (resize / inspector anchor). */
+  selectedBlockIds: string[];
+  /** Primary selected block — mirrors last entry in {@link selectedBlockIds}. */
   selectedBlockId: string | null;
   dirty: boolean;
   historyStacks: HistoryStacks<PageV1>;
   initPage: (page: PageV1, sourcePath: string, options?: { dirty?: boolean }) => void;
+  setBlockSelection: (blockIds: string[]) => void;
   selectBlock: (blockId: string | null) => void;
   pushPageUndoSnapshot: () => void;
   updateBlock: (blockId: string, patch: Partial<PageBlockV1>, options?: PageMutationOptions) => void;
   updatePlacement: (
     blockId: string,
     placement: Partial<PageBlockV1["placement"]>,
+    options?: PageMutationOptions,
+  ) => void;
+  updatePlacements: (
+    updates: ReadonlyArray<{ blockId: string; placement: GridPlacementV1 }>,
     options?: PageMutationOptions,
   ) => void;
   updatePageTitle: (title: string, options?: PageMutationOptions) => void;
@@ -48,12 +58,22 @@ type CoursePageEditorState = {
   markClean: (page?: PageV1) => void;
   addBlock: (block: PageBlockV1, options?: PageMutationOptions) => void;
   removeBlock: (blockId: string, options?: PageMutationOptions) => void;
+  removeBlocks: (blockIds: readonly string[], options?: PageMutationOptions) => void;
 };
+
+function blockSelectionState(blockIds: string[]) {
+  const selectedBlockIds = [...new Set(blockIds.filter(Boolean))];
+  return {
+    selectedBlockIds,
+    selectedBlockId: dashboardPrimaryHighlightedWidgetId(selectedBlockIds),
+  };
+}
 
 export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get) => ({
   sourcePath: "",
   baseline: null,
   page: null,
+  selectedBlockIds: [],
   selectedBlockId: null,
   dirty: false,
   historyStacks: EMPTY_HISTORY_STACKS,
@@ -63,6 +83,7 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
       sourcePath,
       baseline: snapshot,
       page: clonePage(snapshot),
+      selectedBlockIds: [],
       selectedBlockId: null,
       dirty: options?.dirty === true,
       historyStacks: EMPTY_HISTORY_STACKS,
@@ -77,7 +98,8 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
       historyStacks: pushHistorySnapshot(state.historyStacks, clonePage(page)),
     }));
   },
-  selectBlock: (blockId) => set({ selectedBlockId: blockId }),
+  setBlockSelection: (blockIds) => set(blockSelectionState(blockIds)),
+  selectBlock: (blockId) => set(blockSelectionState(blockId == null ? [] : [blockId])),
   updateBlock: (blockId, patch, options) => {
     const current = get().page;
     if (current == null) {
@@ -124,6 +146,21 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
         ? { ...block, placement: { ...block.placement, ...placement } }
         : block,
     );
+    set({ page: { ...current, blocks }, dirty: true });
+  },
+  updatePlacements: (updates, options) => {
+    const current = get().page;
+    if (current == null || updates.length === 0) {
+      return;
+    }
+    if (options?.recordUndo !== false) {
+      get().pushPageUndoSnapshot();
+    }
+    const byId = new Map(updates.map((update) => [update.blockId, update.placement]));
+    const blocks = current.blocks.map((block) => {
+      const placement = byId.get(block.id);
+      return placement == null ? block : { ...block, placement };
+    });
     set({ page: { ...current, blocks }, dirty: true });
   },
   updatePageTitle: (title, options) => {
@@ -243,6 +280,7 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
     set({
       page: clonePage(baseline),
       dirty: false,
+      selectedBlockIds: [],
       selectedBlockId: null,
       historyStacks: EMPTY_HISTORY_STACKS,
     });
@@ -270,21 +308,26 @@ export const useCoursePageEditorStore = create<CoursePageEditorState>((set, get)
     }
     set({
       page: { ...current, blocks: [...current.blocks, block] },
-      selectedBlockId: block.id,
+      ...blockSelectionState([block.id]),
       dirty: true,
     });
   },
   removeBlock: (blockId, options) => {
+    get().removeBlocks([blockId], options);
+  },
+  removeBlocks: (blockIds, options) => {
     const current = get().page;
-    if (current == null) {
+    if (current == null || blockIds.length === 0) {
       return;
     }
     if (options?.recordUndo !== false) {
       get().pushPageUndoSnapshot();
     }
+    const idSet = new Set(blockIds);
+    const remainingSelection = get().selectedBlockIds.filter((id) => !idSet.has(id));
     set({
-      page: { ...current, blocks: current.blocks.filter((b) => b.id !== blockId) },
-      selectedBlockId: get().selectedBlockId === blockId ? null : get().selectedBlockId,
+      page: { ...current, blocks: current.blocks.filter((block) => !idSet.has(block.id)) },
+      ...blockSelectionState(remainingSelection),
       dirty: true,
     });
   },

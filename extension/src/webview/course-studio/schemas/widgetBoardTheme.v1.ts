@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { CSSProperties } from "react";
+import { PRESENTATION_DARK_TEXT_COLORS } from "../../presentation/design/presentationTextColors";
 import { courseBlockColorHexSchema } from "./blockColorHex";
 
 export const widgetBoardThemePresetIdSchema = z.enum([
@@ -148,16 +149,16 @@ const INDUSTRIAL_THEME: WidgetBoardThemeTokensV1 = {
   shellBg: "#18181b",
   shellBorder: "#3f3f46",
   shellRadiusPx: 12,
-  metaText: "#71717a",
-  captionText: "#71717a",
-  label: "#71717a",
+  metaText: PRESENTATION_DARK_TEXT_COLORS.meta,
+  captionText: PRESENTATION_DARK_TEXT_COLORS.meta,
+  label: PRESENTATION_DARK_TEXT_COLORS.meta,
   value: "#fafafa",
-  unit: "#a1a1aa",
-  muted: "#71717a",
+  unit: PRESENTATION_DARK_TEXT_COLORS.meta,
+  muted: PRESENTATION_DARK_TEXT_COLORS.muted,
   trackBg: "#27272a",
-  gradientFrom: "#a1a1aa",
+  gradientFrom: PRESENTATION_DARK_TEXT_COLORS.secondary,
   gradientTo: "#e4e4e7",
-  gaugeArcFrom: "#71717a",
+  gaugeArcFrom: PRESENTATION_DARK_TEXT_COLORS.muted,
   gaugeArcTo: "#d4d4d8",
   gaugeHoleBg: "#09090b",
   metricPanelBg: "#27272a",

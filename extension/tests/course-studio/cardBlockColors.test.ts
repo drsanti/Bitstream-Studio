@@ -47,14 +47,14 @@ describe("cardBlockColors", () => {
         border: "#445566",
         title: "#fafafa",
         icon: "#ffcc00",
-        body: "#a1a1aa",
+        body: "#a8a8aa",
       }),
       {
         "--course-card-bg": "#112233",
         "--course-card-border": "#445566",
         "--course-card-title": "#fafafa",
         "--course-card-icon": "#ffcc00",
-        "--course-card-body": "#a1a1aa",
+        "--course-card-body": "#a8a8aa",
       },
     );
   });

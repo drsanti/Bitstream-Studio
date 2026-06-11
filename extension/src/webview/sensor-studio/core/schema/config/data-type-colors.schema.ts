@@ -25,6 +25,8 @@ export const dataTypeColorsSchema = z.object({
     physicsScene: z.string().min(1).default("#4ADE80"),
     physicsCollider: z.string().min(1).default("#2DD4BF"),
     physicsBody: z.string().min(1).default("#38BDF8"),
+    physicsJoint: z.string().min(1).default("#F59E0B"),
+    physicsSpawner: z.string().min(1).default("#C084FC"),
     dashboardWidget: z.string().min(1).default("#E879F9"),
     dashboardTheme: z.string().min(1).default("#C084FC"),
     dashboardTab: z.string().min(1).default("#A78BFA"),

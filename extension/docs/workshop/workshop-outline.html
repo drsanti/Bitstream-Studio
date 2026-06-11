@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TESAIoT Bitstream Studio — One-Day Training Plan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --bg-elevated: #111820;
+      --panel: #151d28;
+      --panel-hover: #1a2433;
+      --border: rgba(148, 163, 184, 0.14);
+      --border-strong: rgba(148, 163, 184, 0.28);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #5eb8f5;
+      --accent-soft: rgba(94, 184, 245, 0.12);
+      --morning: #f59e0b;
+      --morning-soft: rgba(245, 158, 11, 0.12);
+      --afternoon: #42e8ff;
+      --afternoon-soft: rgba(66, 232, 255, 0.1);
+      --success: #5ee89a;
+      --sht40: #5ee89a;
+      --dps368: #5eb8f5;
+      --bmi270: #42e8ff;
+      --bmm350: #b88cff;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --sidebar-w: 260px;
+      --header-h: 64px;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      scroll-padding-top: calc(var(--header-h) + 24px);
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.55;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: var(--header-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 0 24px;
+      background: rgba(11, 15, 20, 0.88);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .topbar-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--afternoon));
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 700;
+      color: #0b0f14;
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .topbar-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn:hover { background: var(--panel-hover); border-color: var(--border-strong); }
+    .btn-primary { background: var(--accent-soft); border-color: rgba(94, 184, 245, 0.35); color: var(--accent); }
+    .btn-primary:hover { background: rgba(94, 184, 245, 0.2); }
+
+    /* ── Layout ── */
+    .layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: calc(100vh - var(--header-h));
+    }
+
+    .sidebar {
+      position: sticky;
+      top: var(--header-h);
+      height: calc(100vh - var(--header-h));
+      overflow-y: auto;
+      padding: 20px 12px 32px;
+      border-right: 1px solid var(--border);
+      background: var(--bg-elevated);
+    }
+
+    .sidebar-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      padding: 0 10px;
+      margin: 16px 0 8px;
+    }
+
+    .sidebar-label:first-child { margin-top: 0; }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: background 0.12s, color 0.12s;
+    }
+
+    .nav-link:hover { background: var(--panel); color: var(--text); }
+    .nav-link.active { background: var(--accent-soft); color: var(--accent); }
+
+    .nav-time {
+      font-size: 10px;
+      color: var(--text-dim);
+      min-width: 52px;
+      flex-shrink: 0;
+    }
+
+    .nav-link.active .nav-time { color: color-mix(in srgb, var(--accent) 70%, var(--text-dim)); }
+
+    .main {
+      padding: 32px 40px 64px;
+      max-width: 960px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      margin-bottom: 40px;
+    }
+
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    .hero-lead {
+      margin: 0 0 24px;
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 640px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .meta-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .meta-card-label {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .meta-card-value {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .meta-card-value[contenteditable="true"] {
+      outline: none;
+      border-radius: 4px;
+      padding: 2px 4px;
+      margin: -2px -4px;
+      cursor: text;
+    }
+
+    .meta-card-value[contenteditable="true"]:focus {
+      background: rgba(94, 184, 245, 0.08);
+      box-shadow: 0 0 0 1px rgba(94, 184, 245, 0.3);
+    }
+
+    .stats-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .stat-pill strong { color: var(--text); }
+    .stat-pill span { color: var(--text-muted); }
+
+    /* ── Timeline ── */
+    .timeline-section {
+      margin-bottom: 48px;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .section-heading h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .session-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+
+    .session-badge.morning { background: var(--morning-soft); color: var(--morning); }
+    .session-badge.afternoon { background: var(--afternoon-soft); color: var(--afternoon); }
+
+    .goal-quote {
+      margin: 0 0 24px;
+      padding: 14px 18px;
+      border-left: 3px solid var(--accent);
+      background: var(--accent-soft);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .goal-quote strong { color: var(--text); }
+
+    .day-timeline {
+      display: flex;
+      height: 8px;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+
+    .day-timeline-seg {
+      height: 100%;
+      transition: opacity 0.2s;
+      cursor: default;
+    }
+
+    .day-timeline-seg:hover { opacity: 0.85; }
+
+    .timeline-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+
+    /* ── Session cards ── */
+    .session-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .session-card:hover { border-color: var(--border-strong); }
+    .session-card.is-focused { border-color: rgba(94, 184, 245, 0.45); box-shadow: var(--shadow); }
+
+    .session-card.break-card,
+    .session-card.lunch-card {
+      background: transparent;
+      border-style: dashed;
+    }
+
+    .session-header {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      gap: 12px 16px;
+      padding: 18px 20px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .session-header:hover { background: rgba(255, 255, 255, 0.02); }
+
+    .session-title-wrap { min-width: 0; }
+
+    .session-number {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+    }
+
+    .session-title {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .session-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 2px;
+      flex-shrink: 0;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .time-badge {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      white-space: nowrap;
+      line-height: 1.15;
+    }
+
+    .duration-badge {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-dim);
+      padding: 0;
+      border-radius: 0;
+      background: none;
+      white-space: nowrap;
+      line-height: 1.15;
+    }
+
+    .chevron {
+      width: 20px;
+      height: 20px;
+      color: var(--text-dim);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+
+    .session-card.is-open .chevron { transform: rotate(180deg); }
+
+    .session-body {
+      display: none;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .session-card.is-open .session-body { display: block; }
+
+    .content-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+
+    .content-table th,
+    .content-table td {
+      text-align: left;
+      vertical-align: top;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .content-table th {
+      width: 28%;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(0, 0, 0, 0.15);
+    }
+
+    .content-table tr:last-child th,
+    .content-table tr:last-child td { border-bottom: none; }
+
+    .content-table tr.takeaway th,
+    .content-table tr.takeaway td {
+      background: rgba(94, 184, 245, 0.06);
+    }
+
+    .takeaway-label { color: var(--accent); }
+
+    .key-takeaway {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-soft);
+      border: 1px solid rgba(94, 184, 245, 0.2);
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .key-takeaway em { color: var(--text); font-style: normal; font-weight: 500; }
+
+    /* ── Labs ── */
+    .lab-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .lab-card {
+      border-radius: var(--radius-sm);
+      padding: 16px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .lab-card h4 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sensor-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .lab-card ul {
+      margin: 0;
+      padding-left: 18px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .lab-card li { margin-bottom: 6px; }
+    .lab-card li:last-child { margin-bottom: 0; }
+
+    .lab-duration {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-left: auto;
+    }
+
+    /* ── Summary table ── */
+    .summary-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .summary-table th,
+    .summary-table td {
+      padding: 11px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .summary-table th {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-dim);
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .summary-table tr:last-child td { border-bottom: none; font-weight: 600; }
+    .summary-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .row-break td { color: var(--text-dim); font-style: italic; }
+    .row-lunch td { color: var(--morning); }
+
+    /* ── Checklist ── */
+    .checklist {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li:hover { background: rgba(255, 255, 255, 0.02); }
+    .checklist li.is-checked { opacity: 0.55; }
+    .checklist li.is-checked .check-label { text-decoration: line-through; }
+
+    .check-box {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--border-strong);
+      border-radius: 4px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      display: grid;
+      place-items: center;
+      transition: background 0.12s, border-color 0.12s;
+    }
+
+    .checklist li.is-checked .check-box {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .checklist li.is-checked .check-box::after {
+      content: "";
+      width: 5px;
+      height: 9px;
+      border: solid #0b0f14;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg) translate(-1px, -1px);
+    }
+
+    /* ── Present mode ── */
+    body.present-mode .sidebar { display: none; }
+    body.present-mode .layout { grid-template-columns: 1fr; }
+    body.present-mode .main {
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+    }
+
+    body.present-mode .session-card:not(.is-focused):not(.break-card):not(.lunch-card) {
+      opacity: 0.35;
+      pointer-events: none;
+    }
+
+    body.present-mode .session-card.is-focused {
+      transform: scale(1.01);
+    }
+
+    /* ── Print ── */
+    @media print {
+      .topbar, .sidebar, .topbar-actions { display: none !important; }
+      .layout { display: block; }
+      .main { max-width: none; padding: 0; }
+      .session-body { display: block !important; }
+      .session-card { break-inside: avoid; page-break-inside: avoid; }
+      body { background: #fff; color: #111; }
+      .session-card, .meta-card, .summary-table-wrap { border-color: #ccc; background: #fff; }
+      .content-table th { background: #f5f5f5; }
+    }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 12px;
+      }
+      .sidebar-label { display: none; }
+      .main { padding: 24px 20px 48px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-logo" aria-hidden="true">BS</div>
+      <div>
+        <div class="topbar-title">TESAIoT Bitstream Studio</div>
+        <div class="topbar-sub">One-Day Training Plan</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button type="button" class="btn" id="btn-expand-all">Expand all</button>
+      <button type="button" class="btn" id="btn-present">Present</button>
+      <button type="button" class="btn btn-primary" id="btn-print">Print / PDF</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Session navigation"></nav>
+
+    <main class="main">
+      <section class="hero" id="overview">
+        <p class="hero-eyebrow">Workshop proposal</p>
+        <h1>TESAIoT Bitstream Studio<br />One-Day Training</h1>
+        <p class="hero-lead">
+          A full-day hands-on program for mixed audiences — beginners learn the DevKit and live telemetry;
+          engineers explore node graphs, sensor configuration, and extension APIs.
+        </p>
+
+        <div class="meta-grid">
+          <div class="meta-card">
+            <div class="meta-card-label">Date</div>
+            <div class="meta-card-value" contenteditable="true" spellcheck="false" data-meta="date">TBD</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-card-label">Venue</div>
+            <div class="meta-card-value" contenteditable="true" spellcheck="false" data-meta="venue">TBD</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-card-label">Audience</div>
+            <div class="meta-card-value">Mixed (beginners + engineers)</div>
+          </div>
+          <div class="meta-card">
+            <div class="meta-card-label">Hardware per station</div>
+            <div class="meta-card-value">TESAIoT DevKit · USB · VS Code · Bitstream Studio · Firmware Flasher</div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-pill"><strong>6.5 hrs</strong> <span>instruction</span></div>
+          <div class="stat-pill"><strong>10</strong> <span>sessions</span></div>
+          <div class="stat-pill"><strong>4</strong> <span>sensors</span></div>
+          <div class="stat-pill"><strong>4</strong> <span>Bitstream apps</span></div>
+        </div>
+      </section>
+
+      <section class="timeline-section" id="timeline">
+        <div class="section-heading">
+          <h2>Day at a glance</h2>
+        </div>
+        <div class="day-timeline" id="day-timeline" role="img" aria-label="Day schedule timeline"></div>
+        <div class="timeline-legend" id="timeline-legend"></div>
+        <div class="summary-table-wrap">
+          <table class="summary-table" id="summary-table">
+            <thead>
+              <tr><th>Time</th><th>Session</th><th>Duration</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="morning">
+        <div class="section-heading">
+          <h2>Morning session</h2>
+          <span class="session-badge morning">09:00 – 12:00</span>
+        </div>
+        <p class="goal-quote">
+          <strong>Goal:</strong> Understand the hardware, firmware stack, and tool ecosystem —
+          then get a live connection running with the TESAIoT DevKit.
+        </p>
+        <div id="morning-sessions"></div>
+      </section>
+
+      <section id="afternoon" style="margin-top: 48px;">
+        <div class="section-heading">
+          <h2>Afternoon session</h2>
+          <span class="session-badge afternoon">13:00 – 16:00</span>
+        </div>
+        <p class="goal-quote">
+          <strong>Goal:</strong> Build, wire, and display data — from raw sensor readings to a complete no-code IoT dashboard.
+        </p>
+        <div id="afternoon-sessions"></div>
+      </section>
+
+      <section id="checklist" class="timeline-section" style="margin-top: 48px;">
+        <div class="section-heading"><h2>Station checklist</h2></div>
+        <div class="summary-table-wrap">
+          <ul class="checklist" id="station-checklist"></ul>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      "use strict";
+
+      var SENSOR_COLORS = {
+        SHT40: "#5ee89a",
+        DPS368: "#5eb8f5",
+        BMI270: "#42e8ff",
+        BMM350: "#b88cff"
+      };
+
+      var SCHEDULE = [
+        { time: "09:00–09:30", title: "TESAIoT DevKit & Firmware Stack", duration: 30, type: "session", period: "morning", color: "#5eb8f5" },
+        { time: "09:30–10:00", title: "PSoC Edge AI & Sensors", duration: 30, type: "session", period: "morning", color: "#5ee89a" },
+        { time: "10:00–10:30", title: "Bitstream Studio Introduction", duration: 30, type: "session", period: "morning", color: "#42e8ff" },
+        { time: "10:30–10:45", title: "Break", duration: 15, type: "break", period: "morning", color: "#64748b" },
+        { time: "10:45–11:30", title: "Getting Started with the DevKit", duration: 45, type: "session", period: "morning", color: "#b88cff" },
+        { time: "11:30–12:00", title: "TESAIoT Firmware Flasher", duration: 30, type: "session", period: "morning", color: "#f59e0b" },
+        { time: "12:00–13:00", title: "Lunch", duration: 60, type: "lunch", period: "lunch", color: "#f59e0b" },
+        { time: "13:00–13:45", title: "Sensor Configurator", duration: 45, type: "session", period: "afternoon", color: "#5eb8f5" },
+        { time: "13:45–14:30", title: "Sensor Studio Node Editor", duration: 45, type: "session", period: "afternoon", color: "#42e8ff" },
+        { time: "14:30–14:45", title: "Break", duration: 15, type: "break", period: "afternoon", color: "#64748b" },
+        { time: "14:45–15:30", title: "Hands-on Labs", duration: 45, type: "session", period: "afternoon", color: "#5ee89a" },
+        { time: "15:30–15:50", title: "No-Code Dashboard Design", duration: 20, type: "session", period: "afternoon", color: "#b88cff" },
+        { time: "15:50–16:00", title: "IoT Application Development & Wrap-up", duration: 10, type: "session", period: "afternoon", color: "#94a3b8" }
+      ];
+
+      var SESSIONS = [
+        {
+          id: "s1",
+          num: 1,
+          title: "Introduction to TESAIoT DevKit and TESAIoT Firmware Stack",
+          time: "09:00–09:30",
+          duration: "30 min",
+          period: "morning",
+          blocks: [
+            ["Overview", "What is the TESAIoT DevKit? Board tour: sensors, USB connector, indicator LEDs"],
+            ["Firmware stack", "CM55 (application + bitstream protocol) and CM33 (Wi-Fi / RTOS) dual-core architecture; how they communicate over IPC"],
+            ["Data path", "On-board sensors → firmware pipeline → BS2 framed protocol → USB UART → host PC"],
+            ["Two-way link", "Live readings flow <strong>up</strong>; sensor settings (rate, mode, channel mask) flow <strong>down</strong> on the same link"],
+            ["Simulator", "Practice mode for seats without hardware — same four sensors, synthetic motion"],
+            ["Key takeaway", "\"The DevKit is always the source of truth. Simulator is the backup, not the default.\""]
+          ]
+        },
+        {
+          id: "s2",
+          num: 2,
+          title: "Introduction to PSoC Edge AI and Sensors",
+          time: "09:30–10:00",
+          duration: "30 min",
+          period: "morning",
+          blocks: [
+            ["PSoC Edge AI", "Infineon PSoC™ Edge: CM55 (ML/inference) + CM33 (connectivity/RTOS) on one die; why dual-core matters for IoT AI applications"],
+            ["Four on-board sensors", "<strong>SHT40</strong> — air temperature (°C) + relative humidity (%RH)<br><strong>DPS368</strong> — barometric pressure (hPa) + chip temperature<br><strong>BMI270</strong> — 6-axis IMU: acceleration, gyroscope, fused orientation<br><strong>BMM350</strong> — 3-axis magnetometer (µT) + chip temperature"],
+            ["Scalar vs vector", "Single-value (SHT40, DPS368) vs three-axis (BMI270, BMM350); vector magnitude √(x²+y²+z²)"],
+            ["Units and ranges", "Name + number + unit — trainees should always read all three aloud"],
+            ["Key takeaway", "Know which sensor produces which quantity before touching any software."]
+          ]
+        },
+        {
+          id: "s3",
+          num: 3,
+          title: "Introduction to Bitstream Studio",
+          time: "10:00–10:30",
+          duration: "30 min",
+          period: "morning",
+          blocks: [
+            ["What it is", "VS Code extension — one workspace, four apps"],
+            ["Four apps", "<strong>Sensor Telemetry</strong> — connect the DevKit, view live readings, configure sensors<br><strong>Sensor Studio</strong> — visual node-based editor: wire sensors → math → dashboard/3D<br><strong>Course Studio</strong> — build lesson pages with embedded live widgets<br><strong>Applications / Examples</strong> — ready-made flows and dashboards to copy and learn from"],
+            ["The journey", "Connect → Wire → Show → Teach (trainees may enter at any step)"],
+            ["One live world", "All four apps share the same serial bridge connection — change source once, all apps update"],
+            ["Toolbar controls", "<strong>Bitstream</strong> (DevKit) vs <strong>Simulator</strong> — mutually exclusive; <strong>Link</strong> = live stream on/off"],
+            ["Demo", "Open Bitstream Studio, identify each app tab, show the toolbar source selector"],
+            ["Key takeaway", "\"One connection, four views — not four separate programs.\""]
+          ]
+        },
+        { id: "break1", type: "break", title: "Break", time: "10:30–10:45", duration: "15 min", period: "morning" },
+        {
+          id: "s4",
+          num: 4,
+          title: "Getting Started with the TESAIoT DevKit",
+          time: "10:45–11:30",
+          duration: "45 min",
+          period: "morning",
+          blocks: [
+            ["Hardware setup", "USB connection, COM port detection, driver check"],
+            ["Connecting in Bitstream Studio", "Toolbar → <strong>Bitstream</strong> → select COM port → <strong>Link</strong>"],
+            ["Sensor Telemetry first look", "Live deck: four sensor cards updating in real time"],
+            ["Hands-on lab A", "Cup hands over board — watch SHT40 temperature and humidity rise"],
+            ["Hands-on lab B", "Tilt the board — watch BMI270 acceleration X/Y/Z shift"],
+            ["Connection states", "<strong>Live</strong> (streaming) vs <strong>Stale</strong> (link lost) vs <strong>Offline</strong>; unplug USB to demonstrate stale"],
+            ["Simulator fallback", "Switch to Simulator for any station without hardware — same UI, synthetic data"],
+            ["Key takeaway", "Every trainee has a live reading by the end of this section."]
+          ]
+        },
+        {
+          id: "s5",
+          num: 5,
+          title: "TESAIoT Firmware Flasher",
+          time: "11:30–12:00",
+          duration: "30 min",
+          period: "morning",
+          blocks: [
+            ["Why update firmware", "Bug fixes, new sensor modes, protocol version alignment with Bitstream Studio"],
+            ["Flasher overview", "Standalone desktop app (<strong>TESAIoT Firmware Flasher</strong>): KitProg3 bridge detection, pick or drag-and-drop <code>app_combined.hex</code>, flash all cores (CM33-S, CM33-NS, CM55) in one pass"],
+            ["Flash walkthrough", "Connect DevKit via USB → confirm agent + KitProg3 bridge → select workshop firmware image → <strong>Flash Firmware</strong> → watch per-core progress → review log on success"],
+            ["Version check", "Confirm installed firmware matches expected BS2 protocol handshake (HELLO in Bitstream Studio after flash)"],
+            ["Common pitfalls", "KitProg3 bridge not detected; wrong or stale HEX file; flash aborted mid-program; USB cable or driver issue; version mismatch causing stale handshake"],
+            ["Demo", "Instructor demonstrates one full flash cycle; trainees confirm their board version in Sensor Telemetry"],
+            ["Key takeaway", "Firmware and extension version must be aligned — always flash the workshop image and verify before lunch."]
+          ]
+        },
+        { id: "lunch", type: "lunch", title: "Lunch Break", time: "12:00–13:00", duration: "1 hr", period: "morning" },
+        {
+          id: "s6",
+          num: 6,
+          title: "Sensor Telemetry — Sensor Configurator",
+          time: "13:00–13:45",
+          duration: "45 min",
+          period: "afternoon",
+          blocks: [
+            ["What you can configure", "Enabled (on/off), sampling rate, publish mode (Periodic / On change / Hybrid), channel mask, sensitivity threshold"],
+            ["Apply flow", "Change slider → press <strong>Apply</strong> → board acknowledges → live stream reflects new settings"],
+            ["BMI270 output profiles", "<strong>Raw</strong> (accel + gyro axes) · <strong>Fusion</strong> (pitch/roll/yaw) · <strong>All</strong> (both); hands-on: switch and observe telemetry deck"],
+            ["Rate trade-offs", "High rate = more responsive but more USB bandwidth; low rate + on-change = battery-friendly"],
+            ["Hands-on lab", "Lower BMI270 sampling rate → switch to On-change → rotate board → observe burst behaviour; toggle one channel off and verify it disappears from deck"],
+            ["Cross-sensor example", "Disable DPS368 during a temperature-only exercise to reduce noise"],
+            ["Key takeaway", "\"Change settings on the card, always press Apply, then confirm the stream responded.\""]
+          ]
+        },
+        {
+          id: "s7",
+          num: 7,
+          title: "Sensor Studio — Node-Based Editor",
+          time: "13:45–14:30",
+          duration: "45 min",
+          period: "afternoon",
+          blocks: [
+            ["The node editor concept", "Three block types: <strong>Sensor</strong> (source) → <strong>Utility/Math</strong> (transform) → <strong>Output</strong> (display); data flows left to right"],
+            ["Work modes", "<strong>Wire</strong> (build the graph) · <strong>2D</strong> (tune Dashboard HMI) · <strong>3D</strong> (tune Stage / digital twin) · <strong>Twin</strong> (both surfaces at once)"],
+            ["One graph, two faces", "Dashboard Output (2D) and Stage Output (3D) both read from the same flow graph"],
+            ["Key nodes", "Sensor input, Math, Map Range, Vector Length, Threshold, Radial Gauge, Dashboard Gauge, Numeric Readout"],
+            ["Inspector & Pin", "Click any node to inspect; use <strong>Pin</strong> to lock inspector on a widget while clicking elsewhere"],
+            ["Desk layouts", "Named layout presets (Graph Focus, Dashboard Focus, Stage Focus, Twin Focus); save your own arrangement"],
+            ["Hands-on lab", "Add SHT40 node → wire <strong>temperature</strong> to a Radial Gauge → Link the DevKit → confirm live °C update → insert Math node to convert °C → °F"],
+            ["Key takeaway", "\"One sensor, one wire, one gauge — get that working before adding anything else.\""]
+          ]
+        },
+        { id: "break2", type: "break", title: "Break", time: "14:30–14:45", duration: "15 min", period: "afternoon" },
+        {
+          id: "s8",
+          num: 8,
+          title: "Working with Individual Sensors (Hands-on Labs)",
+          time: "14:45–15:30",
+          duration: "45 min",
+          period: "afternoon",
+          labs: true,
+          intro: "Four short paired labs — beginners follow the recipe; engineers are encouraged to add extra math or logic nodes.",
+          labItems: [
+            { sensor: "SHT40", title: "Environment Sensor", duration: "10 min", items: ["SHT40 node → temperature + humidity → two Radial Gauges side by side", "Add comfort zone: Map Range 18–28 °C → 0–100% fill", "Breathe on the board; watch both values update"] },
+            { sensor: "DPS368", title: "Pressure Sensor", duration: "10 min", items: ["DPS368 node → pressureHpa → Numeric Readout + vertical Bar Meter", "Map Range 900–1100 hPa → 0–100% gauge fill (sea-level weather band)", "Discuss altitude clue: pressure drops ~1.2 hPa per 10 m of elevation"] },
+            { sensor: "BMM350", title: "Magnetometer", duration: "10 min", items: ["BMM350 node → magX / magY / magZ → three Bar Meters", "Add Vector Length node → magnetic field strength readout", "Slowly rotate the board; observe axis values shifting while strength stays roughly constant"] },
+            { sensor: "BMI270", title: "IMU", duration: "15 min", items: ["BMI270 node (Fusion profile) → pitch + roll → two Radial Gauges", "Add Vector Length on accel X/Y/Z → magnitude display", "Insert Threshold node (magnitude > 15 m/s²) → LED/Status Pill for shake detection", "Shake the board to trip the threshold"] }
+          ]
+        },
+        {
+          id: "s9",
+          num: 9,
+          title: "IoT Dashboard Design with No Code",
+          time: "15:30–15:50",
+          duration: "20 min",
+          period: "afternoon",
+          blocks: [
+            ["Course Studio overview", "Pages, widget boards, block types (numeric readout, vertical bar, status pill, LED indicator, hero gauge, infographic skins)"],
+            ["Five theme presets", "EV Compact, Course Amber, Industrial, Telemetry Cyan, Sci-Fi — apply in one click"],
+            ["Layout principles", "One color per sensor (SHT40 <span style=\"color:#5ee89a\">#5ee89a</span>, DPS368 <span style=\"color:#5eb8f5\">#5eb8f5</span>, BMI270 <span style=\"color:#42e8ff\">#42e8ff</span>, BMM350 <span style=\"color:#b88cff\">#b88cff</span>); always show value + unit + connection state"],
+            ["Live widgets", "Widget board blocks auto-connect to the same DevKit link — same live stream, polished look"],
+            ["Hands-on", "Create a <strong>Four-Sensor Dashboard</strong> page in Course Studio: one region per sensor, captions, units visible; preview with DevKit linked; unplug once to demonstrate stale styling"],
+            ["Key takeaway", "\"A Course Studio page is the Sensor Studio graph with a lesson-ready face.\""]
+          ]
+        },
+        {
+          id: "s10",
+          num: 10,
+          title: "IoT Application Development",
+          time: "15:50–16:00",
+          duration: "10 min",
+          period: "afternoon",
+          blocks: [
+            ["Bitstream Telemetry Provider", "External HTML apps can subscribe to live sensor data via WebSocket (ws://127.0.0.1:9997) or postMessage (iframe) — no firmware knowledge required"],
+            ["Applications / Examples", "Copy starter flows: <code>sht40-climate-dashboard.html</code>, <code>bmi270-motion-dashboard.html</code>, <code>workshop-four-sensor-dashboard.html</code>"],
+            ["MQTT broker", "Optional local Aedes broker for multi-device or cloud forwarding scenarios"],
+            ["Next steps for engineers", "Bitstream framed protocol (BS2), CM55/CM33 IPC reference, Wi-Fi IPC commands, custom firmware nodes"],
+            ["Wrap-up", "Capstone checklist: four sensors labeled, units visible, connection state shown, one saved Sensor Studio flow + one saved Course page per trainee"]
+          ]
+        }
+      ];
+
+      var CHECKLIST = [
+        "VS Code installed with Bitstream Studio .vsix",
+        "TESAIoT DevKit USB connected, COM port visible",
+        "Firmware version confirmed (TESAIoT Firmware Flasher + HELLO check in Bitstream Studio)",
+        "Toolbar → Bitstream → Link → live readings confirmed",
+        "Simulator fallback tested (at least once)",
+        "One Sensor Studio flow saved (SHT40 gauge minimum)",
+        "One Course Studio dashboard page saved (four-sensor layout)"
+      ];
+
+      var allExpanded = false;
+      var presentMode = false;
+      var focusedId = null;
+
+      function el(tag, attrs, children) {
+        var node = document.createElement(tag);
+        if (attrs) {
+          Object.keys(attrs).forEach(function (k) {
+            if (k === "className") node.className = attrs[k];
+            else if (k === "html") node.innerHTML = attrs.html;
+            else if (k === "text") node.textContent = attrs.text;
+            else node.setAttribute(k, attrs[k]);
+          });
+        }
+        (children || []).forEach(function (c) {
+          if (typeof c === "string") node.appendChild(document.createTextNode(c));
+          else if (c) node.appendChild(c);
+        });
+        return node;
+      }
+
+      function renderTimeline() {
+        var total = SCHEDULE.reduce(function (s, i) { return s + i.duration; }, 0);
+        var bar = document.getElementById("day-timeline");
+        var legend = document.getElementById("timeline-legend");
+        var tbody = document.querySelector("#summary-table tbody");
+
+        SCHEDULE.forEach(function (item) {
+          var seg = el("div", {
+            className: "day-timeline-seg",
+            title: item.time + " — " + item.title,
+            style: "width:" + ((item.duration / total) * 100).toFixed(2) + "%;background:" + item.color
+          });
+          bar.appendChild(seg);
+
+          if (item.type === "session") {
+            legend.appendChild(el("div", { className: "legend-item" }, [
+              el("span", { className: "legend-dot", style: "background:" + item.color }),
+              document.createTextNode(item.title)
+            ]));
+          }
+
+          var tr = el("tr");
+          if (item.type === "break") tr.className = "row-break";
+          if (item.type === "lunch") tr.className = "row-lunch";
+          tr.innerHTML = "<td>" + item.time + "</td><td>" + item.title + "</td><td>" + item.duration + " min</td>";
+          tbody.appendChild(tr);
+        });
+
+        tbody.appendChild(el("tr", { html: "<td colspan=\"2\"><strong>Total</strong></td><td><strong>6 hrs 30 min</strong></td>" }));
+      }
+
+      function renderBlocksTable(blocks) {
+        var table = el("table", { className: "content-table" });
+        var tbody = el("tbody");
+        blocks.forEach(function (row) {
+          var isTakeaway = row[0].toLowerCase().indexOf("takeaway") >= 0;
+          var tr = el("tr", isTakeaway ? { className: "takeaway" } : {});
+          tr.innerHTML = "<th" + (isTakeaway ? " class=\"takeaway-label\"" : "") + ">" + row[0] + "</th><td>" + row[1] + "</td>";
+          tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        return table;
+      }
+
+      function renderLabGrid(labItems) {
+        var grid = el("div", { className: "lab-grid" });
+        labItems.forEach(function (lab) {
+          var color = SENSOR_COLORS[lab.sensor] || "#94a3b8";
+          var card = el("div", { className: "lab-card", style: "border-color: color-mix(in srgb, " + color + " 35%, transparent)" });
+          var h4 = el("h4");
+          h4.appendChild(el("span", { className: "sensor-dot", style: "background:" + color }));
+          h4.appendChild(document.createTextNode("Lab — " + lab.title + " (" + lab.sensor + ")"));
+          h4.appendChild(el("span", { className: "lab-duration", text: lab.duration }));
+          card.appendChild(h4);
+          var ul = el("ul");
+          lab.items.forEach(function (item) {
+            ul.appendChild(el("li", { html: item }));
+          });
+          card.appendChild(ul);
+          grid.appendChild(card);
+        });
+        return grid;
+      }
+
+      function renderSession(session) {
+        var isBreak = session.type === "break";
+        var isLunch = session.type === "lunch";
+        var cardClass = "session-card";
+        if (isBreak) cardClass += " break-card";
+        if (isLunch) cardClass += " lunch-card";
+
+        var card = el("article", { className: cardClass, id: session.id, "data-session": "true" });
+
+        var header = el("div", { className: "session-header", role: "button", tabindex: "0", "aria-expanded": "false" });
+        var titleWrap = el("div", { className: "session-title-wrap" });
+        if (session.num) {
+          titleWrap.appendChild(el("div", { className: "session-number", text: "Session " + session.num }));
+        }
+        titleWrap.appendChild(el("h3", { className: "session-title", text: session.title }));
+
+        var meta = el("div", { className: "session-meta" });
+        meta.appendChild(el("span", { className: "time-badge", text: session.time }));
+        meta.appendChild(el("span", { className: "duration-badge", text: session.duration }));
+
+        var chevron = el("svg", { className: "chevron", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2" });
+        chevron.innerHTML = "<polyline points=\"6 9 12 15 18 9\"></polyline>";
+
+        header.appendChild(titleWrap);
+        header.appendChild(meta);
+        header.appendChild(chevron);
+
+        var body = el("div", { className: "session-body" });
+        if (session.intro) {
+          body.appendChild(el("p", { style: "margin:16px 0 0;font-size:13px;color:var(--text-muted)", text: session.intro }));
+        }
+        if (session.blocks) body.appendChild(renderBlocksTable(session.blocks));
+        if (session.labItems) body.appendChild(renderLabGrid(session.labItems));
+
+        function toggle() {
+          if (isBreak || isLunch) return;
+          var open = card.classList.toggle("is-open");
+          header.setAttribute("aria-expanded", open ? "true" : "false");
+          if (presentMode && open) setFocus(session.id);
+        }
+
+        header.addEventListener("click", toggle);
+        header.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+        });
+
+        card.appendChild(header);
+        card.appendChild(body);
+        return card;
+      }
+
+      function renderSessions() {
+        var morning = document.getElementById("morning-sessions");
+        var afternoon = document.getElementById("afternoon-sessions");
+        var sidebar = document.getElementById("sidebar");
+
+        var morningLabel = el("div", { className: "sidebar-label", text: "Morning" });
+        var afternoonLabel = null;
+        var afternoonLabelAdded = false;
+
+        sidebar.appendChild(el("a", { className: "nav-link", href: "#overview", text: "Overview" }));
+        sidebar.appendChild(el("a", { className: "nav-link", href: "#timeline", text: "Day summary" }));
+        sidebar.appendChild(morningLabel);
+
+        SESSIONS.forEach(function (session) {
+          if (session.period === "afternoon" && !afternoonLabelAdded) {
+            afternoonLabelAdded = true;
+            afternoonLabel = el("div", { className: "sidebar-label", text: "Afternoon" });
+            sidebar.appendChild(afternoonLabel);
+          }
+
+          var target = session.period === "afternoon" ? afternoon : morning;
+          target.appendChild(renderSession(session));
+
+          if (session.num) {
+            sidebar.appendChild(el("a", {
+              className: "nav-link",
+              href: "#" + session.id,
+              "data-nav": session.id,
+              html: "<span class=\"nav-time\">" + session.time.split("–")[0] + "</span>" + session.title
+            }));
+          }
+        });
+
+        sidebar.appendChild(el("div", { className: "sidebar-label", text: "Resources" }));
+        sidebar.appendChild(el("a", { className: "nav-link", href: "#checklist", text: "Station checklist" }));
+      }
+
+      function renderChecklist() {
+        var list = document.getElementById("station-checklist");
+        var stored = {};
+        try { stored = JSON.parse(localStorage.getItem("workshop-checklist") || "{}"); } catch (e) {}
+
+        CHECKLIST.forEach(function (text, i) {
+          var key = "item-" + i;
+          var li = el("li", { className: stored[key] ? "is-checked" : "" });
+          li.appendChild(el("span", { className: "check-box", "aria-hidden": "true" }));
+          li.appendChild(el("span", { className: "check-label", text: text }));
+          li.addEventListener("click", function () {
+            li.classList.toggle("is-checked");
+            stored[key] = li.classList.contains("is-checked");
+            localStorage.setItem("workshop-checklist", JSON.stringify(stored));
+          });
+          list.appendChild(li);
+        });
+      }
+
+      function setFocus(id) {
+        focusedId = id;
+        document.querySelectorAll(".session-card[data-session]").forEach(function (card) {
+          card.classList.toggle("is-focused", card.id === id);
+        });
+      }
+
+      function setupScrollSpy() {
+        var links = document.querySelectorAll(".nav-link[data-nav]");
+        var sections = Array.from(links).map(function (a) {
+          return document.getElementById(a.getAttribute("data-nav"));
+        }).filter(Boolean);
+
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+            var id = entry.target.id;
+            links.forEach(function (a) {
+              a.classList.toggle("active", a.getAttribute("data-nav") === id);
+            });
+          });
+        }, { rootMargin: "-30% 0px -55% 0px", threshold: 0 });
+
+        sections.forEach(function (s) { observer.observe(s); });
+      }
+
+      function setupMetaPersistence() {
+        ["date", "venue"].forEach(function (key) {
+          var node = document.querySelector("[data-meta=\"" + key + "\"]");
+          if (!node) return;
+          var saved = localStorage.getItem("workshop-meta-" + key);
+          if (saved) node.textContent = saved;
+          node.addEventListener("blur", function () {
+            localStorage.setItem("workshop-meta-" + key, node.textContent.trim());
+          });
+        });
+      }
+
+      document.getElementById("btn-expand-all").addEventListener("click", function () {
+        allExpanded = !allExpanded;
+        document.querySelectorAll(".session-card:not(.break-card):not(.lunch-card)").forEach(function (card) {
+          card.classList.toggle("is-open", allExpanded);
+          card.querySelector(".session-header").setAttribute("aria-expanded", allExpanded ? "true" : "false");
+        });
+        this.textContent = allExpanded ? "Collapse all" : "Expand all";
+      });
+
+      document.getElementById("btn-present").addEventListener("click", function () {
+        presentMode = !presentMode;
+        document.body.classList.toggle("present-mode", presentMode);
+        this.textContent = presentMode ? "Exit present" : "Present";
+        if (presentMode) {
+          var first = document.querySelector(".session-card[data-session]");
+          if (first) {
+            first.classList.add("is-open", "is-focused");
+            first.querySelector(".session-header").setAttribute("aria-expanded", "true");
+            focusedId = first.id;
+          }
+        } else {
+          document.querySelectorAll(".session-card").forEach(function (c) {
+            c.classList.remove("is-focused");
+          });
+        }
+      });
+
+      document.getElementById("btn-print").addEventListener("click", function () {
+        window.print();
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (!presentMode || e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        var cards = Array.from(document.querySelectorAll(".session-card[data-session]"));
+        var idx = cards.findIndex(function (c) { return c.id === focusedId; });
+        if (idx < 0) return;
+        e.preventDefault();
+        var next = e.key === "ArrowDown" ? Math.min(cards.length - 1, idx + 1) : Math.max(0, idx - 1);
+        var card = cards[next];
+        card.classList.add("is-open");
+        card.querySelector(".session-header").setAttribute("aria-expanded", "true");
+        setFocus(card.id);
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
+      renderTimeline();
+      renderSessions();
+      renderChecklist();
+      setupScrollSpy();
+      setupMetaPersistence();
+
+      document.querySelector(".session-card[data-session]")?.classList.add("is-open");
+      document.querySelector(".session-card[data-session] .session-header")?.setAttribute("aria-expanded", "true");
+    })();
+  </script>
+</body>
+</html>

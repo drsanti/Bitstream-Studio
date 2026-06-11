@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>kPa Gauge Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: #1a1f2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  .gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+
+  canvas#gauge {
+    display: block;
+    filter: drop-shadow(0 12px 40px rgba(0,0,0,.55));
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 300px;
+  }
+
+  .value-display {
+    font-size: 28px;
+    font-weight: 700;
+    color: #e6edf3;
+    letter-spacing: .04em;
+  }
+
+  .value-display span {
+    font-size: 16px;
+    font-weight: 400;
+    color: #8b949e;
+    margin-left: 4px;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #30363d;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #42e8ff;
+    box-shadow: 0 0 8px #42e8ff88;
+  }
+
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 11px;
+    color: #8b949e;
+  }
+</style>
+</head>
+<body>
+
+<div class="gauge-wrap">
+  <canvas id="gauge" width="320" height="360"></canvas>
+
+  <div class="controls">
+    <div class="value-display" id="valDisplay">8.0 <span>kPa</span></div>
+    <input type="range" id="slider" min="0" max="30" step="0.1" value="8">
+    <div class="range-labels"><span>0 kPa</span><span>15 kPa</span><span>30 kPa</span></div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────────
+   Gauge Configuration
+───────────────────────────────────────────────────────────────── */
+const canvas  = document.getElementById('gauge');
+const ctx     = canvas.getContext('2d');
+
+// Geometry
+const CX      = 160;   // center X
+const CY      = 168;   // center Y (slightly above canvas center to leave room for pipe)
+const FACE_R  = 142;   // outer face radius
+const ARC_R   = 115;   // colored arc centerline radius
+const ARC_W   = 14;    // colored arc stroke width
+
+// Sweep: 270° from 7:30 (135°) to 4:30 (405°=45°)
+const START_ANG = Math.PI * 0.75;      // 135° — 7:30 position
+const SWEEP     = Math.PI * 1.5;       // 270°
+const END_ANG   = START_ANG + SWEEP;
+
+// Data range
+const MIN_VAL = 0;
+const MAX_VAL = 30;
+
+// Color zones  (value from→to, hex color)
+const ZONES = [
+  { from:  0, to:  5, color: '#2255dd' },
+  { from:  5, to: 10, color: '#1199cc' },
+  { from: 10, to: 15, color: '#33bb55' },
+  { from: 15, to: 20, color: '#99cc22' },
+  { from: 20, to: 25, color: '#ffaa00' },
+  { from: 25, to: 30, color: '#ee5500' },
+];
+
+/* ── helpers ── */
+function valToAngle(v) {
+  return START_ANG + ((v - MIN_VAL) / (MAX_VAL - MIN_VAL)) * SWEEP;
+}
+
+function polar(cx, cy, r, angle) {
+  return [cx + Math.cos(angle) * r, cy + Math.sin(angle) * r];
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Draw Gauge
+───────────────────────────────────────────────────────────────── */
+function drawGauge(value) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // ── Pipe fitting ──
+  drawPipe();
+
+  // ── Outer bezel (thick dark ring) ──
+  ctx.beginPath();
+  ctx.arc(CX, CY, FACE_R, 0, Math.PI * 2);
+  const bezelGrad = ctx.createRadialGradient(CX - 30, CY - 30, FACE_R * 0.5, CX, CY, FACE_R);
+  bezelGrad.addColorStop(0, '#555');
+  bezelGrad.addColorStop(1, '#111');
+  ctx.fillStyle = bezelGrad;
+  ctx.fill();
+
+  // ── Face background ──
+  ctx.beginPath();
+  ctx.arc(CX, CY, FACE_R - 10, 0, Math.PI * 2);
+  const faceGrad = ctx.createRadialGradient(CX, CY - 20, 10, CX, CY, FACE_R);
+  faceGrad.addColorStop(0, '#f8f9fa');
+  faceGrad.addColorStop(1, '#dde1e5');
+  ctx.fillStyle = faceGrad;
+  ctx.fill();
+
+  // ── Colored arc (split into zone segments) ──
+  ctx.lineCap = 'butt';
+  ZONES.forEach(z => {
+    const a1 = valToAngle(z.from);
+    const a2 = valToAngle(z.to);
+    ctx.beginPath();
+    ctx.arc(CX, CY, ARC_R, a1, a2, false);
+    ctx.strokeStyle = z.color;
+    ctx.lineWidth   = ARC_W;
+    ctx.stroke();
+  });
+
+  // ── Tick marks ──
+  for (let v = MIN_VAL; v <= MAX_VAL; v++) {
+    const major  = v % 5 === 0;
+    const a      = valToAngle(v);
+    const outerR = ARC_R + ARC_W / 2 + 4;
+    const innerR = outerR - (major ? 16 : 8);
+
+    ctx.beginPath();
+    ctx.moveTo(...polar(CX, CY, innerR, a));
+    ctx.lineTo(...polar(CX, CY, outerR, a));
+    ctx.strokeStyle = major ? '#1a1a1a' : '#555';
+    ctx.lineWidth   = major ? 2.0 : 0.9;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // ── Numeric labels ──
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = '#1a1a1a';
+  ctx.font         = 'bold 13px -apple-system, system-ui, sans-serif';
+  for (let v = MIN_VAL; v <= MAX_VAL; v += 5) {
+    const a = valToAngle(v);
+    const labelR = ARC_R - ARC_W / 2 - 16;
+    ctx.fillText(v, ...polar(CX, CY, labelR, a));
+  }
+
+  // ── Unit label ──
+  ctx.font      = 'bold 15px -apple-system, system-ui, sans-serif';
+  ctx.fillStyle = '#444';
+  ctx.fillText('kPa', CX, CY + 48);
+
+  // ── Needle shadow ──
+  const needleAngle = valToAngle(Math.max(MIN_VAL, Math.min(MAX_VAL, value)));
+  const needleTip   = ARC_R - ARC_W / 2 - 4;
+  const needleTail  = -22;
+
+  ctx.save();
+  ctx.translate(CX + 2, CY + 2);
+  ctx.rotate(needleAngle);
+  ctx.beginPath();
+  ctx.moveTo(needleTail, 0);
+  ctx.lineTo(needleTip,  0);
+  ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+  ctx.lineWidth   = 3;
+  ctx.lineCap     = 'round';
+  ctx.stroke();
+  ctx.restore();
+
+  // ── Needle ──
+  ctx.save();
+  ctx.translate(CX, CY);
+  ctx.rotate(needleAngle);
+
+  // Needle body (tapered: wide at tail, thin at tip)
+  ctx.beginPath();
+  ctx.moveTo(needleTail, 2.5);
+  ctx.lineTo(needleTip - 10, 1.2);
+  ctx.lineTo(needleTip, 0);
+  ctx.lineTo(needleTip - 10, -1.2);
+  ctx.lineTo(needleTail, -2.5);
+  ctx.closePath();
+  ctx.fillStyle = '#1a1a1a';
+  ctx.fill();
+
+  ctx.restore();
+
+  // ── Center hub outer ring ──
+  ctx.beginPath();
+  ctx.arc(CX, CY, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#ccc';
+  ctx.fill();
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // ── Center hub inner ──
+  ctx.beginPath();
+  ctx.arc(CX, CY, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#f5f5f5';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(CX, CY, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#444';
+  ctx.fill();
+
+  // ── Bezel glare ──
+  ctx.beginPath();
+  ctx.arc(CX, CY, FACE_R - 1, Math.PI * 1.1, Math.PI * 1.9);
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+  ctx.lineWidth   = 8;
+  ctx.lineCap     = 'round';
+  ctx.stroke();
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Draw Pipe Fitting  (below the gauge)
+───────────────────────────────────────────────────────────────── */
+function drawPipe() {
+  const pipeX  = CX;
+  const pipeY0 = CY + FACE_R - 4;   // top of fitting (just inside gauge edge)
+  const pipeW  = 48;
+  const pipeH  = 58;
+  const nutH   = 22;
+  const nutW   = 72;
+
+  // Pipe shaft
+  const shaftGrad = ctx.createLinearGradient(pipeX - pipeW/2, 0, pipeX + pipeW/2, 0);
+  shaftGrad.addColorStop(0,   '#aaa');
+  shaftGrad.addColorStop(0.3, '#ddd');
+  shaftGrad.addColorStop(0.7, '#ccc');
+  shaftGrad.addColorStop(1,   '#999');
+  ctx.fillStyle = shaftGrad;
+  ctx.fillRect(pipeX - pipeW/2, pipeY0, pipeW, pipeH - nutH);
+
+  // Hex nut (simplified as a trapezoid/rounded rect)
+  const nutY = pipeY0 + pipeH - nutH;
+  const nutGrad = ctx.createLinearGradient(pipeX - nutW/2, 0, pipeX + nutW/2, 0);
+  nutGrad.addColorStop(0,    '#888');
+  nutGrad.addColorStop(0.2,  '#bbb');
+  nutGrad.addColorStop(0.5,  '#e0e0e0');
+  nutGrad.addColorStop(0.8,  '#b0b0b0');
+  nutGrad.addColorStop(1,    '#777');
+
+  ctx.beginPath();
+  ctx.moveTo(pipeX - pipeW/2, nutY);
+  ctx.lineTo(pipeX - nutW/2,  nutY + 6);
+  ctx.lineTo(pipeX - nutW/2,  nutY + nutH - 6);
+  ctx.lineTo(pipeX - pipeW/2, nutY + nutH);
+  ctx.lineTo(pipeX + pipeW/2, nutY + nutH);
+  ctx.lineTo(pipeX + nutW/2,  nutY + nutH - 6);
+  ctx.lineTo(pipeX + nutW/2,  nutY + 6);
+  ctx.lineTo(pipeX + pipeW/2, nutY);
+  ctx.closePath();
+  ctx.fillStyle = nutGrad;
+  ctx.fill();
+  ctx.strokeStyle = '#666';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Nut groove lines
+  for (let i = 1; i < 5; i++) {
+    const gx = pipeX - nutW/2 + i * (nutW / 5);
+    ctx.beginPath();
+    ctx.moveTo(gx, nutY + 4);
+    ctx.lineTo(gx, nutY + nutH - 4);
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+    ctx.lineWidth = 0.8;
+    ctx.stroke();
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Public API: set value programmatically
+   Usage: GaugeDemo.setValue(12.5)
+───────────────────────────────────────────────────────────────── */
+window.GaugeDemo = {
+  setValue(v) {
+    const clamped = Math.max(MIN_VAL, Math.min(MAX_VAL, v));
+    document.getElementById('slider').value = clamped;
+    document.getElementById('valDisplay').innerHTML =
+      clamped.toFixed(1) + ' <span>kPa</span>';
+    drawGauge(clamped);
+  }
+};
+
+/* ── Slider interaction ── */
+const slider     = document.getElementById('slider');
+const valDisplay = document.getElementById('valDisplay');
+
+slider.addEventListener('input', () => {
+  const v = parseFloat(slider.value);
+  valDisplay.innerHTML = v.toFixed(1) + ' <span>kPa</span>';
+  drawGauge(v);
+});
+
+// Initial render
+drawGauge(parseFloat(slider.value));
+</script>
+
+</body>
+</html>

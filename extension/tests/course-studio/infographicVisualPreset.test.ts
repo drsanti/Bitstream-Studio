@@ -23,7 +23,7 @@ test("resolveInfographicValueMode distinguishes ratio angle numeric", () => {
   assert.equal(resolveInfographicValueMode("seven-segment"), "numeric");
 });
 
-test("widget board scalar entry defaults visualPreset to abstract", () => {
+test("widget board numeric readout defaults visualPreset to abstract", () => {
   const parsed = widgetBoardEntrySchema.parse({
     id: "t1",
     kind: "numeric-readout",
@@ -33,6 +33,52 @@ test("widget board scalar entry defaults visualPreset to abstract", () => {
   assert.equal(parsed.kind, "numeric-readout");
   if (parsed.kind === "numeric-readout") {
     assert.equal(parsed.visualPreset, "abstract");
+    assert.equal(parsed.readoutLayout, "stacked");
+  }
+});
+
+test("widget board scalar entry defaults readoutLayout to stacked", () => {
+  const parsed = widgetBoardEntrySchema.parse({
+    id: "t2",
+    kind: "metric-bar",
+    placement: { column: 1, row: 1, columnSpan: 2, rowSpan: 2 },
+    label: "Metric",
+  });
+  if (parsed.kind === "metric-bar") {
+    assert.equal(parsed.readoutLayout, "stacked");
+    assert.equal(parsed.readoutInlineAlign, "start");
+    assert.equal(parsed.readoutOrder, "label-first");
+    assert.equal(parsed.readoutGapPx, 8);
+    assert.equal(parsed.tileContentH, "center");
+    assert.equal(parsed.tileContentV, "center");
+  }
+});
+
+test("widget board status pill defaults layout and pill fields", () => {
+  const parsed = widgetBoardEntrySchema.parse({
+    id: "sp1",
+    kind: "status-pill",
+    placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 1 },
+    label: "Status",
+  });
+  if (parsed.kind === "status-pill") {
+    assert.equal(parsed.readoutLayout, "stacked");
+    assert.equal(parsed.showStatusPill, true);
+    assert.equal(parsed.pillSize, "md");
+  }
+});
+
+test("widget board hero gauge defaults tile layout fields", () => {
+  const parsed = widgetBoardEntrySchema.parse({
+    id: "hg1",
+    kind: "hero-radial-gauge",
+    placement: { column: 1, row: 1, columnSpan: 3, rowSpan: 3 },
+    label: "Speed",
+  });
+  if (parsed.kind === "hero-radial-gauge") {
+    assert.equal(parsed.showLabel, true);
+    assert.equal(parsed.labelPosition, "top");
+    assert.equal(parsed.tileContentH, "center");
   }
 });
 

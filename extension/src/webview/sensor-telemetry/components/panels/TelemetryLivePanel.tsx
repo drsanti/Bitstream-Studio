@@ -17,11 +17,13 @@ import {
   TRNTabsContent,
   TRNTabsList,
   TRNTabsTrigger,
+  TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS,
   TRN_INSPECTOR_TAB_BAR_WRAP_CLASS,
   TRN_INSPECTOR_TAB_LIST_CLASS,
   TRN_INSPECTOR_TAB_TRIGGER_CLASS,
   trnInspectorTabActiveClassName,
 } from "../../../ui/TRN";
+import { TelemetryLiveInspectorContextBar } from "./telemetry-inspector-context.js";
 import { SensorTelemetryDeckView } from "../../../bitstream-app/components/telemetry/SensorTelemetryDeckView.js";
 import { BitstreamRealtimeTelemetryUiSettingsWindow } from "../../../bitstream-app/components/telemetry/BitstreamRealtimeTelemetryUiSettingsWindow.js";
 import {
@@ -108,6 +110,12 @@ export function TelemetryLivePanel()
   const dps368PanelsLive = sensorPanelsLive(dps368Row?.enabled);
   const sht40PanelsLive = sensorPanelsLive(sht40Row?.enabled);
   const bmm350PanelsLive = sensorPanelsLive(bmm350Row?.enabled);
+  const livePanelCount = [
+    bmi270PanelsLive,
+    dps368PanelsLive,
+    sht40PanelsLive,
+    bmm350PanelsLive,
+  ].filter(Boolean).length;
 
   const bmi270CacheRef = useRef<Bmi270SampleCacheState | null>(null);
   bmi270CacheRef.current = mergeBmi270SampleCache(
@@ -148,6 +156,12 @@ export function TelemetryLivePanel()
           </TRNTabsList>
         </div>
 
+        <div className={TRN_INSPECTOR_PANEL_BODY_COLUMN_CLASS}>
+          <TelemetryLiveInspectorContextBar
+            activeTab={activeTab}
+            livePanelCount={livePanelCount}
+          />
+
         <TRNTabsContent value="telemetry-data" className="min-h-0 min-w-0 flex-1 overflow-hidden p-1 pt-1">
           <div className="flex h-full min-h-0 min-w-0 flex-col overflow-y-auto">
             <SensorTelemetryDeckView
@@ -184,6 +198,7 @@ export function TelemetryLivePanel()
         <TRNTabsContent value="telemetry-settings" className="min-h-0 min-w-0 flex-1 overflow-hidden p-1 pt-1">
           <BitstreamRealtimeTelemetryUiSettingsWindow />
         </TRNTabsContent>
+        </div>
       </TRNTabs>
     </div>
   );

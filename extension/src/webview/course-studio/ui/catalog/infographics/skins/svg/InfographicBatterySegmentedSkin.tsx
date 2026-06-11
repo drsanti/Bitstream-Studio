@@ -1,5 +1,7 @@
 import type { InfographicSkinConfig } from "../../infographicVisualPreset";
+import type { WidgetBoardReadoutLayoutConfig } from "../../../widget-board/widgetBoardReadoutLayout";
 import { formatInfographicValue } from "../../infographicGeometry";
+import { InfographicReadoutPanel } from "../../InfographicReadoutPanel";
 
 export function InfographicBatterySegmentedSkin({
   label,
@@ -11,6 +13,7 @@ export function InfographicBatterySegmentedSkin({
   showValue,
   showUnit,
   config,
+  readoutConfig = {},
 }: {
   label: string;
   value: number | null;
@@ -21,6 +24,7 @@ export function InfographicBatterySegmentedSkin({
   showValue: boolean;
   showUnit: boolean;
   config: InfographicSkinConfig;
+  readoutConfig?: WidgetBoardReadoutLayoutConfig;
 }) {
   const segments = config.segmentCount;
   const fill = config.fillColor ?? "var(--course-wb-gradient-from, #4ade80)";
@@ -29,14 +33,24 @@ export function InfographicBatterySegmentedSkin({
 
   return (
     <div
-      className="course-infographic-battery flex h-full min-h-0 w-full flex-col items-center justify-center gap-1.5 px-3 py-2"
+      className="course-infographic-battery flex h-full min-h-0 w-full flex-col items-center gap-1.5 px-3 py-2"
       data-infographic-skin="battery-segmented"
     >
-      {showLabel ? (
-        <p className="w-full truncate text-center text-[10px] font-medium uppercase tracking-widest text-[var(--course-wb-label)]">
-          {label}
-        </p>
-      ) : null}
+      <InfographicReadoutPanel
+        config={readoutConfig}
+        showLabel={showLabel}
+        showValue={showValue}
+        label={label}
+        value={
+          <>
+            {formatInfographicValue(value, decimals)}
+            {showUnit && unit ? (
+              <span className="ml-1 text-[10px] font-semibold text-[var(--course-wb-unit)]">{unit}</span>
+            ) : null}
+          </>
+        }
+        stackClassName="w-full"
+      />
       <div className="flex w-full max-w-[9rem] items-center gap-1">
         <div
           className="flex min-w-0 flex-1 gap-0.5 rounded-sm border border-white/15 p-1"
@@ -58,14 +72,6 @@ export function InfographicBatterySegmentedSkin({
           aria-hidden
         />
       </div>
-      {showValue ? (
-        <p className="text-[14px] font-bold text-[var(--course-wb-value)]">
-          {formatInfographicValue(value, decimals)}
-          {showUnit && unit ? (
-            <span className="ml-1 text-[10px] font-semibold text-[var(--course-wb-unit)]">{unit}</span>
-          ) : null}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { BookOpen, ChevronDown, ChevronRight, FileText, FolderOpen, PanelLeft } from "lucide-react";
 import type { CourseNodeV1 } from "../schemas/course.v1";
+import { selectLibraryBookRoots } from "../content/courseLibrary";
 import { useCourseOutlineStore } from "../maintainer/useCourseOutlineStore";
 import { useCoursePageEditorStore } from "../maintainer/useCoursePageEditorStore";
 import { CoursePageRenderer } from "../runtime/CoursePageRenderer";
@@ -127,11 +128,22 @@ function ReaderTocRows({
 
 export function CourseReaderShell() {
   const course = useCourseOutlineStore((s) => s.course);
+  const library = useCourseOutlineStore((s) => s.library);
   const activeNodeId = useCourseOutlineStore((s) => s.activeNodeId);
   const expandedNodeIds = useCourseOutlineStore((s) => s.expandedNodeIds);
   const selectNode = useCourseOutlineStore((s) => s.selectNode);
   const toggleExpanded = useCourseOutlineStore((s) => s.toggleExpanded);
   const page = useCoursePageEditorStore((s) => s.page);
+
+  const outlineRoots = useMemo(() => {
+    const bookRoots = selectLibraryBookRoots(library);
+    if (bookRoots.length > 1) {
+      return bookRoots;
+    }
+    return course != null ? [course.root] : [];
+  }, [course, library]);
+
+  const bookCount = outlineRoots.length;
 
   const [navOpen, setNavOpen] = useState(true);
   const [navWidth, setNavWidth] = useState(readStoredNavWidth);
@@ -195,12 +207,14 @@ export function CourseReaderShell() {
             <div className="text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
               Contents
             </div>
-            <div className="mt-1 text-[13px] font-medium text-[var(--text-primary)]">{course.title}</div>
+            <div className="mt-1 text-[13px] font-medium text-[var(--text-primary)]">
+              {bookCount > 1 ? `${bookCount} books` : course.title}
+            </div>
           </div>
           <nav className="scrollbar-hide min-h-0 flex-1 overflow-y-auto px-2 py-3" aria-label="Table of contents">
             <ul role="tree">
               <ReaderTocRows
-                nodes={[course.root]}
+                nodes={outlineRoots}
                 depth={0}
                 activeNodeId={activeNodeId}
                 expandedNodeIds={expandedNodeIds}

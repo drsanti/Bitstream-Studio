@@ -92,6 +92,7 @@ export function CoursePageGridResizeFrame(props: CoursePageGridResizeFrameProps)
 
   return createPortal(
     <div
+      data-course-page-grid-resize-frame=""
       className="absolute z-10 touch-none pointer-events-none"
       style={frameStyle}
     >

@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "id": "st-bmi270-labs",
+  "title": "Hands-on labs & Bitstream Studio",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-st-bmi270-labs",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "BMI270 · Labs",
+      "title": "Hands-on motion labs",
+      "subtitle": "Flat-table gravity, tilt, twist, shake, and output-profile swaps — watch accel and fusion cards while you follow the steps."
+    },
+    {
+      "id": "callout-enable-bmi270",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Enable BMI270",
+      "body": "If cards stay gray, open Sensor Telemetry settings, pick Raw or Fusion output profile, and Apply. Fusion profile is required for Euler cards.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "card-bmi-accel",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "accel"
+    },
+    {
+      "id": "card-bmi-euler",
+      "kind": "sensor-telemetry-card",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 5 },
+      "preset": "euler"
+    },
+    {
+      "id": "dash-bmi-acc-mag-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Accel |a|",
+      "widgetKind": "text",
+      "style": { "label": "|a|", "unit": "g", "decimals": 3, "showStatusBar": true },
+      "binding": { "path": "bmi270.accMag", "fallback": 0, "unit": "g", "format": "0.000f" }
+    },
+    {
+      "id": "dash-bmi-pitch-lab",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 10, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Pitch (fusion)",
+      "widgetKind": "text",
+      "style": { "label": "Pitch", "unit": "°", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "bmi270.pitch", "fallback": 0, "unit": "°", "format": "0.0f" }
+    },
+    {
+      "id": "md-st-bmi270-labs",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 12, "columnSpan": 12, "rowSpan": 1 },
+      "src": "st-bmi270-labs.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

@@ -1,7 +1,38 @@
 import { LayoutGrid } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { startDashboardGridDragSession } from "../../core/dashboard/dashboard-grid-drag-move";
+import { isDashboardEditChromeTarget } from "../../core/dashboard/dashboard-edit-hit-test";
+import {
+  startDashboardMarqueeSelectSession,
+  type DashboardMarqueeRect,
+} from "../../core/dashboard/dashboard-marquee-select";
+import { startDashboardViewportPanSession } from "../../core/dashboard/dashboard-viewport-pan";
+import {
+  dashboardSelectionIsAdditive,
+  dashboardWidgetSelectionAfterClick,
+  dashboardWidgetSelectionAfterMarquee,
+  type DashboardWidgetSelectionModifiers,
+} from "../../core/dashboard/dashboard-widget-selection";
 import type { DashboardGridMetricsV1 } from "../../core/dashboard/dashboard-grid-resize";
+import { dashboardSquareGridCssStyle } from "../../core/dashboard/dashboard-square-grid";
+import {
+  dashboardEditorVisibleRows,
+  dashboardMultiGridResizeUpdates,
+  dashboardOccupiedPlacementKeys,
+  dashboardPlacementsFromItems,
+  nudgeDashboardGridPlacement,
+  dashboardPlacementsInGridSpace,
+  nudgeDashboardMultiGridMove,
+  previewDashboardMultiGridMove,
+  previewDashboardMultiGridResize,
+  resolveDashboardItemPlacement,
+  resolveDashboardMultiResizeContext,
+  resolveDashboardMultiResizeGridColumns,
+  resolveDashboardSelectionMoveEntries,
+  type DashboardGridMoveEntry,
+  type DashboardGridNudgeDirection,
+} from "../../core/dashboard/dashboard-grid-editor-ops";
+import { FLOW_CANVAS_DELETE_KEY_CODES } from "../editor/keyboard/flow-canvas-delete-keys";
 import type { DashboardPlacementV1 } from "../../core/dashboard/dashboard-placement";
 import { TRNButton } from "../../../ui/TRN/TRNButton";
 import { TRNHintText } from "../../../ui/TRN/TRNHintText";
@@ -15,22 +46,60 @@ import { useDashboardSceneStore } from "../../state/dashboard-scene.store";
 import { useStudioWorkbenchFocusStore } from "../../state/studio-workbench-focus.store";
 import { useFlowEditorStore } from "../editor/store/flow-editor.store";
 import { runDashboardDemoTemplate } from "./dashboard-viewport-helpers";
+import { dashboardSnapshotHasDisplayItems } from "../../core/dashboard/dashboard-display-items";
 import {
   readDashboardActiveTabSourceNodeId,
+  readDashboardHighlightedWidgetSourceNodeIds,
   writeDashboardActiveTabSourceNodeId,
+  writeDashboardDisplayTarget,
   writeDashboardEditModeEnabled,
+  writeDashboardHighlightedWidgetSourceNodeIds,
+  type DashboardDisplayTarget,
 } from "./dashboard-viewport-ui-persistence";
+import { DashboardAddWidgetMenu } from "./DashboardAddWidgetMenu";
+import { DashboardMarqueeOverlay } from "./DashboardMarqueeOverlay";
+import { DashboardMultiGridResizeFrame } from "./DashboardMultiGridResizeFrame";
 import { DashboardGroupCell } from "./DashboardGroupCell";
 import { DashboardTabBar } from "./DashboardTabBar";
-import { DashboardGridEditModeBar } from "./DashboardGridEditModeBar";
+import { DashboardGridEmptySlot } from "./DashboardGridEmptySlot";
 import { DashboardGridResizeFrame } from "./DashboardGridResizeFrame";
 import { DashboardViewportToolbar } from "./DashboardViewportToolbar";
 import { DashboardWidgetCell } from "./DashboardWidgetCell";
+import type { DashboardWidgetCatalogId } from "./dashboard-widget-palette";
 
-function resolveDashboardItemPlacement(
-  item: DashboardSnapshotItemV1,
-): DashboardPlacementV1 {
-  return item.kind === "group" ? item.group.placement : item.widget.placement;
+type DashboardAddMenuState = {
+  column: number;
+  row: number;
+  anchorRect: DOMRect;
+};
+
+type DashboardViewportPan = {
+  x: number;
+  y: number;
+};
+
+function isDashboardTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+  const tag = target.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    target.isContentEditable
+  );
+}
+
+function shouldStartDashboardViewportPan(
+  event: PointerEvent<HTMLElement>,
+  spacePanHeld: boolean,
+): boolean {
+  return (
+    event.button === 1 ||
+    event.button === 2 ||
+    (event.button === 0 && (event.altKey || spacePanHeld))
+  );
 }
 
 /**
@@ -39,8 +108,14 @@ function resolveDashboardItemPlacement(
  */
 export function DashboardViewport() {
   const snapshot = useDashboardSceneStore((s) => s.snapshot);
+  const highlightedWidgetSourceNodeIds = useDashboardSceneStore(
+    (s) => s.highlightedWidgetSourceNodeIds,
+  );
   const highlightedWidgetSourceNodeId = useDashboardSceneStore(
     (s) => s.highlightedWidgetSourceNodeId,
+  );
+  const setHighlightedWidgetSelection = useDashboardSceneStore(
+    (s) => s.setHighlightedWidgetSelection,
   );
   const setHighlightedWidgetSourceNodeId = useDashboardSceneStore(
     (s) => s.setHighlightedWidgetSourceNodeId,
@@ -51,15 +126,25 @@ export function DashboardViewport() {
   const dispatchDashboardWidgetEvent = useFlowEditorStore((s) => s.dispatchDashboardWidgetEvent);
   const dispatchDashboardKnobValue = useFlowEditorStore((s) => s.dispatchDashboardKnobValue);
   const dispatchDashboardSwitchValue = useFlowEditorStore((s) => s.dispatchDashboardSwitchValue);
+  const dispatchDashboardSelectValue = useFlowEditorStore((s) => s.dispatchDashboardSelectValue);
   const moveDashboardWidgetToGridCell = useFlowEditorStore((s) => s.moveDashboardWidgetToGridCell);
+  const moveDashboardWidgetsGridPlacements = useFlowEditorStore(
+    (s) => s.moveDashboardWidgetsGridPlacements,
+  );
+  const deleteDashboardWidgetsBySourceIds = useFlowEditorStore(
+    (s) => s.deleteDashboardWidgetsBySourceIds,
+  );
   const arrangeDashboardWidgetsStacked = useFlowEditorStore((s) => s.arrangeDashboardWidgetsStacked);
   const setDashboardWidgetGridPlacement = useFlowEditorStore(
     (s) => s.setDashboardWidgetGridPlacement,
   );
+  const addDashboardWidgetAtGridCell = useFlowEditorStore((s) => s.addDashboardWidgetAtGridCell);
   const onSelectionChange = useFlowEditorStore((s) => s.onSelectionChange);
 
   const editMode = useDashboardSceneStore((s) => s.editModeEnabled);
   const setEditModeEnabled = useDashboardSceneStore((s) => s.setEditModeEnabled);
+  const displayTarget = useDashboardSceneStore((s) => s.displayTarget);
+  const setDisplayTarget = useDashboardSceneStore((s) => s.setDisplayTarget);
   const setActiveEditorType = useStudioWorkbenchFocusStore((s) => s.setActiveEditorType);
   const activeEditorType = useStudioWorkbenchFocusStore((s) => s.activeEditorType);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -67,18 +152,33 @@ export function DashboardViewport() {
   const onGridRef = useCallback((node: HTMLDivElement | null) => {
     setGridElement(node);
   }, []);
-  const [resizePreview, setResizePreview] = useState<{
-    sourceNodeId: string;
-    placement: DashboardPlacementV1;
-  } | null>(null);
+  const [resizePreview, setResizePreview] = useState<Record<
+    string,
+    DashboardPlacementV1
+  > | null>(null);
   const [isGridResizing, setIsGridResizing] = useState(false);
-  const [movePreview, setMovePreview] = useState<{
-    sourceNodeId: string;
-    row: number;
-    column: number;
-  } | null>(null);
+  const [movePreview, setMovePreview] = useState<Record<
+    string,
+    { row: number; column: number }
+  > | null>(null);
+  const dragMoveEntriesRef = useRef<DashboardGridMoveEntry[] | null>(null);
   const [isGridDragging, setIsGridDragging] = useState(false);
-  const prevEditModeRef = useRef(editMode);
+  const [isGridPanning, setIsGridPanning] = useState(false);
+  const [isMarqueeSelecting, setIsMarqueeSelecting] = useState(false);
+  const [marqueeRect, setMarqueeRect] = useState<DashboardMarqueeRect | null>(null);
+  const [viewportPan, setViewportPan] = useState<DashboardViewportPan>({ x: 0, y: 0 });
+  const viewportPanRef = useRef(viewportPan);
+  viewportPanRef.current = viewportPan;
+  const spacePanHeldRef = useRef(false);
+  const altPanHeldRef = useRef(false);
+  const [panModeArmed, setPanModeArmed] = useState(false);
+  const [addMenu, setAddMenu] = useState<DashboardAddMenuState | null>(null);
+  /** When false, user cleared selection — do not auto-restore highlight in edit mode. */
+  const restoreDashboardHighlightOnEditEnterRef = useRef(true);
+
+  const syncPanModeArmed = useCallback(() => {
+    setPanModeArmed(spacePanHeldRef.current || altPanHeldRef.current);
+  }, []);
 
   const hasDashboardOutput = snapshot.dashboardOutputNodeId != null;
   const tabs = snapshot.tabs;
@@ -96,30 +196,165 @@ export function DashboardViewport() {
     ? enabledTabs.some((tab) => tab.items.length > 0)
     : snapshot.items.length > 0;
   const layoutMode = snapshot.layout.mode;
+  const showGridEditor = editMode && layoutMode === "grid";
+  const gridColumns = snapshot.layout.grid.columns;
+
+  const editorPlacements = useMemo(
+    () => dashboardPlacementsFromItems(displayItems),
+    [displayItems],
+  );
+
+  const visibleGridRows = useMemo(
+    () => dashboardEditorVisibleRows(editorPlacements),
+    [editorPlacements],
+  );
+
+  const occupiedGridKeys = useMemo(
+    () => dashboardOccupiedPlacementKeys(editorPlacements),
+    [editorPlacements],
+  );
+
+  const selectableWidgetIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const item of displayItems) {
+      if (item.kind === "group") {
+        ids.add(item.group.sourceNodeId);
+        for (const child of item.group.children) {
+          ids.add(child.sourceNodeId);
+        }
+      } else {
+        ids.add(item.widget.sourceNodeId);
+      }
+    }
+    return ids;
+  }, [displayItems]);
+
+  const highlightedWidgetIdSet = useMemo(
+    () => new Set(highlightedWidgetSourceNodeIds),
+    [highlightedWidgetSourceNodeIds],
+  );
+
+  const emptyGridSlots = useMemo(() => {
+    if (!showGridEditor) {
+      return [];
+    }
+    const slots: { column: number; row: number }[] = [];
+    for (let row = 1; row <= visibleGridRows; row += 1) {
+      for (let column = 1; column <= gridColumns; column += 1) {
+        if (!occupiedGridKeys.has(`${row}:${column}`)) {
+          slots.push({ column, row });
+        }
+      }
+    }
+    return slots;
+  }, [gridColumns, occupiedGridKeys, showGridEditor, visibleGridRows]);
+
+  const wireTargetTabNodeId = useMemo(() => {
+    if (!tabsActive) {
+      return null;
+    }
+    return activeTabSourceNodeId ?? enabledTabs[0]?.sourceNodeId ?? null;
+  }, [activeTabSourceNodeId, enabledTabs, tabsActive]);
 
   useEffect(() => {
-    const enteringEdit = editMode && !prevEditModeRef.current;
-    prevEditModeRef.current = editMode;
-    if (
-      enteringEdit &&
-      layoutMode === "grid" &&
-      highlightedWidgetSourceNodeId == null &&
-      displayItems.length > 0
-    ) {
-      const first = displayItems[0];
-      const sourceNodeId =
-        first.kind === "group" ? first.group.sourceNodeId : first.widget.sourceNodeId;
-      setHighlightedWidgetSourceNodeId(sourceNodeId);
-      onSelectionChange([sourceNodeId]);
+    if (!editMode) {
+      restoreDashboardHighlightOnEditEnterRef.current = true;
+      return;
     }
+    if (layoutMode !== "grid" || displayItems.length === 0) {
+      return;
+    }
+    if (highlightedWidgetSourceNodeIds.length > 0) {
+      return;
+    }
+    if (!restoreDashboardHighlightOnEditEnterRef.current) {
+      return;
+    }
+    restoreDashboardHighlightOnEditEnterRef.current = false;
+
+    const persisted = readDashboardHighlightedWidgetSourceNodeIds();
+    if (persisted.length === 0) {
+      return;
+    }
+    const validPersisted = persisted.filter((id) => selectableWidgetIds.has(id));
+    if (validPersisted.length === 0) {
+      return;
+    }
+    setHighlightedWidgetSelection(validPersisted);
+    onSelectionChange(validPersisted);
   }, [
     displayItems,
     editMode,
-    highlightedWidgetSourceNodeId,
+    highlightedWidgetSourceNodeIds.length,
     layoutMode,
     onSelectionChange,
-    setHighlightedWidgetSourceNodeId,
+    selectableWidgetIds,
+    setHighlightedWidgetSelection,
   ]);
+
+  useEffect(() => {
+    if (!editMode) {
+      writeDashboardHighlightedWidgetSourceNodeIds([]);
+      return;
+    }
+    writeDashboardHighlightedWidgetSourceNodeIds(highlightedWidgetSourceNodeIds);
+  }, [editMode, highlightedWidgetSourceNodeIds]);
+
+  useEffect(() => {
+    if (!editMode) {
+      setViewportPan({ x: 0, y: 0 });
+      spacePanHeldRef.current = false;
+      altPanHeldRef.current = false;
+      setPanModeArmed(false);
+    }
+  }, [editMode]);
+
+  useEffect(() => {
+    if (!editMode || layoutMode !== "grid" || activeEditorType !== "dashboard") {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Alt") {
+        altPanHeldRef.current = true;
+        syncPanModeArmed();
+        return;
+      }
+      if (event.code !== "Space" || event.repeat) {
+        return;
+      }
+      if (isDashboardTypingTarget(event.target)) {
+        return;
+      }
+      event.preventDefault();
+      spacePanHeldRef.current = true;
+      syncPanModeArmed();
+    };
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (event.key === "Alt") {
+        altPanHeldRef.current = false;
+        syncPanModeArmed();
+        return;
+      }
+      if (event.code !== "Space") {
+        return;
+      }
+      spacePanHeldRef.current = false;
+      syncPanModeArmed();
+    };
+    const onBlur = () => {
+      spacePanHeldRef.current = false;
+      altPanHeldRef.current = false;
+      syncPanModeArmed();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", onBlur);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener("blur", onBlur);
+    };
+  }, [activeEditorType, editMode, layoutMode, syncPanModeArmed]);
 
   useEffect(() => {
     if (!tabsActive) {
@@ -158,6 +393,14 @@ export function DashboardViewport() {
     }
   }, [setEditModeEnabled, setHighlightedWidgetSourceNodeId]);
 
+  const onDisplayTargetChange = useCallback(
+    (target: DashboardDisplayTarget) => {
+      setDisplayTarget(target);
+      writeDashboardDisplayTarget(target);
+    },
+    [setDisplayTarget],
+  );
+
   const onDashboardPaneFocus = useCallback(() => {
     setActiveEditorType("dashboard");
   }, [setActiveEditorType]);
@@ -173,14 +416,12 @@ export function DashboardViewport() {
         continue;
       }
       const base = resolveDashboardItemPlacement(item);
-      if (
-        movePreview != null &&
-        movePreview.sourceNodeId === highlightedWidgetSourceNodeId
-      ) {
+      const previewCell = movePreview?.[highlightedWidgetSourceNodeId];
+      if (previewCell != null) {
         return {
           ...base,
-          row: movePreview.row,
-          column: movePreview.column,
+          row: previewCell.row,
+          column: previewCell.column,
         };
       }
       return base;
@@ -211,43 +452,226 @@ export function DashboardViewport() {
     return null;
   }, [displayItems, highlightedWidgetSourceNodeId]);
 
-  const selectedPlacementDisplay = useMemo((): DashboardPlacementV1 | null => {
-    if (resizePreview != null && resizePreview.sourceNodeId === highlightedWidgetSourceNodeId) {
-      return resizePreview.placement;
-    }
-    return resizeBasePlacement;
-  }, [highlightedWidgetSourceNodeId, resizeBasePlacement, resizePreview]);
-
   const showGridResizeFrame =
     editMode &&
     layoutMode === "grid" &&
+    highlightedWidgetSourceNodeIds.length === 1 &&
     highlightedWidgetSourceNodeId != null &&
     resizeBasePlacement != null &&
     selectedEditTarget != null;
 
+  const showMultiSelectFrame =
+    editMode &&
+    layoutMode === "grid" &&
+    highlightedWidgetSourceNodeIds.length > 1 &&
+    !isGridDragging &&
+    !isGridResizing;
+
+  const applyWidgetSelection = useCallback(
+    (ids: string[]) => {
+      restoreDashboardHighlightOnEditEnterRef.current = false;
+      setAddMenu(null);
+      setHighlightedWidgetSelection(ids);
+      onSelectionChange(ids);
+    },
+    [onSelectionChange, setHighlightedWidgetSelection],
+  );
+
   const onDeselectWidget = useCallback(() => {
+    restoreDashboardHighlightOnEditEnterRef.current = false;
+    writeDashboardHighlightedWidgetSourceNodeIds([]);
     setActiveEditorType("dashboard");
-    setHighlightedWidgetSourceNodeId(null);
+    setHighlightedWidgetSelection([]);
     onSelectionChange([]);
     setResizePreview(null);
     setMovePreview(null);
-  }, [onSelectionChange, setActiveEditorType, setHighlightedWidgetSourceNodeId]);
+    setAddMenu(null);
+  }, [onSelectionChange, setActiveEditorType, setHighlightedWidgetSelection]);
 
-  const onGridBackgroundPointerDown = useCallback(
-    (event: PointerEvent<HTMLDivElement>) => {
-      if (!editMode || layoutMode !== "grid" || isGridResizing || isGridDragging) {
-        return;
-      }
-      if (event.target !== event.currentTarget) {
-        return;
-      }
-      onDeselectWidget();
+  const onEmptyGridSlotClick = useCallback(
+    (column: number, row: number, anchor: HTMLElement) => {
+      setAddMenu({ column, row, anchorRect: anchor.getBoundingClientRect() });
     },
-    [editMode, isGridDragging, isGridResizing, layoutMode, onDeselectWidget],
+    [],
   );
+
+  const onAddWidgetFromMenu = useCallback(
+    (catalogNodeId: DashboardWidgetCatalogId) => {
+      if (addMenu == null) {
+        return;
+      }
+      const newNodeId = addDashboardWidgetAtGridCell({
+        catalogNodeId,
+        column: addMenu.column,
+        row: addMenu.row,
+        tabTargetNodeId: wireTargetTabNodeId,
+        existingPlacements: editorPlacements,
+        gridColumns,
+      });
+      setAddMenu(null);
+      if (newNodeId != null) {
+        applyWidgetSelection([newNodeId]);
+      }
+    },
+    [
+      addDashboardWidgetAtGridCell,
+      addMenu,
+      applyWidgetSelection,
+      editorPlacements,
+      gridColumns,
+      wireTargetTabNodeId,
+    ],
+  );
+
+  const beginViewportPan = useCallback(
+    (
+      event: PointerEvent<HTMLDivElement>,
+      options?: { immediate?: boolean; onClickWithoutDrag?: () => void },
+    ) => {
+      event.preventDefault();
+      const origin = viewportPanRef.current;
+      startDashboardViewportPanSession({
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        originPanX: origin.x,
+        originPanY: origin.y,
+        immediate: options?.immediate,
+        onPan: (offset) => setViewportPan(offset),
+        onPanActive: () => setIsGridPanning(true),
+        onPanEnd: () => setIsGridPanning(false),
+        onClickWithoutDrag: options?.onClickWithoutDrag,
+      });
+    },
+    [],
+  );
+
+  const onViewportPanPointerDownCapture = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (
+        !editMode ||
+        layoutMode !== "grid" ||
+        isGridResizing ||
+        isGridDragging ||
+        isMarqueeSelecting
+      ) {
+        return;
+      }
+      if (!shouldStartDashboardViewportPan(event, spacePanHeldRef.current)) {
+        return;
+      }
+      const target = event.target;
+      if (target instanceof Element && target.closest(".nodrag")) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      beginViewportPan(event, { immediate: event.button !== 0 });
+    },
+    [beginViewportPan, editMode, isGridDragging, isGridResizing, isMarqueeSelecting, layoutMode],
+  );
+
+  const onEditCanvasPointerDown = useCallback(
+    (event: PointerEvent<HTMLDivElement>) => {
+      if (!editMode || isGridResizing || isGridDragging || isGridPanning || isMarqueeSelecting) {
+        return;
+      }
+      if (isDashboardEditChromeTarget(event.target)) {
+        return;
+      }
+      if (layoutMode !== "grid") {
+        if (event.button === 0) {
+          onDeselectWidget();
+        }
+        return;
+      }
+      if (shouldStartDashboardViewportPan(event, spacePanHeldRef.current)) {
+        return;
+      }
+      if (spacePanHeldRef.current || event.altKey || panModeArmed) {
+        beginViewportPan(event, { immediate: event.button !== 0 });
+        return;
+      }
+      if (event.button !== 0) {
+        return;
+      }
+      const modifiers: DashboardWidgetSelectionModifiers = {
+        shiftKey: event.shiftKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+      };
+      startDashboardMarqueeSelectSession({
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        modifiers,
+        gridElement,
+        validIds: selectableWidgetIds,
+        captureElement: event.currentTarget,
+        onPreview: setMarqueeRect,
+        onActive: () => setIsMarqueeSelecting(true),
+        onEnd: () => {
+          setIsMarqueeSelecting(false);
+          setMarqueeRect(null);
+        },
+        onClickWithoutDrag: onDeselectWidget,
+        onCommit: (ids, commitModifiers) => {
+          const current = useDashboardSceneStore.getState().highlightedWidgetSourceNodeIds;
+          const next = dashboardWidgetSelectionAfterMarquee(current, ids, commitModifiers);
+          applyWidgetSelection(next);
+        },
+      });
+    },
+    [
+      applyWidgetSelection,
+      editMode,
+      gridElement,
+      isGridDragging,
+      isGridPanning,
+      isGridResizing,
+      isMarqueeSelecting,
+      layoutMode,
+      onDeselectWidget,
+      panModeArmed,
+      selectableWidgetIds,
+    ],
+  );
+
+  const onDeleteSelectedWidgets = useCallback(() => {
+    if (highlightedWidgetSourceNodeIds.length === 0) {
+      return;
+    }
+    deleteDashboardWidgetsBySourceIds(highlightedWidgetSourceNodeIds);
+    onDeselectWidget();
+  }, [
+    deleteDashboardWidgetsBySourceIds,
+    highlightedWidgetSourceNodeIds,
+    onDeselectWidget,
+  ]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (
+        FLOW_CANVAS_DELETE_KEY_CODES.includes(
+          event.key as (typeof FLOW_CANVAS_DELETE_KEY_CODES)[number],
+        )
+      ) {
+        if (activeEditorType !== "dashboard" || !editMode || layoutMode !== "grid") {
+          return;
+        }
+        if (isGridDragging || isGridResizing || isGridPanning || isMarqueeSelecting) {
+          return;
+        }
+        if (isDashboardTypingTarget(event.target)) {
+          return;
+        }
+        if (highlightedWidgetSourceNodeIds.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        onDeleteSelectedWidgets();
+        return;
+      }
       if (event.key !== "Escape") {
         return;
       }
@@ -257,7 +681,7 @@ export function DashboardViewport() {
       if (!editMode || layoutMode !== "grid") {
         return;
       }
-      if (isGridDragging || isGridResizing) {
+      if (isGridDragging || isGridResizing || isGridPanning || isMarqueeSelecting) {
         return;
       }
       const target = event.target;
@@ -272,7 +696,7 @@ export function DashboardViewport() {
           return;
         }
       }
-      if (highlightedWidgetSourceNodeId == null) {
+      if (highlightedWidgetSourceNodeIds.length === 0) {
         return;
       }
       event.preventDefault();
@@ -283,25 +707,142 @@ export function DashboardViewport() {
   }, [
     activeEditorType,
     editMode,
-    highlightedWidgetSourceNodeId,
+    highlightedWidgetSourceNodeIds.length,
     isGridDragging,
+    isGridPanning,
+    isGridResizing,
+    isMarqueeSelecting,
+    layoutMode,
+    onDeleteSelectedWidgets,
+    onDeselectWidget,
+  ]);
+
+  const selectionMoveEntries = useMemo(
+    () => resolveDashboardSelectionMoveEntries(displayItems, highlightedWidgetSourceNodeIds),
+    [displayItems, highlightedWidgetSourceNodeIds],
+  );
+
+  const multiResizeContext = useMemo(
+    () => resolveDashboardMultiResizeContext(selectionMoveEntries),
+    [selectionMoveEntries],
+  );
+
+  const multiResizeMetrics = useMemo((): DashboardGridMetricsV1 => {
+    if (multiResizeContext == null) {
+      return gridMetrics;
+    }
+    return {
+      ...gridMetrics,
+      columns: resolveDashboardMultiResizeGridColumns({
+        displayItems,
+        groupParentId: multiResizeContext.groupParentId,
+        dashboardGridColumns: gridMetrics.columns,
+      }),
+    };
+  }, [displayItems, gridMetrics, multiResizeContext]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!editMode || layoutMode !== "grid") {
+        return;
+      }
+      if (activeEditorType !== "dashboard") {
+        return;
+      }
+      if (isGridDragging || isGridResizing || isGridPanning) {
+        return;
+      }
+      if (highlightedWidgetSourceNodeIds.length === 0) {
+        return;
+      }
+      const direction: DashboardGridNudgeDirection | null =
+        event.key === "ArrowUp"
+          ? "up"
+          : event.key === "ArrowDown"
+            ? "down"
+            : event.key === "ArrowLeft"
+              ? "left"
+              : event.key === "ArrowRight"
+                ? "right"
+                : null;
+      if (direction == null) {
+        return;
+      }
+      const target = event.target;
+      if (target instanceof HTMLElement) {
+        const tag = target.tagName;
+        if (
+          tag === "INPUT" ||
+          tag === "TEXTAREA" ||
+          tag === "SELECT" ||
+          target.isContentEditable
+        ) {
+          return;
+        }
+      }
+      event.preventDefault();
+      if (highlightedWidgetSourceNodeIds.length === 1 && resizeBasePlacement != null) {
+        const otherPlacements = dashboardPlacementsInGridSpace(
+          displayItems,
+          null,
+          new Set(highlightedWidgetSourceNodeIds),
+        );
+        const next = nudgeDashboardGridPlacement({
+          placement: resizeBasePlacement,
+          direction,
+          gridColumns: gridMetrics.columns,
+          otherPlacements,
+        });
+        if (next == null || highlightedWidgetSourceNodeId == null) {
+          return;
+        }
+        setDashboardWidgetGridPlacement({
+          sourceNodeId: highlightedWidgetSourceNodeId,
+          placement: next,
+        });
+        return;
+      }
+      const updates = nudgeDashboardMultiGridMove({
+        entries: selectionMoveEntries,
+        direction,
+        displayItems,
+        gridColumns: gridMetrics.columns,
+      });
+      if (updates == null) {
+        return;
+      }
+      moveDashboardWidgetsGridPlacements(updates);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    activeEditorType,
+    displayItems,
+    editMode,
+    gridMetrics.columns,
+    highlightedWidgetSourceNodeId,
+    highlightedWidgetSourceNodeIds,
+    isGridDragging,
+    isGridPanning,
     isGridResizing,
     layoutMode,
-    onDeselectWidget,
+    moveDashboardWidgetsGridPlacements,
+    resizeBasePlacement,
+    selectionMoveEntries,
+    setDashboardWidgetGridPlacement,
   ]);
 
   const placementOverrideFor = useCallback(
     (sourceNodeId: string): Partial<DashboardPlacementV1> | undefined => {
-      if (
-        resizePreview != null &&
-        resizePreview.sourceNodeId === sourceNodeId
-      ) {
-        return resizePreview.placement;
+      const resizedPlacement = resizePreview?.[sourceNodeId];
+      if (resizedPlacement != null) {
+        return resizedPlacement;
       }
-      if (movePreview != null && movePreview.sourceNodeId === sourceNodeId) {
+      const previewCell = movePreview?.[sourceNodeId];
+      if (previewCell != null) {
         return {
-          row: movePreview.row,
-          column: movePreview.column,
+          row: previewCell.row,
+          column: previewCell.column,
         };
       }
       return undefined;
@@ -330,14 +871,25 @@ export function DashboardViewport() {
     [dispatchDashboardSwitchValue],
   );
 
+  const onSelectValueChange = useCallback(
+    (sourceNodeId: string, value: string) => {
+      dispatchDashboardSelectValue({ sourceNodeId, value });
+    },
+    [dispatchDashboardSelectValue],
+  );
+
   const onSliderValueChange = onKnobValueChange;
 
   const onSelectWidget = useCallback(
-    (sourceNodeId: string) => {
-      setHighlightedWidgetSourceNodeId(sourceNodeId);
-      onSelectionChange([sourceNodeId]);
+    (sourceNodeId: string, modifiers: DashboardWidgetSelectionModifiers = {}) => {
+      const next = dashboardWidgetSelectionAfterClick(
+        highlightedWidgetSourceNodeIds,
+        sourceNodeId,
+        modifiers,
+      );
+      applyWidgetSelection(next);
     },
-    [onSelectionChange, setHighlightedWidgetSourceNodeId],
+    [applyWidgetSelection, highlightedWidgetSourceNodeIds],
   );
 
   const onGridDragPointerDown = useCallback(
@@ -349,7 +901,16 @@ export function DashboardViewport() {
       if (!editMode || layoutMode !== "grid" || isGridResizing || event.button !== 0) {
         return;
       }
+      if (event.altKey || spacePanHeldRef.current) {
+        return;
+      }
       event.preventDefault();
+      setAddMenu(null);
+      const pointerModifiers: DashboardWidgetSelectionModifiers = {
+        shiftKey: event.shiftKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+      };
       startDashboardGridDragSession({
         pointerId: event.pointerId,
         startClientX: event.clientX,
@@ -359,29 +920,114 @@ export function DashboardViewport() {
         gridElement,
         metrics: gridMetrics,
         placement,
-        onSelect: () => onSelectWidget(sourceNodeId),
-        onDragActive: () => setIsGridDragging(true),
+        onSelect: () => {
+          const current = useDashboardSceneStore.getState().highlightedWidgetSourceNodeIds;
+          if (
+            !dashboardSelectionIsAdditive(pointerModifiers) &&
+            current.includes(sourceNodeId)
+          ) {
+            return;
+          }
+          onSelectWidget(sourceNodeId, pointerModifiers);
+        },
+        onDragActive: () => {
+          const selected = useDashboardSceneStore.getState().highlightedWidgetSourceNodeIds;
+          let entries = resolveDashboardSelectionMoveEntries(displayItems, selected);
+          if (!selected.includes(sourceNodeId)) {
+            entries = [
+              {
+                sourceNodeId,
+                placement,
+                groupParentId: null,
+              },
+            ];
+          } else if (entries.length === 0) {
+            entries = [
+              {
+                sourceNodeId,
+                placement,
+                groupParentId: null,
+              },
+            ];
+          }
+          dragMoveEntriesRef.current = entries;
+          setIsGridDragging(true);
+        },
         onPreview: (row, column) => {
-          setMovePreview({ sourceNodeId, row, column });
+          const entries = dragMoveEntriesRef.current;
+          if (entries == null || entries.length === 0) {
+            setMovePreview({ [sourceNodeId]: { row, column } });
+            return;
+          }
+          if (entries.length === 1) {
+            setMovePreview({ [sourceNodeId]: { row, column } });
+            return;
+          }
+          setMovePreview(
+            previewDashboardMultiGridMove({
+              entries,
+              anchorSourceNodeId: sourceNodeId,
+              anchorTargetRow: row,
+              anchorTargetColumn: column,
+            }),
+          );
         },
         onCommit: (row, column) => {
-          if (row !== placement.row || column !== placement.column) {
-            moveDashboardWidgetToGridCell({ sourceNodeId, row, column });
+          const entries = dragMoveEntriesRef.current;
+          if (entries == null || entries.length <= 1) {
+            if (row !== placement.row || column !== placement.column) {
+              moveDashboardWidgetToGridCell({ sourceNodeId, row, column });
+            }
+            return;
+          }
+          const preview = previewDashboardMultiGridMove({
+            entries,
+            anchorSourceNodeId: sourceNodeId,
+            anchorTargetRow: row,
+            anchorTargetColumn: column,
+          });
+          const updates = entries
+            .map((entry) => {
+              const nextCell = preview[entry.sourceNodeId];
+              if (nextCell == null) {
+                return null;
+              }
+              if (
+                nextCell.row === entry.placement.row &&
+                nextCell.column === entry.placement.column
+              ) {
+                return null;
+              }
+              return {
+                sourceNodeId: entry.sourceNodeId,
+                placement: {
+                  ...entry.placement,
+                  row: nextCell.row,
+                  column: nextCell.column,
+                },
+              };
+            })
+            .filter((update): update is NonNullable<typeof update> => update != null);
+          if (updates.length > 0) {
+            moveDashboardWidgetsGridPlacements(updates);
           }
         },
         onDragEnd: () => {
+          dragMoveEntriesRef.current = null;
           setIsGridDragging(false);
           setMovePreview(null);
         },
       });
     },
     [
+      displayItems,
       editMode,
       gridElement,
       gridMetrics,
       isGridResizing,
       layoutMode,
       moveDashboardWidgetToGridCell,
+      moveDashboardWidgetsGridPlacements,
       onSelectWidget,
     ],
   );
@@ -413,19 +1059,11 @@ export function DashboardViewport() {
         ["--dashboard-row-height" as string]: `${grid.rowHeightPx}px`,
       };
     }
-    const rowTrack =
-      editMode && layoutMode === "grid"
-        ? `${grid.rowHeightPx}px`
-        : `minmax(${grid.rowHeightPx}px, auto)`;
     return {
-      display: "grid" as const,
-      gridTemplateColumns: `repeat(${grid.columns}, minmax(0, 1fr))`,
-      gridAutoRows: rowTrack,
-      gap: `${grid.gapPx}px`,
-      padding: `${grid.paddingPx}px`,
+      ...dashboardSquareGridCssStyle(gridMetrics),
       ["--dashboard-row-height" as string]: `${grid.rowHeightPx}px`,
     };
-  }, [editMode, layoutMode, snapshot.layout]);
+  }, [gridMetrics, layoutMode, snapshot.layout]);
 
   if (!hasDashboardOutput) {
     return (
@@ -446,7 +1084,7 @@ export function DashboardViewport() {
   const renderItem = (item: DashboardSnapshotItemV1) => {
     if (item.kind === "group") {
       const groupId = item.group.sourceNodeId;
-      const groupHighlighted = highlightedWidgetSourceNodeId === groupId;
+      const groupHighlighted = highlightedWidgetIdSet.has(groupId);
       return (
         <DashboardGroupCell
           key={groupId}
@@ -458,6 +1096,7 @@ export function DashboardViewport() {
           onButtonClick={onButtonClick}
           onKnobValueChange={onKnobValueChange}
           onSwitchValueChange={onSwitchValueChange}
+          onSelectValueChange={onSelectValueChange}
           onSliderValueChange={onSliderValueChange}
           onSelectWidget={onSelectWidget}
           onSelectGroup={onSelectWidget}
@@ -466,12 +1105,22 @@ export function DashboardViewport() {
               ? (event, placement) => onGridDragPointerDown(groupId, placement, event)
               : undefined
           }
-          isGridDragging={isGridDragging && movePreview?.sourceNodeId === groupId}
+          onWidgetGridDragPointerDown={
+            editMode && layoutMode === "grid"
+              ? (widgetId, event, placement) =>
+                  onGridDragPointerDown(widgetId, placement, event)
+              : undefined
+          }
+          widgetHighlightedIds={highlightedWidgetIdSet}
+          isGridDragging={isGridDragging && movePreview?.[groupId] != null}
+          isWidgetGridDragging={(widgetId) =>
+            isGridDragging && movePreview?.[widgetId] != null
+          }
         />
       );
     }
     const widgetId = item.widget.sourceNodeId;
-    const widgetHighlighted = highlightedWidgetSourceNodeId === widgetId;
+    const widgetHighlighted = highlightedWidgetIdSet.has(widgetId);
     return (
       <DashboardWidgetCell
         key={widgetId}
@@ -483,6 +1132,7 @@ export function DashboardViewport() {
         onButtonClick={onButtonClick}
         onKnobValueChange={onKnobValueChange}
         onSwitchValueChange={onSwitchValueChange}
+        onSelectValueChange={onSelectValueChange}
         onSliderValueChange={onSliderValueChange}
         onSelectWidget={onSelectWidget}
         onGridDragPointerDown={
@@ -490,34 +1140,63 @@ export function DashboardViewport() {
             ? (event, placement) => onGridDragPointerDown(widgetId, placement, event)
             : undefined
         }
-        isGridDragging={isGridDragging && movePreview?.sourceNodeId === widgetId}
+        isGridDragging={isGridDragging && movePreview?.[widgetId] != null}
       />
     );
   };
 
-  if (!hasItems) {
+  const dashboardToolbar = (
+    <DashboardViewportToolbar
+      editMode={editMode}
+      displayTarget={displayTarget}
+      layoutMode={layoutMode}
+      snapshot={snapshot}
+      onEditModeChange={onEditModeChange}
+      onDisplayTargetChange={onDisplayTargetChange}
+      onStackLayout={onStackLayout}
+    />
+  );
+
+  const previewOnStageHud =
+    !editMode && displayTarget === "stage-hud" && dashboardSnapshotHasDisplayItems(snapshot);
+
+  const showEmptyDashboardCanvas = showGridEditor;
+  const showEmptyDashboardHint = !hasItems && !showGridEditor && !previewOnStageHud;
+
+  if (showEmptyDashboardHint) {
     return (
-      <div className="flex h-full min-h-0 flex-col bg-zinc-950">
-        <DashboardViewportToolbar
-          editMode={editMode}
-          layoutMode={layoutMode}
-          snapshot={snapshot}
-          onEditModeChange={onEditModeChange}
-          onStackLayout={onStackLayout}
-        />
-        <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
+      <div className="relative flex h-full min-h-0 flex-col bg-zinc-950">
+        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-3 overflow-auto px-6 pt-14 text-center scrollbar-hide">
+          {dashboardToolbar}
           <LayoutGrid className="size-10 text-zinc-600" aria-hidden />
           <p className="max-w-sm text-sm text-zinc-400">
-            Wire <span className="font-medium text-zinc-300">Dashboard Button</span>,{" "}
-            <span className="font-medium text-zinc-300">LED</span>,{" "}
-            <span className="font-medium text-zinc-300">Text</span>,{" "}
-            <span className="font-medium text-zinc-300">Gauge</span>, or{" "}
-            <span className="font-medium text-zinc-300">Knob</span>, or{" "}
-            <span className="font-medium text-zinc-300">Group</span> nodes into Dashboard Output.
+            Turn on <span className="font-medium text-zinc-300">Edit</span> to click{" "}
+            <span className="font-medium text-zinc-300">+</span> on the grid and place widgets, or
+            load the demo graph.
           </p>
           <TRNButton type="button" onClick={runDashboardDemoTemplate}>
             Load dashboard demo
           </TRNButton>
+        </div>
+      </div>
+    );
+  }
+
+  if (previewOnStageHud) {
+    return (
+      <div className="relative flex h-full min-h-0 flex-col bg-zinc-950">
+        <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 pt-14 text-center">
+          {dashboardToolbar}
+          <LayoutGrid className="size-10 text-cyan-500/70" aria-hidden />
+          <p className="max-w-sm text-sm text-zinc-300">
+            Dashboard preview is on the <span className="font-medium text-zinc-100">Stage</span> as a
+            HUD overlay.
+          </p>
+          <p className="max-w-sm text-[11px] leading-relaxed text-zinc-500">
+            Open the Stage pane to interact with widgets. Switch to{" "}
+            <span className="text-zinc-400">Dashboard pane</span> in the toolbar to preview here
+            instead.
+          </p>
         </div>
       </div>
     );
@@ -529,13 +1208,6 @@ export function DashboardViewport() {
       style={{ ...themeStyle, backgroundColor: "var(--dashboard-canvas-bg, #09090b)" }}
       onPointerDownCapture={onDashboardPaneFocus}
     >
-      <DashboardViewportToolbar
-        editMode={editMode}
-        layoutMode={layoutMode}
-        snapshot={snapshot}
-        onEditModeChange={onEditModeChange}
-        onStackLayout={onStackLayout}
-      />
       {tabsActive ? (
         <DashboardTabBar
           tabs={tabs}
@@ -553,84 +1225,165 @@ export function DashboardViewport() {
           </TRNHintText>
         </div>
       ) : null}
-      {editMode && layoutMode === "grid" ? (
-        <DashboardGridEditModeBar
-          selectedLabel={selectedEditTarget?.label ?? null}
-          selectedKind={selectedEditTarget?.kind ?? null}
-          placement={selectedPlacementDisplay}
-          isDragging={isGridDragging}
-          isResizing={isGridResizing}
-          onDeselect={onDeselectWidget}
-        />
-      ) : null}
       <div
         ref={scrollContainerRef}
-        className="relative min-h-0 flex-1 overflow-auto scrollbar-hide"
-        onPointerDown={onGridBackgroundPointerDown}
+        className={`relative min-h-0 flex-1 scrollbar-hide ${
+          showGridEditor ? "overflow-hidden" : "overflow-auto"
+        } ${
+          showGridEditor
+            ? isGridPanning
+              ? "cursor-grabbing"
+              : panModeArmed
+                ? "cursor-grab"
+                : ""
+            : ""
+        }`}
+        onContextMenu={(event) => {
+          if (showGridEditor) {
+            event.preventDefault();
+          }
+        }}
+        onPointerDownCapture={onViewportPanPointerDownCapture}
+        onPointerDown={onEditCanvasPointerDown}
       >
-        {editMode && layoutMode === "grid" ? (
-          <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-            <div
-              className="absolute inset-0 opacity-55"
-              style={{
-                inset: `${snapshot.layout.grid.paddingPx}px`,
-                display: "grid",
-                gridTemplateColumns: `repeat(${snapshot.layout.grid.columns}, minmax(0, 1fr))`,
-                gridAutoRows: `${snapshot.layout.grid.rowHeightPx}px`,
-                gap: `${snapshot.layout.grid.gapPx}px`,
-              }}
-            >
-              {Array.from({ length: snapshot.layout.grid.columns * 10 }, (_, i) => (
-                <div
-                  key={i}
-                  className="rounded-none border border-dashed border-cyan-500/25 bg-cyan-500/[0.04]"
-                />
-              ))}
-            </div>
-          </div>
-        ) : null}
+        {dashboardToolbar}
         <div
-          ref={onGridRef}
-          className={`relative ${
-            editMode && layoutMode === "grid" ? "z-[2]" : "z-[1]"
-          }`}
-          style={layoutStyle}
-          onPointerDown={onGridBackgroundPointerDown}
+          className="relative min-h-full w-full"
+          style={{
+            transform: showGridEditor
+              ? `translate(${viewportPan.x}px, ${viewportPan.y}px)`
+              : undefined,
+          }}
         >
-          {displayItems.map((item) => renderItem(item))}
+          <div
+            className={
+              layoutMode === "grid" ? "relative mx-auto w-max max-w-full" : "relative w-full"
+            }
+          >
+            {showGridEditor && layoutMode === "grid" ? (
+              <div
+                className="pointer-events-none absolute inset-0 z-0 opacity-55"
+                style={dashboardSquareGridCssStyle(gridMetrics)}
+                aria-hidden
+              >
+                {Array.from({ length: gridMetrics.columns * visibleGridRows }, (_, i) => (
+                  <div
+                    key={i}
+                    className="rounded-none border border-dashed border-cyan-500/25 bg-cyan-500/[0.04]"
+                  />
+                ))}
+              </div>
+            ) : null}
+            <div
+              ref={onGridRef}
+              className={`relative ${showGridEditor ? "z-[2]" : "z-[1]"}`}
+              style={layoutStyle}
+            >
+              {showGridEditor
+                ? emptyGridSlots.map((slot) => (
+                    <DashboardGridEmptySlot
+                      key={`empty-${slot.column}-${slot.row}`}
+                      column={slot.column}
+                      row={slot.row}
+                      onClick={onEmptyGridSlotClick}
+                    />
+                  ))
+                : null}
+              {displayItems.map((item) => renderItem(item))}
+            </div>
+            {showMultiSelectFrame ? (
+              <DashboardMultiGridResizeFrame
+                sourceNodeIds={highlightedWidgetSourceNodeIds}
+                selectionCount={highlightedWidgetSourceNodeIds.length}
+                overlayRootRef={scrollContainerRef}
+                resizeEnabled={multiResizeContext != null}
+                unionPlacement={multiResizeContext?.unionPlacement ?? null}
+                metrics={multiResizeMetrics}
+                gridElement={gridElement}
+                onPreviewUnion={(nextUnion) => {
+                  if (multiResizeContext == null) {
+                    return;
+                  }
+                  setResizePreview(
+                    previewDashboardMultiGridResize({
+                      entries: multiResizeContext.entries,
+                      baseUnion: multiResizeContext.unionPlacement,
+                      nextUnion,
+                    }),
+                  );
+                }}
+                onCommitUnion={(nextUnion) => {
+                  if (multiResizeContext == null) {
+                    return;
+                  }
+                  const updates = dashboardMultiGridResizeUpdates({
+                    entries: multiResizeContext.entries,
+                    baseUnion: multiResizeContext.unionPlacement,
+                    nextUnion,
+                  });
+                  if (updates.length > 0) {
+                    moveDashboardWidgetsGridPlacements(updates);
+                  }
+                }}
+                onClearPreview={() => setResizePreview(null)}
+                onDragStart={() => {
+                  setMovePreview(null);
+                  setIsGridResizing(true);
+                }}
+                onDragEnd={() => {
+                  setIsGridResizing(false);
+                  setResizePreview(null);
+                }}
+              />
+            ) : null}
+            {showGridResizeFrame &&
+            highlightedWidgetSourceNodeId != null &&
+            resizeBasePlacement != null ? (
+              <DashboardGridResizeFrame
+              targetSourceNodeId={highlightedWidgetSourceNodeId}
+              selectionLabel={selectedEditTarget.label}
+              basePlacement={resizeBasePlacement}
+              metrics={gridMetrics}
+              gridElement={gridElement}
+              overlayRootRef={scrollContainerRef}
+              onPreviewPlacement={(placement) => {
+                setResizePreview({
+                  [highlightedWidgetSourceNodeId]: placement,
+                });
+              }}
+              onCommitPlacement={(placement) => {
+                setDashboardWidgetGridPlacement({
+                  sourceNodeId: highlightedWidgetSourceNodeId,
+                  placement,
+                });
+              }}
+              onClearPreview={() => setResizePreview(null)}
+              onDragStart={() => {
+                setMovePreview(null);
+                setIsGridResizing(true);
+              }}
+              onDragEnd={() => {
+                setIsGridResizing(false);
+                setResizePreview(null);
+              }}
+            />
+          ) : null}
+            {showEmptyDashboardCanvas && !hasItems ? (
+              <p className="pointer-events-none absolute bottom-4 left-1/2 z-[3] max-w-md -translate-x-1/2 px-4 text-center text-[11px] text-zinc-500">
+                Click <span className="text-zinc-400">+</span> on an empty cell to add a widget.
+              </p>
+            ) : null}
+          </div>
         </div>
-        {showGridResizeFrame &&
-        highlightedWidgetSourceNodeId != null &&
-        resizeBasePlacement != null ? (
-          <DashboardGridResizeFrame
-            targetSourceNodeId={highlightedWidgetSourceNodeId}
-            selectionLabel={selectedEditTarget.label}
-            basePlacement={resizeBasePlacement}
-            metrics={gridMetrics}
-            gridElement={gridElement}
-            scrollRootRef={scrollContainerRef}
-            onPreviewPlacement={(placement) => {
-              setResizePreview({
-                sourceNodeId: highlightedWidgetSourceNodeId,
-                placement,
-              });
-            }}
-            onCommitPlacement={(placement) => {
-              setDashboardWidgetGridPlacement({
-                sourceNodeId: highlightedWidgetSourceNodeId,
-                placement,
-              });
-            }}
-            onClearPreview={() => setResizePreview(null)}
-            onDragStart={() => {
-              setMovePreview(null);
-              setIsGridResizing(true);
-            }}
-            onDragEnd={() => {
-              setIsGridResizing(false);
-              setResizePreview(null);
-            }}
+        {addMenu != null ? (
+          <DashboardAddWidgetMenu
+            anchorRect={addMenu.anchorRect}
+            onPick={onAddWidgetFromMenu}
+            onDismiss={() => setAddMenu(null)}
           />
+        ) : null}
+        {marqueeRect != null ? (
+          <DashboardMarqueeOverlay rect={marqueeRect} overlayRootRef={scrollContainerRef} />
         ) : null}
       </div>
     </div>

@@ -1,4 +1,13 @@
 import { dashboardPlacementCellKeys } from "../../../sensor-studio/core/dashboard/dashboard-placement";
+import {
+  applyDashboardGridMoveDelta,
+  type DashboardGridMoveEntry,
+  type DashboardGridNudgeDirection,
+  dashboardMultiGridResizeUpdates,
+  nudgeDashboardGridPlacement,
+  previewDashboardMultiGridResize,
+  resolveDashboardMultiResizeContext,
+} from "../../../sensor-studio/core/dashboard/dashboard-grid-editor-ops";
 import type { DashboardGridMetricsV1 } from "../../../sensor-studio/core/dashboard/dashboard-grid-resize";
 import type { PageBlockV1 } from "../../schemas/page.v1";
 import type { GridPlacementV1 } from "../../schemas/placement";
@@ -229,11 +238,154 @@ export function removeWidgetBoardWidget(
   block: Extract<PageBlockV1, { kind: "widget-board" }>,
   widgetId: string,
 ): Extract<PageBlockV1, { kind: "widget-board" }> | null {
-  if (block.widgets.length <= 1) {
+  return removeWidgetBoardWidgets(block, [widgetId]);
+}
+
+export function removeWidgetBoardWidgets(
+  block: Extract<PageBlockV1, { kind: "widget-board" }>,
+  widgetIds: readonly string[],
+): Extract<PageBlockV1, { kind: "widget-board" }> | null {
+  const idSet = new Set(widgetIds);
+  const remaining = block.widgets.filter((widget) => !idSet.has(widget.id));
+  if (remaining.length === 0) {
     return null;
+  }
+  if (remaining.length === block.widgets.length) {
+    return block;
   }
   return {
     ...block,
-    widgets: block.widgets.filter((widget) => widget.id !== widgetId),
+    widgets: remaining,
+  };
+}
+
+export function resolveWidgetBoardSelectionMoveEntries(
+  widgets: readonly WidgetBoardEntryV1[],
+  selectedIds: readonly string[],
+): DashboardGridMoveEntry[] {
+  const idSet = new Set(selectedIds);
+  return widgets
+    .filter((widget) => idSet.has(widget.id))
+    .map((widget) => ({
+      sourceNodeId: widget.id,
+      placement: widget.placement,
+      groupParentId: null,
+    }));
+}
+
+export function widgetBoardOtherPlacements(
+  widgets: readonly WidgetBoardEntryV1[],
+  excludeIds: ReadonlySet<string>,
+  placementFor: (widgetId: string, placement: GridPlacementV1) => GridPlacementV1,
+): GridPlacementV1[] {
+  return widgets
+    .filter((widget) => !excludeIds.has(widget.id))
+    .map((widget) => placementFor(widget.id, widget.placement));
+}
+
+export function nudgeWidgetBoardGridPlacement(args: {
+  placement: GridPlacementV1;
+  direction: DashboardGridNudgeDirection;
+  widgets: readonly WidgetBoardEntryV1[];
+  selectedIds: ReadonlySet<string>;
+  placementFor: (widgetId: string, placement: GridPlacementV1) => GridPlacementV1;
+  gridColumns: number;
+}): GridPlacementV1 | null {
+  return nudgeDashboardGridPlacement({
+    placement: args.placement,
+    direction: args.direction,
+    gridColumns: args.gridColumns,
+    otherPlacements: widgetBoardOtherPlacements(
+      args.widgets,
+      args.selectedIds,
+      args.placementFor,
+    ),
+  });
+}
+
+export function nudgeWidgetBoardMultiGridMove(args: {
+  entries: readonly DashboardGridMoveEntry[];
+  direction: DashboardGridNudgeDirection;
+  widgets: readonly WidgetBoardEntryV1[];
+  placementFor: (widgetId: string, placement: GridPlacementV1) => GridPlacementV1;
+  gridColumns: number;
+}): Array<{ widgetId: string; placement: GridPlacementV1 }> | null {
+  if (args.entries.length === 0) {
+    return null;
+  }
+  const delta =
+    args.direction === "up"
+      ? { rowDelta: -1, columnDelta: 0 }
+      : args.direction === "down"
+        ? { rowDelta: 1, columnDelta: 0 }
+        : args.direction === "left"
+          ? { rowDelta: 0, columnDelta: -1 }
+          : { rowDelta: 0, columnDelta: 1 };
+  const selectedIds = new Set(args.entries.map((entry) => entry.sourceNodeId));
+  const staticPlacements = widgetBoardOtherPlacements(
+    args.widgets,
+    selectedIds,
+    args.placementFor,
+  );
+  const occupied = new Set<string>();
+  for (const placement of staticPlacements) {
+    for (const key of dashboardPlacementCellKeys(placement)) {
+      occupied.add(key);
+    }
+  }
+  const updates: Array<{ widgetId: string; placement: GridPlacementV1 }> = [];
+  for (const entry of args.entries) {
+    const base = args.placementFor(entry.sourceNodeId, entry.placement);
+    const next = applyDashboardGridMoveDelta(base, delta);
+    if (!placementFitsInnerGrid(next, occupied, args.gridColumns)) {
+      return null;
+    }
+    for (const key of dashboardPlacementCellKeys(next)) {
+      occupied.add(key);
+    }
+    updates.push({ widgetId: entry.sourceNodeId, placement: next });
+  }
+  return updates;
+}
+
+export function resolveWidgetBoardMultiResizeContext(
+  entries: readonly DashboardGridMoveEntry[],
+) {
+  return resolveDashboardMultiResizeContext(entries);
+}
+
+export function previewWidgetBoardMultiGridResize(args: {
+  entries: readonly DashboardGridMoveEntry[];
+  baseUnion: GridPlacementV1;
+  nextUnion: GridPlacementV1;
+}): Record<string, GridPlacementV1> {
+  return previewDashboardMultiGridResize(args);
+}
+
+export function widgetBoardMultiGridResizeUpdates(args: {
+  entries: readonly DashboardGridMoveEntry[];
+  baseUnion: GridPlacementV1;
+  nextUnion: GridPlacementV1;
+}): Array<{ widgetId: string; placement: GridPlacementV1 }> {
+  return dashboardMultiGridResizeUpdates(args).map((update) => ({
+    widgetId: update.sourceNodeId,
+    placement: update.placement,
+  }));
+}
+
+export function patchWidgetBoardWidgetsPlacements(
+  block: Extract<PageBlockV1, { kind: "widget-board" }>,
+  updates: ReadonlyArray<{ widgetId: string; placement: GridPlacementV1 }>,
+): Extract<PageBlockV1, { kind: "widget-board" }> {
+  if (updates.length === 0) {
+    return block;
+  }
+  const byId = new Map(updates.map((update) => [update.widgetId, update.placement]));
+  return {
+    ...block,
+    widgets: block.widgets.map((widget) => {
+      const placement = byId.get(widget.id);
+      return placement == null ? widget : { ...widget, placement };
+    }),
   };
 }

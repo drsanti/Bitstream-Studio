@@ -1,3 +1,4 @@
+import { BookOpen, RotateCcw } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { TRNButton } from "../../ui/TRN/TRNButton";
@@ -27,6 +28,9 @@ import { useCourseDiagramEditorStore } from "./useCourseDiagramEditorStore";
 const PACK_SECTION_LABEL_CLASS =
   "text-[10px] font-medium uppercase tracking-wide leading-none text-[var(--text-muted)]";
 
+const PACK_DANGER_BUTTON_CLASS =
+  "w-full border-rose-500/45 bg-rose-950/20 text-rose-100 hover:bg-rose-500/12";
+
 type PackStatus = {
   message: string;
   tone: "success" | "error";
@@ -37,6 +41,7 @@ export function CoursePackControlsPanel() {
   const [status, setStatus] = useState<PackStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [overwriteOnImport, setOverwriteOnImport] = useState(false);
+  const [resetArmed, setResetArmed] = useState(false);
 
   const activePageId = useCoursePackStore((s) => s.activePageId);
   const pageIds = listCoursePageIds();
@@ -68,6 +73,7 @@ export function CoursePackControlsPanel() {
   };
 
   const onLoadDefaultCourse = () => {
+    setResetArmed(false);
     clearCourseStudioSessionDraft();
     useCourseDiagramEditorStore.setState({
       sourcePaths: {},
@@ -98,10 +104,12 @@ export function CoursePackControlsPanel() {
     });
     const boot = resetCourseStudioToBlankPage();
     initPage(boot.page, boot.sourcePath);
+    setResetArmed(false);
     setStatus({ message: "Reset to blank page.", tone: "success" });
   };
 
   const onImportFile = async (file: File) => {
+    setResetArmed(false);
     setBusy(true);
     setStatus(null);
     try {
@@ -135,6 +143,7 @@ export function CoursePackControlsPanel() {
   };
 
   const onReloadFromDisk = async () => {
+    setResetArmed(false);
     setBusy(true);
     setStatus(null);
     try {
@@ -209,30 +218,59 @@ export function CoursePackControlsPanel() {
           className="w-full"
           size="compact"
           disabled={busy}
+          prefixIcon={<BookOpen className="h-3.5 w-3.5 opacity-85" aria-hidden />}
           onClick={onLoadDefaultCourse}
           hint="Load the bundled BMI270 Student · Engineering · Programmer course page."
         >
           Load default course
         </TRNButton>
-        <div className="flex items-start justify-between gap-2 rounded-md border border-[var(--surface-border)] bg-[var(--surface-card)]/45 px-2.5 py-2">
-          <div className="min-w-0">
-            <div className="text-[11px] font-semibold leading-snug text-[var(--text-primary)]">
-              Reset to blank page
-            </div>
-            <div className="mt-0.5 text-[10px] leading-snug text-[var(--text-muted)]">
-              Clears session draft and returns to an empty authoring page.
+
+        {resetArmed ? (
+          <div className="flex flex-col gap-2 rounded-md border border-rose-500/35 bg-rose-950/20 px-2.5 py-2">
+            <p className="text-[11px] font-medium leading-snug text-rose-100/95">
+              Discard all session edits and return to a blank page?
+            </p>
+            <TRNHintText className="text-[10px] text-rose-200/75">
+              Clears the session draft, diagram edits, and block outline for this tab.
+            </TRNHintText>
+            <div className="flex gap-2">
+              <TRNButton
+                size="compact"
+                className="min-w-0 flex-1"
+                disabled={busy}
+                onClick={() => setResetArmed(false)}
+              >
+                Cancel
+              </TRNButton>
+              <TRNButton
+                size="compact"
+                className={`min-w-0 flex-1 ${PACK_DANGER_BUTTON_CLASS}`}
+                disabled={busy}
+                prefixIcon={<RotateCcw className="h-3.5 w-3.5 opacity-90" aria-hidden />}
+                onClick={onResetToBlank}
+                hint="Permanently discard session edits and return to the empty blank page."
+              >
+                Confirm reset
+              </TRNButton>
             </div>
           </div>
-          <TRNButton
-            size="compact"
-            className="shrink-0 border-rose-500/40 text-rose-200 hover:bg-rose-500/10"
-            disabled={busy}
-            onClick={onResetToBlank}
-            hint="Discard session edits and return to the empty blank page."
-          >
-            Reset
-          </TRNButton>
-        </div>
+        ) : (
+          <>
+            <TRNHintText className="text-[10px]">
+              Clears session draft and returns to an empty authoring page.
+            </TRNHintText>
+            <TRNButton
+              size="compact"
+              className={PACK_DANGER_BUTTON_CLASS}
+              disabled={busy}
+              prefixIcon={<RotateCcw className="h-3.5 w-3.5 opacity-90" aria-hidden />}
+              onClick={() => setResetArmed(true)}
+              hint="Discard session edits and return to the empty blank page."
+            >
+              Reset to blank page
+            </TRNButton>
+          </>
+        )}
       </div>
 
       <input
@@ -251,14 +289,16 @@ export function CoursePackControlsPanel() {
 
       {status != null ? (
         <div
-          className={`rounded-md border px-2.5 py-2 text-[10px] leading-snug ${
-            status.tone === "error"
-              ? "border-amber-500/35 bg-amber-500/10 text-amber-100/90"
-              : "border-emerald-500/35 bg-emerald-500/10 text-[var(--text-secondary)]"
-          }`}
           role="status"
+          className={`rounded-md border px-2.5 py-2 ${
+            status.tone === "error"
+              ? "border-amber-500/35 bg-amber-500/10"
+              : "border-emerald-500/35 bg-emerald-500/10"
+          }`}
         >
-          {status.message}
+          <TRNHintText tone={status.tone === "error" ? "warn" : "info"} className="text-[10px]">
+            {status.message}
+          </TRNHintText>
         </div>
       ) : null}
 

@@ -2,7 +2,18 @@ import type { GridPlacementV1 } from "../../../schemas/placement";
 import type { WidgetBoardEntryV1, WidgetBoardWidgetKind } from "../../../schemas/widgetBoard.v1";
 import { HERO_RADIAL_GAUGE_DEFAULTS } from "./heroRadialGaugeConfig";
 
+export const WIDGET_BOARD_READOUT_LAYOUT_DEFAULTS = {
+  readoutLayout: "stacked" as const,
+  readoutInlineAlign: "start" as const,
+  readoutOrder: "label-first" as const,
+  readoutGapPx: 8 as const,
+  readoutValueGrow: false,
+  tileContentH: "center" as const,
+  tileContentV: "center" as const,
+};
+
 export const WIDGET_BOARD_LED_DEFAULTS = {
+  ...WIDGET_BOARD_READOUT_LAYOUT_DEFAULTS,
   label: "Status",
   onColor: "#22c55e",
   offColor: "#27272a",
@@ -14,22 +25,27 @@ export const WIDGET_BOARD_LED_DEFAULTS = {
   ledSize: "md" as const,
   showLabel: true,
   glowWhenOn: true,
+  readoutInlineAlign: "center" as const,
 };
 
 export const WIDGET_BOARD_STATUS_DEFAULTS = {
+  ...WIDGET_BOARD_READOUT_LAYOUT_DEFAULTS,
   label: "Status",
   onLabel: "OK",
   offLabel: "Fault",
   onTone: "success" as const,
   offTone: "danger" as const,
   pillStyle: "filled" as const,
+  pillSize: "md" as const,
   compareOp: ">=" as const,
   compareValue: 0.5,
   demoActive: true,
   showLabel: true,
+  showStatusPill: true,
 };
 
 export const WIDGET_BOARD_NUMERIC_DEFAULTS = {
+  ...WIDGET_BOARD_READOUT_LAYOUT_DEFAULTS,
   label: "Value",
   min: 0,
   max: 100,
@@ -41,9 +57,11 @@ export const WIDGET_BOARD_NUMERIC_DEFAULTS = {
   showUnit: true,
   valueAlign: "center" as const,
   valueScale: "large" as const,
+  readoutCrossAlign: "center" as const,
 };
 
 export const WIDGET_BOARD_VERTICAL_BAR_DEFAULTS = {
+  ...WIDGET_BOARD_READOUT_LAYOUT_DEFAULTS,
   label: "Level",
   min: 0,
   max: 100,
@@ -59,6 +77,7 @@ export const WIDGET_BOARD_VERTICAL_BAR_DEFAULTS = {
 };
 
 export const WIDGET_BOARD_METRIC_BAR_READOUT_DEFAULTS = {
+  ...WIDGET_BOARD_READOUT_LAYOUT_DEFAULTS,
   showLabel: true,
   showValue: true,
   showUnit: true,
@@ -106,6 +125,10 @@ export function buildDefaultWidgetBoardEntry(
         unit: "km/h",
         demoValue: 0,
         ...HERO_RADIAL_GAUGE_DEFAULTS,
+        showLabel: true,
+        labelPosition: "top" as const,
+        tileContentH: "center" as const,
+        tileContentV: "center" as const,
       };
   }
 }

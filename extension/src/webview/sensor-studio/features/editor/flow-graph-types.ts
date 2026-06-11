@@ -21,6 +21,8 @@ export type StudioPortType =
   | "physicsScene"
   | "physicsCollider"
   | "physicsBody"
+  | "physicsJoint"
+  | "physicsSpawner"
   | "dashboardWidget"
   | "dashboardTheme"
   | "dashboardTab"

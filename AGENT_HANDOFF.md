@@ -2,7 +2,7 @@
 
 **Purpose:** Onboarding for Cursor AI and humans. **Read this file first** when opening the repo on any machine.
 
-**Last updated:** 2026-06-10 (Bitstream Telemetry Provider shipped + Course HTML blocks)  
+**Last updated:** 2026-06-11 (Course Studio widget board editor + grid multi-select)  
 **Repository:** https://github.com/drsanti/Bitstream-Studio  
 **Extension version:** `0.1.0` (`extension/package.json`)  
 **Migration source:** `ternion-t3d` @ **`BS2`** (Digital Twin stays there; do not merge back)
@@ -247,6 +247,7 @@ Full runbook: **`extension/HOW_TO_RUN.md`**.
 
 | Date | Summary |
 |------|---------|
+| 2026-06-11 | **Course Studio grid editors + widget board:** Page Editor + Widget Editor multi-select (marquee, union resize, keyboard); Widget Editor square cells, empty-slot add menu, canvas-scoped selection overlays, hero gauge ring/cap fixes, flat editor chrome; Sensor Theory book + workshop theory chapters; dashboard multi-select; unified UX doc — see **`DEVELOPMENT_TRACKER.md`** |
 | 2026-06-10 | **Bitstream Telemetry Provider (P0–P4 shipped):** catalog + gateway **:9997** (in `combined-bridge-entry` / VSIX); Course **`CourseTelemetryPostMessageBridge`**; R1 commands + SDK; EXAMPLES (gyro, humidity, pressure); kit **`docs/bitstream-telemetry-provider/`** + AI **SKILL** (WS first, mock fallback); iframe origin hardening; per-sensor **`staleAfterMs`**; Course **HTML page blocks**; live-topic embedded demos; tests |
 | 2026-06-08 | **Course Studio — four-sensor book + outline authoring:** TESAIoT Embedded manifest ships **BMI270**, **BMM350**, **DPS368**, **SHT40** (four topics each); outline Add defers disk write (no Vite full reload); session draft persists outline + runtime pages; `mergeCourseOutlineWithBundled` on restore; multi-subtopic under one topic; GitHub `/blob/` image URLs resolve via raw fetch; BMI270 pages refined; **441** course-studio tests |
 | 2026-06-09 | **Course Studio 3D Scene editor:** Split workbench pane (preset `diagram-3d` vs design `diagram-2d` 3D layer); gizmo + outliner + default camera + **Save view**; Quick add on blank page; auto-enable 3D layer; focus routing tests |

@@ -11,6 +11,7 @@ import {
   MARKDOWN_BLOCK_COLOR_THEME_DEFAULTS,
   type MarkdownBlockColors,
 } from "../../schemas/markdownBlockColors";
+import { mergeCourseThemesWithGlobal } from "../../schemas/courseStudioGlobalDocumentTheme";
 import { findCardThemePreset, findMarkdownThemePreset } from "../../schemas/courseThemes.v1";
 import type { BlockColorBulkApplyMode } from "../pageBlockColorActions";
 import { useCourseOutlineStore } from "../useCourseOutlineStore";
@@ -251,7 +252,7 @@ export function CourseBlockColorsActionBar({
 export function buildCardPresetSelectOptions(
   themes: CourseThemesV1 | undefined,
 ): CourseBlockColorPresetOption[] {
-  return (themes?.card ?? []).map((preset: CardThemePresetV1) => ({
+  return (mergeCourseThemesWithGlobal(themes).card ?? []).map((preset: CardThemePresetV1) => ({
     value: preset.id,
     label: preset.title,
   }));
@@ -260,8 +261,10 @@ export function buildCardPresetSelectOptions(
 export function buildMarkdownPresetSelectOptions(
   themes: CourseThemesV1 | undefined,
 ): CourseBlockColorPresetOption[] {
-  return (themes?.markdown ?? []).map((preset: MarkdownThemePresetV1) => ({
-    value: preset.id,
-    label: preset.title,
-  }));
+  return (mergeCourseThemesWithGlobal(themes).markdown ?? []).map(
+    (preset: MarkdownThemePresetV1) => ({
+      value: preset.id,
+      label: preset.title,
+    }),
+  );
 }

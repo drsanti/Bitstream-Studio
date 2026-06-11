@@ -70,6 +70,7 @@ export function CourseWidgetBoardResizeFrame(props: CourseWidgetBoardResizeFrame
 
   return createPortal(
     <div
+      data-course-widget-board-resize-frame=""
       className="pointer-events-none fixed z-[200] touch-none"
       style={{
         left: frameRect.left,
@@ -79,7 +80,7 @@ export function CourseWidgetBoardResizeFrame(props: CourseWidgetBoardResizeFrame
       }}
     >
       <div
-        className="pointer-events-none absolute inset-0 border-2 border-cyan-400/90 shadow-[0_0_0_1px_rgba(9,9,11,0.9),0_0_18px_rgba(34,211,238,0.2)]"
+        className="pointer-events-none absolute inset-0 border-2 border-cyan-400/90"
         aria-hidden
       />
       {DASHBOARD_GRID_RESIZE_HANDLES.map((handle) => {

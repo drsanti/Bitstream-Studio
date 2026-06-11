@@ -1,5 +1,10 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import type { WidgetBoardLedSize, WidgetBoardWidgetTypographyV1 } from "../../../schemas/widgetBoard.v1";
+import type {
+  WidgetBoardLedSize,
+  WidgetBoardReadoutLayoutConfig,
+  WidgetBoardTileLayoutConfig,
+  WidgetBoardWidgetTypographyV1,
+} from "../../../schemas/widgetBoard.v1";
 import type { CourseBindingHealthStatus } from "../../../runtime/courseBindingHealth";
 import { courseBindingHealthToSensorHealth } from "../../../runtime/courseBindingHealth";
 import type { SensorHealthStatus } from "../../../../sensor-studio/features/editor/store/flow-editor.store";
@@ -7,6 +12,12 @@ import {
   hasWidgetBoardLabelTypography,
   widgetBoardLabelTypographyStyle,
 } from "./widgetBoardTypographyStyle";
+import {
+  pickWidgetBoardReadoutStackProps,
+  pickWidgetBoardTileShellProps,
+} from "./widgetBoardReadoutLayout";
+import { WidgetBoardReadoutStack } from "./WidgetBoardReadoutStack";
+import { WidgetBoardTileShell } from "./WidgetBoardTileShell";
 
 const LED_SIZE_CLASS: Record<WidgetBoardLedSize, string> = {
   sm: "course-led-indicator-card__lamp--sm",
@@ -26,6 +37,15 @@ export function CourseLedIndicatorCard({
   blinkPeriodMs = 800,
   health,
   typography,
+  readoutLayout = "stacked",
+  readoutInlineAlign = "center",
+  readoutJustify,
+  readoutCrossAlign,
+  readoutOrder,
+  readoutGapPx,
+  readoutValueGrow,
+  tileContentH = "center",
+  tileContentV = "center",
 }: {
   label: string;
   active: boolean;
@@ -38,7 +58,8 @@ export function CourseLedIndicatorCard({
   blinkPeriodMs?: number;
   health?: CourseBindingHealthStatus;
   typography?: WidgetBoardWidgetTypographyV1;
-}) {
+} & WidgetBoardReadoutLayoutConfig &
+  WidgetBoardTileLayoutConfig) {
   const [blinkVisible, setBlinkVisible] = useState(true);
   const sensorHealth: SensorHealthStatus | undefined =
     health != null ? courseBindingHealthToSensorHealth(health) : undefined;
@@ -58,40 +79,56 @@ export function CourseLedIndicatorCard({
     return () => window.clearInterval(id);
   }, [active, blink, blinkPeriodMs]);
 
-  return (
-    <div
-      className={`course-led-indicator-card flex h-full min-h-0 min-w-0 flex-col items-center justify-center gap-1.5 px-2 py-2 ${
-        stale ? "course-widget-board-entry--stale" : ""
+  const layoutConfig: WidgetBoardReadoutLayoutConfig = {
+    readoutLayout,
+    readoutInlineAlign,
+    readoutJustify,
+    readoutCrossAlign,
+    readoutOrder,
+    readoutGapPx,
+    readoutValueGrow,
+  };
+
+  const lamp = (
+    <span
+      className={`course-led-indicator-card__lamp shrink-0 rounded-full ${LED_SIZE_CLASS[ledSize]}${
+        lampOn && glowWhenOn ? " course-led-indicator-card__lamp--glow" : ""
       }`}
-      data-course-widget-kind="led-indicator"
+      style={
+        {
+          backgroundColor: lampColor,
+          boxShadow:
+            lampOn && glowWhenOn
+              ? `0 0 12px color-mix(in srgb, ${onColor} 55%, transparent)`
+              : "none",
+        } as CSSProperties
+      }
+      aria-hidden
+    />
+  );
+
+  return (
+    <WidgetBoardTileShell
+      {...pickWidgetBoardTileShellProps({ tileContentH, tileContentV })}
+      kind="led-indicator"
+      stale={stale}
+      className="course-led-indicator-card px-2 py-2"
     >
-      <span
-        className={`course-led-indicator-card__lamp rounded-full ${LED_SIZE_CLASS[ledSize]}${
-          lampOn && glowWhenOn ? " course-led-indicator-card__lamp--glow" : ""
+      <WidgetBoardReadoutStack
+        {...pickWidgetBoardReadoutStackProps(layoutConfig)}
+        showLabel={showLabel}
+        showValue
+        label={label}
+        value={lamp}
+        labelClassName={`max-w-full truncate font-medium uppercase tracking-widest${
+          hasWidgetBoardLabelTypography(typography)
+            ? ""
+            : " course-led-indicator-card__label text-[var(--course-wb-label)]"
         }`}
-        style={
-          {
-            backgroundColor: lampColor,
-            boxShadow:
-              lampOn && glowWhenOn
-                ? `0 0 12px color-mix(in srgb, ${onColor} 55%, transparent)`
-                : "none",
-          } as CSSProperties
-        }
-        aria-hidden
+        valueClassName="shrink-0"
+        labelStyle={widgetBoardLabelTypographyStyle(typography)}
+        stackClassName="w-full"
       />
-      {showLabel ? (
-        <p
-          className={`max-w-full truncate text-center font-medium uppercase tracking-widest${
-            hasWidgetBoardLabelTypography(typography)
-              ? ""
-              : " course-led-indicator-card__label text-[var(--course-wb-label)]"
-          }`}
-          style={widgetBoardLabelTypographyStyle(typography)}
-        >
-          {label}
-        </p>
-      ) : null}
-    </div>
+    </WidgetBoardTileShell>
   );
 }

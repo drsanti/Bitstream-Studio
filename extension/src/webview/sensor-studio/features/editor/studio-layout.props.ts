@@ -45,6 +45,8 @@ export type StudioLayoutProps = {
   physicsSceneColor: string;
   physicsColliderColor: string;
   physicsBodyColor: string;
+  physicsJointColor: string;
+  physicsSpawnerColor: string;
   dashboardWidgetColor: string;
   dashboardThemeColor: string;
   dashboardTabColor: string;
@@ -93,7 +95,15 @@ export type StudioLayoutProps = {
   /** Expand/focus a workbench pane by editor type (library, model-outliner, stage, …). */
   onFocusWorkbenchPane?: (editorType: string) => void;
   /** Apply a bundled workbench layout preset (`studio-workbench-presets.ts`). */
-  onApplyWorkbenchPreset?: (presetId: string) => boolean;
+  onApplyWorkbenchPreset?: (presetId: string, focusEditorType?: string) => boolean;
+  exportLayoutSnapshot?: () => import("../../../ui/workbench/workbench-layout-library").WorkbenchLayoutSnapshotV1 | null;
+  applyLayoutSnapshot?: (
+    snapshot: Pick<
+      import("../../../ui/workbench/workbench-layout-library").WorkbenchLayoutSnapshotV1,
+      "layout" | "dockMemory"
+    >,
+    focusEditorType: string,
+  ) => void;
   workbenchRef?: RefObject<StandaloneWorkbenchHandle | null>;
   flowCanvasPreferences: FlowCanvasPreferences;
   onFlowCanvasPreferencesChange: (patch: Partial<FlowCanvasPreferences>) => void;

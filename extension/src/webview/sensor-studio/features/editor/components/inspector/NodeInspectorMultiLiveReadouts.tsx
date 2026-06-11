@@ -1,4 +1,8 @@
+import { Activity } from "lucide-react";
 import type { StudioNode } from "../../store/flow-editor.store";
+import { TRNHintText } from "../../../../../ui/TRN";
+import { formatInspectorUpdatedAt } from "./inspector-format-time";
+import { InspectorSection } from "./InspectorSection";
 
 export type NodeInspectorMultiLiveReadoutsProps = {
   nodes: StudioNode[];
@@ -14,32 +18,46 @@ function formatLive(v: unknown): string {
   return String(v);
 }
 
-export function NodeInspectorMultiLiveReadouts(props: NodeInspectorMultiLiveReadoutsProps) {
+function MultiLiveRow(props: { node: StudioNode }) {
+  const n = props.node;
   return (
-    <div className="space-y-2 text-xs">
-      <p className="text-[11px] leading-snug text-zinc-400">
-        Multiple nodes selected. Live values below update with the simulation. Select a single node to edit
-        details and settings.
-      </p>
-      <ul className="max-h-[min(64vh,520px)] space-y-1.5 overflow-y-auto overflow-x-hidden rounded border border-zinc-800/80 bg-zinc-950/50 p-1.5">
-        {props.nodes.map((n) => (
-          <li
-            key={n.id}
-            className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-0.5 rounded border border-zinc-800/60 bg-black/30 px-2 py-1.5"
-          >
-            <div className="min-w-0">
-              <div className="truncate font-medium text-zinc-200">{n.data.label}</div>
-              <div className="truncate font-mono text-[10px] text-zinc-500">{n.data.nodeId}</div>
-            </div>
-            <div className="shrink-0 text-right font-mono text-[11px] text-emerald-100/90">
-              {formatLive(n.data.liveValue)}
-            </div>
-            <div className="col-span-2 text-[10px] text-zinc-600">
-              updated {n.data.lastUpdatedAt ?? "—"}
-            </div>
-          </li>
-        ))}
-      </ul>
+    <li className="border-b border-zinc-800/50 py-2 last:border-0 last:pb-0">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-2">
+        <span className="truncate text-[11px] font-medium text-zinc-200">{n.data.label}</span>
+        <span className="shrink-0 text-[13px] text-emerald-50/95">{formatLive(n.data.liveValue)}</span>
+      </div>
+      <div className="mt-0.5 flex min-w-0 items-baseline justify-between gap-2">
+        <span className="truncate text-[10px] text-zinc-500">{n.data.nodeId}</span>
+        <span className="shrink-0 text-[10px] text-zinc-600">
+          {formatInspectorUpdatedAt(n.data.lastUpdatedAt)}
+        </span>
+      </div>
+    </li>
+  );
+}
+
+export function NodeInspectorMultiLiveReadouts(props: NodeInspectorMultiLiveReadoutsProps) {
+  const { nodes } = props;
+
+  return (
+    <div className="space-y-2">
+      <TRNHintText>
+        Multiple nodes selected. Live values below update with the simulation. Select a single node
+        to edit details and settings.
+      </TRNHintText>
+      <InspectorSection
+        title="Live values"
+        hint={`${nodes.length} selected nodes — updates with simulation`}
+        titleLeadingSlot={<Activity className="h-3.5 w-3.5 shrink-0 text-zinc-400" aria-hidden />}
+        collapsible
+        defaultExpanded
+      >
+        <ul className="scrollbar-hide max-h-[min(64vh,520px)] space-y-0 overflow-y-auto overflow-x-hidden">
+          {nodes.map((n) => (
+            <MultiLiveRow key={n.id} node={n} />
+          ))}
+        </ul>
+      </InspectorSection>
     </div>
   );
 }

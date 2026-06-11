@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "id": "template-live-article",
+  "title": "Template — live article (duplicate me)",
+  "meta": {
+    "telemetryPreference": "auto",
+    "staleMs": 2000,
+    "defaultLinkHealth": "freeze-gray",
+    "markdownThemePresetId": "global-document",
+    "cardThemePresetId": "global-document"
+  },
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "heading-template",
+      "kind": "heading",
+      "placement": { "column": 1, "row": 1, "columnSpan": 12, "rowSpan": 2 },
+      "eyebrow": "Chapter · Topic",
+      "title": "Topic title",
+      "subtitle": "One-line scope. Live widgets go in rows above the article — never in a side column."
+    },
+    {
+      "id": "callout-template",
+      "kind": "callout-tip",
+      "placement": { "column": 1, "row": 3, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Link telemetry first",
+      "body": "Toolbar Bitstream + Link or Simulator + Link. Enable the relevant sensors in Sensor Telemetry before reading.",
+      "icon": "Lightbulb"
+    },
+    {
+      "id": "dash-example-a",
+      "kind": "dashboard-widget",
+      "placement": { "column": 1, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Live reading A",
+      "widgetKind": "text",
+      "style": { "label": "A", "unit": "—", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.temp", "fallback": 0, "unit": "°C", "format": "0.0f" }
+    },
+    {
+      "id": "dash-example-b",
+      "kind": "dashboard-widget",
+      "placement": { "column": 7, "row": 5, "columnSpan": 6, "rowSpan": 2 },
+      "title": "Live reading B",
+      "widgetKind": "text",
+      "style": { "label": "B", "unit": "—", "decimals": 1, "showStatusBar": true },
+      "binding": { "path": "sht40.rh", "fallback": 0, "unit": "%RH", "format": "0.0f" }
+    },
+    {
+      "id": "card-template",
+      "kind": "card",
+      "placement": { "column": 1, "row": 7, "columnSpan": 12, "rowSpan": 2 },
+      "title": "Checklist or hint",
+      "body": "Short operator notes.\nReplace bindings and copy for your sensor chapter."
+    },
+    {
+      "id": "md-template",
+      "kind": "markdown",
+      "placement": { "column": 1, "row": 9, "columnSpan": 12, "rowSpan": 1 },
+      "src": "template-live-article.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

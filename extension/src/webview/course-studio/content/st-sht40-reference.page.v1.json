@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "id": "st-sht40-reference",
+  "title": "Reference & knowledge check",
+  "grid": {
+    "columns": 12,
+    "rowHeightPx": 48,
+    "gapPx": 12,
+    "paddingPx": 32
+  },
+  "blocks": [
+    {
+      "id": "md-st-sht40-reference",
+      "kind": "markdown",
+      "placement": {
+        "column": 1,
+        "row": 1,
+        "columnSpan": 12,
+        "rowSpan": 1
+      },
+      "src": "st-sht40-reference.theory.md",
+      "readHeight": "content"
+    }
+  ]
+}

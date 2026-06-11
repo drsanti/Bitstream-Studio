@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TESAIoT DevKit — four sensor dashboard</title>
+  <style>
+    :root { --bg: #0f1419; --text: #eaf7ff; --muted: #8ca4b8; --track: #243044; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 16px; }
+    .page-header { margin-bottom: 12px; }
+    .page-header h1 { margin: 0; font-size: 16px; }
+    .page-header p { margin: 4px 0 0; font-size: 11px; color: var(--muted); }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+    .panel { border-radius: 12px; padding: 12px; border: 1px solid rgba(255,255,255,0.08); }
+    .panel h2 { margin: 0 0 8px; font-size: 13px; }
+    .panel .row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px; }
+    .panel .value { font-size: 13px; }
+    .track { height: 10px; background: var(--track); border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
+    .fill { height: 100%; width: 50%; border-radius: 999px; transition: width 80ms linear; }
+    .status { font-size: 10px; color: var(--muted); margin-top: 6px; }
+    .bmi { background: #1a2332; --accent: #42e8ff; }
+    .sht { background: #1a2820; --accent: #5ee89a; }
+    .dps { background: #152535; --accent: #5eb8f5; }
+    .bmm { background: #221a32; --accent: #b88cff; }
+    .fill { background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 50%, #000), var(--accent)); }
+    .value { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>TESAIoT DevKit live dashboard</h1>
+    <p id="global-status">Waiting for telemetry…</p>
+  </div>
+  <div class="grid">
+    <div class="panel bmi">
+      <h2>Motion · BMI270</h2>
+      <div class="row"><span>Gyro X</span><span class="value" id="bmi-gyro">—</span></div>
+      <div class="track"><div class="fill" id="bmi-gyro-fill"></div></div>
+      <div class="row"><span>Accel |a|</span><span class="value" id="bmi-accel">—</span></div>
+      <div class="track"><div class="fill" id="bmi-accel-fill"></div></div>
+    </div>
+    <div class="panel sht">
+      <h2>Climate · SHT40</h2>
+      <div class="row"><span>Temp</span><span class="value" id="sht-temp">—</span></div>
+      <div class="track"><div class="fill" id="sht-temp-fill"></div></div>
+      <div class="row"><span>Humidity</span><span class="value" id="sht-hum">—</span></div>
+      <div class="track"><div class="fill" id="sht-hum-fill"></div></div>
+    </div>
+    <div class="panel dps">
+      <h2>Pressure · DPS368</h2>
+      <div class="row"><span>pressureHpa</span><span class="value" id="dps-p">—</span></div>
+      <div class="track"><div class="fill" id="dps-fill"></div></div>
+    </div>
+    <div class="panel bmm">
+      <h2>Magnetic · BMM350</h2>
+      <div class="row"><span>|B|</span><span class="value" id="bmm-s">—</span></div>
+      <div class="track"><div class="fill" id="bmm-fill"></div></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      "use strict";
+
+      function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
+      function valueToPercent(value, min, max) {
+        if (max <= min) return 0;
+        return clamp(((value - min) / (max - min)) * 100, 0, 100);
+      }
+      function bindTransport(clientId, onEnvelope) {
+        window.addEventListener("message", function (event) {
+          var msg = event.data;
+          if (!msg || msg.v !== 1 || typeof msg.type !== "string") return;
+          if (msg.type.indexOf("bitstream:") !== 0) return;
+          onEnvelope(msg);
+        });
+        var mockTimer = null;
+        function startMock(tick) {
+          if (mockTimer != null) return;
+          var t0 = Date.now();
+          mockTimer = window.setInterval(function () {
+            tick((Date.now() - t0) / 1000);
+          }, 500);
+        }
+        function stopMock() {
+          if (mockTimer == null) return;
+          window.clearInterval(mockTimer);
+          mockTimer = null;
+        }
+        function connectWs() {
+          var ws;
+          try { ws = new WebSocket("ws://127.0.0.1:9997"); } catch (e) { startMock(function () {}); return; }
+          ws.addEventListener("open", function () { stopMock(); });
+          ws.addEventListener("message", function (ev) {
+            var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+            if (!msg || msg.v !== 1) return;
+            onEnvelope(msg);
+          });
+          ws.addEventListener("close", function () {
+            window.setTimeout(connectWs, 2000);
+          });
+          ws.addEventListener("error", function () { ws.close(); });
+        }
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage(
+            { type: "bitstream:ready", v: 1, payload: { clientId: clientId } },
+            "*"
+          );
+        } else {
+          connectWs();
+        }
+        return { startMock: startMock, stopMock: stopMock };
+      }
+
+      function pct(v, a, b) { return valueToPercent(v, a, b); }
+      function setFill(id, p) { document.getElementById(id).style.width = p.toFixed(1) + "%"; }
+      var live = false;
+      function onSample(p) {
+        if (!p || !p.sensor || !p.fields) return;
+        live = true;
+        document.getElementById("global-status").textContent = "Live · TESAIoT DevKit or Simulator";
+        if (p.sensor === "bmi270") {
+          var gx = p.fields.gyroX, ax = p.fields.accelX, ay = p.fields.accelY, az = p.fields.accelZ;
+          if (typeof gx === "number") {
+            document.getElementById("bmi-gyro").textContent = gx.toFixed(2) + " rad/s";
+            setFill("bmi-gyro-fill", pct(gx, -1, 1));
+          }
+          if (typeof ax === "number" && typeof ay === "number" && typeof az === "number") {
+            var s = Math.sqrt(ax*ax+ay*ay+az*az);
+            document.getElementById("bmi-accel").textContent = s.toFixed(2) + " m/s²";
+            setFill("bmi-accel-fill", pct(s, 0, 20));
+          }
+        }
+        if (p.sensor === "sht40") {
+          var t = p.fields.temperatureC, h = p.fields.humidityPct;
+          if (typeof t === "number") {
+            document.getElementById("sht-temp").textContent = t.toFixed(1) + " °C";
+            setFill("sht-temp-fill", pct(t, 0, 50));
+          }
+          if (typeof h === "number") {
+            document.getElementById("sht-hum").textContent = h.toFixed(1) + " %RH";
+            setFill("sht-hum-fill", pct(h, 0, 100));
+          }
+        }
+        if (p.sensor === "dps368" && typeof p.fields.pressureHpa === "number") {
+          var pr = p.fields.pressureHpa;
+          document.getElementById("dps-p").textContent = pr.toFixed(1) + " hPa";
+          setFill("dps-fill", pct(pr, 900, 1100));
+        }
+        if (p.sensor === "bmm350") {
+          var mx = p.fields.magX, my = p.fields.magY, mz = p.fields.magZ;
+          if (typeof mx === "number" && typeof my === "number" && typeof mz === "number") {
+            var b = Math.sqrt(mx*mx+my*my+mz*mz);
+            document.getElementById("bmm-s").textContent = b.toFixed(1) + " µT";
+            setFill("bmm-fill", pct(b, 0, 100));
+          }
+        }
+      }
+      var transport = bindTransport("workshop-four-sensor-dashboard", function (msg) {
+        if (msg.type === "bitstream:sample") onSample(msg.payload);
+      });
+      transport.startMock(function (t) {
+        if (live) return;
+        document.getElementById("global-status").textContent = "Mock · connect Bitstream + Link for live data";
+        onSample({ sensor: "bmi270", fields: { gyroX: Math.sin(t)*0.5, accelX: 0, accelY: 0, accelZ: 9.8 } });
+        onSample({ sensor: "sht40", fields: { temperatureC: 24, humidityPct: 58 } });
+        onSample({ sensor: "dps368", fields: { pressureHpa: 1013 } });
+        onSample({ sensor: "bmm350", fields: { magX: 20, magY: 15, magZ: 40 } });
+      });
+    })();
+  </script>
+</body>
+</html>

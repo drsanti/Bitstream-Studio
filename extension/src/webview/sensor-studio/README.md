@@ -7,6 +7,8 @@ Current focus is configuration-first architecture and Node Editor groundwork.
 
 1. Docs index:
    - [`../../../docs/README.md`](../../../docs/README.md)
+1b. Unified product UX (work modes, desk layouts, inspector Pin, one graph → 2D + 3D):
+   - [`../../../docs/BITSTREAM_STUDIO_UNIFIED_UX.md`](../../../docs/BITSTREAM_STUDIO_UNIFIED_UX.md)
 2. MVP1 task board:
    - [`../../../docs/MVP1_NODE_EDITOR_TASK_BOARD.md`](../../../docs/MVP1_NODE_EDITOR_TASK_BOARD.md)
 3. Day-by-day execution:

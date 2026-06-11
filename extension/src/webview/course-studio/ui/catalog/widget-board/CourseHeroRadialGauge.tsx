@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { WidgetBoardWidgetTypographyV1 } from "../../../schemas/widgetBoard.v1";
+import type {
+  WidgetBoardTileContentAlign,
+  WidgetBoardWidgetTypographyV1,
+} from "../../../schemas/widgetBoard.v1";
 import type { CourseBindingHealthStatus } from "../../../runtime/courseBindingHealth";
 import { courseBindingHealthToSensorHealth } from "../../../runtime/courseBindingHealth";
 import type { SensorHealthStatus } from "../../../../sensor-studio/features/editor/store/flow-editor.store";
@@ -28,6 +31,8 @@ import {
   type HeroRadialGaugeArcPresetId,
   type HeroRadialGaugeZoneTintId,
 } from "./heroRadialGaugeConfig";
+import { WidgetBoardTileShell } from "./WidgetBoardTileShell";
+import { pickWidgetBoardTileShellProps } from "./widgetBoardReadoutLayout";
 
 function useSmoothedFillRatio(
   targetRatio: number,
@@ -95,6 +100,10 @@ export function CourseHeroRadialGauge({
   zoneTint = HERO_RADIAL_GAUGE_DEFAULTS.zoneTint,
   showGlow = HERO_RADIAL_GAUGE_DEFAULTS.showGlow,
   arcCap = HERO_RADIAL_GAUGE_DEFAULTS.arcCap,
+  showLabel = true,
+  labelPosition = "top",
+  tileContentH = "center",
+  tileContentV = "center",
 }: {
   label?: string;
   value: number | null;
@@ -112,6 +121,10 @@ export function CourseHeroRadialGauge({
   zoneTint?: HeroRadialGaugeZoneTintId;
   showGlow?: boolean;
   arcCap?: HeroRadialGaugeArcCapId;
+  showLabel?: boolean;
+  labelPosition?: "top" | "bottom";
+  tileContentH?: WidgetBoardTileContentAlign;
+  tileContentV?: WidgetBoardTileContentAlign;
 }) {
   const arcPreset = coerceHeroRadialGaugeArcPreset(heroArcPreset);
   const tintMode = coerceHeroRadialGaugeZoneTint(zoneTint);
@@ -126,7 +139,8 @@ export function CourseHeroRadialGauge({
   const valueStyle = widgetBoardValueTypographyStyle(typography);
   const unitStyle = widgetBoardUnitTypographyStyle(typography);
   const customValueTypography = hasWidgetBoardValueTypography(typography);
-  const showLabel = label != null && label.trim().length > 0;
+  const labelText = label != null && label.trim().length > 0 ? label : "";
+  const showLabelRow = showLabel && labelText.length > 0;
   const holeInset = Math.max(8, Math.min(20, Math.round(holeSizePercent)));
   const arcToColor = resolveHeroGaugeArcToColor({
     zoneTint: tintMode,
@@ -137,94 +151,105 @@ export function CourseHeroRadialGauge({
   const arcEndDeg = heroGaugeArcEndDeg(displayRatio, arcPreset);
   const showRoundCap = capStyle === "round" && displayRatio > 0.01;
   const capColor = arcToColor.startsWith("var(") ? "var(--course-wb-gauge-arc-to)" : arcToColor;
+  /** Ring outer radius = 50cqmin; hole uses `inset: holeInset%` → stroke ≈ holeInset cqmin. */
+  const arcStrokeCq = holeInset;
+  const arcCenterlineCq = 50 - holeInset / 2;
 
-  return (
+  const labelRow = showLabelRow ? (
     <div
-      className={`course-hero-radial-gauge flex h-full min-h-0 min-w-0 flex-col items-center justify-center gap-1 p-2 ${
-        stale ? "course-widget-board-entry--stale" : ""
+      className={`max-w-full truncate text-center font-semibold uppercase tracking-[0.14em]${
+        hasWidgetBoardLabelTypography(typography)
+          ? ""
+          : " text-[10px] text-[var(--course-wb-label)]"
       }`}
-      data-course-widget-kind="hero-radial-gauge"
+      style={labelStyle}
     >
-      {showLabel ? (
-        <div
-          className={`max-w-full truncate text-center font-semibold uppercase tracking-[0.14em]${
-            hasWidgetBoardLabelTypography(typography)
-              ? ""
-              : " text-[10px] text-[var(--course-wb-label)]"
-          }`}
-          style={labelStyle}
-        >
-          {label}
-        </div>
-      ) : null}
+      {labelText}
+    </div>
+  ) : null;
+
+  const gaugeRing = (
+    <div
+      className="course-hero-radial-gauge__ring relative grid min-h-0 min-w-0 shrink-0 place-items-center"
+      style={{
+        background: heroGaugeConicBackground(displayRatio, arcPreset, {
+          arcToColor,
+          arcCap: capStyle,
+        }),
+        filter: showGlow ? "var(--course-wb-live-glow, none)" : "none",
+      }}
+    >
       <div
-        className="course-hero-radial-gauge__ring relative grid min-h-0 min-w-0 shrink-0 place-items-center"
-        style={{
-          background: heroGaugeConicBackground(displayRatio, arcPreset, {
-            arcToColor,
-            arcCap: capStyle,
-          }),
-          filter: showGlow ? "var(--course-wb-live-glow, none)" : "none",
-          flex: showLabel ? "1 1 auto" : undefined,
-        }}
-      >
+        className="course-hero-radial-gauge__hole absolute rounded-full"
+        style={{ inset: `${holeInset}%` }}
+        aria-hidden
+      />
+      {showRoundCap ? (
         <div
-          className="course-hero-radial-gauge__hole absolute rounded-full"
-          style={{ inset: `${holeInset}%` }}
+          className="course-hero-radial-gauge__arc-cap pointer-events-none absolute left-1/2 top-1/2 rounded-full"
+          style={{
+            width: `${arcStrokeCq}cqmin`,
+            height: `${arcStrokeCq}cqmin`,
+            marginLeft: `${-arcStrokeCq / 2}cqmin`,
+            marginTop: `${-arcStrokeCq / 2}cqmin`,
+            backgroundColor: capColor,
+            transform: `rotate(${arcEndDeg}deg) translateY(-${arcCenterlineCq}cqmin)`,
+            transformOrigin: "center center",
+          }}
           aria-hidden
         />
-        {showRoundCap ? (
-          <div
-            className="course-hero-radial-gauge__arc-cap pointer-events-none absolute left-1/2 top-1/2 rounded-full"
-            style={{
-              width: "3.5cqmin",
-              height: "3.5cqmin",
-              marginLeft: "-1.75cqmin",
-              marginTop: "-1.75cqmin",
-              backgroundColor: capColor,
-              transform: `rotate(${arcEndDeg}deg) translateY(-47cqmin)`,
-              transformOrigin: "center center",
-            }}
-            aria-hidden
-          />
-        ) : null}
-        {showValue || (showUnit && displayUnit.length > 0) ? (
-          <div className="relative z-[1] text-center leading-none">
-            {showValue ? (
-              <div
-                className={`font-extrabold tracking-tight${
-                  customValueTypography
-                    ? ""
-                    : " course-hero-radial-gauge__value text-[var(--course-wb-value)]"
-                }`}
-                style={
-                  {
-                    ...valueStyle,
-                    textShadow:
-                      typography?.valueColor != null
-                        ? "none"
-                        : "var(--course-wb-value-shadow, none)",
-                  } as CSSProperties
-                }
-              >
-                {formatWidgetBoardValue(value, decimals)}
-              </div>
-            ) : null}
-            {showUnit && displayUnit.length > 0 ? (
-              <div
-                className={`mt-1 font-medium uppercase tracking-[0.2em]${
-                  hasWidgetBoardUnitTypography(typography)
-                    ? ""
-                    : " course-hero-radial-gauge__unit text-[var(--course-wb-unit)]"
-                }`}
-                style={unitStyle}
-              >
-                {displayUnit}
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+      ) : null}
+      {showValue || (showUnit && displayUnit.length > 0) ? (
+        <div className="relative z-[1] text-center leading-none">
+          {showValue ? (
+            <div
+              className={`font-extrabold tracking-tight${
+                customValueTypography
+                  ? ""
+                  : " course-hero-radial-gauge__value text-[var(--course-wb-value)]"
+              }`}
+              style={
+                {
+                  ...valueStyle,
+                  textShadow:
+                    typography?.valueColor != null
+                      ? "none"
+                      : "var(--course-wb-value-shadow, none)",
+                } as CSSProperties
+              }
+            >
+              {formatWidgetBoardValue(value, decimals)}
+            </div>
+          ) : null}
+          {showUnit && displayUnit.length > 0 ? (
+            <div
+              className={`mt-1 font-medium uppercase tracking-[0.2em]${
+                hasWidgetBoardUnitTypography(typography)
+                  ? ""
+                  : " course-hero-radial-gauge__unit text-[var(--course-wb-unit)]"
+              }`}
+              style={unitStyle}
+            >
+              {displayUnit}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
+  );
+
+  return (
+    <WidgetBoardTileShell
+      {...pickWidgetBoardTileShellProps({ tileContentH, tileContentV })}
+      kind="hero-radial-gauge"
+      stale={stale}
+      className="course-hero-radial-gauge gap-1 p-2"
+    >
+      {labelPosition === "top" ? labelRow : null}
+      <div className="course-hero-radial-gauge__ring-host flex min-h-0 w-full min-w-0 flex-1 items-center justify-center">
+        {gaugeRing}
+      </div>
+      {labelPosition === "bottom" ? labelRow : null}
+    </WidgetBoardTileShell>
   );
 }

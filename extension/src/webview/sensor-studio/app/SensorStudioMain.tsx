@@ -7,9 +7,11 @@ import {
 import { useSensorStudioFlowTickScheduler } from "./useSensorStudioFlowTickScheduler";
 import { useSensorStudioLivePerformanceStats } from "./useSensorStudioLivePerformanceStats";
 import { useDashboardStructuralSnapshot } from "../features/dashboard/use-dashboard-structural-snapshot";
+import { useStageStructuralSnapshot } from "../features/stage/use-stage-structural-snapshot";
 import type { NodeCatalogEntry } from "../core/config/config-types";
 import { configService } from "../core/config/config-service";
 import { StudioLayout } from "../features/editor/components/StudioLayout";
+import { useStudioInspectorPinStore } from "../state/studio-inspector-pin.store";
 import { runStageSceneOutputDemoTemplate } from "../features/stage/stage-viewport-helpers";
 import type { StandaloneWorkbenchHandle } from "../../ui/workbench";
 import { createWorkbenchFlowAttachment } from "../../ui/workbench/workbench-flow-attachment";
@@ -158,6 +160,9 @@ export function SensorStudioMain() {
     setStudioAssetDescriptors(descriptors);
   }, [descriptors, setStudioAssetDescriptors]);
   useEffect(() => installStudioLibraryWorkspaceSync(), []);
+  useEffect(() => {
+    useStudioInspectorPinStore.getState().hydrateFromStorage();
+  }, []);
   const [bootViewport] = useState<StudioPersistedViewport | null>(() => {
     const raw = persistedBootstrapRef.current;
     const v = raw?.viewport;
@@ -209,6 +214,7 @@ export function SensorStudioMain() {
   useSensorStudioTelemetryFlowRefresh(tickSimulation);
   useSensorStudioLivePerformanceStats();
   useDashboardStructuralSnapshot();
+  useStageStructuralSnapshot();
   const undo = useFlowEditorStore((s) => s.undo);
   const redo = useFlowEditorStore((s) => s.redo);
   const hydrateFlowDocument = useFlowEditorStore((s) => s.hydrateFlowDocument);
@@ -338,35 +344,39 @@ export function SensorStudioMain() {
     setDeviceSensorSettingsOpen(true);
   }, []);
 
+  const flushPersistToStorage = useCallback(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const st = persistActiveGraphBuffer(useFlowEditorStore.getState());
+    const atRoot = st.activeGraphId === STUDIO_ROOT_GRAPH_ID;
+    const exportNodes = atRoot || st.rootNodes.length === 0 ? st.nodes : st.rootNodes;
+    const exportEdges = atRoot || st.rootEdges.length === 0 ? st.edges : st.rootEdges;
+    const includeRootBuffer =
+      Object.keys(st.subgraphs).length > 0 ||
+      (!atRoot && st.rootNodes.length > 0);
+    writePersistedFlowDocument({
+      version: 1,
+      nodes: exportNodes,
+      edges: exportEdges,
+      selectedNodeId: st.selectedNodeId,
+      selectedNodeIds: st.selectedNodeIds.length > 0 ? st.selectedNodeIds : undefined,
+      ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
+      ...(includeRootBuffer ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges } : {}),
+      viewport: viewportPersistRef.current ?? undefined,
+      canvasPreferences: flowCanvasPrefsRef.current,
+    });
+  }, []);
+
   const schedulePersistToStorage = useCallback(() => {
     if (typeof window === "undefined") {
       return;
     }
     window.clearTimeout(persistTimerRef.current);
     persistTimerRef.current = window.setTimeout(() => {
-      const st = persistActiveGraphBuffer(useFlowEditorStore.getState());
-      const atRoot = st.activeGraphId === STUDIO_ROOT_GRAPH_ID;
-      const exportNodes = atRoot || st.rootNodes.length === 0 ? st.nodes : st.rootNodes;
-      const exportEdges = atRoot || st.rootEdges.length === 0 ? st.edges : st.rootEdges;
-      const includeRootBuffer =
-        Object.keys(st.subgraphs).length > 0 ||
-        (!atRoot && st.rootNodes.length > 0);
-      writePersistedFlowDocument({
-        version: 1,
-        nodes: exportNodes,
-        edges: exportEdges,
-        selectedNodeId: st.selectedNodeId,
-        selectedNodeIds:
-          st.selectedNodeIds.length > 0 ? st.selectedNodeIds : undefined,
-        ...(Object.keys(st.subgraphs).length > 0 ? { subgraphs: st.subgraphs } : {}),
-        ...(includeRootBuffer
-          ? { rootNodes: st.rootNodes, rootEdges: st.rootEdges }
-          : {}),
-        viewport: viewportPersistRef.current ?? undefined,
-        canvasPreferences: flowCanvasPrefsRef.current,
-      });
+      flushPersistToStorage();
     }, 480);
-  }, []);
+  }, [flushPersistToStorage]);
 
   const onFlowViewportMoveEnd = useCallback(
     (viewport: Viewport) => {
@@ -1207,11 +1217,17 @@ export function SensorStudioMain() {
       persistFingerprintRef.current = fp;
       schedulePersistToStorage();
     });
+    const onBeforeUnload = () => {
+      window.clearTimeout(persistTimerRef.current);
+      flushPersistToStorage();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
     return () => {
       unsub();
+      window.removeEventListener("beforeunload", onBeforeUnload);
       window.clearTimeout(persistTimerRef.current);
     };
-  }, [bootViewport, hydrateFlowDocument, schedulePersistToStorage]);
+  }, [bootViewport, flushPersistToStorage, hydrateFlowDocument, schedulePersistToStorage]);
 
   return (
     <>
@@ -1250,6 +1266,8 @@ export function SensorStudioMain() {
         physicsSceneColor={dataTypeColors.physicsScene}
         physicsColliderColor={dataTypeColors.physicsCollider}
         physicsBodyColor={dataTypeColors.physicsBody}
+        physicsJointColor={dataTypeColors.physicsJoint}
+        physicsSpawnerColor={dataTypeColors.physicsSpawner}
         dashboardWidgetColor={dataTypeColors.dashboardWidget}
         dashboardThemeColor={dataTypeColors.dashboardTheme}
         dashboardTabColor={dataTypeColors.dashboardTab}

@@ -3,6 +3,7 @@ import {
   isActiveInfographicPreset,
 } from "../../../schemas/infographicVisualPreset.v1";
 import type { CourseBindingHealthStatus } from "../../../runtime/courseBindingHealth";
+import { spreadWidgetBoardLayoutProps } from "../widget-board/widgetBoardReadoutLayout";
 import { CourseInfographicWidget } from "./CourseInfographicWidget";
 
 export function readDashboardVisualPreset(style: Record<string, unknown> | undefined) {
@@ -43,6 +44,7 @@ export function tryRenderDashboardInfographic(args: {
       showUnit={showUnit}
       health={args.health}
       configSource={args.style}
+      readoutLayout={spreadWidgetBoardLayoutProps(args.style)}
       className={args.className}
     />
   );

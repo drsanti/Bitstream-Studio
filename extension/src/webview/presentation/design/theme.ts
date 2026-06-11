@@ -3,14 +3,16 @@
  * Applied on `.presentation-root[data-presentation-theme="dark|light"]`.
  */
 import chroma from "chroma-js";
+import {
+  DARK_SURFACE_BASE,
+  PRESENTATION_DARK_TEXT_COLORS,
+} from "./presentationTextColors";
 import { BASE, presentationTokens } from "./tokens";
 
 export type PresentationThemeMode = "dark" | "light";
 
 type CSSVarMap = Record<string, string>;
 
-/** Neutral dark base — Course Studio / Presentation dark theme background. */
-const DARK_SURFACE_BASE = "#111113";
 const darkSurface = chroma(DARK_SURFACE_BASE);
 
 function buildAxisVars(prefix: string, ramp: (typeof presentationTokens.axis.x)): CSSVarMap {
@@ -31,10 +33,13 @@ export const presentationDarkTheme: CSSVarMap = {
   "--surface-card": darkSurface.brighten(0.48).hex(),
   "--surface-border": darkSurface.brighten(0.9).hex(),
   "--surface-hover": darkSurface.brighten(0.58).hex(),
-  "--text-primary": "#f5f5f5",
-  "--text-secondary": darkSurface.brighten(2.15).hex(),
-  "--text-prose": darkSurface.brighten(2.85).hex(),
-  "--text-muted": darkSurface.brighten(1.55).hex(),
+  "--text-primary": PRESENTATION_DARK_TEXT_COLORS.primary,
+  "--text-secondary": PRESENTATION_DARK_TEXT_COLORS.secondary,
+  "--text-prose": PRESENTATION_DARK_TEXT_COLORS.prose,
+  "--text-muted": PRESENTATION_DARK_TEXT_COLORS.muted,
+  "--text-link": PRESENTATION_DARK_TEXT_COLORS.link,
+  "--text-code": PRESENTATION_DARK_TEXT_COLORS.code,
+  "--text-live-value": PRESENTATION_DARK_TEXT_COLORS.liveValue,
   "--text-inverse": DARK_SURFACE_BASE,
   "--axis-x": BASE.axisX,
   "--axis-y": BASE.axisY,

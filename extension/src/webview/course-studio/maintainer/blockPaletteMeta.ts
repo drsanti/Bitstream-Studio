@@ -228,3 +228,8 @@ export function courseBlockEmbedPaletteEntries(): CourseBlockPaletteEntry[] {
 export function courseBlockPaletteMoreRowCount(): number {
   return courseBlockPaletteVisibleEntries("more").length + 1;
 }
+
+/** All palette rows for grid-cell “add block” menus (includes embed sub-kinds). */
+export function coursePageGridAddBlockMenuEntries(): CourseBlockPaletteEntry[] {
+  return PAGE_BLOCK_PALETTE.filter((entry) => entry.paletteHidden !== true);
+}

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { dashboardSquareGridCssStyle } from "../../../../sensor-studio/core/dashboard/dashboard-square-grid";
 import type { DiagramBindingV1 } from "../../../schemas/diagram.v1";
 import { clampPlacementToGrid } from "../../../schemas/placement";
 import type { WidgetBoardEntryV1, WidgetBoardInnerGridV1 } from "../../../schemas/widgetBoard.v1";
@@ -52,19 +53,21 @@ export function widgetBoardPublishedGridLayoutStyle(
   };
 }
 
-/** Widget Editor inner grid — fixed row tracks (Page Editor composer parity). */
+/** Widget Editor inner grid — square cells (dashboard editor parity). */
 export function widgetBoardEditorGridLayoutStyle(
   grid: WidgetBoardInnerGridV1,
   visibleRows: number,
 ): CSSProperties {
+  const metrics = {
+    columns: grid.columns,
+    gapPx: grid.gapPx,
+    paddingPx: grid.paddingPx,
+    rowHeightPx: grid.rowHeightPx,
+  };
   const trackHeightPx = widgetBoardGridTracksHeightPx(grid, visibleRows);
   return {
     ...widgetBoardInnerGridStyleVars(grid),
-    display: "grid",
-    gridTemplateColumns: `repeat(${grid.columns}, minmax(0, 1fr))`,
-    gridAutoRows: `${grid.rowHeightPx}px`,
-    gap: `${grid.gapPx}px`,
-    padding: `${grid.paddingPx}px`,
+    ...dashboardSquareGridCssStyle(metrics),
     minHeight: `${trackHeightPx}px`,
     height: `${trackHeightPx}px`,
   };

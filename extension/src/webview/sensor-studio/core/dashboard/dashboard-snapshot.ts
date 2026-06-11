@@ -24,8 +24,11 @@ export type DashboardWidgetKindV1 =
   | "bar"
   | "knob"
   | "switch"
+  | "select"
   | "slider"
   | "status"
+  | "formatted-text"
+  | "image"
   | "sparkline"
   | "plotter";
 

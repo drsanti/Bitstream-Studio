@@ -2,6 +2,19 @@ import { dashboardPlacementCellKeys } from "../../sensor-studio/core/dashboard/d
 import type { GridPlacementV1 } from "../schemas/placement";
 import type { PageV1 } from "../schemas/page.v1";
 
+function placementContainsCell(
+  placement: GridPlacementV1,
+  column: number,
+  row: number,
+): boolean {
+  return (
+    column >= placement.column &&
+    column < placement.column + placement.columnSpan &&
+    row >= placement.row &&
+    row < placement.row + placement.rowSpan
+  );
+}
+
 function placementFits(
   placement: GridPlacementV1,
   occupied: ReadonlySet<string>,
@@ -29,6 +42,62 @@ export function occupiedPlacementKeys(page: PageV1, exceptBlockId?: string): Set
     }
   }
   return keys;
+}
+
+export function occupiedPlacementKeysFromBlocks(
+  blocks: readonly { id: string; placement: GridPlacementV1 }[],
+  previewById: Readonly<Record<string, GridPlacementV1>> = {},
+  exceptBlockId?: string,
+): Set<string> {
+  const keys = new Set<string>();
+  for (const block of blocks) {
+    if (block.id === exceptBlockId) {
+      continue;
+    }
+    const placement = previewById[block.id] ?? block.placement;
+    for (const key of dashboardPlacementCellKeys(placement)) {
+      keys.add(key);
+    }
+  }
+  return keys;
+}
+
+/** Place a block so the clicked cell lies inside its span (dashboard / widget-board parity). */
+export function findPageBlockPlacementAtAnchor(
+  anchorColumn: number,
+  anchorRow: number,
+  span: Pick<GridPlacementV1, "columnSpan" | "rowSpan">,
+  page: PageV1,
+  exceptBlockId?: string,
+): GridPlacementV1 {
+  const occupied = occupiedPlacementKeys(page, exceptBlockId);
+  const { columns } = page.grid;
+
+  const tryOrigin = (column: number, row: number): GridPlacementV1 | null => {
+    const candidate: GridPlacementV1 = { column, row, ...span };
+    if (!placementContainsCell(candidate, anchorColumn, anchorRow)) {
+      return null;
+    }
+    if (!placementFits(candidate, occupied, columns)) {
+      return null;
+    }
+    return candidate;
+  };
+
+  for (let row = anchorRow; row >= Math.max(1, anchorRow - span.rowSpan + 1); row -= 1) {
+    for (
+      let column = anchorColumn;
+      column >= Math.max(1, anchorColumn - span.columnSpan + 1);
+      column -= 1
+    ) {
+      const candidate = tryOrigin(column, row);
+      if (candidate != null) {
+        return candidate;
+      }
+    }
+  }
+
+  return findOpenPlacement(page, span, exceptBlockId);
 }
 
 export function findOpenPlacement(
