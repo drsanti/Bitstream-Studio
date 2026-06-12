@@ -1,10 +1,8 @@
 import { ArrowLeft, Pause, Play, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { TRNInlineToggleRow } from "../../../ui/TRN/TRNInlineToggleRow.js";
 import { TRNSegmentedControl } from "../../../ui/TRN/TRNSegmentedControl.js";
-import {
-  usePhysicsLabStore,
-  type PhysicsLabWorkbenchMode,
-} from "../store/physicsLabStore.js";
+import type { PhysicsLabAuthoringMode, PhysicsLabGizmoMode } from "../utils/physicsLabMath.js";
+import { usePhysicsLabStore, type PhysicsLabWorkbenchMode } from "../store/physicsLabStore.js";
 
 type PhysicsLabToolbarProps = {
   title: string;
@@ -17,13 +15,27 @@ const WORKBENCH_OPTIONS: { value: PhysicsLabWorkbenchMode; label: string }[] = [
   { value: "simulate", label: "Simulate" },
 ];
 
+const AUTHORING_OPTIONS: { value: PhysicsLabAuthoringMode; label: string }[] = [
+  { value: "object", label: "Object" },
+  { value: "collider", label: "Collider" },
+];
+
+const GIZMO_OPTIONS: { value: PhysicsLabGizmoMode; label: string }[] = [
+  { value: "translate", label: "Move" },
+  { value: "rotate", label: "Rotate" },
+];
+
 export function PhysicsLabToolbar({ title, subtitle, onBack }: PhysicsLabToolbarProps) {
   const workbenchMode = usePhysicsLabStore((s) => s.workbenchMode);
+  const authoringMode = usePhysicsLabStore((s) => s.authoringMode);
+  const gizmoMode = usePhysicsLabStore((s) => s.gizmoMode);
   const isPlaying = usePhysicsLabStore((s) => s.isPlaying);
   const undoStack = usePhysicsLabStore((s) => s.undoStack);
   const redoStack = usePhysicsLabStore((s) => s.redoStack);
   const showColliderWireframes = usePhysicsLabStore((s) => s.showColliderWireframes);
   const setWorkbenchMode = usePhysicsLabStore((s) => s.setWorkbenchMode);
+  const setAuthoringMode = usePhysicsLabStore((s) => s.setAuthoringMode);
+  const setGizmoMode = usePhysicsLabStore((s) => s.setGizmoMode);
   const togglePlaying = usePhysicsLabStore((s) => s.togglePlaying);
   const resetSimulation = usePhysicsLabStore((s) => s.resetSimulation);
   const undo = usePhysicsLabStore((s) => s.undo);
@@ -59,6 +71,32 @@ export function PhysicsLabToolbar({ title, subtitle, onBack }: PhysicsLabToolbar
           }}
           ariaLabel="Workbench mode"
         />
+        {workbenchMode === "edit" ? (
+          <>
+            <TRNSegmentedControl
+              size="sm"
+              value={authoringMode}
+              options={AUTHORING_OPTIONS}
+              onValueChange={(value) => {
+                if (value === "object" || value === "collider") {
+                  setAuthoringMode(value);
+                }
+              }}
+              ariaLabel="Authoring mode"
+            />
+            <TRNSegmentedControl
+              size="sm"
+              value={gizmoMode}
+              options={GIZMO_OPTIONS}
+              onValueChange={(value) => {
+                if (value === "translate" || value === "rotate") {
+                  setGizmoMode(value);
+                }
+              }}
+              ariaLabel="Gizmo mode"
+            />
+          </>
+        ) : null}
         <button
           type="button"
           className="inline-flex items-center gap-1 rounded-lg border border-zinc-700/80 bg-zinc-950/85 px-2 py-1.5 text-[11px] font-medium text-zinc-100 shadow-lg backdrop-blur-sm transition hover:border-zinc-500 disabled:cursor-not-allowed disabled:opacity-40"

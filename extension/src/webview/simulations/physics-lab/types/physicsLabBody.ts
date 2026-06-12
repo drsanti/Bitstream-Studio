@@ -8,6 +8,8 @@ export type PhysicsLabBodyDef = {
   motion: PhysicsLabBodyMotion;
   shape: PhysicsLabShapeKind;
   position: [number, number, number];
+  rotationDeg?: [number, number, number];
+  sortOrder?: number;
   /** Box half extents (m). */
   halfExtents?: [number, number, number];
   /** Sphere / capsule radius (m). */
@@ -47,6 +49,8 @@ export function createPhysicsLabSpawnBody(
       motion: "dynamic",
       shape,
       position: [spawnIndex * 0.2, y, 0],
+      rotationDeg: [0, 0, 0],
+      sortOrder: 100 + spawnIndex,
       radius: 0.5,
     };
   }
@@ -57,6 +61,8 @@ export function createPhysicsLabSpawnBody(
       motion: "dynamic",
       shape,
       position: [spawnIndex * 0.2, y, 0],
+      rotationDeg: [0, 0, 0],
+      sortOrder: 100 + spawnIndex,
       radius: 0.35,
       halfHeight: 0.5,
     };
@@ -67,6 +73,8 @@ export function createPhysicsLabSpawnBody(
     motion: "dynamic",
     shape,
     position: [spawnIndex * 0.2, y, 0],
+    rotationDeg: [0, 0, 0],
+    sortOrder: 100 + spawnIndex,
     halfExtents: [0.5, 0.5, 0.5],
   };
 }
@@ -78,6 +86,8 @@ export const PHYSICS_LAB_INITIAL_BODIES: PhysicsLabBodyDef[] = [
     motion: "fixed",
     shape: "box",
     position: [0, 0, 0],
+    rotationDeg: [0, 0, 0],
+    sortOrder: 0,
     halfExtents: [12, 0.05, 12],
   },
   {
@@ -86,6 +96,8 @@ export const PHYSICS_LAB_INITIAL_BODIES: PhysicsLabBodyDef[] = [
     motion: "dynamic",
     shape: "box",
     position: [0, 2, 0],
+    rotationDeg: [0, 0, 0],
+    sortOrder: 1,
     halfExtents: [0.5, 0.5, 0.5],
   },
 ];

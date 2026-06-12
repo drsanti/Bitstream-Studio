@@ -22,6 +22,8 @@ export function PhysicsLabApp({ onBack }: SimulationAppProps) {
   const undo = usePhysicsLabStore((s) => s.undo);
   const redo = usePhysicsLabStore((s) => s.redo);
   const deleteSelectedBodies = usePhysicsLabStore((s) => s.deleteSelectedBodies);
+  const setGizmoMode = usePhysicsLabStore((s) => s.setGizmoMode);
+  const toggleProjectionMode = usePhysicsLabStore((s) => s.toggleProjectionMode);
 
   const {
     canvasAreaRef,
@@ -43,7 +45,25 @@ export function PhysicsLabApp({ onBack }: SimulationAppProps) {
       ) {
         return;
       }
+
+      if (event.key === "5") {
+        event.preventDefault();
+        toggleProjectionMode();
+        return;
+      }
+
       if (workbenchMode !== "edit") {
+        return;
+      }
+
+      if (event.key.toLowerCase() === "g" && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setGizmoMode("translate");
+        return;
+      }
+      if (event.key.toLowerCase() === "r" && !event.ctrlKey && !event.metaKey) {
+        event.preventDefault();
+        setGizmoMode("rotate");
         return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
@@ -66,7 +86,7 @@ export function PhysicsLabApp({ onBack }: SimulationAppProps) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [deleteSelectedBodies, redo, undo, workbenchMode]);
+  }, [deleteSelectedBodies, redo, setGizmoMode, toggleProjectionMode, undo, workbenchMode]);
 
   return (
     <div className="fixed inset-0 z-400 flex min-h-0 flex-col bg-zinc-950">

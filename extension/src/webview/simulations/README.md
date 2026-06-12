@@ -45,7 +45,7 @@ flowchart TD
 | `e84-rotation` | MVP | GLB rotation, MQTT panel, transform controls |
 | `abb-robot` | MVP | Arm controller, GSAP, MQTT |
 | `vehicle-physics` | Partial | Jolt four-wheel, config panel, driving keys |
-| `physics-lab` | **P1** | Rapier scene + Edit/Simulate; multi/box select, undo, wireframes, spawn palette — [`PHYSICS_LAB.md`](./physics-lab/docs/PHYSICS_LAB.md) |
+| `physics-lab` | **P2** | + gizmo, ortho/persp (**5**), authoring modes, scene JSON, outliner reorder — [`PHYSICS_LAB.md`](./physics-lab/docs/PHYSICS_LAB.md) |
 
 ## WebGL / build (required reading)
 

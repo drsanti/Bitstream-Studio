@@ -3,6 +3,7 @@
 import { CapsuleCollider, CuboidCollider, BallCollider, RigidBody } from "@react-three/rapier";
 import { Edges } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
+import { physicsLabDegToRad } from "../utils/physicsLabMath.js";
 import { usePhysicsLabStore } from "../store/physicsLabStore.js";
 import type { PhysicsLabBodyDef } from "../types/physicsLabBody.js";
 import { isPhysicsLabFloor } from "../types/physicsLabBody.js";
@@ -95,6 +96,7 @@ export function PhysicsLabBody({ body, onObjectPointerDown }: PhysicsLabBodyProp
   const color = bodyMeshColor(body, selected, active);
   const showWireframe = selected && showColliderWireframes;
   const wireColor = active ? "#f59e0b" : "#38bdf8";
+  const rotation = physicsLabDegToRad(body.rotationDeg ?? [0, 0, 0]);
 
   const onPointerDown = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
@@ -110,6 +112,7 @@ export function PhysicsLabBody({ body, onObjectPointerDown }: PhysicsLabBodyProp
       type={body.motion === "fixed" ? "fixed" : "dynamic"}
       colliders={false}
       position={body.position}
+      rotation={rotation}
       userData={{ physicsLabId: body.id }}
     >
       <group onPointerDown={onPointerDown}>

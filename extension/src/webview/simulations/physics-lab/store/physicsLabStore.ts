@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import type { PhysicsLabAuthoringMode, PhysicsLabGizmoMode } from "../utils/physicsLabMath.js";
+import type { PhysicsLabProjectionMode } from "../core/physicsLabViewportProjection.js";
+import { parsePhysicsLabSceneDocument } from "../serialization/physicsLabSceneDocument.js";
 import type { PhysicsLabBodyDef, PhysicsLabShapeKind } from "../types/physicsLabBody.js";
 import {
   createPhysicsLabSpawnBody,
@@ -18,6 +21,9 @@ function cloneBodies(bodies: readonly PhysicsLabBodyDef[]): PhysicsLabBodyDef[] 
   return bodies.map((body) => ({
     ...body,
     position: [...body.position] as [number, number, number],
+    rotationDeg: body.rotationDeg
+      ? ([...body.rotationDeg] as [number, number, number])
+      : [0, 0, 0],
     halfExtents: body.halfExtents ? ([...body.halfExtents] as [number, number, number]) : undefined,
   }));
 }
@@ -50,6 +56,9 @@ function selectionFromPick(
 type PhysicsLabState = {
   workbenchMode: PhysicsLabWorkbenchMode;
   isPlaying: boolean;
+  authoringMode: PhysicsLabAuthoringMode;
+  gizmoMode: PhysicsLabGizmoMode;
+  projectionMode: PhysicsLabProjectionMode;
   bodies: PhysicsLabBodyDef[];
   selectedIds: string[];
   activeId: string | null;
@@ -58,6 +67,9 @@ type PhysicsLabState = {
   undoStack: PhysicsLabSnapshot[];
   redoStack: PhysicsLabSnapshot[];
   setWorkbenchMode: (mode: PhysicsLabWorkbenchMode) => void;
+  setAuthoringMode: (mode: PhysicsLabAuthoringMode) => void;
+  setGizmoMode: (mode: PhysicsLabGizmoMode) => void;
+  toggleProjectionMode: () => void;
   setPlaying: (playing: boolean) => void;
   togglePlaying: () => void;
   setSelection: (selectedIds: string[], activeId?: string | null) => void;
@@ -65,18 +77,25 @@ type PhysicsLabState = {
   clearSelection: () => void;
   spawnBody: (shape: PhysicsLabShapeKind) => void;
   deleteSelectedBodies: () => void;
+  updateBodyTransform: (
+    id: string,
+    patch: { position?: [number, number, number]; rotationDeg?: [number, number, number] },
+  ) => void;
+  reorderBody: (bodyId: string, targetIndex: number) => void;
+  loadSceneDocument: (json: string) => void;
   pushUndoSnapshot: () => void;
   undo: () => void;
   redo: () => void;
   resetSimulation: () => void;
   setShowColliderWireframes: (value: boolean) => void;
-  canUndo: () => boolean;
-  canRedo: () => boolean;
 };
 
 export const usePhysicsLabStore = create<PhysicsLabState>((set, get) => ({
   workbenchMode: "edit",
   isPlaying: false,
+  authoringMode: "object",
+  gizmoMode: "translate",
+  projectionMode: "perspective",
   bodies: cloneBodies(PHYSICS_LAB_INITIAL_BODIES),
   selectedIds: ["dynamic-box"],
   activeId: "dynamic-box",
@@ -89,6 +108,17 @@ export const usePhysicsLabStore = create<PhysicsLabState>((set, get) => ({
       workbenchMode: mode,
       isPlaying: mode === "simulate",
     });
+  },
+  setAuthoringMode: (mode) => {
+    set({ authoringMode: mode });
+  },
+  setGizmoMode: (mode) => {
+    set({ gizmoMode: mode });
+  },
+  toggleProjectionMode: () => {
+    set((state) => ({
+      projectionMode: state.projectionMode === "perspective" ? "orthographic" : "perspective",
+    }));
   },
   setPlaying: (playing) => {
     set({ isPlaying: playing });
@@ -132,7 +162,8 @@ export const usePhysicsLabStore = create<PhysicsLabState>((set, get) => ({
     const state = get();
     state.pushUndoSnapshot();
     const spawnIndex = state.bodies.filter((b) => !isPhysicsLabFloor(b.id)).length;
-    const body = createPhysicsLabSpawnBody(shape, spawnIndex);
+    const maxSort = state.bodies.reduce((max, body) => Math.max(max, body.sortOrder ?? 0), 0);
+    const body = { ...createPhysicsLabSpawnBody(shape, spawnIndex), sortOrder: maxSort + 1 };
     set((current) => ({
       bodies: [...current.bodies, body],
       selectedIds: [body.id],
@@ -155,6 +186,48 @@ export const usePhysicsLabStore = create<PhysicsLabState>((set, get) => ({
       activeId: state.activeId != null && remove.has(state.activeId) ? null : state.activeId,
       simGeneration: state.simGeneration + 1,
     }));
+  },
+  updateBodyTransform: (id, patch) => {
+    set((state) => ({
+      bodies: state.bodies.map((body) => {
+        if (body.id !== id) {
+          return body;
+        }
+        return {
+          ...body,
+          position: patch.position ?? body.position,
+          rotationDeg: patch.rotationDeg ?? body.rotationDeg ?? [0, 0, 0],
+        };
+      }),
+      simGeneration: state.simGeneration + 1,
+    }));
+  },
+  reorderBody: (bodyId, targetIndex) => {
+    const { bodies } = get();
+    const sorted = [...bodies].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    const fromIndex = sorted.findIndex((body) => body.id === bodyId);
+    if (fromIndex < 0 || fromIndex === targetIndex) {
+      return;
+    }
+    get().pushUndoSnapshot();
+    const [moved] = sorted.splice(fromIndex, 1);
+    if (moved == null) {
+      return;
+    }
+    sorted.splice(targetIndex, 0, moved);
+    const reindexed = sorted.map((body, index) => ({ ...body, sortOrder: index }));
+    set({ bodies: reindexed });
+  },
+  loadSceneDocument: (json) => {
+    const doc = parsePhysicsLabSceneDocument(json);
+    get().pushUndoSnapshot();
+    const bodies = cloneBodies(doc.bodies);
+    set({
+      bodies,
+      selectedIds: bodies[0]?.id ? [bodies[0].id] : [],
+      activeId: bodies[0]?.id ?? null,
+      simGeneration: get().simGeneration + 1,
+    });
   },
   undo: () => {
     const { undoStack, bodies, redoStack, selectedIds, activeId } = get();
@@ -199,8 +272,6 @@ export const usePhysicsLabStore = create<PhysicsLabState>((set, get) => ({
   setShowColliderWireframes: (value) => {
     set({ showColliderWireframes: value });
   },
-  canUndo: () => get().undoStack.length > 0,
-  canRedo: () => get().redoStack.length > 0,
 }));
 
 export function physicsLabPhysicsPaused(state: Pick<PhysicsLabState, "workbenchMode" | "isPlaying">): boolean {

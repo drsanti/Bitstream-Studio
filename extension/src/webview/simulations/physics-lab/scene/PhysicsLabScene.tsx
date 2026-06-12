@@ -1,7 +1,6 @@
 "use no memo";
 
 import { Physics } from "@react-three/rapier";
-import { SimulationSceneEnvironment } from "../../shared/canvas/SimulationSceneEnvironment.js";
 import type { PhysicsLabBoxSelectProjector } from "../core/physicsLabBoxSelectProjector.js";
 import {
   physicsLabPhysicsPaused,
@@ -9,6 +8,8 @@ import {
 } from "../store/physicsLabStore.js";
 import { PhysicsLabBody } from "./PhysicsLabBody.js";
 import { PhysicsLabBoxSelectBridge } from "./PhysicsLabBoxSelectBridge.js";
+import { PhysicsLabSceneEnvironment } from "./PhysicsLabSceneEnvironment.js";
+import { PhysicsLabTransformGizmo } from "./PhysicsLabTransformGizmo.js";
 
 const GRAVITY: [number, number, number] = [0, -9.81, 0];
 
@@ -29,7 +30,7 @@ export function PhysicsLabScene({
 
   return (
     <>
-      <SimulationSceneEnvironment />
+      <PhysicsLabSceneEnvironment />
       <PhysicsLabBoxSelectBridge onRegister={onRegisterBoxSelectProjector} />
       <Physics
         key={simGeneration}
@@ -45,6 +46,7 @@ export function PhysicsLabScene({
           />
         ))}
       </Physics>
+      <PhysicsLabTransformGizmo onObjectPointerDown={onObjectPointerDown} />
     </>
   );
 }
